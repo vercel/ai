@@ -8,6 +8,31 @@ Edge-ready utilities to accelerate working with AI in JavaScript and React.
 pnpm install @vercel/ai-utils
 ```
 
+## Usage
+
+```tsx
+// app/api/generate/route.ts
+import { Configuration, OpenAIApi } from 'openai-edge';
+import { OpenAITextStream, StreamingTextResponse } from '@vercel/ai-utils';
+
+const config = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(config);
+
+export const runtime = 'edge';
+
+export async function POST() {
+  const response = await openai.createChatCompletion({
+    model: 'gpt-4',
+    stream: true,
+    messages: [{ role: 'user', content: 'What is love?' }],
+  });
+  const stream = new OpenAITextStream(response);
+  return new StreamingTextResponse(stream);
+}
+```
+
 ## Tutorial
 
 For this example, we'll stream a chat completion text from OpenAI's `gpt-3.5-turbo` and render it in Next.js. This tutorial assumes you have
@@ -101,7 +126,7 @@ export function Form() {
 
 ## API Reference
 
-### `OpenAIStream(res: Response): ReadableStream`
+### `OpenAIStream(res: Response, cb: AIStreamCallbacks): ReadableStream`
 
 A transform that will extract the text from all chat and completion OpenAI models as returned as a `ReadableStream`.
 
@@ -123,12 +148,23 @@ export async function POST() {
     stream: true,
     messages: [{ role: 'user', content: 'What is love?' }],
   });
-  const stream = new OpenAITextStream(response);
+  const stream = new OpenAITextStream(response, {
+    async onStart() {
+      console.log('streamin yo')
+    },
+    async onToken(token) {
+      console.log('token: ' + token)
+    },
+    async onCompletion(content) {
+      console.log('full text: ' + )
+      // await prisma.messages.create({ content }) or something
+    }
+  });
   return new StreamingTextResponse(stream);
 }
 ```
 
-### `HuggingFaceStream(iter: AsyncGenerator<TextGenerationStreamOutput>): ReadableStream`
+### `HuggingFaceStream(iter: AsyncGenerator<any>, cb: AIStreamCallbacks): ReadableStream`
 
 A transform that will extract the text from _most_ chat and completion HuggingFace models and return them as a `ReadableStream`.
 
