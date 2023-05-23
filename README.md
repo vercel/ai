@@ -2,6 +2,22 @@
 
 Edge-ready utilities to accelerate working with AI in JavaScript and React.
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Installation](#installation)
+- [Usage](#usage)
+- [Tutorial](#tutorial)
+  - [Create a Next.js app](#create-a-nextjs-app)
+  - [Add your OpenAI API Key to `.env`](#add-your-openai-api-key-to-env)
+  - [Create a Route Handler](#create-a-route-handler)
+- [API Reference](#api-reference)
+  - [`OpenAIStream(res: Response, cb: AIStreamCallbacks): ReadableStream`](#openaistreamres-response-cb-aistreamcallbacks-readablestream)
+  - [`HuggingFaceStream(iter: AsyncGenerator<any>, cb: AIStreamCallbacks): ReadableStream`](#huggingfacestreamiter-asyncgeneratorany-cb-aistreamcallbacks-readablestream)
+  - [`StreamingTextResponse(res: ReadableStream, init?: ResponseInit)`](#streamingtextresponseres-readablestream-init-responseinit)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Installation
 
 ```sh
