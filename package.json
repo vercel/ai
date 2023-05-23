@@ -34,8 +34,10 @@
     "prepublishOnly": "pnpm run build",
     "prettier-check": "prettier --check .",
     "publint": "npx publint",
+    "release": "pnpm build && changeset publish",
     "test": "jest --env @edge-runtime/jest-environment .test.ts && jest --env node .test.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "version-packages": "changeset version"
   },
   "prettier": "@vercel/style-guide/prettier",
   "jest": {
