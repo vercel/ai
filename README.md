@@ -2,22 +2,6 @@
 
 Edge-ready utilities to accelerate working with AI in JavaScript and React.
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Vercel AI Utils](#vercel-ai-utils)
-  - [Installation](#installation)
-  - [Tutorial](#tutorial)
-    - [Create a Next.js app](#create-a-nextjs-app)
-    - [Add your OpenAI API Key to `.env`](#add-your-openai-api-key-to-env)
-    - [Create a Route Handler](#create-a-route-handler)
-  - [API Reference](#api-reference)
-    - [`OpenAIStream(res: Response): ReadableStream`](#openaistreamres-response-readablestream)
-    - [`HuggingFaceStream(iter: AsyncGenerator<TextGenerationStreamOutput>): ReadableStream`](#huggingfacestreamiter-asyncgeneratortextgenerationstreamoutput-readablestream)
-    - [`StreamingTextResponse(res: ReadableStream, init?: ResponseInit)`](#streamingtextresponseres-readablestream-init-responseinit)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ## Installation
 
 ```sh
@@ -85,7 +69,7 @@ export async function POST(req: Request) {
 }
 ```
 
-Create a Client component with a form that we'll use to gather the prompt from the user and then stream the completion from.
+Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
 
 ```tsx
 // ./app/form.ts
@@ -96,7 +80,7 @@ import { useCompletion } from '@vercel/ai-utils/react'; //@todo
 
 export function Form() {
   const [value, setValue] = useState('');
-  const { setPrompt, completion } = useCompletion();
+  const { setPrompt, completion } = useCompletion('/api/generate');
   return (
     <div>
       <form
