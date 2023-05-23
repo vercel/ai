@@ -1,10 +1,10 @@
 {
-  "name": "ai-utils",
-  "version": "0.1.2",
+  "name": "@vercel/ai-utils",
+  "version": "0.0.1",
   "description": "AI Helpers",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jaredpalmer/ai-utils.git"
+    "url": "https://github.com/vercel-labs/ai-utils.git"
   },
   "license": "Apache-2.0",
   "sideEffects": false,
