@@ -2,6 +2,12 @@
 
 Edge-ready utilities to accelerate working with AI in JavaScript and React.
 
+## Installation
+
+```sh
+pnpm install @vercel/ai-utils
+```
+
 **Table of Contents**
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -19,12 +25,6 @@ Edge-ready utilities to accelerate working with AI in JavaScript and React.
   - [`StreamingTextResponse(res: ReadableStream, init?: ResponseInit)`](#streamingtextresponseres-readablestream-init-responseinit)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-## Installation
-
-```sh
-pnpm install @vercel/ai-utils
-```
 
 ## Usage
 
