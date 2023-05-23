@@ -121,7 +121,7 @@ export async function POST() {
   const response = await openai.createChatCompletion({
     model: 'gpt-4',
     stream: true,
-    messages: { role: 'user', content: 'What is love?' },
+    messages: [{ role: 'user', content: 'What is love?' }],
   });
   const stream = new OpenAITextStream(response);
   return new StreamingTextResponse(stream);
