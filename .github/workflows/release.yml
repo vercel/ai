@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 16.x
-          cache: "pnpm"
+          cache: 'pnpm'
 
       - name: Install Dependencies
         run: pnpm install

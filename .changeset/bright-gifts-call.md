@@ -1,5 +1,5 @@
 ---
-"@vercel/ai-utils": patch
+'@vercel/ai-utils': patch
 ---
 
 Testing out release

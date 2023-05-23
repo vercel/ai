@@ -1,4 +1,4 @@
-import { AIStream, AIStreamCallbacks, AIStreamParserOptions } from "./AIStream";
+import { AIStream, AIStreamCallbacks, AIStreamParserOptions } from './AIStream';
 
 function parseAnthropicStream({
   data,
@@ -21,7 +21,7 @@ function parseAnthropicStream({
       return;
     }
 
-    const queue = encoder.encode(JSON.stringify(text) + "\n");
+    const queue = encoder.encode(JSON.stringify(text) + '\n');
     controller.enqueue(queue);
     counter++;
   } catch (e) {

@@ -12,13 +12,13 @@
 //   })),
 // }));
 
-describe("@vercel/ai-utils", () => {
+describe('@vercel/ai-utils', () => {
   beforeEach(() => {
     // scanReturnValues = [[0, []]];
   });
 
-  describe("not a real test", () => {
-    it("exports a default client", () => {
+  describe('not a real test', () => {
+    it('exports a default client', () => {
       expect(true).toEqual(true);
     });
   });

@@ -1,4 +1,4 @@
-import { AIStream, AIStreamCallbacks, AIStreamParserOptions } from "./AIStream";
+import { AIStream, AIStreamCallbacks, AIStreamParserOptions } from './AIStream';
 
 function parseOpenAIStream({
   data,
@@ -9,7 +9,7 @@ function parseOpenAIStream({
   try {
     const json = JSON.parse(data);
     // this can be used for either chat or completion models
-    const text = json.choices[0]?.delta?.content ?? json.choices[0]?.text ?? "";
+    const text = json.choices[0]?.delta?.content ?? json.choices[0]?.text ?? '';
 
     if (counter < 2 && (text.match(/\n/) || []).length) {
       return;
