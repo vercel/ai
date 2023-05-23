@@ -47,7 +47,7 @@ export async function POST() {
     stream: true,
     messages: [{ role: 'user', content: 'What is love?' }],
   });
-  const stream = new OpenAITextStream(response);
+  const stream = OpenAITextStream(response);
   return new StreamingTextResponse(stream);
 }
 ```
@@ -107,7 +107,7 @@ export async function POST(req: Request) {
     prompt,
   });
   // Convert the response into a React-friendly text-stream
-  const stream = new OpenAITextStream(response);
+  const stream = OpenAITextStream(response);
   // Respond with the stream
   return new StreamingTextResponse(stream);
 }
@@ -169,7 +169,7 @@ export async function POST() {
     stream: true,
     messages: [{ role: 'user', content: 'What is love?' }],
   });
-  const stream = new OpenAITextStream(response, {
+  const stream = OpenAITextStream(response, {
     async onStart() {
       console.log('streamin yo')
     },
@@ -211,7 +211,7 @@ export async function POST() {
       return_full_text: false,
     },
   });
-  const stream = new HuggingFaceStream(response);
+  const stream = HuggingFaceStream(response);
   return new StreamingTextResponse(stream);
 }
 ```
@@ -232,7 +232,7 @@ export async function POST() {
     stream: true,
     messages: { role: 'user', content: 'What is love?' },
   });
-  const stream = new OpenAITextStream(response);
+  const stream = OpenAITextStream(response);
   return new StreamingTextResponse(stream, {
     'X-RATE-LIMIT': 'lol',
   }); // => new Response(stream, { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-RATE-LIMIT': 'lol' }})
