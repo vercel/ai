@@ -37,6 +37,7 @@
     "test": "jest --env @edge-runtime/jest-environment .test.ts && jest --env node .test.ts",
     "type-check": "tsc --noEmit"
   },
+  "prettier": "@vercel/style-guide/prettier",
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node"

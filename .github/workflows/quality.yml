@@ -53,7 +53,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run ESLint check
-        run: pnpm run eslint-check
+        run: pnpm run lint
 
   types:
     name: 'TypeScript'

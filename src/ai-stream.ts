@@ -2,7 +2,7 @@ import {
   createParser,
   type ParsedEvent,
   type ReconnectInterval,
-} from "eventsource-parser";
+} from 'eventsource-parser';
 
 export interface AIStreamCallbacks {
   onStart?: () => Promise<void>;
@@ -11,8 +11,9 @@ export interface AIStreamCallbacks {
 }
 
 export interface AIStreamParserOptions {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
-  controller: ReadableStreamDefaultController<any>;
+  controller: ReadableStreamDefaultController;
   counter: number;
   encoder: TextEncoder;
 }
@@ -20,19 +21,19 @@ export interface AIStreamParserOptions {
 export function AIStream(
   res: Response,
   customParser: (opts: AIStreamParserOptions) => void,
-  callbacks?: AIStreamCallbacks
+  callbacks?: AIStreamCallbacks,
 ): ReadableStream {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
-  let counter = 0;
+  const counter = 0;
 
   const stream = new ReadableStream({
     async start(controller): Promise<void> {
       function onParse(event: ParsedEvent | ReconnectInterval): void {
-        if (event.type === "event") {
+        if (event.type === 'event') {
           const data = event.data;
-          if (data === "[DONE]") {
+          if (data === '[DONE]') {
             controller.close();
             return;
           }
@@ -42,31 +43,36 @@ export function AIStream(
 
       const parser = createParser(onParse);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for await (const chunk of res.body as any) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         parser.feed(decoder.decode(chunk));
       }
     },
   });
 
-  let fullResponse = "";
+  let fullResponse = '';
   const forkedStream = new TransformStream({
-    start: async () => {
+    start: async (): Promise<void> => {
       if (callbacks?.onStart) {
-        await callbacks?.onStart();
+        await callbacks.onStart();
       }
     },
-    transform: async (chunk, controller) => {
+    transform: async (chunk, controller): Promise<void> => {
       controller.enqueue(chunk);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const item = decoder.decode(chunk);
-      const value = JSON.parse(item.split("\n")[0]);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const value = JSON.parse(item.split('\n')[0]);
       if (callbacks?.onToken) {
-        await callbacks?.onToken(value);
+        await callbacks.onToken(value as string);
       }
       fullResponse += value;
     },
-    flush: async (controller) => {
+    flush: async (controller): Promise<void> => {
       if (callbacks?.onCompletion) {
-        await callbacks?.onCompletion(fullResponse);
+        await callbacks.onCompletion(fullResponse);
       }
       controller.terminate();
     },
