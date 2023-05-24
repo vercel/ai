@@ -31,7 +31,7 @@ pnpm install @vercel/ai-utils
 
 ## Background
 
-Creating UIs with contemporary AI providers is a daunting task. Ideally, language models/providers would be fast enough where developers could just fetch complete responses data with JSON in a few hundred milliseconds, but the reality is starkly different. It's quite common for these LLMs to take 5-40s to whip up a response. 
+Creating UIs with contemporary AI providers is a daunting task. Ideally, language models/providers would be fast enough where developers could just fetch complete responses data with JSON in a few hundred milliseconds, but the reality is starkly different. It's quite common for these LLMs to take 5-40s to whip up a response.
 
 Instead of tormenting users with a seemingly endless loading spinner while these models conjure up responses or completions, the progressive approach involves streaming the text output to the frontend on the fly-—a tactic championed by OpenAI's ChatGPT. However, implementing this technique is easier said than done. Each AI provider has its own unique SDK, each has it's own envelope surrounding the tokens, and each with different metadata (whose usefulness varies drastically).
 
