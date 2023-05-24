@@ -1,8 +1,13 @@
-# build
-dist/
-
-# dependencies
-node_modules/
-
-# logs
-npm-debug.log
+.DS_Store
+node_modules
+.turbo
+*.log
+.next
+dist
+dist-ssr
+*.local
+.env
+.cache
+server/dist
+public/dist
+.turbo

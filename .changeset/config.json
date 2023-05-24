@@ -7,5 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": ["@vercel/docs", "@vercel/ai-tsconfig", "eslint-config-vercel-ai"]
 }
