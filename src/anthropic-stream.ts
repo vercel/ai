@@ -1,13 +1,17 @@
-import { AIStream, AIStreamCallbacks, AIStreamParserOptions } from "./AIStream";
+import {
+  AIStream,
+  type AIStreamCallbacks,
+  type AIStreamParserOptions,
+} from './ai-stream';
 
 function parseAnthropicStream({
   data,
   controller,
   counter,
   encoder,
-}: AIStreamParserOptions) {
+}: AIStreamParserOptions): void {
   try {
-    const json = JSON.parse(data) as {
+    const json = JSON.parse(data as string) as {
       completion: string;
       stop: string | null;
       stop_reason: string | null;
@@ -17,18 +21,23 @@ function parseAnthropicStream({
       exception: string | null;
     };
     const text = json.completion;
-    if (counter < 2 && (text.match(/\n/) || []).length) {
+    if (counter < 2 && (/\n/.exec(text) || []).length) {
       return;
     }
 
-    const queue = encoder.encode(JSON.stringify(text) + "\n");
+    const queue = encoder.encode(`${JSON.stringify(text)}\n`);
     controller.enqueue(queue);
+
+    // eslint-disable-next-line no-param-reassign
     counter++;
   } catch (e) {
     controller.error(e);
   }
 }
 
-export function AnthropicStream(res: Response, cb?: AIStreamCallbacks) {
+export function AnthropicStream(
+  res: Response,
+  cb?: AIStreamCallbacks,
+): ReadableStream {
   return AIStream(res, parseAnthropicStream, cb);
 }

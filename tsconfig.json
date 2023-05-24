@@ -3,6 +3,9 @@
     "target": "ES2019",
     "moduleResolution": "node",
     "module": "ES2020",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
     "types": ["@edge-runtime/types", "@types/node", "jest"]
   },
   "include": ["src/"]
