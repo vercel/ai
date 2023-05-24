@@ -15,12 +15,13 @@ pnpm install @vercel/ai-utils
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 - [Installation](#installation)
+- [Background](#background)
 - [Usage](#usage)
 - [Tutorial](#tutorial)
   - [Create a Next.js app](#create-a-nextjs-app)
   - [Add your OpenAI API Key to `.env`](#add-your-openai-api-key-to-env)
   - [Create a Route Handler](#create-a-route-handler)
-- [Wire up the UI](#wire-up-the-ui)
+  - [Wire up the UI](#wire-up-the-ui)
 - [API Reference](#api-reference)
   - [`OpenAIStream(res: Response, cb: AIStreamCallbacks): ReadableStream`](#openaistreamres-response-cb-aistreamcallbacks-readablestream)
   - [`HuggingFaceStream(iter: AsyncGenerator<any>, cb: AIStreamCallbacks): ReadableStream`](#huggingfacestreamiter-asyncgeneratorany-cb-aistreamcallbacks-readablestream)
@@ -130,7 +131,7 @@ export async function POST(req: Request) {
 }
 ```
 
-## Wire up the UI
+### Wire up the UI
 
 Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
 
