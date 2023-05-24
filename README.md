@@ -2,7 +2,6 @@
 
 Edge-ready utilities to accelerate working with AI in JavaScript and React.
 
-
 ## Installation
 
 ```sh
