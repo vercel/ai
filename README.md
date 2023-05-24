@@ -2,6 +2,7 @@
 
 Edge-ready utilities to accelerate working with AI in JavaScript and React.
 
+
 ## Installation
 
 ```sh
@@ -26,6 +27,22 @@ pnpm install @vercel/ai-utils
   - [`StreamingTextResponse(res: ReadableStream, init?: ResponseInit)`](#streamingtextresponseres-readablestream-init-responseinit)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+
+## Background
+
+Creating UIs with contemporary AI providers is a daunting task. Ideally, language models/providers would be fast enough where developers could just fetch complete responses data with JSON in a few hundred milliseconds, but the reality is starkly different. It's quite common for these LLMs to take 5-40s to whip up a response. 
+
+Instead of tormenting users with a seemingly endless loading spinner while these models conjure up responses or completions, the progressive approach involves streaming the text output to the frontend on the fly-—a tactic championed by OpenAI's ChatGPT. However, implementing this technique is easier said than done. Each AI provider has its own unique SDK, each has it's own envelope surrounding the tokens, and each with different metadata (whose usefulness varies drastically).
+
+Many AI utility helpers so far in the JS ecosystem tend to overcomplicate things with unnecessary magic tricks, excess levels of indirection, lossy abstractions. Here's where Vercel AI Utils comes to the rescue—a compact library designed to alleviate the headaches of constructing streaming text UIs:
+
+- Diminish the boilerplate necessary for handling streaming text responses
+- Guarantee the capability to run functions at the Edge
+- Streamline fetching and rendering of streaming responses (in React)
+
+The beauty of this library lies in its commitment to work directly with each AI/Model Hosting Provider's SDK, an equivalent edge-compatible version, or a vanilla `fetch` function. Its job is simply to cut through the confusion and handles the intricacies of streaming text, leaving you to concentrate on building your next big thing instead of wasting another afternoon tweaking `TextEncoder`.
+
 
 ## Usage
 
