@@ -8,6 +8,7 @@
     "lint": "turbo lint",
     "prepare": "husky install",
     "prettier-check": "prettier --check .",
+    "type-check": "turbo type-check",
     "prettier-fix": "prettier --write \"**/*.{ts,tsx,md}\"",
     "publint": "turbo publint",
     "release": "turbo build --filter=docs^... && changeset publish",
