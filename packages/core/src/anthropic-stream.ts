@@ -2,7 +2,7 @@ import {
   AIStream,
   type AIStreamCallbacks,
   type AIStreamParserOptions,
-} from './ai-stream';
+} from "./ai-stream";
 
 function parseAnthropicStream({
   data,
@@ -37,7 +37,7 @@ function parseAnthropicStream({
 
 export function AnthropicStream(
   res: Response,
-  cb?: AIStreamCallbacks,
+  cb?: AIStreamCallbacks
 ): ReadableStream {
   return AIStream(res, parseAnthropicStream, cb);
 }

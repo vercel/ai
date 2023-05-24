@@ -1,76 +1,36 @@
 {
-  "name": "@vercel/ai-utils",
-  "version": "0.0.2",
-  "description": "AI Helpers",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/vercel-labs/ai-utils.git"
-  },
-  "license": "Apache-2.0",
-  "sideEffects": false,
-  "type": "module",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": {
-        "node": "./dist/index.js",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "node": "./dist/index.cjs",
-        "default": "./dist/index.cjs"
-      }
-    }
-  },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
+  "private": true,
   "scripts": {
-    "build": "tsup",
-    "lint": "eslint --max-warnings=0 .",
-    "prepublishOnly": "pnpm run build",
+    "build": "turbo build",
+    "changeset": "changeset",
+    "clean": "turbo clean && rm -rf node_modules",
+    "dev": "turbo dev --no-cache --continue",
+    "lint": "turbo lint",
+    "prepare": "husky install",
     "prettier-check": "prettier --check .",
-    "publint": "pnpx publint",
-    "release": "pnpm build && changeset publish",
-    "test": "jest --env @edge-runtime/jest-environment .test.ts && jest --env node .test.ts",
-    "type-check": "tsc --noEmit",
+    "type-check": "turbo type-check",
+    "prettier-fix": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "publint": "turbo publint",
+    "release": "turbo build --filter=docs^... && changeset publish",
+    "test": "turbo test",
     "version-packages": "changeset version"
   },
-  "prettier": "@vercel/style-guide/prettier",
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node"
-  },
-  "dependencies": {
-    "eventsource-parser": "1.0.0"
+  "lint-staged": {
+    "*": [
+      "prettier --ignore-unknown --write"
+    ]
   },
   "devDependencies": {
-    "@changesets/cli": "2.25.0",
-    "@edge-runtime/jest-environment": "1.1.0-beta.31",
-    "@edge-runtime/types": "2.0.0",
-    "@types/jest": "29.2.0",
-    "@types/node": "18.11.3",
-    "@types/react": "18.2.6",
-    "@typescript-eslint/eslint-plugin": "5.59.2",
-    "@typescript-eslint/parser": "5.59.2",
-    "@vercel/style-guide": "4.0.2",
-    "eslint": "8.39.0",
-    "eslint-config-prettier": "8.8.0",
-    "eslint-plugin-jest-dom": "4.0.3",
-    "eslint-plugin-react": "7.32.2",
-    "eslint-plugin-react-hooks": "4.6.0",
-    "eslint-plugin-testing-library": "5.10.3",
+    "@changesets/cli": "^2.22.0",
+    "eslint": "^7.32.0",
+    "eslint-config-vercel-ai": "workspace:*",
+    "husky": "^8.0.0",
     "jest": "29.2.1",
-    "lint-staged": "13.0.3",
-    "prettier": "2.7.1",
+    "lint-staged": "^13.2.2",
+    "prettier": "2.8.8",
+    "publint": "0.1.11",
     "ts-jest": "29.0.3",
-    "tsup": "6.3.0",
-    "typescript": "4.8.4"
+    "turbo": "^1.9.3"
   },
-  "engines": {
-    "node": ">=14.6"
-  }
+  "packageManager": "pnpm@7.15.0"
 }
