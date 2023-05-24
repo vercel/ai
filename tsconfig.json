@@ -1,12 +1,31 @@
 {
   "compilerOptions": {
-    "target": "ES2019",
-    "moduleResolution": "node",
-    "module": "ES2020",
-    "strict": true,
-    "skipLibCheck": true,
+    "baseUrl": ".",
+    "declaration": true,
     "esModuleInterop": true,
-    "types": ["@edge-runtime/types", "@types/node", "jest"]
+    "incremental": true,
+    "jsx": "react",
+    "lib": ["esnext", "dom"],
+    "module": "NodeNext",
+    "moduleResolution": "node",
+    "noEmitOnError": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "skipLibCheck": true,
+    "strict": true,
+    "strictBindCallApply": true,
+    "target": "ES2018"
   },
-  "include": ["src/"]
+  "include": ["./src/**/*"],
+  "exclude": ["./dist/**, ./**/dist", "node_modules"],
+  "types": ["@edge-runtime/types", "@types/node", "jest"],
+  "watchOptions": {
+    "watchFile": "useFsEvents",
+    "watchDirectory": "useFsEvents",
+    "fallbackPolling": "dynamicPriority"
+  }
 }
