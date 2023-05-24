@@ -14,6 +14,8 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "dev": "tsup src/index.tsx --format esm,cjs --watch --dts --external react",
     "lint": "eslint \"src/**/*.ts*\"",
+    "type-check": "tsc --noEmit",
+    "prettier-check": "prettier --check \"src/**/*.ts*\"",
     "test": "jest --env @edge-runtime/jest-environment .test.ts && jest --env node .test.ts"
   },
   "jest": {
