@@ -1,8 +1,8 @@
-import { useCallback, useId, useRef, useEffect } from "react";
-import useSWRMutation from "swr/mutation";
-import useSWR from "swr";
+import { useCallback, useId, useRef, useEffect } from 'react';
+import useSWRMutation from 'swr/mutation';
+import useSWR from 'swr';
 
-import { type AIStreamCallbacks } from "./ai-stream";
+import { type AIStreamCallbacks } from './ai-stream';
 
 export type Message = {
   id: string;
@@ -31,9 +31,11 @@ export function useChat({
     fallbackData: initialMessages,
   });
 
-  const messagesRef = useRef<Message[]>(data);
+  const messagesRef = useRef<Message[]>(data ?? []);
   useEffect(() => {
-    messagesRef.current = data;
+    if (messagesRef.current != null) {
+      (messagesRef as any).current = data;
+    }
   }, [data]);
 
   const { error, trigger, isMutating } = useSWRMutation<
@@ -43,19 +45,19 @@ export function useChat({
     Message[]
   >(
     [api, resourceId],
-    async (_, { arg: messagesSnapshot }) => {
+    async (_: unknown, { arg: messagesSnapshot }: any) => {
       const res = await fetch(api, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({
           messages: messagesSnapshot,
         }),
       });
       if (!res.ok) {
-        throw new Error("Failed to fetch");
+        throw new Error('Failed to fetch');
       }
 
-      let result = "";
-      let resolve;
+      let result = '';
+      let resolve: (value?: unknown) => void;
       const promise = new Promise((r) => (resolve = r));
 
       parser(res, {
@@ -67,7 +69,7 @@ export function useChat({
               {
                 id: `${Date.now()}`,
                 content: result,
-                role: "assistant",
+                role: 'assistant',
               },
             ],
             false
