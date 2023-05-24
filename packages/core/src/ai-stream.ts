@@ -2,7 +2,7 @@ import {
   createParser,
   type ParsedEvent,
   type ReconnectInterval,
-} from 'eventsource-parser';
+} from "eventsource-parser";
 
 export interface AIStreamCallbacks {
   onStart?: () => Promise<void>;
@@ -21,7 +21,7 @@ export interface AIStreamParserOptions {
 export function AIStream(
   res: Response,
   customParser: (opts: AIStreamParserOptions) => void,
-  callbacks?: AIStreamCallbacks,
+  callbacks?: AIStreamCallbacks
 ): ReadableStream {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
@@ -31,9 +31,9 @@ export function AIStream(
   const stream = new ReadableStream({
     async start(controller): Promise<void> {
       function onParse(event: ParsedEvent | ReconnectInterval): void {
-        if (event.type === 'event') {
+        if (event.type === "event") {
           const data = event.data;
-          if (data === '[DONE]') {
+          if (data === "[DONE]") {
             controller.close();
             return;
           }
@@ -51,7 +51,7 @@ export function AIStream(
     },
   });
 
-  let fullResponse = '';
+  let fullResponse = "";
   const forkedStream = new TransformStream({
     start: async (): Promise<void> => {
       if (callbacks?.onStart) {
@@ -64,7 +64,7 @@ export function AIStream(
       const item = decoder.decode(chunk);
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const value = JSON.parse(item.split('\n')[0]);
+      const value = JSON.parse(item.split("\n")[0]);
       if (callbacks?.onToken) {
         await callbacks.onToken(value as string);
       }

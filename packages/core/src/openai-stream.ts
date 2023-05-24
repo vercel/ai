@@ -2,7 +2,7 @@ import {
   AIStream,
   type AIStreamCallbacks,
   type AIStreamParserOptions,
-} from './ai-stream';
+} from "./ai-stream";
 
 function parseOpenAIStream({
   data,
@@ -15,7 +15,7 @@ function parseOpenAIStream({
     const json = JSON.parse(data);
     // this can be used for either chat or completion models
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    const text = json.choices[0]?.delta?.content ?? json.choices[0]?.text ?? '';
+    const text = json.choices[0]?.delta?.content ?? json.choices[0]?.text ?? "";
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     if (counter < 2 && (text.match(/\n/) || []).length) {
@@ -33,7 +33,7 @@ function parseOpenAIStream({
 
 export function OpenAIStream(
   res: Response,
-  cb?: AIStreamCallbacks,
+  cb?: AIStreamCallbacks
 ): ReadableStream {
   return AIStream(res, parseOpenAIStream, cb);
 }
