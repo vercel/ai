@@ -69,4 +69,4 @@ export function HuggingFaceStream(
   return stream.pipeThrough(forkedStream);
 }
 
-HuggingFaceStream.$$typeof = Symbol.for('AIStream.HuggingFaceStream');
+HuggingFaceStream.$$typeof = Symbol.for("AIStream.HuggingFaceStream");

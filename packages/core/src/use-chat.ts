@@ -1,24 +1,24 @@
-import { useCallback, useId, useRef, useEffect } from 'react';
-import useSWRMutation from 'swr/mutation';
-import useSWR from 'swr';
-import { customAlphabet } from 'nanoid';
+import { useCallback, useId, useRef, useEffect } from "react";
+import useSWRMutation from "swr/mutation";
+import useSWR from "swr";
+import { customAlphabet } from "nanoid";
 
-import type { AnthropicStream } from './anthropic-stream';
-import type { HuggingFaceStream } from './huggingface-stream';
-import type { OpenAIStream } from './openai-stream';
-import type { AIStreamCallbacks } from './ai-stream';
+import type { AnthropicStream } from "./anthropic-stream";
+import type { HuggingFaceStream } from "./huggingface-stream";
+import type { OpenAIStream } from "./openai-stream";
+import type { AIStreamCallbacks } from "./ai-stream";
 
 // 7-character random string
 const nanoid = customAlphabet(
-  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-  7,
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+  7
 );
 
 export type Message = {
   id: string;
   createdAt?: Date;
   content: string;
-  role: 'system' | 'user' | 'assistant';
+  role: "system" | "user" | "assistant";
 };
 
 export function useChat({
@@ -79,25 +79,25 @@ export function useChat({
     [api, chatId],
     async (_, { arg: messagesSnapshot }) => {
       const res = await fetch(api, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({
           messages: messagesSnapshot,
         }),
       });
       if (!res.ok) {
-        throw new Error('Failed to fetch the chat response.');
+        throw new Error("Failed to fetch the chat response.");
       }
       if (!res.body) {
-        throw new Error('The response body is empty.');
+        throw new Error("The response body is empty.");
       }
 
-      let result = '';
+      let result = "";
       let resolve: () => void;
       const promise = new Promise<void>((r) => (resolve = r));
 
-      if (!('$$typeof' in StreamProvider)) {
+      if (!("$$typeof" in StreamProvider)) {
         throw new Error(
-          'Invalid stream provider: it must be one of AnthropicStream, HuggingFaceStream, or OpenAIStream.',
+          "Invalid stream provider: it must be one of AnthropicStream, HuggingFaceStream, or OpenAIStream."
         );
       }
 
@@ -113,10 +113,10 @@ export function useChat({
                 id: replyId,
                 createdAt,
                 content: result,
-                role: 'assistant',
+                role: "assistant",
               },
             ],
-            false,
+            false
           );
         },
         async onCompletion() {
@@ -126,7 +126,7 @@ export function useChat({
 
       if (
         (StreamProvider as any).$$typeof ===
-        Symbol.for('AIStream.HuggingFaceStream')
+        Symbol.for("AIStream.HuggingFaceStream")
       ) {
         // HuggingFaceStream accepts an async generator
         const reader = res.body.getReader();
@@ -155,7 +155,7 @@ export function useChat({
     {
       populateCache: false,
       revalidate: false,
-    },
+    }
   );
 
   /**
@@ -174,7 +174,7 @@ export function useChat({
     if (messagesRef.current.length === 0) return;
 
     if (
-      messagesRef.current[messagesRef.current.length - 1].role !== 'assistant'
+      messagesRef.current[messagesRef.current.length - 1].role !== "assistant"
     )
       return;
 

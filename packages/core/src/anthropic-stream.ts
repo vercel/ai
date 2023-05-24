@@ -42,4 +42,4 @@ export function AnthropicStream(
   return AIStream(res, parseAnthropicStream, cb);
 }
 
-AnthropicStream.$$typeof = Symbol.for('AIStream.AnthropicStream');
+AnthropicStream.$$typeof = Symbol.for("AIStream.AnthropicStream");
