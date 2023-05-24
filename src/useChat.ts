@@ -2,7 +2,7 @@ import { useCallback, useId, useRef, useEffect } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
 
-import { AIStreamCallbacks } from './AIStream'
+import { AIStreamCallbacks } from './ai-stream'
 
 export type Message = {
   id: string
