@@ -24,11 +24,10 @@ pnpm install @vercel/ai-utils
   - [Wire up the UI](#wire-up-the-ui)
 - [API Reference](#api-reference)
   - [`OpenAIStream(res: Response, cb: AIStreamCallbacks): ReadableStream`](#openaistreamres-response-cb-aistreamcallbacks-readablestream)
-  - [`HuggingFaceStream(iter: AsyncGenerator<any>, cb: AIStreamCallbacks): ReadableStream`](#huggingfacestreamiter-asyncgeneratorany-cb-aistreamcallbacks-readablestream)
+  - [`HuggingFaceStream(iter: AsyncGenerator<any>, cb?: AIStreamCallbacks): ReadableStream`](#huggingfacestreamiter-asyncgeneratorany-cb-aistreamcallbacks-readablestream)
   - [`StreamingTextResponse(res: ReadableStream, init?: ResponseInit)`](#streamingtextresponseres-readablestream-init-responseinit)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 
 ## Background
 
@@ -43,7 +42,6 @@ Many AI utility helpers so far in the JS ecosystem tend to overcomplicate things
 - Streamline fetching and rendering of streaming responses (in React)
 
 The goal of this library lies in its commitment to work directly with each AI/Model Hosting Provider's SDK, an equivalent edge-compatible version, or a vanilla `fetch` function. Its job is simply to cut through the confusion and handle the intricacies of streaming text, leaving you to concentrate on building your next big thing instead of wasting another afternoon tweaking `TextEncoder` with trial and error.
-
 
 ## Usage
 
@@ -103,7 +101,10 @@ Create a Next.js Route Handler that uses the Edge Runtime that we'll use to gene
 ```tsx
 // ./app/api/generate/route.ts
 import { Configuration, OpenAIApi } from 'openai-edge';
-import { OpenAITextStream, StreamingTextResponse } from '@vercel/ai-utils';
+import { 
+  OpenAITextStream, 
+  StreamingTextResponse 
+} from '@vercel/ai-utils';
 
 // Create an OpenAI API client (that's edge friendly!)
 const config = new Configuration({
@@ -124,12 +125,14 @@ export async function POST(req: Request) {
     stream: true,
     prompt,
   });
-  // Convert the response into a React-friendly text-stream
+  // Convert the response into a friendly text-stream
   const stream = OpenAITextStream(response);
   // Respond with the stream
   return new StreamingTextResponse(stream);
 }
 ```
+
+Vercel AI Utils provides 2 utility helpers to make the above seamless: First, we pass the streaming `response` we receive from OpenAI to `OpenAITextStream`. This method decodes/extracts the text tokens in the response and then re-encodes them properly for simple consumption. We can then pass that new stream directly to `StreamingTextResponse`. This is another utility class that extends the normal Node/Edge Runtime `Response` class with the default headers you probably want (hint: `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
 
 ### Wire up the UI
 
@@ -203,7 +206,7 @@ export async function POST() {
 }
 ```
 
-### `HuggingFaceStream(iter: AsyncGenerator<any>, cb: AIStreamCallbacks): ReadableStream`
+### `HuggingFaceStream(iter: AsyncGenerator<any>, cb?: AIStreamCallbacks): ReadableStream`
 
 A transform that will extract the text from _most_ chat and completion HuggingFace models and return them as a `ReadableStream`.
 
