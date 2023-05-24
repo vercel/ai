@@ -1,10 +1,10 @@
 // import { type TextGenerationStreamOutput } from "@huggingface/inference";
-import type { AIStreamCallbacks } from './ai-stream';
+import type { AIStreamCallbacks } from "./ai-stream";
 
 export function HuggingFaceStream(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   res: AsyncGenerator<any>,
-  callbacks?: AIStreamCallbacks,
+  callbacks?: AIStreamCallbacks
 ): ReadableStream {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
@@ -13,7 +13,7 @@ export function HuggingFaceStream(
     async start(controller): Promise<void> {
       for await (const chunk of res) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        const text = chunk.token?.text ?? '';
+        const text = chunk.token?.text ?? "";
         // some HF models return generated_text instead of a real ending token
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, eqeqeq
         if (chunk.generated_text != null && chunk.generated_text.length > 0) {
@@ -23,7 +23,7 @@ export function HuggingFaceStream(
 
         // <|endoftext|> is for https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5
         // </s> is also often last token in the stream depending on the model
-        if (text !== '</s>' && text !== '<|endoftext|>') {
+        if (text !== "</s>" && text !== "<|endoftext|>") {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
           if (counter < 2 && (text.match(/\n/) || []).length) {
             return;
@@ -40,7 +40,7 @@ export function HuggingFaceStream(
     },
   });
 
-  let fullResponse = '';
+  let fullResponse = "";
   const forkedStream = new TransformStream({
     start: async (): Promise<void> => {
       if (callbacks?.onStart) {
@@ -53,7 +53,7 @@ export function HuggingFaceStream(
       const item = decoder.decode(chunk);
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const value = JSON.parse(item.split('\n')[0]);
+      const value = JSON.parse(item.split("\n")[0]);
       if (callbacks?.onToken) {
         await callbacks.onToken(value as string);
       }
