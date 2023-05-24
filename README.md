@@ -46,21 +46,21 @@ The goal of this library lies in its commitment to work directly with each AI/Mo
 
 ```tsx
 // app/api/generate/route.ts
-import { Configuration, OpenAIApi } from 'openai-edge';
-import { OpenAITextStream, StreamingTextResponse } from '@vercel/ai-utils';
+import { Configuration, OpenAIApi } from "openai-edge";
+import { OpenAITextStream, StreamingTextResponse } from "@vercel/ai-utils";
 
 const config = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(config);
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
 export async function POST() {
   const response = await openai.createChatCompletion({
-    model: 'gpt-4',
+    model: "gpt-4",
     stream: true,
-    messages: [{ role: 'user', content: 'What is love?' }],
+    messages: [{ role: "user", content: "What is love?" }],
   });
   const stream = OpenAITextStream(response);
   return new StreamingTextResponse(stream);
@@ -99,11 +99,8 @@ Create a Next.js Route Handler that uses the Edge Runtime that we'll use to gene
 
 ```tsx
 // ./app/api/generate/route.ts
-import { Configuration, OpenAIApi } from 'openai-edge';
-import { 
-  OpenAITextStream, 
-  StreamingTextResponse 
-} from '@vercel/ai-utils';
+import { Configuration, OpenAIApi } from "openai-edge";
+import { OpenAITextStream, StreamingTextResponse } from "@vercel/ai-utils";
 
 // Create an OpenAI API client (that's edge friendly!)
 const config = new Configuration({
@@ -112,7 +109,7 @@ const config = new Configuration({
 const openai = new OpenAIApi(config);
 
 // IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+export const runtime = "edge";
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
@@ -120,7 +117,7 @@ export async function POST(req: Request) {
 
   // Ask OpenAI for a streaming chat completion given the prompt
   const response = await openai.createCompletion({
-    model: 'gpt-3.5-turbo',
+    model: "gpt-3.5-turbo",
     stream: true,
     prompt,
   });
@@ -139,21 +136,21 @@ Create a Client component with a form that we'll use to gather the prompt from t
 
 ```tsx
 // ./app/form.ts
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useCompletion } from '@vercel/ai-utils/react'; //@todo
+import { useState } from "react";
+import { useCompletion } from "@vercel/ai-utils/react"; //@todo
 
 export function Form() {
-  const [value, setValue] = useState('');
-  const { setPrompt, completion } = useCompletion('/api/generate');
+  const [value, setValue] = useState("");
+  const { setPrompt, completion } = useCompletion("/api/generate");
   return (
     <div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
           setPrompt(value);
-          setValue('');
+          setValue("");
         }}
       >
         <textarea value={value} onChange={(e) => setValue(e.target.value)} />
@@ -211,16 +208,16 @@ A transform that will extract the text from _most_ chat and completion HuggingFa
 
 ```tsx
 // app/api/generate/route.ts
-import { HfInference } from '@huggingface/inference';
-import { HuggingFaceStream, StreamingTextResponse } from '@vercel/ai-utils';
+import { HfInference } from "@huggingface/inference";
+import { HuggingFaceStream, StreamingTextResponse } from "@vercel/ai-utils";
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
 const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
 export async function POST() {
   const response = await Hf.textGenerationStream({
-    model: 'OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5',
+    model: "OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5",
     inputs: `<|prompter|>What's the Earth total population?<|endoftext|><|assistant|>`,
     parameters: {
       max_new_tokens: 200,
@@ -242,19 +239,19 @@ This is a tiny wrapper around `Response` class that makes returning `ReadableStr
 
 ```tsx
 // app/api/generate/route.ts
-import { OpenAITextStream, StreamingTextResponse } from '@vercel/ai-utils';
+import { OpenAITextStream, StreamingTextResponse } from "@vercel/ai-utils";
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
 export async function POST() {
   const response = await openai.createChatCompletion({
-    model: 'gpt-4',
+    model: "gpt-4",
     stream: true,
-    messages: { role: 'user', content: 'What is love?' },
+    messages: { role: "user", content: "What is love?" },
   });
   const stream = OpenAITextStream(response);
   return new StreamingTextResponse(stream, {
-    'X-RATE-LIMIT': 'lol',
+    "X-RATE-LIMIT": "lol",
   }); // => new Response(stream, { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-RATE-LIMIT': 'lol' }})
 }
 ```
