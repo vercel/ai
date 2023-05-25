@@ -76,7 +76,6 @@ importers:
       eslint-config-vercel-ai: workspace:*
       eventsource-parser: 1.0.0
       jest: 29.2.1
-      nanoid: ^4.0.2
       react: ^17.0.2
       swr: 2.1.5
       ts-jest: 29.0.3
@@ -84,7 +83,6 @@ importers:
       typescript: ^4.5.3
     dependencies:
       eventsource-parser: 1.0.0
-      nanoid: 4.0.2
       swr: 2.1.5_react@17.0.2
     devDependencies:
       '@edge-runtime/jest-environment': 1.1.0-beta.31
@@ -5868,12 +5866,6 @@ packages:
     resolution: {integrity: sha512-BGcqMMJuToF7i1rt+2PWSNVnWIkGCU78jBG3RxO/bZlnZPK2Cmi2QaffxGO/2RvWi9sL+FAiRiXMgsyxQ1DIDA==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
-
-  /nanoid/4.0.2:
-    resolution: {integrity: sha512-7ZtY5KTCNheRGfEFxnedV5zFiORN1+Y1N6zvPTnHQd8ENUvfaDBeuJDZb2bN/oXwXxu3qkTXDzy57W5vAmDTBw==}
-    engines: {node: ^14 || ^16 || >=18}
-    hasBin: true
-    dev: false
 
   /natural-compare/1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
