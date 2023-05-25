@@ -1,4 +1,4 @@
-import { useCallback, useId, useRef, useEffect } from "react";
+import { useCallback, useId, useRef, useEffect, useState } from "react";
 import useSWRMutation from "swr/mutation";
 import useSWR from "swr";
 import { customAlphabet } from "nanoid";
@@ -68,6 +68,10 @@ export function useChat({
     messagesRef.current = messages;
   }, [messages]);
 
+  // Abort controller to cancel the current API call.
+  const [abortController, setAbortController] =
+    useState<AbortController | null>(null);
+
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
   const { error, trigger, isMutating } = useSWRMutation<
@@ -78,79 +82,107 @@ export function useChat({
   >(
     [api, chatId],
     async (_, { arg: messagesSnapshot }) => {
-      const res = await fetch(api, {
-        method: "POST",
-        body: JSON.stringify({
-          messages: messagesSnapshot,
-        }),
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch the chat response.");
-      }
-      if (!res.body) {
-        throw new Error("The response body is empty.");
-      }
+      try {
+        const abortController = new AbortController();
+        setAbortController(abortController);
 
-      let result = "";
-      let resolve: () => void;
-      const promise = new Promise<void>((r) => (resolve = r));
+        // Do an optimistic update to the chat state to show the updated messages
+        // immediately.
+        const previousMessages = messagesRef.current;
+        mutate(messagesSnapshot, false);
 
-      if (!("$$typeof" in StreamProvider)) {
-        throw new Error(
-          "Invalid stream provider: it must be one of AnthropicStream, HuggingFaceStream, or OpenAIStream."
-        );
-      }
+        const res = await fetch(api, {
+          method: "POST",
+          body: JSON.stringify({
+            messages: messagesSnapshot,
+          }),
+          signal: abortController.signal,
+        }).catch((err) => {
+          // Restore the previous messages if the request fails.
+          mutate(previousMessages, false);
+          throw err;
+        });
+        if (!res.ok) {
+          // Restore the previous messages if the request fails.
+          mutate(previousMessages, false);
+          throw new Error("Failed to fetch the chat response.");
+        }
+        if (!res.body) {
+          throw new Error("The response body is empty.");
+        }
 
-      const createdAt = new Date();
-      const replyId = nanoid();
-      const callback: AIStreamCallbacks = {
-        onToken: async (token) => {
-          result += token;
-          mutate(
-            [
-              ...messagesSnapshot,
-              {
-                id: replyId,
-                createdAt,
-                content: result,
-                role: "assistant",
-              },
-            ],
-            false
+        let result = "";
+        let resolve: () => void;
+        const promise = new Promise<void>((r) => (resolve = r));
+
+        if (!("$$typeof" in StreamProvider)) {
+          throw new Error(
+            "Invalid stream provider: it must be one of AnthropicStream, HuggingFaceStream, or OpenAIStream."
           );
-        },
-        async onCompletion() {
-          resolve();
-        },
-      };
+        }
 
-      if (
-        (StreamProvider as any).$$typeof ===
-        Symbol.for("AIStream.HuggingFaceStream")
-      ) {
-        // HuggingFaceStream accepts an async generator
-        const reader = res.body.getReader();
-        const generator = async function* () {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              break;
-            }
-            yield value;
-          }
+        const createdAt = new Date();
+        const replyId = nanoid();
+        const callback: AIStreamCallbacks = {
+          onToken: async (token) => {
+            // Update the chat state with the new message tokens.
+            result += token;
+            mutate(
+              [
+                ...messagesSnapshot,
+                {
+                  id: replyId,
+                  createdAt,
+                  content: result,
+                  role: "assistant",
+                },
+              ],
+              false
+            );
+          },
+          async onCompletion() {
+            resolve();
+          },
         };
-        const HuggingFaceStreamProvider =
-          StreamProvider as typeof HuggingFaceStream;
-        HuggingFaceStreamProvider(generator(), callback);
-      } else {
-        const CommonStreamProvider = StreamProvider as
-          | typeof AnthropicStream
-          | typeof OpenAIStream;
-        CommonStreamProvider(res, callback);
-      }
 
-      await promise;
-      return null;
+        if (
+          (StreamProvider as any).$$typeof ===
+          Symbol.for("AIStream.HuggingFaceStream")
+        ) {
+          // HuggingFaceStream accepts an async generator
+          const reader = res.body.getReader();
+          const generator = async function* () {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                break;
+              }
+              yield value;
+            }
+          };
+          const HuggingFaceStreamProvider =
+            StreamProvider as typeof HuggingFaceStream;
+          HuggingFaceStreamProvider(generator(), callback);
+        } else {
+          const CommonStreamProvider = StreamProvider as
+            | typeof AnthropicStream
+            | typeof OpenAIStream;
+          CommonStreamProvider(res, callback);
+        }
+
+        await promise;
+
+        setAbortController(null);
+        return null;
+      } catch (err) {
+        // Ignore abort errors as they are expected.
+        if (err.name === "AbortError") {
+          setAbortController(null);
+          return null;
+        }
+
+        throw err;
+      }
     },
     {
       populateCache: false,
@@ -181,11 +213,33 @@ export function useChat({
     trigger(messagesRef.current.slice(0, -1));
   }, []);
 
+  /**
+   * Abort the current API request but keep the generated tokens.
+   */
+  const stop = useCallback(() => {
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+    }
+  }, [abortController]);
+
+  /**
+   * Update the `messages` state locally. This is useful when you want to
+   * edit the messages on the client, and then trigger the `reload` method
+   * to regenerate the AI response.
+   */
+  const set = useCallback((messages: Message[]) => {
+    mutate(messages, false);
+    messagesRef.current = messages;
+  }, []);
+
   return {
     messages,
     error,
     append,
     reload,
+    stop,
+    set,
     isLoading: isMutating,
   };
 }
