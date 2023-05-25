@@ -15,7 +15,7 @@
     "preserveWatchOutput": true,
     "skipLibCheck": true,
     "strict": true,
-    "types": ["@edge-runtime/types", "@types/node", "jest"]
+    "types": ["@types/node", "jest"]
   },
   "exclude": ["node_modules"]
 }
