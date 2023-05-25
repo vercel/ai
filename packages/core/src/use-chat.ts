@@ -176,7 +176,7 @@ export function useChat({
         return null;
       } catch (err) {
         // Ignore abort errors as they are expected.
-        if (err.name === "AbortError") {
+        if ((err as any).name === "AbortError") {
           setAbortController(null);
           return null;
         }

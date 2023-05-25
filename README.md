@@ -47,7 +47,7 @@ The goal of this library lies in its commitment to work directly with each AI/Mo
 ```tsx
 // app/api/generate/route.ts
 import { Configuration, OpenAIApi } from "openai-edge";
-import { OpenAITextStream, StreamingTextResponse } from "@vercel/ai-utils";
+import { OpenAIStream, StreamingTextResponse } from "@vercel/ai-utils";
 
 const config = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -62,7 +62,7 @@ export async function POST() {
     stream: true,
     messages: [{ role: "user", content: "What is love?" }],
   });
-  const stream = OpenAITextStream(response);
+  const stream = OpenAIStream(response);
   return new StreamingTextResponse(stream);
 }
 ```
@@ -100,7 +100,7 @@ Create a Next.js Route Handler that uses the Edge Runtime that we'll use to gene
 ```tsx
 // ./app/api/generate/route.ts
 import { Configuration, OpenAIApi } from "openai-edge";
-import { OpenAITextStream, StreamingTextResponse } from "@vercel/ai-utils";
+import { OpenAIStream, StreamingTextResponse } from "@vercel/ai-utils";
 
 // Create an OpenAI API client (that's edge friendly!)
 const config = new Configuration({
@@ -122,13 +122,13 @@ export async function POST(req: Request) {
     prompt,
   });
   // Convert the response into a friendly text-stream
-  const stream = OpenAITextStream(response);
+  const stream = OpenAIStream(response);
   // Respond with the stream
   return new StreamingTextResponse(stream);
 }
 ```
 
-Vercel AI Utils provides 2 utility helpers to make the above seamless: First, we pass the streaming `response` we receive from OpenAI to `OpenAITextStream`. This method decodes/extracts the text tokens in the response and then re-encodes them properly for simple consumption. We can then pass that new stream directly to `StreamingTextResponse`. This is another utility class that extends the normal Node/Edge Runtime `Response` class with the default headers you probably want (hint: `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
+Vercel AI Utils provides 2 utility helpers to make the above seamless: First, we pass the streaming `response` we receive from OpenAI to `OpenAIStream`. This method decodes/extracts the text tokens in the response and then re-encodes them properly for simple consumption. We can then pass that new stream directly to `StreamingTextResponse`. This is another utility class that extends the normal Node/Edge Runtime `Response` class with the default headers you probably want (hint: `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
 
 ### Wire up the UI
 
@@ -171,7 +171,7 @@ A transform that will extract the text from all chat and completion OpenAI model
 ```tsx
 // app/api/generate/route.ts
 import { Configuration, OpenAIApi } from 'openai-edge';
-import { OpenAITextStream, StreamingTextResponse } from '@vercel/ai-utils';
+import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils';
 
 const config = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -186,7 +186,7 @@ export async function POST() {
     stream: true,
     messages: [{ role: 'user', content: 'What is love?' }],
   });
-  const stream = OpenAITextStream(response, {
+  const stream = OpenAIStream(response, {
     async onStart() {
       console.log('streamin yo')
     },
@@ -239,7 +239,7 @@ This is a tiny wrapper around `Response` class that makes returning `ReadableStr
 
 ```tsx
 // app/api/generate/route.ts
-import { OpenAITextStream, StreamingTextResponse } from "@vercel/ai-utils";
+import { OpenAIStream, StreamingTextResponse } from "@vercel/ai-utils";
 
 export const runtime = "edge";
 
@@ -249,7 +249,7 @@ export async function POST() {
     stream: true,
     messages: { role: "user", content: "What is love?" },
   });
-  const stream = OpenAITextStream(response);
+  const stream = OpenAIStream(response);
   return new StreamingTextResponse(stream, {
     "X-RATE-LIMIT": "lol",
   }); // => new Response(stream, { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-RATE-LIMIT': 'lol' }})

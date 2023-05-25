@@ -11,7 +11,7 @@ A transform that will extract the text from all chat and completion OpenAI model
 ```tsx
 // app/api/generate/route.ts
 import { Configuration, OpenAIApi } from 'openai-edge';
-import { OpenAITextStream, StreamingTextResponse } from '@vercel/ai-utils';
+import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils';
 
 const config = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -26,7 +26,7 @@ export async function POST() {
     stream: true,
     messages: [{ role: 'user', content: 'What is love?' }],
   });
-  const stream = OpenAITextStream(response, {
+  const stream = OpenAIStream(response, {
     async onStart() {
       console.log('streamin yo')
     },
@@ -79,7 +79,7 @@ This is a tiny wrapper around `Response` class that makes returning `ReadableStr
 
 ```tsx
 // app/api/generate/route.ts
-import { OpenAITextStream, StreamingTextResponse } from '@vercel/ai-utils';
+import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils';
 
 export const runtime = 'edge';
 
@@ -89,7 +89,7 @@ export async function POST() {
     stream: true,
     messages: { role: 'user', content: 'What is love?' },
   });
-  const stream = OpenAITextStream(response);
+  const stream = OpenAIStream(response);
   return new StreamingTextResponse(stream, {
     'X-RATE-LIMIT': 'lol',
   }); // => new Response(stream, { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-RATE-LIMIT': 'lol' }})
