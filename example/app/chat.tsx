@@ -1,13 +1,12 @@
 'use client'
 
-import { OpenAIStream, useChat } from '@vercel/ai-utils'
+import { useChat } from '@vercel/ai-utils'
 import { nanoid } from 'nanoid'
 import { useState } from 'react'
 export function Chat() {
   const { messages, append } = useChat({
     initialMessages: [],
-    api: '/api/generate',
-    StreamProvider: OpenAIStream
+    api: '/api/generate'
   })
   const [input, setInput] = useState('')
   return (
