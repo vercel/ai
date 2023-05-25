@@ -38,4 +38,4 @@ export function OpenAIStream(
   return AIStream(res, parseOpenAIStream, cb)
 }
 
-OpenAIStream.$$typeof = Symbol.for('AIStream.OpenAIStream')
+OpenAIStream.$$streamType = Symbol.for('AIStream.OpenAIStream')
