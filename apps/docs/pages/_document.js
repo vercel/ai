@@ -1,6 +1,6 @@
 import React from 'react'
 import Document, { Html, Head, Main, NextScript } from 'next/document'
-import { SkipNavLink } from "nextra-theme-docs";
+import { SkipNavLink } from 'nextra-theme-docs'
 
 class MyDocument extends Document {
   render() {
@@ -13,7 +13,7 @@ class MyDocument extends Document {
           <NextScript />
         </body>
       </Html>
-    );
+    )
   }
 }
 

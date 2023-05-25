@@ -4,7 +4,7 @@ module.exports = {
   extends: ['vercel-ai'],
   settings: {
     next: {
-      rootDir: ['apps/*/'],
-    },
-  },
-};
+      rootDir: ['apps/*/']
+    }
+  }
+}

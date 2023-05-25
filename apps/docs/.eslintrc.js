@@ -1,4 +1,4 @@
 module.exports = {
   root: true,
-  extends: ["vercel-ai"],
-};
+  extends: ['vercel-ai']
+}
