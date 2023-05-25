@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "eventsource-parser": "1.0.0",
-    "nanoid": "^4.0.0",
+    "nanoid": "^3.3.6",
     "swr": "2.1.5"
   },
   "devDependencies": {

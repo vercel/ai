@@ -11,7 +11,7 @@ export function Chat() {
   })
   const [input, setInput] = useState('')
   return (
-    <div className="mx-auto w-full max-w-md py-24">
+    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
       {messages && messages.length
         ? messages.map(m => <div key={m.id}>{m.content}</div>)
         : null}
@@ -28,8 +28,9 @@ export function Chat() {
         }}
       >
         <input
-          className="border rounded w-full"
+          className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
           value={input}
+          placeholder="Say something..."
           onChange={e => setInput(e.target.value)}
         />
       </form>
