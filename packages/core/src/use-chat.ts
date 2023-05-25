@@ -115,7 +115,7 @@ export function useChat({
         let resolve: () => void
         const promise = new Promise<void>(r => (resolve = r))
 
-        if (!('$$typeof' in StreamProvider)) {
+        if (!('$$streamType' in StreamProvider)) {
           throw new Error(
             'Invalid stream provider: it must be one of AnthropicStream, HuggingFaceStream, or OpenAIStream.'
           )
@@ -145,29 +145,32 @@ export function useChat({
           }
         }
 
-        if (
-          (StreamProvider as any).$$typeof ===
-          Symbol.for('AIStream.HuggingFaceStream')
-        ) {
-          // HuggingFaceStream accepts an async generator
-          const reader = res.body.getReader()
-          const generator = async function* () {
-            while (true) {
-              const { done, value } = await reader.read()
-              if (done) {
-                break
+        switch ((StreamProvider as any).$$streamType) {
+          case Symbol.for('AIStream.AnthropicStream'):
+            const AnthropicStreamProvider =
+              StreamProvider as typeof AnthropicStream
+            AnthropicStreamProvider(res, callback)
+            break
+          case Symbol.for('AIStream.OpenAIStream'):
+            const OpenAIStreamProvider = StreamProvider as typeof OpenAIStream
+            OpenAIStreamProvider(res, callback)
+            break
+          case Symbol.for('AIStream.HuggingFaceStream'):
+            // HuggingFaceStream accepts an async generator
+            const reader = res.body.getReader()
+            const generator = async function* () {
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) {
+                  break
+                }
+                yield value
               }
-              yield value
             }
-          }
-          const HuggingFaceStreamProvider =
-            StreamProvider as typeof HuggingFaceStream
-          HuggingFaceStreamProvider(generator(), callback)
-        } else {
-          const CommonStreamProvider = StreamProvider as
-            | typeof AnthropicStream
-            | typeof OpenAIStream
-          CommonStreamProvider(res, callback)
+            const HuggingFaceStreamProvider =
+              StreamProvider as typeof HuggingFaceStream
+            HuggingFaceStreamProvider(generator(), callback)
+            break
         }
 
         await promise
