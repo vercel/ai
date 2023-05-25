@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "eventsource-parser": "1.0.0",
+    "nanoid": "^4.0.2",
     "swr": "2.1.5"
   },
   "devDependencies": {
@@ -42,7 +43,7 @@
     "typescript": "^4.5.3"
   },
   "peerDependencies": {
-    "react": "18.2.0"
+    "react": "^18.0.0"
   },
   "engines": {
     "node": ">=14.6"
