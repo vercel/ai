@@ -41,5 +41,3 @@ export function AnthropicStream(
 ): ReadableStream {
   return AIStream(res, parseAnthropicStream, cb)
 }
-
-AnthropicStream.$$streamType = Symbol.for('AIStream.AnthropicStream')
