@@ -66,7 +66,6 @@ importers:
   packages/core:
     specifiers:
       '@edge-runtime/jest-environment': 1.1.0-beta.31
-      '@edge-runtime/types': 2.0.0
       '@types/jest': 29.2.0
       '@types/node': ^17.0.12
       '@types/react': ^18.2.0
@@ -86,7 +85,6 @@ importers:
       swr: 2.1.5_react@17.0.2
     devDependencies:
       '@edge-runtime/jest-environment': 1.1.0-beta.31
-      '@edge-runtime/types': 2.0.0
       '@types/jest': 29.2.0
       '@types/node': 17.0.45
       '@types/react': 18.2.7
@@ -672,16 +670,6 @@ packages:
 
   /@edge-runtime/primitives/1.1.0:
     resolution: {integrity: sha512-MpL5fKlOs9mz5DMRuFchLe3Il84t7XpfbPq4qtaEK37uNMCRx1MzA3d7A4aTsR/guXSZvV/AtEbKVqBWjuSThA==}
-    dev: true
-
-  /@edge-runtime/primitives/2.0.0:
-    resolution: {integrity: sha512-AXqUq1zruTJAICrllUvZcgciIcEGHdF6KJ3r6FM0n4k8LpFxZ62tPWVIJ9HKm+xt+ncTBUZxwgUaQ73QMUQEKw==}
-    dev: true
-
-  /@edge-runtime/types/2.0.0:
-    resolution: {integrity: sha512-NZ4pJpwOBjC/1azjA3KB1qf/0V3GhDlnI9AFVcpstOB6Ih0tnHKkEJ2KhEaqSH5/CwKzS4ARdb+ZTKRdSjON9w==}
-    dependencies:
-      '@edge-runtime/primitives': 2.0.0
     dev: true
 
   /@edge-runtime/vm/1.1.0:
