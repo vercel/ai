@@ -12,7 +12,7 @@
   "dependencies": {
     "@vercel/ai-utils": "workspace:*",
     "@vercel/analytics": "^1.0.1",
-    "next": "13.4.3",
+    "next": "13.4.4-canary.9",
     "nextra": "^2.6.0",
     "nextra-theme-docs": "^2.6.0",
     "react": "^18.2.0",
