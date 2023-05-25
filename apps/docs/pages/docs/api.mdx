@@ -48,12 +48,12 @@ A transform that will extract the text from _most_ chat and completion HuggingFa
 
 ```tsx
 // app/api/generate/route.ts
-import { HfInference } from '@huggingface/inference';
-import { HuggingFaceStream, StreamingTextResponse } from '@vercel/ai-utils';
+import { HfInference } from '@huggingface/inference'
+import { HuggingFaceStream, StreamingTextResponse } from '@vercel/ai-utils'
 
-export const runtime = 'edge';
+export const runtime = 'edge'
 
-const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY)
 
 export async function POST() {
   const response = await Hf.textGenerationStream({
@@ -65,11 +65,11 @@ export async function POST() {
       typical_p: 0.2, // you'll need this for OpenAssistant
       repetition_penalty: 1,
       truncate: 1000,
-      return_full_text: false,
-    },
-  });
-  const stream = HuggingFaceStream(response);
-  return new StreamingTextResponse(stream);
+      return_full_text: false
+    }
+  })
+  const stream = HuggingFaceStream(response)
+  return new StreamingTextResponse(stream)
 }
 ```
 
@@ -79,19 +79,19 @@ This is a tiny wrapper around `Response` class that makes returning `ReadableStr
 
 ```tsx
 // app/api/generate/route.ts
-import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils';
+import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils'
 
-export const runtime = 'edge';
+export const runtime = 'edge'
 
 export async function POST() {
   const response = await openai.createChatCompletion({
     model: 'gpt-4',
     stream: true,
-    messages: { role: 'user', content: 'What is love?' },
-  });
-  const stream = OpenAIStream(response);
+    messages: { role: 'user', content: 'What is love?' }
+  })
+  const stream = OpenAIStream(response)
   return new StreamingTextResponse(stream, {
-    'X-RATE-LIMIT': 'lol',
-  }); // => new Response(stream, { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-RATE-LIMIT': 'lol' }})
+    'X-RATE-LIMIT': 'lol'
+  }) // => new Response(stream, { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-RATE-LIMIT': 'lol' }})
 }
 ```
