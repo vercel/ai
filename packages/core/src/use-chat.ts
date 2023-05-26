@@ -18,6 +18,13 @@ export type Message = {
   role: 'system' | 'user' | 'assistant'
 }
 
+export type CreateMessage = {
+  id?: string
+  createdAt?: Date
+  content: string
+  role: 'system' | 'user' | 'assistant'
+}
+
 const decoder = new TextDecoder()
 function decodeAIStreamChunk(chunk: Uint8Array): string {
   const tokens = decoder.decode(chunk).split('\n')
@@ -154,8 +161,11 @@ export function useChat({
    * Append a user message to the chat list, and trigger the API call to fetch
    * the assistant's response.
    */
-  const append = useCallback((message: Message) => {
-    trigger(messagesRef.current.concat(message))
+  const append = useCallback((message: Message | CreateMessage) => {
+    if (!message.id) {
+      message.id = nanoid()
+    }
+    trigger(messagesRef.current.concat(message as Message))
   }, [])
 
   /**
