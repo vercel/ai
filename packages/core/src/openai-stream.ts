@@ -37,5 +37,3 @@ export function OpenAIStream(
 ): ReadableStream {
   return AIStream(res, parseOpenAIStream, cb)
 }
-
-OpenAIStream.$$streamType = Symbol.for('AIStream.OpenAIStream')

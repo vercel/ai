@@ -68,5 +68,3 @@ export function HuggingFaceStream(
   })
   return stream.pipeThrough(forkedStream)
 }
-
-HuggingFaceStream.$$streamType = Symbol.for('AIStream.HuggingFaceStream')

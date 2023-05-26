@@ -1,12 +1,9 @@
+'use client'
+
 import { useCallback, useId, useRef, useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
 import { customAlphabet } from 'nanoid'
-
-import type { AnthropicStream } from './anthropic-stream'
-import type { HuggingFaceStream } from './huggingface-stream'
-import type { OpenAIStream } from './openai-stream'
-import type { AIStreamCallbacks } from './ai-stream'
 
 // 7-character random string
 const nanoid = customAlphabet(
@@ -21,9 +18,14 @@ export type Message = {
   role: 'system' | 'user' | 'assistant'
 }
 
+const decoder = new TextDecoder()
+function decodeAIStreamChunk(chunk: Uint8Array): string {
+  const tokens = decoder.decode(chunk).split('\n')
+  return tokens.map(t => (t ? JSON.parse(t) : '')).join('')
+}
+
 export function useChat({
   api,
-  StreamProvider,
   id,
   initialMessages = []
 }: {
@@ -32,15 +34,6 @@ export function useChat({
    * a stream of tokens of the AI chat response.
    */
   api: string
-  /**
-   * The AI stream provider function that accepts a Response and the callbacks,
-   * and returns a ReadableStream.
-   * It can be AnthropicStream, HuggingFaceStream, or OpenAIStream.
-   */
-  StreamProvider:
-    | typeof AnthropicStream
-    | typeof HuggingFaceStream
-    | typeof OpenAIStream
   /**
    * An unique identifier for the chat. If not provided, a random one will be
    * generated. When provided, the `useChat` hook with the same `id` will
@@ -102,6 +95,7 @@ export function useChat({
           mutate(previousMessages, false)
           throw err
         })
+
         if (!res.ok) {
           // Restore the previous messages if the request fails.
           mutate(previousMessages, false)
@@ -112,68 +106,31 @@ export function useChat({
         }
 
         let result = ''
-        let resolve: () => void
-        const promise = new Promise<void>(r => (resolve = r))
-
-        if (!('$$streamType' in StreamProvider)) {
-          throw new Error(
-            'Invalid stream provider: it must be one of AnthropicStream, HuggingFaceStream, or OpenAIStream.'
-          )
-        }
-
         const createdAt = new Date()
         const replyId = nanoid()
-        const callback: AIStreamCallbacks = {
-          onToken: async token => {
-            // Update the chat state with the new message tokens.
-            result += token
-            mutate(
-              [
-                ...messagesSnapshot,
-                {
-                  id: replyId,
-                  createdAt,
-                  content: result,
-                  role: 'assistant'
-                }
-              ],
-              false
-            )
-          },
-          async onCompletion() {
-            resolve()
+        const reader = res.body.getReader()
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) {
+            break
           }
-        }
 
-        switch ((StreamProvider as any).$$streamType) {
-          case Symbol.for('AIStream.AnthropicStream'):
-            const AnthropicStreamProvider =
-              StreamProvider as typeof AnthropicStream
-            AnthropicStreamProvider(res, callback)
-            break
-          case Symbol.for('AIStream.OpenAIStream'):
-            const OpenAIStreamProvider = StreamProvider as typeof OpenAIStream
-            OpenAIStreamProvider(res, callback)
-            break
-          case Symbol.for('AIStream.HuggingFaceStream'):
-            // HuggingFaceStream accepts an async generator
-            const reader = res.body.getReader()
-            const generator = async function* () {
-              while (true) {
-                const { done, value } = await reader.read()
-                if (done) {
-                  break
-                }
-                yield value
+          // Update the chat state with the new message tokens.
+          result += decodeAIStreamChunk(value)
+          mutate(
+            [
+              ...messagesSnapshot,
+              {
+                id: replyId,
+                createdAt,
+                content: result,
+                role: 'assistant'
               }
-            }
-            const HuggingFaceStreamProvider =
-              StreamProvider as typeof HuggingFaceStream
-            HuggingFaceStreamProvider(generator(), callback)
-            break
+            ],
+            false
+          )
         }
-
-        await promise
 
         setAbortController(null)
         return null

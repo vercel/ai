@@ -10,9 +10,9 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "tsup src/index.tsx --format esm,cjs --dts --external react",
+    "build": "tsup",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-    "dev": "tsup src/index.tsx --format esm,cjs --watch --dts --external react",
+    "dev": "tsup --watch",
     "lint": "eslint \"src/**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"src/**/*.ts*\"",
@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "eventsource-parser": "1.0.0",
-    "nanoid": "^4.0.2",
+    "nanoid": "^3.3.6",
     "swr": "2.1.5"
   },
   "devDependencies": {
