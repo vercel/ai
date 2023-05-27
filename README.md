@@ -1,6 +1,13 @@
-# Vercel AI Utils
+# AI Utils
 
-Edge-ready utilities to accelerate working with AI in JavaScript and React.
+AI Utils is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**. It takes care of the boilerplate streaming code while not adding any additional abstraction or indirection between you and your AI model provider's SDK--letting you focus on building your next big thing instead of wasting another day messing around with text encoders.
+
+## Features
+
+- Edge Runtime compatibility
+- First-class support for native OpenAI, Anthropic, and HuggingFace Inference JavaScript SDKs
+- SWR-powered React hooks for fetching and rendering streaming text responses
+- Callbacks for saving completed streaming responses to a database (in the same request)
 
 ## Installation
 
@@ -13,6 +20,7 @@ pnpm install @vercel/ai-utils
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+- [Features](#features)
 - [Installation](#installation)
 - [Background](#background)
 - [Usage](#usage)
