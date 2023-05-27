@@ -25,6 +25,8 @@ pnpm install @vercel/ai-utils
   - [`OpenAIStream(res: Response, cb: AIStreamCallbacks): ReadableStream`](#openaistreamres-response-cb-aistreamcallbacks-readablestream)
   - [`HuggingFaceStream(iter: AsyncGenerator<any>, cb?: AIStreamCallbacks): ReadableStream`](#huggingfacestreamiter-asyncgeneratorany-cb-aistreamcallbacks-readablestream)
   - [`StreamingTextResponse(res: ReadableStream, init?: ResponseInit)`](#streamingtextresponseres-readablestream-init-responseinit)
+  - [`useChat(options: UseChatOptions): ChatHelpers`](#usechatoptions-usechatoptions-chathelpers)
+    - [`UseChatOptions`](#usechatoptions)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -98,7 +100,7 @@ OPENAI_API_KEY=xxxxxxxxx
 Create a Next.js Route Handler that uses the Edge Runtime that we'll use to generate a chat completion via OpenAI that we'll then stream back to our Next.js.
 
 ```tsx
-// ./app/api/generate/route.ts
+// ./app/api/chat/route.ts
 import { Configuration, OpenAIApi } from 'openai-edge'
 import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils'
 
@@ -113,13 +115,13 @@ export const runtime = 'edge'
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
-  const { prompt } = await req.json()
+  const { messages } = await req.json()
 
   // Ask OpenAI for a streaming chat completion given the prompt
-  const response = await openai.createCompletion({
+  const response = await openai.createChatCompletion({
     model: 'gpt-3.5-turbo',
     stream: true,
-    prompt
+    messages
   })
   // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response)
@@ -138,25 +140,30 @@ Create a Client component with a form that we'll use to gather the prompt from t
 // ./app/form.ts
 'use client'
 
-import { useState } from 'react'
-import { useCompletion } from '@vercel/ai-utils/react' //@todo
+import { useChat } from '@vercel/ai-utils'
 
-export function Form() {
-  const [value, setValue] = useState('')
-  const { setPrompt, completion } = useCompletion('/api/generate')
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat()
+
   return (
-    <div>
-      <form
-        onSubmit={e => {
-          e.preventDefault()
-          setPrompt(value)
-          setValue('')
-        }}
-      >
-        <textarea value={value} onChange={e => setValue(e.target.value)} />
-        <button type="submit">Submit</button>
+    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+      {messages.length > 0
+        ? messages.map(m => (
+            <div key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))
+        : null}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
       </form>
-      <div>{completion}</div>
     </div>
   )
 }
@@ -255,3 +262,47 @@ export async function POST() {
   }) // => new Response(stream, { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-RATE-LIMIT': 'lol' }})
 }
 ```
+
+### `useChat(options: UseChatOptions): ChatHelpers`
+
+An SWR-powered React hook for streaming text completion or chat messages and handling chat and prompt input state.
+
+```tsx
+// app/chat.tsx
+'use client'
+
+import { useChat } from '@vercel/ai-utils'
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat()
+
+  return (
+    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+      {messages.length > 0
+        ? messages.map(m => (
+            <div key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))
+        : null}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  )
+}
+```
+
+#### `UseChatOptions`
+
+- **`api?: string = '/api/chat'`** - The API endpoint that accepts a `{ messages: Message[] }` object and returns a stream of tokens of the AI chat response. Defaults to `/api/chat`.
+- **`id?: string`** - An unique identifier for the chat. If not provided, a random one will be generated. When provided, the `useChat` hook with the same `id` will have shared states across components thanks to SWR.
+- **`initialInput?: string = ''`** - An optional string of initial prompt input
+- **`initialMessages?: Messages[] = []`** - An optional array of initial chat messages
