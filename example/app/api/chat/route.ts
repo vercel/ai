@@ -9,11 +9,12 @@ const openai = new OpenAIApi(config)
 
 export const runtime = 'edge'
 
-export async function POST() {
+export async function POST(req: Request) {
+  const { messages } = await req.json()
   const response = await openai.createChatCompletion({
     model: 'gpt-4',
     stream: true,
-    messages: [{ role: 'user', content: 'What is love?' }]
+    messages: messages.map(({ content, role }: any) => ({ content, role }))
   })
   const stream = OpenAIStream(response, {
     async onStart() {

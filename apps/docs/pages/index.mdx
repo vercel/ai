@@ -17,24 +17,7 @@ import { Bleed } from 'nextra-theme-docs'
   Edge-ready utilities to accelerate working with AI in JavaScript and React.
 </div>
 
-<div className="my-12">
-  [Get Started](/docs/getting-started) · [Examples](/examples/basic) ·
-  [Blog](/blog) · [GitHub Repository](https://github.com/vercel/swr)
-</div>
-
-## Introduction [#overview]
-
-Creating UIs with contemporary AI providers is a daunting task. Ideally, language models/providers would be fast enough where developers could just fetch complete responses data with JSON in a few hundred milliseconds, but the reality is starkly different. It's quite common for these LLMs to take 5-40s to whip up a response.
-
-Instead of tormenting users with a seemingly endless loading spinner while these models conjure up responses or completions, the progressive approach involves streaming the text output to the frontend on the fly-—a tactic championed by OpenAI's ChatGPT. However, implementing this technique is easier said than done. Each AI provider has its own unique SDK, each has its own envelope surrounding the tokens, and each with different metadata (whose usefulness varies drastically).
-
-Many AI utility helpers so far in the JS ecosystem tend to overcomplicate things with unnecessary magic tricks, excess levels of indirection, and lossy abstractions. Here's where Vercel AI Utils comes to the rescue—**a compact library designed to alleviate the headaches of constructing streaming text UIs** by taking care of the most annoying parts and then getting out of your way:
-
-- Diminish the boilerplate necessary for handling streaming text responses
-- Guarantee the capability to run functions at the Edge
-- Streamline fetching and rendering of streaming responses (in React)
-
-Another core tenet of this library lies in its commitment to work directly with each AI/model provider's SDK, an equivalent edge-compatible version, or a vanilla `fetch` function. Its job is simply to cut through the confusion and handle the intricacies of streaming text, allowing you to then focus on building your next big thing instead of wasting another afternoon tweaking `TextEncoder` with trial and error.
+Vercel AI Utils is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**. It takes care of the boilerplate code while not adding any additional abstraction or indirection between you and your AI model provider's SDK.
 
 ## Features
 
@@ -42,30 +25,3 @@ Another core tenet of this library lies in its commitment to work directly with 
 - First-class support for native OpenAI, Anthropic, and HuggingFace Inference JavaScript SDKs
 - SWR-powered React hooks for fetching and rendering streaming text responses
 - Callbacks for saving completed streaming responses to a database (in the same request)
-
-## What's it look like?
-
-```tsx {3,18-19}
-// app/api/generate/route.ts
-import { Configuration, OpenAIApi } from 'openai-edge'
-import { OpenAITextStream, StreamingTextResponse } from '@vercel/ai-utils'
-
-const config = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY
-})
-const openai = new OpenAIApi(config)
-
-export const runtime = 'edge'
-
-export async function POST() {
-  const response = await openai.createChatCompletion({
-    model: 'gpt-4',
-    stream: true,
-    messages: [{ role: 'user', content: 'What is love?' }]
-  })
-  const stream = OpenAITextStream(response)
-  return new StreamingTextResponse(stream)
-}
-```
-
-Vercel AI Utils provides 2 utility helpers to make the above seamless: First, we pass the streaming `response` we receive from OpenAI to `OpenAITextStream`. This method decodes/extracts the text tokens in the response and then re-encodes them properly for simple consumption. We can then pass that new stream directly to `StreamingTextResponse`. This is another utility class that extends the normal Node/Edge Runtime `Response` class with the default headers you probably want (hint: `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).

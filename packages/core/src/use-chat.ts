@@ -31,16 +31,12 @@ function decodeAIStreamChunk(chunk: Uint8Array): string {
   return tokens.map(t => (t ? JSON.parse(t) : '')).join('')
 }
 
-export function useChat({
-  api,
-  id,
-  initialMessages = []
-}: {
+export type UseChatOptions = {
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
-   * a stream of tokens of the AI chat response.
+   * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
    */
-  api: string
+  api?: string
   /**
    * An unique identifier for the chat. If not provided, a random one will be
    * generated. When provided, the `useChat` hook with the same `id` will
@@ -51,7 +47,25 @@ export function useChat({
    * Initial messages of the chat. Useful to load an existing chat history.
    */
   initialMessages?: Message[]
-}) {
+
+  /**
+   * Initial input of the chat.
+   */
+  initialInput?: string
+}
+
+export function useChat(
+  {
+    api = '/api/chat',
+    id,
+    initialMessages = [],
+    initialInput = ''
+  }: UseChatOptions = {
+    api: '/api/chat',
+    initialMessages: [],
+    initialInput: ''
+  }
+) {
   // Generate an unique id for the chat if not provided.
   const hookId = useId()
   const chatId = id || hookId
@@ -203,6 +217,25 @@ export function useChat({
     messagesRef.current = messages
   }, [])
 
+  const [input, setInput] = useState(initialInput)
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      if (!input) return
+      append({
+        content: input,
+        role: 'user'
+      })
+      setInput('')
+    },
+    [input, append]
+  )
+
+  const handleInputChange = (e: any) => {
+    setInput(e.target.value)
+  }
+
   return {
     messages,
     error,
@@ -210,6 +243,10 @@ export function useChat({
     reload,
     stop,
     set,
+    input,
+    setInput,
+    handleInputChange,
+    handleSubmit,
     isLoading: isMutating
   }
 }

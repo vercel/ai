@@ -4,28 +4,70 @@ title: API Reference
 
 # API Reference
 
+## `useChat(options: UseChatOptions): ChatHelpers`
+
+An SWR-powered React hook for streaming text completion or chat messages and handling chat and prompt input state.
+
+```tsx filename="app/chat.tsx"
+'use client'
+
+import { useChat } from '@vercel/ai-utils'
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat()
+
+  return (
+    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+      {messages.length > 0
+        ? messages.map(m => (
+            <div key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))
+        : null}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  )
+}
+```
+
+### `UseChatOptions`
+
+- **`api?: string = '/api/chat'`** - The API endpoint that accepts a `{ messages: Message[] }` object and returns a stream of tokens of the AI chat response. Defaults to `/api/chat`.
+- **`id?: string`** - An unique identifier for the chat. If not provided, a random one will be generated. When provided, the `useChat` hook with the same `id` will have shared states across components thanks to SWR.
+- **`initialInput?: string = ''`** - An optional string of initial prompt input
+- **`initialMessages?: Messages[] = []`** - An optional array of initial chat messages
+
 ## `OpenAIStream(res: Response, cb: AIStreamCallbacks): ReadableStream`
 
 A transform that will extract the text from all chat and completion OpenAI models as returned as a `ReadableStream`.
 
-```tsx
-// app/api/generate/route.ts
-import { Configuration, OpenAIApi } from 'openai-edge';
-import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils';
+```tsx filename="app/api/chat/route.ts"
+import { Configuration, OpenAIApi } from 'openai-edge'
+import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils'
 
 const config = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(config);
+  apiKey: process.env.OPENAI_API_KEY
+})
+const openai = new OpenAIApi(config)
 
-export const runtime = 'edge';
+export const runtime = 'edge'
 
 export async function POST() {
   const response = await openai.createChatCompletion({
     model: 'gpt-4',
     stream: true,
-    messages: [{ role: 'user', content: 'What is love?' }],
-  });
+    messages: [{ role: 'user', content: 'What is love?' }]
+  })
   const stream = OpenAIStream(response, {
     async onStart() {
       console.log('streamin yo')
@@ -34,20 +76,20 @@ export async function POST() {
       console.log('token: ' + token)
     },
     async onCompletion(content) {
-      console.log('full text: ' + )
+      console.log('full text: ' + content)
       // await prisma.messages.create({ content }) or something
     }
-  });
-  return new StreamingTextResponse(stream);
+  })
+  return new StreamingTextResponse(stream)
 }
 ```
 
 ## `HuggingFaceStream(iter: AsyncGenerator<any>, cb?: AIStreamCallbacks): ReadableStream`
 
 A transform that will extract the text from _most_ chat and completion HuggingFace models and return them as a `ReadableStream`.
+It expects the iterable `AsyncGenerator` from HuggingFace Inference SDK's `hf.textGenerationStream` method.
 
-```tsx
-// app/api/generate/route.ts
+```tsx filename="app/api/chat/route.ts"
 import { HfInference } from '@huggingface/inference'
 import { HuggingFaceStream, StreamingTextResponse } from '@vercel/ai-utils'
 

@@ -1,22 +1,6 @@
 {
-  "index": {
-    "title": "Introduction",
-    "type": "page",
-    "display": "hidden"
-  },
-  "docs": {
-    "title": "Docs",
-    "type": "page"
-  },
-  "examples": {
-    "title": "Examples",
-    "type": "page"
-  },
-  "blog": {
-    "title": "Blog",
-    "type": "page",
-    "theme": {
-      "sidebar": false
-    }
-  }
+  "index": "Introduction",
+  "getting-started": "Getting Started",
+  "guides": "Guides",
+  "api-reference": "API Reference"
 }
