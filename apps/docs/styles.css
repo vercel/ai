@@ -1,9 +1,5 @@
 @tailwind utilities;
 
-html {
-  font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1, "ss06" 1 !important;
-}
-
 [data-reach-skip-link] {
   @apply sr-only;
 }
