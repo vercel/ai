@@ -34,7 +34,11 @@ pnpm install @vercel/ai-utils
   - [`HuggingFaceStream(iter: AsyncGenerator<any>, cb?: AIStreamCallbacks): ReadableStream`](#huggingfacestreamiter-asyncgeneratorany-cb-aistreamcallbacks-readablestream)
   - [`StreamingTextResponse(res: ReadableStream, init?: ResponseInit)`](#streamingtextresponseres-readablestream-init-responseinit)
   - [`useChat(options: UseChatOptions): ChatHelpers`](#usechatoptions-usechatoptions-chathelpers)
+    - [Types](#types)
+      - [`Message`](#message)
     - [`UseChatOptions`](#usechatoptions)
+      - [`UseChatHelpers`](#usechathelpers)
+    - [Example](#example)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -253,7 +257,7 @@ export async function POST() {
 This is a tiny wrapper around `Response` class that makes returning `ReadableStreams` of text a one liner. Status is automatically set to `200`, with `'Content-Type': 'text/plain; charset=utf-8'` set as `headers`.
 
 ```tsx
-// app/api/generate/route.ts
+// app/api/chat/route.ts
 import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils'
 
 export const runtime = 'edge'
@@ -275,6 +279,60 @@ export async function POST() {
 
 An SWR-powered React hook for streaming text completion or chat messages and handling chat and prompt input state.
 
+The `useChat` hook is designed to provide an intuitive interface for building ChatGPT-like UI's in React with streaming text responses. It leverages the [SWR](https://swr.vercel.app) library for efficient data fetching and state synchronization.
+
+#### Types
+
+##### `Message`
+
+The Message type represents a chat message within your application.
+
+```tsx
+type Message = {
+  id: string
+  createdAt?: Date
+  content: string
+  role: 'system' | 'user' | 'assistant'
+}
+```
+
+#### `UseChatOptions`
+
+The UseChatOptions type defines the configuration options for the useChat hook.
+
+```tsx
+type UseChatOptions = {
+  api?: string
+  id?: string
+  initialMessages?: Message[]
+  initialInput?: string
+}
+```
+
+##### `UseChatHelpers`
+
+The `UseChatHelpers` type is the return type of the `useChat` hook. It provides various utilities to interact with and manipulate the chat.
+
+```tsx
+type UseChatHelpers = {
+  messages: Message[]
+  error: any
+  append: (message: Message) => void
+  reload: () => void
+  stop: () => void
+  set: (messages: Message[]) => void
+  input: string
+  setInput: react.Dispatch<react.SetStateAction<string>>
+  handleInputChange: (e: any) => void
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  isLoading: boolean
+}
+```
+
+#### Example
+
+Below is a basic example of the useChat hook in a component:
+
 ```tsx
 // app/chat.tsx
 'use client'
@@ -282,7 +340,17 @@ An SWR-powered React hook for streaming text completion or chat messages and han
 import { useChat } from '@vercel/ai-utils'
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat()
+  const { messages, input, stop, isLoading, handleInputChange, handleSubmit } =
+    useChat({
+      api: '/api/some-custom-endpoint',
+      initialMessages: [
+        {
+          id: 'abc124',
+          content: 'You are an AI assistant ...',
+          role: 'system'
+        }
+      ]
+    })
 
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
@@ -302,15 +370,16 @@ export default function Chat() {
           placeholder="Say something..."
           onChange={handleInputChange}
         />
+        <button type="button" onClick={stop}>
+          Stop
+        </button>
+        <button disabled={isLoading} type="submit">
+          Send
+        </button>
       </form>
     </div>
   )
 }
 ```
 
-#### `UseChatOptions`
-
-- **`api?: string = '/api/chat'`** - The API endpoint that accepts a `{ messages: Message[] }` object and returns a stream of tokens of the AI chat response. Defaults to `/api/chat`.
-- **`id?: string`** - An unique identifier for the chat. If not provided, a random one will be generated. When provided, the `useChat` hook with the same `id` will have shared states across components thanks to SWR.
-- **`initialInput?: string = ''`** - An optional string of initial prompt input
-- **`initialMessages?: Messages[] = []`** - An optional array of initial chat messages
+In this example, chat is an object of type `UseChatHelpers`, which contains various utilities to interact with and control the chat. You can use these utilities to render chat messages, handle input changes, submit messages, and manage the chat state in your UI.

@@ -54,6 +54,37 @@ export type UseChatOptions = {
   initialInput?: string
 }
 
+export type UseChatHelpers = {
+  /** Current messages in the chat */
+  messages: Message[]
+  /** SWR's error object */
+  error: any
+  /**
+   * Append a  message to the chat list. This trigger the API call
+   * to fetch to the API endpoint to get the AI response.
+   */
+  append: (message: Message | CreateMessage) => void
+  /**
+   * Reload the last AI chat response for the given chat history. If the last
+   * message isn't from the assistant, this method will do nothing.
+   */
+  reload: () => void
+  /** Abort the current API request. */
+  stop: () => void
+  /** Update the `messages` state locally. */
+  set: (messages: Message[]) => void
+  /** The current value of the input */
+  input: string
+  /** setState-powered method to update the input value */
+  setInput: React.Dispatch<React.SetStateAction<string>>
+  /** An input/textarea-ready onChange handler to control the value of the input */
+  handleInputChange: (e: any) => void
+  /** Form submission handler to automattically reset input and append a user message  */
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  /** Whether SWR-fetch is in progress */
+  isLoading: boolean
+}
+
 export function useChat(
   {
     api = '/api/chat',
@@ -65,7 +96,7 @@ export function useChat(
     initialMessages: [],
     initialInput: ''
   }
-) {
+): UseChatHelpers {
   // Generate an unique id for the chat if not provided.
   const hookId = useId()
   const chatId = id || hookId
