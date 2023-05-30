@@ -1,5 +1,11 @@
 # @vercel/ai-utils
 
+## 0.0.2
+
+### Patch Changes
+
+- af400e2: Fix release script
+
 ## 0.0.1
 
 ### Patch Changes
