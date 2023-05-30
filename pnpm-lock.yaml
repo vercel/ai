@@ -37,8 +37,8 @@ importers:
       autoprefixer: ^10.4.14
       eslint-config-vercel-ai: workspace:*
       next: 13.4.4-canary.9
-      nextra: ^2.6.0
-      nextra-theme-docs: ^2.6.0
+      nextra: ^2.6.2
+      nextra-theme-docs: ^2.6.2
       postcss: ^8.4.23
       react: ^18.2.0
       react-dom: ^18.2.0
@@ -48,8 +48,8 @@ importers:
       '@vercel/ai-utils': link:../../packages/core
       '@vercel/analytics': 1.0.1
       next: 13.4.4-canary.9_biqbaboplfbrettd7655fr4n2y
-      nextra: 2.6.1_3fyrzcjr334jhxud7d6gyn3pne
-      nextra-theme-docs: 2.6.1_wbtg3so5kkvh73pbhurrws7wae
+      nextra: 2.6.2_3fyrzcjr334jhxud7d6gyn3pne
+      nextra-theme-docs: 2.6.2_7ee4ownkon7unuf3cdwlwz7qf4
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
     devDependencies:
@@ -6154,11 +6154,11 @@ packages:
       - babel-plugin-macros
     dev: false
 
-  /nextra-theme-docs/2.6.1_wbtg3so5kkvh73pbhurrws7wae:
-    resolution: {integrity: sha512-25Va2D5bzFRIE7uIZ75QfmvsdurXI+xzoWBNMQTnG+ONv9yiQSWRYjfw/Yep1OXF6ahDaaNqbCb8HmRoX7sqRg==}
+  /nextra-theme-docs/2.6.2_7ee4ownkon7unuf3cdwlwz7qf4:
+    resolution: {integrity: sha512-yvoLSf6rzeD3f6GA/vQabgEkwX3db7DOy87XhtwmqVip2O2XsW3DoMDuU7rzlCtCUmrsC583vymhd3YS6KKehg==}
     peerDependencies:
       next: '>=9.5.3'
-      nextra: 2.6.1
+      nextra: 2.6.2
       react: '>=16.13.1'
       react-dom: '>=16.13.1'
     dependencies:
@@ -6173,15 +6173,15 @@ packages:
       next: 13.4.4-canary.9_biqbaboplfbrettd7655fr4n2y
       next-seo: 6.0.0_3fyrzcjr334jhxud7d6gyn3pne
       next-themes: 0.2.1_3fyrzcjr334jhxud7d6gyn3pne
-      nextra: 2.6.1_3fyrzcjr334jhxud7d6gyn3pne
+      nextra: 2.6.2_3fyrzcjr334jhxud7d6gyn3pne
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
       scroll-into-view-if-needed: 3.0.10
       zod: 3.21.4
     dev: false
 
-  /nextra/2.6.1_3fyrzcjr334jhxud7d6gyn3pne:
-    resolution: {integrity: sha512-5NN+aTFzW17/42AWp3qAvBTlgZvSQVpHOUb2MdHI6gnslpjik6z7DS1gZJ9zJ/I8veVxdLhdE70TfksAZ9tgxQ==}
+  /nextra/2.6.2_3fyrzcjr334jhxud7d6gyn3pne:
+    resolution: {integrity: sha512-1Rxb04AB9eIieJZq7LQTlcTUdXZcJ4g5rjPBnQ2EGUA8d7jCBhGyQoqDuZtblr8lDTRjIeMnJXCZo2HxIAtWhA==}
     engines: {node: '>=16'}
     peerDependencies:
       next: '>=9.5.3'
@@ -6941,7 +6941,7 @@ packages:
     dev: false
 
   /remove-accents/0.4.2:
-    resolution: {integrity: sha512-7pXIJqJOq5tFgG1A2Zxti3Ht8jJF337m4sowbuHsW30ZnkQFnDzy9qBNhgzX8ZLW4+UBcXiiR7SwR6pokHsxiA==}
+    resolution: {integrity: sha1-CkPTqq4egNuRngeuJUsoXZ4ce7U=}
     dev: false
 
   /require-directory/2.1.1:
@@ -7586,7 +7586,7 @@ packages:
     dev: false
 
   /titleize/1.0.0:
-    resolution: {integrity: sha512-TARUb7z1pGvlLxgPk++7wJ6aycXF3GJ0sNSBTAsTuJrQG5QuZlkUQP+zl+nbjAh4gMX9yDw9ZYklMd7vAfJKEw==}
+    resolution: {integrity: sha1-fTUHIgYYMLpmF2MeDP0+oIOY2Vo=}
     engines: {node: '>=0.10.0'}
     dev: false
 

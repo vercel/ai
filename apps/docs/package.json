@@ -13,8 +13,8 @@
     "@vercel/ai-utils": "workspace:*",
     "@vercel/analytics": "^1.0.1",
     "next": "13.4.4-canary.9",
-    "nextra": "^2.6.0",
-    "nextra-theme-docs": "^2.6.0",
+    "nextra": "^2.6.2",
+    "nextra-theme-docs": "^2.6.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

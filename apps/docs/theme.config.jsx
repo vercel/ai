@@ -17,7 +17,6 @@ export default {
   project: {
     link: 'https://github.com/vercel-labs/ai-utils'
   },
-  search: false,
   footer: {
     text: (
       <div
