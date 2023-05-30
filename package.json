@@ -11,8 +11,8 @@
     "type-check": "turbo type-check",
     "prettier-fix": "prettier --write \"**/*.{js,ts,tsx,md,mdx}\"",
     "publint": "turbo publint",
-    "release": "turbo build --filter=docs^... && changeset publish",
-    "test": "turbo test",
+    "release": "turbo build --filter=@vercel/ai-utils... && changeset publish",
+    "test": "turbo test --filter=@vercel/ai-utils...",
     "version-packages": "changeset version"
   },
   "lint-staged": {
