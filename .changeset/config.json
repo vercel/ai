@@ -7,5 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@vercel/ai-docs", "next-test"]
+  "ignore": ["@vercel/ai-docs", "example"]
 }
