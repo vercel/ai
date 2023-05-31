@@ -5,7 +5,7 @@ export default defineConfig([
   // Universal APIs
   {
     entry: readdirSync('src')
-      .filter(file => file !== 'use-chat.ts')
+      .filter(file => !file.startsWith('use-'))
       .map(file => `src/${file}`),
     format: ['cjs', 'esm'],
     external: ['react'],
@@ -16,7 +16,7 @@ export default defineConfig([
   },
   // Client APIs
   {
-    entry: ['src/use-chat.ts'],
+    entry: ['src/use-*.ts'],
     banner: {
       js: "'use client'"
     },
