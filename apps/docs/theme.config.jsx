@@ -11,8 +11,39 @@ export default {
     return {
       defaultTitle: 'AI Utils',
       titleTemplate: '%s - AI Utils',
-      title
+      title,
+      description:
+        'Edge-ready utilities to accelerate working with AI in JavaScript and React.'
     }
+  },
+  head: () => {
+    const { title } = useConfig()
+    return (
+      <>
+        <meta
+          name="og:image"
+          content={
+            'https://ai-utils-docs.vercel.sh/api/og?' +
+            new URLSearchParams({ title }).toString()
+          }
+        />
+        <meta
+          name="twitter:image"
+          content={
+            'https://ai-utils-docs.vercel.sh/api/og?' +
+            new URLSearchParams({ title }).toString()
+          }
+        />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@vercel" />
+        <meta name="twitter:creator" content="@vercel" />
+        <meta name="twitter:title" content="Vercel AI Utils" />
+        <meta
+          name="twitter:description"
+          content="Edge-ready utilities to accelerate working with AI in JavaScript and React."
+        />
+      </>
+    )
   },
   project: {
     link: 'https://github.com/vercel-labs/ai-utils'
