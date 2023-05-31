@@ -37,12 +37,14 @@ export type UseChatOptions = {
    * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
    */
   api?: string
+
   /**
    * An unique identifier for the chat. If not provided, a random one will be
    * generated. When provided, the `useChat` hook with the same `id` will
    * have shared states across components.
    */
   id?: string
+
   /**
    * Initial messages of the chat. Useful to load an existing chat history.
    */
@@ -52,6 +54,26 @@ export type UseChatOptions = {
    * Initial input of the chat.
    */
   initialInput?: string
+
+  /**
+   * Callback function to be called when the API response is received.
+   */
+  onResponse?: (response: Response) => void
+
+  /**
+   * Callback function to be called when the chat is finished streaming.
+   */
+  onFinish?: (message: Message) => void
+
+  /**
+   * HTTP headers to be sent with the API request.
+   */
+  headers?: Record<string, string> | Headers
+
+  /**
+   * Extra body to be sent with the API request.
+   */
+  body?: any
 }
 
 export type UseChatHelpers = {
@@ -85,18 +107,16 @@ export type UseChatHelpers = {
   isLoading: boolean
 }
 
-export function useChat(
-  {
-    api = '/api/chat',
-    id,
-    initialMessages = [],
-    initialInput = ''
-  }: UseChatOptions = {
-    api: '/api/chat',
-    initialMessages: [],
-    initialInput: ''
-  }
-): UseChatHelpers {
+export function useChat({
+  api = '/api/chat',
+  id,
+  initialMessages = [],
+  initialInput = '',
+  onResponse,
+  onFinish,
+  headers,
+  body
+}: UseChatOptions): UseChatHelpers {
   // Generate an unique id for the chat if not provided.
   const hookId = useId()
   const chatId = id || hookId
@@ -116,6 +136,17 @@ export function useChat(
   // Abort controller to cancel the current API call.
   const [abortController, setAbortController] =
     useState<AbortController | null>(null)
+
+  const extraMetadataRef = useRef<any>({
+    headers,
+    body
+  })
+  useEffect(() => {
+    extraMetadataRef.current = {
+      headers,
+      body
+    }
+  }, [headers, body])
 
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
@@ -139,14 +170,24 @@ export function useChat(
         const res = await fetch(api, {
           method: 'POST',
           body: JSON.stringify({
-            messages: messagesSnapshot
+            messages: messagesSnapshot,
+            ...extraMetadataRef.current.body
           }),
+          headers: extraMetadataRef.current.headers || {},
           signal: abortController.signal
         }).catch(err => {
           // Restore the previous messages if the request fails.
           mutate(previousMessages, false)
           throw err
         })
+
+        if (onResponse) {
+          try {
+            await onResponse(res)
+          } catch (err) {
+            throw err
+          }
+        }
 
         if (!res.ok) {
           // Restore the previous messages if the request fails.
@@ -182,6 +223,15 @@ export function useChat(
             ],
             false
           )
+        }
+
+        if (onFinish) {
+          onFinish({
+            id: replyId,
+            createdAt,
+            content: result,
+            role: 'assistant'
+          })
         }
 
         setAbortController(null)

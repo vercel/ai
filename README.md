@@ -277,7 +277,7 @@ export async function POST() {
 
 ### `useChat(options: UseChatOptions): ChatHelpers`
 
-An SWR-powered React hook for streaming text completion or chat messages and handling chat and prompt input state.
+An SWR-powered React hook for streaming chat messages and handling chat and prompt input state.
 
 The `useChat` hook is designed to provide an intuitive interface for building ChatGPT-like UI's in React with streaming text responses. It leverages the [SWR](https://swr.vercel.app) library for efficient data fetching and state synchronization.
 
@@ -306,6 +306,10 @@ type UseChatOptions = {
   id?: string
   initialMessages?: Message[]
   initialInput?: string
+  onResponse?: (response: Response) => void
+  onFinish?: (message: Message) => void
+  headers?: Record<string, string> | Headers
+  body?: any
 }
 ```
 
@@ -383,3 +387,87 @@ export default function Chat() {
 ```
 
 In this example, chat is an object of type `UseChatHelpers`, which contains various utilities to interact with and control the chat. You can use these utilities to render chat messages, handle input changes, submit messages, and manage the chat state in your UI.
+
+### `useCompletion(options: UseCompletionOptions): CompletionHelpers`
+
+An SWR-powered React hook for streaming text completion and handling completion and prompt input state.
+
+The `useCompletion` hook is designed to provide an intuitive interface for building a UI that streams text completions in React. It leverages the [SWR](https://swr.vercel.app) library for efficient data fetching and state synchronization.
+
+#### Types
+
+#### `UseCompletionOptions`
+
+The `UseCompletionOptions` type defines the configuration options for the `useCompletion` hook.
+
+```tsx
+type UseCompletionOptions = {
+  api?: string
+  id?: string
+  initialInput?: string
+  initialCompletion?: string
+  onResponse?: (response: Response) => void
+  onFinish?: (prompt: string, completion: string) => void
+  headers?: Record<string, string> | Headers
+  body?: any
+}
+```
+
+##### `CompletionHelpers`
+
+The `CompletionHelpers` type is the return type of the `useCompletion` hook. It provides various utilities to interact with and manipulate the completion.
+
+```tsx
+type UseChatHelpers = {
+  completion: string
+  complete: (prompt: string) => void
+  error: any
+  set: (completion: string) => void
+  stop: () => void
+  input: string
+  setInput: react.Dispatch<react.SetStateAction<string>>
+  handleInputChange: (e: any) => void
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  isLoading: boolean
+}
+```
+
+#### Example
+
+Below is a basic example of the `useCompletion` hook in a component:
+
+```tsx
+// app/completion.tsx
+'use client'
+
+import { useCompletion } from '@vercel/ai-utils'
+
+export default function Completion() {
+  const { completion, input, stop, isLoading, handleInputChange, handleSubmit } =
+    useCompletion({
+      api: '/api/some-custom-endpoint'
+    })
+
+  return (
+    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+        <p>Completion result: {completion}</p>
+        <button type="button" onClick={stop}>
+          Stop
+        </button>
+        <button disabled={isLoading} type="submit">
+          Send
+        </button>
+      </form>
+    </div>
+  )
+}
+```
+
+In this example, completion is an object of type `CompletionHelpers`, which contains various utilities to interact with and control the completion. You can use these utilities to render the completion, handle input changes, submit prompts, and manage the completion state in your UI.
