@@ -1,11 +1,11 @@
 # AI Utils
 
-AI Utils is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**. It takes care of the boilerplate streaming code while not adding any additional abstraction or indirection between you and your AI model provider's SDK--letting you focus on building your next big thing instead of wasting another day messing around with text encoders.
+AI Utils is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**.
 
 ## Features
 
 - Edge Runtime compatibility
-- First-class support for native OpenAI, Anthropic, and HuggingFace Inference JavaScript SDKs
+- First-class support for LangChain and native OpenAI, Anthropic, and HuggingFace Inference JavaScript SDKs
 - SWR-powered React hooks for fetching and rendering streaming text responses
 - Callbacks for saving completed streaming responses to a database (in the same request)
 
@@ -22,7 +22,6 @@ pnpm install @vercel/ai-utils
 
 - [Features](#features)
 - [Installation](#installation)
-- [Background](#background)
 - [Usage](#usage)
 - [Tutorial](#tutorial)
   - [Create a Next.js app](#create-a-nextjs-app)
@@ -39,22 +38,10 @@ pnpm install @vercel/ai-utils
     - [`UseChatOptions`](#usechatoptions)
       - [`UseChatHelpers`](#usechathelpers)
     - [Example](#example)
+  - [`createLangChainAdapter(cb?: AIStreamCallbacks): { stream: ReadableStream; handlers: LangChainHandlers }`](#createlangchainadaptercb-aistreamcallbacks--stream-readablestream-handlers-langchainhandlers-)
+    - [Example](#example-1)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-## Background
-
-Creating UIs with contemporary AI providers is a daunting task. Ideally, language models/providers would be fast enough where developers could just fetch complete responses data with JSON in a few hundred milliseconds, but the reality is starkly different. It's quite common for these LLMs to take 5-40s to whip up a response.
-
-Instead of tormenting users with a seemingly endless loading spinner while these models conjure up responses or completions, the progressive approach involves streaming the text output to the frontend on the fly-—a tactic championed by OpenAI's ChatGPT. However, implementing this technique is easier said than done. Each AI provider has its own unique SDK, each has its own envelope surrounding the tokens, and each with different metadata (whose usefulness varies drastically).
-
-Many AI utility helpers so far in the JS ecosystem tend to overcomplicate things with unnecessary magic tricks, excess levels of indirection, and lossy abstractions. Here's where Vercel AI Utils comes to the rescue—**a compact library designed to alleviate the headaches of constructing streaming text UIs** by taking care of the most annoying parts and then getting out of your way:
-
-- Diminish the boilerplate necessary for handling streaming text responses
-- Guarantee the capability to run functions at the Edge
-- Streamline fetching and rendering of streaming responses (in React)
-
-The goal of this library lies in its commitment to work directly with each AI/Model Hosting Provider's SDK, an equivalent edge-compatible version, or a vanilla `fetch` function. Its job is simply to cut through the confusion and handle the intricacies of streaming text, leaving you to concentrate on building your next big thing instead of wasting another afternoon tweaking `TextEncoder` with trial and error.
 
 ## Usage
 
@@ -383,3 +370,84 @@ export default function Chat() {
 ```
 
 In this example, chat is an object of type `UseChatHelpers`, which contains various utilities to interact with and control the chat. You can use these utilities to render chat messages, handle input changes, submit messages, and manage the chat state in your UI.
+
+### `createLangChainAdapter(cb?: AIStreamCallbacks): { stream: ReadableStream; handlers: LangChainHandlers }`
+
+Returns a `stream` and bag of LangChain `BaseCallbackHandlerMethodsClass` that automatically implement streaming in such a way that you can use `useChat` and `useCompletion`.
+
+#### Example
+
+Here is a reference implementation of a chat endpoint that uses both AI Utils and LangChain together with Next.js App Router
+
+```tsx
+// app/api/chat/route.ts
+import {
+  StreamingTextResponse,
+  createLangChainStreamingAdapter
+} from '@vercel/ai-utils'
+import { ChatOpenAI } from 'langchain/chat_models/openai'
+import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
+import { CallbackManager } from 'langchain/callbacks'
+
+export const runtime = 'edge'
+
+export async function POST(req: Request) {
+  const { messages } = await req.json()
+  //
+  const { stream, handlers } = createLangChainStreamingAdapter()
+
+  const llm = new ChatOpenAI({
+    streaming: true,
+    callbackManager: CallbackManager.fromHandlers(handlers)
+  })
+
+  llm
+    .call(
+      messages.map(m =>
+        m.role == 'user'
+          ? new HumanChatMessage(m.content)
+          : new AIChatMessage(m.content)
+      )
+    )
+    .catch(console.error)
+
+  return new StreamingTextResponse(stream)
+}
+```
+
+```tsx
+// app/page.tsx
+'use client'
+
+import { useChat } from '@vercel/ai-utils'
+
+export default function Chat() {
+  const { messages, input, isLoading, handleInputChange, handleSubmit } =
+    useChat()
+
+  return (
+    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+      {messages.length > 0
+        ? messages.map(m => (
+            <div key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))
+        : null}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+        <button disabled={isLoading} type="submit">
+          Send
+        </button>
+      </form>
+    </div>
+  )
+}
+```
