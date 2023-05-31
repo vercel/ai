@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
 
@@ -17,8 +17,8 @@ export type UseCompletionOptions = {
    */
   api?: string
   /**
-   * An unique identifier for the completion. If not provided, a random one will be
-   * generated. When provided, the `useCompletion` hook with the same `id` will
+   * An unique identifier for the chat. If not provided, a random one will be
+   * generated. When provided, the `useChat` hook with the same `id` will
    * have shared states across components.
    */
   id?: string
@@ -36,12 +36,12 @@ export type UseCompletionOptions = {
    * HTTP headers to be sent with the API request.
    */
   headers?: Record<string, string> | Headers
-  /**
-   * Extra body object to be sent with the API request.
-   */
-  body?: any
   onResponse?: (response: Response) => void
   onCompletionEnd?: (prompt: string, completion: string) => void
+  /**
+   * Extra body to be sent with the API request.
+   */
+  body?: any
 }
 
 export function useCompletion({
@@ -54,11 +54,11 @@ export function useCompletion({
   onResponse,
   onCompletionEnd
 }: UseCompletionOptions) {
-  // Generate an unique id for the chat if not provided.
+  // Generate an unique id for the completion if not provided.
   const hookId = useId()
   const completionId = id || hookId
 
-  // Store the chat state in SWR, using the completionId as the key to share states.
+  // Store the completion state in SWR, using the completionId as the key to share states.
   const { data, mutate } = useSWR<string>([api, completionId], null, {
     fallbackData: initialCompletion
   })
@@ -67,6 +67,17 @@ export function useCompletion({
   // Abort controller to cancel the current API call.
   const [abortController, setAbortController] =
     useState<AbortController | null>(null)
+
+  const extraMetadataRef = useRef<any>({
+    headers,
+    body
+  })
+  useEffect(() => {
+    extraMetadataRef.current = {
+      headers,
+      body
+    }
+  }, [headers, body])
 
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
@@ -89,9 +100,9 @@ export function useCompletion({
           method: 'POST',
           body: JSON.stringify({
             prompt,
-            ...body
+            ...extraMetadataRef.current.body
           }),
-          headers: headers || {},
+          headers: extraMetadataRef.current.headers || {},
           signal: abortController.signal
         }).catch(err => {
           throw err
@@ -106,7 +117,7 @@ export function useCompletion({
         }
 
         if (!res.ok) {
-          throw new Error('Failed to fetch the chat response.')
+          throw new Error('Failed to fetch the completion response.')
         }
         if (!res.body) {
           throw new Error('The response body is empty.')
@@ -121,7 +132,7 @@ export function useCompletion({
             break
           }
 
-          // Update the chat state with the new message tokens.
+          // Update the completion state with the new message tokens.
           result += decodeAIStreamChunk(value)
           mutate(result, false)
         }
