@@ -1,6 +1,6 @@
 {
   "name": "@vercel/ai-utils",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "sideEffects": false,
   "main": "./dist/index.js",
