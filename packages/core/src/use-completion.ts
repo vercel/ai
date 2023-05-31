@@ -172,9 +172,12 @@ export function useCompletion({
   /**
    * Update the `completion` state locally.
    */
-  const set = useCallback((completion: string) => {
-    mutate(completion, false)
-  }, [])
+  const set = useCallback(
+    (completion: string) => {
+      mutate(completion, false)
+    },
+    [mutate]
+  )
 
   const [input, setInput] = useState(initialInput)
 
@@ -185,16 +188,19 @@ export function useCompletion({
       trigger(input)
       setInput('')
     },
-    [input]
+    [input, trigger]
   )
 
   const handleInputChange = (e: any) => {
     setInput(e.target.value)
   }
 
-  const complete = useCallback((prompt: string) => {
-    trigger(prompt)
-  }, [])
+  const complete = useCallback(
+    (prompt: string) => {
+      trigger(prompt)
+    },
+    [trigger]
+  )
 
   return {
     completion,
