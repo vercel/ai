@@ -393,7 +393,6 @@ export const runtime = 'edge'
 
 export async function POST(req: Request) {
   const { messages } = await req.json()
-  //
   const { stream, handlers } = createLangChainStreamingAdapter()
 
   const llm = new ChatOpenAI({
