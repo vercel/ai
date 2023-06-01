@@ -10,10 +10,10 @@
     "start": "next start "
   },
   "dependencies": {
-    "ai-connector": "workspace:*",
     "@vercel/analytics": "^1.0.1",
+    "ai-connector": "workspace:*",
     "cobe": "^0.6.3",
-    "next": "13.4.4-canary.9",
+    "next": "13.4.5-canary.3",
     "nextra": "^2.6.2",
     "nextra-theme-docs": "^2.6.2",
     "react": "^18.2.0",
