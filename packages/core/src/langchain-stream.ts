@@ -14,10 +14,7 @@ export function LangChainStream(callbacks?: AIStreamCallbacks) {
     },
     transform: async (chunk, controller): Promise<void> => {
       controller.enqueue(chunk)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const item = decoder.decode(chunk)
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const value = JSON.parse(item.split('\n')[0])
       if (callbacks?.onToken) {
         await callbacks.onToken(value as string)

@@ -2,7 +2,6 @@
 import type { AIStreamCallbacks } from './ai-stream'
 
 export function HuggingFaceStream(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   res: AsyncGenerator<any>,
   callbacks?: AIStreamCallbacks
 ): ReadableStream {
@@ -12,10 +11,9 @@ export function HuggingFaceStream(
   const stream = new ReadableStream({
     async start(controller): Promise<void> {
       for await (const chunk of res) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         const text = chunk.token?.text ?? ''
         // some HF models return generated_text instead of a real ending token
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, eqeqeq
+
         if (chunk.generated_text != null && chunk.generated_text.length > 0) {
           controller.close()
           return
@@ -24,7 +22,6 @@ export function HuggingFaceStream(
         // <|endoftext|> is for https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5
         // </s> is also often last token in the stream depending on the model
         if (text !== '</s>' && text !== '<|endoftext|>') {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
           if (counter < 2 && (text.match(/\n/) || []).length) {
             return
           }
@@ -49,10 +46,7 @@ export function HuggingFaceStream(
     },
     transform: async (chunk, controller): Promise<void> => {
       controller.enqueue(chunk)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const item = decoder.decode(chunk)
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const value = JSON.parse(item.split('\n')[0])
       if (callbacks?.onToken) {
         await callbacks.onToken(value as string)

@@ -11,7 +11,6 @@ export interface AIStreamCallbacks {
 }
 
 export interface AIStreamParserOptions {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any
   controller: ReadableStreamDefaultController
   counter: number
@@ -43,9 +42,7 @@ export function AIStream(
 
       const parser = createParser(onParse)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for await (const chunk of res.body as any) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         parser.feed(decoder.decode(chunk))
       }
     }
@@ -60,10 +57,7 @@ export function AIStream(
     },
     transform: async (chunk, controller): Promise<void> => {
       controller.enqueue(chunk)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const item = decoder.decode(chunk)
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const value = JSON.parse(item.split('\n')[0])
       if (callbacks?.onToken) {
         await callbacks.onToken(value as string)
