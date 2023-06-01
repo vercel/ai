@@ -1,5 +1,11 @@
 # @vercel/ai-utils
 
+## 0.0.4
+
+### Patch Changes
+
+- b869104: Added `LangChainStream`, `useCompletion`, and `useChat`
+
 ## 0.0.3
 
 ### Patch Changes
