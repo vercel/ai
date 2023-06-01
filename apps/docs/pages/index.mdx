@@ -3,7 +3,6 @@ title: Introduction
 ---
 
 import { Callout } from 'nextra-theme-docs'
-// import Features from 'components/features'
 import { Bleed } from 'nextra-theme-docs'
 
 {
@@ -14,14 +13,13 @@ import { Bleed } from 'nextra-theme-docs'
 {/* <Bleed><Features/></Bleed> */}
 
 <div className="text-slate-600 text-xl mt-4 mb-8">
-  Edge-ready utilities to accelerate working with AI in JavaScript and React.
+  Vercel AI Utils is AI Utils is **a compact library for building edge-rendered
+  AI-powered streaming text and chat UIs**.
 </div>
-
-Vercel AI Utils is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**. It takes care of the boilerplate code while not adding any additional abstraction or indirection between you and your AI model provider's SDK.
 
 ## Features
 
-- Edge Runtime compatibility
-- First-class support for native OpenAI, Anthropic, and HuggingFace Inference JavaScript SDKs
-- SWR-powered React hooks for fetching and rendering streaming text responses
+- [SWR](https://swr.vercel.app)-powered React hooks for streaming text responses and building chat and completion UIs
+- First-class support for [LangChain](js.langchain.com/docs) and native [OpenAI](https://openai.com), [Anthropic](https://anthropicai.com), and [HuggingFace](https://huggingface.co) Inference JavaScript SDKs
+- [Edge Runtime](https://edge-runtime.vercel.app/) compatibility
 - Callbacks for saving completed streaming responses to a database (in the same request)
