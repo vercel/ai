@@ -134,9 +134,6 @@ importers:
 
   examples/with-openai:
     dependencies:
-      '@huggingface/inference':
-        specifier: ^2.5.0
-        version: 2.5.0
       '@types/node':
         specifier: ^17.0.12
         version: 17.0.45
