@@ -1,5 +1,8 @@
-// app/api/chat/route.ts
-import { StreamingTextResponse, LangChainStream } from '@vercel/ai-utils'
+import {
+  StreamingTextResponse,
+  LangChainStream,
+  Message
+} from '@vercel/ai-utils'
 import { CallbackManager } from 'langchain/callbacks'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
@@ -18,7 +21,7 @@ export async function POST(req: Request) {
 
   llm
     .call(
-      messages.map(m =>
+      (messages as Message[]).map(m =>
         m.role == 'user'
           ? new HumanChatMessage(m.content)
           : new AIChatMessage(m.content)

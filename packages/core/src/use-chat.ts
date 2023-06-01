@@ -116,7 +116,7 @@ export function useChat({
   onFinish,
   headers,
   body
-}: UseChatOptions): UseChatHelpers {
+}: UseChatOptions = {}): UseChatHelpers {
   // Generate an unique id for the chat if not provided.
   const hookId = useId()
   const chatId = id || hookId
