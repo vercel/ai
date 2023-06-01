@@ -62,7 +62,7 @@ export function useCompletion({
   body,
   onResponse,
   onFinish
-}: UseCompletionOptions) {
+}: UseCompletionOptions = {}) {
   // Generate an unique id for the completion if not provided.
   const hookId = useId()
   const completionId = id || hookId
