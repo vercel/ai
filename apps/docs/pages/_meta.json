@@ -1,5 +1,10 @@
 {
-  "index": "Introduction",
+  "index": {
+    "title": "Introduction",
+    "theme": {
+      "breadcrumb": false
+    }
+  },
   "getting-started": "Getting Started",
   "guides": "Guides",
   "api-reference": "API Reference"

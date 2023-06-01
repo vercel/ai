@@ -22,10 +22,6 @@ export type UseCompletionOptions = {
    * have shared states across components.
    */
   id?: string
-  /**
-   * Initial completion result. Useful to load an existing history.
-   */
-  initialCompletion?: string
 
   /**
    * Initial prompt input of the completion.
@@ -33,11 +29,24 @@ export type UseCompletionOptions = {
   initialInput?: string
 
   /**
+   * Initial completion result. Useful to load an existing history.
+   */
+  initialCompletion?: string
+
+  /**
+   * Callback function to be called when the API response is received.
+   */
+  onResponse?: (response: Response) => void
+  /**
+   * Callback function to be called when the completion is finished streaming.
+   */
+  onFinish?: (prompt: string, completion: string) => void
+
+  /**
    * HTTP headers to be sent with the API request.
    */
   headers?: Record<string, string> | Headers
-  onResponse?: (response: Response) => void
-  onCompletionEnd?: (prompt: string, completion: string) => void
+
   /**
    * Extra body to be sent with the API request.
    */
@@ -52,7 +61,7 @@ export function useCompletion({
   headers,
   body,
   onResponse,
-  onCompletionEnd
+  onFinish
 }: UseCompletionOptions) {
   // Generate an unique id for the completion if not provided.
   const hookId = useId()
@@ -137,8 +146,8 @@ export function useCompletion({
           mutate(result, false)
         }
 
-        if (onCompletionEnd) {
-          onCompletionEnd(prompt, result)
+        if (onFinish) {
+          onFinish(prompt, result)
         }
 
         setAbortController(null)
