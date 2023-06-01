@@ -144,7 +144,7 @@ importers:
         specifier: 18.2.4
         version: 18.2.4
       '@vercel/ai-utils':
-        specifier: latest
+        specifier: workspace:*
         version: link:../../packages/core
       autoprefixer:
         specifier: ^10.4.14
