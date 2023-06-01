@@ -9,10 +9,10 @@ However, LangChain does not provide a way to easily build UIs or a standard way 
 
 ## Example
 
-Here is an example implementation of a chat application that uses both AI Utils and LangChain's [OpenAIChat](https://js.langchain.com/docs/api/llms_openai/classes/OpenAIChat) together with [Next.js](https://nextjs.org/docs) App Router. It uses AI Utils' [`LangChainStream`](../api-reference#langchainstream) to stream text to the client (from the edge) and then AI Utils' `useChat` to handle the chat UI.
+Here is an example implementation of a chat application that uses both AI Connector and LangChain's [OpenAIChat](https://js.langchain.com/docs/api/llms_openai/classes/OpenAIChat) together with [Next.js](https://nextjs.org/docs) App Router. It uses AI Connector's [`LangChainStream`](../api-reference#langchainstream) to stream text to the client (from the edge) and then AI Connector's `useChat` to handle the chat UI.
 
 ```tsx filename="app/api/chat/route.ts" {1,10,27}
-import { StreamingTextResponse, LangChainStream } from '@vercel/ai-utils'
+import { StreamingTextResponse, LangChainStream } from 'ai-connector'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
 import { CallbackManager } from 'langchain/callbacks'
@@ -52,7 +52,7 @@ The result is that AI Util's [`useChat`](../api-reference#usechat) and [`useComp
 ```tsx filename="app/page.tsx"
 'use client'
 
-import { useChat } from '@vercel/ai-utils'
+import { useChat } from 'ai-connector'
 
 export default function Chat() {
   const { messages, input, isLoading, handleInputChange, handleSubmit } =

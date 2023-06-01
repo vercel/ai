@@ -1,4 +1,4 @@
-# @vercel/ai-utils
+# ai-connector
 
 ## 0.0.4
 

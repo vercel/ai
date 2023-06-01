@@ -1,6 +1,6 @@
 'use client'
 
-import { useChat } from '@vercel/ai-utils'
+import { useChat } from 'ai-connector'
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat()

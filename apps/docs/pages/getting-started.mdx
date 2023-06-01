@@ -11,21 +11,21 @@ Inside your Next.js project directory, run the following:
   <Tab>
 
 ```bash
-pnpm add @vercel/ai-utils
+pnpm add ai-connector
 ```
 
    </Tab>
   <Tab>
   
 ```bash 
-npm i @vercel/ai-utils
+npm i ai-connector
 ```
   
   </Tab>
   <Tab>
   
 ```bash 
-yarn add @vercel/ai-utils 
+yarn add ai-connector 
 ```
   
   </Tab>
@@ -39,12 +39,12 @@ For this tutorial, we'll build a streaming AI chatbot app with OpenAI's `gpt-3.5
 
 ### Create a Next.js app
 
-Create a Next.js application and install `@vercel/ai-utils` and `openai-edge`. We currently prefer the latter `openai-edge` library over the official OpenAI SDK because the official SDK uses `axios` which is not compatible with Vercel Edge Functions.
+Create a Next.js application and install `ai-connector` and `openai-edge`. We currently prefer the latter `openai-edge` library over the official OpenAI SDK because the official SDK uses `axios` which is not compatible with Vercel Edge Functions.
 
 ```sh
 pnpx create-next-app my-ai-app
 cd my-ai-app
-pnpm install @vercel/ai-utils openai-edge
+pnpm install ai-connector openai-edge
 ```
 
 ### Add your OpenAI API Key to `.env`
@@ -65,7 +65,7 @@ Create a Next.js Route Handler that uses the Edge Runtime that we'll use to gene
 
 ```tsx filename="app/api/chat/route.ts" showLineNumbers
 import { Configuration, OpenAIApi } from 'openai-edge'
-import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils'
+import { OpenAIStream, StreamingTextResponse } from 'ai-connector'
 
 // Create an OpenAI API client (that's edge friendly!)
 const config = new Configuration({
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
 }
 ```
 
-Vercel AI Utils provides 2 utility helpers to make the above seamless: First, we pass the streaming `response` we receive from OpenAI to `OpenAIStream`. This method decodes/extracts the text tokens in the response and then re-encodes them properly for simple consumption. We can then pass that new stream directly to `StreamingTextResponse`. This is another utility class that extends the normal Node/Edge Runtime `Response` class with the default headers you probably want (hint: `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
+Vercel AI Connector provides 2 utility helpers to make the above seamless: First, we pass the streaming `response` we receive from OpenAI to `OpenAIStream`. This method decodes/extracts the text tokens in the response and then re-encodes them properly for simple consumption. We can then pass that new stream directly to `StreamingTextResponse`. This is another utility class that extends the normal Node/Edge Runtime `Response` class with the default headers you probably want (hint: `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
 
 ### Wire up the UI
 
@@ -103,7 +103,7 @@ By default, the `useChat` hook will use the `POST` Route Handler we created abov
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client'
 
-import { useChat } from '@vercel/ai-utils'
+import { useChat } from 'ai-connector'
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat()

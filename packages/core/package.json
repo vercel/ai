@@ -1,5 +1,5 @@
 {
-  "name": "@vercel/ai-utils",
+  "name": "ai-connector",
   "version": "0.0.4",
   "license": "MIT",
   "sideEffects": false,

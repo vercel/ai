@@ -1,6 +1,6 @@
-# AI Utils
+# AI Connector
 
-AI Utils is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**.
+AI Connector is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**.
 
 ## Features
 
@@ -12,7 +12,7 @@ AI Utils is **a compact library for building edge-rendered AI-powered streaming 
 ## Quick Start
 
 ```sh
-pnpm install @vercel/ai-utils
+pnpm install ai-connector
 ```
 
 ## Usage
@@ -20,7 +20,7 @@ pnpm install @vercel/ai-utils
 ```tsx
 // ./app/api/chat/route.ts
 import { Configuration, OpenAIApi } from 'openai-edge'
-import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils'
+import { OpenAIStream, StreamingTextResponse } from 'ai-connector'
 
 const config = new Configuration({
   apiKey: process.env.OPENAI_API_KEY
@@ -44,7 +44,7 @@ export async function POST() {
 // ./app/page.tsx
 'use client'
 
-import { useChat } from '@vercel/ai-utils'
+import { useChat } from 'ai-connector'
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat()

@@ -1,5 +1,5 @@
 import { AIStream } from '.'
-describe('@vercel/ai-utils', () => {
+describe('ai-connector', () => {
   beforeEach(() => {
     // scanReturnValues = [[0, []]];
   })

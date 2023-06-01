@@ -300,7 +300,7 @@ export default async function handler(request) {
             letterSpacing: '-0.03em'
           }}
         >
-          <b>{title || 'Vercel AI Utils'}</b>
+          <b>{title || 'Vercel AI Connector'}</b>
         </div>
         {title ? (
           <div
@@ -310,7 +310,7 @@ export default async function handler(request) {
               marginTop: 20
             }}
           >
-            <b>Vercel AI Utils</b>
+            <b>Vercel AI Connector</b>
           </div>
         ) : null}
       </div>

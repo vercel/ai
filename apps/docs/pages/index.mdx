@@ -4,27 +4,27 @@ title: Introduction
 
 import { Callout } from 'nextra-theme-docs'
 import { Bleed } from 'nextra-theme-docs'
-import createGlobe from "cobe";
+import createGlobe from 'cobe'
 import { useRef, useEffect } from 'react'
 
 {
 // wrapped with {} to mark it as javascript so mdx will not put it under a p tag
 }
-{<h1 className="text-5xl tracking-tighter font-extrabold nx-tracking-tight nx-text-slate-900 dark:nx-text-slate-100 md:text-5xl mt-2 main-title">Vercel AI Utils</h1>}
+{<h1 className="text-5xl tracking-tighter font-extrabold nx-tracking-tight nx-text-slate-900 dark:nx-text-slate-100 md:text-5xl mt-2 main-title">Vercel AI Connector</h1>}
 
 {/* <Bleed><Features/></Bleed> */}
 
 <div className="text-slate-600 text-xl mt-4 mb-8">
-  Vercel AI Utils is AI Utils is **a compact library for building edge-rendered
-  AI-powered streaming text and chat UIs**.
+  Vercel AI Connector is AI Connector is **a compact library for building
+  edge-rendered AI-powered streaming text and chat UIs**.
 </div>
 
-Vercel AI Utils is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**. It takes care of the boilerplate code while not adding any additional abstraction or indirection between you and your AI model provider's SDK.
+Vercel AI Connector is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**. It takes care of the boilerplate code while not adding any additional abstraction or indirection between you and your AI model provider's SDK.
 
 export function Globe() {
-  const canvasRef = useRef();
+  const canvasRef = useRef()
   useEffect(() => {
-    let phi = 0;
+    let phi = 0
     const globe = createGlobe(canvasRef.current, {
       devicePixelRatio: 2,
       width: 400 * 2,
@@ -42,17 +42,17 @@ export function Globe() {
       offset: [0, 140],
       opacity: 0.9,
       scale: 1.7,
-      onRender: (state) => {
+      onRender: state => {
         // Called on every animation frame.
         // `state` will be an empty object, return updated params.
-        state.phi = phi;
-        phi += 0.0025;
+        state.phi = phi
+        phi += 0.0025
       }
-    });
+    })
     return () => {
-      globe.destroy();
-    };
-  }, []);
+      globe.destroy()
+    }
+  }, [])
   return (
     <canvas
       ref={canvasRef}
@@ -60,19 +60,23 @@ export function Globe() {
       style={{
         width: 400,
         aspectRatio: 1,
-        '-webkit-mask-image': 'linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0))',
+        '-webkit-mask-image':
+          'linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0))'
       }}
     />
-  );
+  )
 }
 
-
 export function Card({ title, description, children }) {
-  return <div className="rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-    <div className="flex items-center justify-center overflow-hidden">{children}</div>
-    <p className="mt-2 text-lg px-6 font-semibold tracking-tight">{title}</p>
-    <p className="mt-1 px-6 mb-6 text-slate-500">{description}</p>
-  </div>
+  return (
+    <div className="rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+      <div className="flex items-center justify-center overflow-hidden">
+        {children}
+      </div>
+      <p className="mt-2 text-lg px-6 font-semibold tracking-tight">{title}</p>
+      <p className="mt-1 px-6 mb-6 text-slate-500">{description}</p>
+    </div>
+  )
 }
 
 export function Skeleton({ index, className }) {
@@ -82,19 +86,28 @@ export function Skeleton({ index, className }) {
       if (ref.current) {
         ref.current.style.animation = `fadeout 0.5s ease forwards`
         setTimeout(() => {
-          ref.current.style.width = Math.max(Math.min(Math.random(), 0.8), 0.2) * 100 + '%'
-          ref.current.style.animation = `fadein 0.4s ease ${index * 0.2}s forwards`
-        }, 800);
+          ref.current.style.width =
+            Math.max(Math.min(Math.random(), 0.8), 0.2) * 100 + '%'
+          ref.current.style.animation = `fadein 0.4s ease ${
+            index * 0.2
+          }s forwards`
+        }, 800)
       }
     }, 4000)
     return () => clearInterval(interval)
   }, [])
-  return <>
-    <div className={className} style={{
-      opacity: 0,
-      animation: `fadein 0.4s ease ${index * 0.2}s forwards`,
-    }} ref={ref} />
-  </>
+  return (
+    <>
+      <div
+        className={className}
+        style={{
+          opacity: 0,
+          animation: `fadein 0.4s ease ${index * 0.2}s forwards`
+        }}
+        ref={ref}
+      />
+    </>
+  )
 }
 
 export function Path({ index, ...props }) {
@@ -106,22 +119,34 @@ export function Path({ index, ...props }) {
         ref.current.style.animation = `dash-exit 1s ease forwards`
         setTimeout(() => {
           ref.current.style.removeProperty('stroke-dashoffset')
-          ref.current.style.animation = `dash 1s ease ${index * .8}s forwards`
-        }, 1500);
+          ref.current.style.animation = `dash 1s ease ${index * 0.8}s forwards`
+        }, 1500)
       }
     }, 4000)
     return () => clearInterval(interval)
   }, [])
-  return <path ref={ref} {...props} style={{
-    animation: `dash 1s ease ${index * .8}s forwards`
-  }}/>
+  return (
+    <path
+      ref={ref}
+      {...props}
+      style={{
+        animation: `dash 1s ease ${index * 0.8}s forwards`
+      }}
+    />
+  )
 }
 
 <div className="grid lg:grid-cols-2 grid-cols-1 gap-4 mt-8">
-  <Card title="Edge-ready" description="Compatible with Vercel’s Edge Network, enabling AI-powered apps that are fast and scalable.">
-    <Globe/>
+  <Card
+    title="Edge-ready"
+    description="Compatible with Vercel’s Edge Network, enabling AI-powered apps that are fast and scalable."
+  >
+    <Globe />
   </Card>
-  <Card title="Built-in Adapters" description="First-class support for native OpenAI, Anthropic, and HuggingFace Inference JavaScript SDKs.">
+  <Card
+    title="Built-in Adapters"
+    description="First-class support for native OpenAI, Anthropic, and HuggingFace Inference JavaScript SDKs."
+  >
     <div className="h-52 px-4 flex items-center">
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -190,27 +215,54 @@ export function Path({ index, ...props }) {
       </svg>
     </div>
   </Card>
-  <Card title="Streaming First" description="SWR-powered React hooks for fetching and rendering streaming text responses.">
+  <Card
+    title="Streaming First"
+    description="SWR-powered React hooks for fetching and rendering streaming text responses."
+  >
     <div className="h-52 w-full px-4 flex items-center justify-center dot-background">
       <div className="w-64 max-w-full h-40 border rounded-md shadow bg-white">
         <div className="flex bg-slate-400/5 p-1 border-b gap-1">
-          <div className="border rounded-full w-2 h-2"/>
-          <div className="border rounded-full w-2 h-2"/>
-          <div className="border rounded-full w-2 h-2"/>
+          <div className="border rounded-full w-2 h-2" />
+          <div className="border rounded-full w-2 h-2" />
+          <div className="border rounded-full w-2 h-2" />
         </div>
         <div className="p-4 animate-pulse">
-          <Skeleton index={0} className="h-2 w-2/3 bg-gray-300/80 rounded"></Skeleton>
-          <Skeleton index={1} className="h-2 w-1/2 mt-2 bg-gray-300/80 rounded"></Skeleton>
-          <Skeleton index={2} className="h-2 w-1/2 mt-2 bg-gray-300/80 rounded"></Skeleton>
-          <Skeleton index={3} className="h-2 w-3/4 mt-2 bg-gray-300/80 rounded"></Skeleton>
-          <Skeleton index={4} className="h-2 w-2/3 mt-2 bg-gray-300/80 rounded"></Skeleton>
-          <Skeleton index={5} className="h-2 w-1/4 mt-2 bg-gray-300/80 rounded"></Skeleton>
-          <Skeleton index={6} className="h-2 w-1/2 mt-2 bg-gray-300/80 rounded"></Skeleton>
+          <Skeleton
+            index={0}
+            className="h-2 w-2/3 bg-gray-300/80 rounded"
+          ></Skeleton>
+          <Skeleton
+            index={1}
+            className="h-2 w-1/2 mt-2 bg-gray-300/80 rounded"
+          ></Skeleton>
+          <Skeleton
+            index={2}
+            className="h-2 w-1/2 mt-2 bg-gray-300/80 rounded"
+          ></Skeleton>
+          <Skeleton
+            index={3}
+            className="h-2 w-3/4 mt-2 bg-gray-300/80 rounded"
+          ></Skeleton>
+          <Skeleton
+            index={4}
+            className="h-2 w-2/3 mt-2 bg-gray-300/80 rounded"
+          ></Skeleton>
+          <Skeleton
+            index={5}
+            className="h-2 w-1/4 mt-2 bg-gray-300/80 rounded"
+          ></Skeleton>
+          <Skeleton
+            index={6}
+            className="h-2 w-1/2 mt-2 bg-gray-300/80 rounded"
+          ></Skeleton>
         </div>
       </div>
     </div>
   </Card>
-  <Card title="Stream Callbacks" description="Callbacks for saving completed streaming responses to a database in the same request.">
+  <Card
+    title="Stream Callbacks"
+    description="Callbacks for saving completed streaming responses to a database in the same request."
+  >
     <div className="h-52 w-full flex items-center justify-center">
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -218,12 +270,13 @@ export function Path({ index, ...props }) {
         fill="none"
         viewBox="0 0 337 188"
         style={{
-          '-webkit-mask-image': 'linear-gradient(to right, rgba(0,0,0,0), rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, rgba(0,0,0,0))',
+          '-webkit-mask-image':
+            'linear-gradient(to right, rgba(0,0,0,0), rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, rgba(0,0,0,0))'
         }}
       >
         <mask
           id="mask0_113_97"
-          style={{ maskType: "alpha" }}
+          style={{ maskType: 'alpha' }}
           width="337"
           height="188"
           x="0"
@@ -239,10 +292,38 @@ export function Path({ index, ...props }) {
           </linearGradient>
         </defs>
         <g stroke="#000" mask="url(#mask0_113_97)">
-          <Path index={1} d="M153 75L153 141 M0 0" strokeWidth="1.5" stroke="url(#pulse-gradient)" className="path-enter"  pathLength="100"/>
-          <Path index={0} d="M169 -2.5L169 41.5C169 42.6046 168.105 43.5 167 43.5L155 43.5C153.895 43.5 153 44.3954 153 45.5L153 76" strokeWidth="1.5" stroke="url(#pulse-gradient)" className="path-enter" pathLength="100"/>
-          <Path index={1} d="M105 59.5H119C120.105 59.5 121 60.3954 121 61.5V73.5C121 74.6046 121.895 75.5 123 75.5H153" strokeWidth="1.5" stroke="url(#pulse-gradient)" className="path-enter path-reverse" pathLength="100"/>
-          <Path index={1} d="M105 91.5H119C120.105 91.5 121 90.6046 121 89.5V77.5C121 76.3954 121.895 75.5 123 75.5H153" strokeWidth="1.5" stroke="url(#pulse-gradient)" className="path-enter path-reverse" pathLength="100"/>
+          <Path
+            index={1}
+            d="M153 75L153 141 M0 0"
+            strokeWidth="1.5"
+            stroke="url(#pulse-gradient)"
+            className="path-enter"
+            pathLength="100"
+          />
+          <Path
+            index={0}
+            d="M169 -2.5L169 41.5C169 42.6046 168.105 43.5 167 43.5L155 43.5C153.895 43.5 153 44.3954 153 45.5L153 76"
+            strokeWidth="1.5"
+            stroke="url(#pulse-gradient)"
+            className="path-enter"
+            pathLength="100"
+          />
+          <Path
+            index={1}
+            d="M105 59.5H119C120.105 59.5 121 60.3954 121 61.5V73.5C121 74.6046 121.895 75.5 123 75.5H153"
+            strokeWidth="1.5"
+            stroke="url(#pulse-gradient)"
+            className="path-enter path-reverse"
+            pathLength="100"
+          />
+          <Path
+            index={1}
+            d="M105 91.5H119C120.105 91.5 121 90.6046 121 89.5V77.5C121 76.3954 121.895 75.5 123 75.5H153"
+            strokeWidth="1.5"
+            stroke="url(#pulse-gradient)"
+            className="path-enter path-reverse"
+            pathLength="100"
+          />
           <g strokeDasharray="1 1" opacity="0.08">
             <path d="M-19 11.5h392M-19 27.5h392M-19 43.5h392M-19 59.5h392M-19 75.5h392M-19 91.5h392M-19 107.5h392M-19 123.5h392M-19 139.5h392M-19 155.5h392M-19 171.5h392M-19 187.5h392M9-20v256M25-20v256M41-20v256M57-20v256M73-20v256M89-20v256M105-20v256M121-20v256M137-20v256M153-20v256M169-20v256M185-20v256M201-20v256M217-20v256M233-20v256M249-20v256M265-20v256M281-20v256M297-20v256M313-20v256M329-20v256"></path>
           </g>
@@ -255,7 +336,13 @@ export function Path({ index, ...props }) {
           strokeWidth="1.2"
           d="M85.727 93.136v1.637M87.91 91.5v3.273m2.182-4.91v4.91m2.182-6.546v6.546M84.636 97.5h8.728A1.636 1.636 0 0095 95.864v-8.728a1.636 1.636 0 00-1.636-1.636h-8.728A1.636 1.636 0 0083 87.136v8.728a1.636 1.636 0 001.636 1.636z"
         ></path>
-        <circle cx="105" cy="91.5" r="3" fill="#007aff" className="animate-ping origin-center"/>
+        <circle
+          cx="105"
+          cy="91.5"
+          r="3"
+          fill="#007aff"
+          className="animate-ping origin-center"
+        />
         <circle cx="105" cy="91.5" r="3" fill="#007aff"></circle>
         <circle cx="89" cy="59" r="10" fill="#fff"></circle>
         <path
@@ -265,9 +352,21 @@ export function Path({ index, ...props }) {
           strokeWidth="1.2"
           d="M94.063 54.75c0 1.519-2.365 2.75-5.282 2.75-2.916 0-5.281-1.231-5.281-2.75m10.563 0c0-1.519-2.365-2.75-5.282-2.75-2.916 0-5.281 1.231-5.281 2.75m10.563 0v7.5c0 1.519-2.365 2.75-5.282 2.75-2.916 0-5.281-1.231-5.281-2.75v-7.5m10.563 0v2.5M83.5 54.75v2.5m10.563 0v2.5c0 1.519-2.365 2.75-5.282 2.75-2.916 0-5.281-1.231-5.281-2.75v-2.5m10.563 0c0 1.519-2.365 2.75-5.282 2.75-2.916 0-5.281-1.231-5.281-2.75"
         ></path>
-        <circle cx="105" cy="59.5" r="3" fill="#007aff" className="animate-ping origin-center"/>
+        <circle
+          cx="105"
+          cy="59.5"
+          r="3"
+          fill="#007aff"
+          className="animate-ping origin-center"
+        />
         <circle cx="105" cy="59.5" r="3" fill="#007aff"></circle>
-        <circle cx="153" cy="75.5" r="3" fill="#007aff" className="animate-ping origin-center"/>
+        <circle
+          cx="153"
+          cy="75.5"
+          r="3"
+          fill="#007aff"
+          className="animate-ping origin-center"
+        />
         <circle cx="153" cy="75.5" r="3" fill="#007aff"></circle>
         <path
           fill="#1C1C1C"
@@ -275,7 +374,7 @@ export function Path({ index, ...props }) {
         ></path>
         <mask
           id="mask1_113_97"
-          style={{ maskType: "alpha" }}
+          style={{ maskType: 'alpha' }}
           width="337"
           height="188"
           x="0"

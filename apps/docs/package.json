@@ -10,7 +10,7 @@
     "start": "next start "
   },
   "dependencies": {
-    "@vercel/ai-utils": "workspace:*",
+    "ai-connector": "workspace:*",
     "@vercel/analytics": "^1.0.1",
     "cobe": "^0.6.3",
     "next": "13.4.4-canary.9",

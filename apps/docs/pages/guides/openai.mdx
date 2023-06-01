@@ -2,7 +2,7 @@ import { Steps } from 'nextra-theme-docs'
 
 # OpenAI
 
-Vercel AI Utils provides a set of utilities to make it easy to use OpenAI's API. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
+Vercel AI Connector provides a set of utilities to make it easy to use OpenAI's API. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
 
 ## Guide: Chat Bot
 
@@ -10,12 +10,12 @@ Vercel AI Utils provides a set of utilities to make it easy to use OpenAI's API.
 
 ### Create a Next.js app
 
-Create a Next.js application and install `@vercel/ai-utils` and `openai-edge`. We currently prefer the latter `openai-edge` library over the official OpenAI SDK because the official SDK uses `axios` which is not compatible with Vercel Edge Functions.
+Create a Next.js application and install `ai-connector` and `openai-edge`. We currently prefer the latter `openai-edge` library over the official OpenAI SDK because the official SDK uses `axios` which is not compatible with Vercel Edge Functions.
 
 ```sh
 pnpx create-next-app my-ai-app
 cd my-ai-app
-pnpm install @vercel/ai-utils openai-edge
+pnpm install ai-connector openai-edge
 ```
 
 ### Add your OpenAI API Key to `.env`
@@ -34,7 +34,7 @@ For this example, we'll create a route handler at `app/api/chat/route.ts` that a
 
 ```tsx filename="app/api/chat/route.ts" showLineNumbers
 import { Configuration, OpenAIApi } from 'openai-edge'
-import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils'
+import { OpenAIStream, StreamingTextResponse } from 'ai-connector'
 
 // Create an OpenAI API client (that's edge friendly!)
 const config = new Configuration({
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 }
 ```
 
-Vercel AI Utils provides 2 utility helpers to make the above seamless: First, we pass the streaming `response` we receive from OpenAI to [`OpenAIStream`](/api-reference#openaistream). This method decodes/extracts the text tokens in the response and then re-encodes them properly for simple consumption. We can then pass that new stream directly to [`StreamingTextResponse`](/api-reference#streamingtextresponse). This is another utility class that extends the normal Node/Edge Runtime `Response` class with the default headers you probably want (hint: `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
+Vercel AI Connector provides 2 utility helpers to make the above seamless: First, we pass the streaming `response` we receive from OpenAI to [`OpenAIStream`](/api-reference#openaistream). This method decodes/extracts the text tokens in the response and then re-encodes them properly for simple consumption. We can then pass that new stream directly to [`StreamingTextResponse`](/api-reference#streamingtextresponse). This is another utility class that extends the normal Node/Edge Runtime `Response` class with the default headers you probably want (hint: `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
 
 ### Wire up the UI
 
@@ -72,7 +72,7 @@ By default, the [`useChat`](/api-reference#usechat) hook will use the `POST` Rou
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client'
 
-import { useChat } from '@vercel/ai-utils'
+import { useChat } from 'ai-connector'
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat()
@@ -113,7 +113,7 @@ Similar to the Chat Bot example above, we'll create a Next.js Route Handler that
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
 import { Configuration, OpenAIApi } from 'openai-edge'
-import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils'
+import { OpenAIStream, StreamingTextResponse } from 'ai-connector'
 
 // Create an OpenAI API client (that's edge friendly!)
 const config = new Configuration({
@@ -149,15 +149,21 @@ We can use the [`useCompletion`](/api-reference#usecompletion) hook to make it e
 
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client'
- 
-import { useCompletion } from '@vercel/ai-utils'
- 
+
+import { useCompletion } from 'ai-connector'
+
 export default function Completion() {
-  const { completion, input, stop, isLoading, handleInputChange, handleSubmit } =
-    useCompletion({
-      api: '/api/completion'
-    })
- 
+  const {
+    completion,
+    input,
+    stop,
+    isLoading,
+    handleInputChange,
+    handleSubmit
+  } = useCompletion({
+    api: '/api/completion'
+  })
+
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
       <form onSubmit={handleSubmit}>
@@ -187,7 +193,6 @@ export default function Completion() {
 It’s common to want to save the result of a completion to a database after streaming it back to the user. The `OpenAIStream` adapter accepts a couple of optional callbacks that can be used to do this.
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
-
 export async function POST(req: Request) {
   // ...
 

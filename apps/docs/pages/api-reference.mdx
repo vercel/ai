@@ -11,7 +11,7 @@ An SWR-powered React hook for streaming chat messages and handling chat and prom
 ```tsx filename="app/chat.tsx"
 'use client'
 
-import { useChat } from '@vercel/ai-utils'
+import { useChat } from 'ai-connector'
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat()
@@ -58,7 +58,7 @@ An SWR-powered React hook for streaming text completion and handling prompt inpu
 ```tsx filename="app/completion.tsx"
 'use client'
 
-import { useCompletion } from '@vercel/ai-utils'
+import { useCompletion } from 'ai-connector'
 
 export default function Completion() {
   const {
@@ -111,7 +111,7 @@ A transform that will extract the text from all chat and completion OpenAI model
 
 ```tsx filename="app/api/chat/route.ts"
 import { Configuration, OpenAIApi } from 'openai-edge'
-import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils'
+import { OpenAIStream, StreamingTextResponse } from 'ai-connector'
 
 const config = new Configuration({
   apiKey: process.env.OPENAI_API_KEY
@@ -149,7 +149,7 @@ It expects the iterable `AsyncGenerator` from HuggingFace Inference SDK's `hf.te
 
 ```tsx filename="app/api/chat/route.ts"
 import { HfInference } from '@huggingface/inference'
-import { HuggingFaceStream, StreamingTextResponse } from '@vercel/ai-utils'
+import { HuggingFaceStream, StreamingTextResponse } from 'ai-connector'
 
 export const runtime = 'edge'
 
@@ -179,10 +179,10 @@ Returns a `stream` and bag of [LangChain](js.langchain.com/docs) `BaseCallbackHa
 
 #### Example
 
-Here is a reference implementation of a chat endpoint that uses both AI Utils and LangChain together with Next.js App Router
+Here is a reference implementation of a chat endpoint that uses both AI Connector and LangChain together with Next.js App Router
 
 ```tsx filename="app/api/chat/route.ts"
-import { StreamingTextResponse, LangChainStream } from '@vercel/ai-utils'
+import { StreamingTextResponse, LangChainStream } from 'ai-connector'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
 import { CallbackManager } from 'langchain/callbacks'
@@ -218,7 +218,7 @@ This is a tiny wrapper around `Response` class that makes returning `ReadableStr
 
 ```tsx
 // app/api/generate/route.ts
-import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils'
+import { OpenAIStream, StreamingTextResponse } from 'ai-connector'
 
 export const runtime = 'edge'
 
