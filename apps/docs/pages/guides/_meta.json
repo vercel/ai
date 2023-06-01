@@ -2,6 +2,5 @@
   "openai": "OpenAI",
   "huggingface": "HuggingFace",
   "anthropic": "Anthropic",
-  "replicate": "Replicate",
-  "cohere": "Cohere"
+  "langchain": "LangChain"
 }

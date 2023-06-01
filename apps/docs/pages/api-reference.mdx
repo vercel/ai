@@ -61,10 +61,16 @@ An SWR-powered React hook for streaming text completion and handling prompt inpu
 import { useCompletion } from '@vercel/ai-utils'
 
 export default function Completion() {
-  const { completion, input, stop, isLoading, handleInputChange, handleSubmit } =
-    useCompletion({
-      api: '/api/some-custom-endpoint'
-    })
+  const {
+    completion,
+    input,
+    stop,
+    isLoading,
+    handleInputChange,
+    handleSubmit
+  } = useCompletion({
+    api: '/api/some-custom-endpoint'
+  })
 
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
@@ -163,6 +169,45 @@ export async function POST() {
     }
   })
   const stream = HuggingFaceStream(response)
+  return new StreamingTextResponse(stream)
+}
+```
+
+### `LangChainStream(cb?: AIStreamCallbacks): { stream: ReadableStream; handlers: LangChainHandlers }` [#langchainstream]
+
+Returns a `stream` and bag of [LangChain](js.langchain.com/docs) `BaseCallbackHandlerMethodsClass` that automatically implement streaming in such a way that you can use [`useChat`](#usechat) and [`useCompletion`](#usecompletion).
+
+#### Example
+
+Here is a reference implementation of a chat endpoint that uses both AI Utils and LangChain together with Next.js App Router
+
+```tsx filename="app/api/chat/route.ts"
+import { StreamingTextResponse, LangChainStream } from '@vercel/ai-utils'
+import { ChatOpenAI } from 'langchain/chat_models/openai'
+import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
+import { CallbackManager } from 'langchain/callbacks'
+
+export const runtime = 'edge'
+
+export async function POST(req: Request) {
+  const { messages } = await req.json()
+  const { stream, handlers } = LangChainStream()
+
+  const llm = new ChatOpenAI({
+    streaming: true,
+    callbackManager: CallbackManager.fromHandlers(handlers)
+  })
+
+  llm
+    .call(
+      messages.map(m =>
+        m.role == 'user'
+          ? new HumanChatMessage(m.content)
+          : new AIChatMessage(m.content)
+      )
+    )
+    .catch(console.error)
+
   return new StreamingTextResponse(stream)
 }
 ```

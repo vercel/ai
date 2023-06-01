@@ -61,7 +61,7 @@ OPENAI_API_KEY=xxxxxxxxx
 
 ### Create a Route Handler
 
-Create a Next.js Route Handler that uses the Edge Runtime that we'll use to generate a chat completion via OpenAI that we'll then stream back to our Next.js.
+Create a Next.js Route Handler that uses the Edge Runtime that we'll use to generate a chat completion via OpenAI that we'll then stream back to Next.js.
 
 ```tsx filename="app/api/chat/route.ts" showLineNumbers
 import { Configuration, OpenAIApi } from 'openai-edge'
