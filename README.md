@@ -15,6 +15,8 @@ AI Utils is **a compact library for building edge-rendered AI-powered streaming 
 pnpm install @vercel/ai-utils
 ```
 
+## Usage
+
 ```tsx
 // ./app/api/chat/route.ts
 import { Configuration, OpenAIApi } from 'openai-edge'
