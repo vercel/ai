@@ -12,6 +12,10 @@
   filter: invert(1) brightness(1.8) hue-rotate(180deg);
 }
 
+svg * {
+  transform-box: fill-box;
+}
+
 body,
 .dot-background {
   background: linear-gradient(
@@ -61,5 +65,27 @@ body,
   100% {
     opacity: 0;
     transform: scale(0.9);
+  }
+}
+
+.path-enter {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  --out: -100;
+}
+.path-enter.path-reverse {
+  stroke-dashoffset: -100;
+  --out: 100;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes dash-exit {
+  to {
+    stroke-dashoffset: var(--out);
   }
 }

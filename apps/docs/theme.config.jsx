@@ -338,5 +338,14 @@ export default {
         <span>© 2023 Vercel Inc.</span>
       </div>
     )
+  },
+  // Let's disable dark mode for now
+  darkMode: false,
+  nextThemes: {
+    forcedTheme: 'light',
+    defaultTheme: 'light',
+    themes: ['light'],
+    enableSystem: false,
+    enableColorScheme: false
   }
 }
