@@ -3,6 +3,7 @@
   "pipeline": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["OPENAI_API_KEY"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {
