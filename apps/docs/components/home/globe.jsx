@@ -72,7 +72,7 @@ export function Globe() {
       style={{
         minWidth: 400,
         aspectRatio: 1,
-        '-webkit-mask-image':
+        WebkitMaskImage:
           'linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0))',
         opacity: 0,
         animation: 'fadein 1s ease .2s forwards'
