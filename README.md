@@ -4,9 +4,9 @@ AI Utils is **a compact library for building edge-rendered AI-powered streaming 
 
 ## Features
 
+- SWR-powered React hooks for streaming text responses and building chat and completion UIs
+- First-class support for [LangChain](js.langchain.com/docs) and native OpenAI, Anthropic, and HuggingFace Inference JavaScript SDKs
 - Edge Runtime compatibility
-- First-class support for LangChain and native OpenAI, Anthropic, and HuggingFace Inference JavaScript SDKs
-- SWR-powered React hooks for fetching and rendering streaming text responses
 - Callbacks for saving completed streaming responses to a database (in the same request)
 
 ## Installation
@@ -32,21 +32,26 @@ pnpm install @vercel/ai-utils
   - [`OpenAIStream(res: Response, cb: AIStreamCallbacks): ReadableStream`](#openaistreamres-response-cb-aistreamcallbacks-readablestream)
   - [`HuggingFaceStream(iter: AsyncGenerator<any>, cb?: AIStreamCallbacks): ReadableStream`](#huggingfacestreamiter-asyncgeneratorany-cb-aistreamcallbacks-readablestream)
   - [`StreamingTextResponse(res: ReadableStream, init?: ResponseInit)`](#streamingtextresponseres-readablestream-init-responseinit)
+  - [`LangChainStream(cb?: AIStreamCallbacks): { stream: ReadableStream; handlers: LangChainHandlers }`](#langchainstreamcb-aistreamcallbacks--stream-readablestream-handlers-langchainhandlers-)
+    - [Example](#example)
   - [`useChat(options: UseChatOptions): ChatHelpers`](#usechatoptions-usechatoptions-chathelpers)
     - [Types](#types)
       - [`Message`](#message)
     - [`UseChatOptions`](#usechatoptions)
       - [`UseChatHelpers`](#usechathelpers)
-    - [Example](#example)
-  - [`createLangChainAdapter(cb?: AIStreamCallbacks): { stream: ReadableStream; handlers: LangChainHandlers }`](#createlangchainadaptercb-aistreamcallbacks--stream-readablestream-handlers-langchainhandlers-)
     - [Example](#example-1)
+  - [`useCompletion(options: UseCompletionOptions): CompletionHelpers`](#usecompletionoptions-usecompletionoptions-completionhelpers)
+    - [Types](#types-1)
+    - [`UseCompletionOptions`](#usecompletionoptions)
+      - [`CompletionHelpers`](#completionhelpers)
+    - [Example](#example-2)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Usage
 
 ```tsx
-// app/api/generate/route.ts
+// ./app/api/chat/route.ts
 import { Configuration, OpenAIApi } from 'openai-edge'
 import { OpenAIStream, StreamingTextResponse } from '@vercel/ai-utils'
 
@@ -65,6 +70,39 @@ export async function POST() {
   })
   const stream = OpenAIStream(response)
   return new StreamingTextResponse(stream)
+}
+```
+
+```tsx
+// ./app/page.tsx
+'use client'
+
+import { useChat } from '@vercel/ai-utils'
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat()
+
+  return (
+    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+      {messages.length > 0
+        ? messages.map(m => (
+            <div key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))
+        : null}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  )
 }
 ```
 
@@ -136,7 +174,7 @@ Vercel AI Utils provides 2 utility helpers to make the above seamless: First, we
 Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
 
 ```tsx
-// ./app/form.ts
+// ./app/page.tsx
 'use client'
 
 import { useChat } from '@vercel/ai-utils'
@@ -262,6 +300,82 @@ export async function POST() {
 }
 ```
 
+### `LangChainStream(cb?: AIStreamCallbacks): { stream: ReadableStream; handlers: LangChainHandlers }`
+
+Returns a `stream` and bag of [LangChain](js.langchain.com/docs) `BaseCallbackHandlerMethodsClass` that automatically implement streaming in such a way that you can use `useChat` and `useCompletion`.
+
+#### Example
+
+Here is a reference implementation of a chat endpoint that uses both AI Utils and LangChain together with Next.js App Router
+
+```tsx
+// app/api/chat/route.ts
+import { StreamingTextResponse, LangChainStream } from '@vercel/ai-utils'
+import { ChatOpenAI } from 'langchain/chat_models/openai'
+import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
+import { CallbackManager } from 'langchain/callbacks'
+
+export const runtime = 'edge'
+
+export async function POST(req: Request) {
+  const { messages } = await req.json()
+  const { stream, handlers } = LangChainStream()
+
+  const llm = new ChatOpenAI({
+    streaming: true,
+    callbackManager: CallbackManager.fromHandlers(handlers)
+  })
+
+  llm
+    .call(
+      messages.map(m =>
+        m.role == 'user'
+          ? new HumanChatMessage(m.content)
+          : new AIChatMessage(m.content)
+      )
+    )
+    .catch(console.error)
+
+  return new StreamingTextResponse(stream)
+}
+```
+
+```tsx
+// app/page.tsx
+'use client'
+
+import { useChat } from '@vercel/ai-utils'
+
+export default function Chat() {
+  const { messages, input, isLoading, handleInputChange, handleSubmit } =
+    useChat()
+
+  return (
+    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+      {messages.length > 0
+        ? messages.map(m => (
+            <div key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))
+        : null}
+
+       <form onSubmit={handleSubmit}>
+        <input
+          className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+
+        <button disabled={isLoading} type="submit">
+          Send
+        </button>
+      </form>
+    </div>
+```
+
 ### `useChat(options: UseChatOptions): ChatHelpers`
 
 An SWR-powered React hook for streaming chat messages and handling chat and prompt input state.
@@ -375,86 +489,6 @@ export default function Chat() {
 
 In this example, chat is an object of type `UseChatHelpers`, which contains various utilities to interact with and control the chat. You can use these utilities to render chat messages, handle input changes, submit messages, and manage the chat state in your UI.
 
-
-### `createLangChainAdapter(cb?: AIStreamCallbacks): { stream: ReadableStream; handlers: LangChainHandlers }`
-
-Returns a `stream` and bag of LangChain `BaseCallbackHandlerMethodsClass` that automatically implement streaming in such a way that you can use `useChat` and `useCompletion`.
-
-#### Example
-
-Here is a reference implementation of a chat endpoint that uses both AI Utils and LangChain together with Next.js App Router
-
-```tsx
-// app/api/chat/route.ts
-import {
-  StreamingTextResponse,
-  createLangChainStreamingAdapter
-} from '@vercel/ai-utils'
-import { ChatOpenAI } from 'langchain/chat_models/openai'
-import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
-import { CallbackManager } from 'langchain/callbacks'
-
-export const runtime = 'edge'
-
-export async function POST(req: Request) {
-  const { messages } = await req.json()
-  const { stream, handlers } = createLangChainStreamingAdapter()
-
-  const llm = new ChatOpenAI({
-    streaming: true,
-    callbackManager: CallbackManager.fromHandlers(handlers)
-  })
-
-  llm
-    .call(
-      messages.map(m =>
-        m.role == 'user'
-          ? new HumanChatMessage(m.content)
-          : new AIChatMessage(m.content)
-      )
-    )
-    .catch(console.error)
-
-  return new StreamingTextResponse(stream)
-}
-```
-
-```tsx
-// app/page.tsx
-'use client'
-
-import { useChat } from '@vercel/ai-utils'
-
-export default function Chat() {
-  const { messages, input, isLoading, handleInputChange, handleSubmit } =
-    useChat()
-
-  return (
-    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
-      {messages.length > 0
-        ? messages.map(m => (
-            <div key={m.id}>
-              {m.role === 'user' ? 'User: ' : 'AI: '}
-              {m.content}
-            </div>
-          ))
-        : null}
-     
-       <form onSubmit={handleSubmit}>
-        <input
-          className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-       
-        <button disabled={isLoading} type="submit">
-          Send
-        </button>
-      </form>
-    </div>
-```
-
 ### `useCompletion(options: UseCompletionOptions): CompletionHelpers`
 
 An SWR-powered React hook for streaming text completion and handling completion and prompt input state.
@@ -510,10 +544,16 @@ Below is a basic example of the `useCompletion` hook in a component:
 import { useCompletion } from '@vercel/ai-utils'
 
 export default function Completion() {
-  const { completion, input, stop, isLoading, handleInputChange, handleSubmit } =
-    useCompletion({
-      api: '/api/some-custom-endpoint'
-    })
+  const {
+    completion,
+    input,
+    stop,
+    isLoading,
+    handleInputChange,
+    handleSubmit
+  } = useCompletion({
+    api: '/api/some-custom-endpoint'
+  })
 
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
@@ -537,4 +577,3 @@ export default function Completion() {
   )
 }
 ```
-

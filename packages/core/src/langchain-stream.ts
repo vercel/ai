@@ -1,6 +1,6 @@
 import { AIStreamCallbacks } from './ai-stream'
 
-export function createLangChainStreamingAdapter(callbacks?: AIStreamCallbacks) {
+export function LangChainStream(callbacks?: AIStreamCallbacks) {
   const stream = new TransformStream()
   const encoder = new TextEncoder()
   const writer = stream.writable.getWriter()
