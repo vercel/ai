@@ -28,7 +28,6 @@ function parseAnthropicStream({
     const queue = encoder.encode(`${JSON.stringify(text)}\n`)
     controller.enqueue(queue)
 
-    // eslint-disable-next-line no-param-reassign
     counter++
   } catch (e) {
     controller.error(e)

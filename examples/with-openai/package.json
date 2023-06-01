@@ -1,5 +1,5 @@
 {
-  "name": "example",
+  "name": "with-openai",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,14 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@huggingface/inference": "^2.5.0",
     "@types/node": "^17.0.12",
     "@types/react": "18.2.7",
     "@types/react-dom": "18.2.4",
-    "@vercel/ai-utils": "workspace:*",
+    "@vercel/ai-utils": "latest",
     "autoprefixer": "^10.4.14",
     "eslint-config-next": "13.4.4-canary.11",
-    "nanoid": "^4.0.2",
     "next": "13.4.4-canary.11",
     "openai-edge": "^0.5.1",
     "postcss": "^8.4.23",

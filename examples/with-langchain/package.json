@@ -1,0 +1,27 @@
+{
+  "name": "with-langchain",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@huggingface/inference": "^2.5.0",
+    "@types/node": "^17.0.12",
+    "@types/react": "18.2.7",
+    "@types/react-dom": "18.2.4",
+    "@vercel/ai-utils": "latest",
+    "autoprefixer": "^10.4.14",
+    "eslint-config-next": "13.4.4-canary.11",
+    "langchain": "^0.0.86",
+    "next": "13.4.4-canary.11",
+    "postcss": "^8.4.23",
+    "react": "18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.3.2",
+    "typescript": "5.0.4"
+  }
+}
