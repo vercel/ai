@@ -9,10 +9,11 @@
 }
 
 .dark .invert-on-dark {
-  filter: invert(1) brightness(1.8);
+  filter: invert(1) brightness(1.8) hue-rotate(180deg);
 }
 
-body {
+body,
+.dot-background {
   background: linear-gradient(
       to bottom,
       rgba(255, 255, 255, 0) 0%,
@@ -22,7 +23,8 @@ body {
     fixed 10px 10px / 20px 20px radial-gradient(#d1d1d1 1px, transparent 0);
 }
 
-.dark body {
+.dark body,
+.dark .dot-background {
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, #111 300px),
     fixed 0 0 / 20px 20px radial-gradient(#313131 1px, transparent 0),
     fixed 10px 10px / 20px 20px radial-gradient(#313131 1px, transparent 0);
@@ -38,4 +40,26 @@ body {
   background: linear-gradient(180deg, #fff, #aaa);
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+@keyframes fadein {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeout {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
 }

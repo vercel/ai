@@ -2,7 +2,8 @@
   "index": {
     "title": "Introduction",
     "theme": {
-      "breadcrumb": false
+      "breadcrumb": false,
+      "toc": false
     }
   },
   "getting-started": "Getting Started",
