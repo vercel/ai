@@ -6,7 +6,7 @@ export default {
     link: 'https://github.com/shuding/nextra'
   },
   logo: (
-    <span className="flex gap-2 font-bold text-lg items-center select-none">
+    <span className="flex gap-2 items-center select-none">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         height="24"
@@ -201,7 +201,7 @@ export default {
           </clipPath>
         </defs>
       </svg>
-      AI Utils
+      <span className="text font-extrabold tracking-tight">AI Utils</span>
     </span>
   ),
   useNextSeoProps: () => {
