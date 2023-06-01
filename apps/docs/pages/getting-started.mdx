@@ -31,7 +31,7 @@ yarn add @vercel/ai-utils
   </Tab>
 </Tabs>
 
-## Example: Streaming AI Chat bot [#example]
+## Example: Streaming AI Chat Bot [#example]
 
 For this tutorial, we'll build a streaming AI chatbot app with OpenAI's `gpt-3.5-turbo` and Next.js App Router in just 56 lines of code.
 
@@ -49,13 +49,13 @@ pnpm install @vercel/ai-utils openai-edge
 
 ### Add your OpenAI API Key to `.env`
 
-Create a `.env` file and add an OpenAI API Key called
+Create a `.env` file in your project root and add your OpenAI API Key:
 
 ```sh
 touch .env
 ```
 
-```env
+```env filename=".env"
 OPENAI_API_KEY=xxxxxxxxx
 ```
 
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json()
 
   // Ask OpenAI for a streaming chat completion given the prompt
-  const response = await openai.createCompletion({
+  const response = await openai.createChatCompletion({
     model: 'gpt-3.5-turbo',
     stream: true,
     messages

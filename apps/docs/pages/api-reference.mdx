@@ -4,7 +4,7 @@ title: API Reference
 
 # API Reference
 
-## `useChat(options: UseChatOptions): ChatHelpers`
+## `useChat(options: UseChatOptions): ChatHelpers` [#usechat]
 
 An SWR-powered React hook for streaming chat messages and handling chat and prompt input state.
 
@@ -51,7 +51,7 @@ export default function Chat() {
 - **`headers?: Record<string, string> | Headers`** - An optional object of headers to be passed to the API endpoint
 - **`body?: any`** - An optional, extra body object to be passed to the API endpoint
 
-## `useCompletion(options: UseCompletionOptions): CompletionHelpers`
+## `useCompletion(options: UseCompletionOptions): CompletionHelpers` [#usecompletion]
 
 An SWR-powered React hook for streaming text completion and handling prompt input state.
 
@@ -99,7 +99,7 @@ export default function Completion() {
 - **`headers?: Record<string, string> | Headers`** - An optional object of headers to be passed to the API endpoint
 - **`body?: any`** - An optional, extra body object to be passed to the API endpoint
 
-## `OpenAIStream(res: Response, cb: AIStreamCallbacks): ReadableStream`
+## `OpenAIStream(res: Response, cb: AIStreamCallbacks): ReadableStream` [#openaistream]
 
 A transform that will extract the text from all chat and completion OpenAI models as returned as a `ReadableStream`.
 
@@ -136,7 +136,7 @@ export async function POST() {
 }
 ```
 
-## `HuggingFaceStream(iter: AsyncGenerator<any>, cb?: AIStreamCallbacks): ReadableStream`
+## `HuggingFaceStream(iter: AsyncGenerator<any>, cb?: AIStreamCallbacks): ReadableStream` [#huggingfacestream]
 
 A transform that will extract the text from _most_ chat and completion HuggingFace models and return them as a `ReadableStream`.
 It expects the iterable `AsyncGenerator` from HuggingFace Inference SDK's `hf.textGenerationStream` method.
@@ -167,7 +167,7 @@ export async function POST() {
 }
 ```
 
-## `StreamingTextResponse(res: ReadableStream, init?: ResponseInit)`
+## `StreamingTextResponse(res: ReadableStream, init?: ResponseInit)` [#streamingtextresponse]
 
 This is a tiny wrapper around `Response` class that makes returning `ReadableStreams` of text a one liner. Status is automatically set to `200`, with `'Content-Type': 'text/plain; charset=utf-8'` set as `headers`.
 
