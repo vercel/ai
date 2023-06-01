@@ -1,5 +1,5 @@
-import "../styles.css";
-import { Analytics } from "@vercel/analytics/react";
+import '../styles.css'
+import { Analytics } from '@vercel/analytics/react'
 
 export default function Nextra({ Component, pageProps }) {
   return (
@@ -7,6 +7,5 @@ export default function Nextra({ Component, pageProps }) {
       <Component {...pageProps} />
       <Analytics />
     </>
-  );
-
+  )
 }

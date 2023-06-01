@@ -6,203 +6,35 @@ export default {
     link: 'https://github.com/shuding/nextra'
   },
   logo: (
-    <span className="flex gap-2 items-center select-none">
+    <div className="flex gap-2 items-center select-none">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         height="24"
         fill="none"
-        viewBox="0 0 1024 1024"
+        viewBox="0 0 282 45"
       >
-        <g clipPath="url(#clip0_102_208)">
-          <rect
-            width="977.455"
-            height="977.455"
-            x="23.273"
-            y="23.273"
-            fill="url(#paint0_linear_102_208)"
-            rx="79.515"
-          ></rect>
-          <g filter="url(#filter0_di_102_208)">
-            <path
-              fill="url(#paint1_linear_102_208)"
-              d="M511.03 306.424l210.424 362.667H300.606L511.03 306.424z"
-            ></path>
-          </g>
-          <mask
-            id="mask0_102_208"
-            style={{ maskType: 'alpha' }}
-            width="1024"
-            height="1024"
-            x="0"
-            y="0"
-            maskUnits="userSpaceOnUse"
-          >
-            <rect
-              width="1000.73"
-              height="1000.73"
-              x="11.636"
-              y="11.636"
-              stroke="#000"
-              strokeWidth="23.273"
-              rx="91.151"
-            ></rect>
-          </mask>
-          <g filter="url(#filter1_f_102_208)" mask="url(#mask0_102_208)">
-            <path
-              fill="url(#paint2_linear_102_208)"
-              d="M-88.638 197.111l277.355-340.626L630.689 41.738c37.58 187.244 55.072 561.734-175.591 561.734-194.273 0-240.351-110.687-239.325-192.224-23.622 150.658-122.154 378.807-377.242 339.629-43.1-30.278 30.596-381.793 72.83-553.766z"
-            ></path>
-            <path
-              fill="url(#paint3_linear_102_208)"
-              d="M514.513 329.324l339.424 273.797 333.033 24.789c-80.41 173.273-287.78 485.83-473.947 349.874-186.167-135.958-279.862 250.156-219.226 197.766-94.394 110.83-164.922-242.362-365.58-442.213-16.878-49.841 250.498-290.109 386.296-404.013z"
-            ></path>
-            <path
-              fill="url(#paint4_linear_102_208)"
-              d="M987.377 739.387L569.385 614.252 251.741 717.175c8.717-190.768 82.117-558.433 305.986-502.955 223.869 55.478 164.166-337.305 127.908-265.904 45.342-138.248 244.558 161.995 506.075 271.134 34.52 39.752-121.84 363.188-204.333 519.937z"
-            ></path>
-          </g>
-        </g>
-        <defs>
-          <filter
-            id="filter0_di_102_208"
-            width="579.879"
-            height="521.697"
-            x="221.091"
-            y="242.424"
-            colorInterpolationFilters="sRGB"
-            filterUnits="userSpaceOnUse"
-          >
-            <feFlood floodOpacity="0" result="BackgroundImageFix"></feFlood>
-            <feColorMatrix
-              in="SourceAlpha"
-              result="hardAlpha"
-              values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-            ></feColorMatrix>
-            <feOffset dy="15.515"></feOffset>
-            <feGaussianBlur stdDeviation="39.758"></feGaussianBlur>
-            <feComposite in2="hardAlpha" operator="out"></feComposite>
-            <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"></feColorMatrix>
-            <feBlend
-              in2="BackgroundImageFix"
-              result="effect1_dropShadow_102_208"
-            ></feBlend>
-            <feBlend
-              in="SourceGraphic"
-              in2="effect1_dropShadow_102_208"
-              result="shape"
-            ></feBlend>
-            <feColorMatrix
-              in="SourceAlpha"
-              result="hardAlpha"
-              values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-            ></feColorMatrix>
-            <feOffset dx="0.97" dy="13.576"></feOffset>
-            <feGaussianBlur stdDeviation="0.97"></feGaussianBlur>
-            <feComposite
-              in2="hardAlpha"
-              k2="-1"
-              k3="1"
-              operator="arithmetic"
-            ></feComposite>
-            <feColorMatrix values="0 0 0 0 0.0286285 0 0 0 0 0.0404458 0 0 0 0 0.0708333 0 0 0 0.06 0"></feColorMatrix>
-            <feBlend in2="shape" result="effect2_innerShadow_102_208"></feBlend>
-          </filter>
-          <filter
-            id="filter1_f_102_208"
-            width="2146.91"
-            height="2115.88"
-            x="-562.424"
-            y="-531.394"
-            colorInterpolationFilters="sRGB"
-            filterUnits="userSpaceOnUse"
-          >
-            <feFlood floodOpacity="0" result="BackgroundImageFix"></feFlood>
-            <feBlend
-              in="SourceGraphic"
-              in2="BackgroundImageFix"
-              result="shape"
-            ></feBlend>
-            <feGaussianBlur
-              result="effect1_foregroundBlur_102_208"
-              stdDeviation="193.939"
-            ></feGaussianBlur>
-          </filter>
-          <linearGradient
-            id="paint0_linear_102_208"
-            x1="512"
-            x2="512"
-            y1="23.273"
-            y2="1000.73"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="#333434"></stop>
-            <stop offset="1" stopColor="#060606"></stop>
-          </linearGradient>
-          <linearGradient
-            id="paint1_linear_102_208"
-            x1="249.709"
-            x2="750.212"
-            y1="532.522"
-            y2="688.409"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="#fff"></stop>
-            <stop offset="0.089" stopColor="#FEFEFE"></stop>
-            <stop offset="0.161" stopColor="#FCFCFC"></stop>
-            <stop offset="0.22" stopColor="#F9F9F9"></stop>
-            <stop offset="0.267" stopColor="#F5F5F5"></stop>
-            <stop offset="0.305" stopColor="#F0F0F0"></stop>
-            <stop offset="0.336" stopColor="#EAEAEA"></stop>
-            <stop offset="0.364" stopColor="#E3E3E3"></stop>
-            <stop offset="0.391" stopColor="#DCDCDC"></stop>
-            <stop offset="0.418" stopColor="#D5D5D5"></stop>
-            <stop offset="0.45" stopColor="#CDCDCD"></stop>
-            <stop offset="0.488" stopColor="#C6C6C6"></stop>
-            <stop offset="0.535" stopColor="#BEBEBE"></stop>
-            <stop offset="0.593" stopColor="#B7B7B7"></stop>
-            <stop offset="0.666" stopColor="#B0B0B0"></stop>
-            <stop offset="0.755" stopColor="#AAA"></stop>
-          </linearGradient>
-          <linearGradient
-            id="paint2_linear_102_208"
-            x1="511.03"
-            x2="511.03"
-            y1="-143.515"
-            y2="1196.61"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="#F90"></stop>
-            <stop offset="1" stopColor="#F09"></stop>
-          </linearGradient>
-          <linearGradient
-            id="paint3_linear_102_208"
-            x1="511.03"
-            x2="511.03"
-            y1="-420.532"
-            y2="923.552"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="#00D1FF"></stop>
-            <stop offset="1" stopColor="#0057FF"></stop>
-          </linearGradient>
-          <linearGradient
-            id="paint4_linear_102_208"
-            x1="420.072"
-            x2="1100.96"
-            y1="571.6"
-            y2="202.116"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="#AD00FF"></stop>
-            <stop offset="1" stopColor="red"></stop>
-          </linearGradient>
-          <clipPath id="clip0_102_208">
-            <path fill="#fff" d="M0 0H1024V1024H0z"></path>
-          </clipPath>
-        </defs>
+        <path
+          className="fill-black dark:fill-white"
+          d="M56.9 36h-7l9-27h8.7l9 27h-7l-6.2-20.1h-.2L56.9 36Zm-1-10.6h14.6v5H56v-5ZM85.2 9.1V36h-6.5V9h6.5Zm34.6 9.7h-6.6c0-.6-.3-1.2-.5-1.8a4.4 4.4 0 0 0-2.7-2.3 6 6 0 0 0-2-.3c-1.3 0-2.4.3-3.4 1-1 .6-1.7 1.5-2.2 2.8-.5 1.2-.7 2.6-.7 4.3 0 1.8.2 3.3.8 4.5a6 6 0 0 0 2.1 2.8c1 .6 2 .9 3.3.9.8 0 1.4-.1 2-.3l1.6-.8c.4-.4.8-.8 1-1.3.4-.5.6-1.1.7-1.8h6.6a11.2 11.2 0 0 1-7 9c-1.5.6-3.1.9-5 .9-2.4 0-4.6-.6-6.5-1.6-2-1.1-3.5-2.7-4.6-4.7-1-2.1-1.6-4.6-1.6-7.6s.5-5.4 1.6-7.5c1.2-2 2.7-3.6 4.6-4.7a14.4 14.4 0 0 1 11-1 11 11 0 0 1 3.7 2c1 1 1.9 2 2.5 3.2.7 1.3 1.1 2.7 1.3 4.3ZM132 36.4c-2.1 0-4-.5-5.5-1.3a9 9 0 0 1-3.5-3.7c-.8-1.5-1.2-3.4-1.2-5.4 0-2.1.4-4 1.2-5.5.8-1.5 2-2.8 3.5-3.6 1.5-1 3.4-1.3 5.5-1.3s4 .4 5.4 1.3c1.6.8 2.7 2 3.5 3.6.9 1.6 1.3 3.4 1.3 5.5 0 2-.4 3.9-1.3 5.4-.8 1.6-2 2.8-3.5 3.7-1.5.8-3.3 1.3-5.4 1.3Zm0-4.9c.8 0 1.4-.2 2-.7.5-.4 1-1.1 1.2-2a9 9 0 0 0 .4-2.9 9 9 0 0 0-.4-3c-.3-.7-.7-1.4-1.2-1.9-.6-.5-1.2-.7-2-.7a3 3 0 0 0-2 .7c-.5.5-1 1.2-1.2 2-.3.8-.5 1.8-.5 3 0 1 .2 2 .5 2.9.2.8.7 1.5 1.2 2a3 3 0 0 0 2 .6Zm19-7V36h-6.5V15.8h6.2v3.7h.2a5.7 5.7 0 0 1 2.3-2.9c1-.7 2.3-1 3.8-1a7 7 0 0 1 3.7 1c1 .5 1.9 1.4 2.5 2.6.5 1.1.8 2.4.8 4V36h-6.4V24.4c0-1.1-.3-2-.9-2.6a3 3 0 0 0-2.3-1c-.7 0-1.3.2-1.8.5a3 3 0 0 0-1.2 1.2c-.3.6-.4 1.2-.4 2Zm22.5 0V36h-6.4V15.8h6v3.7h.3a5.7 5.7 0 0 1 2.3-2.9c1-.7 2.4-1 3.8-1a7 7 0 0 1 3.7 1c1 .5 1.9 1.4 2.5 2.6.6 1.1.9 2.4.8 4V36h-6.4V24.4c0-1.1-.3-2-.8-2.6a3 3 0 0 0-2.4-1c-.7 0-1.3.2-1.8.5a3 3 0 0 0-1.2 1.2c-.3.6-.4 1.2-.4 2ZM199 36.4c-2 0-3.9-.4-5.4-1.3-1.6-.8-2.7-2-3.6-3.6-.8-1.5-1.2-3.4-1.2-5.5s.4-4 1.3-5.5a9 9 0 0 1 3.4-3.6c1.5-1 3.3-1.3 5.3-1.3 1.5 0 2.8.2 4 .6a8.5 8.5 0 0 1 5 5.3c.6 1.2.8 2.7.8 4.4v1.6h-17.5v-3.8h11.5c0-.7-.1-1.3-.5-1.8-.3-.5-.7-1-1.3-1.2-.5-.4-1.1-.5-1.8-.5a3.8 3.8 0 0 0-3.3 1.8c-.4.5-.5 1.1-.5 1.8v3.8c0 .9.1 1.6.4 2.2.4.6.8 1 1.4 1.4.6.4 1.3.5 2.2.5.5 0 1 0 1.5-.2s.9-.4 1.2-.7c.3-.3.6-.7.7-1.1l6 .2a7.3 7.3 0 0 1-1.7 3.4c-.8 1-1.9 1.7-3.2 2.3-1.4.5-3 .8-4.7.8Zm21.4 0c-2.1 0-4-.5-5.5-1.3-1.5-1-2.7-2.1-3.5-3.7-.8-1.6-1.2-3.4-1.2-5.4 0-2 .4-4 1.2-5.5A9 9 0 0 1 215 17c1.5-1 3.4-1.3 5.5-1.3 1.8 0 3.5.3 4.8 1 1.4.6 2.5 1.6 3.3 2.8a8.2 8.2 0 0 1 1.3 4.4h-6a4 4 0 0 0-1.1-2.5 3 3 0 0 0-2.2-.9c-.8 0-1.4.3-2 .7-.6.4-1 1-1.3 1.8-.3.8-.5 1.8-.5 3s.2 2.2.5 3a4 4 0 0 0 1.3 1.9c.6.4 1.2.6 2 .6.6 0 1-.1 1.5-.4a3 3 0 0 0 1.2-1.1c.3-.5.5-1.1.6-1.8h6c-.1 1.7-.5 3.1-1.3 4.4a7.7 7.7 0 0 1-3.2 2.9c-1.4.6-3 1-5 1Zm23.1-20.6v4.7h-12.7v-4.7h12.7Zm-10-4.8h6.4v18.7c0 .3 0 .7.2 1l.5.4.9.2a4.9 4.9 0 0 0 1.4-.2l1 4.6a29.7 29.7 0 0 1-3.3.6c-1.5 0-2.8-.1-3.9-.5a5 5 0 0 1-2.4-2c-.6-1-.9-2-.9-3.4V11ZM255 36.4c-2.2 0-4-.5-5.5-1.3a9 9 0 0 1-3.5-3.7c-.8-1.5-1.2-3.4-1.2-5.4 0-2.1.4-4 1.2-5.5.8-1.5 2-2.8 3.5-3.6 1.5-1 3.3-1.3 5.5-1.3 2 0 4 .4 5.4 1.3 1.5.8 2.7 2 3.5 3.6.9 1.6 1.3 3.4 1.3 5.5 0 2-.4 3.9-1.3 5.4-.8 1.6-2 2.8-3.5 3.7-1.5.8-3.3 1.3-5.4 1.3Zm0-4.9c.8 0 1.4-.2 2-.7.5-.4 1-1.1 1.2-2a9 9 0 0 0 .4-2.9 9 9 0 0 0-.4-3c-.3-.7-.7-1.4-1.2-1.9-.6-.5-1.2-.7-2-.7a3 3 0 0 0-2 .7c-.6.5-1 1.2-1.3 2-.2.8-.4 1.8-.4 3 0 1 .2 2 .4 2.9.3.8.7 1.5 1.3 2a3 3 0 0 0 2 .6Zm12.5 4.5V15.8h6.3v3.7h.2c.3-1.3 1-2.3 1.8-3 .8-.6 1.8-1 2.9-1a5.8 5.8 0 0 1 2.8.8l-1.9 5.3-.9-.4-1-.1a3.6 3.6 0 0 0-3.2 1.9c-.4.5-.5 1.2-.5 2v11h-6.5ZM19 6l19 32H0L19 6Z"
+        />
       </svg>
-      <span className="text font-extrabold tracking-tight">AI Connector</span>
-    </span>
+      <style jsx>{`
+        div {
+          mask-image: linear-gradient(
+            60deg,
+            black 25%,
+            rgba(0, 0, 0, 0.2) 50%,
+            black 75%
+          );
+          mask-size: 400%;
+          mask-position: 0%;
+        }
+        div:hover {
+          mask-position: 100%;
+          transition: mask-position 1s ease, -webkit-mask-position 1s ease;
+        }
+      `}</style>
+    </div>
   ),
   useNextSeoProps: () => {
     const { title } = useConfig()
@@ -327,7 +159,7 @@ export default {
         <a href="https://vercel.com/" target="_blank">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            fill="#000000"
+            className="fill-black dark:fill-white"
             height={20}
             style={{ opacity: 0.8 }}
             viewBox="0 0 284 65"
@@ -338,14 +170,5 @@ export default {
         <span>© 2023 Vercel Inc.</span>
       </div>
     )
-  },
-  // Let's disable dark mode for now
-  darkMode: false,
-  nextThemes: {
-    forcedTheme: 'light',
-    defaultTheme: 'light',
-    themes: ['light'],
-    enableSystem: false,
-    enableColorScheme: false
   }
 }

@@ -1,7 +1,8 @@
 module.exports = {
   content: [
-    './components/**/*.js',
+    './components/**/*.{js,jsx}',
     './pages/**/*.{md,mdx}',
     './theme.config.jsx'
-  ]
+  ],
+  darkMode: 'class'
 }

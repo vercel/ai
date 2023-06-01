@@ -57,6 +57,15 @@ body,
   }
 }
 
+@keyframes fadein-inplace {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 @keyframes fadeout {
   0% {
     opacity: 1;
@@ -69,23 +78,18 @@ body,
 }
 
 .path-enter {
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  --out: -100;
-}
-.path-enter.path-reverse {
-  stroke-dashoffset: -100;
-  --out: 100;
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 300;
 }
 
 @keyframes dash {
   to {
-    stroke-dashoffset: 0;
+    stroke-dashoffset: 200;
   }
 }
 
 @keyframes dash-exit {
   to {
-    stroke-dashoffset: var(--out);
+    stroke-dashoffset: 100;
   }
 }
