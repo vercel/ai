@@ -27,3 +27,15 @@ body {
     fixed 0 0 / 20px 20px radial-gradient(#313131 1px, transparent 0),
     fixed 10px 10px / 20px 20px radial-gradient(#313131 1px, transparent 0);
 }
+
+.main-title {
+  background: linear-gradient(180deg, #555, #000);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dark .main-title {
+  background: linear-gradient(180deg, #fff, #aaa);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
