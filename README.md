@@ -1,6 +1,6 @@
-# AI SDK
+# Vercel AI SDK
 
-AI SDK is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**.
+The Vercel AI SDK is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**.
 
 ## Features
 
