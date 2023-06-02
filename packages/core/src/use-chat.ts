@@ -1,5 +1,3 @@
-'use client'
-
 import { useCallback, useId, useRef, useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
