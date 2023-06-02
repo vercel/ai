@@ -47,7 +47,7 @@ export default {
             fill="currentColor"
           />
         </svg>
-        AI Connector
+        AI SDK
       </span>
       <style jsx>{`
         span.connect {
@@ -70,8 +70,8 @@ export default {
   useNextSeoProps: () => {
     const { title } = useConfig()
     return {
-      defaultTitle: 'AI Connector',
-      titleTemplate: '%s - AI Connector',
+      defaultTitle: 'AI SDK',
+      titleTemplate: '%s - AI SDK',
       title,
       description:
         'Edge-ready utilities to accelerate working with AI in JavaScript and React.'
@@ -98,7 +98,7 @@ export default {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@vercel" />
         <meta name="twitter:creator" content="@vercel" />
-        <meta name="twitter:title" content="Vercel AI Connector" />
+        <meta name="twitter:title" content="Vercel AI SDK" />
         <meta
           name="twitter:description"
           content="Edge-ready utilities to accelerate working with AI in JavaScript and React."

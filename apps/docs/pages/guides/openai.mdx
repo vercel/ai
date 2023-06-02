@@ -2,7 +2,7 @@ import { Steps, Callout } from 'nextra-theme-docs'
 
 # OpenAI
 
-Vercel AI Connector provides a set of utilities to make it easy to use OpenAI's API. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
+Vercel AI SDK provides a set of utilities to make it easy to use OpenAI's API. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
 
 ## Guide: Chat Bot
 
@@ -63,7 +63,15 @@ export async function POST(req: Request) {
 ```
 
 <Callout>
-Vercel AI Connector provides 2 utility helpers to make the above seamless: First, we pass the streaming `response` we receive from OpenAI to [`OpenAIStream`](/api-reference#openaistream). This method decodes/extracts the text tokens in the response and then re-encodes them properly for simple consumption. We can then pass that new stream directly to [`StreamingTextResponse`](/api-reference#streamingtextresponse). This is another utility class that extends the normal Node/Edge Runtime `Response` class with the default headers you probably want (hint: `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
+  Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
+  pass the streaming `response` we receive from OpenAI to
+  [`OpenAIStream`](/api-reference#openaistream). This method decodes/extracts
+  the text tokens in the response and then re-encodes them properly for simple
+  consumption. We can then pass that new stream directly to
+  [`StreamingTextResponse`](/api-reference#streamingtextresponse). This is
+  another utility class that extends the normal Node/Edge Runtime `Response`
+  class with the default headers you probably want (hint: `'Content-Type':
+  'text/plain; charset=utf-8'` is already set for you).
 </Callout>
 
 ### Wire up the UI

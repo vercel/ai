@@ -1,6 +1,6 @@
-# AI Connector
+# AI SDK
 
-AI Connector is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**.
+AI SDK is **a compact library for building edge-rendered AI-powered streaming text and chat UIs**.
 
 ## Features
 

@@ -2,7 +2,7 @@
 
 import { Steps, Callout } from 'nextra-theme-docs'
 
-Vercel AI Connector provides a set of utilities to make it easy to use HuggingFace's API. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
+Vercel AI SDK provides a set of utilities to make it easy to use HuggingFace's API. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
 
 ## Guide: Chat Bot
 
@@ -43,14 +43,20 @@ const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY)
 export const runtime = 'edge'
 
 // Build a prompt from the messages
-function buildPompt(messages: { content: string, role: 'system' | 'user' | 'assistant' }[]) {
-  return messages.map(({ content, role }) => {
-    if (role === 'user') {
-      return `<|prompter|>${content}<|endoftext|>`
-    } else {
-      return `<|assistant|>${content}<|endoftext|>`
-    }
-  }).join('') + '<|assistant|>'
+function buildPompt(
+  messages: { content: string; role: 'system' | 'user' | 'assistant' }[]
+) {
+  return (
+    messages
+      .map(({ content, role }) => {
+        if (role === 'user') {
+          return `<|prompter|>${content}<|endoftext|>`
+        } else {
+          return `<|assistant|>${content}<|endoftext|>`
+        }
+      })
+      .join('') + '<|assistant|>'
+  )
 }
 
 export async function POST(req: Request) {
@@ -78,7 +84,15 @@ export async function POST(req: Request) {
 ```
 
 <Callout>
-Vercel AI Connector provides 2 utility helpers to make the above seamless: First, we pass the streaming `response` we receive from `Hf.textGenerationStream` to [`HuggingFaceStream`](/api-reference#huggingfacestream). This method decodes/extracts the text tokens in the response and then re-encodes them properly for simple consumption. We can then pass that new stream directly to [`StreamingTextResponse`](/api-reference#streamingtextresponse). This is another utility class that extends the normal Node/Edge Runtime `Response` class with the default headers you probably want (hint: `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
+  Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
+  pass the streaming `response` we receive from `Hf.textGenerationStream` to
+  [`HuggingFaceStream`](/api-reference#huggingfacestream). This method
+  decodes/extracts the text tokens in the response and then re-encodes them
+  properly for simple consumption. We can then pass that new stream directly to
+  [`StreamingTextResponse`](/api-reference#streamingtextresponse). This is
+  another utility class that extends the normal Node/Edge Runtime `Response`
+  class with the default headers you probably want (hint: `'Content-Type':
+  'text/plain; charset=utf-8'` is already set for you).
 </Callout>
 
 ### Wire up the UI
@@ -117,6 +131,7 @@ export default function Chat() {
   )
 }
 ```
+
 </Steps>
 
 ## Guide: Text Completion
