@@ -3,7 +3,7 @@ import { useConfig } from 'nextra-theme-docs'
 /** @type{import('nextra-theme-docs').DocsThemeConfig}*/
 export default {
   project: {
-    link: 'https://github.com/shuding/nextra'
+    link: 'https://github.com/vercel-labs/ai'
   },
   logo: (
     <span className="inline-flex items-center">
@@ -70,8 +70,8 @@ export default {
   useNextSeoProps: () => {
     const { title } = useConfig()
     return {
-      defaultTitle: 'AI SDK',
-      titleTemplate: '%s - AI SDK',
+      defaultTitle: 'Vercel AI SDK',
+      titleTemplate: '%s - Vercel AI SDK',
       title,
       description:
         'Edge-ready utilities to accelerate working with AI in JavaScript and React.'
