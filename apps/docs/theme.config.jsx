@@ -33,7 +33,7 @@ export default {
         <path d="M16.88 3.549L7.12 20.451"></path>
       </svg>
 
-      <span className="connect ml-1 lg:text-lg font-bold">
+      <span className="connect ml-1 lg:text-lg font-bold tracking-[-0.01em]">
         <svg
           width="14"
           height="17"

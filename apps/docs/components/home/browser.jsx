@@ -8,8 +8,7 @@ export function Skeleton({ index, className }) {
         ref.current.style.animation = `fadeout 0.5s ease forwards`
         setTimeout(() => {
           if (ref.current) {
-            ref.current.style.width =
-              Math.max(Math.min(Math.random(), 0.8), 0.2) * 100 + '%'
+            ref.current.style.width = (Math.random() * 0.6 + 0.2) * 100 + '%'
             ref.current.style.animation = `fadein 0.4s ease ${
               index * 0.2
             }s forwards`
