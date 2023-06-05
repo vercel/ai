@@ -132,8 +132,7 @@ export function useChat({
   }, [messages])
 
   // Abort controller to cancel the current API call.
-  const [abortController, setAbortController] =
-    useState<AbortController | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const extraMetadataRef = useRef<any>({
     headers,
@@ -149,7 +148,7 @@ export function useChat({
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
   const { error, trigger, isMutating } = useSWRMutation<
-    null,
+    string | null,
     any,
     [string, string],
     Message[]
@@ -158,7 +157,7 @@ export function useChat({
     async (_, { arg: messagesSnapshot }) => {
       try {
         const abortController = new AbortController()
-        setAbortController(abortController)
+        abortControllerRef.current = abortController
 
         // Do an optimistic update to the chat state to show the updated messages
         // immediately.
@@ -206,7 +205,6 @@ export function useChat({
           if (done) {
             break
           }
-
           // Update the chat state with the new message tokens.
           result += decodeAIStreamChunk(value)
           mutate(
@@ -221,6 +219,12 @@ export function useChat({
             ],
             false
           )
+
+          // The request has been aborted, stop reading the stream.
+          if (abortControllerRef.current === null) {
+            reader.cancel()
+            break
+          }
         }
 
         if (onFinish) {
@@ -232,12 +236,12 @@ export function useChat({
           })
         }
 
-        setAbortController(null)
-        return null
+        abortControllerRef.current = null
+        return result
       } catch (err) {
         // Ignore abort errors as they are expected.
         if ((err as any).name === 'AbortError') {
-          setAbortController(null)
+          abortControllerRef.current = null
           return null
         }
 
@@ -254,48 +258,49 @@ export function useChat({
    * Append a user message to the chat list, and trigger the API call to fetch
    * the assistant's response.
    */
-  const append = useCallback((message: Message | CreateMessage) => {
+  const append = useCallback(async (message: Message | CreateMessage) => {
     if (!message.id) {
       message.id = nanoid()
     }
-    trigger(messagesRef.current.concat(message as Message))
+    return trigger(messagesRef.current.concat(message as Message))
   }, [])
 
   /**
    * Reload the last AI chat response for the given chat history. If the last
-   * message isn't from the assistant, this method will do nothing.
+   * message isn't from the assistant, it will request the API to generate a
+   * new response.
    */
-  const reload = useCallback(() => {
-    if (messagesRef.current.length === 0) return
+  const reload = useCallback(async () => {
+    if (messagesRef.current.length === 0) return null
 
-    if (
-      messagesRef.current[messagesRef.current.length - 1].role !== 'assistant'
-    )
-      return
-
-    trigger(messagesRef.current.slice(0, -1))
+    const lastMessage = messagesRef.current[messagesRef.current.length - 1]
+    if (lastMessage.role === 'assistant') {
+      return trigger(messagesRef.current.slice(0, -1))
+    }
+    return trigger(messagesRef.current)
   }, [])
 
   /**
-   * Abort the current API request but keep the generated tokens.
+   * Abort the current request immediately, keep the generated tokens if any.
    */
   const stop = useCallback(() => {
-    if (abortController) {
-      abortController.abort()
-      setAbortController(null)
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
     }
-  }, [abortController])
+  }, [])
 
   /**
    * Update the `messages` state locally. This is useful when you want to
    * edit the messages on the client, and then trigger the `reload` method
-   * to regenerate the AI response.
+   * manually to regenerate the AI response.
    */
   const set = useCallback((messages: Message[]) => {
     mutate(messages, false)
     messagesRef.current = messages
   }, [])
 
+  // Input state and handlers.
   const [input, setInput] = useState(initialInput)
 
   const handleSubmit = useCallback(
