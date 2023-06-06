@@ -51,6 +51,19 @@ export type UseCompletionOptions = {
   body?: any
 }
 
+export type UseCompletionHelpers = {
+  completion: string
+  complete: (prompt: string) => void
+  error: any
+  set: (completion: string) => void
+  stop: () => void
+  input: string
+  setInput: React.Dispatch<React.SetStateAction<string>>
+  handleInputChange: (e: any) => void
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  isLoading: boolean
+}
+
 export function useCompletion({
   api = '/api/completion',
   id,
@@ -60,7 +73,7 @@ export function useCompletion({
   body,
   onResponse,
   onFinish
-}: UseCompletionOptions = {}) {
+}: UseCompletionOptions = {}): UseCompletionHelpers {
   // Generate an unique id for the completion if not provided.
   const hookId = useId()
   const completionId = id || hookId

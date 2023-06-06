@@ -1,0 +1,8 @@
+{
+  "use-chat": "useChat",
+  "use-completion": "useCompletion",
+  "openai-stream": "OpenAIStream",
+  "huggingface-stream": "HuggingFaceStream",
+  "anthropic-stream": "AnthropicStream",
+  "ai-stream": "AIStream"
+}

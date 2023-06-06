@@ -47,7 +47,7 @@ The `handlers` object returned by `LangChainStream` is used to handle certain
 Under the hood it is a wrapper over LangChain's [`handleLLMEnd`](https://js.langchain.com/docs/api/callbacks/classes/BaseCallbackHandler#handlellmend), [`handleLLMNewToken`](https://js.langchain.com/docs/api/callbacks/classes/BaseCallbackHandler#handlellmnewtoken), and [`handleLLMError`](https://js.langchain.com/docs/api/callbacks/classes/BaseCallbackHandler#handlellmerror).
 We wrap over these methods to provide which then write to the `stream` which can then be passed directly to [`StreamingTextResponse`](../api-reference#streamingtextresponse).
 
-The result is that AI Util's [`useChat`](../api-reference#usechat) and [`useCompletion`](../api-reference#usecompletion) work flawlessly:
+The result is that ther Vercel AI SDK's [`useChat`](../api-reference/use-chat) and [`useCompletion`](../api-reference/use-completion) work flawlessly:
 
 ```tsx filename="app/page.tsx"
 'use client'

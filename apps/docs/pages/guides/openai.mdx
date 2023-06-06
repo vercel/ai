@@ -77,7 +77,7 @@ export async function POST(req: Request) {
 ### Wire up the UI
 
 Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
-By default, the [`useChat`](/api-reference#usechat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
+By default, the [`useChat`](/api-reference/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client'
@@ -155,7 +155,7 @@ export async function POST(req: Request) {
 
 ### Wire up the UI
 
-We can use the [`useCompletion`](/api-reference#usecompletion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
+We can use the [`useCompletion`](/api-reference/use-completion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client'
