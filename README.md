@@ -5,7 +5,7 @@ The Vercel AI SDK is **a compact library for building edge-rendered AI-powered s
 ## Features
 
 - [SWR](https://swr.vercel.app)-powered React hooks for streaming text responses and building chat and completion UIs
-- First-class support for [LangChain](js.langchain.com/docs) and native [OpenAI](https://openai.com), [Anthropic](https://anthropicai.com), and [HuggingFace](https://huggingface.co) Inference JavaScript SDKs
+- First-class support for [LangChain](js.langchain.com/docs) and [OpenAI](https://openai.com), [Anthropic](https://anthropicai.com), and [HuggingFace](https://huggingface.co)
 - [Edge Runtime](https://edge-runtime.vercel.app/) compatibility
 - Callbacks for saving completed streaming responses to a database (in the same request)
 
