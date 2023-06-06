@@ -1,8 +1,9 @@
 {
   "use-chat": "useChat",
   "use-completion": "useCompletion",
-  "openai-stream": "OpenAIStream",
   "huggingface-stream": "HuggingFaceStream",
-  "anthropic-stream": "AnthropicStream",
+  "langchain-stream": "LangChainStream",
+  "openai-stream": "OpenAIStream",
+  "streaming-text-response": "StreamingTextResponse",
   "ai-stream": "AIStream"
 }
