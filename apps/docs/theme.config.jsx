@@ -28,7 +28,7 @@ export default {
         strokeWidth="1.5"
         viewBox="0 0 24 24"
         aria-hidden="true"
-        className="text-zinc-100 dark:text-zinc-700 ml-1.5"
+        className="text-zinc-200 dark:text-zinc-700 ml-1.5"
       >
         <path d="M16.88 3.549L7.12 20.451"></path>
       </svg>

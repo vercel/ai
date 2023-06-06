@@ -19,19 +19,21 @@ svg * {
 body,
 .dot-background {
   background: linear-gradient(
-      to bottom,
+      185deg,
       rgba(255, 255, 255, 0) 0%,
       rgba(255, 255, 255, 1) 300px
     ),
-    fixed 0 0 / 20px 20px radial-gradient(#d1d1d1 1px, transparent 0),
-    fixed 10px 10px / 20px 20px radial-gradient(#d1d1d1 1px, transparent 0);
+    fixed 0 0 / 10px 10px radial-gradient(#d1d1d1 1px, transparent 0);
 }
 
 .dark body,
 .dark .dot-background {
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, #111 300px),
-    fixed 0 0 / 20px 20px radial-gradient(#313131 1px, transparent 0),
-    fixed 10px 10px / 20px 20px radial-gradient(#313131 1px, transparent 0);
+  background: linear-gradient(185deg, rgba(0, 0, 0, 0) 0%, #111 300px),
+    fixed 0 0 / 10px 10px radial-gradient(#313131 1px, transparent 0);
+}
+
+.dot-background {
+  background-attachment: initial;
 }
 
 .main-title {
