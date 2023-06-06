@@ -1,5 +1,6 @@
 {
   "openai": "OpenAI",
   "huggingface": "HuggingFace",
+  "anthropic": "Anthropic",
   "langchain": "LangChain"
 }
