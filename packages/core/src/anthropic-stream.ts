@@ -7,7 +7,7 @@ import {
 function parseAnthropicStream({
   data,
   counter
-}: AIStreamParserOptions): string | null {
+}: AIStreamParserOptions): string | void {
   const json = JSON.parse(data as string) as {
     completion: string
     stop: string | null
