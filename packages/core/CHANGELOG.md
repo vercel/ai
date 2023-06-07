@@ -1,5 +1,13 @@
 # ai-connector
 
+## 0.0.6
+
+### Patch Changes
+
+- d70a9e7: Add streamToResponse
+- 47b85b2: Improve abortController and callbacks of `useChat`
+- 6f7b43a: Export `UseCompletionHelpers` as a TypeScript type alias
+
 ## 0.0.5
 
 ### Patch Changes
