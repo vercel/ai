@@ -8,15 +8,9 @@ import { Browser } from '../../components/home/browser'
 
 # Streaming
 
-Streaming user interfaces and LLMs (Large Language Models) mark an evolution in application development. The ability to stream responses from an LLM offers advantages in certain scenarios but it's not always the optimal solution. The decision to use a streaming interface depends on various factors such as the size of the language model, speed of response, and the length of the responses.
+Streaming conversational text UIs (like ChatGPT) have gained massive popularity over the past few months. This section will explore the benefits and drawbacks of streaming and blocking interfaces and how to implement them using the Vercel AI SDK.
 
-In terms of model size, larger language models like GPT-3.5 or GPT-4 are generally more powerful and capable of producing longer, more complex outputs. However, this performance comes at the expense of speed. Due to the increased computational requirements, responses from these larger models can be slower, particularly for extended responses.
-
-In contrast, smaller language models, while less powerful, offer quicker response times due to their reduced computational demands.
-
-The speed and size of LLMs relate directly to user experience. In applications where a quick response is required, using a smaller, faster model might be the best choice, even if it means sacrificing some degree of complexity or creativity in the response. Conversely, for applications that require detailed or intricate responses, a larger, slower model might be necessary.
-
-In terms of response length, longer responses naturally take more time to generate and transmit. With a blocking user interface, this leads to longer loading spinners and a suboptimal user experience. Streaming can alleviate this issue by transmitting parts of the response as they become available, improving perceived responsiveness. However, setting up and managing a streaming interface can be more complex and demanding than standard, blocking UIs.
+Large Language Models (LLMs) are extremely powerful. However, when generating long outputs, they can be very slow compared to the latency you're likely used to. If you try to build a traditional blocking UI, your users might easily find themselves staring at loading spinners for 5, 10, even up to 40s waiting for the entire LLM response to be generated. This can lead to a poor user experience, especially in conversational applications like chatbots. Streaming UIs can help mitigate this issue by displaying parts of the response as they become available.
 
 <div className="grid lg:grid-cols-2 grid-cols-1 gap-4 mt-8">
   <Card
@@ -33,6 +27,6 @@ In terms of response length, longer responses naturally take more time to genera
   </Card>
 </div>
 
-To summarize, while streaming interfaces can greatly enhance user experiences, especially with larger language models, they aren't always necessary or beneficial. If a developer can achieve their desired functionality using a smaller, faster model without resorting to streaming, this route can often lead to simpler and more manageable development processes.
+While streaming interfaces can greatly enhance user experiences, especially with larger language models, they aren't always necessary or beneficial. If you can achieve your desired functionality using a smaller, faster model without resorting to streaming, this route can often lead to simpler and more manageable development processes.
 
-However, as LLMs continue to improve, the lines between large and small, fast and slow, are likely to blur. What won't change is the need for effective and responsive user interfaces, which the Vercel AI SDK is designed to facilitate.
+However, if you find yourself needing to use a slower model, the Vercel AI SDK is designed to make implementing streaming UIs as simple as possible.
