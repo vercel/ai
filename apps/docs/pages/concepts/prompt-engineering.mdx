@@ -4,19 +4,25 @@ title: Prompt Engineering
 
 # Prompt Engineering
 
-Prompt engineering is an emerging discipline in strategically exploiting the vast capabilities of large language models (LLMs) for various applications and research areas, amidst their present strengths and limitations.
+## What is a Large Language Model (LLM)?
 
-This necessity arises from the current constraints faced by LLMs. Despite their deep ability to produce creative and meaningful text, they often need clear instructions, via well-crafted prompts, to yield accurate and useful outputs. Moreover, despite ongoing improvements in model training, LLMs can still generate irrelevant or inaccurate content at times.
+A Large Language Model is essentially a prediction engine that takes a sequence of words as input and aims to predict the most likely sequence to follow. It does this by assigning probabilities to potential next sequences and then selecting one. The model continues to generate sequences until it meets a specified stopping criterion.
 
-Researchers and developers utilize prompt engineering to navigate these challenges, bolstering the model's performance [on various tasks](https://www.assemblyai.com/blog/emergent-abilities-of-large-language-models/) and augmenting safety measures of these models. Additionally, it assists in integrating other tools with LLMs and adding new capabilities such as furnishing LLMs with domain-specific knowledge.
+These models learn by training on massive text corpuses, which means they will be better suited to some use cases than others. For example, a model trained on GitHub data would understand the probabilities of sequences in source code particularly well. However, it's crucial to understand that the generated sequences, while often seeming plausible, can sometimes be random and not grounded in reality. As these models become more accurate, many surprising abilities and applications emerge.
 
-Nevertheless, the discipline has its critics. Some argue that it requires a degree of expertise that might not be universally accessible, thus posing a potential entry barrier. Others worry that an over-reliance could risk tuning models excessively to specific prompts, jeopardizing their generality.
+## What is a prompt?
 
-As to how long these limitations will persist is hard to forecast, but the constant advancements suggest these challenges will likely lessen over time. However, whether or not prompt engineering will continue to be necessary, the need for creating rich interactive user experiences will always prevail. This is precisely where the Vercel AI SDK comes in, providing an effective and user-friendly platform to create interactive applications with LLMs, taking us closer to fully harnessing the potential of these impressive models.
+Prompts are the starting points for LLMs. They are the inputs that trigger the model to generate text. The scope of prompt engineering involves not just crafting these prompts but also understanding related concepts such as hidden prompts, tokens, token limits, and the potential for prompt hacking, which includes phenomena like jailbreaks and leaks.
+
+## Why is prompt engineering needed?
+
+Prompt engineering currently plays a pivotal role in shaping the responses of LLMs. It allows us to tweak the model to respond more effectively to a broader range of queries. This includes the use of techniques like semantic search, command grammars, and the ReActive model architecture. The performance, context window, and cost of LLMs varies between models and model providers which adds further constraints to the mix. For example, the GPT-4 model is more expensive than GPT-3.5-turbo and significantly slower, but it can also be more effective at certain tasks. And so, like many things in software engineering, there is a trade-offs between cost and performance.
+
+To assist with comparing and tweaking LLMs, we've built an AI playground that allows you to compare the performance of different models side-by-side online. When you're ready, you can even generate code with the Vercel AI SDK to quickly use your prompt and your selected model into your own applications.
 
 ## Recommended Resources
 
-Prompt Engineering is an inredibly fast moving field, with new techniques and papers being published every week. Here are some of our favorite resources to get started and stay up to date on the latest developments.
+Prompt Engineering is evolving rapidly, with new methods and research papers surfacing every week. Here are some resources that we've found useful to stay current with the latest advancements.
 
 - [Brex Prompt Engineering](https://github.com/brexhq/prompt-engineering)
 - [Prompt Engineering Guide by Dair AI](https://www.promptingguide.ai/)
