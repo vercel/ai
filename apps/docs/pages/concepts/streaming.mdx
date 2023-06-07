@@ -4,31 +4,28 @@ title: Streaming
 
 import { useRef, useEffect } from 'react'
 import { Card } from '../../components/home/card'
-import { Globe } from '../../components/home/globe'
 import { Browser } from '../../components/home/browser'
-import { Streaming } from '../../components/home/streaming'
-import { Logos } from '../../components/home/logos'
 
 Streaming user interfaces and LLMs (Large Language Models) mark an evolution in application development. The ability to stream responses from an LLM offers advantages in certain scenarios but it's not always the optimal solution. The decision to use a streaming interface depends on various factors such as the size of the language model, speed of response, and the length of the responses.
 
-In terms of model size, larger language models like GPT-3 or GPT-4 are generally more powerful and capable of producing longer, more complex outputs. However, this performance comes at the expense of speed. Due to the increased computational requirements, responses from these larger models can be slower, particularly for extended responses.
+In terms of model size, larger language models like GPT-3.5 or GPT-4 are generally more powerful and capable of producing longer, more complex outputs. However, this performance comes at the expense of speed. Due to the increased computational requirements, responses from these larger models can be slower, particularly for extended responses.
 
 In contrast, smaller language models, while less powerful, offer quicker response times due to their reduced computational demands.
 
-The speed and size of LLMs relate directly to user experience. In applications where a quick response is required, using a smaller, faster model might be the best choice, even if it means sacrificing some degree of complexity or creativity in the response. Conversely, for applications that require detailed or intricate responses, a larger, slower model might be the preferred choice.
+The speed and size of LLMs relate directly to user experience. In applications where a quick response is required, using a smaller, faster model might be the best choice, even if it means sacrificing some degree of complexity or creativity in the response. Conversely, for applications that require detailed or intricate responses, a larger, slower model might be necessary.
 
-In terms of response length, longer responses naturally take more time to generate and transmit, thus leading to slower user interfaces. Streaming can alleviate this issue by transmitting parts of the response as they become available, improving perceived responsiveness. However, setting up and managing a streaming interface can be more complex and demanding than a standard, non-streaming interface.
+In terms of response length, longer responses naturally take more time to generate and transmit. With a blocking user interface, this leads to longer loading spinners and a suboptimal user experience. Streaming can alleviate this issue by transmitting parts of the response as they become available, improving perceived responsiveness. However, setting up and managing a streaming interface can be more complex and demanding than standard, blocking UIs.
 
 <div className="grid lg:grid-cols-2 grid-cols-1 gap-4 mt-8">
   <Card
-    title="Streaming"
-    description="Callbacks for saving completed streaming responses to a database in the same request."
+    title="Blocking UI"
+    description="Blocking responses wait until the full response is available before displaying it."
   >
     <Browser />
   </Card>
   <Card
-    title="Streaming"
-    description="Callbacks for saving completed streaming responses to a database in the same request."
+    title="Streaming UI"
+    description="Streaming responses can transmit parts of the response as they become available."
   >
     <Browser />
   </Card>
