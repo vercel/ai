@@ -48,6 +48,35 @@ body,
   -webkit-text-fill-color: transparent;
 }
 
+.browser-skeleton {
+  position: relative;
+}
+.browser-skeleton span {
+  position: absolute;
+  top: 0;
+  left: 0%;
+  right: 0;
+  bottom: 0;
+  transform: translateX(0);
+  background: linear-gradient(90deg, transparent, white 10px);
+  opacity: 0;
+}
+
+.dark .browser-skeleton span {
+  background: linear-gradient(90deg, transparent, #171717 10px);
+}
+
+@keyframes slideout {
+  0% {
+    left: 0%;
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 1;
+  }
+}
+
 @keyframes fadein {
   0% {
     opacity: 0;
@@ -75,7 +104,7 @@ body,
   }
   100% {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.97);
   }
 }
 

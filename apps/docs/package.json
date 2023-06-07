@@ -12,6 +12,7 @@
   "dependencies": {
     "@vercel/analytics": "^1.0.1",
     "ai-connector": "workspace:*",
+    "clsx": "^1.2.1",
     "cobe": "^0.6.3",
     "next": "13.4.5-canary.3",
     "nextra": "^2.6.2",
