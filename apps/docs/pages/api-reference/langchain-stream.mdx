@@ -1,8 +1,6 @@
----
-title: LangChainStream
----
+# LangChainStream
 
-# `LangChainStream(callbacks?: AIStreamCallbacks): {stream: ReadableStream, handlers: LangChainCallbacks}` [#langchainstream]
+## `LangChainStream(callbacks?: AIStreamCallbacks): { stream: ReadableStream, handlers: LangChainCallbacks }` [#langchainstream]
 
 `LangChainStream` is a utility function designed to facilitate the integration of [LangChain](https://js.langchain.com/docs) - a framework for engineering prompts for AI language models - with UI components and data streaming to the client side. Returns a `stream` and bag of [LangChain](js.langchain.com/docs) `BaseCallbackHandlerMethodsClass` that automatically implement streaming in such a way that you can use [`useChat`](./use-chat) and [`useCompletion`](./use-completion).
 

@@ -1,8 +1,6 @@
----
-title: AIStream
----
+# AIStream
 
-# `AIStream(res: Response, customParser: (opts: AIStreamParserOptions) => void, callbacks?: AIStreamCallbacks): ReadableStream`
+## `AIStream(res: Response, customParser: (opts: AIStreamParserOptions) => void, callbacks?: AIStreamCallbacks): ReadableStream` [#aistream]
 
 `AIStream` is a helper function for creating a readable stream for AI responses. This is based on the responses returned by `fetch` and serves as the basis for the [`OpenAIStream`](./openai-stream) and [`AnthropicStream`](./anthropic-stream). It allows you to handle AI response streams in a controlled and customized manner that will work with [`useChat`](./use-chat) and [`useCompletion`](./use-completion).
 

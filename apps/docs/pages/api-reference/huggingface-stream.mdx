@@ -1,8 +1,6 @@
----
-title: HuggingFaceStream
----
+# HuggingFaceStream
 
-# `HuggingFaceStream(iter: AsyncGenerator<any>, cb?: AIStreamCallbacks): ReadableStream` [#huggingfacestream]
+## `HuggingFaceStream(iter: AsyncGenerator<any>, cb?: AIStreamCallbacks): ReadableStream` [#huggingfacestream]
 
 The `HuggingFaceStream` function is a utility that transforms the output from an array of text generation models hosted on [HuggingFace.co](https://huggingface.co) into a `ReadableStream`. The transformation uses an `AsyncGenerator` as provided by the [HuggingFace Inference SDK](https://huggingface.co/docs/huggingface.js/inference/README)'s `hf.textGenerationStream` method. This feature enables you to handle AI responses in real-time by means of a readable stream.
 

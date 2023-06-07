@@ -1,8 +1,6 @@
----
-title: StreamingTextResponse
----
+# StreamingTextResponse
 
-# `StreamingTextResponse(res: ReadableStream, init?: ResponseInit): Response` [#streamingtextresponse]
+## `StreamingTextResponse(res: ReadableStream, init?: ResponseInit): Response` [#streamingtextresponse]
 
 `StreamingTextResponse` is a utility class that simplifies the process of returning a `ReadableStream` of text in HTTP responses. It is a lightweight wrapper around the native `Response` class, automatically setting the status code to `200` and the `Content-Type` header to `'text/plain; charset=utf-8'`.
 
