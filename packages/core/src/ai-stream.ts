@@ -51,6 +51,10 @@ export function createEventStreamTransformer(customParser: AIStreamParser) {
   })
 }
 
+/**
+ * This stream forks input stream, allowing us to use the result as a
+ * bytestream of the messages and pass the messages to our callback interface.
+ */
 export function createCallbacksTransformer(
   callbacks: AIStreamCallbacks | undefined
 ) {
@@ -66,6 +70,7 @@ export function createCallbacksTransformer(
 
     async transform(message, controller): Promise<void> {
       controller.enqueue(encoder.encode(message))
+
       if (callbacks?.onToken) {
         await callbacks.onToken(message)
       }
@@ -85,7 +90,15 @@ export function AIStream(
   customParser: AIStreamParser,
   callbacks?: AIStreamCallbacks
 ): ReadableStream {
-  return res.body
+  const stream =
+    res.body ||
+    new ReadableStream({
+      start(controller) {
+        controller.close()
+      }
+    })
+
+  return stream
     .pipeThrough(createEventStreamTransformer(customParser))
     .pipeThrough(createCallbacksTransformer(callbacks))
 }
