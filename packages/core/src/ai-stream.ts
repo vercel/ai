@@ -69,7 +69,7 @@ export function createCallbacksTransformer(
     },
 
     async transform(message, controller): Promise<void> {
-      controller.enqueue(encoder.encode(message))
+      controller.enqueue(encoder.encode(JSON.stringify(message)))
 
       if (callbacks?.onToken) {
         await callbacks.onToken(message)
