@@ -37,7 +37,7 @@ export function streamToResponse(
         return
       }
       response.write(value)
-      return read()
+      read()
     })
   }
   read()
