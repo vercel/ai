@@ -1,12 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
-
-const decoder = new TextDecoder()
-function decodeAIStreamChunk(chunk: Uint8Array): string {
-  const tokens = decoder.decode(chunk).split('\n')
-  return tokens.map(t => (t ? JSON.parse(t) : '')).join('')
-}
+import { decodeAIStreamChunk } from './utils'
 
 export type UseCompletionOptions = {
   /**

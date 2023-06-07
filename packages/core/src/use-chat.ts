@@ -2,6 +2,7 @@ import { useCallback, useId, useRef, useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
 import { customAlphabet } from 'nanoid'
+import { decodeAIStreamChunk } from './utils'
 
 // 7-character random string
 const nanoid = customAlphabet(
@@ -21,12 +22,6 @@ export type CreateMessage = {
   createdAt?: Date
   content: string
   role: 'system' | 'user' | 'assistant'
-}
-
-const decoder = new TextDecoder()
-function decodeAIStreamChunk(chunk: Uint8Array): string {
-  const tokens = decoder.decode(chunk).split('\n')
-  return tokens.map(t => (t ? JSON.parse(t) : '')).join('')
 }
 
 export type UseChatOptions = {
