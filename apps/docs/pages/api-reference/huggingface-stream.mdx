@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     }
   })
 
-  // Convert the async iterable into a readable stream
+  // Convert the async generator into a readable stream
   const stream = HuggingFaceStream(iter)
 
   // Return a StreamingTextResponse, enabling the client to consume the response
