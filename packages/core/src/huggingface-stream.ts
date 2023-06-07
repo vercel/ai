@@ -22,7 +22,7 @@ function createParser(res: AsyncGenerator<any>) {
       // </s> is also often last token in the stream depending on the model
       if (text !== '</s>' && text !== '<|endoftext|>') {
         // TODO: Is this needed?
-        if (counter < 2 && (text.match(/\n/) || []).length) {
+        if (counter < 2 && text.includes('\n')) {
           return
         }
 
