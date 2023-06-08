@@ -6,27 +6,20 @@ import {
 
 function parseOpenAIStream({
   data,
-  controller,
-  counter,
-  encoder
-}: AIStreamParserOptions): void {
-  try {
-    const json = JSON.parse(data)
-    // this can be used for either chat or completion models
+  counter
+}: AIStreamParserOptions): string | void {
+  // TODO: Needs a type
+  const json = JSON.parse(data)
 
-    const text = json.choices[0]?.delta?.content ?? json.choices[0]?.text ?? ''
+  // this can be used for either chat or completion models
+  const text = json.choices[0]?.delta?.content ?? json.choices[0]?.text ?? ''
 
-    if (counter < 2 && (text.match(/\n/) || []).length) {
-      return
-    }
-
-    const queue = encoder.encode(`${JSON.stringify(text)}\n`)
-    controller.enqueue(queue)
-
-    counter++
-  } catch (e) {
-    controller.error(e)
+  // TODO: I don't understand the `counter && has newline`. Should this be `counter < 2 || !has newline?`?
+  if (counter < 2 && text.includes('\n')) {
+    return
   }
+
+  return text
 }
 
 export function OpenAIStream(

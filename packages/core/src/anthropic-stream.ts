@@ -4,13 +4,12 @@ import {
   type AIStreamParserOptions
 } from './ai-stream'
 
-function parseAnthropicStream({
-  data,
-  controller,
-  counter,
-  encoder
-}: AIStreamParserOptions): void {
-  try {
+function parseAnthropicStream(): ({
+  data
+}: AIStreamParserOptions) => string | void {
+  let previous = ''
+
+  return ({ data }) => {
     const json = JSON.parse(data as string) as {
       completion: string
       stop: string | null
@@ -20,17 +19,15 @@ function parseAnthropicStream({
       model: string
       exception: string | null
     }
+
+    // Anthropic's `completion` field is cumulative unlike OpenAI's
+    // deltas. In order to compute the delta, we must slice out the text
+    // we previously received.
     const text = json.completion
-    if (counter < 2 && (/\n/.exec(text) || []).length) {
-      return
-    }
+    const delta = text.slice(previous.length)
+    previous = text
 
-    const queue = encoder.encode(`${JSON.stringify(text)}\n`)
-    controller.enqueue(queue)
-
-    counter++
-  } catch (e) {
-    controller.error(e)
+    return delta
   }
 }
 
@@ -38,5 +35,5 @@ export function AnthropicStream(
   res: Response,
   cb?: AIStreamCallbacks
 ): ReadableStream {
-  return AIStream(res, parseAnthropicStream, cb)
+  return AIStream(res, parseAnthropicStream(), cb)
 }

@@ -1,5 +1,6 @@
 import {
   createParser,
+  type EventSourceParser,
   type ParsedEvent,
   type ReconnectInterval
 } from 'eventsource-parser'
@@ -12,64 +13,92 @@ export interface AIStreamCallbacks {
 
 export interface AIStreamParserOptions {
   data: any
-  controller: ReadableStreamDefaultController
   counter: number
-  encoder: TextEncoder
 }
 
-export function AIStream(
-  res: Response,
-  customParser: (opts: AIStreamParserOptions) => void,
-  callbacks?: AIStreamCallbacks
-): ReadableStream {
-  const encoder = new TextEncoder()
+export interface AIStreamParser {
+  (opts: AIStreamParserOptions): string | void
+}
+
+export function createEventStreamTransformer(customParser: AIStreamParser) {
   const decoder = new TextDecoder()
+  let counter = 0
+  let parser: EventSourceParser
 
-  const counter = 0
-
-  const stream = new ReadableStream({
+  return new TransformStream<Uint8Array, string>({
     async start(controller): Promise<void> {
       function onParse(event: ParsedEvent | ReconnectInterval): void {
         if (event.type === 'event') {
           const data = event.data
           if (data === '[DONE]') {
-            controller.close()
+            controller.terminate()
             return
           }
-          return customParser({ data, controller, counter, encoder })
+
+          const message = customParser({ data, counter })
+          counter++
+
+          if (message) controller.enqueue(message)
         }
       }
 
-      const parser = createParser(onParse)
+      parser = createParser(onParse)
+    },
 
-      for await (const chunk of res.body as any) {
-        parser.feed(decoder.decode(chunk))
-      }
+    transform(chunk) {
+      parser.feed(decoder.decode(chunk))
     }
   })
+}
 
+/**
+ * This stream forks input stream, allowing us to use the result as a
+ * bytestream of the messages and pass the messages to our callback interface.
+ */
+export function createCallbacksTransformer(
+  callbacks: AIStreamCallbacks | undefined
+) {
+  const encoder = new TextEncoder()
   let fullResponse = ''
-  const forkedStream = new TransformStream({
-    start: async (): Promise<void> => {
+
+  return new TransformStream<string, Uint8Array>({
+    async start(): Promise<void> {
       if (callbacks?.onStart) {
         await callbacks.onStart()
       }
     },
-    transform: async (chunk, controller): Promise<void> => {
-      controller.enqueue(chunk)
-      const item = decoder.decode(chunk)
-      const value = JSON.parse(item.split('\n')[0])
+
+    async transform(message, controller): Promise<void> {
+      controller.enqueue(encoder.encode(JSON.stringify(message)))
+
       if (callbacks?.onToken) {
-        await callbacks.onToken(value as string)
+        await callbacks.onToken(message)
       }
-      fullResponse += value
+      // TODO: If `onCompletion` isn't defined, then we could skip this and save memory.
+      // This is very likely to receive rope-concat optimizations, so at least it's not slow
+      fullResponse += message
     },
-    flush: async (controller): Promise<void> => {
-      if (callbacks?.onCompletion) {
-        await callbacks.onCompletion(fullResponse)
-      }
-      controller.terminate()
+
+    flush() {
+      return callbacks?.onCompletion?.(fullResponse)
     }
   })
-  return stream.pipeThrough(forkedStream)
+}
+
+export function AIStream(
+  res: Response,
+  customParser: AIStreamParser,
+  callbacks?: AIStreamCallbacks
+): ReadableStream {
+  const stream =
+    res.body ||
+    new ReadableStream({
+      start(controller) {
+        controller.close()
+      }
+    })
+
+  return stream
+    .pipeThrough(createEventStreamTransformer(customParser))
+    .pipeThrough(createCallbacksTransformer(callbacks))
 }
