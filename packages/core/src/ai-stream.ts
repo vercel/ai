@@ -11,23 +11,17 @@ export interface AIStreamCallbacks {
   onToken?: (token: string) => Promise<void>
 }
 
-export interface AIStreamParserOptions {
-  data: any
-  counter: number
-}
-
 export interface AIStreamParser {
-  (opts: AIStreamParserOptions): string | void
+  (data: string): string | void
 }
 
 export function createEventStreamTransformer(customParser: AIStreamParser) {
   const decoder = new TextDecoder()
-  let counter = 0
   let parser: EventSourceParser
 
   return new TransformStream<Uint8Array, string>({
     async start(controller): Promise<void> {
-      function onParse(event: ParsedEvent | ReconnectInterval): void {
+      function onParse(event: ParsedEvent | ReconnectInterval) {
         if (event.type === 'event') {
           const data = event.data
           if (data === '[DONE]') {
@@ -35,9 +29,7 @@ export function createEventStreamTransformer(customParser: AIStreamParser) {
             return
           }
 
-          const message = customParser({ data, counter })
-          counter++
-
+          const message = customParser(data)
           if (message) controller.enqueue(message)
         }
       }
@@ -83,6 +75,18 @@ export function createCallbacksTransformer(
       return callbacks?.onCompletion?.(fullResponse)
     }
   })
+}
+
+// If we're still at the start of the stream, we want to trim the leading
+// `\n\n`. But, after we've seen some text, we no longer want to trim out
+// whitespace.
+export function trimStartOfStreamHelper() {
+  let start = true
+  return (text: string) => {
+    if (start) text = text.trimStart()
+    if (text) start = false
+    return text
+  }
 }
 
 export function AIStream(

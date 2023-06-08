@@ -1,7 +1,11 @@
-import { type AIStreamCallbacks, createCallbacksTransformer } from './ai-stream'
+import {
+  type AIStreamCallbacks,
+  createCallbacksTransformer,
+  trimStartOfStreamHelper
+} from './ai-stream'
 
 function createParser(res: AsyncGenerator<any>) {
-  let counter = 0
+  const trimStartOfStream = trimStartOfStreamHelper()
   return new ReadableStream<string>({
     async pull(controller): Promise<void> {
       const { value, done } = await res.next()
@@ -10,7 +14,8 @@ function createParser(res: AsyncGenerator<any>) {
         return
       }
 
-      const text: string = value.token?.text ?? ''
+      const text = trimStartOfStream(value.token?.text ?? '')
+      if (!text) return
 
       // some HF models return generated_text instead of a real ending token
       if (value.generated_text != null && value.generated_text.length > 0) {
@@ -20,16 +25,10 @@ function createParser(res: AsyncGenerator<any>) {
 
       // <|endoftext|> is for https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5
       // </s> is also often last token in the stream depending on the model
-      if (text !== '</s>' && text !== '<|endoftext|>') {
-        // TODO: Is this needed?
-        if (counter < 2 && text.includes('\n')) {
-          return
-        }
-
-        controller.enqueue(text)
-        counter++
-      } else {
+      if (text === '</s>' || text === '<|endoftext|>') {
         controller.close()
+      } else {
+        controller.enqueue(text)
       }
     }
   })

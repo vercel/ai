@@ -1,15 +1,9 @@
-import {
-  AIStream,
-  type AIStreamCallbacks,
-  type AIStreamParserOptions
-} from './ai-stream'
+import { AIStream, type AIStreamCallbacks } from './ai-stream'
 
-function parseAnthropicStream(): ({
-  data
-}: AIStreamParserOptions) => string | void {
+function parseAnthropicStream(): (data: string) => string | void {
   let previous = ''
 
-  return ({ data }) => {
+  return data => {
     const json = JSON.parse(data as string) as {
       completion: string
       stop: string | null
