@@ -1,5 +1,5 @@
 ---
-"ai-connector": patch
+'ai-connector': patch
 ---
 
 - Splits the `EventSource` parser into a reusable helper
@@ -10,5 +10,5 @@
 - Uses string.includes to perform newline checking
 - Handles the `null` `res.body` case
 - Fixes Anthropic's streaming responses
-   - Anthropic returns cumulative responses, not deltas like OpenAI
-   - https://github.com/hwchase17/langchain/blob/3af36943/langchain/llms/anthropic.py#L190-L193
+  - Anthropic returns cumulative responses, not deltas like OpenAI
+  - https://github.com/hwchase17/langchain/blob/3af36943/langchain/llms/anthropic.py#L190-L193

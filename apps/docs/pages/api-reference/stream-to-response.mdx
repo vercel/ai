@@ -1,7 +1,8 @@
 # streamToResponse
 
 <Callout>
-  `ReadableStream` requires Node.js 18.0.0+ or polyfilled with a library like [`web-streams-polyfill`](https://www.npmjs.com/package/web-streams-polyfill).
+  `ReadableStream` requires Node.js 18.0.0+ or polyfilled with a library like
+  [`web-streams-polyfill`](https://www.npmjs.com/package/web-streams-polyfill).
 </Callout>
 
 ## `streamToResponse(stream: ReadableStream, response: ServerResponse, options?: Options)`
@@ -49,7 +50,7 @@ const server = createServer((req, res) => {
     stream: true,
     messages: /* ... */
   })
- 
+
   // Transform the response into a readable stream
   const stream = OpenAIStream(aiResponse)
 

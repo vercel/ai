@@ -63,15 +63,15 @@ export async function POST(req: Request) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'x-api-key': process.env.ANTHROPIC_API_KEY
     },
     body: JSON.stringify({
       prompt: buildPompt(messages),
       model: 'claude-v1',
       max_tokens_to_sample: 300,
       temperature: 0.9,
-      stream: true,
-    }),
+      stream: true
+    })
   })
 
   // Convert the response into a friendly text-stream
@@ -155,15 +155,15 @@ export async function POST(req: Request) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'x-api-key': process.env.ANTHROPIC_API_KEY
     },
     body: JSON.stringify({
       prompt: `Human: ${prompt}\n\nAssistant:`,
       model: 'claude-v1',
       max_tokens_to_sample: 300,
       temperature: 0.9,
-      stream: true,
-    }),
+      stream: true
+    })
   })
 
   // Convert the response into a friendly text-stream
