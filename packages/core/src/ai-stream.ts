@@ -53,26 +53,22 @@ export function createCallbacksTransformer(
   const encoder = new TextEncoder()
   let fullResponse = ''
 
+  const { onStart, onToken, onCompletion } = callbacks || {}
+
   return new TransformStream<string, Uint8Array>({
     async start(): Promise<void> {
-      if (callbacks?.onStart) {
-        await callbacks.onStart()
-      }
+      if (onStart) await onStart()
     },
 
     async transform(message, controller): Promise<void> {
       controller.enqueue(encoder.encode(message))
 
-      if (callbacks?.onToken) {
-        await callbacks.onToken(message)
-      }
-      // TODO: If `onCompletion` isn't defined, then we could skip this and save memory.
-      // This is very likely to receive rope-concat optimizations, so at least it's not slow
-      fullResponse += message
+      if (onToken) await onToken(message)
+      if (onCompletion) fullResponse += message
     },
 
-    flush() {
-      return callbacks?.onCompletion?.(fullResponse)
+    async flush(): Promise<void> {
+      await onCompletion?.(fullResponse)
     }
   })
 }
