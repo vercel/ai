@@ -1,5 +1,12 @@
 # ai-connector
 
+## 0.0.8
+
+### Patch Changes
+
+- fc83e95: Implement new start-of-stream newline trimming
+- 2c6fa04: Optimize callbacks TransformStream to be more memory efficient when `onCompletion` is not specified
+
 ## 0.0.7
 
 ### Patch Changes
