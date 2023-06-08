@@ -1,6 +1,6 @@
 {
   "name": "ai-connector",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "license": "MIT",
   "sideEffects": false,
   "main": "./dist/index.js",
