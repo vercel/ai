@@ -25,8 +25,7 @@ export type CreateMessage = {
 
 const decoder = new TextDecoder()
 function decodeAIStreamChunk(chunk: Uint8Array): string {
-  const tokens = decoder.decode(chunk).split('\n')
-  return tokens.map(t => (t ? JSON.parse(t) : '')).join('')
+  return decoder.decode(chunk)
 }
 
 export type UseChatOptions = {
