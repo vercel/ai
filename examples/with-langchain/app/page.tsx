@@ -9,7 +9,7 @@ export default function Chat() {
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
       {messages.length > 0
         ? messages.map(m => (
-            <div key={m.id}>
+            <div key={m.id} className="whitespace-pre-wrap">
               {m.role === 'user' ? 'User: ' : 'AI: '}
               {m.content}
             </div>
