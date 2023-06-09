@@ -204,8 +204,7 @@ export function useCompletion({
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault()
       if (!input) return
-      trigger(input)
-      setInput('')
+      trigger(input)      
     },
     [input, trigger]
   )
