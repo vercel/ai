@@ -79,10 +79,11 @@ View full documentation and examples on [ai-utils-docs.vercel.sh](https://ai-uti
 
 ## Authors
 
-This library is created by [Vercel](https://vercel.com) and [Next.js](https://nextjs.org) team members, with contributions:
+This library is created by [Vercel](https://vercel.com) and [Next.js](https://nextjs.org) team members, with contributions from:
 
-- Jared Palmer ([@rauchg](https://twitter.com/rauchg)) - [Vercel](https://vercel.com)
+- Jared Palmer ([@jaredpalmer](https://twitter.com/jaredpalmer)) - [Vercel](https://vercel.com)
 - Shu Ding ([@shuding\_](https://twitter.com/shuding_)) - [Vercel](https://vercel.com)
 - Malte Ubl ([@cramforce](https://twitter.com/cramforce)) - [Vercel](https://vercel.com)
+- Justin Ridgewell ([@jridgewell](https://github.com/jridgewell)) - [Vercel](https://vercel.com)
 
 [Contributors](https://github.com/vercel-labs/ai-utils/graphs/contributors)
