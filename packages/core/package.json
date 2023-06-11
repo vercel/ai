@@ -8,7 +8,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "dist/react/**/*"
+    "react/dist/**/*",
+    "svelte/dist/**/*"
   ],
   "scripts": {
     "build": "tsup",
@@ -61,7 +62,7 @@
     "eslint-config-vercel-ai": "workspace:*",
     "jest": "29.2.1",
     "ts-jest": "29.0.3",
-    "tsup": "^5.10.1",
+    "tsup": "^6.7.0",
     "typescript": "^4.5.3"
   },
   "peerDependencies": {
