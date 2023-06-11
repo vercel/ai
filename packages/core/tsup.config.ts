@@ -4,9 +4,7 @@ import { readdirSync } from 'fs'
 export default defineConfig([
   // Universal APIs
   {
-    entry: readdirSync('src')
-      .filter(file => !file.startsWith('use-'))
-      .map(file => `src/${file}`),
+    entry: ['streams/*.{ts,tsx}'],
     format: ['cjs', 'esm'],
     external: ['react'],
     dts: true,
@@ -14,9 +12,10 @@ export default defineConfig([
       options.bundle = false
     }
   },
-  // Client APIs
+  // React APIs
   {
-    entry: ['src/use-*.ts'],
+    entry: ['react/*.{ts,tsx}'],
+    outDir: 'react/dist',
     banner: {
       js: "'use client'"
     },

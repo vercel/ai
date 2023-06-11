@@ -1,32 +1,10 @@
 import { useCallback, useId, useRef, useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
-import { customAlphabet } from 'nanoid'
+import { nanoid, decodeAIStreamChunk } from './utils'
 
-// 7-character random string
-const nanoid = customAlphabet(
-  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-  7
-)
-
-export type Message = {
-  id: string
-  createdAt?: Date
-  content: string
-  role: 'system' | 'user' | 'assistant'
-}
-
-export type CreateMessage = {
-  id?: string
-  createdAt?: Date
-  content: string
-  role: 'system' | 'user' | 'assistant'
-}
-
-const decoder = new TextDecoder()
-function decodeAIStreamChunk(chunk: Uint8Array): string {
-  return decoder.decode(chunk)
-}
+import type { Message, CreateMessage } from '../shared/types'
+export type { Message, CreateMessage }
 
 export type UseChatOptions = {
   /**
@@ -71,27 +49,41 @@ export type UseChatOptions = {
    * Extra body to be sent with the API request.
    */
   body?: any
+
+  /**
+   * Whether to send extra message fields such as `message.id` and `message.createdAt` to the API.
+   * Defaults to `false`. When set to `true`, the API endpoint might need to
+   * handle the extra fields before forwarding the request to the AI service.
+   */
+  sendExtraMessageFields?: boolean
 }
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
   messages: Message[]
-  /** SWR's error object */
-  error: any
+  /** The error object of the API request */
+  error: undefined | Error
   /**
-   * Append a  message to the chat list. This trigger the API call
-   * to fetch to the API endpoint to get the AI response.
+   * Append a user message to the chat list. This triggers the API call to fetch
+   * the assistant's response.
    */
   append: (message: Message | CreateMessage) => void
   /**
    * Reload the last AI chat response for the given chat history. If the last
-   * message isn't from the assistant, this method will do nothing.
+   * message isn't from the assistant, it will request the API to generate a
+   * new response.
    */
   reload: () => void
-  /** Abort the current API request. */
+  /**
+   * Abort the current request immediately, keep the generated tokens if any.
+   */
   stop: () => void
-  /** Update the `messages` state locally. */
-  set: (messages: Message[]) => void
+  /**
+   * Update the `messages` state locally. This is useful when you want to
+   * edit the messages on the client, and then trigger the `reload` method
+   * manually to regenerate the AI response.
+   */
+  setMessages: (messages: Message[]) => void
   /** The current value of the input */
   input: string
   /** setState-powered method to update the input value */
@@ -100,7 +92,7 @@ export type UseChatHelpers = {
   handleInputChange: (e: any) => void
   /** Form submission handler to automattically reset input and append a user message  */
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
-  /** Whether SWR-fetch is in progress */
+  /** Whether the API request is in progress */
   isLoading: boolean
 }
 
@@ -109,6 +101,7 @@ export function useChat({
   id,
   initialMessages = [],
   initialInput = '',
+  sendExtraMessageFields,
   onResponse,
   onFinish,
   headers,
@@ -166,7 +159,12 @@ export function useChat({
         const res = await fetch(api, {
           method: 'POST',
           body: JSON.stringify({
-            messages: messagesSnapshot,
+            messages: sendExtraMessageFields
+              ? messagesSnapshot
+              : messagesSnapshot.map(({ role, content }) => ({
+                  role,
+                  content
+                })),
             ...extraMetadataRef.current.body
           }),
           headers: extraMetadataRef.current.headers || {},
@@ -253,22 +251,16 @@ export function useChat({
     }
   )
 
-  /**
-   * Append a user message to the chat list, and trigger the API call to fetch
-   * the assistant's response.
-   */
-  const append = useCallback(async (message: Message | CreateMessage) => {
-    if (!message.id) {
-      message.id = nanoid()
-    }
-    return trigger(messagesRef.current.concat(message as Message))
-  }, [])
+  const append = useCallback(
+    async (message: Message | CreateMessage) => {
+      if (!message.id) {
+        message.id = nanoid()
+      }
+      return trigger(messagesRef.current.concat(message as Message))
+    },
+    [trigger]
+  )
 
-  /**
-   * Reload the last AI chat response for the given chat history. If the last
-   * message isn't from the assistant, it will request the API to generate a
-   * new response.
-   */
   const reload = useCallback(async () => {
     if (messagesRef.current.length === 0) return null
 
@@ -277,11 +269,8 @@ export function useChat({
       return trigger(messagesRef.current.slice(0, -1))
     }
     return trigger(messagesRef.current)
-  }, [])
+  }, [trigger])
 
-  /**
-   * Abort the current request immediately, keep the generated tokens if any.
-   */
   const stop = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -289,15 +278,13 @@ export function useChat({
     }
   }, [])
 
-  /**
-   * Update the `messages` state locally. This is useful when you want to
-   * edit the messages on the client, and then trigger the `reload` method
-   * manually to regenerate the AI response.
-   */
-  const set = useCallback((messages: Message[]) => {
-    mutate(messages, false)
-    messagesRef.current = messages
-  }, [])
+  const setMessages = useCallback(
+    (messages: Message[]) => {
+      mutate(messages, false)
+      messagesRef.current = messages
+    },
+    [mutate]
+  )
 
   // Input state and handlers.
   const [input, setInput] = useState(initialInput)
@@ -325,7 +312,7 @@ export function useChat({
     append,
     reload,
     stop,
-    set,
+    setMessages,
     input,
     setInput,
     handleInputChange,

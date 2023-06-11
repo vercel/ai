@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
-
-const decoder = new TextDecoder()
-function decodeAIStreamChunk(chunk: Uint8Array): string {
-  return decoder.decode(chunk)
-}
+import { decodeAIStreamChunk } from './utils'
 
 export type UseCompletionOptions = {
   /**
@@ -51,15 +47,45 @@ export type UseCompletionOptions = {
 }
 
 export type UseCompletionHelpers = {
+  /** The current completion result */
   completion: string
+  /**
+   * Send a new prompt to the API endpoint and update the completion state.
+   */
   complete: (prompt: string) => void
-  error: any
-  set: (completion: string) => void
+  /** The error object of the API request */
+  error: undefined | Error
+  /**
+   * Abort the current API request but keep the generated tokens.
+   */
   stop: () => void
+  /**
+   * Update the `completion` state locally.
+   */
+  setCompletion: (completion: string) => void
+  /** The current value of the input */
   input: string
+  /** setState-powered method to update the input value */
   setInput: React.Dispatch<React.SetStateAction<string>>
+  /**
+   * An input/textarea-ready onChange handler to control the value of the input
+   * @example
+   * ```jsx
+   * <input onChange={handleInputChange} value={input} />
+   * ```
+   */
   handleInputChange: (e: any) => void
+  /**
+   * Form submission handler to automattically reset input and append a user message
+   * @example
+   * ```jsx
+   * <form onSubmit={handleSubmit}>
+   *  <input onChange={handleInputChange} value={input} />
+   * </form>
+   * ```
+   */
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  /** Whether the API request is in progress */
   isLoading: boolean
 }
 
@@ -178,9 +204,6 @@ export function useCompletion({
     }
   )
 
-  /**
-   * Abort the current API request but keep the generated tokens.
-   */
   const stop = useCallback(() => {
     if (abortController) {
       abortController.abort()
@@ -188,10 +211,7 @@ export function useCompletion({
     }
   }, [abortController])
 
-  /**
-   * Update the `completion` state locally.
-   */
-  const set = useCallback(
+  const setCompletion = useCallback(
     (completion: string) => {
       mutate(completion, false)
     },
@@ -204,7 +224,7 @@ export function useCompletion({
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault()
       if (!input) return
-      trigger(input)      
+      trigger(input)
     },
     [input, trigger]
   )
@@ -224,7 +244,7 @@ export function useCompletion({
     completion,
     complete,
     error,
-    set,
+    setCompletion,
     stop,
     input,
     setInput,

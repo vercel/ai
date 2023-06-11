@@ -7,16 +7,32 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist/**"
+    "dist/**/*",
+    "dist/react/**/*"
   ],
   "scripts": {
     "build": "tsup",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "dev": "tsup --watch",
-    "lint": "eslint \"src/**/*.ts*\"",
+    "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
-    "prettier-check": "prettier --check \"src/**/*.ts*\"",
+    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "jest --env @edge-runtime/jest-environment .test.ts && jest --env node .test.ts"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "module": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./react/dist/index.d.ts",
+      "import": "./react/dist/index.mjs",
+      "module": "./react/dist/index.mjs",
+      "require": "./react/dist/index.js"
+    }
   },
   "jest": {
     "preset": "ts-jest",
@@ -44,6 +60,11 @@
   },
   "peerDependencies": {
     "react": "^18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=14.6"
