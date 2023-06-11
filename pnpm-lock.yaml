@@ -26,9 +26,43 @@ importers:
       ts-jest: 29.0.3_kk7pxl2pjovchop57z5tkqnpai
       turbo: 1.10.1
 
-  examples/with-langchain:
+  examples/next-huggingface:
     specifiers:
-      '@huggingface/inference': ^2.5.0
+      '@huggingface/inference': ^2.5.1
+      '@types/node': ^17.0.12
+      '@types/react': 18.2.7
+      '@types/react-dom': 18.2.4
+      ai-connector: workspace:*
+      autoprefixer: ^10.4.14
+      eslint: ^7.32.0
+      eslint-config-next: 13.4.4-canary.11
+      next: 13.4.4-canary.11
+      openai-edge: ^0.5.1
+      postcss: ^8.4.23
+      react: 18.2.0
+      react-dom: ^18.2.0
+      tailwindcss: ^3.3.2
+      typescript: 5.0.4
+    dependencies:
+      '@huggingface/inference': 2.5.1
+      ai-connector: link:../../packages/core
+      next: 13.4.4-canary.11_biqbaboplfbrettd7655fr4n2y
+      openai-edge: 0.5.1
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+    devDependencies:
+      '@types/node': 17.0.45
+      '@types/react': 18.2.7
+      '@types/react-dom': 18.2.4
+      autoprefixer: 10.4.14_postcss@8.4.23
+      eslint: 7.32.0
+      eslint-config-next: 13.4.4-canary.11_cgdknpc562nnyruteofhkegnom
+      postcss: 8.4.23
+      tailwindcss: 3.3.2
+      typescript: 5.0.4
+
+  examples/next-langchain:
+    specifiers:
       '@types/node': ^17.0.12
       '@types/react': 18.2.7
       '@types/react-dom': 18.2.4
@@ -44,9 +78,8 @@ importers:
       tailwindcss: ^3.3.2
       typescript: 5.0.4
     dependencies:
-      '@huggingface/inference': 2.5.0
       ai-connector: link:../../packages/core
-      langchain: 0.0.86_rqa37gh6fu3iomaebkj6rmxlxe
+      langchain: 0.0.86
       next: 13.4.4-canary.11_biqbaboplfbrettd7655fr4n2y
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
@@ -61,7 +94,7 @@ importers:
       tailwindcss: 3.3.2
       typescript: 5.0.4
 
-  examples/with-openai:
+  examples/next-openai:
     specifiers:
       '@types/node': ^17.0.12
       '@types/react': 18.2.7
@@ -1023,8 +1056,8 @@ packages:
     engines: {node: '>=16.15'}
     dev: false
 
-  /@huggingface/inference/2.5.0:
-    resolution: {integrity: sha512-X3NSdrWAKNTLAsEKabH48Wc+Osys+S7ilRcH1bf9trSDmJlzPVXDseXMRBHCFPCYd5AAAIakhENO4zCqstVg8g==}
+  /@huggingface/inference/2.5.1:
+    resolution: {integrity: sha512-5Jx+cwRYrGtvN/27VJbzEcjFlFR7ixd+jNC/hbjcRDSZ3QteEUVKwMCgXplwjWkQbvoeWik+reR2m5fAWUvvpw==}
     engines: {node: '>=18'}
     dev: false
 
@@ -5144,7 +5177,7 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /langchain/0.0.86_rqa37gh6fu3iomaebkj6rmxlxe:
+  /langchain/0.0.86:
     resolution: {integrity: sha512-+6S7h9OhTorRe2lHrofpumv93ex90d0n65qyEt9PwIumOjMrn4Xr+2vdx890+/ymhxIHhNn34W3T2CqacdMq6Q==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -5280,7 +5313,6 @@ packages:
         optional: true
     dependencies:
       '@anthropic-ai/sdk': 0.4.3
-      '@huggingface/inference': 2.5.0
       ansi-styles: 5.2.0
       binary-extensions: 2.2.0
       expr-eval: 2.0.2

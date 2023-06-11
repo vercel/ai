@@ -1,5 +1,5 @@
 {
-  "name": "with-openai",
+  "name": "next-langchain",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,7 +11,7 @@
   "dependencies": {
     "ai-connector": "workspace:*",
     "next": "13.4.4-canary.11",
-    "openai-edge": "^0.5.1",
+    "langchain": "^0.0.86",
     "react": "18.2.0",
     "react-dom": "^18.2.0"
   },
