@@ -1,7 +1,7 @@
 import { useCallback, useId, useRef, useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
-import { nanoid, decodeAIStreamChunk } from './utils'
+import { nanoid, decodeAIStreamChunk } from '../shared/utils'
 
 import type { Message, CreateMessage } from '../shared/types'
 export type { Message, CreateMessage }

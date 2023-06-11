@@ -7,5 +7,10 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["with-langchain", "with-openai"]
+  "ignore": [
+    "next-langchain",
+    "next-openai",
+    "next-huggingface",
+    "sveltekit-openai"
+  ]
 }

@@ -6,11 +6,8 @@ export default defineConfig([
   {
     entry: ['streams/*.{ts,tsx}'],
     format: ['cjs', 'esm'],
-    external: ['react'],
-    dts: true,
-    esbuildOptions: options => {
-      options.bundle = false
-    }
+    external: ['react', 'svelte'],
+    dts: true
   },
   // React APIs
   {
@@ -20,10 +17,19 @@ export default defineConfig([
       js: "'use client'"
     },
     format: ['cjs', 'esm'],
-    external: ['react'],
+    external: ['react', 'svelte'],
+    dts: true
+  },
+  // Svelte APIs
+  {
+    entry: ['svelte/*.{ts,tsx}'],
+    outDir: 'svelte/dist',
+    banner: {},
+    format: ['cjs', 'esm'],
+    external: ['react', 'svelte'],
     dts: true,
-    esbuildOptions: options => {
-      options.bundle = false
-    }
+    // `sswr` has some issue with `.es.js` that can't be resolved correctly by
+    // vite so we have to bundle it here.
+    noExternal: ['sswr']
   }
 ])
