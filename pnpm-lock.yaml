@@ -127,7 +127,7 @@ importers:
       tailwindcss: 3.3.2
       typescript: 5.0.4
 
-  examples/with-openai-sveltekit:
+  examples/sveltekit-openai:
     specifiers:
       '@fontsource/fira-mono': ^4.5.10
       '@neoconfetti/svelte': ^1.0.0

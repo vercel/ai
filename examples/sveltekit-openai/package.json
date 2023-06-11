@@ -1,5 +1,5 @@
 {
-  "name": "with-openai-sveltekit",
+  "name": "sveltekit-openai",
   "version": "0.0.1",
   "scripts": {
     "dev": "vite dev",
