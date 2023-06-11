@@ -1,34 +1,43 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Vercel AI SDK, Next.js, LangChain, OpenAI Chat Example
 
-## Getting Started
+This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/), [LangChain](https://js.langchain.com), and [OpenAI](https://openai.com) to create a ChatGPT-like AI-powered streaming chat bot.
 
-First, run the development server:
+## Deploy your own
+
+Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=ai-sdk-example):
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai%2Ftree%2Fmain%2Fexamples%2Fnext-langchain&env=OPENAI_API_KEY&envDescription=OpenAI%20API%20Key&envLink=https%3A%2F%2Fplatform.openai.com%2Faccount%2Fapi-keys&project-name=ai-chat-langchain&repository-name=next-ai-chat-langchain)
+
+## How to use
+
+Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+npx create-next-app --example https://github.com/vercel-labs/ai/tree/main/examples/next-langchain next-langchain-app
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+```bash
+yarn create next-app --example https://github.com/vercel-labs/ai/tree/main/examples/next-langchain next-langchain-app
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm create next-app --example https://github.com/vercel-labs/ai/tree/main/examples/next-langchain next-langchain-app
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+To run the example locally you need to:
+
+1. Sign up at [OpenAI's Developer Platform](https://platform.openai.com/signup).
+2. Go to [OpenAI's dashboard](https://platform.openai.com/account/api-keys) and create an API KEY.
+3. Set the required OpenAI environment variable from your Clerk project as shown at [the example env file](./.env.local.example).
+4. `pnpm install` to install the required dependencies.
+5. `pnpm dev` to launch the development server.
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+To learn more about LangChain, OpenAI, Next.js, and the Vercel AI SDK take a look at the following resources:
 
+- [Vercel AI SDK docs](https://sdk.vercel.ai/docs) - learn mode about the Vercel AI SDK
+- [Vercel AI Playground](https://play.vercel.ai) - compare and tune 20+ AI models side-by-side
+- [LangChain Documentation](https://js.langchain.com/docs) - learn about LangChain
+- [OpenAI Documentation](https://platform.openai.com/docs) - learn about OpenAI features and API.
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.

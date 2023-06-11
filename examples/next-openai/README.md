@@ -37,6 +37,6 @@ To run the example locally you need to:
 To learn more about OpenAI, Next.js, and the Vercel AI SDK take a look at the following resources:
 
 - [Vercel AI SDK docs](https://sdk.vercel.ai/docs)
-- [Vercel AI Playround](https://play.vercel.ai)
+- [Vercel AI Playground](https://play.vercel.ai)
 - [OpenAI Documentation](https://platform.openai.com/docs) - learn about OpenAI features and API.
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
