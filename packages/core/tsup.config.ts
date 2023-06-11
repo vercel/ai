@@ -7,10 +7,7 @@ export default defineConfig([
     entry: ['streams/*.{ts,tsx}'],
     format: ['cjs', 'esm'],
     external: ['react', 'svelte'],
-    dts: true,
-    esbuildOptions: options => {
-      options.bundle = false
-    }
+    dts: true
   },
   // React APIs
   {
@@ -21,10 +18,7 @@ export default defineConfig([
     },
     format: ['cjs', 'esm'],
     external: ['react', 'svelte'],
-    dts: true,
-    esbuildOptions: options => {
-      options.bundle = false
-    }
+    dts: true
   },
   // Svelte APIs
   {
@@ -36,9 +30,6 @@ export default defineConfig([
     dts: true,
     // `sswr` has some issue with `.es.js` that can't be resolved correctly by
     // vite so we have to bundle it here.
-    noExternal: ['sswr'],
-    esbuildOptions: options => {
-      // options.bundle = false
-    }
+    noExternal: ['sswr']
   }
 ])

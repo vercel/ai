@@ -116,6 +116,9 @@ export function useChat({
     fetcher: () => store[key] || initialMessages,
     initialData: initialMessages
   })
+  // Force the `data` to be `initialMessages` if it's `undefined`.
+  data.set(initialMessages)
+
   const mutate = (data: Message[]) => {
     store[key] = data
     return originalMutate(data)
