@@ -44,7 +44,7 @@ export async function POST() {
 // ./app/page.tsx
 'use client'
 
-import { useChat } from 'ai-connector'
+import { useChat } from 'ai-connector/react'
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat()
