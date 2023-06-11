@@ -238,12 +238,15 @@ export function useChat({
     }
   )
 
-  const append = useCallback(async (message: Message | CreateMessage) => {
-    if (!message.id) {
-      message.id = nanoid()
-    }
-    return trigger(messagesRef.current.concat(message as Message))
-  }, [])
+  const append = useCallback(
+    async (message: Message | CreateMessage) => {
+      if (!message.id) {
+        message.id = nanoid()
+      }
+      return trigger(messagesRef.current.concat(message as Message))
+    },
+    [trigger]
+  )
 
   const reload = useCallback(async () => {
     if (messagesRef.current.length === 0) return null
@@ -253,7 +256,7 @@ export function useChat({
       return trigger(messagesRef.current.slice(0, -1))
     }
     return trigger(messagesRef.current)
-  }, [])
+  }, [trigger])
 
   const stop = useCallback(() => {
     if (abortControllerRef.current) {
@@ -262,10 +265,13 @@ export function useChat({
     }
   }, [])
 
-  const setMessages = useCallback((messages: Message[]) => {
-    mutate(messages, false)
-    messagesRef.current = messages
-  }, [])
+  const setMessages = useCallback(
+    (messages: Message[]) => {
+      mutate(messages, false)
+      messagesRef.current = messages
+    },
+    [mutate]
+  )
 
   // Input state and handlers.
   const [input, setInput] = useState(initialInput)

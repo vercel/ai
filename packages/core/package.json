@@ -14,9 +14,9 @@
     "build": "tsup",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "dev": "tsup --watch",
-    "lint": "eslint \"src/**/*.ts*\"",
+    "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
-    "prettier-check": "prettier --check \"src/**/*.ts*\"",
+    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "jest --env @edge-runtime/jest-environment .test.ts && jest --env node .test.ts"
   },
   "exports": {
