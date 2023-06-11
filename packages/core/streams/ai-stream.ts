@@ -18,8 +18,6 @@ export interface AIStreamParser {
 export function createEventStreamTransformer(customParser: AIStreamParser) {
   const decoder = new TextDecoder()
   let parser: EventSourceParser
-  let isSSE = false
-  let isFirstChunk = true
 
   return new TransformStream<Uint8Array, string>({
     async start(controller): Promise<void> {
@@ -39,21 +37,8 @@ export function createEventStreamTransformer(customParser: AIStreamParser) {
       parser = createParser(onParse)
     },
 
-    transform(chunk, controller) {
-      const text = decoder.decode(chunk)
-
-      // Detect SSE on the first chunk
-      if (isFirstChunk) {
-        isSSE = text.startsWith('data:')
-        isFirstChunk = false
-      }
-
-      if (isSSE) {
-        parser.feed(text)
-      } else {
-        // Handle non-SSE data, enqueue the data directly
-        controller.enqueue(text)
-      }
+    transform(chunk) {
+      parser.feed(decoder.decode(chunk))
     }
   })
 }
