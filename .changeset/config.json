@@ -7,5 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@vercel/ai-docs", "with-langchain", "with-openai"]
+  "ignore": ["with-langchain", "with-openai"]
 }
