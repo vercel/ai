@@ -6,7 +6,7 @@ export default defineConfig([
   {
     entry: ['streams/*.{ts,tsx}'],
     format: ['cjs', 'esm'],
-    external: ['react'],
+    external: ['react', 'svelte'],
     dts: true,
     esbuildOptions: options => {
       options.bundle = false
@@ -20,7 +20,19 @@ export default defineConfig([
       js: "'use client'"
     },
     format: ['cjs', 'esm'],
-    external: ['react'],
+    external: ['react', 'svelte'],
+    dts: true,
+    esbuildOptions: options => {
+      options.bundle = false
+    }
+  },
+  // Svelte APIs
+  {
+    entry: ['svelte/*.{ts,tsx}'],
+    outDir: 'svelte/dist',
+    banner: {},
+    format: ['cjs', 'esm'],
+    external: ['react', 'svelte'],
     dts: true,
     esbuildOptions: options => {
       options.bundle = false

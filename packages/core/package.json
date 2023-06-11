@@ -41,6 +41,7 @@
   "dependencies": {
     "eventsource-parser": "1.0.0",
     "nanoid": "^3.3.6",
+    "sswr": "^1.10.0",
     "swr": "2.1.5"
   },
   "devDependencies": {
@@ -53,16 +54,19 @@
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
     "jest": "29.2.1",
-    "react": "^17.0.2",
     "ts-jest": "29.0.3",
     "tsup": "^5.10.1",
     "typescript": "^4.5.3"
   },
   "peerDependencies": {
-    "react": "^18.0.0"
+    "react": "^18.0.0",
+    "svelte": "^3.29.0"
   },
   "peerDependenciesMeta": {
     "react": {
+      "optional": true
+    },
+    "svelte": {
       "optional": true
     }
   },

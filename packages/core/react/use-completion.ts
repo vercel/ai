@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
-import { decodeAIStreamChunk } from './utils'
+import { decodeAIStreamChunk } from '../shared/utils'
 
 export type UseCompletionOptions = {
   /**
@@ -180,6 +180,12 @@ export function useCompletion({
           // Update the completion state with the new message tokens.
           result += decodeAIStreamChunk(value)
           mutate(result, false)
+
+          // The request has been aborted, stop reading the stream.
+          if (abortController === null) {
+            reader.cancel()
+            break
+          }
         }
 
         if (onFinish) {
@@ -224,7 +230,7 @@ export function useCompletion({
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault()
       if (!input) return
-      trigger(input)
+      return trigger(input)
     },
     [input, trigger]
   )
@@ -235,7 +241,7 @@ export function useCompletion({
 
   const complete = useCallback(
     (prompt: string) => {
-      trigger(prompt)
+      return trigger(prompt)
     },
     [trigger]
   )
