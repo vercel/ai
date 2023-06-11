@@ -49,6 +49,13 @@ export type UseChatOptions = {
    * Extra body to be sent with the API request.
    */
   body?: any
+
+  /**
+   * Whether to send extra message fields such as `message.id` and `message.createdAt` to the API.
+   * Defaults to `false`. When set to `true`, the API endpoint might need to
+   * handle the extra fields before forwarding the request to the AI service.
+   */
+  sendExtraMessageFields?: boolean
 }
 
 export type UseChatHelpers = {
@@ -94,6 +101,7 @@ export function useChat({
   id,
   initialMessages = [],
   initialInput = '',
+  sendExtraMessageFields,
   onResponse,
   onFinish,
   headers,
@@ -151,7 +159,12 @@ export function useChat({
         const res = await fetch(api, {
           method: 'POST',
           body: JSON.stringify({
-            messages: messagesSnapshot,
+            messages: sendExtraMessageFields
+              ? messagesSnapshot
+              : messagesSnapshot.map(({ role, content }) => ({
+                  role,
+                  content
+                })),
             ...extraMetadataRef.current.body
           }),
           headers: extraMetadataRef.current.headers || {},
