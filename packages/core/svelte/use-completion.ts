@@ -1,5 +1,5 @@
 import { useSWR } from 'sswr'
-import { Readable, get, readable, writable } from 'svelte/store'
+import { Readable, get, writable } from 'svelte/store'
 
 import { Writable } from 'svelte/store'
 import { decodeAIStreamChunk } from '../shared/utils'
@@ -102,6 +102,9 @@ export function useCompletion({
     fetcher: () => store[key] || initialCompletion,
     initialData: initialCompletion
   })
+  // Force the `data` to be `initialCompletion` if it's `undefined`.
+  data.set(initialCompletion)
+
   const mutate = (data: string) => {
     store[key] = data
     return originalMutate(data)
