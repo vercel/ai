@@ -1,5 +1,11 @@
 # ai-connector
 
+## 0.0.11
+
+### Patch Changes
+
+- a6bc35c: fix package exports for react and svelte subpackages
+
 ## 0.0.10
 
 ### Patch Changes
