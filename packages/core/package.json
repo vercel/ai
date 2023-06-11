@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -rf react/dist && rm -rf svelte/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -32,6 +32,12 @@
       "import": "./react/dist/index.mjs",
       "module": "./react/dist/index.mjs",
       "require": "./react/dist/index.js"
+    },
+    "./svelte": {
+      "types": "./svelte/dist/index.d.ts",
+      "import": "./svelte/dist/index.mjs",
+      "module": "./svelte/dist/index.mjs",
+      "require": "./svelte/dist/index.js"
     }
   },
   "jest": {

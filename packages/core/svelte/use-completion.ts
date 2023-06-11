@@ -65,17 +65,7 @@ export type UseCompletionHelpers = {
    */
   setCompletion: (completion: string) => void
   /** The current value of the input */
-  input: Readable<string>
-  /** Method to update the input value */
-  setInput: (input: string) => void
-  /**
-   * An input/textarea-ready onChange handler to control the value of the input
-   * @example
-   * ```jsx
-   * <input onChange={handleInputChange} value={input} />
-   * ```
-   */
-  handleInputChange: (e: any) => void
+  input: Writable<string>
   /**
    * Form submission handler to automattically reset input and append a user message
    * @example
@@ -92,6 +82,8 @@ export type UseCompletionHelpers = {
 
 let uniqueId = 0
 
+const store: Record<string, any> = {}
+
 export function useCompletion({
   api = '/api/completion',
   id,
@@ -105,10 +97,16 @@ export function useCompletion({
   // Generate an unique id for the completion if not provided.
   const completionId = id || `completion-${uniqueId++}`
 
-  const { data, mutate } = useSWR<string>(`${api}|${completionId}`, {
-    fetcher: undefined,
+  const key = `${api}|${completionId}`
+  const { data, mutate: originalMutate } = useSWR<string>(key, {
+    fetcher: () => store[key] || initialCompletion,
     initialData: initialCompletion
   })
+  const mutate = (data: string) => {
+    store[key] = data
+    return originalMutate(data)
+  }
+
   // Because of the `initialData` option, the `data` will never be `undefined`.
   const completion = data as Writable<string>
 
@@ -204,21 +202,13 @@ export function useCompletion({
     mutate(completion)
   }
 
-  let setInput: (input: string) => void
-  const input = readable(initialInput, set => {
-    setInput = set
-  })
-  input.subscribe(v => {})
+  const input = writable(initialInput)
 
   const handleSubmit = (e: any) => {
     e.preventDefault()
     const inputValue = get(input)
     if (!inputValue) return
     return complete(inputValue)
-  }
-
-  const handleInputChange = (e: any) => {
-    setInput(e.target.value)
   }
 
   return {
@@ -228,8 +218,6 @@ export function useCompletion({
     stop,
     setCompletion,
     input,
-    setInput: setInput!,
-    handleInputChange,
     handleSubmit,
     isLoading
   }

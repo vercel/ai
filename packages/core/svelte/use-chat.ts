@@ -86,11 +86,7 @@ export type UseChatHelpers = {
    */
   setMessages: (messages: Message[]) => void
   /** The current value of the input */
-  input: Readable<string>
-  /** Method to update the input value */
-  setInput: (input: string) => void
-  /** An input/textarea-ready onChange handler to control the value of the input */
-  handleInputChange: (e: any) => void
+  input: Writable<string>
   /** Form submission handler to automattically reset input and append a user message  */
   handleSubmit: (e: any) => void
   /** Whether the API request is in progress */
@@ -98,6 +94,8 @@ export type UseChatHelpers = {
 }
 
 let uniqueId = 0
+
+const store: Record<string, any> = {}
 
 export function useChat({
   api = '/api/chat',
@@ -113,10 +111,16 @@ export function useChat({
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`
 
-  const { data, mutate } = useSWR<Message[]>(`${api}|${chatId}`, {
-    fetcher: undefined,
+  const key = `${api}|${chatId}`
+  const { data, mutate: originalMutate } = useSWR<Message[]>(key, {
+    fetcher: () => store[key] || initialMessages,
     initialData: initialMessages
   })
+  const mutate = (data: Message[]) => {
+    store[key] = data
+    return originalMutate(data)
+  }
+
   // Because of the `initialData` option, the `data` will never be `undefined`.
   const messages = data as Writable<Message[]>
 
@@ -252,11 +256,7 @@ export function useChat({
     mutate(messages)
   }
 
-  let setInput: (input: string) => void
-  const input = readable(initialInput, set => {
-    setInput = set
-  })
-  input.subscribe(v => {})
+  const input = writable(initialInput)
 
   const handleSubmit = (e: any) => {
     e.preventDefault()
@@ -266,11 +266,7 @@ export function useChat({
       content: inputValue,
       role: 'user'
     })
-    setInput('')
-  }
-
-  const handleInputChange = (e: any) => {
-    setInput(e.target.value)
+    input.set('')
   }
 
   return {
@@ -281,8 +277,6 @@ export function useChat({
     stop,
     setMessages,
     input,
-    setInput: setInput!,
-    handleInputChange,
     handleSubmit,
     isLoading
   }
