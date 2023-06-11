@@ -1,5 +1,11 @@
 # ai-connector
 
+## 0.0.10
+
+### Patch Changes
+
+- 56f9537: add svelte apis
+
 ## 0.0.9
 
 ### Patch Changes
