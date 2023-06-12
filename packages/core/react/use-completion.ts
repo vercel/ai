@@ -52,7 +52,7 @@ export type UseCompletionHelpers = {
   /**
    * Send a new prompt to the API endpoint and update the completion state.
    */
-  complete: (prompt: string) => void
+  complete: (prompt: string) => Promise<string | null | undefined>
   /** The error object of the API request */
   error: undefined | Error
   /**
@@ -127,7 +127,7 @@ export function useCompletion({
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
   const { error, trigger, isMutating } = useSWRMutation<
-    null,
+    string | null,
     any,
     [string, string],
     string
@@ -193,7 +193,7 @@ export function useCompletion({
         }
 
         setAbortController(null)
-        return null
+        return result
       } catch (err) {
         // Ignore abort errors as they are expected.
         if ((err as any).name === 'AbortError') {
@@ -240,7 +240,7 @@ export function useCompletion({
   }
 
   const complete = useCallback(
-    (prompt: string) => {
+    async (prompt: string) => {
       return trigger(prompt)
     },
     [trigger]
