@@ -1,5 +1,11 @@
 # ai-connector
 
+## 0.0.12
+
+### Patch Changes
+
+- ea4e66a: improve API types
+
 ## 0.0.11
 
 ### Patch Changes
