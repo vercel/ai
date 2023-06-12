@@ -67,13 +67,15 @@ export type UseChatHelpers = {
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
    */
-  append: (message: Message | CreateMessage) => void
+  append: (
+    message: Message | CreateMessage
+  ) => Promise<string | null | undefined>
   /**
    * Reload the last AI chat response for the given chat history. If the last
    * message isn't from the assistant, it will request the API to generate a
    * new response.
    */
-  reload: () => void
+  reload: () => Promise<string | null | undefined>
   /**
    * Abort the current request immediately, keep the generated tokens if any.
    */
