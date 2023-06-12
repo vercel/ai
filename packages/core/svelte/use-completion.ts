@@ -55,7 +55,7 @@ export type UseCompletionHelpers = {
   /**
    * Send a new prompt to the API endpoint and update the completion state.
    */
-  complete: (prompt: string) => void
+  complete: (prompt: string) => Promise<string | null | undefined>
   /**
    * Abort the current API request but keep the generated tokens.
    */
