@@ -1,63 +1,11 @@
 import { useSWR } from 'sswr'
 import { Readable, get, readable, writable } from 'svelte/store'
 
-import type { Message, CreateMessage } from '../shared/types'
+import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
 import { Writable } from 'svelte/store'
 import { decodeAIStreamChunk, nanoid } from '../shared/utils'
 
-export type { Message, CreateMessage }
-
-export type UseChatOptions = {
-  /**
-   * The API endpoint that accepts a `{ messages: Message[] }` object and returns
-   * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
-   */
-  api?: string
-
-  /**
-   * An unique identifier for the chat. If not provided, a random one will be
-   * generated. When provided, the `useChat` hook with the same `id` will
-   * have shared states across components.
-   */
-  id?: string
-
-  /**
-   * Initial messages of the chat. Useful to load an existing chat history.
-   */
-  initialMessages?: Message[]
-
-  /**
-   * Initial input of the chat.
-   */
-  initialInput?: string
-
-  /**
-   * Callback function to be called when the API response is received.
-   */
-  onResponse?: (response: Response) => void
-
-  /**
-   * Callback function to be called when the chat is finished streaming.
-   */
-  onFinish?: (message: Message) => void
-
-  /**
-   * HTTP headers to be sent with the API request.
-   */
-  headers?: Record<string, string> | Headers
-
-  /**
-   * Extra body to be sent with the API request.
-   */
-  body?: any
-
-  /**
-   * Whether to send extra message fields such as `message.id` and `message.createdAt` to the API.
-   * Defaults to `false`. When set to `true`, the API endpoint might need to
-   * handle the extra fields before forwarding the request to the AI service.
-   */
-  sendExtraMessageFields?: boolean
-}
+export type { Message, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
@@ -107,6 +55,7 @@ export function useChat({
   sendExtraMessageFields,
   onResponse,
   onFinish,
+  onError,
   headers,
   body
 }: UseChatOptions = {}): UseChatHelpers {
@@ -173,7 +122,9 @@ export function useChat({
       if (!res.ok) {
         // Restore the previous messages if the request fails.
         mutate(previousMessages)
-        throw new Error('Failed to fetch the chat response.')
+        throw new Error(
+          (await res.text()) || 'Failed to fetch the chat response.'
+        )
       }
       if (!res.body) {
         throw new Error('The response body is empty.')
@@ -224,6 +175,10 @@ export function useChat({
       if ((err as any).name === 'AbortError') {
         abortController = null
         return null
+      }
+
+      if (onError && err instanceof Error) {
+        onError(err)
       }
 
       error.set(err as Error)
