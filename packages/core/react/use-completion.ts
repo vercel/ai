@@ -34,6 +34,10 @@ export type UseCompletionOptions = {
    * Callback function to be called when the completion is finished streaming.
    */
   onFinish?: (prompt: string, completion: string) => void
+  /**
+   * Callback function to be called when an error is encountered.
+   */
+  onError?: (error: Error) => void
 
   /**
    * HTTP headers to be sent with the API request.
@@ -97,7 +101,8 @@ export function useCompletion({
   headers,
   body,
   onResponse,
-  onFinish
+  onFinish,
+  onError
 }: UseCompletionOptions = {}): UseCompletionHelpers {
   // Generate an unique id for the completion if not provided.
   const hookId = useId()
@@ -162,8 +167,9 @@ export function useCompletion({
         }
 
         if (!res.ok) {
-          throw new Error('Failed to fetch the completion response.')
+          throw new Error(await res.text())
         }
+        
         if (!res.body) {
           throw new Error('The response body is empty.')
         }
@@ -199,6 +205,10 @@ export function useCompletion({
         if ((err as any).name === 'AbortError') {
           setAbortController(null)
           return null
+        }
+
+        if (onError && err instanceof Error) {
+          onError(err)
         }
 
         throw err

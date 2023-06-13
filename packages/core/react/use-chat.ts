@@ -41,6 +41,11 @@ export type UseChatOptions = {
   onFinish?: (message: Message) => void
 
   /**
+   * Callback function to be called when an error is encountered.
+   */
+  onError?: (error: Error) => void
+
+  /**
    * HTTP headers to be sent with the API request.
    */
   headers?: Record<string, string> | Headers
@@ -106,6 +111,7 @@ export function useChat({
   sendExtraMessageFields,
   onResponse,
   onFinish,
+  onError,
   headers,
   body
 }: UseChatOptions = {}): UseChatHelpers {
@@ -188,8 +194,9 @@ export function useChat({
         if (!res.ok) {
           // Restore the previous messages if the request fails.
           mutate(previousMessages, false)
-          throw new Error('Failed to fetch the chat response.')
+          throw new Error(await res.text())
         }
+
         if (!res.body) {
           throw new Error('The response body is empty.')
         }
@@ -242,6 +249,10 @@ export function useChat({
         if ((err as any).name === 'AbortError') {
           abortControllerRef.current = null
           return null
+        }
+
+        if (onError && err instanceof Error) {
+          onError(err)
         }
 
         throw err
