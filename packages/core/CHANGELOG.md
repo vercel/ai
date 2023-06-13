@@ -1,5 +1,11 @@
 # ai-connector
 
+## 0.0.14
+
+### Patch Changes
+
+- c6586a2: Add onError callback, include response text in error if response is not okay
+
 ## 0.0.13
 
 ### Patch Changes
