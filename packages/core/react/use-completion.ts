@@ -2,53 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
 import { decodeAIStreamChunk } from '../shared/utils'
-
-export type UseCompletionOptions = {
-  /**
-   * The API endpoint that accepts a `{ prompt: string }` object and returns
-   * a stream of tokens of the AI completion response. Defaults to `/api/completion`.
-   */
-  api?: string
-  /**
-   * An unique identifier for the chat. If not provided, a random one will be
-   * generated. When provided, the `useChat` hook with the same `id` will
-   * have shared states across components.
-   */
-  id?: string
-
-  /**
-   * Initial prompt input of the completion.
-   */
-  initialInput?: string
-
-  /**
-   * Initial completion result. Useful to load an existing history.
-   */
-  initialCompletion?: string
-
-  /**
-   * Callback function to be called when the API response is received.
-   */
-  onResponse?: (response: Response) => void
-  /**
-   * Callback function to be called when the completion is finished streaming.
-   */
-  onFinish?: (prompt: string, completion: string) => void
-  /**
-   * Callback function to be called when an error is encountered.
-   */
-  onError?: (error: Error) => void
-
-  /**
-   * HTTP headers to be sent with the API request.
-   */
-  headers?: Record<string, string> | Headers
-
-  /**
-   * Extra body to be sent with the API request.
-   */
-  body?: any
-}
+import { UseCompletionOptions } from '../shared/types'
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -167,9 +121,9 @@ export function useCompletion({
         }
 
         if (!res.ok) {
-          throw new Error(await res.text())
+          throw new Error(await res.text() || 'Failed to fetch the chat response.')
         }
-        
+
         if (!res.body) {
           throw new Error('The response body is empty.')
         }
