@@ -137,7 +137,9 @@ export function useChat({
         if (!res.ok) {
           // Restore the previous messages if the request fails.
           mutate(previousMessages, false)
-          throw new Error(await res.text() || 'Failed to fetch the chat response.')
+          throw new Error(
+            (await res.text()) || 'Failed to fetch the chat response.'
+          )
         }
 
         if (!res.body) {

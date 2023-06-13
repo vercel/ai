@@ -105,7 +105,9 @@ export function useCompletion({
       }
 
       if (!res.ok) {
-        throw new Error(await res.text() || 'Failed to fetch the chat response.')
+        throw new Error(
+          (await res.text()) || 'Failed to fetch the chat response.'
+        )
       }
 
       if (!res.body) {
@@ -145,7 +147,7 @@ export function useCompletion({
       }
 
       if (onError && error instanceof Error) {
-        onError(error);
+        onError(error)
       }
 
       error.set(err as Error)
