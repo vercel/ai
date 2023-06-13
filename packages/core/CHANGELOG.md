@@ -1,5 +1,11 @@
 # ai-connector
 
+## 0.0.13
+
+### Patch Changes
+
+- c1f4a91: Throw error when provided AI response isn't valid
+
 ## 0.0.12
 
 ### Patch Changes
