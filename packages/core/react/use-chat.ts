@@ -4,7 +4,7 @@ import useSWR from 'swr'
 import { nanoid, decodeAIStreamChunk } from '../shared/utils'
 
 import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
-export type { Message, CreateMessage }
+export type { Message, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {
   /** Current messages in the chat */

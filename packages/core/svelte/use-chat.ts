@@ -5,7 +5,7 @@ import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
 import { Writable } from 'svelte/store'
 import { decodeAIStreamChunk, nanoid } from '../shared/utils'
 
-export type { Message, CreateMessage }
+export type { Message, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
