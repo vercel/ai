@@ -1,4 +1,4 @@
-import { StreamingTextResponse, LangChainStream, Message } from 'ai-connector'
+import { StreamingTextResponse, LangChainStream, Message } from 'ai'
 import { CallbackManager } from 'langchain/callbacks'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { AIChatMessage, HumanChatMessage } from 'langchain/schema'

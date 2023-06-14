@@ -1,5 +1,5 @@
 import { AIStream } from '.'
-describe('ai-connector', () => {
+describe('ai', () => {
   beforeEach(() => {
     // scanReturnValues = [[0, []]];
   })
