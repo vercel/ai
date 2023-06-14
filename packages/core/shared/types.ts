@@ -60,9 +60,18 @@ export type UseChatOptions = {
   headers?: Record<string, string> | Headers
 
   /**
-   * Extra body to be sent with the API request.
+   * Extra body object to be sent with the API request.
+   * @example
+   * Send a `sessionId` to the API along with the messages.
+   * ```js
+   * useChat({
+   *   body: {
+   *     sessionId: '123',
+   *   }
+   * })
+   * ```
    */
-  body?: any
+  body?: object
 
   /**
    * Whether to send extra message fields such as `message.id` and `message.createdAt` to the API.
@@ -115,7 +124,16 @@ export type UseCompletionOptions = {
   headers?: Record<string, string> | Headers
 
   /**
-   * Extra body to be sent with the API request.
+   * Extra body object to be sent with the API request.
+   * @example
+   * Send a `sessionId` to the API along with the prompt.
+   * ```js
+   * useChat({
+   *   body: {
+   *     sessionId: '123',
+   *   }
+   * })
+   * ```
    */
-  body?: any
+  body?: object
 }
