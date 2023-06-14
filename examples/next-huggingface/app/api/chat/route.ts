@@ -1,5 +1,5 @@
 import { HfInference } from '@huggingface/inference'
-import { HuggingFaceStream, StreamingTextResponse } from 'ai-connector'
+import { HuggingFaceStream, StreamingTextResponse } from 'ai'
 
 // Create a new HuggingFace Inference instance
 const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY)

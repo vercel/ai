@@ -1,5 +1,5 @@
 import { Configuration, OpenAIApi } from 'openai-edge'
-import { OpenAIStream, StreamingTextResponse } from 'ai-connector'
+import { OpenAIStream, StreamingTextResponse } from 'ai'
 
 import type { RequestHandler } from './$types'
 

@@ -11,8 +11,8 @@
     "type-check": "turbo type-check",
     "prettier-fix": "prettier --write \"**/*.{js,ts,tsx,md,mdx}\"",
     "publint": "turbo publint",
-    "release": "turbo build --filter=ai-connector... && changeset publish",
-    "test": "turbo test --filter=ai-connector...",
+    "release": "turbo build --filter=ai... && changeset publish",
+    "test": "turbo test --filter=ai...",
     "version-packages": "changeset version"
   },
   "lint-staged": {
