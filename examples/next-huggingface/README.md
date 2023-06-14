@@ -6,7 +6,7 @@ This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) wi
 
 Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=ai-sdk-example):
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai%2Ftree%2Fmain%2Fexamples%2Fnext-openai&env=OPENAI_API_KEY&envDescription=OpenAI%20API%20Key&envLink=https%3A%2F%2Fplatform.openai.com%2Faccount%2Fapi-keys&project-name=vercel-ai-chat-openai&repository-name=vercel-ai-chat-openai)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai%2Ftree%2Fmain%2Fexamples%2Fnext-huggingface&env=HUGGINGFACE_API_KEY&envDescription=Hugging%20Face%20User%20Access%20Token&envLink=https%3A%2F%2Fhuggingface.co%2Fsettings%2Ftokens&project-name=next-huggingface&repository-name=ai-next-huggingface)
 
 ## How to use
 
@@ -42,11 +42,11 @@ The model in the example is [Open Assistant SFT-4 12B](https://huggingface.co/Op
 
 ## Learn More
 
-To learn more about OpenAI, Next.js, and the Vercel AI SDK take a look at the following resources:
+To learn more about Hugging Face, Next.js, and the Vercel AI SDK take a look at the following resources:
 
 - [Vercel AI SDK docs](https://sdk.vercel.ai/docs)
 - [Vercel AI Playground](https://play.vercel.ai)
-- [Huggin Face Inference Documentation](https://huggingface.co/docs/huggingface.js/inference/READMEs) - learn about Hugging Face Inference SDK features and API.
+- [Hugging Face Inference Documentation](https://huggingface.co/docs/huggingface.js/inference/READMEs) - learn about Hugging Face Inference SDK features and API.
 - [Open-Assistant SFT-4 12B Model](https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5) - learn about the AI model in use
 - [Open Assistant Project](https://open-assistant.io/) - learn about the Open Assistant project
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
