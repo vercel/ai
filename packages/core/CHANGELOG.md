@@ -1,5 +1,11 @@
 # ai
 
+## 2.0.0
+
+### Major Changes
+
+- 095de43: New package name!
+
 ## 0.0.14
 
 ### Patch Changes
