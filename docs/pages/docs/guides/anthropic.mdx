@@ -88,10 +88,10 @@ export async function POST(req: Request) {
   [`AnthropicStream`](/api-reference#anthropicstream). This utility class
   decodes/extracts the text tokens in the response and then re-encodes them
   properly for simple consumption. We can then pass that new stream directly to
-  [`StreamingTextResponse`](/api-reference#streamingtextresponse). This is
-  another utility class that extends the normal Node/Edge Runtime `Response`
-  class with the default headers you probably want (hint: `'Content-Type':
-  'text/plain; charset=utf-8'` is already set for you).
+  [`StreamingTextResponse`](/api-reference/streaming-text-response#streamingtextresponse).
+  This is another utility class that extends the normal Node/Edge Runtime
+  `Response` class with the default headers you probably want (hint:
+  `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
 </Callout>
 
 ### Wire up the UI
