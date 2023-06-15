@@ -19,7 +19,7 @@ import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
 
 export const runtime = 'edge'
 
-export async function POST(req: Request) {
+async function POST(req: Request) {
   const { messages } = await req.json()
 
   const { stream, handlers } = LangChainStream()
@@ -41,6 +41,8 @@ export async function POST(req: Request) {
 
   return new StreamingTextResponse(stream)
 }
+
+export default POST
 ```
 
 The `handlers` object returned by `LangChainStream` is used to handle certain
