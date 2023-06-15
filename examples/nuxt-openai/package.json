@@ -1,5 +1,5 @@
 {
-  "name": "nuxt-app",
+  "name": "nuxt-openai",
   "private": true,
   "scripts": {
     "build": "nuxt build",
