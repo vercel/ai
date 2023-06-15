@@ -11,16 +11,16 @@ Let's begin by setting up a simple example program:
 ```jsx
 // A generator that will yield positive integers
 async function* integers() {
-  let i = 1;
+  let i = 1
   while (true) {
-    console.log(`yielding ${i}`);
-    yield i++;
+    console.log(`yielding ${i}`)
+    yield i++
 
-    await sleep(100);
+    await sleep(100)
   }
 }
 function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 // Wraps a generator into a ReadableStream
@@ -28,23 +28,23 @@ function createStream(iterator) {
   return new ReadableStream({
     async start(controller) {
       for await (const v of iterator) {
-        controller.enqueue(v);
+        controller.enqueue(v)
       }
-      controller.close();
-    },
-  });
+      controller.close()
+    }
+  })
 }
 // Set up a stream that of integers
-const stream = createStream(integers());
+const stream = createStream(integers())
 
 // Read values from our stream
-const reader = stream.getReader();
+const reader = stream.getReader()
 for (let i = 0; i < 10_000; i++) {
   // we know our stream is infinite, so there's no need to check `done`.
-  const { value } = await reader.read();
-  console.log(`read ${value}`);
+  const { value } = await reader.read()
+  console.log(`read ${value}`)
 
-  await sleep(1_000);
+  await sleep(1_000)
 }
 ```
 
@@ -62,15 +62,15 @@ To fix this, `ReadableStream` allows a `pull` handler. `pull` is called every ti
 function createStream(iterator) {
   return new ReadableStream({
     async pull(controller) {
-      const { value, done } = await iterator.next();
+      const { value, done } = await iterator.next()
 
       if (done) {
-        controller.close();
+        controller.close()
       } else {
-        controller.enqueue(value);
+        controller.enqueue(value)
       }
-    },
-  });
+    }
+  })
 }
 ```
 
@@ -85,16 +85,16 @@ Let's go back to our initial eager example, with 1 small edit. Now instead of re
 ```jsx
 // A generator that will yield positive integers
 async function* integers() {
-  let i = 1;
+  let i = 1
   while (true) {
-    console.log(`yielding ${i}`);
-    yield i++;
+    console.log(`yielding ${i}`)
+    yield i++
 
-    await sleep(100);
+    await sleep(100)
   }
 }
 function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 // Wraps a generator into a ReadableStream
@@ -102,24 +102,24 @@ function createStream(iterator) {
   return new ReadableStream({
     async start(controller) {
       for await (const v of iterator) {
-        controller.enqueue(v);
+        controller.enqueue(v)
       }
-      controller.close();
-    },
-  });
+      controller.close()
+    }
+  })
 }
 // Set up a stream that of integers
-const stream = createStream(integers());
+const stream = createStream(integers())
 
 // Read values from our stream
-const reader = stream.getReader();
+const reader = stream.getReader()
 // We're only reading 3 items this time:
 for (let i = 0; i < 3; i++) {
   // we know our stream is infinite, so there's no need to check `done`.
-  const { value } = await reader.read();
-  console.log(`read ${value}`);
+  const { value } = await reader.read()
+  console.log(`read ${value}`)
 
-  await sleep(1_000);
+  await sleep(1_000)
 }
 ```
 
@@ -132,15 +132,15 @@ The fix to this is exactly the same: use `pull` and manual iteration. By produci
 function createStream(iterator) {
   return new ReadableStream({
     async pull(controller) {
-      const { value, done } = await iterator.next();
+      const { value, done } = await iterator.next()
 
       if (done) {
-        controller.close();
+        controller.close()
       } else {
-        controller.enqueue(value);
+        controller.enqueue(value)
       }
-    },
-  });
+    }
+  })
 }
 ```
 

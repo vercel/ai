@@ -1,4 +1,4 @@
-import { Steps, Callout } from 'nextra-theme-docs';
+import { Steps, Callout } from 'nextra-theme-docs'
 
 # OpenAI
 
@@ -33,32 +33,32 @@ Create a Next.js Route Handler that uses the Edge Runtime that we'll use to gene
 For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
 
 ```tsx filename="app/api/chat/route.ts" showLineNumbers
-import { Configuration, OpenAIApi } from 'openai-edge';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { Configuration, OpenAIApi } from 'openai-edge'
+import { OpenAIStream, StreamingTextResponse } from 'ai'
 
 // Create an OpenAI API client (that's edge friendly!)
 const config = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(config);
+  apiKey: process.env.OPENAI_API_KEY
+})
+const openai = new OpenAIApi(config)
 
 // IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+export const runtime = 'edge'
 
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
-  const { messages } = await req.json();
+  const { messages } = await req.json()
 
   // Ask OpenAI for a streaming chat completion given the prompt
   const response = await openai.createChatCompletion({
     model: 'gpt-3.5-turbo',
     stream: true,
-    messages,
-  });
+    messages
+  })
   // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response);
+  const stream = OpenAIStream(response)
   // Respond with the stream
-  return new StreamingTextResponse(stream);
+  return new StreamingTextResponse(stream)
 }
 ```
 
@@ -80,17 +80,17 @@ Create a Client component with a form that we'll use to gather the prompt from t
 By default, the [`useChat`](/api-reference/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
-'use client';
+'use client'
 
-import { useChat } from 'ai/react';
+import { useChat } from 'ai/react'
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const { messages, input, handleInputChange, handleSubmit } = useChat()
 
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
       {messages.length > 0
-        ? messages.map((m) => (
+        ? messages.map(m => (
             <div key={m.id}>
               {m.role === 'user' ? 'User: ' : 'AI: '}
               {m.content}
@@ -107,7 +107,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  );
+  )
 }
 ```
 
@@ -122,34 +122,34 @@ export default function Chat() {
 Similar to the Chat Bot example above, we'll create a Next.js Route Handler that generates a text completion via OpenAI that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
-import { Configuration, OpenAIApi } from 'openai-edge';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { Configuration, OpenAIApi } from 'openai-edge'
+import { OpenAIStream, StreamingTextResponse } from 'ai'
 
 // Create an OpenAI API client (that's edge friendly!)
 const config = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(config);
+  apiKey: process.env.OPENAI_API_KEY
+})
+const openai = new OpenAIApi(config)
 
 // IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+export const runtime = 'edge'
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
-  const { prompt } = await req.json();
+  const { prompt } = await req.json()
 
   // Ask OpenAI for a streaming completion given the prompt
   const response = await openai.createCompletion({
     model: 'text-davinci-003',
     stream: true,
-    prompt,
-  });
+    prompt
+  })
 
   // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response);
+  const stream = OpenAIStream(response)
 
   // Respond with the stream
-  return new StreamingTextResponse(stream);
+  return new StreamingTextResponse(stream)
 }
 ```
 
@@ -158,9 +158,9 @@ export async function POST(req: Request) {
 We can use the [`useCompletion`](/api-reference/use-completion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
-'use client';
+'use client'
 
-import { useCompletion } from 'ai/react';
+import { useCompletion } from 'ai/react'
 
 export default function Completion() {
   const {
@@ -169,10 +169,10 @@ export default function Completion() {
     stop,
     isLoading,
     handleInputChange,
-    handleSubmit,
+    handleSubmit
   } = useCompletion({
-    api: '/api/completion',
-  });
+    api: '/api/completion'
+  })
 
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
@@ -192,7 +192,7 @@ export default function Completion() {
         </button>
       </form>
     </div>
-  );
+  )
 }
 ```
 
@@ -211,21 +211,21 @@ export async function POST(req: Request) {
     onStart: async () => {
       // This callback is called when the stream starts
       // You can use this to save the prompt to your database
-      await savePromptToDatabase(prompt);
+      await savePromptToDatabase(prompt)
     },
     onToken: async (token: string) => {
       // This callback is called for each token in the stream
       // You can use this to debug the stream or save the tokens to your database
-      console.log(token);
+      console.log(token)
     },
     onCompletion: async (completion: string) => {
       // This callback is called when the stream completes
       // You can use this to save the final completion to your database
-      await saveCompletionToDatabase(completion);
-    },
-  });
+      await saveCompletionToDatabase(completion)
+    }
+  })
 
   // Respond with the stream
-  return new StreamingTextResponse(stream);
+  return new StreamingTextResponse(stream)
 }
 ```

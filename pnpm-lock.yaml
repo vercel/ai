@@ -45,7 +45,7 @@ importers:
         specifier: ^2.5.1
         version: 2.5.1
       ai:
-        specifier: workspace:*
+        specifier: 2.0.0
         version: link:../../packages/core
       next:
         specifier: 13.4.4-canary.11
@@ -91,7 +91,7 @@ importers:
   examples/next-langchain:
     dependencies:
       ai:
-        specifier: workspace:*
+        specifier: 2.0.0
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.86
@@ -137,7 +137,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: workspace:*
+        specifier: 2.0.0
         version: link:../../packages/core
       next:
         specifier: 13.4.4-canary.11
@@ -183,7 +183,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       ai:
-        specifier: workspace:*
+        specifier: 2.0.0
         version: link:../../packages/core
       openai-edge:
         specifier: ^0.5.1

@@ -2,7 +2,7 @@
 title: AIStream
 ---
 
-import { OptionTable } from '@/components/table';
+import { OptionTable } from '@/components/table'
 
 # AIStream
 
@@ -38,14 +38,14 @@ This is an object that contains the following properties:
     [
       'controller',
       'ReadableStreamDefaultController',
-      'The controller of the readable stream.',
+      'The controller of the readable stream.'
     ],
     [
       'counter',
       'number',
-      'A counter variable, initialized as 0 and incremented each time the parser function is called.',
+      'A counter variable, initialized as 0 and incremented each time the parser function is called.'
     ],
-    ['encoder', 'TextEncoder', 'A `TextEncoder` instance.'],
+    ['encoder', 'TextEncoder', 'A `TextEncoder` instance.']
   ]}
 />
 
@@ -58,18 +58,18 @@ This is an object that contains the following properties:
     [
       'onStart',
       '() => Promise<void>',
-      'An optional function that is called at the start of the stream processing.',
+      'An optional function that is called at the start of the stream processing.'
     ],
     [
       'onCompletion',
       '(completion: string) => Promise<void>',
-      "An optional function that is called when the stream processing is complete. It's passed the completion as a string.",
+      "An optional function that is called when the stream processing is complete. It's passed the completion as a string."
     ],
     [
       'onToken',
       '(token: string) => Promise<void>',
-      "An optional function that is called for each token in the stream. It's passed the token as a string.",
-    ],
+      "An optional function that is called for each token in the stream. It's passed the token as a string."
+    ]
   ]}
 />
 
@@ -81,44 +81,44 @@ Here is real example of how to use `AIStream` to create a stream that will work 
 import {
   AIStream,
   type AIStreamParserOptions,
-  type AIStreamCallbacks,
-} from 'ai';
+  type AIStreamCallbacks
+} from 'ai'
 
 // The custom parser for Anthropic responses
 function parseAnthropicStream({
   data,
   controller,
   counter,
-  encoder,
+  encoder
 }: AIStreamParserOptions): void {
   try {
     // Parse the JSON data
     const json = JSON.parse(data as string) as {
-      completion: string;
-      stop: string | null;
-      stop_reason: string | null;
-      truncated: boolean;
-      log_id: string;
-      model: string;
-      exception: string | null;
-    };
+      completion: string
+      stop: string | null
+      stop_reason: string | null
+      truncated: boolean
+      log_id: string
+      model: string
+      exception: string | null
+    }
 
-    const text = json.completion;
+    const text = json.completion
 
     // If there are newline characters in the text, skip the first two lines
     if (counter < 2 && (/\n/.exec(text) || []).length) {
-      return;
+      return
     }
 
     // Encode the text and enqueue it into the stream
-    const queue = encoder.encode(`${JSON.stringify(text)}\n`);
-    controller.enqueue(queue);
+    const queue = encoder.encode(`${JSON.stringify(text)}\n`)
+    controller.enqueue(queue)
 
     // Increment the counter
-    counter++;
+    counter++
   } catch (e) {
     // In case of any errors, signal the error to the stream
-    controller.error(e);
+    controller.error(e)
   }
 }
 
@@ -128,22 +128,22 @@ export function AnthropicStream(
   cb?: AIStreamCallbacks
 ): ReadableStream {
   // Create a new AIStream with the Anthropic parser and the provided callbacks
-  return AIStream(res, parseAnthropicStream, cb);
+  return AIStream(res, parseAnthropicStream, cb)
 }
 
 // Then you can use AnthropicStream like this:
-const fetchResponse = await fetch('/api/anthropic-endpoint');
+const fetchResponse = await fetch('/api/anthropic-endpoint')
 const anthropicStream = AnthropicStream(fetchResponse, {
   onStart: async () => {
-    console.log('Stream started');
+    console.log('Stream started')
   },
-  onCompletion: async (completion) => {
-    console.log('Stream completed', completion);
+  onCompletion: async completion => {
+    console.log('Stream completed', completion)
   },
-  onToken: async (token) => {
-    console.log('Token received', token);
-  },
-});
+  onToken: async token => {
+    console.log('Token received', token)
+  }
+})
 // Now you can consume the anthropicStream
 ```
 

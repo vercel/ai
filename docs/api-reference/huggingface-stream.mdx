@@ -37,15 +37,15 @@ The `HuggingFaceStream` function can be coupled with the Hugging Face Inference 
 Here's a step-by-step example of how to implement `HuggingFaceStream`:
 
 ```tsx filename="app/api/completion/route.ts"
-import { HfInference } from '@huggingface/inference';
-import { HuggingFaceStream, StreamingTextResponse } from 'ai';
+import { HfInference } from '@huggingface/inference'
+import { HuggingFaceStream, StreamingTextResponse } from 'ai'
 
-export const runtime = 'edge';
+export const runtime = 'edge'
 
-const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY)
 
 export async function POST(req: Request) {
-  const { prompt } = await req.json();
+  const { prompt } = await req.json()
 
   // Initialize a text generation stream using Hugging Face Inference SDK
   const iter = await Hf.textGenerationStream({
@@ -55,15 +55,15 @@ export async function POST(req: Request) {
       max_new_tokens: 200,
       temperature: 0.5,
       repetition_penalty: 1,
-      return_full_text: false,
-    },
-  });
+      return_full_text: false
+    }
+  })
 
   // Convert the async generator into a readable stream
-  const stream = HuggingFaceStream(iter);
+  const stream = HuggingFaceStream(iter)
 
   // Return a StreamingTextResponse, enabling the client to consume the response
-  return new StreamingTextResponse(stream);
+  return new StreamingTextResponse(stream)
 }
 ```
 
