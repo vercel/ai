@@ -39,6 +39,6 @@ export default defineConfig([
     banner: {},
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue'],
-    dts: true,
+    dts: true
   }
 ])

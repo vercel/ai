@@ -46,7 +46,7 @@ export type UseChatHelpers = {
 let uniqueId = 0
 
 // @ts-expect-error - some issues with the default export of useSWRV
-const useSWRV = swrv.default as typeof import('swrv')['default'] || swrv
+const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv
 const store: Record<string, Message[] | undefined> = {}
 
 export function useChat({
@@ -65,10 +65,13 @@ export function useChat({
   const chatId = id || `chat-${uniqueId++}`
 
   const key = `${api}|${chatId}`
-  const { data, mutate: originalMutate } = useSWRV<Message[]>(key, () => store[key] || initialMessages)
+  const { data, mutate: originalMutate } = useSWRV<Message[]>(
+    key,
+    () => store[key] || initialMessages
+  )
   // Force the `data` to be `initialMessages` if it's `undefined`.
   data.value ||= initialMessages
-  
+
   const mutate = (data?: Message[]) => {
     store[key] = data
     return originalMutate()
