@@ -47,7 +47,7 @@ let uniqueId = 0
 
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = swrv.default as typeof import('swrv')['default'] || swrv
-const store: Record<string, any> = {}
+const store: Record<string, Message[] | undefined> = {}
 
 export function useChat({
   api = '/api/chat',
