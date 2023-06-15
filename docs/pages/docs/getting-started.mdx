@@ -2,8 +2,8 @@
 title: Getting Started
 ---
 
-import { Callout, Tabs, Tab, Steps } from 'nextra-theme-docs'
-import { InlinePrompt } from '@/components/home/inline-prompt'
+import { Callout, Tabs, Tab, Steps } from 'nextra-theme-docs';
+import { InlinePrompt } from '@/components/home/inline-prompt';
 
 # Quickstart
 
@@ -123,12 +123,6 @@ We've written some code to get you started — follow the instructions below to 
       return new StreamingTextResponse(stream);
     }
     ```
-
-    In the above code, the `openai.createCompletion` method gets a response stream from the OpenAI API. This stream is then passed into the `OpenAIStream` function provided by the `ai` library.
-
-    The `OpenAIStream` function serves as a bridge, converting the response stream aiom the OpenAI API into an optimized streaming format that is easier to use in the next step. It also accepts an optional callback object `AIStreamCallbacks` that allows you to handle important lifecycle events like `onStart`, `onCompletion`, and `onToken` throughout the streaming process.
-
-    Next, `OpenAIStream` is wrapped by `StreamingTextResponse` utility class that further prepares the response for consumption. `StreamingTextResponse` sets default headers and other response details making it ready to be returned from the edge function.
     </Tab>
     <Tab>
 
@@ -139,10 +133,11 @@ We've written some code to get you started — follow the instructions below to 
     ```tsx filename="src/routes/api/completion.js"
     import { Configuration, OpenAIApi } from 'openai-edge';
     import { OpenAIStream, StreamingTextResponse } from 'ai';
+    import { OPENAI_API_KEY } from '$env/static/private';
 
     // Create an OpenAI API client (that's edge friendly!)
     const config = new Configuration({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: OPENAI_API_KEY,
     });
     const openai = new OpenAIApi(config);
 
@@ -170,14 +165,11 @@ We've written some code to get you started — follow the instructions below to 
       return new StreamingTextResponse(stream);
     }
     ```
-`openai.createCompletion` method gets a response stream from the OpenAI API. This stream is then passed into the `OpenAIStream` function provided by the `ai` library.
-
-    The `OpenAIStream` function serves as a bridge, converting the response stream aiom the OpenAI API into an optimized streaming format that is easier to use in the next step. It also accepts an optional callback object `AIStreamCallbacks` that allows you to handle important lifecycle events like `onStart`, `onCompletion`, and `onToken` throughout the streaming process.
-
-    Next, `OpenAIStream` is wrapped by `StreamingTextResponse` utility class that further prepares the response for consumption. `StreamingTextResponse` sets default headers and other response details making it ready to be returned from the edge function.
     </Tab>
     </Tabs>
-
+    In the above code, the `openai.createCompletion` method gets a response stream from the OpenAI API. We then pass the response into the `OpenAIStream` provided by this library.
+    Then we use `StreamingTextResponse` to set the proper headers and response details in order to stream the response back to the client.
+    
     #### Wire up a UI
     <Tabs items={['Next.js', 'SvelteKit']}>
       <Tab>
@@ -189,7 +181,7 @@ We've written some code to get you started — follow the instructions below to 
       import { useCompletion } from 'ai/react';
 
       export default function SloganGenerator() {
-        const { completion, input, handleInaitChange, handleSubmit } = useCompletion();
+        const { completion, input, handleInputChange, handleSubmit } = useCompletion();
 
         return (
           <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
@@ -221,11 +213,11 @@ We've written some code to get you started — follow the instructions below to 
 
     ```svelte filename="src/routes/index.svelte"
     <script>
-    import { useChat } from 'ai/svelte';
+      import { useCompletion } from 'ai/svelte';
 
-    const { input, handleSubmit, completion } = useCompletion({
-      api: '/api/completion',
-    });
+      const { input, handleSubmit, completion } = useCompletion({
+        api: '/api/completion',
+      });
     </script>
 
     <main>
