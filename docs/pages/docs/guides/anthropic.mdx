@@ -13,7 +13,7 @@ Vercel AI SDK provides a set of utilities to make it easy to use Anthropic's API
 Create a Next.js application and install `ai`:
 
 ```sh
-pnpx create-next-app my-ai-app
+pnpm dlx create-next-app my-ai-app
 cd my-ai-app
 pnpm install ai
 ```
@@ -85,10 +85,10 @@ export async function POST(req: Request) {
 <Callout>
   Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
   pass the streaming `response` we receive from Anthropic's API to
-  [`AnthropicStream`](/api-reference#anthropicstream). This utility class
+  [`AnthropicStream`](/api-reference/anthropic-stream). This utility class
   decodes/extracts the text tokens in the response and then re-encodes them
   properly for simple consumption. We can then pass that new stream directly to
-  [`StreamingTextResponse`](/api-reference/streaming-text-response#streamingtextresponse).
+  [`StreamingTextResponse`](/api-reference/streaming-text-response).
   This is another utility class that extends the normal Node/Edge Runtime
   `Response` class with the default headers you probably want (hint:
   `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
