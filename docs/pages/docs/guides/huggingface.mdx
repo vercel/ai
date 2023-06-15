@@ -17,7 +17,7 @@ Vercel AI SDK provides a set of utilities to make it easy to use Hugging Face's 
 Create a Next.js application and install `ai` and `@huggingface/inference`:
 
 ```sh
-pnpx create-next-app my-ai-app
+pnpm dlx create-next-app my-ai-app
 cd my-ai-app
 pnpm install ai @huggingface/inference
 ```
@@ -93,19 +93,19 @@ export async function POST(req: Request) {
 <Callout>
   Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
   pass the streaming `response` we receive from `Hf.textGenerationStream` to
-  [`HuggingFaceStream`](/api-reference#huggingfacestream). This method
+  [`HuggingFaceStream`](/docs/api-reference#huggingfacestream). This method
   decodes/extracts the text tokens in the response and then re-encodes them
   properly for simple consumption. We can then pass that new stream directly to
-  [`StreamingTextResponse`](/api-reference/streaming-text-response#streamingtextresponse).
-  This is another utility class that extends the normal Node/Edge Runtime
-  `Response` class with the default headers you probably want (hint:
-  `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
+  [`StreamingTextResponse`](/docs/api-reference#streamingtextresponse). This is
+  another utility class that extends the normal Node/Edge Runtime `Response`
+  class with the default headers you probably want (hint: `'Content-Type':
+  'text/plain; charset=utf-8'` is already set for you).
 </Callout>
 
 ### Wire up the UI
 
 Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
-By default, the [`useChat`](/api-reference/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
+By default, the [`useChat`](/docs/api-reference/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client'
@@ -117,14 +117,12 @@ export default function Chat() {
 
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
-      {messages.length > 0
-        ? messages.map(m => (
-            <div key={m.id}>
-              {m.role === 'user' ? 'User: ' : 'AI: '}
-              {m.content}
-            </div>
-          ))
-        : null}
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
 
       <form onSubmit={handleSubmit}>
         <input
@@ -186,7 +184,7 @@ export async function POST(req: Request) {
 
 ### Wire up the UI
 
-We can use the [`useCompletion`](/api-reference/use-completion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
+We can use the [`useCompletion`](/docs/api-reference/use-completion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client'

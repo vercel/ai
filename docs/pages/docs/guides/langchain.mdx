@@ -9,7 +9,7 @@ However, LangChain does not provide a way to easily build UIs or a standard way 
 
 ## Example
 
-Here is an example implementation of a chat application that uses both Vercel AI SDK and LangChain's [OpenAIChat](https://js.langchain.com/docs/api/llms_openai/classes/OpenAIChat) together with [Next.js](https://nextjs.org/docs) App Router. It uses Vercel AI SDK's [`LangChainStream`](../api-reference#langchainstream) to stream text to the client (from the edge) and then Vercel AI SDK's `useChat` to handle the chat UI.
+Here is an example implementation of a chat application that uses both Vercel AI SDK and LangChain's [OpenAIChat](https://js.langchain.com/docs/api/llms_openai/classes/OpenAIChat) together with [Next.js](https://nextjs.org/docs) App Router. It uses Vercel AI SDK's [`LangChainStream`](../api-reference/langchain-stream) to stream text to the client (from the edge) and then Vercel AI SDK's `useChat` to handle the chat UI.
 
 ```tsx filename="app/api/chat/route.ts" {1,11,15,28}
 import { StreamingTextResponse, LangChainStream, Message } from 'ai'
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
 The `handlers` object returned by `LangChainStream` is used to handle certain
 [callbacks](https://js.langchain.com/docs/api/callbacks/) provided by LangChain on your behalf.
 Under the hood it is a wrapper over LangChain's [`handleChainEnd`](https://js.langchain.com/docs/api/callbacks/classes/BaseCallbackHandler#handlechainend), [`handleLLMNewToken`](https://js.langchain.com/docs/api/callbacks/classes/BaseCallbackHandler#handlellmnewtoken), and [`handleLLMError`](https://js.langchain.com/docs/api/callbacks/classes/BaseCallbackHandler#handlellmerror).
-We wrap over these methods to provide which then write to the `stream` which can then be passed directly to [`StreamingTextResponse`](../api-reference/streaming-text-response#streamingtextresponse).
+We wrap over these methods to provide which then write to the `stream` which can then be passed directly to [`StreamingTextResponse`](../api-reference/streaming-text-response).
 
 The result is that ther Vercel AI SDK's [`useChat`](../api-reference/use-chat) and [`useCompletion`](../api-reference/use-completion) work flawlessly:
 
@@ -60,14 +60,12 @@ export default function Chat() {
 
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
-      {messages.length > 0
-        ? messages.map(m => (
-            <div key={m.id} className="whitespace-pre-wrap">
-              {m.role === 'user' ? 'User: ' : 'AI: '}
-              {m.content}
-            </div>
-          ))
-        : null}
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
 
       <form onSubmit={handleSubmit}>
         <input
