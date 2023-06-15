@@ -13,7 +13,7 @@ Vercel AI SDK provides a set of utilities to make it easy to use OpenAI's API. I
 Create a Next.js application and install `ai` and `openai-edge`. We currently prefer the latter `openai-edge` library over the official OpenAI SDK because the official SDK uses `axios` which is not compatible with Vercel Edge Functions.
 
 ```sh
-pnpm dlx create-next-app my-ai-app
+pnpx create-next-app my-ai-app
 cd my-ai-app
 pnpm install ai openai-edge
 ```
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
 ### Wire up the UI
 
 Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
-By default, the [`useChat`](/api-reference/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing an `api` prop to `useChat({ api: '...'})`.
+By default, the [`useChat`](/api-reference/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client'
