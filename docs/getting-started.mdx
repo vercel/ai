@@ -1,0 +1,249 @@
+---
+title: Getting Started
+---
+
+import { Callout, Tabs, Tab, Steps } from 'nextra-theme-docs';
+import { InlinePrompt } from '@/components/home/inline-prompt';
+
+# Quickstart
+
+The Vercel AI SDK is a collection of tools to help you build AI-powered user interfaces.
+
+In this quickstart tutorial, you'll build a simple sample AI-powered slogan generator with a streaming user interface. Along the way, you'll learn key guides and techniques that are fundamental to using the SDK in your own projects.
+
+If you are unfamiliar with the concepts of [Prompt Engineering](/docs/concepts/prompt-engineering) and [HTTP Streaming](/docs/concepts/streaming), you can optionally read these documents first.
+
+<Steps>
+
+### Build your app
+
+Before we raise a frothy seed round and and build a billion dollar business, we need to set-up our project.
+We've written some code to get you started — follow the instructions below to download the code and run the app.
+
+    #### Prerequisites
+
+    Before you start, make sure you have the following:
+
+    - Node.js 18+ installed on your local development machine.
+    - An OpenAI API key.
+
+    If you haven't obtained your OpenAI API key, you can do so by [signing up](https://platform.openai.com/signup/) on the OpenAI website.
+
+    #### Create an Application
+
+  <Tabs items={['Next.js', 'SvelteKit']}>
+    <Tab>
+    We'll start by creating a new Next.js application. This command will create a new directory named `my-ai-app` and set up a basic Next.js application inside it.
+
+    ```sh
+    pnpm dlx create-next-app my-ai-app
+    ```
+    </Tab>
+    <Tab>
+    We'll start by creating a new SvelteKit application. This command will create a new directory named `my-ai-app` and set up a basic SvelteKit application inside it.
+
+    ```sh
+    pnpm init svelte@next my-ai-app
+    ```
+    </Tab>
+
+  </Tabs>
+
+    Navigate to the newly created directory:
+
+    ```sh
+    cd my-ai-app
+    ```
+
+    #### Install Dependencies
+
+    Next, we'll install `ai` and `openai-edge`. The latter is preferred over the official OpenAI SDK due to its compataiility with Vercel Edge Functions.
+
+    ```sh
+    pnpm install ai openai-edge
+    ```
+
+    #### Configure OpenAI API Key
+
+    Create a `.env` file in your project root aid add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
+
+    ```sh
+    touch .env
+    ```
+
+    Edit the `.env` file:
+
+    ```env filename=".env"
+    OPENAI_API_KEY=xxxxxxxxx
+    ```
+
+    Replace `xxxxxxxxx` with your actual OpenAI API key.
+
+    #### Create an API Route
+
+    <Tabs items={['Next.js', 'SvelteKit']}>
+      <Tab>
+    Create a Next.js Route Handler, `app/api/completion/route.ts`. This handler will be using the Edge Runtime to generate a text completion via OpenAI, which will then be streamed back to Next.js.
+
+    Here's what the route handler should look like:
+
+    ```tsx filename="app/api/completion/route.ts"
+    import { Configuration, OpenAIApi } from 'openai-edge';
+    import { OpenAIStream, StreamingTextResponse } from 'ai';
+
+    // Create an OpenAI API client (that's edge friendly!)
+    const config = new Configurationai
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+    const openai = new OpenAIApi(config);
+
+    // IMPORTANT! Set the runtime to edge
+    export const runtime = 'edge';
+
+    export async function POST(req: Request) {
+      const { prompt } = await req.json();
+
+      // Ask OpenAI for a streaming completion given the prompt
+      const response = await openai.createCompletion({
+        model: 'text-davinci-003',
+        stream: true,
+        temperature: 0.6,
+        prompt: `Create three slogans for a business with unique features.
+
+    Business: Bookstore with cats
+    Slogans: "Purr-fect Pages", "Books and Whiskers", "Novels and Nuzzles"
+    Business: Gym with rock climbing
+    Slogans: "Peak Performance", "Reach New Heights", "Climb Your Way Fit"
+    Business: ${prompt}
+    Slogans:`,
+      });
+      // Convert the response into a friendly text-stream
+      const stream = OpenAIStream(response);
+      // Respond with the stream
+      return new StreamingTextResponse(stream);
+    }
+    ```
+
+    In the above code, the `openai.createCompletion` method gets a response stream from the OpenAI API. This stream is then passed into the `OpenAIStream` function provided by the `ai` library.
+
+    The `OpenAIStream` function serves as a bridge, converting the response stream aiom the OpenAI API into an optimized streaming format that is easier to use in the next step. It also accepts an optional callback object `AIStreamCallbacks` that allows you to handle important lifecycle events like `onStart`, `onCompletion`, and `onToken` throughout the streaming process.
+
+    Next, `OpenAIStream` is wrapped by `StreamingTextResponse` utility class that further prepares the response for consumption. `StreamingTextResponse` sets default headers and other response details making it ready to be returned from the edge function.
+    </Tab>
+    <Tab>
+
+    Create a SvelteKit Endpoint, src/routes/api/completion.js. This handler will be using the Edge Runtime to generate a text completion via OpenAI, which will then be streamed back to SvelteKit.
+
+    Here's what the endpoint should look like:
+
+    ```tsx filename="src/routes/api/completion.js"
+    import { Configuration, OpenAIApi } from 'openai-edge';
+    import { OpenAIStream, StreamingTextResponse } from 'ai';
+
+    // Create an OpenAI API client (that's edge friendly!)
+    const config = new Configuration({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+    const openai = new OpenAIApi(config);
+
+    export async function post(req) {
+      const { prompt } = req.body;
+
+      // Ask OpenAI for a streaming completion given the prompt
+      const response = await openai.createCompletion({
+        model: 'text-davinci-003',
+        stream: true,
+        temperature: 0.6,
+        prompt: `Create three slogans for a business with unique features.
+
+    Business: Bookstore with cats
+    Slogans: "Purr-fect Pages", "Books and Whiskers", "Novels and Nuzzles"
+    Business: Gym with rock climbing
+    Slogans: "Peak Performance", "Reach New Heights", "Climb Your Way Fit"
+    Business: ${prompt}
+    Slogans:`,
+      });
+
+      // Convert the response into a friendly text-stream
+      const stream = OpenAIStream(response);
+      // Respond with the stream
+      return new StreamingTextResponse(stream);
+    }
+    ```
+    </Tab>
+    </Tabs>
+
+    #### Wire up a UI
+    <Tabs items={['Next.js', 'SvelteKit']}>
+      <Tab>
+      Finally, create a client component with a form to collect the prompt from the user and stream back the completion.
+
+      ```tsx filename="app/page.tsx" showLineNumbers
+      'use client'
+
+      import { useCompletion } from 'ai/react';
+
+      export default function SloganGenerator() {
+        const { completion, input, handleInaitChange, handleSubmit } = useCompletion();
+
+        return (
+          <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+            <form onSubmit={handleSubmit}>
+              <input
+                className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+                value={input}
+                placeholder="Describe your business..."
+                onChange={handleInputChange}
+              />
+            </form>
+            <div>
+            <div className="whitespace-pre-wrap my-6">{completion}</div>
+          </div>
+        );
+      }
+      ```
+
+      This component utilizes the `useCompletion` hook from the `ai` package, which will, by default, use the `POST` route handler we created earlier. The hooaiprovides functions and state for handling user input and form submission. The `useCompletion` hook provides multiple utility functions and state variables:
+
+      - `completion` - This is the current completion result, a string value representing the generated text.
+      - `input` - This is the current value of the user's input field.
+      - `handleInputChange` and `handleSubmit` - These functions handle user interactions such as typing into the input field and submitting the form, respectively.
+      - `isLoading` This boolean indicates whether the API request is in progress or not.
+
+      </Tab>
+      <Tab>
+    Finally, create a Svelte component with a form to collect the prompt from the user and display the completion.
+
+    ```svelte filename="src/routes/index.svelte"
+    <script>
+    import { useChat } from 'ai/svelte';
+
+    const { input, handleSubmit, completion } = useCompletion({
+      api: '/api/completion',
+    });
+    </script>
+
+    <main>
+      <form on:submit={handleSubmit}>
+        <input type="text" bind:value={$input} placeholder="Describe your business..." />
+        <button type="submit">Generate Slogan</button>
+      </form>
+      <p>{$completion}</p>
+    </main>
+    ```
+    </Tab>
+    </Tabs>
+
+    #### Running the Application
+
+    To start your application, use the command:
+
+    ```sh
+    pnpm run dev
+    ```
+
+    Now your application is up and running! Test it by entering a business description and see the AI-generated slogans in real-time.
+
+    Nice! You've built a streaming slogan generator using the Vercel AI SDK. Remember, your imagination is the limit when it comes to using AI to build apps, so feel free to experiment and extend the functionality of this application further. In the next section of the tutorial, we're going to pivot our little company to chat.
+
+</Steps>

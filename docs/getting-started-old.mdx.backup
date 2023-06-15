@@ -1,0 +1,135 @@
+import { Callout, Tabs, Tab, Steps } from 'nextra-theme-docs';
+import Link from 'next/link';
+
+# Getting Started
+
+## Installation [#installation]
+
+Inside your Next.js project directory, run the following:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+
+```bash
+pnpm add ai
+```
+
+   </Tab>
+  <Tab>
+  
+```bash 
+npm i ai
+```
+  
+  </Tab>
+  <Tab>
+  
+```bash 
+yarn add ai 
+```
+  
+  </Tab>
+</Tabs>
+
+## Example: Streaming AI Chat Bot [#example]
+
+For this tutorial, we'll build a streaming AI chatbot app with OpenAI's `gpt-3.5-turbo` and Next.js App Router in just 56 lines of code.
+
+<Steps>
+
+### Create a Next.js app
+
+Create a Next.js application and install `ai` and `openai-edge`. We currently prefer the latter `openai-edge` library over the official OpenAI SDK because the official SDK uses `axios` which is not compatible with Vercel Edge Functions.
+
+```sh
+pnpx create-next-app my-ai-app
+cd my-ai-app
+pnpm install ai openai-edge
+```
+
+### Add your OpenAI API Key to `.env`
+
+Create a `.env` file in your project root and add your OpenAI API Key:
+
+```sh
+touch .env
+```
+
+```env filename=".env"
+OPENAI_API_KEY=xxxxxxxxx
+```
+
+### Create a Route Handler
+
+Create a Next.js Route Handler that uses the Edge Runtime that we'll use to generate a chat completion via OpenAI that we'll then stream back to Next.js.
+
+```tsx filename="app/api/chat/route.ts" showLineNumbers
+import { Configuration, OpenAIApi } from 'openai-edge';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
+
+// Create an OpenAI API client (that's edge friendly!)
+const config = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(config);
+
+// IMPORTANT! Set the runtime to edge
+export const runtime = 'edge';
+
+export async function POST(req: Request) {
+  // Extract the `messages` from the body of the request
+  const { messages } = await req.json();
+
+  // Ask OpenAI for a streaming chat completion given the prompt
+  const response = await openai.createChatCompletion({
+    model: 'gpt-3.5-turbo',
+    stream: true,
+    messages,
+  });
+  // Convert the response into a friendly text-stream
+  const stream = OpenAIStream(response);
+  // Respond with the stream
+  return new StreamingTextResponse(stream);
+}
+```
+
+Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we pass the streaming `response` we receive from OpenAI to `OpenAIStream`. This method decodes/extracts the text tokens in the response and then re-encodes them properly for simple consumption. We can then pass that new stream directly to `StreamingTextResponse`. This is another utility class that extends the normal Node/Edge Runtime `Response` class with the default headers you probably want (hint: `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
+
+### Wire up the UI
+
+Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
+By default, the `useChat` hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
+
+```tsx filename="app/page.tsx" showLineNumbers
+'use client';
+
+import { useChat } from 'ai';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+
+  return (
+    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+      {messages.length > 0
+        ? messages.map((m) => (
+            <div key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))
+        : null}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+</Steps>
