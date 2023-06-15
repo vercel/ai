@@ -155,7 +155,7 @@ export async function POST(req: Request) {
 
 ### Wire up the UI
 
-We can use the [`useCompletion`](/api-reference/use-completion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
+We can use the [`useCompletion`](/api-reference/use-completion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing an `api` prop to `useCompletion({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client'
