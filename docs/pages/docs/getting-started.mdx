@@ -43,7 +43,7 @@ We've written some code to get you started — follow the instructions below to 
     We'll start by creating a new SvelteKit application. This command will create a new directory named `my-ai-app` and set up a basic SvelteKit application inside it.
 
     ```sh
-    pnpm init svelte@next my-ai-app
+    pnpm create svelte@next my-ai-app
     ```
     </Tab>
 
@@ -57,7 +57,7 @@ We've written some code to get you started — follow the instructions below to 
 
     #### Install Dependencies
 
-    Next, we'll install `ai` and `openai-edge`. The latter is preferred over the official OpenAI SDK due to its compatability with Vercel Edge Functions.
+    Next, we'll install `ai` and `openai-edge`. The latter is preferred over the official OpenAI SDK due to its compatiblity with Vercel Edge Functions.
 
     ```sh
     pnpm install ai openai-edge
@@ -193,7 +193,6 @@ We've written some code to get you started — follow the instructions below to 
                 onChange={handleInputChange}
               />
             </form>
-            <div>
             <div className="whitespace-pre-wrap my-6">{completion}</div>
           </div>
         );
