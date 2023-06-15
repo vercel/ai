@@ -2,8 +2,8 @@
 title: Getting Started
 ---
 
-import { Callout, Tabs, Tab, Steps } from 'nextra-theme-docs';
-import { InlinePrompt } from '@/components/home/inline-prompt';
+import { Callout, Tabs, Tab, Steps } from 'nextra-theme-docs'
+import { InlinePrompt } from '@/components/home/inline-prompt'
 
 # Quickstart
 
@@ -169,7 +169,7 @@ We've written some code to get you started — follow the instructions below to 
     </Tabs>
     In the above code, the `openai.createCompletion` method gets a response stream from the OpenAI API. We then pass the response into the `OpenAIStream` provided by this library.
     Then we use `StreamingTextResponse` to set the proper headers and response details in order to stream the response back to the client.
-    
+
     #### Wire up a UI
     <Tabs items={['Next.js', 'SvelteKit']}>
       <Tab>
@@ -200,7 +200,7 @@ We've written some code to get you started — follow the instructions below to 
       }
       ```
 
-      This component utilizes the `useCompletion` hook from the `ai` package, which will, by default, use the `POST` route handler we created earlier. The hook provides functions and state for handling user input and form submission. The `useCompletion` hook provides multiple utility functions and state variables:
+      This component utilizes the `useCompletion` hook, which will, by default, use the `POST` route handler we created earlier. The hook provides functions and state for handling user input and form submission. The `useCompletion` hook provides multiple utility functions and state variables:
 
       - `completion` - This is the current completion result, a string value representing the generated text.
       - `input` - This is the current value of the user's input field.
