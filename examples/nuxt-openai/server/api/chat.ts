@@ -1,6 +1,6 @@
 // ./api/chat.ts
 import { Configuration, OpenAIApi } from 'openai-edge'
-import { OpenAIStream,  streamToResponse } from 'ai'
+import { OpenAIStream, streamToResponse } from 'ai'
 
 // Create an OpenAI API client (that's edge friendly!)
 const config = new Configuration({
