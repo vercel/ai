@@ -46,7 +46,7 @@ export async function POST(req: Request) {
 The `handlers` object returned by `LangChainStream` is used to handle certain
 [callbacks](https://js.langchain.com/docs/api/callbacks/) provided by LangChain on your behalf.
 Under the hood it is a wrapper over LangChain's [`handleLLMEnd`](https://js.langchain.com/docs/api/callbacks/classes/BaseCallbackHandler#handlellmend), [`handleLLMNewToken`](https://js.langchain.com/docs/api/callbacks/classes/BaseCallbackHandler#handlellmnewtoken), and [`handleLLMError`](https://js.langchain.com/docs/api/callbacks/classes/BaseCallbackHandler#handlellmerror).
-We wrap over these methods to provide which then write to the `stream` which can then be passed directly to [`StreamingTextResponse`](../api-reference#streamingtextresponse).
+We wrap over these methods to provide which then write to the `stream` which can then be passed directly to [`StreamingTextResponse`](../api-reference/streaming-text-response#streamingtextresponse).
 
 The result is that ther Vercel AI SDK's [`useChat`](../api-reference/use-chat) and [`useCompletion`](../api-reference/use-completion) work flawlessly:
 
