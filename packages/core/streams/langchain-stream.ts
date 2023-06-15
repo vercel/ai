@@ -10,7 +10,7 @@ export function LangChainStream(callbacks?: AIStreamCallbacks) {
         await writer.ready
         await writer.write(token)
       },
-      handleLLMEnd: async () => {
+      handleChainEnd: async () => {
         await writer.ready
         await writer.close()
       },
