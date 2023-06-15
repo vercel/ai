@@ -85,7 +85,7 @@ export async function POST(req: Request) {
 <Callout>
   Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
   pass the streaming `response` we receive from Anthropic's API to
-  [`AnthropicStream`](/api-reference/anthropic-strea). This utility class
+  [`AnthropicStream`](/api-reference/anthropic-stream). This utility class
   decodes/extracts the text tokens in the response and then re-encodes them
   properly for simple consumption. We can then pass that new stream directly to
   [`StreamingTextResponse`](/api-reference/streaming-text-response).
