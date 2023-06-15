@@ -17,7 +17,7 @@ If you are unfamiliar with the concepts of [Prompt Engineering](/docs/concepts/p
 
 ### Build your app
 
-Before we raise a frothy seed round and and build a billion dollar business, we need to set-up our project.
+Before we raise a frothy seed round and build a billion dollar business, we need to set-up our project.
 We've written some code to get you started — follow the instructions below to download the code and run the app.
 
     #### Prerequisites
@@ -65,7 +65,7 @@ We've written some code to get you started — follow the instructions below to 
 
     #### Configure OpenAI API Key
 
-    Create a `.env` file in your project root aid add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
+    Create a `.env` file in your project root and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
 
     ```sh
     touch .env
@@ -132,7 +132,7 @@ We've written some code to get you started — follow the instructions below to 
     </Tab>
     <Tab>
 
-    Create a SvelteKit Endpoint, src/routes/api/completion.js. This handler will be using the Edge Runtime to generate a text completion via OpenAI, which will then be streamed back to SvelteKit.
+    Create a SvelteKit Endpoint, `src/routes/api/completion.js`. This handler will be using the Edge Runtime to generate a text completion via OpenAI, which will then be streamed back to SvelteKit.
 
     Here's what the endpoint should look like:
 
@@ -170,6 +170,11 @@ We've written some code to get you started — follow the instructions below to 
       return new StreamingTextResponse(stream);
     }
     ```
+`openai.createCompletion` method gets a response stream from the OpenAI API. This stream is then passed into the `OpenAIStream` function provided by the `ai` library.
+
+    The `OpenAIStream` function serves as a bridge, converting the response stream aiom the OpenAI API into an optimized streaming format that is easier to use in the next step. It also accepts an optional callback object `AIStreamCallbacks` that allows you to handle important lifecycle events like `onStart`, `onCompletion`, and `onToken` throughout the streaming process.
+
+    Next, `OpenAIStream` is wrapped by `StreamingTextResponse` utility class that further prepares the response for consumption. `StreamingTextResponse` sets default headers and other response details making it ready to be returned from the edge function.
     </Tab>
     </Tabs>
 
@@ -203,7 +208,7 @@ We've written some code to get you started — follow the instructions below to 
       }
       ```
 
-      This component utilizes the `useCompletion` hook from the `ai` package, which will, by default, use the `POST` route handler we created earlier. The hooaiprovides functions and state for handling user input and form submission. The `useCompletion` hook provides multiple utility functions and state variables:
+      This component utilizes the `useCompletion` hook from the `ai` package, which will, by default, use the `POST` route handler we created earlier. The hook provides functions and state for handling user input and form submission. The `useCompletion` hook provides multiple utility functions and state variables:
 
       - `completion` - This is the current completion result, a string value representing the generated text.
       - `input` - This is the current value of the user's input field.
