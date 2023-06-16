@@ -26,5 +26,18 @@ export default defineEventHandler(async event => {
   // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response)
   // Respond with the stream
-  streamToResponse(stream, event.node.res)
+  const reader = stream.getReader()
+  return new Promise((resolve, reject) => {
+    function read() {
+      reader.read().then(({ done, value }) => {
+        if (done) {
+          event.node.res.end()
+          return
+        }
+        event.node.res.write(value)
+        read()
+      })
+    }
+    read()
+  })
 })
