@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.2
+
+### Patch Changes
+
+- f37d4ec: fix bundling
+
 ## 2.1.1
 
 ### Patch Changes
