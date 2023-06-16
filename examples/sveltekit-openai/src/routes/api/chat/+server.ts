@@ -1,11 +1,12 @@
 import { Configuration, OpenAIApi } from 'openai-edge'
 import { OpenAIStream, StreamingTextResponse } from 'ai'
+import { OPENAI_API_KEY } from '$env/static/private'
 
 import type { RequestHandler } from './$types'
 
 // Create an OpenAI API client
 const config = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: OPENAI_API_KEY
 })
 const openai = new OpenAIApi(config)
 
