@@ -125,12 +125,15 @@ export default function Chat() {
       ))}
 
       <form onSubmit={handleSubmit}>
-        <input
-          className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
+        <label>
+          Say something...
+          <input
+            className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+            value={input}
+            onChange={handleInputChange}
+          />
+        </label>
+        <button type="submit">Send</button>
       </form>
     </div>
   )
@@ -206,13 +209,15 @@ export default function Completion() {
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
       <form onSubmit={handleSubmit}>
-        <input
-          className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-        <p>Completion result: {completion}</p>
+        <label>
+          Say something...
+          <input
+            className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+            value={input}
+            onChange={handleInputChange}
+          />
+        </label>
+        <output>Completion result: {completion}</output>
         <button type="button" onClick={stop}>
           Stop
         </button>
