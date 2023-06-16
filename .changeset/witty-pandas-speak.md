@@ -1,0 +1,5 @@
+---
+'ai': patch
+---
+
+fix bundling
