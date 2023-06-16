@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.1
+
+### Patch Changes
+
+- 9fdb51a: fix: add better typing for store within svelte implementation (#104)
+
 ## 2.1.0
 
 ### Minor Changes
