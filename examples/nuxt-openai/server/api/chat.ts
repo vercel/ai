@@ -31,10 +31,10 @@ export default defineEventHandler(async event => {
     function read() {
       reader.read().then(({ done, value }) => {
         if (done) {
-          event.node.res.end();
+          event.node.res.end()
           return
         }
-        event.node.res.write(value);
+        event.node.res.write(value)
         read()
       })
     }
