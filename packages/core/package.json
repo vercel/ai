@@ -19,7 +19,7 @@
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
-    "test": "jest --env @edge-runtime/jest-environment .test.ts && jest --env node .test.ts"
+    "test": "jest --forceExit --env @edge-runtime/jest-environment .test.ts && jest --forceExit --env node .test.ts"
   },
   "exports": {
     "./package.json": "./package.json",
