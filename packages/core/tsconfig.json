@@ -1,5 +1,5 @@
 {
-  "extends": "@vercel/ai-tsconfig/react-library.json",
+  "extends": "./node_modules/@vercel/ai-tsconfig/react-library.json",
   "include": ["."],
   "exclude": ["dist", "build", "node_modules"]
 }
