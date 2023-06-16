@@ -3,7 +3,7 @@
   "scripts": {
     "build": "turbo build",
     "changeset": "changeset",
-    "clean": "turbo clean && rm -rf node_modules",
+    "clean": "turbo clean",
     "dev": "turbo dev --no-cache --continue",
     "lint": "turbo lint",
     "prepare": "husky install",
