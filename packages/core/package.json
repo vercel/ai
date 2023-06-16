@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist",
+    "clean": "rm -rf dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",

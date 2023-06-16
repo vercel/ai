@@ -1,17 +1,16 @@
 import { defineConfig } from 'tsup'
-import { readdirSync } from 'fs'
 
 export default defineConfig([
   // Universal APIs
   {
-    entry: ['streams/*.{ts,tsx}'],
+    entry: ['streams/index.ts'],
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue'],
     dts: true
   },
   // React APIs
   {
-    entry: ['react/*.{ts,tsx}'],
+    entry: ['react/index.ts'],
     outDir: 'react/dist',
     banner: {
       js: "'use client'"
@@ -22,7 +21,7 @@ export default defineConfig([
   },
   // Svelte APIs
   {
-    entry: ['svelte/*.{ts,tsx}'],
+    entry: ['svelte/index.ts'],
     outDir: 'svelte/dist',
     banner: {},
     format: ['cjs', 'esm'],
@@ -34,7 +33,7 @@ export default defineConfig([
   },
   // Vue APIs
   {
-    entry: ['vue/*.ts'],
+    entry: ['vue/index.ts'],
     outDir: 'vue/dist',
     banner: {},
     format: ['cjs', 'esm'],

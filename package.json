@@ -11,7 +11,7 @@
     "type-check": "turbo type-check",
     "prettier-fix": "prettier --write \"**/*.{js,ts,tsx,md,mdx}\"",
     "publint": "turbo publint",
-    "release": "turbo build --filter=ai... && changeset publish",
+    "release": "turbo clean && turbo build --filter=ai... && changeset publish",
     "test": "turbo test --filter=ai...",
     "version-packages": "changeset version"
   },
@@ -32,7 +32,7 @@
     "ts-jest": "29.0.3",
     "turbo": "^1.10.0"
   },
-  "packageManager": "pnpm@7.15.0",
+  "packageManager": "pnpm@8.6.2",
   "prettier": {
     "tabWidth": 2,
     "semi": false,
