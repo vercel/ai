@@ -1,27 +1,23 @@
-import {
-  AIStream,
-  trimStartOfStreamHelper,
-} from './ai-stream'
-import { AIStreamCallbacks } from "./types"
-
-function parseOpenAIStream(): (data: string) => string | void {
-  const trimStartOfStream = trimStartOfStreamHelper()
-  return data => {
-    // TODO: Needs a type
-    const json = JSON.parse(data)
-
-    // this can be used for either chat or completion models
-    const text = trimStartOfStream(
-      json.choices[0]?.delta?.content ?? json.choices[0]?.text ?? ''
-    )
-
-    return text
-  }
-}
+import type { AIStreamOptions, AIStreamParser } from './types'
+import { TEXT_PARSERS } from './parsers'
+import { AIStream } from './ai-stream'
 
 export function OpenAIStream(
   res: Response,
-  callbacks?: AIStreamCallbacks
+  options: AIStreamOptions = {}
 ): ReadableStream {
-  return AIStream(res, parseOpenAIStream(), callbacks)
+  const { mode = 'text', ...callbacks } = options
+  let parser: AIStreamParser | undefined = undefined
+
+  switch (mode) {
+    case 'raw':
+      /** Return raw JSON, can leave as ReadableStream<Uint8Array>. */
+      break
+
+    case 'text':
+      parser = TEXT_PARSERS.openai()
+      break
+  }
+
+  return AIStream(res, { parser, ...callbacks })
 }

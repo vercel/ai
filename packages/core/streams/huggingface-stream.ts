@@ -1,8 +1,6 @@
-import type { AIStreamCallbacks } from "./types"
-import {
-  createCallbacksTransformer,
-  trimStartOfStreamHelper
-} from './ai-stream'
+import type { AIStreamCallbacks } from './types'
+import { createCallbacksTransform } from './transforms'
+import { trimStartOfStreamHelper } from './utils'
 
 function createParser(res: AsyncGenerator<any>) {
   const trimStartOfStream = trimStartOfStreamHelper()
@@ -38,5 +36,5 @@ export function HuggingFaceStream(
   res: AsyncGenerator<any>,
   callbacks?: AIStreamCallbacks
 ): ReadableStream {
-  return createParser(res).pipeThrough(createCallbacksTransformer(callbacks))
+  return createParser(res).pipeThrough(createCallbacksTransform(callbacks))
 }
