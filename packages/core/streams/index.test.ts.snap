@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AIStream OpenAIStream should 1`] = `
+[
+  "Hello",
+  ",",
+  " world",
+  ".",
+]
+`;
