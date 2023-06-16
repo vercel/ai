@@ -32,7 +32,7 @@ importers:
       '@types/node': ^17.0.12
       '@types/react': 18.2.7
       '@types/react-dom': 18.2.4
-      ai: 2.0.1
+      ai: 2.1.0
       autoprefixer: ^10.4.14
       eslint: ^7.32.0
       eslint-config-next: 13.4.4-canary.11
@@ -66,7 +66,7 @@ importers:
       '@types/node': ^17.0.12
       '@types/react': 18.2.7
       '@types/react-dom': 18.2.4
-      ai: 2.0.1
+      ai: 2.1.0
       autoprefixer: ^10.4.14
       eslint: ^7.32.0
       eslint-config-next: 13.4.4-canary.11
@@ -99,7 +99,7 @@ importers:
       '@types/node': ^17.0.12
       '@types/react': 18.2.7
       '@types/react-dom': 18.2.4
-      ai: 2.0.1
+      ai: 2.1.0
       autoprefixer: ^10.4.14
       eslint: ^7.32.0
       eslint-config-next: 13.4.4-canary.11
@@ -136,14 +136,14 @@ importers:
       '@vue/runtime-core': ^3.3.4
       '@vue/runtime-dom': ^3.3.4
       '@vue/shared': ^3.3.4
-      ai: 2.0.1
+      ai: 2.1.0
       nuxt: ^3.5.2
       openai-edge: ^0.5.1
       tailwindcss: ^3.3.2
       unctx: ^2.3.1
       vue: ^3.3.4
     devDependencies:
-      '@nuxt/devtools': 0.6.0_nuxt@3.5.3+vite@4.3.9
+      '@nuxt/devtools': 0.6.1_nuxt@3.5.3+vite@4.3.9
       '@nuxtjs/tailwindcss': 6.7.2_webpack@5.86.0
       '@types/node': 18.16.18
       '@vue/reactivity': 3.3.4
@@ -164,7 +164,7 @@ importers:
       '@sveltejs/adapter-auto': ^2.0.0
       '@sveltejs/kit': ^1.5.0
       '@types/cookie': ^0.5.1
-      ai: 2.0.1
+      ai: 2.1.0
       openai-edge: ^0.5.1
       svelte: ^3.54.0
       svelte-check: ^3.0.1
@@ -1855,8 +1855,8 @@ packages:
     resolution: {integrity: sha512-GBzP8zOc7CGWyFQS6dv1lQz8VVpz5C2yRszbXufwG/9zhStTIH50EtD87NmWbTMwXDvZLNg8GIpb1UFdH93JCA==}
     dev: true
 
-  /@nuxt/devtools-kit/0.6.0_nuxt@3.5.3+vite@4.3.9:
-    resolution: {integrity: sha512-Vh/W80lf3HTGmGNq+rydKlBNQtzh3o9spiMtnEu0S3y3dh6bdumZ9vrcOzwfsgou95hm+YYAnmXIK5Ct89/TUw==}
+  /@nuxt/devtools-kit/0.6.1_nuxt@3.5.3+vite@4.3.9:
+    resolution: {integrity: sha512-4x4f9MynFGRajUx91sh5GuDQGoZlmDxF4JOhTN/s90x5wkjRLN4hIb988E7NZ2ak3iH4+DTh7VQWZTBfLaBqlA==}
     peerDependencies:
       nuxt: ^3.5.1
       vite: '*'
@@ -1871,8 +1871,8 @@ packages:
       - supports-color
     dev: true
 
-  /@nuxt/devtools-wizard/0.6.0:
-    resolution: {integrity: sha512-qtSRiBS3uWaldsRCtd/jeKM31uAvMUTjbHLTZvSvZwLw0msRNAdwyscteRGF1lx2HzlYGehI0+lN8R+8qEK0kA==}
+  /@nuxt/devtools-wizard/0.6.1:
+    resolution: {integrity: sha512-eQVYNZHw8wrVyZXeQpTAv4jc08VVNV7Db2D2KmMO08DipkrCqzCf7c6sFtcSmNIlGArm6lcObszTOpdZPhWTHw==}
     hasBin: true
     dependencies:
       consola: 3.1.0
@@ -1888,15 +1888,15 @@ packages:
       semver: 7.5.1
     dev: true
 
-  /@nuxt/devtools/0.6.0_nuxt@3.5.3+vite@4.3.9:
-    resolution: {integrity: sha512-6Pmq/q+IGeXj8Dut2Nx7M3PximyABrKPWFt4rfxkEGLbMzZYb3nkToL2M1Lg9DHBZKNEal03OduKXaEhlx4KAQ==}
+  /@nuxt/devtools/0.6.1_nuxt@3.5.3+vite@4.3.9:
+    resolution: {integrity: sha512-nz1FCJ2WViQWKUG9dTjwib/XZ7/dzeaP/r+++Y7W6a70y3ME5q58YldSNhNKJZXcbYWAU5UFzsoaslB5SWrlhw==}
     hasBin: true
     peerDependencies:
       nuxt: ^3.5.1
       vite: '*'
     dependencies:
-      '@nuxt/devtools-kit': 0.6.0_nuxt@3.5.3+vite@4.3.9
-      '@nuxt/devtools-wizard': 0.6.0
+      '@nuxt/devtools-kit': 0.6.1_nuxt@3.5.3+vite@4.3.9
+      '@nuxt/devtools-wizard': 0.6.1
       '@nuxt/kit': 3.5.3
       birpc: 0.2.12
       boxen: 7.1.0
