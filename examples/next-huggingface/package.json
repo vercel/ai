@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@huggingface/inference": "^2.5.1",
-    "ai": "2.0.1",
+    "ai": "2.1.0",
     "next": "13.4.4-canary.11",
     "openai-edge": "^0.5.1",
     "react": "18.2.0",
