@@ -43,7 +43,7 @@ We've written some code to get you started — follow the instructions below to 
     We'll start by creating a new SvelteKit application. This command will create a new directory named `my-ai-app` and set up a basic SvelteKit application inside it.
 
     ```sh
-    pnpm create svelte@next my-ai-app
+    pnpm create svelte@latest my-ai-app
     ```
     </Tab>
 
@@ -126,11 +126,11 @@ We've written some code to get you started — follow the instructions below to 
     </Tab>
     <Tab>
 
-    Create a SvelteKit Endpoint, `src/routes/api/completion.js`. This handler will be using the Edge Runtime to generate a text completion via OpenAI, which will then be streamed back to SvelteKit.
+    Create a SvelteKit Endpoint, `src/routes/api/completion/+server.js`. This handler will be using the Edge Runtime to generate a text completion via OpenAI, which will then be streamed back to SvelteKit.
 
     Here's what the endpoint should look like:
 
-    ```tsx filename="src/routes/api/completion.js"
+    ```tsx filename="src/routes/api/completion/+server.js"
     import { Configuration, OpenAIApi } from 'openai-edge';
     import { OpenAIStream, StreamingTextResponse } from 'ai';
     import { OPENAI_API_KEY } from '$env/static/private';
@@ -141,8 +141,8 @@ We've written some code to get you started — follow the instructions below to 
     });
     const openai = new OpenAIApi(config);
 
-    export async function post(req) {
-      const { prompt } = req.body;
+    export async function POST({ request }) {
+      const { prompt } = await request.json();
 
       // Ask OpenAI for a streaming completion given the prompt
       const response = await openai.createCompletion({
@@ -210,7 +210,7 @@ We've written some code to get you started — follow the instructions below to 
       <Tab>
     Finally, create a Svelte component with a form to collect the prompt from the user and display the completion.
 
-    ```svelte filename="src/routes/index.svelte"
+    ```svelte filename="src/routes/+page.svelte"
     <script>
       import { useCompletion } from 'ai/svelte';
 
