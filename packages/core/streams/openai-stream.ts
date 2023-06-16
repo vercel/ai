@@ -1,8 +1,8 @@
 import {
   AIStream,
   trimStartOfStreamHelper,
-  type AIStreamCallbacks
 } from './ai-stream'
+import { AIStreamCallbacks } from "./types"
 
 function parseOpenAIStream(): (data: string) => string | void {
   const trimStartOfStream = trimStartOfStreamHelper()
@@ -21,7 +21,7 @@ function parseOpenAIStream(): (data: string) => string | void {
 
 export function OpenAIStream(
   res: Response,
-  cb?: AIStreamCallbacks
+  callbacks?: AIStreamCallbacks
 ): ReadableStream {
-  return AIStream(res, parseOpenAIStream(), cb)
+  return AIStream(res, parseOpenAIStream(), callbacks)
 }

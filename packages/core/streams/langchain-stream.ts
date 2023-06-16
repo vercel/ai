@@ -1,4 +1,5 @@
-import { type AIStreamCallbacks, createCallbacksTransformer } from './ai-stream'
+import { createCallbacksTransformer } from './ai-stream'
+import { AIStreamCallbacks } from "./types"
 
 export function LangChainStream(callbacks?: AIStreamCallbacks) {
   const stream = new TransformStream()

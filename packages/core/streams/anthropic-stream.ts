@@ -1,4 +1,5 @@
-import { AIStream, type AIStreamCallbacks } from './ai-stream'
+import { AIStream } from './ai-stream'
+import { AIStreamCallbacks } from "./types"
 
 function parseAnthropicStream(): (data: string) => string | void {
   let previous = ''

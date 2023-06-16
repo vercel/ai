@@ -1,5 +1,5 @@
+import type { AIStreamCallbacks } from "./types"
 import {
-  type AIStreamCallbacks,
   createCallbacksTransformer,
   trimStartOfStreamHelper
 } from './ai-stream'

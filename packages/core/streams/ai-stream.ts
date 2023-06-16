@@ -1,19 +1,10 @@
+import type { AIStreamCallbacks, AIStreamParser } from "./types"
 import {
   createParser,
   type EventSourceParser,
   type ParsedEvent,
   type ReconnectInterval
 } from 'eventsource-parser'
-
-export interface AIStreamCallbacks {
-  onStart?: () => Promise<void>
-  onCompletion?: (completion: string) => Promise<void>
-  onToken?: (token: string) => Promise<void>
-}
-
-export interface AIStreamParser {
-  (data: string): string | void
-}
 
 export function createEventStreamTransformer(customParser: AIStreamParser) {
   const decoder = new TextDecoder()
