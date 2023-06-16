@@ -43,8 +43,7 @@
   },
   "jest": {
     "preset": "ts-jest",
-    "testEnvironment": "node",
-    "snapshotResolver": "./tests/utils/snapshotResolver.ts"
+    "testEnvironment": "node"
   },
   "dependencies": {
     "eventsource-parser": "1.0.0",
