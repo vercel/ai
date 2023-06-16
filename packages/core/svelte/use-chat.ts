@@ -224,7 +224,8 @@ export function useChat({
     if (!inputValue) return
     append({
       content: inputValue,
-      role: 'user'
+      role: 'user',
+      createdAt: new Date()
     })
     input.set('')
   }
