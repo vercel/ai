@@ -45,7 +45,7 @@ export type UseChatHelpers = {
 
 let uniqueId = 0
 
-const store: Record<string, any> = {}
+const store: Record<string, Message[] | undefined> = {}
 
 export function useChat({
   api = '/api/chat',
