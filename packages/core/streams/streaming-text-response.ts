@@ -1,8 +1,4 @@
 import type { OutgoingHttpHeaders, ServerResponse } from 'node:http'
-import { Readable, pipeline } from 'node:stream'
-import { promisify } from 'node:util'
-
-const pipelinePromise = promisify(pipeline)
 
 /**
  * A utility class for streaming text responses.
@@ -24,11 +20,13 @@ export class StreamingTextResponse extends Response {
  * A simple utility function to convert a ReadableStream to a Node.js Readable.
  * This is campatible with Node.js 18 web streams and polyfill-stream package both.
  */
-export function streamToNodeReadable(
-  stream: ReadableStream
-): Readable {
+export function streamToNodeReadable(stream: ReadableStream) {
   const reader = stream.getReader()
   let closed = false
+
+  // in order to avoid module check error
+  const Readable = require('stream')
+    .Readable as typeof import('stream').Readable
 
   const readable = new Readable({
     read() {
@@ -61,7 +59,7 @@ export function streamToNodeReadable(
         return
       }
       done()
-    },
+    }
   })
 
   reader.closed.then(
@@ -83,7 +81,11 @@ export function headersInitToOutgoingHeaders(headers: HeadersInit | undefined) {
   const h = new Headers(headers)
   const outgoingHeaders: OutgoingHttpHeaders = {}
   h.forEach((value, key) => {
-    if (key === 'set-cookie' && 'getSetCookie' in h && typeof h.getSetCookie === 'function') {
+    if (
+      key === 'set-cookie' &&
+      'getSetCookie' in h &&
+      typeof h.getSetCookie === 'function'
+    ) {
       // nodejs 18.14.1 supports it, otherwise developer should polyfill this method for their own
       outgoingHeaders[key] = h.getSetCookie()
       return
@@ -114,5 +116,16 @@ export function streamToResponse(
   // pipe from node readable to server response
   // which supports backpresure mechanism
   const readable = streamToNodeReadable(res)
-  return pipelinePromise(readable, response)
+
+  const pipeline = require('node:stream')
+    .pipeline as typeof import('node:stream').pipeline
+  return new Promise<void>((resolve, reject) => {
+    pipeline(readable, response, error => {
+      if (error) {
+        reject(error)
+      } else {
+        resolve()
+      }
+    })
+  })
 }
