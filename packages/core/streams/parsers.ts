@@ -1,9 +1,12 @@
 import { AIStreamParser } from './types'
 import { trimStartOfStreamHelper } from './utils'
 
-export type AIStreamsParsersList = {
-  [key: string]: () => AIStreamParser
-}
+export type AIParserPlatform = 'openai' | 'anthropic'
+
+export type AIStreamsParsersList = Record<
+  AIParserPlatform,
+  () => AIStreamParser
+>
 
 export const TEXT_PARSERS: AIStreamsParsersList = {
   openai: () => {
