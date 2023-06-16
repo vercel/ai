@@ -1,18 +1,17 @@
+// ./api/chat.ts
 import { Configuration, OpenAIApi } from 'openai-edge'
-import { OpenAIStream, StreamingTextResponse } from 'ai'
-import { OPENAI_API_KEY } from '$env/static/private'
+import { OpenAIStream, streamToResponse } from 'ai'
 
-import type { RequestHandler } from './$types'
-
-// Create an OpenAI API client
+// Create an OpenAI API client (that's edge friendly!)
 const config = new Configuration({
-  apiKey: OPENAI_API_KEY
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  apiKey: useRuntimeConfig().openaiApiKey
 })
 const openai = new OpenAIApi(config)
 
-export const POST = (async ({ request }) => {
+export default defineEventHandler(async event => {
   // Extract the `prompt` from the body of the request
-  const { messages } = await request.json()
+  const { messages } = await readBody(event)
 
   // Ask OpenAI for a streaming chat completion given the prompt
   const response = await openai.createChatCompletion({
@@ -27,5 +26,5 @@ export const POST = (async ({ request }) => {
   // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response)
   // Respond with the stream
-  return new StreamingTextResponse(stream)
-}) satisfies RequestHandler
+  streamToResponse(stream, event.node.res)
+})

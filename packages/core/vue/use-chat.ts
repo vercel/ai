@@ -1,17 +1,17 @@
-import { useSWR } from 'sswr'
-import { Readable, get, readable, writable } from 'svelte/store'
+import swrv from 'swrv'
+import { ref } from 'vue'
+import type { Ref } from 'vue'
 
 import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
-import { Writable } from 'svelte/store'
 import { decodeAIStreamChunk, nanoid } from '../shared/utils'
 
 export type { Message, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
-  messages: Readable<Message[]>
+  messages: Ref<Message[]>
   /** The error object of the API request */
-  error: Readable<undefined | Error>
+  error: Ref<undefined | Error>
   /**
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
@@ -36,15 +36,17 @@ export type UseChatHelpers = {
    */
   setMessages: (messages: Message[]) => void
   /** The current value of the input */
-  input: Writable<string>
+  input: Ref<string>
   /** Form submission handler to automattically reset input and append a user message  */
   handleSubmit: (e: any) => void
   /** Whether the API request is in progress */
-  isLoading: Writable<boolean>
+  isLoading: Ref<boolean>
 }
 
 let uniqueId = 0
 
+// @ts-expect-error - some issues with the default export of useSWRV
+const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv
 const store: Record<string, Message[] | undefined> = {}
 
 export function useChat({
@@ -63,33 +65,33 @@ export function useChat({
   const chatId = id || `chat-${uniqueId++}`
 
   const key = `${api}|${chatId}`
-  const { data, mutate: originalMutate } = useSWR<Message[]>(key, {
-    fetcher: () => store[key] || initialMessages,
-    initialData: initialMessages
-  })
+  const { data, mutate: originalMutate } = useSWRV<Message[]>(
+    key,
+    () => store[key] || initialMessages
+  )
   // Force the `data` to be `initialMessages` if it's `undefined`.
-  data.set(initialMessages)
+  data.value ||= initialMessages
 
-  const mutate = (data: Message[]) => {
+  const mutate = (data?: Message[]) => {
     store[key] = data
-    return originalMutate(data)
+    return originalMutate()
   }
 
   // Because of the `initialData` option, the `data` will never be `undefined`.
-  const messages = data as Writable<Message[]>
+  const messages = data as Ref<Message[]>
 
-  const error = writable<undefined | Error>(undefined)
-  const isLoading = writable(false)
+  const error = ref<undefined | Error>(undefined)
+  const isLoading = ref(false)
 
   let abortController: AbortController | null = null
   async function triggerRequest(messagesSnapshot: Message[]) {
     try {
-      isLoading.set(true)
+      isLoading.value = true
       abortController = new AbortController()
 
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
-      const previousMessages = get(messages)
+      const previousMessages = messages.value
       mutate(messagesSnapshot)
 
       const res = await fetch(api, {
@@ -181,9 +183,9 @@ export function useChat({
         onError(err)
       }
 
-      error.set(err as Error)
+      error.value = err as Error
     } finally {
-      isLoading.set(false)
+      isLoading.value = false
     }
   }
 
@@ -191,11 +193,11 @@ export function useChat({
     if (!message.id) {
       message.id = nanoid()
     }
-    return triggerRequest(get(messages).concat(message as Message))
+    return triggerRequest(messages.value.concat(message as Message))
   }
 
   const reload = async () => {
-    const messagesSnapshot = get(messages)
+    const messagesSnapshot = messages.value
     if (messagesSnapshot.length === 0) return null
 
     const lastMessage = messagesSnapshot[messagesSnapshot.length - 1]
@@ -216,17 +218,17 @@ export function useChat({
     mutate(messages)
   }
 
-  const input = writable(initialInput)
+  const input = ref(initialInput)
 
   const handleSubmit = (e: any) => {
     e.preventDefault()
-    const inputValue = get(input)
+    const inputValue = input.value
     if (!inputValue) return
     append({
       content: inputValue,
       role: 'user'
     })
-    input.set('')
+    input.value = ''
   }
 
   return {

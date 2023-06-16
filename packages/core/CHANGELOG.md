@@ -1,5 +1,27 @@
 # ai
 
+## 2.1.2
+
+### Patch Changes
+
+- f37d4ec: fix bundling
+
+## 2.1.1
+
+### Patch Changes
+
+- 9fdb51a: fix: add better typing for store within svelte implementation (#104)
+
+## 2.1.0
+
+### Minor Changes
+
+- 71f9c51: This adds Vue support for `ai` via the `ai/vue` subpath export. Vue composables `useChat` and `useCompletion` are provided.
+
+### Patch Changes
+
+- ad54c79: add tests
+
 ## 2.0.1
 
 ### Patch Changes
