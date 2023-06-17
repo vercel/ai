@@ -1,5 +1,5 @@
 import type { AIStreamOptions, AIStreamParser } from './types'
-import { type AIParserPlatform, TEXT_PARSERS } from './parsers'
+import { AIStreamParsers } from './parsers'
 import {
   createCallbacksTransform,
   createEventStreamTransform
@@ -7,19 +7,19 @@ import {
 
 export interface AIStreamParams extends AIStreamOptions {
   /**
-   * The platform to load a parser for. If no parser is provided, the raw
-   * response is returned.
+   * The chunk parsers to use for the given `AIStreamMode`, if any.
    */
-  platform?: AIParserPlatform
+  parsers?: AIStreamParsers
 }
 
 export type AIStream = (
   res: Response,
   params?: AIStreamParams
 ) => ReadableStream
+
 export const AIStream: AIStream = (
   res,
-  { mode = 'text', platform, ...callbacks } = {}
+  { mode = 'text', parsers, ...callbacks } = {}
 ) => {
   /**
    * If the response is not OK, we want to throw an error to indicate that the
@@ -34,19 +34,6 @@ export const AIStream: AIStream = (
     )
   }
 
-  let parser: AIStreamParser | undefined = undefined
-
-  switch (mode) {
-    case 'raw':
-      break
-
-    case 'text':
-      if (platform) {
-        parser = TEXT_PARSERS[platform]()
-      }
-      break
-  }
-
   const stream =
     res.body ||
     new ReadableStream({
@@ -54,6 +41,8 @@ export const AIStream: AIStream = (
         controller.close()
       }
     })
+
+  const parser = parsers?.(mode)
 
   return stream
     .pipeThrough(createEventStreamTransform(parser))

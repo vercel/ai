@@ -38,7 +38,7 @@ export async function POST(req) {
     stream: true,
     messages
   })
-  
+
   const stream = OpenAIStream(response)
   return new StreamingTextResponse(stream)
 }
@@ -79,29 +79,32 @@ export default function Chat() {
 argument for more advanced functionality:
 
 ```ts
-const stream = OpenAIStream(
-  response,
-  {
-    /**
-     * Return raw API JSON response without parsing text, e.g.:
-     * 
-     * "{ id: "chat-123...", "choices": [...] }"
-     */
-    mode: "raw",
-    /**
-     * Fires when stream starts.
-     */
-    onStart: () => { /** ... */ },
-    /**
-     * Fires when new token is received.
-     */
-    onToken: (token: string) => { /** ... */ },
-    /**
-     * Fires when stream is finished.
-     */
-    onCompletion: (completion: string) => { /** ... */ },
+const stream = OpenAIStream(response, {
+  /**
+   * Return raw API JSON response without parsing text, e.g.:
+   *
+   * "{ id: "chat-123...", "choices": [...] }"
+   */
+  mode: 'raw',
+  /**
+   * Fires when stream starts.
+   */
+  onStart: () => {
+    /** ... */
+  },
+  /**
+   * Fires when new token is received.
+   */
+  onToken: (token: string) => {
+    /** ... */
+  },
+  /**
+   * Fires when stream is finished.
+   */
+  onCompletion: (completion: string) => {
+    /** ... */
   }
-)
+})
 ```
 
 ---
