@@ -2,113 +2,135 @@ import {
   createParser,
   type EventSourceParser,
   type ParsedEvent,
-  type ReconnectInterval
-} from 'eventsource-parser'
+  type ReconnectInterval,
+} from 'eventsource-parser';
 
+/**
+ * Interface representing callbacks for an AIStream.
+ * @interface
+ */
 export interface AIStreamCallbacks {
-  onStart?: () => Promise<void>
-  onCompletion?: (completion: string) => Promise<void>
-  onToken?: (token: string) => Promise<void>
-}
-
-export interface AIStreamParser {
-  (data: string): string | void
-}
-
-export function createEventStreamTransformer(customParser: AIStreamParser) {
-  const decoder = new TextDecoder()
-  let parser: EventSourceParser
-
-  return new TransformStream<Uint8Array, string>({
-    async start(controller): Promise<void> {
-      function onParse(event: ParsedEvent | ReconnectInterval) {
-        if (event.type === 'event') {
-          const data = event.data
-          if (data === '[DONE]') {
-            controller.terminate()
-            return
-          }
-
-          const message = customParser(data)
-          if (message) controller.enqueue(message)
-        }
-      }
-
-      parser = createParser(onParse)
-    },
-
-    transform(chunk) {
-      parser.feed(decoder.decode(chunk))
-    }
-  })
+  onStart?: () => Promise<void>;
+  onCompletion?: (completion: string) => Promise<void>;
+  onToken?: (token: string) => Promise<void>;
 }
 
 /**
- * This stream forks input stream, allowing us to use the result as a
- * bytestream of the messages and pass the messages to our callback interface.
+ * Interface representing a custom parser for AIStream data.
+ * @interface
+ */
+export interface AIStreamParser {
+  (data: string): string | void;
+}
+
+/**
+ * Creates a transform stream that parses events from an EventSource stream.
+ * @param {AIStreamParser} customParser - A custom parser function.
+ * @return {TransformStream<Uint8Array, string>} A transform stream.
+ */
+export function createEventStreamTransformer(customParser: AIStreamParser): TransformStream<Uint8Array, string> {
+  const textDecoder = new TextDecoder();
+  let eventSourceParser: EventSourceParser;
+
+  return new TransformStream({
+    async start(controller): Promise<void> {
+      eventSourceParser = createParser((event: ParsedEvent | ReconnectInterval) => {
+        if ('data' in event && event.type === 'event' && event.data === '[DONE]') {
+          controller.terminate();
+          return;
+        }
+    
+        if ('data' in event) {
+          const parsedMessage = customParser(event.data);
+          if (parsedMessage) controller.enqueue(parsedMessage);
+        }
+      });
+    },
+
+    transform(chunk) {
+      eventSourceParser.feed(textDecoder.decode(chunk));
+    },
+  });
+}
+
+/**
+ * Creates a transform stream that calls back with messages.
+ * @param {AIStreamCallbacks} callbacks - The callbacks.
+ * @return {TransformStream<string, Uint8Array>} A transform stream.
  */
 export function createCallbacksTransformer(
   callbacks: AIStreamCallbacks | undefined
-) {
-  const encoder = new TextEncoder()
-  let fullResponse = ''
+): TransformStream<string, Uint8Array> {
+  const textEncoder = new TextEncoder();
+  let aggregatedResponse = '';
+  const { onStart, onToken, onCompletion } = callbacks || {};
 
-  const { onStart, onToken, onCompletion } = callbacks || {}
-
-  return new TransformStream<string, Uint8Array>({
+  return new TransformStream({
     async start(): Promise<void> {
-      if (onStart) await onStart()
+      if (onStart) await onStart();
     },
 
     async transform(message, controller): Promise<void> {
-      controller.enqueue(encoder.encode(message))
+      controller.enqueue(textEncoder.encode(message));
 
-      if (onToken) await onToken(message)
-      if (onCompletion) fullResponse += message
+      if (onToken) await onToken(message);
+      if (onCompletion) aggregatedResponse += message;
     },
 
     async flush(): Promise<void> {
-      await onCompletion?.(fullResponse)
+      if (onCompletion) await onCompletion(aggregatedResponse);
+    },
+  });
+}
+
+/**
+ * Creates a function to trim the start of a stream.
+ * @return {Function} A function that trims the start of a stream.
+ */
+export function trimStartOfStreamHelper(): (text: string) => string {
+  let isStreamStart = true;
+
+  return (text: string): string => {
+    if (isStreamStart) {
+      text = text.trimStart();
+      if (text) isStreamStart = false;
     }
-  })
+    return text;
+  };
 }
 
-// If we're still at the start of the stream, we want to trim the leading
-// `\n\n`. But, after we've seen some text, we no longer want to trim out
-// whitespace.
-export function trimStartOfStreamHelper() {
-  let start = true
-  return (text: string) => {
-    if (start) text = text.trimStart()
-    if (text) start = false
-    return text
-  }
-}
-
+/**
+ * Creates an AIStream from the response.
+ * @param {Response} response - The response.
+ * @param {AIStreamParser} customParser - The custom parser function.
+ * @param {AIStreamCallbacks} callbacks - The callbacks.
+ * @return {ReadableStream} The AIStream.
+ * @throws Will throw an error if the response is not OK.
+ */
 export function AIStream(
-  res: Response,
+  response: Response,
   customParser: AIStreamParser,
   callbacks?: AIStreamCallbacks
 ): ReadableStream {
-  // If the response is not OK, we want to throw an error to indicate that
-  // the AI service is not available.
-  // When catching this error, we can check the status code and return a handled
-  // error response to the client.
-  if (!res.ok) {
-    throw new Error(
-      `Failed to convert the response to stream. Received status code: ${res.status}.`
-    )
+  if (!response.ok) {
+    throw new Error(`Failed to convert the response to stream. Received status code: ${response.status}.`);
   }
 
-  const stream =
-    res.body ||
-    new ReadableStream({
-      start(controller) {
-        controller.close()
-      }
-    })
+  const responseBodyStream = response.body || createEmptyReadableStream();
 
-  return stream
+  return responseBodyStream
     .pipeThrough(createEventStreamTransformer(customParser))
-    .pipeThrough(createCallbacksTransformer(callbacks))
+    .pipeThrough(createCallbacksTransformer(callbacks));
+}
+
+/**
+ * Creates an empty ReadableStream.
+ * @return {ReadableStream} An empty ReadableStream.
+ */
+function createEmptyReadableStream(): ReadableStream {
+  return new ReadableStream({
+    start(controller) {
+      controller.close();
+    },
+  });
 }
