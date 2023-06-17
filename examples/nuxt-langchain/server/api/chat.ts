@@ -5,7 +5,7 @@ import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
 
 export const runtime = 'edge'
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event: any) => {
   // Extract the `prompt` from the body of the request
   const { messages } = await readBody(event)
 
@@ -13,7 +13,7 @@ export default defineEventHandler(async event => {
 
   const openaiApiKey = process.env.OPENAI_API_KEY || ''
   if (!openaiApiKey) {
-    console.error('OPENAI_API_KEY is not set in the environment')
+    throw new Error('OPENAI_API_KEY is not set in the environment')
   } else {
     const llm = new ChatOpenAI({
       openAIApiKey: process.env.OPENAI_API_KEY,
@@ -29,6 +29,7 @@ export default defineEventHandler(async event => {
             : new AIChatMessage(message.content)
         )
       )
+      // eslint-disable-next-line no-console
       .catch(console.error)
 
     return streamToResponse(stream, event.node.res)

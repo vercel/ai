@@ -9,7 +9,7 @@ const config = new Configuration({
 })
 const openai = new OpenAIApi(config)
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event: any) => {
   // Extract the `prompt` from the body of the request
   const { messages } = await readBody(event)
 
