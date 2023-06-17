@@ -5,7 +5,7 @@ import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
 
 export const runtime = 'edge'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   // Extract the `prompt` from the body of the request
   const { messages } = await readBody(event)
 
