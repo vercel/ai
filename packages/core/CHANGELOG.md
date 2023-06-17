@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.3
+
+### Patch Changes
+
+- a9591fe: Add `createdAt` on `user` input message in `useChat` (it was already present in `assistant` messages)
+
 ## 2.1.2
 
 ### Patch Changes
