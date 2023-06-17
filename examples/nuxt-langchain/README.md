@@ -32,4 +32,4 @@ To learn more about OpenAI, Nuxt, Langchain and the Vercel AI SDK take a look at
 - [Vercel AI Playground](https://play.vercel.ai) - compare and tune 20+ AI models side-by-side
 - [LangChain Documentation](https://js.langchain.com/docs) - learn about LangChain
 - [OpenAI Documentation](https://platform.openai.com/docs) - learn about OpenAI features and API.
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Nuxt Documentation](https://nuxt.com) - learn about Nuxt features and API.
