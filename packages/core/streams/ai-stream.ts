@@ -42,7 +42,7 @@ export const AIStream: AIStream = (
       }
     })
 
-  const parser = parsers?.(mode)
+  const parser = parsers?.()[mode]
 
   return stream
     .pipeThrough(createEventStreamTransform(parser))
