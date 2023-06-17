@@ -5,6 +5,8 @@ import {
   type ReconnectInterval
 } from 'eventsource-parser'
 
+import type { AxiosResponse } from 'axios'
+
 export interface AIStreamCallbacks {
   onStart?: () => Promise<void>
   onCompletion?: (completion: string) => Promise<void>
@@ -24,12 +26,15 @@ export function createEventStreamTransformer(customParser: AIStreamParser) {
       function onParse(event: ParsedEvent | ReconnectInterval) {
         if (event.type === 'event') {
           const data = event.data
+
           if (data === '[DONE]') {
-            controller.terminate()
+            controller?.terminate()
+
             return
           }
 
           const message = customParser(data)
+
           if (message) controller.enqueue(message)
         }
       }
@@ -61,7 +66,7 @@ export function createCallbacksTransformer(
     },
 
     async transform(message, controller): Promise<void> {
-      controller.enqueue(encoder.encode(message))
+      controller?.enqueue(encoder.encode(message))
 
       if (onToken) await onToken(message)
       if (onCompletion) fullResponse += message
@@ -86,7 +91,7 @@ export function trimStartOfStreamHelper() {
 }
 
 export function AIStream(
-  res: Response,
+  res: Response | AxiosResponse,
   customParser: AIStreamParser,
   callbacks?: AIStreamCallbacks
 ): ReadableStream {
@@ -94,6 +99,27 @@ export function AIStream(
   // the AI service is not available.
   // When catching this error, we can check the status code and return a handled
   // error response to the client.
+
+  // check if the response is an axios response
+  if (isAxiosResponse(res)) {
+    if (res.status !== 200) {
+      throw new Error(
+        `Failed to convert the response to stream. Received status code: ${res.status}.`
+      )
+    }
+    const stream = res.data
+      ? nodeToWebStreams(res.data)
+      : new ReadableStream({
+          start(controller) {
+            controller.close()
+          }
+        })
+
+    return stream
+      .pipeThrough(createEventStreamTransformer(customParser))
+      .pipeThrough(createCallbacksTransformer(callbacks))
+  }
+
   if (!res.ok) {
     throw new Error(
       `Failed to convert the response to stream. Received status code: ${res.status}.`
@@ -111,4 +137,38 @@ export function AIStream(
   return stream
     .pipeThrough(createEventStreamTransformer(customParser))
     .pipeThrough(createCallbacksTransformer(callbacks))
+}
+
+function isAxiosResponse(res: Response | AxiosResponse): res is AxiosResponse {
+  return (res as AxiosResponse).data !== undefined
+}
+
+function nodeToWebStreams(
+  nodeStream: NodeJS.ReadableStream
+): ReadableStream<Uint8Array> {
+  let controllerClosed = false
+
+  return new ReadableStream({
+    start(controller) {
+      nodeStream.on('data', chunk => {
+        if (!controllerClosed) {
+          controller.enqueue(new Uint8Array(chunk))
+        }
+      })
+      nodeStream.on('error', err => {
+        if (!controllerClosed) {
+          controller.error(err)
+        }
+      })
+      nodeStream.on('end', () => {
+        if (!controllerClosed) {
+          controller.close()
+          controllerClosed = true
+        }
+      })
+    },
+    cancel() {
+      controllerClosed = true
+    }
+  })
 }

@@ -24,6 +24,7 @@ export function streamToResponse(
   response: ServerResponse,
   init?: { headers?: Record<string, string>; status?: number }
 ) {
+  console.log('streamToResponse')
   response.writeHead(init?.status || 200, {
     'Content-Type': 'text/plain; charset=utf-8',
     ...init?.headers

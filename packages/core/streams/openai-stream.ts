@@ -1,3 +1,4 @@
+import { AxiosResponse } from 'axios'
 import {
   AIStream,
   trimStartOfStreamHelper,
@@ -20,7 +21,7 @@ function parseOpenAIStream(): (data: string) => string | void {
 }
 
 export function OpenAIStream(
-  res: Response,
+  res: Response | AxiosResponse,
   cb?: AIStreamCallbacks
 ): ReadableStream {
   return AIStream(res, parseOpenAIStream(), cb)
