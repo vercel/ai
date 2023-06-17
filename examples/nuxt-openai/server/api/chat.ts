@@ -9,7 +9,7 @@ const config = new Configuration({
 })
 const openai = new OpenAIApi(config)
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event: any) => {
   // Extract the `prompt` from the body of the request
   const { messages } = await readBody(event)
 
@@ -26,5 +26,18 @@ export default defineEventHandler(async event => {
   // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response)
   // Respond with the stream
-  streamToResponse(stream, event.node.res)
+  const reader = stream.getReader()
+  return new Promise((resolve, reject) => {
+    function read() {
+      reader.read().then(({ done, value }) => {
+        if (done) {
+          event.node.res.end()
+          return
+        }
+        event.node.res.write(value)
+        read()
+      })
+    }
+    read()
+  })
 })
