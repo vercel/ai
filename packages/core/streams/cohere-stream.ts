@@ -1,11 +1,6 @@
-import {
-  type AIStreamCallbacks,
-  createCallbacksTransformer,
-  trimStartOfStreamHelper
-} from './ai-stream'
+import { type AIStreamCallbacks, createCallbacksTransformer } from './ai-stream'
 
 function createParser(res: AsyncGenerator<any>) {
-  const trimStartOfStream = trimStartOfStreamHelper()
   return new ReadableStream<string>({
     async pull(controller): Promise<void> {
       const { value, done } = await res.next()
