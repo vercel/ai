@@ -46,7 +46,7 @@ To learn more about Hugging Face, Next.js, and the Vercel AI SDK take a look at 
 
 - [Vercel AI SDK docs](https://sdk.vercel.ai/docs)
 - [Vercel AI Playground](https://play.vercel.ai)
-- [Hugging Face Inference Documentation](https://huggingface.co/docs/huggingface.js/inference/READMEs) - learn about Hugging Face Inference SDK features and API.
+- [Hugging Face Inference Documentation](https://huggingface.co/docs/huggingface.js/inference/README) - learn about Hugging Face Inference SDK features and API.
 - [Open-Assistant SFT-4 12B Model](https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5) - learn about the AI model in use
 - [Open Assistant Project](https://open-assistant.io/) - learn about the Open Assistant project
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.

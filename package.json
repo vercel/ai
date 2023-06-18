@@ -32,6 +32,16 @@
     "ts-jest": "29.0.3",
     "turbo": "^1.10.0"
   },
+  "homepage": "https://github.com/vercel-labs/ai#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vercel-labs/ai.git"
+  },
+  "license": "Apache License",
+  "bugs": {
+    "url": "https://github.com/vercel-labs/ai/issues"
+  },
+  "keywords": ["ai"],
   "packageManager": "pnpm@8.6.2",
   "prettier": {
     "tabWidth": 2,
