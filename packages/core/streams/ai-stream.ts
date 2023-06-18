@@ -111,10 +111,10 @@ export function createCallbacksTransformer(
  * from the input text. The trimming only occurs on the first invocation, ensuring that
  * subsequent calls do not alter the input text. This is particularly useful in scenarios
  * where a text stream is being processed and only the initial whitespace should be removed.
- * 
+ *
  * @return {function(string): string} A function that takes a string as input and returns a string
  * with leading whitespace removed if it is the first invocation; otherwise, it returns the input unchanged.
- * 
+ *
  * @example
  * const trimStart = trimStartOfStreamHelper();
  * const output1 = trimStart("   text"); // "text"
