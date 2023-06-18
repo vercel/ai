@@ -44,7 +44,7 @@ export type UseChatHelpers = {
   isLoading: Ref<boolean>
 }
 
-let uniqueId = v4()
+const uniqueId = v4()
 
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv
