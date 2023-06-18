@@ -155,7 +155,7 @@ function createStream(iterator) {
 
 Since the solution is the same as implementing back-pressure, it shows that they're just 2 facets of the same problem: Pushing values into a stream should be done **lazily**, and doing it eagerly results in expected problems.
 
-## Trying Stream Laziness to AI Responses
+## Tying Stream Laziness to AI Responses
 
 Now let's imagine you're integrating AIBot service into your product. Users will be able to prompt "count from 1 to infinity", the browser will fetch your AI API endpoint, and your servers connect to AIBot to get a response. But "infinity" is, well, infinite. The response will never end!
 
