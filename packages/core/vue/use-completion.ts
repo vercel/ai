@@ -1,9 +1,10 @@
-import swrv from 'swrv'
-import { ref } from 'vue'
-import type { Ref } from 'vue'
+import swrv from 'swrv';
+import { ref } from 'vue';
+import type { Ref } from 'vue';
+import { v4 } from 'uuid';
 
-import { decodeAIStreamChunk } from '../shared/utils'
-import { UseCompletionOptions } from '../shared/types'
+import { decodeAIStreamChunk } from '../shared/utils';
+import { UseCompletionOptions } from '../shared/types';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -38,7 +39,7 @@ export type UseCompletionHelpers = {
   isLoading: Ref<boolean>
 }
 
-let uniqueId = 0
+const uniqueId = v4()
 
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv
@@ -56,7 +57,7 @@ export function useCompletion({
   onError
 }: UseCompletionOptions = {}): UseCompletionHelpers {
   // Generate an unique id for the completion if not provided.
-  const completionId = id || `completion-${uniqueId++}`
+  const completionId = id || `completion-${uniqueId}`
 
   const key = `${api}|${completionId}`
   const { data, mutate: originalMutate } = useSWRV<string>(

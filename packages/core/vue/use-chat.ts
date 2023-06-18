@@ -1,6 +1,7 @@
 import swrv from 'swrv'
 import { ref } from 'vue'
 import type { Ref } from 'vue'
+import { v4 } from 'uuid'
 
 import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
 import { decodeAIStreamChunk, nanoid } from '../shared/utils'
@@ -43,7 +44,7 @@ export type UseChatHelpers = {
   isLoading: Ref<boolean>
 }
 
-let uniqueId = 0
+let uniqueId = v4()
 
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv
@@ -62,7 +63,7 @@ export function useChat({
   body
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
-  const chatId = id || `chat-${uniqueId++}`
+  const chatId = id || `chat-${uniqueId}`
 
   const key = `${api}|${chatId}`
   const { data, mutate: originalMutate } = useSWRV<Message[]>(
