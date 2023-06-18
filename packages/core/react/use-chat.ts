@@ -53,6 +53,7 @@ export function useChat({
   initialInput = '',
   sendExtraMessageFields,
   onResponse,
+  onStart,
   onFinish,
   onError,
   headers,
@@ -61,6 +62,11 @@ export function useChat({
   // Generate an unique id for the chat if not provided.
   const hookId = useId()
   const chatId = id || hookId
+
+  //Useful to execute logic when the chat is mounted.
+  if (onStart) {
+    onStart()
+  }
 
   // Store the chat state in SWR, using the chatId as the key to share states.
   const { data, mutate } = useSWR<Message[]>([api, chatId], null, {

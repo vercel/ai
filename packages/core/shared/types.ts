@@ -50,6 +50,11 @@ export type UseChatOptions = {
   onFinish?: (message: Message) => void
 
   /**
+   * Callback function to be called before running the chat logic.
+   */
+  onStart?: () => void
+
+  /**
    * Callback function to be called when an error is encountered.
    */
   onError?: (error: Error) => void
