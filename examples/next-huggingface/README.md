@@ -1,4 +1,4 @@
-# Vercel AI SDK, Next.js, and HuggingFace Chat Example
+# Vercel AI SDK, Next.js, and Hugging Face Chat Example
 
 This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) and the [Hugging Face Inference](https://huggingface.co) to create a ChatGPT-like AI-powered streaming chat bot with [Open Assistant's SFT-4 12B](https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5) as the chat model.
 
@@ -32,7 +32,7 @@ To run the example locally you need to:
 4. `pnpm install` to install the required dependencies.
 5. `pnpm dev` to launch the development server.
 
-## About HuggingFace
+## About Hugging Face
 
 [Hugging Face](https://huggingface.co) is company that develops tools for building applications using machine learning. It is most notable for its [Transformers](https://huggingface.co/docs/transformers/index) Python library built for natural language processing applications and its platform that allows users to share machine learning models and datasets.
 
