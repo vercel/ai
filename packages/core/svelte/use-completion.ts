@@ -1,10 +1,10 @@
-import { useSWR } from 'sswr';
-import { Readable, get, writable } from 'svelte/store';
-import { v4 } from 'uuid';
+import { useSWR } from 'sswr'
+import { Readable, get, writable } from 'svelte/store'
+import { v4 } from 'uuid'
 
-import { Writable } from 'svelte/store';
-import { decodeAIStreamChunk } from '../shared/utils';
-import { UseCompletionOptions } from '../shared/types';
+import { Writable } from 'svelte/store'
+import { decodeAIStreamChunk } from '../shared/utils'
+import { UseCompletionOptions } from '../shared/types'
 
 export type UseCompletionHelpers = {
   /** The current completion result */

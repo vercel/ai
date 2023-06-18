@@ -1,10 +1,10 @@
-import swrv from 'swrv';
-import { ref } from 'vue';
-import type { Ref } from 'vue';
-import { v4 } from 'uuid';
+import swrv from 'swrv'
+import { ref } from 'vue'
+import type { Ref } from 'vue'
+import { v4 } from 'uuid'
 
-import { decodeAIStreamChunk } from '../shared/utils';
-import { UseCompletionOptions } from '../shared/types';
+import { decodeAIStreamChunk } from '../shared/utils'
+import { UseCompletionOptions } from '../shared/types'
 
 export type UseCompletionHelpers = {
   /** The current completion result */
