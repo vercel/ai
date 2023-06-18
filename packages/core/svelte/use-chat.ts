@@ -1,9 +1,10 @@
-import { useSWR } from 'sswr'
-import { Readable, get, readable, writable } from 'svelte/store'
+import { useSWR } from 'sswr';
+import { Readable, get, writable } from 'svelte/store';
+import { v4 } from 'uuid';
 
-import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
-import { Writable } from 'svelte/store'
-import { decodeAIStreamChunk, nanoid } from '../shared/utils'
+import type { Message, CreateMessage, UseChatOptions } from '../shared/types';
+import { Writable } from 'svelte/store';
+import { decodeAIStreamChunk, nanoid } from '../shared/utils';
 
 export type { Message, CreateMessage, UseChatOptions }
 
@@ -43,7 +44,7 @@ export type UseChatHelpers = {
   isLoading: Writable<boolean>
 }
 
-let uniqueId = 0
+const uniqueId = v4()
 
 const store: Record<string, Message[] | undefined> = {}
 
@@ -60,7 +61,7 @@ export function useChat({
   body
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
-  const chatId = id || `chat-${uniqueId++}`
+  const chatId = id || `chat-${uniqueId}`
 
   const key = `${api}|${chatId}`
   const { data, mutate: originalMutate } = useSWR<Message[]>(key, {

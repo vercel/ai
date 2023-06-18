@@ -1,9 +1,10 @@
-import { useSWR } from 'sswr'
-import { Readable, get, writable } from 'svelte/store'
+import { useSWR } from 'sswr';
+import { Readable, get, writable } from 'svelte/store';
+import { v4 } from 'uuid';
 
-import { Writable } from 'svelte/store'
-import { decodeAIStreamChunk } from '../shared/utils'
-import { UseCompletionOptions } from '../shared/types'
+import { Writable } from 'svelte/store';
+import { decodeAIStreamChunk } from '../shared/utils';
+import { UseCompletionOptions } from '../shared/types';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -38,7 +39,7 @@ export type UseCompletionHelpers = {
   isLoading: Writable<boolean>
 }
 
-let uniqueId = 0
+const uniqueId = v4()
 
 const store: Record<string, any> = {}
 
@@ -54,7 +55,7 @@ export function useCompletion({
   onError
 }: UseCompletionOptions = {}): UseCompletionHelpers {
   // Generate an unique id for the completion if not provided.
-  const completionId = id || `completion-${uniqueId++}`
+  const completionId = id || `completion-${uniqueId}`
 
   const key = `${api}|${completionId}`
   const { data, mutate: originalMutate } = useSWR<string>(key, {
