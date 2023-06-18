@@ -1,9 +1,8 @@
 import { useSWR } from 'sswr'
 import { Readable, get, writable } from 'svelte/store'
-import { v4 } from 'uuid'
 
 import { Writable } from 'svelte/store'
-import { decodeAIStreamChunk } from '../shared/utils'
+import { decodeAIStreamChunk, nanoid } from '../shared/utils'
 import { UseCompletionOptions } from '../shared/types'
 
 export type UseCompletionHelpers = {
@@ -39,7 +38,7 @@ export type UseCompletionHelpers = {
   isLoading: Writable<boolean>
 }
 
-const uniqueId = v4()
+const uniqueId = nanoid()
 
 const store: Record<string, any> = {}
 

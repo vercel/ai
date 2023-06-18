@@ -1,6 +1,5 @@
 import { useSWR } from 'sswr'
 import { Readable, get, writable } from 'svelte/store'
-import { v4 } from 'uuid'
 
 import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
 import { Writable } from 'svelte/store'
@@ -44,7 +43,7 @@ export type UseChatHelpers = {
   isLoading: Writable<boolean>
 }
 
-const uniqueId = v4()
+const uniqueId = nanoid()
 
 const store: Record<string, Message[] | undefined> = {}
 

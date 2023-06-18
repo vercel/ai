@@ -1,7 +1,6 @@
 import swrv from 'swrv'
 import { ref } from 'vue'
 import type { Ref } from 'vue'
-import { v4 } from 'uuid'
 
 import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
 import { decodeAIStreamChunk, nanoid } from '../shared/utils'
@@ -44,7 +43,7 @@ export type UseChatHelpers = {
   isLoading: Ref<boolean>
 }
 
-const uniqueId = v4()
+const uniqueId = nanoid()
 
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv
