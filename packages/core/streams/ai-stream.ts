@@ -6,7 +6,7 @@ import {
 } from 'eventsource-parser'
 
 /**
- * Interface representing callbacks for an AIStream.
+ * Helper callback methods for AIStream stream lifecycle events
  * @interface
  */
 export interface AIStreamCallbacks {
@@ -16,7 +16,7 @@ export interface AIStreamCallbacks {
 }
 
 /**
- * Interface representing a custom parser for AIStream data.
+ * Custom parser for AIStream data.
  * @interface
  */
 export interface AIStreamParser {
@@ -24,9 +24,9 @@ export interface AIStreamParser {
 }
 
 /**
- * Creates a transform stream that parses events from an EventSource stream.
- * @param {AIStreamParser} customParser - A custom parser function.
- * @return {TransformStream<Uint8Array, string>} A transform stream.
+ * Creates a TransformStream that parses events from an EventSource stream using a custom parser.
+ * @param {AIStreamParser} customParser - Function to handle event data.
+ * @returns {TransformStream<Uint8Array, string>} TransformStream parsing events.
  */
 export function createEventStreamTransformer(
   customParser: AIStreamParser
@@ -62,9 +62,24 @@ export function createEventStreamTransformer(
 }
 
 /**
- * Creates a transform stream that calls back with messages.
- * @param {AIStreamCallbacks} callbacks - The callbacks.
- * @return {TransformStream<string, Uint8Array>} A transform stream.
+ * Creates a transform stream that encodes input messages and invokes optional callback functions.
+ * The transform stream uses the provided callbacks to execute custom logic at different stages of the stream's lifecycle.
+ * - `onStart`: Called once when the stream is initialized.
+ * - `onToken`: Called for each tokenized message.
+ * - `onCompletion`: Called once when the stream is flushed, with the aggregated messages.
+ *
+ * This function is useful when you want to process a stream of messages and perform specific actions during the stream's lifecycle.
+ *
+ * @param {AIStreamCallbacks} [callbacks] - An object containing the callback functions.
+ * @return {TransformStream<string, Uint8Array>} A transform stream that encodes input messages as Uint8Array and allows the execution of custom logic through callbacks.
+ *
+ * @example
+ * const callbacks = {
+ *   onStart: async () => console.log('Stream started'),
+ *   onToken: async (token) => console.log(`Token: ${token}`),
+ *   onCompletion: async (completion) => console.log(`Completion: ${completion}`)
+ * };
+ * const transformer = createCallbacksTransformer(callbacks);
  */
 export function createCallbacksTransformer(
   callbacks: AIStreamCallbacks | undefined
@@ -92,8 +107,19 @@ export function createCallbacksTransformer(
 }
 
 /**
- * Creates a function to trim the start of a stream.
- * @return {Function} A function that trims the start of a stream.
+ * Returns a stateful function that, when invoked, trims leading whitespace
+ * from the input text. The trimming only occurs on the first invocation, ensuring that
+ * subsequent calls do not alter the input text. This is particularly useful in scenarios
+ * where a text stream is being processed and only the initial whitespace should be removed.
+ * 
+ * @return {function(string): string} A function that takes a string as input and returns a string
+ * with leading whitespace removed if it is the first invocation; otherwise, it returns the input unchanged.
+ * 
+ * @example
+ * const trimStart = trimStartOfStreamHelper();
+ * const output1 = trimStart("   text"); // "text"
+ * const output2 = trimStart("   text"); // "   text"
+ *
  */
 export function trimStartOfStreamHelper(): (text: string) => string {
   let isStreamStart = true
@@ -108,7 +134,9 @@ export function trimStartOfStreamHelper(): (text: string) => string {
 }
 
 /**
- * Creates an AIStream from the response.
+ * Returns a ReadableStream created from the response, parsed and handled with custom logic.
+ * The stream goes through two transformation stages, first parsing the events and then
+ * invoking the provided callbacks.
  * @param {Response} response - The response.
  * @param {AIStreamParser} customParser - The custom parser function.
  * @param {AIStreamCallbacks} callbacks - The callbacks.
@@ -134,8 +162,11 @@ export function AIStream(
 }
 
 /**
- * Creates an empty ReadableStream.
- * @return {ReadableStream} An empty ReadableStream.
+ * Creates an empty ReadableStream that immediately closes upon creation.
+ * This function is used as a fallback for creating a ReadableStream when the response body is null or undefined,
+ * ensuring that the subsequent pipeline processing doesn't fail due to a lack of a stream.
+ *
+ * @returns {ReadableStream} An empty and closed ReadableStream instance.
  */
 function createEmptyReadableStream(): ReadableStream {
   return new ReadableStream({
