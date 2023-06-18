@@ -66,6 +66,7 @@
     "@types/node": "^17.0.12",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "@types/uuid": "^9.0.2",
     "@vercel/ai-tsconfig": "workspace:*",
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
