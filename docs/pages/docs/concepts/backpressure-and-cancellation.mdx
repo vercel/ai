@@ -36,18 +36,18 @@ function createStream(iterator) {
 }
 
 // Collect data from stream
-async function run(){
+async function run() {
   // Set up a stream that of integers
   const stream = createStream(integers())
 
   // Read values from our stream
   const reader = stream.getReader()
   for (let i = 0; i < 10_000; i++) {
-  // we know our stream is infinite, so there's no need to check `done`.
-  const { value } = await reader.read()
-  console.log(`read ${value}`)
+    // we know our stream is infinite, so there's no need to check `done`.
+    const { value } = await reader.read()
+    console.log(`read ${value}`)
 
-  await sleep(1_000)
+    await sleep(1_000)
   }
 }
 run()
@@ -114,7 +114,7 @@ function createStream(iterator) {
   })
 }
 // Collect data from stream
-async function run(){
+async function run() {
   // Set up a stream that of integers
   const stream = createStream(integers())
 
