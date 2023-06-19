@@ -13,7 +13,6 @@ Here is an example implementation of a chat application that uses both Vercel AI
 
 ```tsx filename="app/api/chat/route.ts" {1,11,15,28}
 import { StreamingTextResponse, LangChainStream, Message } from 'ai'
-import { CallbackManager } from 'langchain/callbacks'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
 
@@ -26,7 +25,7 @@ export async function POST(req: Request) {
 
   const llm = new ChatOpenAI({
     streaming: true,
-    callbackManager: CallbackManager.fromHandlers(handlers)
+    callbacks: [handlers]
   })
 
   llm
