@@ -2,7 +2,7 @@ import {
   AIStream,
   trimStartOfStreamHelper,
   type AIStreamCallbacks
-} from './ai-stream';
+} from './ai-stream'
 
 /**
  * Creates a parser function for processing the OpenAI stream data.
@@ -12,13 +12,13 @@ import {
  * @return {(data: string) => string | void} A parser function that takes a JSON string as input and returns the extracted text content or nothing.
  */
 function parseOpenAIStream(): (data: string) => string | void {
-  const trimStartOfStream = trimStartOfStreamHelper();
+  const trimStartOfStream = trimStartOfStreamHelper()
   return data => {
-    const json = JSON.parse(data);
+    const json = JSON.parse(data)
     const text = trimStartOfStream(
       json.choices[0]?.delta?.content ?? json.choices[0]?.text ?? ''
-    );
-    return text;
+    )
+    return text
   }
 }
 
@@ -46,26 +46,25 @@ export function OpenAIStream(
   cb?: AIStreamCallbacks
 ): ReadableStream {
   if (res.ok) {
-    return AIStream(res, parseOpenAIStream(), cb);
+    return AIStream(res, parseOpenAIStream(), cb)
   } else {
     if (res.body) {
-      const reader = res.body.getReader();
+      const reader = res.body.getReader()
       return new ReadableStream({
         async start(controller) {
-          const { done, value } = await reader.read();
+          const { done, value } = await reader.read()
           if (!done) {
-            const errorText = new TextDecoder().decode(value);
-            controller.error(new Error(`Response error: ${errorText}`));
+            const errorText = new TextDecoder().decode(value)
+            controller.error(new Error(`Response error: ${errorText}`))
           }
         }
-      });
+      })
     } else {
       return new ReadableStream({
         start(controller) {
-          controller.error(new Error('Response error: No response body'));
+          controller.error(new Error('Response error: No response body'))
         }
-      });
+      })
     }
   }
 }
-
