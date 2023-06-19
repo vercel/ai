@@ -346,7 +346,7 @@ Output:\n`
       )
       if (!completion) throw new Error('Failed to check typos')
       const typos = JSON.parse(completion)
-      // you should more validation here to make sure the response is valid
+      // you should add more validation here to make sure the response is valid
       if (typos?.length && !window.confirm('Typos found… continue?')) return
       else alert('Post published')
     },
