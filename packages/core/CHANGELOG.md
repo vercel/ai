@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.4
+
+### Patch Changes
+
+- c16d650: Improve type saftey for AIStream. Added JSDoc comments.
+
 ## 2.1.3
 
 ### Patch Changes
