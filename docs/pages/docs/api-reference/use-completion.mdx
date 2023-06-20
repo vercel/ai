@@ -336,17 +336,10 @@ export default function PostEditorPage() {
 
   const checkAndPublish = useCallback(
     async (c: string) => {
-      const completion = await complete(
-        // a precise prompt is important for the AI to reply with the correct tokens
-        `Given the following post content, detect if it has typo or not. 
-Respond with a JSON array of typos ["typo1", "typo2", ...] or an empty [] if there's none. Only respond with an array. Post content:
-${c}
-        
-Output:\n`
-      )
+      const completion = await complete(c)
       if (!completion) throw new Error('Failed to check typos')
       const typos = JSON.parse(completion)
-      // you should add more validation here to make sure the response is valid
+      // you should more validation here to make sure the response is valid
       if (typos?.length && !window.confirm('Typos found… continue?')) return
       else alert('Post published')
     },
@@ -390,9 +383,19 @@ export async function POST(req: Request) {
   const response = await openai.createChatCompletion({
     model: 'gpt-3.5-turbo',
     stream: true,
-    messages: [{ role: 'user', content: prompt }],
+    // a precise prompt is important for the AI to reply with the correct tokens
+    messages: [
+      {
+        role: 'user',
+        content: `Given the following post content, detect if it has typo or not. 
+Respond with a JSON array of typos ["typo1", "typo2", ...] or an empty [] if there's none. Only respond with an array. Post content:
+${prompt}
+        
+Output:\n`
+      }
+    ],
     max_tokens: 200,
-    temperature: 0.7,
+    temperature: 0, // you want absolute certainty for spell check
     top_p: 1,
     frequency_penalty: 1,
     presence_penalty: 1
