@@ -29,10 +29,10 @@ import { OpenAIStream, StreamingTextResponse } from 'ai'
 const config = new Configuration({
   apiKey: process.env.OPENAI_API_KEY
 })
+
 const openai = new OpenAIApi(config)
 
 export const runtime = 'edge'
-
 export async function POST(req) {
   const { messages } = await req.json()
   const response = await openai.createChatCompletion({
@@ -40,6 +40,7 @@ export async function POST(req) {
     stream: true,
     messages
   })
+
   const stream = OpenAIStream(response)
   return new StreamingTextResponse(stream)
 }
@@ -72,6 +73,40 @@ export default function Chat() {
     </div>
   )
 }
+```
+
+### Advanced usage
+
+`OpenAIStream` and `AnthropicStream` accept a second `options: AIStreamOptions`
+argument for more advanced functionality:
+
+```ts
+const stream = OpenAIStream(response, {
+  /**
+   * Return raw API JSON response without parsing text, e.g.:
+   *
+   * "{ id: "chat-123...", "choices": [...] }"
+   */
+  mode: 'raw',
+  /**
+   * Fires when stream starts.
+   */
+  onStart: () => {
+    /** ... */
+  },
+  /**
+   * Fires when new token is received.
+   */
+  onToken: (token: string) => {
+    /** ... */
+  },
+  /**
+   * Fires when stream is finished.
+   */
+  onCompletion: (completion: string) => {
+    /** ... */
+  }
+})
 ```
 
 ---
