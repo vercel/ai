@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.5
+
+### Patch Changes
+
+- 89938b0: Provider direct callback handlers in LangChain now that `CallbackManager` is deprecated.
+
 ## 2.1.4
 
 ### Patch Changes
