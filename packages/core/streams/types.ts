@@ -2,7 +2,7 @@
  * Whether the stream should parse the content from an API response or return
  * it unmodified.
  */
-export type AIStreamMode = 'text' | 'raw'
+export type AIStreamMode = 'raw' | 'text' | 'json'
 
 /**
  * All of the configuration options for an AI stream.
@@ -30,6 +30,4 @@ export interface AIStreamCallbacks {
   onToken?: (token: string) => Promise<void>
 }
 
-export interface AIStreamParser {
-  (data: string): string | void
-}
+export type AIStreamParser = null | ((data: string) => string | void)
