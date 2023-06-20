@@ -97,7 +97,7 @@ We've written some code to get you started — follow the instructions below to 
     });
     const openai = new OpenAIApi(config);
 
-    // IMPORTANT! Set the runtime to edge
+    // Set the runtime to edge for best performance
     export const runtime = 'edge';
 
     export async function POST(req: Request) {
@@ -140,6 +140,9 @@ We've written some code to get you started — follow the instructions below to 
       apiKey: OPENAI_API_KEY,
     });
     const openai = new OpenAIApi(config);
+
+    // Set the runtime to edge for best performance
+    export const runtime = 'edge'
 
     export async function POST({ request }) {
       const { prompt } = await request.json();
