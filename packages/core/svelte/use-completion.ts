@@ -38,8 +38,6 @@ export type UseCompletionHelpers = {
   isLoading: Writable<boolean>
 }
 
-const uniqueId = nanoid()
-
 const store: Record<string, any> = {}
 
 export function useCompletion({
@@ -54,7 +52,7 @@ export function useCompletion({
   onError
 }: UseCompletionOptions = {}): UseCompletionHelpers {
   // Generate an unique id for the completion if not provided.
-  const completionId = id || `completion-${uniqueId}`
+  const completionId = id || `completion-${nanoid()}`
 
   const key = `${api}|${completionId}`
   const { data, mutate: originalMutate } = useSWR<string>(key, {

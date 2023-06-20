@@ -39,8 +39,6 @@ export type UseCompletionHelpers = {
   isLoading: Ref<boolean>
 }
 
-const uniqueId = nanoid()
-
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv
 const store: Record<string, any> = {}
@@ -57,7 +55,7 @@ export function useCompletion({
   onError
 }: UseCompletionOptions = {}): UseCompletionHelpers {
   // Generate an unique id for the completion if not provided.
-  const completionId = id || `completion-${uniqueId}`
+  const completionId = id || `completion-${nanoid()}`
 
   const key = `${api}|${completionId}`
   const { data, mutate: originalMutate } = useSWRV<string>(
