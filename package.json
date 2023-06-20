@@ -41,8 +41,10 @@
   "bugs": {
     "url": "https://github.com/vercel-labs/ai/issues"
   },
-  "keywords": ["ai"],
-  "packageManager": "pnpm@8.6.2",
+  "keywords": [
+    "ai"
+  ],
+  "packageManager": "pnpm@8.6.3",
   "prettier": {
     "tabWidth": 2,
     "semi": false,

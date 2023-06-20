@@ -32,7 +32,11 @@ export type UseCompletionHelpers = {
    * <input onChange={handleInputChange} value={input} />
    * ```
    */
-  handleInputChange: (e: any) => void
+  handleInputChange: (
+    e:
+      | React.ChangeEvent<HTMLInputElement>
+      | React.ChangeEvent<HTMLTextAreaElement>
+  ) => void
   /**
    * Form submission handler to automattically reset input and append a user message
    * @example
