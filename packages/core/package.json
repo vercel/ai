@@ -54,9 +54,9 @@
   },
   "dependencies": {
     "eventsource-parser": "1.0.0",
+    "swr": "2.1.5",
     "nanoid": "^3.3.6",
     "sswr": "^1.10.0",
-    "swr": "2.1.5",
     "swrv": "1.0.3"
   },
   "devDependencies": {
@@ -69,6 +69,7 @@
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
     "jest": "29.2.1",
+    "openai-edge": "^1.1.0",
     "ts-jest": "29.0.3",
     "tsup": "^6.7.0",
     "typescript": "5.1.3"
