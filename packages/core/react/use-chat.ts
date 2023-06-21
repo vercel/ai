@@ -3,52 +3,13 @@ import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
 import { nanoid, createChunkDecoder } from '../shared/utils'
 
-import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
+import type {
+  Message,
+  CreateMessage,
+  UseChatOptions,
+  UseChatHelpersReact
+} from '../shared/types'
 export type { Message, CreateMessage, UseChatOptions }
-
-export type UseChatHelpers = {
-  /** Current messages in the chat */
-  messages: Message[]
-  /** The error object of the API request */
-  error: undefined | Error
-  /**
-   * Append a user message to the chat list. This triggers the API call to fetch
-   * the assistant's response.
-   */
-  append: (
-    message: Message | CreateMessage
-  ) => Promise<string | null | undefined>
-  /**
-   * Reload the last AI chat response for the given chat history. If the last
-   * message isn't from the assistant, it will request the API to generate a
-   * new response.
-   */
-  reload: () => Promise<string | null | undefined>
-  /**
-   * Abort the current request immediately, keep the generated tokens if any.
-   */
-  stop: () => void
-  /**
-   * Update the `messages` state locally. This is useful when you want to
-   * edit the messages on the client, and then trigger the `reload` method
-   * manually to regenerate the AI response.
-   */
-  setMessages: (messages: Message[]) => void
-  /** The current value of the input */
-  input: string
-  /** setState-powered method to update the input value */
-  setInput: React.Dispatch<React.SetStateAction<string>>
-  /** An input/textarea-ready onChange handler to control the value of the input */
-  handleInputChange: (
-    e:
-      | React.ChangeEvent<HTMLInputElement>
-      | React.ChangeEvent<HTMLTextAreaElement>
-  ) => void
-  /** Form submission handler to automattically reset input and append a user message  */
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
-  /** Whether the API request is in progress */
-  isLoading: boolean
-}
 
 export function useChat({
   api = '/api/chat',
@@ -61,7 +22,7 @@ export function useChat({
   onError,
   headers,
   body
-}: UseChatOptions = {}): UseChatHelpers {
+}: UseChatOptions = {}): UseChatHelpersReact {
   // Generate an unique id for the chat if not provided.
   const hookId = useId()
   const chatId = id || hookId
