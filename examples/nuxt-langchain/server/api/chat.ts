@@ -1,5 +1,4 @@
 import { LangChainStream, Message, streamToResponse } from 'ai'
-import { CallbackManager } from 'langchain/callbacks'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
 
@@ -18,7 +17,7 @@ export default defineEventHandler(async (event: any) => {
     const llm = new ChatOpenAI({
       openAIApiKey: process.env.OPENAI_API_KEY,
       streaming: true,
-      callbackManager: CallbackManager.fromHandlers(handlers)
+      callbacks: [handlers]
     })
 
     llm

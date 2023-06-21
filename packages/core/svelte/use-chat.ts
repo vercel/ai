@@ -1,9 +1,9 @@
 import { useSWR } from 'sswr'
-import { Readable, get, readable, writable } from 'svelte/store'
+import { Readable, get, writable } from 'svelte/store'
 
 import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
 import { Writable } from 'svelte/store'
-import { decodeAIStreamChunk, nanoid } from '../shared/utils'
+import { nanoid, createChunkDecoder } from '../shared/utils'
 
 export type { Message, CreateMessage, UseChatOptions }
 
@@ -134,6 +134,7 @@ export function useChat({
       const createdAt = new Date()
       const replyId = nanoid()
       const reader = res.body.getReader()
+      const decoder = createChunkDecoder()
 
       while (true) {
         const { done, value } = await reader.read()
@@ -141,7 +142,7 @@ export function useChat({
           break
         }
         // Update the chat state with the new message tokens.
-        result += decodeAIStreamChunk(value)
+        result += decoder(value)
         mutate([
           ...messagesSnapshot,
           {

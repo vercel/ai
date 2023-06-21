@@ -1,5 +1,23 @@
 # ai
 
+## 2.1.6
+
+### Patch Changes
+
+- 23f0899: Set stream: true when decoding streamed chunks
+
+## 2.1.5
+
+### Patch Changes
+
+- 89938b0: Provider direct callback handlers in LangChain now that `CallbackManager` is deprecated.
+
+## 2.1.4
+
+### Patch Changes
+
+- c16d650: Improve type saftey for AIStream. Added JSDoc comments.
+
 ## 2.1.3
 
 ### Patch Changes

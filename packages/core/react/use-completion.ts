@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
-import { decodeAIStreamChunk } from '../shared/utils'
+import { createChunkDecoder } from '../shared/utils'
 import { UseCompletionOptions } from '../shared/types'
 
 export type UseCompletionHelpers = {
@@ -32,7 +32,11 @@ export type UseCompletionHelpers = {
    * <input onChange={handleInputChange} value={input} />
    * ```
    */
-  handleInputChange: (e: any) => void
+  handleInputChange: (
+    e:
+      | React.ChangeEvent<HTMLInputElement>
+      | React.ChangeEvent<HTMLTextAreaElement>
+  ) => void
   /**
    * Form submission handler to automattically reset input and append a user message
    * @example
@@ -132,6 +136,7 @@ export function useCompletion({
 
         let result = ''
         const reader = res.body.getReader()
+        const decoder = createChunkDecoder()
 
         while (true) {
           const { done, value } = await reader.read()
@@ -140,7 +145,7 @@ export function useCompletion({
           }
 
           // Update the completion state with the new message tokens.
-          result += decodeAIStreamChunk(value)
+          result += decoder(value)
           mutate(result, false)
 
           // The request has been aborted, stop reading the stream.

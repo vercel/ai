@@ -1,7 +1,7 @@
 import { useCallback, useId, useRef, useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
-import { nanoid, decodeAIStreamChunk } from '../shared/utils'
+import { nanoid, createChunkDecoder } from '../shared/utils'
 
 import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
 export type { Message, CreateMessage, UseChatOptions }
@@ -39,7 +39,11 @@ export type UseChatHelpers = {
   /** setState-powered method to update the input value */
   setInput: React.Dispatch<React.SetStateAction<string>>
   /** An input/textarea-ready onChange handler to control the value of the input */
-  handleInputChange: (e: any) => void
+  handleInputChange: (
+    e:
+      | React.ChangeEvent<HTMLInputElement>
+      | React.ChangeEvent<HTMLTextAreaElement>
+  ) => void
   /** Form submission handler to automattically reset input and append a user message  */
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
   /** Whether the API request is in progress */
@@ -150,6 +154,7 @@ export function useChat({
         const createdAt = new Date()
         const replyId = nanoid()
         const reader = res.body.getReader()
+        const decode = createChunkDecoder()
 
         while (true) {
           const { done, value } = await reader.read()
@@ -157,7 +162,7 @@ export function useChat({
             break
           }
           // Update the chat state with the new message tokens.
-          result += decodeAIStreamChunk(value)
+          result += decode(value)
           mutate(
             [
               ...messagesSnapshot,
