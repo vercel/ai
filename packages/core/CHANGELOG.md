@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.6
+
+### Patch Changes
+
+- 23f0899: Set stream: true when decoding streamed chunks
+
 ## 2.1.5
 
 ### Patch Changes
