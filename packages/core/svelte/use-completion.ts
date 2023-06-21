@@ -2,7 +2,7 @@ import { useSWR } from 'sswr'
 import { Readable, get, writable } from 'svelte/store'
 
 import { Writable } from 'svelte/store'
-import { decodeAIStreamChunk } from '../shared/utils'
+import { createChunkDecoder } from '../shared/utils'
 import { UseCompletionOptions } from '../shared/types'
 
 export type UseCompletionHelpers = {
@@ -116,6 +116,7 @@ export function useCompletion({
 
       let result = ''
       const reader = res.body.getReader()
+      const decoder = createChunkDecoder()
 
       while (true) {
         const { done, value } = await reader.read()
@@ -123,7 +124,7 @@ export function useCompletion({
           break
         }
         // Update the chat state with the new message tokens.
-        result += decodeAIStreamChunk(value)
+        result += decoder(value)
         mutate(result)
 
         // The request has been aborted, stop reading the stream.
