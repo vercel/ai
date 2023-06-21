@@ -16,7 +16,8 @@ export type UseChatHelpers = {
    * the assistant's response.
    */
   append: (
-    message: Message | CreateMessage
+    message: Message | CreateMessage,
+    metadata?: Object
   ) => Promise<string | null | undefined>
   /**
    * Reload the last AI chat response for the given chat history. If the last
@@ -215,7 +216,13 @@ export function useChat({
   )
 
   const append = useCallback(
-    async (message: Message | CreateMessage) => {
+    async (message: Message | CreateMessage, metadata?: Object) => {
+      if (metadata) {
+        extraMetadataRef.current = {
+          ...extraMetadataRef.current,
+          ...metadata
+        }
+      }
       if (!message.id) {
         message.id = nanoid()
       }
@@ -253,7 +260,14 @@ export function useChat({
   const [input, setInput] = useState(initialInput)
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
+    (e: React.FormEvent<HTMLFormElement>, metadata?: Object) => {
+      if (metadata) {
+        extraMetadataRef.current = {
+          ...extraMetadataRef.current,
+          ...metadata
+        }
+      }
+
       e.preventDefault()
       if (!input) return
       append({
