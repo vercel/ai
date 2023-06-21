@@ -6,7 +6,9 @@ export const nanoid = customAlphabet(
   7
 )
 
-const decoder = new TextDecoder()
-export function decodeAIStreamChunk(chunk: Uint8Array): string {
-  return decoder.decode(chunk)
+export function createChunkDecoder() {
+  const decoder = new TextDecoder()
+  return function (chunk: Uint8Array): string {
+    return decoder.decode(chunk, { stream: true })
+  }
 }

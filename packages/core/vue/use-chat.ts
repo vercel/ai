@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import type { Ref } from 'vue'
 
 import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
-import { decodeAIStreamChunk, nanoid } from '../shared/utils'
+import { createChunkDecoder, nanoid } from '../shared/utils'
 
 export type { Message, CreateMessage, UseChatOptions }
 
@@ -136,6 +136,7 @@ export function useChat({
       const createdAt = new Date()
       const replyId = nanoid()
       const reader = res.body.getReader()
+      const decoder = createChunkDecoder()
 
       while (true) {
         const { done, value } = await reader.read()
@@ -143,7 +144,7 @@ export function useChat({
           break
         }
         // Update the chat state with the new message tokens.
-        result += decodeAIStreamChunk(value)
+        result += decoder(value)
         mutate([
           ...messagesSnapshot,
           {

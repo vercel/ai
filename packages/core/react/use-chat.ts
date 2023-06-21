@@ -1,7 +1,7 @@
 import { useCallback, useId, useRef, useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
-import { nanoid, decodeAIStreamChunk } from '../shared/utils'
+import { nanoid, createChunkDecoder } from '../shared/utils'
 
 import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
 export type { Message, CreateMessage, UseChatOptions }
@@ -154,6 +154,7 @@ export function useChat({
         const createdAt = new Date()
         const replyId = nanoid()
         const reader = res.body.getReader()
+        const decode = createChunkDecoder()
 
         while (true) {
           const { done, value } = await reader.read()
@@ -161,7 +162,7 @@ export function useChat({
             break
           }
           // Update the chat state with the new message tokens.
-          result += decodeAIStreamChunk(value)
+          result += decode(value)
           mutate(
             [
               ...messagesSnapshot,
