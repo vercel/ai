@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.7
+
+### Patch Changes
+
+- bde3898: Allow an async onResponse callback in useChat/useCompletion
+
 ## 2.1.6
 
 ### Patch Changes
