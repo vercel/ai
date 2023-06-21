@@ -42,7 +42,7 @@ export type UseChatOptions = {
   /**
    * Callback function to be called when the API response is received.
    */
-  onResponse?: (response: Response) => void
+  onResponse?: (response: Response) => void | Promise<void>
 
   /**
    * Callback function to be called when the chat is finished streaming.
@@ -107,7 +107,8 @@ export type UseCompletionOptions = {
   /**
    * Callback function to be called when the API response is received.
    */
-  onResponse?: (response: Response) => void
+  onResponse?: (response: Response) => void | Promise<void>
+
   /**
    * Callback function to be called when the completion is finished streaming.
    */
