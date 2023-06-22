@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.8
+
+### Patch Changes
+
+- 44d9879: Support extra request options in chat and completion hooks
+
 ## 2.1.7
 
 ### Patch Changes
