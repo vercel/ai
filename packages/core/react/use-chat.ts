@@ -3,13 +3,13 @@ import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
 import { nanoid, createChunkDecoder } from '../shared/utils'
 
-import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
+import type {
+  Message,
+  CreateMessage,
+  UseChatOptions,
+  RequestOptions
+} from '../shared/types'
 export type { Message, CreateMessage, UseChatOptions }
-
-type RequestOptions = {
-  headers?: Record<string, string> | Headers
-  body?: object
-}
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
