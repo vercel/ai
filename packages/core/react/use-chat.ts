@@ -6,6 +6,11 @@ import { nanoid, createChunkDecoder } from '../shared/utils'
 import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
 export type { Message, CreateMessage, UseChatOptions }
 
+type RequestOptions = {
+  headers?: Record<string, string> | Headers
+  body?: object
+}
+
 export type UseChatHelpers = {
   /** Current messages in the chat */
   messages: Message[]
@@ -14,17 +19,19 @@ export type UseChatHelpers = {
   /**
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
+   * @param message The message to append
+   * @param options Additional options to pass to the API call
    */
   append: (
     message: Message | CreateMessage,
-    metadata?: Object
+    options?: RequestOptions
   ) => Promise<string | null | undefined>
   /**
    * Reload the last AI chat response for the given chat history. If the last
    * message isn't from the assistant, it will request the API to generate a
    * new response.
    */
-  reload: () => Promise<string | null | undefined>
+  reload: (options?: RequestOptions) => Promise<string | null | undefined>
   /**
    * Abort the current request immediately, keep the generated tokens if any.
    */
@@ -99,11 +106,15 @@ export function useChat({
     string | null,
     any,
     [string, string],
-    Message[]
+    {
+      messages: Message[]
+      options?: RequestOptions
+    }
   >(
     [api, chatId],
-    async (_, { arg: messagesSnapshot }) => {
+    async (_, { arg }) => {
       try {
+        const { messages: messagesSnapshot, options } = arg
         const abortController = new AbortController()
         abortControllerRef.current = abortController
 
@@ -121,9 +132,13 @@ export function useChat({
                   role,
                   content
                 })),
-            ...extraMetadataRef.current.body
+            ...extraMetadataRef.current.body,
+            ...options?.body
           }),
-          headers: extraMetadataRef.current.headers || {},
+          headers: {
+            ...extraMetadataRef.current.headers,
+            ...options?.headers
+          },
           signal: abortController.signal
         }).catch(err => {
           // Restore the previous messages if the request fails.
@@ -215,31 +230,37 @@ export function useChat({
     }
   )
 
-  const append = useCallback(
-    async (message: Message | CreateMessage, metadata?: Object) => {
-      if (metadata) {
-        extraMetadataRef.current = {
-          ...extraMetadataRef.current,
-          ...metadata
-        }
-      }
+  const append = useCallback<UseChatHelpers['append']>(
+    async (message, options) => {
       if (!message.id) {
         message.id = nanoid()
       }
-      return trigger(messagesRef.current.concat(message as Message))
+      return trigger({
+        messages: messagesRef.current.concat(message as Message),
+        options
+      })
     },
     [trigger]
   )
 
-  const reload = useCallback(async () => {
-    if (messagesRef.current.length === 0) return null
+  const reload = useCallback<UseChatHelpers['reload']>(
+    async options => {
+      if (messagesRef.current.length === 0) return null
 
-    const lastMessage = messagesRef.current[messagesRef.current.length - 1]
-    if (lastMessage.role === 'assistant') {
-      return trigger(messagesRef.current.slice(0, -1))
-    }
-    return trigger(messagesRef.current)
-  }, [trigger])
+      const lastMessage = messagesRef.current[messagesRef.current.length - 1]
+      if (lastMessage.role === 'assistant') {
+        return trigger({
+          messages: messagesRef.current.slice(0, -1),
+          options
+        })
+      }
+      return trigger({
+        messages: messagesRef.current,
+        options
+      })
+    },
+    [trigger]
+  )
 
   const stop = useCallback(() => {
     if (abortControllerRef.current) {
