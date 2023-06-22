@@ -15,6 +15,11 @@ export type CreateMessage = {
   role: 'system' | 'user' | 'assistant'
 }
 
+export type RequestOptions = {
+  headers?: Record<string, string> | Headers
+  body?: object
+}
+
 export type UseChatOptions = {
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
@@ -42,7 +47,7 @@ export type UseChatOptions = {
   /**
    * Callback function to be called when the API response is received.
    */
-  onResponse?: (response: Response) => void
+  onResponse?: (response: Response) => void | Promise<void>
 
   /**
    * Callback function to be called when the chat is finished streaming.
@@ -107,7 +112,8 @@ export type UseCompletionOptions = {
   /**
    * Callback function to be called when the API response is received.
    */
-  onResponse?: (response: Response) => void
+  onResponse?: (response: Response) => void | Promise<void>
+
   /**
    * Callback function to be called when the completion is finished streaming.
    */

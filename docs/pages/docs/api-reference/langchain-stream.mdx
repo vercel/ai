@@ -35,7 +35,6 @@ The `LangChainCallbacks` object has the following properties which are compatibl
 import { StreamingTextResponse, LangChainStream } from 'ai'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
-import { CallbackManager } from 'langchain/callbacks'
 
 export const runtime = 'edge'
 
@@ -45,7 +44,7 @@ export async function POST(req: Request) {
 
   const llm = new ChatOpenAI({
     streaming: true,
-    callbackManager: CallbackManager.fromHandlers(handlers)
+    callbacks: [handlers]
   })
 
   llm
