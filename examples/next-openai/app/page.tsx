@@ -1,6 +1,7 @@
 'use client'
 
 import { useChat } from 'ai/react'
+import Link from 'next/link'
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat()
@@ -18,12 +19,19 @@ export default function Chat() {
 
       <form onSubmit={handleSubmit}>
         <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          className="fixed bottom-0 w-full max-w-md p-2 mb-20 border border-gray-300 rounded shadow-xl"
           value={input}
           placeholder="Say something..."
           onChange={handleInputChange}
         />
       </form>
+
+      <Link
+        href="/completion"
+        className="fixed bg-[#18181b] text-white py-2 px-4 rounded text-sm bottom-0 mb-4 left-1/2 -translate-x-1/2"
+      >
+        Go to completion
+      </Link>
     </div>
   )
 }
