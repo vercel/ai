@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
+
 import { createChunkDecoder } from '../shared/utils'
-import { UseCompletionOptions } from '../shared/types'
+import { UseCompletionOptions, RequestOptions } from '../shared/types'
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -10,7 +11,10 @@ export type UseCompletionHelpers = {
   /**
    * Send a new prompt to the API endpoint and update the completion state.
    */
-  complete: (prompt: string) => Promise<string | null | undefined>
+  complete: (
+    prompt: string,
+    options?: RequestOptions
+  ) => Promise<string | null | undefined>
   /** The error object of the API request */
   error: undefined | Error
   /**
@@ -93,11 +97,16 @@ export function useCompletion({
     string | null,
     any,
     [string, string],
-    string
+    {
+      prompt: string
+      options?: RequestOptions
+    }
   >(
     [api, completionId],
-    async (_, { arg: prompt }) => {
+    async (_, { arg }) => {
       try {
+        const { prompt, options } = arg
+
         const abortController = new AbortController()
         setAbortController(abortController)
 
@@ -108,9 +117,13 @@ export function useCompletion({
           method: 'POST',
           body: JSON.stringify({
             prompt,
-            ...extraMetadataRef.current.body
+            ...extraMetadataRef.current.body,
+            ...options?.body
           }),
-          headers: extraMetadataRef.current.headers || {},
+          headers: {
+            ...extraMetadataRef.current.headers,
+            ...options?.headers
+          },
           signal: abortController.signal
         }).catch(err => {
           throw err
@@ -195,27 +208,30 @@ export function useCompletion({
     [mutate]
   )
 
+  const complete = useCallback<UseCompletionHelpers['complete']>(
+    async (prompt, options) => {
+      return trigger({
+        prompt,
+        options
+      })
+    },
+    [trigger]
+  )
+
   const [input, setInput] = useState(initialInput)
 
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault()
       if (!input) return
-      return trigger(input)
+      return complete(input)
     },
-    [input, trigger]
+    [input, complete]
   )
 
   const handleInputChange = (e: any) => {
     setInput(e.target.value)
   }
-
-  const complete = useCallback(
-    async (prompt: string) => {
-      return trigger(prompt)
-    },
-    [trigger]
-  )
 
   return {
     completion,

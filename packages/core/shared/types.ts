@@ -15,6 +15,11 @@ export type CreateMessage = {
   role: 'system' | 'user' | 'assistant'
 }
 
+export type RequestOptions = {
+  headers?: Record<string, string> | Headers
+  body?: object
+}
+
 export type UseChatOptions = {
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns

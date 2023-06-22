@@ -2,8 +2,8 @@ import swrv from 'swrv'
 import { ref } from 'vue'
 import type { Ref } from 'vue'
 
+import type { UseCompletionOptions, RequestOptions } from '../shared/types'
 import { createChunkDecoder } from '../shared/utils'
-import { UseCompletionOptions } from '../shared/types'
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -13,7 +13,10 @@ export type UseCompletionHelpers = {
   /**
    * Send a new prompt to the API endpoint and update the completion state.
    */
-  complete: (prompt: string) => Promise<string | null | undefined>
+  complete: (
+    prompt: string,
+    options?: RequestOptions
+  ) => Promise<string | null | undefined>
   /**
    * Abort the current API request but keep the generated tokens.
    */
@@ -79,7 +82,7 @@ export function useCompletion({
   const isLoading = ref(false)
 
   let abortController: AbortController | null = null
-  async function triggerRequest(prompt: string) {
+  async function triggerRequest(prompt: string, options?: RequestOptions) {
     try {
       isLoading.value = true
       abortController = new AbortController()
@@ -91,9 +94,13 @@ export function useCompletion({
         method: 'POST',
         body: JSON.stringify({
           prompt,
-          ...body
+          ...body,
+          ...options?.body
         }),
-        headers: headers || {},
+        headers: {
+          ...headers,
+          ...options?.headers
+        },
         signal: abortController.signal
       }).catch(err => {
         throw err
@@ -160,8 +167,11 @@ export function useCompletion({
     }
   }
 
-  const complete = async (prompt: string) => {
-    return triggerRequest(prompt)
+  const complete: UseCompletionHelpers['complete'] = async (
+    prompt,
+    options
+  ) => {
+    return triggerRequest(prompt, options)
   }
 
   const stop = () => {
