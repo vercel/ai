@@ -1,5 +1,41 @@
 # ai
 
+## 2.1.8
+
+### Patch Changes
+
+- 44d9879: Support extra request options in chat and completion hooks
+
+## 2.1.7
+
+### Patch Changes
+
+- bde3898: Allow an async onResponse callback in useChat/useCompletion
+
+## 2.1.6
+
+### Patch Changes
+
+- 23f0899: Set stream: true when decoding streamed chunks
+
+## 2.1.5
+
+### Patch Changes
+
+- 89938b0: Provider direct callback handlers in LangChain now that `CallbackManager` is deprecated.
+
+## 2.1.4
+
+### Patch Changes
+
+- c16d650: Improve type saftey for AIStream. Added JSDoc comments.
+
+## 2.1.3
+
+### Patch Changes
+
+- a9591fe: Add `createdAt` on `user` input message in `useChat` (it was already present in `assistant` messages)
+
 ## 2.1.2
 
 ### Patch Changes

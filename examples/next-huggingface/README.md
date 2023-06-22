@@ -1,4 +1,4 @@
-# Vercel AI SDK, Next.js, and HuggingFace Chat Example
+# Vercel AI SDK, Next.js, and Hugging Face Chat Example
 
 This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) and the [Hugging Face Inference](https://huggingface.co) to create a ChatGPT-like AI-powered streaming chat bot with [Open Assistant's SFT-4 12B](https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5) as the chat model.
 
@@ -32,7 +32,7 @@ To run the example locally you need to:
 4. `pnpm install` to install the required dependencies.
 5. `pnpm dev` to launch the development server.
 
-## About HuggingFace
+## About Hugging Face
 
 [Hugging Face](https://huggingface.co) is company that develops tools for building applications using machine learning. It is most notable for its [Transformers](https://huggingface.co/docs/transformers/index) Python library built for natural language processing applications and its platform that allows users to share machine learning models and datasets.
 
@@ -46,7 +46,7 @@ To learn more about Hugging Face, Next.js, and the Vercel AI SDK take a look at 
 
 - [Vercel AI SDK docs](https://sdk.vercel.ai/docs)
 - [Vercel AI Playground](https://play.vercel.ai)
-- [Hugging Face Inference Documentation](https://huggingface.co/docs/huggingface.js/inference/READMEs) - learn about Hugging Face Inference SDK features and API.
+- [Hugging Face Inference Documentation](https://huggingface.co/docs/huggingface.js/inference/README) - learn about Hugging Face Inference SDK features and API.
 - [Open-Assistant SFT-4 12B Model](https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5) - learn about the AI model in use
 - [Open Assistant Project](https://open-assistant.io/) - learn about the Open Assistant project
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.

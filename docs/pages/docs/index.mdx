@@ -18,12 +18,12 @@ import { FrameworkTabs } from '@/components/framework-tabs'
   An open source library for building AI-powered user interfaces.
 </div>
 
-The Vercel AI SDK is an open-source library designed to help developers build conversational, streaming, and chat user interfaces in JavaScript and TypeScript. The SDK supports React/Next.js, Svelte/SvelteKit, with support for Nuxt/Vue coming soon.
+The Vercel AI SDK is an open-source library designed to help developers build conversational streaming user interfaces in JavaScript and TypeScript. The SDK supports React/Next.js, Svelte/SvelteKit, and Vue/Nuxt as well as Node.js, Serverless, and the [Edge Runtime](https://edge-runtime.vercel.app).
 
 <div className="grid lg:grid-cols-2 grid-cols-1 gap-4 mt-8">
   <Card
-    title="Edge-ready"
-    description="Compatible with Vercel’s Edge Network, enabling AI-powered apps that are fast and scalable."
+    title="Serverless &amp; Edge-ready"
+    description="Build AI-powered apps that are fast and scalable across Node.js, Serverless, and Vercel Edge Functions."
   >
     <Globe />
   </Card>
@@ -34,13 +34,13 @@ The Vercel AI SDK is an open-source library designed to help developers build co
     <Logos />
   </Card>
   <Card
-    title="Streaming First"
-    description="SWR-powered React hooks for fetching and rendering streaming text responses."
+    title="Streaming UI Helpers"
+    description="SWR-powered React, Svelte, and Vue helpers for fetching and rendering streaming text responses."
   >
     <Browser />
   </Card>
   <Card
-    title="Stream Callbacks"
+    title="Stream Lifecycle Callbacks"
     description="Callbacks for saving completed streaming responses to a database in the same request."
   >
     <Streaming />
@@ -64,23 +64,24 @@ export function A({ href, children }) {
 }
 
 <div className="grid lg:grid-cols-2 grid-cols-1 gap-4 mt-8">
-  {/* <ExampleCard
+  <ExampleCard
     title="Next.js AI Chatbot"
     description={
       <>
-        Full featured conversational AI chatbot built with{' '}
+        Full-featured AI chatbot built with{' '}
         <A href="https://nextjs.org">Next.js</A>,{' '}
-        <A href="https://clerk.com">Clerk Auth</A>,{' '}
         <A href="https://ui.shadcn.com/">shadcn/ui</A>,{' '}
+        <A href="https://github.com/nextauthjs/next-auth">NextAuth.js</A>,{' '}
         <A href="https://sdk.vercel.ai">Vercel AI SDK</A>, and{' '}
         <A href="https://vercel.com/storage/kv">Vercel KV</A>
       </>
     }
-    deployUrl="#"
-    repoUrl="#"
+    demoUrl="https://chat.vercel.ai"
+    deployUrl="https://vercel.com/templates/Next.js/nextjs-ai-chatbot"
+    repoUrl="https://github.com/vercel-labs/ai-chatbot"
   >
-    ![Next.js AI Chatbot](/templates/template.png)
-  </ExampleCard> */}
+    ![Next.js AI Chatbot](/templates/next-ai-chatbot-light.png)
+  </ExampleCard>
   <ExampleCard
     title="Next.js OpenAI Starter"
     description={
@@ -109,7 +110,22 @@ export function A({ href, children }) {
     deployUrl="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai%2Ftree%2Fmain%2Fexamples%2Fsveltekit-openai&env=OPENAI_API_KEY&envDescription=OpenAI%20API%20Key&envLink=https%3A%2F%2Fplatform.openai.com%2Faccount%2Fapi-keys&project-name=vercel-ai-chat-sveltekit-openai&repository-name=vercel-ai-chat-sveltekit-openai"
     repoUrl="https://github.com/vercel-labs/ai/tree/main/examples/sveltekit-openai"
   >
-    ![Next.js Starter](/templates/svelte-openai-light.png)
+    ![SvelteKit Starter](/templates/svelte-openai-light.png)
+  </ExampleCard>
+  <ExampleCard
+    title="Nuxt OpenAI Starter"
+    description={
+      <>
+        Starter template for building AI-powered chat with{' '}
+        <A href="https://nuxt.com">Nuxt</A>,{' '}
+        <A href="https://openai.com/">OpenAI</A>, and the{' '}
+        <A href="https://sdk.vercel.ai">Vercel AI SDK</A>
+      </>
+    }
+    deployUrl="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai%2Ftree%2Fmain%2Fexamples%2Fnuxt-openai&env=OPENAI_API_KEY&envDescription=OpenAI%20API%20Key&envLink=https%3A%2F%2Fplatform.openai.com%2Faccount%2Fapi-keys&project-name=vercel-ai-chat-nuxt-openai&repository-name=vercel-ai-chat-nuxt-openai"
+    repoUrl="https://github.com/vercel-labs/ai/tree/main/examples/nuxt-openai"
+  >
+    ![Nuxt Starter](/templates/nuxt-openai-light.png)
   </ExampleCard>
   <ExampleCard
     title="Next.js Hugging Face Starter"
@@ -126,7 +142,6 @@ export function A({ href, children }) {
   >
     ![Next.js Hugging Face Starter](/templates/next-huggingface-light.png)
   </ExampleCard>
-
   <ExampleCard
     title="Next.js LangChain Starter"
     description={
@@ -141,6 +156,21 @@ export function A({ href, children }) {
     repoUrl="https://github.com/vercel-labs/ai/tree/main/examples/next-langchain"
   >
     ![Next.js Starter](/templates/next-langchain-light.png)
+  </ExampleCard>
+  <ExampleCard
+    title="Nuxt LangChain Starter"
+    description={
+      <>
+        Starter template for building AI-powered chat app with{' '}
+        <A href="https://nuxt.com">Nuxt</A>,{' '}
+        <A href="https://github.com/hwchase17/langchain">LangChain</A>, and the{' '}
+        <A href="https://sdk.vercel.ai">Vercel AI SDK</A>
+      </>
+    }
+    deployUrl="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai%2Ftree%2Fmain%2Fexamples%2Fnuxt-langchain&env=OPENAI_API_KEY&envDescription=OpenAI%20API%20Key&envLink=https%3A%2F%2Fplatform.openai.com%2Faccount%2Fapi-keys&project-name=ai-chat-langchain&repository-name=nuxt-ai-chat-langchain"
+    repoUrl="https://github.com/vercel-labs/ai/tree/main/examples/nuxt-langchain"
+  >
+    ![Nuxt Starter](/templates/nuxt-langchain-light.png)
   </ExampleCard>
 </div>
 

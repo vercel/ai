@@ -15,6 +15,8 @@ The Vercel AI SDK is **a library for building edge-ready AI-powered streaming te
 pnpm install ai
 ```
 
+View the full documentation and examples on [sdk.vercel.ai/docs](https://sdk.vercel.ai/docs)
+
 ## Example: An AI Chatbot with Next.js and OpenAI
 
 With the Vercel AI SDK, you can build a ChatGPT-like app in just a few lines of code:
@@ -74,7 +76,7 @@ export default function Chat() {
 
 ---
 
-View the full documentation and examples on [play.vercel.ai/docs](https://play.vercel.ai/docs)
+View the full documentation and examples on [sdk.vercel.ai/docs](https://sdk.vercel.ai/docs)
 
 ## Authors
 

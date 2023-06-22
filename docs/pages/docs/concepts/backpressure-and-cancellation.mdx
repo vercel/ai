@@ -34,18 +34,23 @@ function createStream(iterator) {
     }
   })
 }
-// Set up a stream that of integers
-const stream = createStream(integers())
 
-// Read values from our stream
-const reader = stream.getReader()
-for (let i = 0; i < 10_000; i++) {
-  // we know our stream is infinite, so there's no need to check `done`.
-  const { value } = await reader.read()
-  console.log(`read ${value}`)
+// Collect data from stream
+async function run() {
+  // Set up a stream that of integers
+  const stream = createStream(integers())
 
-  await sleep(1_000)
+  // Read values from our stream
+  const reader = stream.getReader()
+  for (let i = 0; i < 10_000; i++) {
+    // we know our stream is infinite, so there's no need to check `done`.
+    const { value } = await reader.read()
+    console.log(`read ${value}`)
+
+    await sleep(1_000)
+  }
 }
+run()
 ```
 
 In this example, we create an async-generator that yields positive integers, a `ReadableStream` that wraps our integer generator, and a reader which will read values out of our stream. Notice, too, that our integer generator logs out `"yielding ${i}"`, and our reader logs out `"read ${value}"`. Both take an arbitrary amount of time to process data, represented with a 100ms sleep in our generator, and a 1sec sleep in our reader.
@@ -108,19 +113,23 @@ function createStream(iterator) {
     }
   })
 }
-// Set up a stream that of integers
-const stream = createStream(integers())
+// Collect data from stream
+async function run() {
+  // Set up a stream that of integers
+  const stream = createStream(integers())
 
-// Read values from our stream
-const reader = stream.getReader()
-// We're only reading 3 items this time:
-for (let i = 0; i < 3; i++) {
-  // we know our stream is infinite, so there's no need to check `done`.
-  const { value } = await reader.read()
-  console.log(`read ${value}`)
+  // Read values from our stream
+  const reader = stream.getReader()
+  // We're only reading 3 items this time:
+  for (let i = 0; i < 3; i++) {
+    // we know our stream is infinite, so there's no need to check `done`.
+    const { value } = await reader.read()
+    console.log(`read ${value}`)
 
-  await sleep(1_000)
+    await sleep(1000)
+  }
 }
+run()
 ```
 
 We're back to yielding 10x the number of values read. But notice now, after we've read 3 values, we're continuing to yield new values. We know that our reader will never read another value, but our stream doesn't! The eager `for await (…)` will continue forever, loudly enqueuing new values into our stream's buffer and increasing our memory usage until it consumes all available program memory.
@@ -146,7 +155,7 @@ function createStream(iterator) {
 
 Since the solution is the same as implementing back-pressure, it shows that they're just 2 facets of the same problem: Pushing values into a stream should be done **lazily**, and doing it eagerly results in expected problems.
 
-## Trying Stream Laziness to AI Responses
+## Tying Stream Laziness to AI Responses
 
 Now let's imagine you're integrating AIBot service into your product. Users will be able to prompt "count from 1 to infinity", the browser will fetch your AI API endpoint, and your servers connect to AIBot to get a response. But "infinity" is, well, infinite. The response will never end!
 
