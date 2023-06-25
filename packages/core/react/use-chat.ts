@@ -101,7 +101,7 @@ export function useChat({
       headers,
       body
     }
-  }, [headers, body])
+  }, [credentials, headers, body])
 
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
