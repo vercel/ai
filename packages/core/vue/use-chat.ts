@@ -64,6 +64,7 @@ export function useChat({
   onResponse,
   onFinish,
   onError,
+  credentials,
   headers,
   body
 }: UseChatOptions = {}): UseChatHelpers {
@@ -119,7 +120,8 @@ export function useChat({
           ...headers,
           ...options?.headers
         },
-        signal: abortController.signal
+        signal: abortController.signal,
+        credentials
       }).catch(err => {
         // Restore the previous messages if the request fails.
         mutate(previousMessages)

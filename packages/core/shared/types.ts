@@ -60,6 +60,13 @@ export type UseChatOptions = {
   onError?: (error: Error) => void
 
   /**
+   * The credentials mode to be used for the fetch request.
+   * Possible values are: 'omit', 'same-origin', 'include'.
+   * Defaults to 'same-origin'.
+   */
+  credentials?: RequestCredentials
+
+  /**
    * HTTP headers to be sent with the API request.
    */
   headers?: Record<string, string> | Headers
@@ -123,6 +130,13 @@ export type UseCompletionOptions = {
    * Callback function to be called when an error is encountered.
    */
   onError?: (error: Error) => void
+
+  /**
+   * The credentials mode to be used for the fetch request.
+   * Possible values are: 'omit', 'same-origin', 'include'.
+   * Defaults to 'same-origin'.
+   */
+  credentials?: RequestCredentials
 
   /**
    * HTTP headers to be sent with the API request.

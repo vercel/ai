@@ -60,6 +60,7 @@ export function useCompletion({
   id,
   initialCompletion = '',
   initialInput = '',
+  credentials,
   headers,
   body,
   onResponse,
@@ -80,12 +81,14 @@ export function useCompletion({
   const [abortController, setAbortController] =
     useState<AbortController | null>(null)
 
-  const extraMetadataRef = useRef<any>({
+  const extraMetadataRef = useRef({
+    credentials,
     headers,
     body
   })
   useEffect(() => {
     extraMetadataRef.current = {
+      credentials,
       headers,
       body
     }
@@ -120,6 +123,7 @@ export function useCompletion({
             ...extraMetadataRef.current.body,
             ...options?.body
           }),
+          credentials: extraMetadataRef.current.credentials,
           headers: {
             ...extraMetadataRef.current.headers,
             ...options?.headers
