@@ -1,12 +1,27 @@
 import { Suspense } from 'react'
 
 type Props = {
+  /**
+   * A ReadableStream produced by the AI SDK.
+   */
   stream: ReadableStream
+  /**
+   * A function that is called at the start of the stream.
+   */
   onStart?: () => Promise<void>
+  /**
+   * A function that is called for each token processed.
+   */
   onToken?: (token: string) => Promise<void>
+  /**
+   * A function that is called once the stream has been processed.
+   */
   onEnd?: () => Promise<void>
 }
 
+/**
+ * A React Server Component that recursively renders a stream of tokens.
+ */
 export async function Tokens(props: Props) {
   const { stream, onEnd, onStart, onToken } = props
 
