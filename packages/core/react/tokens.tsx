@@ -15,7 +15,6 @@ export async function Tokens(props: Props) {
   const reader = stream.getReader()
 
   return (
-    /* @ts-expect-error Suspense */
     <Suspense>
       {/* @ts-expect-error React Server Components */}
       <RecursiveTokens reader={reader} />
@@ -39,7 +38,6 @@ async function RecursiveTokens({ reader }: InternalProps) {
   return (
     <>
       {text}
-      {/* @ts-expect-error Suspense */}
       <Suspense fallback={null}>
         {/* @ts-expect-error React Server Components */}
         <RecursiveTokens reader={reader} />
