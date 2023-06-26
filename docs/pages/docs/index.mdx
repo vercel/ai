@@ -4,7 +4,11 @@ title: Documentation
 
 import { Bleed, Tabs, Tab, Callout } from 'nextra-theme-docs'
 import { useRef, useEffect } from 'react'
-import { ExampleCard, IntegrationCard, Card } from '@/components/home/card'
+import {
+  ExampleCard,
+  IntegrationCard,
+  FeatureCard
+} from '@/components/home/card'
 import { Globe } from '@/components/home/globe'
 import { Browser } from '@/components/home/browser'
 import { Streaming } from '@/components/home/streaming'
@@ -21,30 +25,34 @@ import { FrameworkTabs } from '@/components/framework-tabs'
 The Vercel AI SDK is an open-source library designed to help developers build conversational streaming user interfaces in JavaScript and TypeScript. The SDK supports React/Next.js, Svelte/SvelteKit, and Vue/Nuxt as well as Node.js, Serverless, and the [Edge Runtime](https://edge-runtime.vercel.app).
 
 <div className="grid lg:grid-cols-2 grid-cols-1 gap-4 mt-8">
-  <Card
+  <FeatureCard
+    href="/docs/getting-started#create-an-api-route"
     title="Serverless &amp; Edge-ready"
     description="Build AI-powered apps that are fast and scalable across Node.js, Serverless, and Vercel Edge Functions."
   >
     <Globe />
-  </Card>
-  <Card
+  </FeatureCard>
+  <FeatureCard
+    href="/docs/guides"
     title="Built-in Adapters"
     description="First-class support for LangChain, OpenAI, Anthropic, and Hugging Face."
   >
     <Logos />
-  </Card>
-  <Card
+  </FeatureCard>
+  <FeatureCard
+    href="/docs/concepts/streaming"
     title="Streaming UI Helpers"
     description="SWR-powered React, Svelte, and Vue helpers for fetching and rendering streaming text responses."
   >
     <Browser />
-  </Card>
-  <Card
+  </FeatureCard>
+  <FeatureCard
+    href="/docs/guides/openai#guide-save-to-database-after-completion"
     title="Stream Lifecycle Callbacks"
     description="Callbacks for saving completed streaming responses to a database in the same request."
   >
     <Streaming />
-  </Card>
+  </FeatureCard>
 </div>
 
 ## Templates &amp; Examples [#examples]
