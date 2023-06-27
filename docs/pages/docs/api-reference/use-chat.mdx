@@ -289,4 +289,142 @@ The `useChat` function returns an object containing several helper methods and v
 />
 
   </Tab>
+  <Tab>
+To use `useChat` in Vue.js projects, you can import it from the `ai/vue` subpath. Below is a usage example demonstrating a basic chat interface:
+  
+```vue filename="app.vue"
+<script setup>
+import { useChat } from 'ai/vue'
+
+const { messages, input, handleInputChange, handleSubmit } = useChat()
+
+</script>
+
+<template>
+  <div>
+    <ul v-for="m in messages" key="m.id" class="whitespace-pre-wrap">
+      <li>{{ m.role }}: {{ m.content }} </li>
+    </ul>
+  
+    <form @submit="handleSubmit">
+      <input
+        class="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+        v-model="input"
+        placeholder="Say something..."
+        @change="handleInputChange"
+      />
+    </form>
+  </div>
+</template>
+```
+
+After submitting a message, `useChat` will automatically append a user message to the chat history and trigger an API call to the configured endpoint. The response will be streamed to the chat history and returned by the function as `messages`. Whenever a new chunk of streamed messages is received, it will update the UI to reflect the new messages.
+
+This enables a seamless chat experience where the user can see the AI response as soon as it is available, without having to wait for the entire response to be received.
+
+### `UseChatOptions` [#use-chat-options]
+
+Options passed to `useChat`:
+
+<OptionTable
+  options={[
+    [
+      'api',
+      "string = '/api/chat'",
+      'The API endpoint that accepts a `{ messages: Message[] }` object and returns a stream of tokens of the AI chat response. Defaults to `/api/chat`.'
+    ],
+    [
+      'id',
+      'string',
+      'An unique identifier for the chat. If not provided, a random one will be generated. When provided, the `useChat` hook with the same `id` will have shared states across components. This is useful when you have multiple components showing the same chat stream'
+    ],
+    [
+      'initialInput',
+      "string = ''",
+      'An optional string of initial prompt input'
+    ],
+    [
+      'initialMessages',
+      'Messages[] = []',
+      'An optional array of initial chat messages'
+    ],
+    [
+      'onResponse',
+      '(res: Response) => void',
+      'An optional callback that will be called with the response from the API endpoint. Useful for throwing customized errors or logging'
+    ],
+    [
+      'onFinish',
+      '(message: Message) => void',
+      'An optional callback that will be called when the chat stream ends'
+    ],
+    [
+      'onError',
+      '(err: Error) => void',
+      'An optional callback that will be called when the chat stream encounters an error'
+    ],
+    [
+      'headers',
+      'Record<string, string> | Headers',
+      'An optional object of headers to be passed to the API endpoint'
+    ],
+    [
+      'body',
+      'any',
+      'An optional, extra body object to be passed to the API endpoint in addition to the `messages` array'
+    ]
+  ]}
+/>
+
+### `ChatHelpers` [#chat-helpers]
+
+The `useChat` function returns an object containing several helper methods and variables to manage the chat state:
+
+<OptionTable
+  options={[
+    [
+      'messages',
+      'Ref<Message[]>',
+      'A ref with an array of chat messages. The store will be updated whenever a new chunk of messages is received.'
+    ],
+    [
+      'error',
+      'Ref<Error | undefined>',
+      'The error thrown during the request, if any.'
+    ],
+    [
+      'append',
+      '(message: Message | CreateMessage) => Promise<string | undefined>',
+      'Function to append a message to the chat, triggering an API call for the AI response. It returns a promise that resolves to full response message content when the API call is successfully finished, or throws an error when the API call fails.'
+    ],
+    [
+      'reload',
+      '() => Promise<string | undefined>',
+      "Function to reload the last AI chat response for the given chat history. If the last message isn't from the assistant, it will request the API to generate a new response."
+    ],
+    ['stop', '() => void', 'Function to abort the current API request.'],
+    [
+      'setMessages',
+      '(messages: Message[]) => void',
+      'Function to locally update the `messages` state locally without triggering an API call.'
+    ],
+    [
+      'input',
+      'Ref<string>',
+      'A ref containing the current value of the input field.'
+    ],
+    [
+      'handleSubmit',
+      '(e: React.FormEvent<HTMLFormElement>) => void',
+      'Form submission handler that automatically resets the input field and appends a user message.'
+    ],
+    [
+      'isLoading',
+      'boolean',
+      'Boolean flag indicating whether a request is currently in progress.'
+    ]
+  ]}
+/>
+
+</Tab>
 </FrameworkTabs>
