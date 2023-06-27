@@ -2,5 +2,6 @@
   "openai": "OpenAI",
   "huggingface": "Hugging Face",
   "anthropic": "Anthropic",
-  "langchain": "LangChain"
+  "langchain": "LangChain",
+  "nextjs-app": "Next.js App Router"
 }
