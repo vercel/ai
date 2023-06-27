@@ -4,6 +4,7 @@
   "anthropic": "Anthropic",
   "langchain": "LangChain",
   "nextjs-app": "Next.js App Router",
+  "nextjs-pages": "Next.js Pages Router"
   "sveltekit": {
     "title": "SvelteKit",
     "type": "page",
