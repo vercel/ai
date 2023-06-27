@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.9
+
+### Patch Changes
+
+- 9cdf968: core/react: add Tokens react server component
+
 ## 2.1.8
 
 ### Patch Changes
