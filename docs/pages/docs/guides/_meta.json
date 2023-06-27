@@ -3,5 +3,10 @@
   "huggingface": "Hugging Face",
   "anthropic": "Anthropic",
   "langchain": "LangChain",
-  "nextjs-app": "Next.js App Router"
+  "nextjs-app": "Next.js App Router",
+  "sveltekit": {
+    "title": "SvelteKit",
+    "type": "page",
+    "href": "/docs/getting-started#build-your-app"
+  }
 }
