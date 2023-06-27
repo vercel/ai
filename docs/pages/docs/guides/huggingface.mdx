@@ -96,8 +96,8 @@ export async function POST(req: Request) {
   [`HuggingFaceStream`](/docs/api-reference/huggingface-stream). This method
   decodes/extracts the text tokens in the response and then re-encodes them
   properly for simple consumption. We can then pass that new stream directly to
-  [`StreamingTextResponse`](/docs/api-reference/streaming-text-response). This is
-  another utility class that extends the normal Node/Edge Runtime `Response`
+  [`StreamingTextResponse`](/docs/api-reference/streaming-text-response). This
+  is another utility class that extends the normal Node/Edge Runtime `Response`
   class with the default headers you probably want (hint: `'Content-Type':
   'text/plain; charset=utf-8'` is already set for you).
 </Callout>
