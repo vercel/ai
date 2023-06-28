@@ -1,6 +1,4 @@
 ---
-'next-openai': patch
-'sveltekit-openai': patch
 'ai': patch
 ---
 
