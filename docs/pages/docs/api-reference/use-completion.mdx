@@ -314,6 +314,125 @@ The `useCompletion` function returns an object with several helper methods and v
 />
 
 </Tab>
+<Tab>
+To use `useCompletion` in Vue projects, you can import it from the `ai/vue` subpath. Here's an example demonstrating the use of `useCompletion` in a simple text completion interface:
+
+```tsx filename="pages/app.vue"
+<script setup>
+  import { useCompletion } from 'ai/vue'
+
+  const { input, handleSubmit, completion } = useCompletion()
+</script>
+
+<template>
+  <div>
+    <p>Completion result: {{ completion }}</p>
+    <form @submit.prevent={handleSubmit}>
+      <label for="input">Prompt</label>
+      <input v-model={input} id="input" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+</template>
+```
+
+### `UseCompletionOptions`
+
+<OptionTable
+  options={[
+    [
+      'api',
+      "string = '/api/completion'",
+      'The API endpoint that accepts a `{ prompt: string }` object and returns a stream of tokens for the AI completion response. Defaults to `/api/completion`.'
+    ],
+    [
+      'id',
+      'string',
+      'An unique identifier for the completion. If not provided, a random one will be generated. When provided, the `useCompletion` function with the same `id` will have shared states across components. This is useful when you have multiple components showing the same chat stream.'
+    ],
+    [
+      'initialInput',
+      "string = ''",
+      'An optional string for the initial prompt input.'
+    ],
+    [
+      'initialCompletion',
+      "string = ''",
+      'An optional string for the initial completion result.'
+    ],
+    [
+      'onResponse',
+      '(res: Response) => void',
+      'An optional callback function that is called with the response from the API endpoint. Useful for throwing customized errors or logging.'
+    ],
+    [
+      'onFinish',
+      '(prompt: string, completion: string) => void',
+      'An optional callback function that is called when the completion stream ends.'
+    ],
+    [
+      'onError',
+      '(err: Error) => void',
+      'An optional callback that will be called when the chat stream encounters an error'
+    ],
+    [
+      'headers',
+      'Record<string, string> | Headers',
+      'An optional object of headers to be passed to the API endpoint.'
+    ],
+    [
+      'body',
+      'any',
+      'An optional, additional body object to be passed to the API endpoint.'
+    ]
+  ]}
+/>
+
+### `UseCompletionHelpers`
+
+The `useCompletion` function returns an object with several helper methods and variables to manage the completion state:
+
+<OptionTable
+  options={[
+    [
+      'completion',
+      'Ref<string>',
+      'A Vue ref wrapping the current text completion.'
+    ],
+    [
+      'complete',
+      '(prompt: string) => Promise<string | null | undefined>',
+      'Send a new prompt to the API endpoint and update the completion state.'
+    ],
+    [
+      'error',
+      'Ref<undefined | Error>',
+      'The error thrown during the completion process, if any.'
+    ],
+    [
+      'setCompletion',
+      '(completion: string) => void',
+      'Function to update the `completion` state locally.'
+    ],
+    ['stop', '() => void', 'Function to abort the current API request.'],
+    [
+      'input',
+      'Ref<string>',
+      'A Vue ref wrapping the current value of the input field.'
+    ],
+    [
+      'handleSubmit',
+      '(e: any) => void',
+      'Form submission handler that automatically resets the input field and appends a user message.'
+    ],
+    [
+      'isLoading',
+      'boolean',
+      'Boolean flag indicating whether a fetch operation is currently in progress.'
+    ]
+  ]}
+/>
+</Tab>
 </FrameworkTabs>
 
 ## Example: Building a Spell Check
