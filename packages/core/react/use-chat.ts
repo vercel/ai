@@ -67,6 +67,7 @@ export function useChat({
   onResponse,
   onFinish,
   onError,
+  credentials,
   headers,
   body
 }: UseChatOptions = {}): UseChatHelpers {
@@ -89,16 +90,18 @@ export function useChat({
   // Abort controller to cancel the current API call.
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  const extraMetadataRef = useRef<any>({
+  const extraMetadataRef = useRef({
+    credentials,
     headers,
     body
   })
   useEffect(() => {
     extraMetadataRef.current = {
+      credentials,
       headers,
       body
     }
-  }, [headers, body])
+  }, [credentials, headers, body])
 
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
@@ -135,6 +138,7 @@ export function useChat({
             ...extraMetadataRef.current.body,
             ...options?.body
           }),
+          credentials: extraMetadataRef.current.credentials,
           headers: {
             ...extraMetadataRef.current.headers,
             ...options?.headers
