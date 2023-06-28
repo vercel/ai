@@ -1,14 +1,21 @@
-import { useCallback, useId, useRef, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
-import useSWR from 'swr'
+import useSWR, { KeyedMutator } from 'swr'
 import { nanoid, createChunkDecoder } from '../shared/utils'
 
 import type {
-  Message,
+  ChatRequest,
   CreateMessage,
+  Message,
   UseChatOptions,
-  RequestOptions
+  RequestOptions,
+  ChatRequestOptions
 } from '../shared/types'
+import {
+  ChatCompletionRequestMessageFunctionCall,
+  CreateChatCompletionRequestFunctionCall
+} from 'openai-edge'
+import { ChatCompletionFunctions } from 'openai-edge/types/api'
 export type { Message, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {
@@ -24,14 +31,16 @@ export type UseChatHelpers = {
    */
   append: (
     message: Message | CreateMessage,
-    options?: RequestOptions
+    chatRequestOptions?: ChatRequestOptions
   ) => Promise<string | null | undefined>
   /**
    * Reload the last AI chat response for the given chat history. If the last
    * message isn't from the assistant, it will request the API to generate a
    * new response.
    */
-  reload: (options?: RequestOptions) => Promise<string | null | undefined>
+  reload: (
+    chatRequestOptions?: ChatRequestOptions
+  ) => Promise<string | null | undefined>
   /**
    * Abort the current request immediately, keep the generated tokens if any.
    */
@@ -53,9 +62,139 @@ export type UseChatHelpers = {
       | React.ChangeEvent<HTMLTextAreaElement>
   ) => void
   /** Form submission handler to automattically reset input and append a user message  */
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  handleSubmit: (
+    e: React.FormEvent<HTMLFormElement>,
+    chatRequestOptions?: ChatRequestOptions
+  ) => void
+  metadata?: Object
   /** Whether the API request is in progress */
   isLoading: boolean
+}
+
+const getStreamedResponse = async (
+  api: string,
+  chatRequest: ChatRequest,
+  mutate: KeyedMutator<Message[]>,
+  extraMetadataRef: React.MutableRefObject<any>,
+  messagesRef: React.MutableRefObject<Message[]>,
+  abortControllerRef: React.MutableRefObject<AbortController | null>,
+  onFinish?: (message: Message) => void,
+  onResponse?: (response: Response) => void | Promise<void>,
+  sendExtraMessageFields?: boolean
+) => {
+  // Do an optimistic update to the chat state to show the updated messages
+  // immediately.
+  const previousMessages = messagesRef.current
+  mutate(chatRequest.messages, false)
+
+  const res = await fetch(api, {
+    method: 'POST',
+    body: JSON.stringify({
+      messages: sendExtraMessageFields
+        ? chatRequest.messages
+        : chatRequest.messages.map(
+            ({ role, content, name, function_call }) => ({
+              role,
+              content,
+              ...(name !== undefined && { name }),
+              ...(function_call !== undefined && {
+                function_call: function_call
+              })
+            })
+          ),
+      ...extraMetadataRef.current.body,
+      ...chatRequest.options?.body,
+      ...(chatRequest.functions !== undefined && {
+        functions: chatRequest.functions
+      }),
+      ...(chatRequest.function_call !== undefined && {
+        function_call: chatRequest.function_call
+      })
+    }),
+    credentials: extraMetadataRef.current.credentials,
+    headers: {
+      ...extraMetadataRef.current.headers,
+      ...chatRequest.options?.headers
+    },
+    ...(abortControllerRef.current !== null && {
+      signal: abortControllerRef.current.signal
+    })
+  }).catch(err => {
+    // Restore the previous messages if the request fails.
+    mutate(previousMessages, false)
+    throw err
+  })
+
+  if (onResponse) {
+    try {
+      await onResponse(res)
+    } catch (err) {
+      throw err
+    }
+  }
+
+  if (!res.ok) {
+    // Restore the previous messages if the request fails.
+    mutate(previousMessages, false)
+    throw new Error((await res.text()) || 'Failed to fetch the chat response.')
+  }
+
+  if (!res.body) {
+    throw new Error('The response body is empty.')
+  }
+
+  let streamedResponse = ''
+  const createdAt = new Date()
+  const replyId = nanoid()
+  const reader = res.body.getReader()
+  const decode = createChunkDecoder()
+
+  let responseMessage: Message = {
+    id: replyId,
+    createdAt,
+    content: '',
+    role: 'assistant'
+  }
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) {
+      break
+    }
+    // Update the chat state with the new message tokens.
+    streamedResponse += decode(value)
+
+    if (streamedResponse.startsWith('{"function_call":')) {
+      // While the function call is streaming, it will be a string.
+      responseMessage['function_call'] = streamedResponse
+    } else {
+      responseMessage['content'] = streamedResponse
+    }
+
+    mutate([...chatRequest.messages, { ...responseMessage }], false)
+
+    // The request has been aborted, stop reading the stream.
+    if (abortControllerRef.current === null) {
+      reader.cancel()
+      break
+    }
+  }
+
+  if (streamedResponse.startsWith('{"function_call":')) {
+    // Once the stream is complete, the function call is parsed into an object.
+    const parsedFunctionCall: ChatCompletionRequestMessageFunctionCall =
+      JSON.parse(streamedResponse).function_call
+
+    responseMessage['function_call'] = parsedFunctionCall
+
+    mutate([...chatRequest.messages, { ...responseMessage }])
+  }
+
+  if (onFinish) {
+    onFinish(responseMessage)
+  }
+
+  return responseMessage
 }
 
 export function useChat({
@@ -64,6 +203,7 @@ export function useChat({
   initialMessages = [],
   initialInput = '',
   sendExtraMessageFields,
+  experimental_onFunctionCall,
   onResponse,
   onFinish,
   onError,
@@ -71,7 +211,7 @@ export function useChat({
   headers,
   body
 }: UseChatOptions = {}): UseChatHelpers {
-  // Generate an unique id for the chat if not provided.
+  // Generate a unique id for the chat if not provided.
   const hookId = useId()
   const chatId = id || hookId
 
@@ -106,114 +246,64 @@ export function useChat({
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
   const { error, trigger, isMutating } = useSWRMutation<
-    string | null,
+    null,
     any,
     [string, string],
-    {
-      messages: Message[]
-      options?: RequestOptions
-    }
+    ChatRequest
   >(
     [api, chatId],
-    async (_, { arg }) => {
+    async (_, { arg: initialChatRequest }) => {
       try {
-        const { messages: messagesSnapshot, options } = arg
         const abortController = new AbortController()
         abortControllerRef.current = abortController
 
-        // Do an optimistic update to the chat state to show the updated messages
-        // immediately.
-        const previousMessages = messagesRef.current
-        mutate(messagesSnapshot, false)
-
-        const res = await fetch(api, {
-          method: 'POST',
-          body: JSON.stringify({
-            messages: sendExtraMessageFields
-              ? messagesSnapshot
-              : messagesSnapshot.map(({ role, content }) => ({
-                  role,
-                  content
-                })),
-            ...extraMetadataRef.current.body,
-            ...options?.body
-          }),
-          credentials: extraMetadataRef.current.credentials,
-          headers: {
-            ...extraMetadataRef.current.headers,
-            ...options?.headers
-          },
-          signal: abortController.signal
-        }).catch(err => {
-          // Restore the previous messages if the request fails.
-          mutate(previousMessages, false)
-          throw err
-        })
-
-        if (onResponse) {
-          try {
-            await onResponse(res)
-          } catch (err) {
-            throw err
-          }
-        }
-
-        if (!res.ok) {
-          // Restore the previous messages if the request fails.
-          mutate(previousMessages, false)
-          throw new Error(
-            (await res.text()) || 'Failed to fetch the chat response.'
-          )
-        }
-
-        if (!res.body) {
-          throw new Error('The response body is empty.')
-        }
-
-        let result = ''
-        const createdAt = new Date()
-        const replyId = nanoid()
-        const reader = res.body.getReader()
-        const decode = createChunkDecoder()
+        let chatRequest = initialChatRequest
 
         while (true) {
-          const { done, value } = await reader.read()
-          if (done) {
-            break
-          }
-          // Update the chat state with the new message tokens.
-          result += decode(value)
-          mutate(
-            [
-              ...messagesSnapshot,
-              {
-                id: replyId,
-                createdAt,
-                content: result,
-                role: 'assistant'
-              }
-            ],
-            false
+          const streamedResponseMessage = await getStreamedResponse(
+            api,
+            chatRequest,
+            mutate,
+            extraMetadataRef,
+            messagesRef,
+            abortControllerRef,
+            onFinish,
+            onResponse,
+            sendExtraMessageFields
           )
 
-          // The request has been aborted, stop reading the stream.
-          if (abortControllerRef.current === null) {
-            reader.cancel()
+          if (
+            streamedResponseMessage.function_call === undefined ||
+            typeof streamedResponseMessage.function_call === 'string'
+          ) {
             break
           }
-        }
 
-        if (onFinish) {
-          onFinish({
-            id: replyId,
-            createdAt,
-            content: result,
-            role: 'assistant'
-          })
+          // Streamed response is a function call, invoke the function call handler if it exists.
+          if (experimental_onFunctionCall) {
+            const functionCall = streamedResponseMessage.function_call
+
+            // User handles the function call in their own functionCallHandler.
+            // The "arguments" key of the function call object will still be a string which will have to be parsed in the function handler.
+            // If the "arguments" JSON is malformed due to model error the user will have to handle that themselves.
+
+            const functionCallResponse: ChatRequest | void =
+              await experimental_onFunctionCall(
+                messagesRef.current,
+                functionCall
+              )
+
+            // If the user does not return anything as a result of the function call, the loop will break.
+            if (functionCallResponse === undefined) break
+
+            // A function call response was returned.
+            // The updated chat with function call response will be sent to the API in the next iteration of the loop.
+            chatRequest = functionCallResponse
+          }
         }
 
         abortControllerRef.current = null
-        return result
+        return null
       } catch (err) {
         // Ignore abort errors as they are expected.
         if ((err as any).name === 'AbortError') {
@@ -234,34 +324,52 @@ export function useChat({
     }
   )
 
-  const append = useCallback<UseChatHelpers['append']>(
-    async (message, options) => {
+  const append = useCallback(
+    async (
+      message: Message | CreateMessage,
+      { options, functions, function_call }: ChatRequestOptions = {}
+    ) => {
       if (!message.id) {
         message.id = nanoid()
       }
-      return trigger({
+
+      const chatRequest: ChatRequest = {
         messages: messagesRef.current.concat(message as Message),
-        options
-      })
+        options,
+        ...(functions !== undefined && { functions }),
+        ...(function_call !== undefined && { function_call })
+      }
+
+      return trigger(chatRequest)
     },
     [trigger]
   )
 
-  const reload = useCallback<UseChatHelpers['reload']>(
-    async options => {
+  const reload = useCallback(
+    async ({ options, functions, function_call }: ChatRequestOptions = {}) => {
       if (messagesRef.current.length === 0) return null
 
+      // Remove last assistant message and retry last user message.
       const lastMessage = messagesRef.current[messagesRef.current.length - 1]
       if (lastMessage.role === 'assistant') {
-        return trigger({
+        const chatRequest: ChatRequest = {
           messages: messagesRef.current.slice(0, -1),
-          options
-        })
+          options,
+          ...(functions !== undefined && { functions }),
+          ...(function_call !== undefined && { function_call })
+        }
+
+        return trigger(chatRequest)
       }
-      return trigger({
+
+      const chatRequest: ChatRequest = {
         messages: messagesRef.current,
-        options
-      })
+        options,
+        ...(functions !== undefined && { functions }),
+        ...(function_call !== undefined && { function_call })
+      }
+
+      return trigger(chatRequest)
     },
     [trigger]
   )
@@ -285,7 +393,11 @@ export function useChat({
   const [input, setInput] = useState(initialInput)
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>, metadata?: Object) => {
+    (
+      e: React.FormEvent<HTMLFormElement>,
+      { options, functions, function_call }: ChatRequestOptions = {},
+      metadata?: Object
+    ) => {
       if (metadata) {
         extraMetadataRef.current = {
           ...extraMetadataRef.current,
@@ -295,11 +407,15 @@ export function useChat({
 
       e.preventDefault()
       if (!input) return
-      append({
-        content: input,
-        role: 'user',
-        createdAt: new Date()
-      })
+
+      append(
+        {
+          content: input,
+          role: 'user',
+          createdAt: new Date()
+        },
+        { options, functions, function_call }
+      )
       setInput('')
     },
     [input, append]

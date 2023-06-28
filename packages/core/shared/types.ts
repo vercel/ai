@@ -1,3 +1,9 @@
+import {
+  ChatCompletionRequestMessageFunctionCall,
+  CreateChatCompletionRequestFunctionCall
+} from 'openai-edge'
+import { ChatCompletionFunctions } from 'openai-edge/types/api'
+
 /**
  * Shared types between the API and UI packages.
  */
@@ -5,19 +11,45 @@ export type Message = {
   id: string
   createdAt?: Date
   content: string
-  role: 'system' | 'user' | 'assistant'
+  role: 'system' | 'user' | 'assistant' | 'function'
+  /**
+   * If the message has a role of `function`, the `name` field is the name of the function.
+   * Otherwise, the name field should not be set.
+   */
+  name?: string
+  /**
+   * If the assistant role makes a function call, the `function_call` field
+   * contains the function call name and arguments. Otherwise, the field should
+   * not be set.
+   */
+  function_call?: string | ChatCompletionRequestMessageFunctionCall
 }
 
-export type CreateMessage = {
-  id?: string
-  createdAt?: Date
-  content: string
-  role: 'system' | 'user' | 'assistant'
+export type CreateMessage = Omit<Message, 'id'> & {
+  id?: Message['id']
 }
+
+export type ChatRequest = {
+  messages: Message[]
+  options?: RequestOptions
+  functions?: Array<ChatCompletionFunctions>
+  function_call?: CreateChatCompletionRequestFunctionCall
+}
+
+export type FunctionCallHandler = (
+  chatMessages: Message[],
+  functionCall: ChatCompletionRequestMessageFunctionCall
+) => Promise<ChatRequest | void>
 
 export type RequestOptions = {
   headers?: Record<string, string> | Headers
   body?: object
+}
+
+export type ChatRequestOptions = {
+  options?: RequestOptions
+  functions?: Array<ChatCompletionFunctions>
+  function_call?: CreateChatCompletionRequestFunctionCall
 }
 
 export type UseChatOptions = {
@@ -28,7 +60,7 @@ export type UseChatOptions = {
   api?: string
 
   /**
-   * An unique identifier for the chat. If not provided, a random one will be
+   * A unique identifier for the chat. If not provided, a random one will be
    * generated. When provided, the `useChat` hook with the same `id` will
    * have shared states across components.
    */
@@ -43,6 +75,13 @@ export type UseChatOptions = {
    * Initial input of the chat.
    */
   initialInput?: string
+
+  /**
+   * Callback function to be called when a function call is received.
+   * If the function returns a `ChatRequest` object, the request will be sent
+   * automatically to the API and will be used to update the chat.
+   */
+  experimental_onFunctionCall?: FunctionCallHandler
 
   /**
    * Callback function to be called when the API response is received.
