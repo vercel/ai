@@ -203,7 +203,7 @@ export function useChat({
   initialMessages = [],
   initialInput = '',
   sendExtraMessageFields,
-  onFunctionCall,
+  experimental_onFunctionCall,
   onResponse,
   onFinish,
   onError,
@@ -280,7 +280,7 @@ export function useChat({
           }
 
           // Streamed response is a function call, invoke the function call handler if it exists.
-          if (onFunctionCall) {
+          if (experimental_onFunctionCall) {
             const functionCall = streamedResponseMessage.function_call
 
             // User handles the function call in their own functionCallHandler.
@@ -288,7 +288,10 @@ export function useChat({
             // If the "arguments" JSON is malformed due to model error the user will have to handle that themselves.
 
             const functionCallResponse: ChatRequest | void =
-              await onFunctionCall(messagesRef.current, functionCall)
+              await experimental_onFunctionCall(
+                messagesRef.current,
+                functionCall
+              )
 
             // If the user does not return anything as a result of the function call, the loop will break.
             if (functionCallResponse === undefined) break

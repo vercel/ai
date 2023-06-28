@@ -81,7 +81,7 @@ export type UseChatOptions = {
    * If the function returns a `ChatRequest` object, the request will be sent
    * automatically to the API and will be used to update the chat.
    */
-  onFunctionCall?: FunctionCallHandler
+  experimental_onFunctionCall?: FunctionCallHandler
 
   /**
    * Callback function to be called when the API response is received.
