@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.10
+
+### Patch Changes
+
+- a7b3d0e: Experimental support for OpenAI function calling
+
 ## 2.1.9
 
 ### Patch Changes
