@@ -1,57 +1,8 @@
 'use client'
 
-import { ChatCompletionFunctions } from 'openai-edge/types/api'
 import { Message } from 'ai/react'
 import { useChat } from 'ai/react'
 import { ChatRequest, FunctionCallHandler, nanoid } from 'ai'
-
-const functions: ChatCompletionFunctions[] = [
-  {
-    name: 'get_current_weather',
-    description: 'Get the current weather',
-    parameters: {
-      type: 'object',
-      properties: {
-        location: {
-          type: 'string',
-          description: 'The city and state, e.g. San Francisco, CA'
-        },
-        format: {
-          type: 'string',
-          enum: ['celsius', 'fahrenheit'],
-          description:
-            'The temperature unit to use. Infer this from the users location.'
-        }
-      },
-      required: ['location', 'format']
-    }
-  },
-  {
-    name: 'get_current_time',
-    description: 'Get the current time',
-    parameters: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  },
-  {
-    name: 'eval_code_in_browser',
-    description: 'Execute javascript code in the browser with eval().',
-    parameters: {
-      type: 'object',
-      properties: {
-        code: {
-          type: 'string',
-          description: `Javascript code that will be directly executed via eval(). Do not use backticks in your response.
-           DO NOT include any newlines in your response, and be sure to provide only valid JSON when providing the arguments object.
-           The output of the eval() will be returned directly by the function.`
-        }
-      },
-      required: ['code']
-    }
-  }
-]
 
 export default function Chat() {
   const functionCallHandler: FunctionCallHandler = async (
@@ -66,9 +17,9 @@ export default function Chat() {
         console.log(parsedFunctionCallArguments)
       }
 
-      // Generate a random number between 30 and 100 for fake temperature
+      // Generate a fake temperature
       const temperature = Math.floor(Math.random() * (100 - 30 + 1) + 30)
-      // Generate random weather condition from the options of 'sunny' 'cloudy' 'rainy' 'snowy'
+      // Generate random weather condition
       const weather = ['sunny', 'cloudy', 'rainy', 'snowy'][
         Math.floor(Math.random() * 4)
       ]
@@ -88,9 +39,8 @@ export default function Chat() {
           }
         ]
       }
-      return Promise.resolve(functionResponse)
+      return functionResponse
     } else if (functionCall.name === 'get_current_time') {
-      // Get current time
       const time = new Date().toLocaleTimeString()
       const functionResponse: ChatRequest = {
         messages: [
@@ -101,12 +51,12 @@ export default function Chat() {
             role: 'function' as const,
             content: JSON.stringify({ time })
           }
-        ],
-        // You can return a list of functions here that the model can call next
-        functions
+        ]
+        // You can also (optionally) return a list of functions here that the model can call next
+        // functions
       }
 
-      return Promise.resolve(functionResponse)
+      return functionResponse
     } else if (functionCall.name === 'eval_code_in_browser') {
       if (functionCall.arguments) {
         // Parsing here does not always work since it seems that some characters in generated code aren't escaped properly.
@@ -124,7 +74,7 @@ export default function Chat() {
             }
           ]
         }
-        return Promise.resolve(functionResponse)
+        return functionResponse
       }
     }
   }
@@ -143,30 +93,18 @@ export default function Chat() {
   }
 
   const getRenderedMessage = (m: Message) => {
-    if (m.content === '') {
-      if (typeof m.function_call === 'string') {
-        return (
-          (
-            <>
-              <p>**** Function Call! **** </p>
-              {m.function_call.split('\\n').map((line, index) => (
-                <p key={index}>{line}</p>
-              ))}
-            </>
-          ) ?? ''
-        )
-      } else {
-        return (
-          (
-            <>
-              <p>**** {m.function_call?.name!} Function Call! **** </p>
-              {m.function_call?.arguments!.split('\\n').map((line, index) => (
-                <p key={index}>{line}</p>
-              ))}
-            </>
-          ) ?? ''
-        )
-      }
+    if (m.content === '' && m.function_call !== undefined) {
+      const functionCallString =
+        typeof m.function_call === 'string'
+          ? m.function_call
+          : JSON.stringify(m.function_call)
+      return (
+        <>
+          {functionCallString.split('\\n').map((line, index) => (
+            <p key={index}>{line}</p>
+          ))}
+        </>
+      )
     } else {
       return m.content
     }
@@ -181,9 +119,7 @@ export default function Chat() {
               className="whitespace-pre-wrap"
               style={{ color: roleToColorMap[m.role] }}
             >
-              <strong>{`${
-                m.role.charAt(0).toUpperCase() + m.role.slice(1)
-              }: `}</strong>
+              <strong>{`${m.role}: `}</strong>
               {getRenderedMessage(m)}
               <br />
               <br />
@@ -192,7 +128,7 @@ export default function Chat() {
         : null}
       <div id="chart-goes-here"></div>
 
-      <form onSubmit={e => handleSubmit(e, { functions })}>
+      <form onSubmit={handleSubmit}>
         <input
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           value={input}
