@@ -35,6 +35,12 @@
       "module": "./react/dist/index.mjs",
       "require": "./react/dist/index.js"
     },
+    "./react/server": {
+      "types": "./react/dist/index.server.d.ts",
+      "import": "./react/dist/index.server.mjs",
+      "module": "./react/dist/index.server.mjs",
+      "require": "./react/dist/index.server.js"
+    },
     "./svelte": {
       "types": "./svelte/dist/index.d.ts",
       "import": "./svelte/dist/index.mjs",

@@ -19,6 +19,13 @@ export default defineConfig([
     external: ['react', 'svelte', 'vue'],
     dts: true
   },
+  {
+    entry: ['react/index.server.ts'],
+    outDir: 'react/dist',
+    format: ['cjs', 'esm'],
+    external: ['react', 'svelte', 'vue'],
+    dts: true
+  },
   // Svelte APIs
   {
     entry: ['svelte/index.ts'],

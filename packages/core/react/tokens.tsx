@@ -24,7 +24,7 @@ export async function Tokens(props: Props) {
 
 type InternalProps = {
   reader: ReadableStreamDefaultReader
-} & Omit<Props, 'stream'>
+}
 
 async function RecursiveTokens({ reader }: InternalProps) {
   const { done, value } = await reader.read()

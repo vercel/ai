@@ -2,7 +2,16 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "exports": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./server": {
+      "import": "./dist/index.server.mjs",
+      "require": "./dist/index.server.js"
+    }
+  },
   "private": true,
   "peerDependencies": {
     "react": "*"
