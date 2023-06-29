@@ -9,5 +9,6 @@
     "title": "SvelteKit",
     "type": "page",
     "href": "/docs/getting-started#build-your-app"
-  }
+  },
+  "functions": "Functions"
 }
