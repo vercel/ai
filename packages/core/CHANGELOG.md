@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.11
+
+### Patch Changes
+
+- 8bf637a: Fix langchain handlers so that they now are correctly invoked and update examples and docs to show correct usage (passing the handlers to `llm.call` and not the model itself).
+
 ## 2.1.10
 
 ### Patch Changes

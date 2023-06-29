@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "ai": "^2.1.10",
+    "ai": "^2.1.11",
     "next": "13.4.4-canary.11",
     "openai-edge": "^1.1.0",
     "react": "18.2.0",
