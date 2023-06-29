@@ -9,7 +9,7 @@
     "postinstall": "nuxt prepare"
   },
   "devDependencies": {
-    "@nuxt/devtools": "latest",
+    "@nuxt/devtools": "0.6.4",
     "@nuxtjs/tailwindcss": "^6.7.2",
     "@types/node": "^18",
     "@vue/reactivity": "^3.3.4",

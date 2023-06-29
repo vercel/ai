@@ -11,7 +11,7 @@
     "lint:fix": "eslint --fix --ext .ts,.vue --ignore-path .gitignore ."
   },
   "devDependencies": {
-    "@nuxt/devtools": "latest",
+    "@nuxt/devtools": "0.6.4",
     "@nuxtjs/eslint-config": "^12.0.0",
     "@nuxtjs/eslint-config-typescript": "^12.0.0",
     "@nuxtjs/eslint-module": "^4.1.0",
