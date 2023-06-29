@@ -45,7 +45,7 @@ importers:
         specifier: ^2.5.1
         version: 2.5.1
       ai:
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../../packages/core
       next:
         specifier: 13.4.4-canary.11
@@ -91,7 +91,7 @@ importers:
   examples/next-langchain:
     dependencies:
       ai:
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.99
@@ -137,7 +137,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: ^2.1.11
+        specifier: ^2.1.12
         version: link:../../packages/core
       next:
         specifier: 13.4.4-canary.11
@@ -196,7 +196,7 @@ importers:
         version: 3.3.4
     devDependencies:
       '@nuxt/devtools':
-        specifier: latest
+        specifier: 0.6.4
         version: 0.6.4(nuxt@3.5.3)(vite@4.3.9)
       '@nuxtjs/eslint-config':
         specifier: ^12.0.0
@@ -256,7 +256,7 @@ importers:
   examples/nuxt-openai:
     devDependencies:
       '@nuxt/devtools':
-        specifier: latest
+        specifier: 0.6.4
         version: 0.6.4(nuxt@3.5.3)(vite@4.3.9)
       '@nuxtjs/tailwindcss':
         specifier: ^6.7.2
@@ -277,7 +277,7 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4
       ai:
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../../packages/core
       nuxt:
         specifier: ^3.5.2
@@ -298,7 +298,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       ai:
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../../packages/core
       openai-edge:
         specifier: ^0.5.1
