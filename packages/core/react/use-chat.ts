@@ -8,14 +8,9 @@ import type {
   CreateMessage,
   Message,
   UseChatOptions,
-  RequestOptions,
   ChatRequestOptions
 } from '../shared/types'
-import {
-  ChatCompletionRequestMessageFunctionCall,
-  CreateChatCompletionRequestFunctionCall
-} from 'openai-edge'
-import { ChatCompletionFunctions } from 'openai-edge/types/api'
+import { ChatCompletionRequestMessageFunctionCall } from 'openai-edge'
 export type { Message, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {

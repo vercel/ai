@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
 
-import { createChunkDecoder } from '../shared/utils'
+import { createChunkDecoder, nanoid } from '../shared/utils'
 import { UseCompletionOptions, RequestOptions } from '../shared/types'
 
 export type UseCompletionHelpers = {
@@ -67,9 +67,7 @@ export function useCompletion({
   onFinish,
   onError
 }: UseCompletionOptions = {}): UseCompletionHelpers {
-  // Generate an unique id for the completion if not provided.
-  const hookId = useId()
-  const completionId = id || hookId
+  const completionId = id || `completion-${nanoid()}`
 
   // Store the completion state in SWR, using the completionId as the key to share states.
   const { data, mutate } = useSWR<string>([api, completionId], null, {
