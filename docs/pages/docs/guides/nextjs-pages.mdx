@@ -1,0 +1,99 @@
+---
+title: Next.js Pages Router
+---
+
+# Next.js Pages Router
+
+## API routes
+
+### Edge Runtime
+
+The Edge Runtime supports the same Response types as in the App Router, so the code is equivalent between the two.
+
+```jsx
+import { OpenAIStream, StreamingTextResponse } from 'ai'
+import { Configuration, OpenAIApi } from 'openai-edge'
+
+export const runtime = 'edge'
+
+const config = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY
+})
+const openai = new OpenAIApi(config)
+
+export default async function handler(req: Request, res: Response) {
+  const response = await openai.createChatCompletion({
+    model: 'gpt-3.5-turbo',
+    stream: true,
+    messages: [{ role: 'user', content: 'What is love?' }]
+  })
+  const stream = OpenAIStream(response)
+  return new StreamingTextResponse(stream)
+}
+```
+
+### Node.js Runtime
+
+Node.js offers different Request and Response types compared to the Edge Runtime and App Router, so we need to use the `streamToResponse` helper function
+in place of `StreamingTextResponse`.
+
+```jsx
+import { OpenAIStream, streamToResponse } from 'ai'
+import { NextApiRequest, NextApiResponse } from 'next'
+import { Configuration, OpenAIApi } from 'openai-edge'
+
+const config = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY
+})
+
+const openai = new OpenAIApi(config)
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const aiResponse = await openai.createChatCompletion({
+    model: 'gpt-3.5-turbo',
+    stream: true,
+    messages: [{ role: 'user', content: 'What is love?' }]
+  })
+
+  const stream = OpenAIStream(aiResponse)
+
+  /**
+   * Converts the stream to a Node.js Response-like object
+   */
+  return streamToResponse(stream, res)
+}
+```
+
+## Components
+
+You can use the client `useChat` and `useCompletion` hooks the same between the Pages and App Router.
+
+```jsx
+import { useChat } from 'ai/react'
+
+// Optional but recommended: use the Edge Runtime. This can only be done at the page level, not inside nested components.
+export const runtime = 'experimental-edge'
+
+export default function IndexPage() {
+  const { messages, handleSubmit, input, handleInputChange } = useChat()
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <label for="input">Prompt</label>
+      <input
+        name="prompt"
+        value={input}
+        onChange={handleInputChange}
+        id="input"
+      />
+      <button type="submit">Submit</button>
+      {messages.map((message, i) => (
+        <div key={i}>{message.content}</div>
+      ))}
+    </form>
+  )
+}
+```

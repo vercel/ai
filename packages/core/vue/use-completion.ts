@@ -52,6 +52,7 @@ export function useCompletion({
   id,
   initialCompletion = '',
   initialInput = '',
+  credentials,
   headers,
   body,
   onResponse,
@@ -101,7 +102,8 @@ export function useCompletion({
           ...headers,
           ...options?.headers
         },
-        signal: abortController.signal
+        signal: abortController.signal,
+        credentials
       }).catch(err => {
         throw err
       })

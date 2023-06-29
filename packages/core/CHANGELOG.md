@@ -1,5 +1,17 @@
 # ai
 
+## 2.1.10
+
+### Patch Changes
+
+- a7b3d0e: Experimental support for OpenAI function calling
+
+## 2.1.9
+
+### Patch Changes
+
+- 9cdf968: core/react: add Tokens react server component
+
 ## 2.1.8
 
 ### Patch Changes
