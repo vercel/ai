@@ -1,9 +1,15 @@
 import { useSWR } from 'sswr'
 import { Readable, get, writable } from 'svelte/store'
 
-import type { Message, CreateMessage, UseChatOptions } from '../shared/types'
 import { Writable } from 'svelte/store'
-import { decodeAIStreamChunk, nanoid } from '../shared/utils'
+
+import type {
+  Message,
+  CreateMessage,
+  UseChatOptions,
+  RequestOptions
+} from '../shared/types'
+import { nanoid, createChunkDecoder } from '../shared/utils'
 
 export type { Message, CreateMessage, UseChatOptions }
 
@@ -17,14 +23,15 @@ export type UseChatHelpers = {
    * the assistant's response.
    */
   append: (
-    message: Message | CreateMessage
+    message: Message | CreateMessage,
+    options?: RequestOptions
   ) => Promise<string | null | undefined>
   /**
    * Reload the last AI chat response for the given chat history. If the last
    * message isn't from the assistant, it will request the API to generate a
    * new response.
    */
-  reload: () => Promise<string | null | undefined>
+  reload: (options?: RequestOptions) => Promise<string | null | undefined>
   /**
    * Abort the current request immediately, keep the generated tokens if any.
    */
@@ -54,6 +61,7 @@ export function useChat({
   onResponse,
   onFinish,
   onError,
+  credentials,
   headers,
   body
 }: UseChatOptions = {}): UseChatHelpers {
@@ -80,7 +88,10 @@ export function useChat({
   const isLoading = writable(false)
 
   let abortController: AbortController | null = null
-  async function triggerRequest(messagesSnapshot: Message[]) {
+  async function triggerRequest(
+    messagesSnapshot: Message[],
+    options?: RequestOptions
+  ) {
     try {
       isLoading.set(true)
       abortController = new AbortController()
@@ -99,10 +110,15 @@ export function useChat({
                 role,
                 content
               })),
-          ...body
+          ...body,
+          ...options?.body
         }),
-        headers: headers || {},
-        signal: abortController.signal
+        headers: {
+          ...headers,
+          ...options?.headers
+        },
+        signal: abortController.signal,
+        credentials
       }).catch(err => {
         // Restore the previous messages if the request fails.
         mutate(previousMessages)
@@ -132,6 +148,7 @@ export function useChat({
       const createdAt = new Date()
       const replyId = nanoid()
       const reader = res.body.getReader()
+      const decoder = createChunkDecoder()
 
       while (true) {
         const { done, value } = await reader.read()
@@ -139,7 +156,7 @@ export function useChat({
           break
         }
         // Update the chat state with the new message tokens.
-        result += decodeAIStreamChunk(value)
+        result += decoder(value)
         mutate([
           ...messagesSnapshot,
           {
@@ -185,22 +202,22 @@ export function useChat({
     }
   }
 
-  const append = async (message: Message | CreateMessage) => {
+  const append: UseChatHelpers['append'] = async (message, options) => {
     if (!message.id) {
       message.id = nanoid()
     }
-    return triggerRequest(get(messages).concat(message as Message))
+    return triggerRequest(get(messages).concat(message as Message), options)
   }
 
-  const reload = async () => {
+  const reload: UseChatHelpers['reload'] = async options => {
     const messagesSnapshot = get(messages)
     if (messagesSnapshot.length === 0) return null
 
     const lastMessage = messagesSnapshot[messagesSnapshot.length - 1]
     if (lastMessage.role === 'assistant') {
-      return triggerRequest(messagesSnapshot.slice(0, -1))
+      return triggerRequest(messagesSnapshot.slice(0, -1), options)
     }
-    return triggerRequest(messagesSnapshot)
+    return triggerRequest(messagesSnapshot, options)
   }
 
   const stop = () => {

@@ -24,8 +24,7 @@ export async function POST(req: Request) {
   const { stream, handlers } = LangChainStream()
 
   const llm = new ChatOpenAI({
-    streaming: true,
-    callbacks: [handlers]
+    streaming: true
   })
 
   llm
@@ -34,7 +33,9 @@ export async function POST(req: Request) {
         m.role == 'user'
           ? new HumanChatMessage(m.content)
           : new AIChatMessage(m.content)
-      )
+      ),
+      {},
+      [handlers]
     )
     .catch(console.error)
 
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
 
 The `handlers` object returned by `LangChainStream` is used to handle certain
 [callbacks](https://js.langchain.com/docs/api/callbacks/) provided by LangChain on your behalf.
-Under the hood it is a wrapper over LangChain's [`handleChainEnd`](https://js.langchain.com/docs/api/callbacks/classes/BaseCallbackHandler#handlechainend), [`handleLLMNewToken`](https://js.langchain.com/docs/api/callbacks/classes/BaseCallbackHandler#handlellmnewtoken), and [`handleLLMError`](https://js.langchain.com/docs/api/callbacks/classes/BaseCallbackHandler#handlellmerror).
+Under the hood it is a wrapper over LangChain's [`callbacks`](https://js.langchain.com/docs/production/callbacks/).
 We wrap over these methods to provide which then write to the `stream` which can then be passed directly to [`StreamingTextResponse`](../api-reference/streaming-text-response).
 
 The result is that the Vercel AI SDK's [`useChat`](../api-reference/use-chat) and [`useCompletion`](../api-reference/use-completion) work flawlessly:

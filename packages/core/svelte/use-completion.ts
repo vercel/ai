@@ -2,8 +2,9 @@ import { useSWR } from 'sswr'
 import { Readable, get, writable } from 'svelte/store'
 
 import { Writable } from 'svelte/store'
-import { decodeAIStreamChunk, nanoid } from '../shared/utils'
-import { UseCompletionOptions } from '../shared/types'
+
+import type { UseCompletionOptions, RequestOptions } from '../shared/types'
+import { createChunkDecoder, nanoid } from '../shared/utils'
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -13,7 +14,10 @@ export type UseCompletionHelpers = {
   /**
    * Send a new prompt to the API endpoint and update the completion state.
    */
-  complete: (prompt: string) => Promise<string | null | undefined>
+  complete: (
+    prompt: string,
+    options?: RequestOptions
+  ) => Promise<string | null | undefined>
   /**
    * Abort the current API request but keep the generated tokens.
    */
@@ -45,6 +49,7 @@ export function useCompletion({
   id,
   initialCompletion = '',
   initialInput = '',
+  credentials,
   headers,
   body,
   onResponse,
@@ -74,7 +79,7 @@ export function useCompletion({
   const isLoading = writable(false)
 
   let abortController: AbortController | null = null
-  async function triggerRequest(prompt: string) {
+  async function triggerRequest(prompt: string, options?: RequestOptions) {
     try {
       isLoading.set(true)
       abortController = new AbortController()
@@ -86,10 +91,15 @@ export function useCompletion({
         method: 'POST',
         body: JSON.stringify({
           prompt,
-          ...body
+          ...body,
+          ...options?.body
         }),
-        headers: headers || {},
-        signal: abortController.signal
+        headers: {
+          ...headers,
+          ...options?.headers
+        },
+        signal: abortController.signal,
+        credentials
       }).catch(err => {
         throw err
       })
@@ -114,6 +124,7 @@ export function useCompletion({
 
       let result = ''
       const reader = res.body.getReader()
+      const decoder = createChunkDecoder()
 
       while (true) {
         const { done, value } = await reader.read()
@@ -121,7 +132,7 @@ export function useCompletion({
           break
         }
         // Update the chat state with the new message tokens.
-        result += decodeAIStreamChunk(value)
+        result += decoder(value)
         mutate(result)
 
         // The request has been aborted, stop reading the stream.
@@ -154,8 +165,11 @@ export function useCompletion({
     }
   }
 
-  const complete = async (prompt: string) => {
-    return triggerRequest(prompt)
+  const complete: UseCompletionHelpers['complete'] = async (
+    prompt: string,
+    options?: RequestOptions
+  ) => {
+    return triggerRequest(prompt, options)
   }
 
   const stop = () => {

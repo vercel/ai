@@ -1,5 +1,47 @@
 # ai
 
+## 2.1.11
+
+### Patch Changes
+
+- 8bf637a: Fix langchain handlers so that they now are correctly invoked and update examples and docs to show correct usage (passing the handlers to `llm.call` and not the model itself).
+
+## 2.1.10
+
+### Patch Changes
+
+- a7b3d0e: Experimental support for OpenAI function calling
+
+## 2.1.9
+
+### Patch Changes
+
+- 9cdf968: core/react: add Tokens react server component
+
+## 2.1.8
+
+### Patch Changes
+
+- 44d9879: Support extra request options in chat and completion hooks
+
+## 2.1.7
+
+### Patch Changes
+
+- bde3898: Allow an async onResponse callback in useChat/useCompletion
+
+## 2.1.6
+
+### Patch Changes
+
+- 23f0899: Set stream: true when decoding streamed chunks
+
+## 2.1.5
+
+### Patch Changes
+
+- 89938b0: Provider direct callback handlers in LangChain now that `CallbackManager` is deprecated.
+
 ## 2.1.4
 
 ### Patch Changes

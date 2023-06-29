@@ -8,7 +8,7 @@ const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY)
 export const runtime = 'edge'
 
 // Build a prompt from the messages
-function buildPompt(
+function buildPrompt(
   messages: { content: string; role: 'system' | 'user' | 'assistant' }[]
 ) {
   return (
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
   const response = await Hf.textGenerationStream({
     model: 'OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5',
-    inputs: buildPompt(messages),
+    inputs: buildPrompt(messages),
     parameters: {
       max_new_tokens: 200,
       // @ts-ignore (this is a valid parameter specifically in OpenAssistant models)
