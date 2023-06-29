@@ -37,6 +37,52 @@ describe('AIStream', () => {
         )
       })
 
+      it('should correctly parse and escape function call JSON chunks', async () => {
+        const { OpenAIStream, StreamingTextResponse } =
+          require('.') as typeof import('.')
+
+        const stream = OpenAIStream(
+          await fetch(server.api + '/mock-func-call', {
+            headers: {
+              'x-mock-service': 'openai',
+              'x-mock-type': 'func_call'
+            }
+          })
+        )
+        const response = new StreamingTextResponse(stream)
+        const client = createClient(response)
+        const chunks = await client.readAll()
+
+        const expectedChunks = [
+          '{"function_call": {"name": "get_current_weather", "arguments": "',
+          '{\\n',
+          '\\"',
+          'location',
+          '\\":',
+          ' \\"',
+          'Char',
+          'l',
+          'ottesville',
+          ',',
+          ' Virginia',
+          '\\",\\n',
+          '\\"',
+          'format',
+          '\\":',
+          ' \\"',
+          'c',
+          'elsius',
+          '\\"\\n',
+          '}',
+          '"}}'
+        ]
+
+        expect(chunks).toEqual(expectedChunks)
+        expect(chunks.join('')).toEqual(
+          `{"function_call": {"name": "get_current_weather", "arguments": "{\\n\\"location\\": \\"Charlottesville, Virginia\\",\\n\\"format\\": \\"celsius\\"\\n}"}}`
+        )
+      })
+
       it('should handle backpressure on the server', async () => {
         const controller = new AbortController()
         const stream = OpenAIStream(
