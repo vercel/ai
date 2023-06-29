@@ -45,7 +45,7 @@ importers:
         specifier: ^2.5.1
         version: 2.5.1
       ai:
-        specifier: 2.1.9
+        specifier: 2.1.10
         version: link:../../packages/core
       next:
         specifier: 13.4.4-canary.11
@@ -91,7 +91,7 @@ importers:
   examples/next-langchain:
     dependencies:
       ai:
-        specifier: 2.1.9
+        specifier: 2.1.10
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.86
@@ -137,7 +137,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: ^2.1.9
+        specifier: ^2.1.10
         version: link:../../packages/core
       next:
         specifier: 13.4.4-canary.11
@@ -197,7 +197,7 @@ importers:
     devDependencies:
       '@nuxt/devtools':
         specifier: latest
-        version: 0.6.1(nuxt@3.5.3)(vite@4.3.9)
+        version: 0.6.4(nuxt@3.5.3)(vite@4.3.9)
       '@nuxtjs/eslint-config':
         specifier: ^12.0.0
         version: 12.0.0(@typescript-eslint/parser@5.59.11)(eslint@8.42.0)
@@ -257,7 +257,7 @@ importers:
     devDependencies:
       '@nuxt/devtools':
         specifier: latest
-        version: 0.6.1(nuxt@3.5.3)(vite@4.3.9)
+        version: 0.6.4(nuxt@3.5.3)(vite@4.3.9)
       '@nuxtjs/tailwindcss':
         specifier: ^6.7.2
         version: 6.7.2(webpack@5.87.0)
@@ -277,7 +277,7 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4
       ai:
-        specifier: 2.1.9
+        specifier: 2.1.10
         version: link:../../packages/core
       nuxt:
         specifier: ^3.5.2
@@ -298,7 +298,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       ai:
-        specifier: 2.1.9
+        specifier: 2.1.10
         version: link:../../packages/core
       openai-edge:
         specifier: ^0.5.1
@@ -1999,8 +1999,8 @@ packages:
     resolution: {integrity: sha512-GBzP8zOc7CGWyFQS6dv1lQz8VVpz5C2yRszbXufwG/9zhStTIH50EtD87NmWbTMwXDvZLNg8GIpb1UFdH93JCA==}
     dev: true
 
-  /@nuxt/devtools-kit@0.6.1(nuxt@3.5.3)(vite@4.3.9):
-    resolution: {integrity: sha512-4x4f9MynFGRajUx91sh5GuDQGoZlmDxF4JOhTN/s90x5wkjRLN4hIb988E7NZ2ak3iH4+DTh7VQWZTBfLaBqlA==}
+  /@nuxt/devtools-kit@0.6.4(nuxt@3.5.3)(vite@4.3.9):
+    resolution: {integrity: sha512-+NSTULmKIECVBzAmk2/LnzJnUv1hIzkRmtBSPwNTyaHe6KEU45eq32/4OdjlM/Nw4ucc2w7CSbATptcR7lnWVw==}
     peerDependencies:
       nuxt: ^3.5.1
       vite: '*'
@@ -2015,8 +2015,8 @@ packages:
       - supports-color
     dev: true
 
-  /@nuxt/devtools-wizard@0.6.1:
-    resolution: {integrity: sha512-eQVYNZHw8wrVyZXeQpTAv4jc08VVNV7Db2D2KmMO08DipkrCqzCf7c6sFtcSmNIlGArm6lcObszTOpdZPhWTHw==}
+  /@nuxt/devtools-wizard@0.6.4:
+    resolution: {integrity: sha512-bWRs64ThCAPvBpKUi5adIiW1caBMQRL+A142P0cPYf1B4x9ie44VuydGlfdELrshdMiOT8xse+G6Uwoy8Yt03Q==}
     hasBin: true
     dependencies:
       consola: 3.1.0
@@ -2032,15 +2032,15 @@ packages:
       semver: 7.5.3
     dev: true
 
-  /@nuxt/devtools@0.6.1(nuxt@3.5.3)(vite@4.3.9):
-    resolution: {integrity: sha512-nz1FCJ2WViQWKUG9dTjwib/XZ7/dzeaP/r+++Y7W6a70y3ME5q58YldSNhNKJZXcbYWAU5UFzsoaslB5SWrlhw==}
+  /@nuxt/devtools@0.6.4(nuxt@3.5.3)(vite@4.3.9):
+    resolution: {integrity: sha512-Sn+yUMylI0ccpk0v2qfNCVmYMdduHrzLy6GyDZRDN/e0gxzAZqeHZfFD433KuND6cyvcvJ7GFVjlBz+6gYERWA==}
     hasBin: true
     peerDependencies:
       nuxt: ^3.5.1
       vite: '*'
     dependencies:
-      '@nuxt/devtools-kit': 0.6.1(nuxt@3.5.3)(vite@4.3.9)
-      '@nuxt/devtools-wizard': 0.6.1
+      '@nuxt/devtools-kit': 0.6.4(nuxt@3.5.3)(vite@4.3.9)
+      '@nuxt/devtools-wizard': 0.6.4
       '@nuxt/kit': 3.6.1
       birpc: 0.2.12
       boxen: 7.1.0
