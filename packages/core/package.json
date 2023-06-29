@@ -13,7 +13,7 @@
     "vue/dist/**/*"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
     "clean": "rm -rf dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
@@ -31,6 +31,7 @@
     },
     "./react": {
       "types": "./react/dist/index.d.ts",
+      "react-server": "./react/dist/index.server.mjs",
       "import": "./react/dist/index.mjs",
       "module": "./react/dist/index.mjs",
       "require": "./react/dist/index.js"
