@@ -26,7 +26,7 @@ export default defineEventHandler(async (event: any) => {
             ? new HumanChatMessage(message.content)
             : new AIChatMessage(message.content)
         ),
-        [],
+        {},
         [handlers]
       )
       // eslint-disable-next-line no-console
