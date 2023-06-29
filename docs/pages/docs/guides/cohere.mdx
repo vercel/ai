@@ -59,10 +59,8 @@ export async function POST(req: Request) {
     body
   })
 
-  const reader = response.body?.getReader()!
-
   // Extract the text response from the Cohere stream
-  const stream = CohereStream(reader)
+  const stream = CohereStream(response)
 
   // Respond with the stream
   return new StreamingTextResponse(stream)
