@@ -20,6 +20,7 @@ export async function POST(req: Request) {
           ? new HumanChatMessage(m.content)
           : new AIChatMessage(m.content)
       ),
+      [],
       [handlers]
     )
     .catch(console.error)
