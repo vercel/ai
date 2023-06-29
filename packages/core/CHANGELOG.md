@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.0
+
+### Major Changes
+
+- b7b93e5: Add <Tokens> RSC to ai/react
+
 ## 2.1.11
 
 ### Patch Changes
