@@ -123,3 +123,50 @@ if (m.function_call) {
   return m.content
 }
 ```
+
+## On the server
+
+To use functions with the OpenAI API, you need to pass the `functions` and `function_call` parameters to the API.
+Here is an example Next.js Route Handler:
+
+```
+import { ChatCompletionFunctions } from 'openai-edge/types/api'
+
+const functions: ChatCompletionFunctions[] = [
+  {
+    name: 'get_current_weather',
+    description: 'Get the current weather',
+    parameters: {
+      type: 'object',
+      properties: {
+        location: {
+          type: 'string',
+          description: 'The city and state, e.g. San Francisco, CA'
+        },
+        format: {
+          type: 'string',
+          enum: ['celsius', 'fahrenheit'],
+          description:
+            'The temperature unit to use. Infer this from the users location.'
+        }
+      },
+      required: ['location', 'format']
+    }
+  },
+]
+
+export async function POST(req: Request) {
+  const { messages, function_call } = await req.json()
+
+  const response = await openai.createChatCompletion({
+    model: 'gpt-3.5-turbo-0613',
+    stream: true,
+    messages,
+    functions,
+    function_call
+  })
+
+  const stream = OpenAIStream(response)
+  return new StreamingTextResponse(stream)
+}
+```
