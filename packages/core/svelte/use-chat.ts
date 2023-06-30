@@ -1,7 +1,6 @@
+import { Readable, get, writable, Writable } from 'svelte/store'
 import { useSWR } from 'sswr'
-import { Readable, get, writable } from 'svelte/store'
-
-import { Writable } from 'svelte/store'
+import { nanoid, createChunkDecoder } from '../shared/utils'
 
 import type {
   ChatRequest,
@@ -10,9 +9,7 @@ import type {
   UseChatOptions,
   ChatRequestOptions
 } from '../shared/types'
-import { nanoid, createChunkDecoder } from '../shared/utils'
 import { ChatCompletionRequestMessageFunctionCall } from 'openai-edge'
-
 export type { Message, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {
@@ -23,6 +20,8 @@ export type UseChatHelpers = {
   /**
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
+   * @param message The message to append
+   * @param chatRequestOptions Additional options to pass to the API call
    */
   append: (
     message: Message | CreateMessage,
@@ -58,8 +57,11 @@ const getStreamedResponse = async (
   api: string,
   chatRequest: ChatRequest,
   mutate: (messages: Message[]) => void,
-  headers: Record<string, string> | Headers | undefined,
-  body: any,
+  extraMetadata: {
+    credentials?: RequestCredentials
+    headers?: Record<string, string> | Headers
+    body?: any
+  },
   previousMessages: Message[],
   abortControllerRef: AbortController | null,
   onFinish?: (message: Message) => void,
@@ -85,7 +87,7 @@ const getStreamedResponse = async (
               })
             })
           ),
-      ...body,
+      ...extraMetadata.body,
       ...chatRequest.options?.body,
       ...(chatRequest.functions !== undefined && {
         functions: chatRequest.functions
@@ -94,8 +96,9 @@ const getStreamedResponse = async (
         function_call: chatRequest.function_call
       })
     }),
+    credentials: extraMetadata.credentials,
     headers: {
-      ...headers,
+      ...extraMetadata.headers,
       ...chatRequest.options?.headers
     },
     ...(abortControllerRef !== null && {
@@ -187,8 +190,6 @@ const getStreamedResponse = async (
 
 let uniqueId = 0
 
-let uniqueId = 0
-
 const store: Record<string, Message[] | undefined> = {}
 
 export function useChat({
@@ -201,10 +202,11 @@ export function useChat({
   onResponse,
   onFinish,
   onError,
+  credentials,
   headers,
   body
 }: UseChatOptions = {}): UseChatHelpers {
-  // Generate a unique ID for the chat if not provided.
+  // Generate a unique id for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`
 
   const key = `${api}|${chatId}`
@@ -223,10 +225,20 @@ export function useChat({
   // Because of the `initialData` option, the `data` will never be `undefined`.
   const messages = data as Writable<Message[]>
 
+  // Abort controller to cancel the current API call.
+  let abortController: AbortController | null = null
+
+  const extraMetadata = {
+    credentials,
+    headers,
+    body
+  }
+
   const error = writable<undefined | Error>(undefined)
   const isLoading = writable(false)
 
-  let abortController: AbortController | null = null
+  // Actual mutation hook to send messages to the API endpoint and update the
+  // chat state.
   async function triggerRequest(chatRequest: ChatRequest) {
     try {
       isLoading.set(true)
@@ -237,8 +249,7 @@ export function useChat({
           api,
           chatRequest,
           mutate,
-          headers,
-          body,
+          extraMetadata,
           get(messages),
           abortController,
           onFinish,
@@ -264,18 +275,18 @@ export function useChat({
           const functionCallResponse: ChatRequest | void =
             await experimental_onFunctionCall(get(messages), functionCall)
 
-          // If the user does not return anything, the loop will break.
+          // If the user does not return anything as a result of the function call, the loop will break.
           if (functionCallResponse === undefined) break
 
-          // Add function call response to the chat and automatically
-          // send to the API in the next iteration of the loop.
+          // A function call response was returned.
+          // The updated chat with function call response will be sent to the API in the next iteration of the loop.
           chatRequest = functionCallResponse
         }
       }
 
       abortController = null
 
-      return get(messages).at(-1)?.content ?? ''
+      return null
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
@@ -294,13 +305,13 @@ export function useChat({
   }
 
   const append: UseChatHelpers['append'] = async (
-    message,
-    chatOptions?: ChatRequestOptions
+    message: Message | CreateMessage,
+    { options, functions, function_call }: ChatRequestOptions = {}
   ) => {
     if (!message.id) {
       message.id = nanoid()
     }
-    const { options, functions, function_call } = chatOptions ?? {}
+
     const chatRequest: ChatRequest = {
       messages: get(messages).concat(message as Message),
       options,
