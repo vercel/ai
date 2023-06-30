@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.13
+
+### Patch Changes
+
+- fd82961: Use rfc4122 IDs when generating chat/completion IDs
+
 ## 2.1.12
 
 ### Patch Changes
