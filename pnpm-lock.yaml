@@ -140,8 +140,8 @@ importers:
         specifier: ^2.1.9
         version: link:../../packages/core
       lusat:
-        specifier: ^0.0.15
-        version: 0.0.15(react@18.2.0)(zod@3.21.4)
+        specifier: ^0.0.16
+        version: 0.0.16(react@18.2.0)(zod@3.21.4)
       next:
         specifier: 13.4.4-canary.11
         version: 13.4.4-canary.11(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
@@ -8778,8 +8778,8 @@ packages:
     engines: {node: 14 || >=16.14}
     dev: true
 
-  /lusat@0.0.15(react@18.2.0)(zod@3.21.4):
-    resolution: {integrity: sha512-EZBQm8WnqQKaQfAz0+aDJ9uoAmDqYxLywUD8wmzyS+eEiWrGpGsyx95jk5assx/L73rHzVwmfwEl2YHTPTgKdQ==}
+  /lusat@0.0.16(react@18.2.0)(zod@3.21.4):
+    resolution: {integrity: sha512-uBCwBrmYA5lS8q7B+mti1J4z/3n4TxUoopXLSRc1qykn7Im/jpY+khRgNc4wawBEDcodFMLW778OJMg9bgvarA==}
     peerDependencies:
       react: ^18.2.0
     peerDependenciesMeta:
@@ -8787,7 +8787,7 @@ packages:
         optional: true
     dependencies:
       react: 18.2.0
-      zod-to-json-schema: 3.21.2(zod@3.21.4)
+      zod-to-json-schema: 3.21.3(zod@3.21.4)
     transitivePeerDependencies:
       - zod
     dev: false
@@ -13611,6 +13611,14 @@ packages:
 
   /zod-to-json-schema@3.21.2(zod@3.21.4):
     resolution: {integrity: sha512-02yfKymfmIf2rM/5LYGlyw0daEel/f3MsSGMNJZWWf44ato+Y+diFugOpDtgvEUn3cYM5oDAGWW2NHeSD4mByw==}
+    peerDependencies:
+      zod: ^3.21.4
+    dependencies:
+      zod: 3.21.4
+    dev: false
+
+  /zod-to-json-schema@3.21.3(zod@3.21.4):
+    resolution: {integrity: sha512-09W/9oyxeF1/wWnzCb6MursW+lOzgKi91QwE7eTBbC+t/qgfuLsUVDai3lHemSQnQu/UONAcT/fv3ZnDvbTeKg==}
     peerDependencies:
       zod: ^3.21.4
     dependencies:

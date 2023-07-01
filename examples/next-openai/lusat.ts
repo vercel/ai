@@ -58,7 +58,9 @@ const functionCallHandler: FunctionCallHandler = async (
           id: nanoid(),
           name: functionCall.name,
           role: 'function' as const,
-          content: JSON.stringify(callFunction(functionCall, lusatActions))
+          content: JSON.stringify(
+            await callFunction(functionCall, lusatActions)
+          )
         }
       ]
     }
