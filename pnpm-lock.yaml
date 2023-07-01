@@ -140,8 +140,8 @@ importers:
         specifier: ^2.1.9
         version: link:../../packages/core
       lusat:
-        specifier: ^0.0.16
-        version: 0.0.16(react@18.2.0)(zod@3.21.4)
+        specifier: ^0.0.18
+        version: 0.0.18(react@18.2.0)(zod@3.21.4)
       next:
         specifier: 13.4.4-canary.11
         version: 13.4.4-canary.11(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
@@ -8778,8 +8778,8 @@ packages:
     engines: {node: 14 || >=16.14}
     dev: true
 
-  /lusat@0.0.16(react@18.2.0)(zod@3.21.4):
-    resolution: {integrity: sha512-uBCwBrmYA5lS8q7B+mti1J4z/3n4TxUoopXLSRc1qykn7Im/jpY+khRgNc4wawBEDcodFMLW778OJMg9bgvarA==}
+  /lusat@0.0.18(react@18.2.0)(zod@3.21.4):
+    resolution: {integrity: sha512-jgHNueht9xzYO+A28cdlAV3aNe14O2Wf7C4XsysdAFIKfK9PEioG3DkAZZU2xqH0oHmWecBAwruGLY5ayJflyA==}
     peerDependencies:
       react: ^18.2.0
     peerDependenciesMeta:
