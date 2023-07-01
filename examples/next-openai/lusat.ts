@@ -1,10 +1,9 @@
-import { action, app } from 'lusat'
-import { z } from 'zod'
-import { callFunction, gptFunctions } from 'lusat/adapters/openai'
-import { ChatCompletionRequestMessageFunctionCall } from 'openai-edge'
 import { nanoid } from 'ai'
+import { z } from 'zod'
+import { action, app } from 'lusat'
+import { callFunction, gptFunctions } from 'lusat/adapters/openai'
 
-const lusatApp = app({
+const { actions } = app({
   actions: {
     getCurrentWeather: action()
       .describe('Get the current weather.')
@@ -56,13 +55,13 @@ const lusatApp = app({
   }
 })
 
-const functions = gptFunctions(lusatApp.actions)
+const functions = gptFunctions(actions)
 
-const call = (functionCall: ChatCompletionRequestMessageFunctionCall) => ({
+const call = (functionCall: Parameters<typeof callFunction>[0]) => ({
   id: nanoid(),
   name: functionCall.name,
   role: 'function' as const,
-  content: JSON.stringify(callFunction(functionCall, lusatApp.actions))
+  content: JSON.stringify(callFunction(functionCall, actions))
 })
 
-export { call, functions, lusatApp }
+export { call, functions, actions }
