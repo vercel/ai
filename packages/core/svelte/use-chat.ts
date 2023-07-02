@@ -50,6 +50,8 @@ export type UseChatHelpers = {
   isLoading: Writable<boolean>
 }
 
+let uniqueId = 0
+
 const store: Record<string, Message[] | undefined> = {}
 
 export function useChat({
@@ -66,7 +68,7 @@ export function useChat({
   body
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
-  const chatId = id || `chat-${nanoid()}`
+  const chatId = id || `chat-${uniqueId++}`
 
   const key = `${api}|${chatId}`
   const { data, mutate: originalMutate } = useSWR<Message[]>(key, {

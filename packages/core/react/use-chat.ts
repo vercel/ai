@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import useSWR, { KeyedMutator } from 'swr'
 import { nanoid, createChunkDecoder } from '../shared/utils'
@@ -8,9 +8,14 @@ import type {
   CreateMessage,
   Message,
   UseChatOptions,
+  RequestOptions,
   ChatRequestOptions
 } from '../shared/types'
-import { ChatCompletionRequestMessageFunctionCall } from 'openai-edge'
+import {
+  ChatCompletionRequestMessageFunctionCall,
+  CreateChatCompletionRequestFunctionCall
+} from 'openai-edge'
+import { ChatCompletionFunctions } from 'openai-edge/types/api'
 export type { Message, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {
@@ -207,7 +212,8 @@ export function useChat({
   body
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
-  const chatId = id || `chat-${nanoid()}`
+  const hookId = useId()
+  const chatId = id || hookId
 
   // Store the chat state in SWR, using the chatId as the key to share states.
   const { data, mutate } = useSWR<Message[]>([api, chatId], null, {

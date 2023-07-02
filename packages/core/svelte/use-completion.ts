@@ -4,7 +4,7 @@ import { Readable, get, writable } from 'svelte/store'
 import { Writable } from 'svelte/store'
 
 import type { UseCompletionOptions, RequestOptions } from '../shared/types'
-import { createChunkDecoder, nanoid } from '../shared/utils'
+import { createChunkDecoder } from '../shared/utils'
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -42,6 +42,8 @@ export type UseCompletionHelpers = {
   isLoading: Writable<boolean>
 }
 
+let uniqueId = 0
+
 const store: Record<string, any> = {}
 
 export function useCompletion({
@@ -57,7 +59,7 @@ export function useCompletion({
   onError
 }: UseCompletionOptions = {}): UseCompletionHelpers {
   // Generate an unique id for the completion if not provided.
-  const completionId = id || `completion-${nanoid()}`
+  const completionId = id || `completion-${uniqueId++}`
 
   const key = `${api}|${completionId}`
   const { data, mutate: originalMutate } = useSWR<string>(key, {

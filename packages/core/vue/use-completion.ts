@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import type { Ref } from 'vue'
 
 import type { UseCompletionOptions, RequestOptions } from '../shared/types'
-import { createChunkDecoder, nanoid } from '../shared/utils'
+import { createChunkDecoder } from '../shared/utils'
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -41,6 +41,8 @@ export type UseCompletionHelpers = {
   isLoading: Ref<boolean>
 }
 
+let uniqueId = 0
+
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv
 const store: Record<string, any> = {}
@@ -58,7 +60,7 @@ export function useCompletion({
   onError
 }: UseCompletionOptions = {}): UseCompletionHelpers {
   // Generate an unique id for the completion if not provided.
-  const completionId = id || `completion-${nanoid()}`
+  const completionId = id || `completion-${uniqueId++}`
 
   const key = `${api}|${completionId}`
   const { data, mutate: originalMutate } = useSWRV<string>(
