@@ -49,6 +49,8 @@ export type UseChatHelpers = {
   isLoading: Ref<boolean>
 }
 
+let uniqueId = 0
+
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv
 const store: Record<string, Message[] | undefined> = {}
@@ -67,7 +69,7 @@ export function useChat({
   body
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
-  const chatId = id || `chat-${nanoid()}`
+  const chatId = id || `chat-${uniqueId++}`
 
   const key = `${api}|${chatId}`
   const { data, mutate: originalMutate } = useSWRV<Message[]>(
