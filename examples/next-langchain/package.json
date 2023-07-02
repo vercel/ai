@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "ai": "2.1.13",
+    "ai": "2.1.14",
     "langchain": "^0.0.99",
     "next": "13.4.4-canary.11",
     "react": "18.2.0",
