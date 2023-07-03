@@ -165,12 +165,19 @@ export default function MyComponent() {
         ))}
       </ul>
 
-      <form onSubmit={handleSubmit}>
-        <label>
-          Say something...
-          <input value={input} onChange={handleInputChange} />
-        </label>
-        <button type="submit">Send</button>
+      <form
+        onSubmit={handleSubmit}
+        className="fixed bottom-0 w-full max-w-md mb-8"
+      >
+        <label>Say something...</label>
+        <div className="flex gap-2">
+          <input
+            className="w-full border border-gray-300 rounded shadow-xl p-2"
+            value={input}
+            onChange={handleInputChange}
+          />
+          <button type="submit" className="bg-black text-white p-2 rounded">Send</button>
+        </div>
       </form>
     </div>
   )

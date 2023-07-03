@@ -34,16 +34,19 @@ export default function Chat() {
         </div>
       ))}
 
-      <form onSubmit={handleSubmit}>
-        <label>
-          Say something...
+      <form
+        onSubmit={handleSubmit}
+        className="fixed bottom-0 w-full max-w-md mb-8"
+      >
+        <label>Say something...</label>
+        <div className="flex gap-2">
           <input
-            className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+            className="w-full border border-gray-300 rounded shadow-xl p-2"
             value={input}
             onChange={handleInputChange}
           />
-        </label>
-        <button type="submit">Send</button>
+          <button type="submit" className="bg-black text-white p-2 rounded">Send</button>
+        </div>
       </form>
     </div>
   )
