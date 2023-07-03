@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.15
+
+### Patch Changes
+
+- 4a2b978: Update cohere stream and add docs
+
 ## 2.1.14
 
 ### Patch Changes
