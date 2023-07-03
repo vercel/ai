@@ -3,6 +3,7 @@
   "huggingface": "Hugging Face",
   "anthropic": "Anthropic",
   "langchain": "LangChain",
+  "cohere": "Cohere",
   "nextjs-app": "Next.js App Router",
   "nextjs-pages": "Next.js Pages Router",
   "sveltekit": {

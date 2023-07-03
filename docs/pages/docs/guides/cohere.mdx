@@ -1,0 +1,121 @@
+---
+title: Cohere
+---
+
+# Cohere
+
+import { Steps, Callout } from 'nextra-theme-docs'
+
+Vercel AI SDK provides a set of utilities to make it easy to use Cohere's API. In this guide, we'll walk through how to use the utilities to create a text completion app.
+
+## Guide: Text Completion
+
+<Steps>
+
+### Create a Next.js app
+
+Create a Next.js application and install `ai`:
+
+```sh
+pnpm dlx create-next-app my-ai-app
+cd my-ai-app
+pnpm install ai
+```
+
+### Add your Cohere API Key to `.env`
+
+```env filename=".env"
+COHERE_API_KEY=xxxxxxx
+```
+
+### Create a Route Handler
+
+Create a Next.js Route Handler that uses the Edge Runtime to generate a response to a series of messages via Cohere's API, and returns the response as a streaming text response.
+
+For this example, we'll create a route handler at `app/api/completion/route.ts` that accepts a `POST` request with a `prompt` string:
+
+```tsx filename="app/api/completion/route.ts" showLineNumbers
+import { StreamingTextResponse, CohereStream } from 'ai'
+
+// IMPORTANT! Set the runtime to edge
+export const runtime = 'edge'
+
+export async function POST(req: Request) {
+  // Extract the `prompt` from the body of the request
+  const { prompt } = await req.json()
+
+  const body = JSON.stringify({
+    prompt,
+    model: 'command-nightly',
+    max_tokens: 300,
+    stop_sequences: [],
+    temperature: 0.9,
+    return_likelihoods: 'NONE',
+    stream: true
+  })
+
+  const response = await fetch('https://api.cohere.ai/v1/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.COHERE_API_KEY}`
+    },
+    body
+  })
+
+  // Extract the text response from the Cohere stream
+  const stream = CohereStream(response)
+
+  // Respond with the stream
+  return new StreamingTextResponse(stream)
+}
+```
+
+### Wire up the UI
+
+Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
+
+By default, the [`useCompletion`](/docs/api-reference#usecompletion) hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
+
+```tsx filename="app/page.tsx" showLineNumbers
+'use client'
+
+import { useCompletion } from 'ai/react'
+
+export default function Completion() {
+  const {
+    completion,
+    input,
+    stop,
+    isLoading,
+    handleInputChange,
+    handleSubmit
+  } = useCompletion({
+    api: '/api/completion'
+  })
+
+  return (
+    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+      <form onSubmit={handleSubmit} className="flex items-center gap-3 mb-8">
+        <label className="grow">
+          <input
+            className="w-full max-w-md bottom-0 border border-gray-300 rounded shadow-xl p-2"
+            value={input}
+            onChange={handleInputChange}
+            placeholder="Ask anything..."
+          />
+        </label>
+        <button type="button" onClick={stop}>
+          Stop
+        </button>
+        <button disabled={isLoading} type="submit">
+          Send
+        </button>
+      </form>
+      <output>Completion result: {completion}</output>
+    </div>
+  )
+}
+```
+
+</Steps>
