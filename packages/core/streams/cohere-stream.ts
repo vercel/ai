@@ -2,70 +2,60 @@ import { type AIStreamCallbacks, createCallbacksTransformer } from './ai-stream'
 
 const utf8Decoder = new TextDecoder('utf-8')
 
-// Helper function to iterate over the stream due an edge-case  of"network buffering"
-// which can cause the response to be split into multiple chunks or "glued chunks"
-// E.g.: `{ "text": "Hello, " }\n{ "text": "world!" }\n`
-async function* makeTextLineIterator(
-  reader: ReadableStreamDefaultReader<Uint8Array>
+async function processLines(
+  lines: string[],
+  controller: ReadableStreamDefaultController<string>
 ) {
-  let { value: chunk, done: readerDone } = await reader.read()
-  let segment = utf8Decoder.decode(chunk, { stream: true })
+  for (const line of lines) {
+    const { text, is_finished } = JSON.parse(line)
 
-  let re = /\r\n|\n|\r/gm
-  let startIndex = 0
+    if (is_finished === true) {
+      controller.close()
+    } else {
+      controller.enqueue(text)
+    }
+  }
+}
+
+async function readAndProcessLines(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  controller: ReadableStreamDefaultController<string>
+) {
+  let segment = ''
 
   while (true) {
-    const result = re.exec(segment)
-
-    if (!result) {
-      if (readerDone) {
-        break
-      }
-      let remainder = segment.substring(startIndex)
-
-      const next = await reader.read()
-      chunk = next.value
-      readerDone = next.done
-
-      segment = remainder
-      if (chunk) {
-        segment += utf8Decoder.decode(chunk)
-      }
-
-      startIndex = re.lastIndex = 0
-      continue
+    const { value: chunk, done } = await reader.read()
+    if (done) {
+      break
     }
 
-    yield segment.substring(startIndex, result.index)
-    startIndex = re.lastIndex
+    segment += utf8Decoder.decode(chunk, { stream: true })
+
+    const linesArray = segment.split(/\r\n|\n|\r/g)
+    segment = linesArray.pop() || ''
+
+    await processLines(linesArray, controller)
   }
 
-  if (startIndex < segment.length) {
-    // last line didn't end in a newline char
-    yield segment.substring(startIndex)
+  if (segment) {
+    const linesArray = [segment]
+    await processLines(linesArray, controller)
   }
+
+  controller.close()
 }
 
 function createParser(res: Response) {
   const reader = res.body?.getReader()
+
   return new ReadableStream<string>({
-    async pull(controller): Promise<void> {
+    async start(controller): Promise<void> {
       if (!reader) {
         controller.close()
         return
       }
 
-      for await (const line of makeTextLineIterator(reader)) {
-        const { text, is_finished } = JSON.parse(line)
-
-        if (is_finished === true) {
-          controller.close()
-        } else {
-          controller.enqueue(text)
-        }
-      }
-
-      controller.close()
+      await readAndProcessLines(reader, controller)
     }
   })
 }
