@@ -7,5 +7,6 @@
   "openai-stream": "OpenAIStream",
   "streaming-text-response": "StreamingTextResponse",
   "ai-stream": "AIStream",
-  "stream-to-response": "streamToResponse"
+  "stream-to-response": "streamToResponse",
+  "tokens": "<Tokens />"
 }

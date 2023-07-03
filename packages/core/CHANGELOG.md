@@ -1,5 +1,29 @@
 # ai
 
+## 2.1.14
+
+### Patch Changes
+
+- 3164adb: Fix regression with generated ids
+
+## 2.1.13
+
+### Patch Changes
+
+- fd82961: Use rfc4122 IDs when generating chat/completion IDs
+
+## 2.1.12
+
+### Patch Changes
+
+- b7b93e5: Add <Tokens> RSC to ai/react
+
+## 2.1.11
+
+### Patch Changes
+
+- 8bf637a: Fix langchain handlers so that they now are correctly invoked and update examples and docs to show correct usage (passing the handlers to `llm.call` and not the model itself).
+
 ## 2.1.10
 
 ### Patch Changes

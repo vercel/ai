@@ -9,6 +9,7 @@ type Props = {
 
 /**
  * A React Server Component that recursively renders a stream of tokens.
+ * Can only be used inside of server components.
  */
 export async function Tokens(props: Props) {
   const { stream } = props
@@ -24,7 +25,7 @@ export async function Tokens(props: Props) {
 
 type InternalProps = {
   reader: ReadableStreamDefaultReader
-} & Omit<Props, 'stream'>
+}
 
 async function RecursiveTokens({ reader }: InternalProps) {
   const { done, value } = await reader.read()
