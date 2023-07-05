@@ -72,7 +72,7 @@ export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
   const { messages } = await req.json()
 
-  // Initialize a text generation stream using Hugging Face Inference SDK
+  // Initialize a text-generation stream using the Hugging Face Inference SDK
   const response = await Hf.textGenerationStream({
     model: 'OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5',
     inputs: buildOpenAssistantPrompt(messages),
@@ -238,8 +238,8 @@ export default function Completion() {
 
 ## Guide: Using Production-ready Inference Endpoints
 
-Inference Endpoints offers a secure solution to deploy models from the Hub on dedicated and autoscaling infrastructured. It supports popular libraries such as `transformers` and `diffusers` out-of-the-box, but users can also implement custom handlers for their own solutions. Read more about Inference Endpoints in [their documentation](https://huggingface.co/docs/inference-endpoints/index).
- With Inference Endpoints, you can even use state of the art open-source LLMs requiring more compute such as [Falcon 40B](https://huggingface.co/blog/inference-endpoints-llm).
+Inference Endpoints offers a secure solution to deploy models from the Hub on dedicated and autoscaling infrastructure. It supports popular libraries such as `transformers` and `diffusers` out-of-the-box, but users can also implement custom handlers for their own solutions. Read more about Inference Endpoints in [their documentation](https://huggingface.co/docs/inference-endpoints/index).
+ With Inference Endpoints, you can even use state-of-the-art open-source LLMs requiring more compute such as [Falcon 40B](https://huggingface.co/blog/inference-endpoints-llm).
 
 `@huggingface/inference` also works with Inference Endpoints, making it very easy to switch between the two API services. The only change needed is how you create your inference instance.
 
