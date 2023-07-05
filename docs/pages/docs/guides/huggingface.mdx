@@ -239,6 +239,7 @@ export default function Completion() {
 ## Guide: Using Production-ready Inference Endpoints
 
 Inference Endpoints offers a secure solution to deploy models from the Hub on dedicated and autoscaling infrastructured. It supports popular libraries such as `transformers` and `diffusers` out-of-the-box, but users can also implement custom handlers for their own solutions. Read more about Inference Endpoints in [their documentation](https://huggingface.co/docs/inference-endpoints/index).
+ With Inference Endpoints, you can even use state of the art open-source LLMs requiring more compute such as [Falcon 40B](https://huggingface.co/blog/inference-endpoints-llm).
 
 `@huggingface/inference` also works with Inference Endpoints, making it very easy to switch between the two API services. The only change needed is how you create your inference instance.
 
@@ -251,9 +252,6 @@ const Hf = new HfInferenceEndpoint(endpointUrl, process.env.HUGGINGFACE_API_KEY)
 
 /// Rest of the code stays the same
 ```
-
-With Inference Endpoints, you can use state of the art open-source models requiring more compute such as [Falcon 40B](https://huggingface.co/blog/inference-endpoints-llm).
-
 
 ## Guide: Save to Database After Completion
 
