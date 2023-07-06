@@ -66,8 +66,8 @@ export async function POST(req: Request) {
     model: 'gpt-3.5-turbo-0613',
     stream: true,
     messages,
-    functions,
-    function_call: 'auto'
+    functions
+    // function_call: 'auto'
   })
 
   const stream = OpenAIStream(response, {
@@ -75,13 +75,13 @@ export async function POST(req: Request) {
       console.log('functionCall', { name, args })
       console.log('newMessages', newMessages)
 
-      if (name === 'get_weather') {
+      if (name === 'get_current_weather') {
         const weatherData = {
           temperature: 72,
           unit: 'fahrenheit',
           location: 'San Francisco, CA'
         }
-        return await openai.createChatCompletion({
+        return openai.createChatCompletion({
           messages: [
             ...(newMessages as any),
             {
@@ -93,18 +93,18 @@ export async function POST(req: Request) {
           ],
           stream: true,
           model: 'gpt-3.5-turbo-0613',
-          function_call: 'auto',
+          // function_call: { name },
           functions
         })
       }
 
-      return await openai.createChatCompletion({
+      return openai.createChatCompletion({
         // @ts-ignore
         messages: newMessages,
         stream: true,
-        model: 'gpt-3.5-turbo-0613',
-        function_call: 'auto',
-        functions
+        model: 'gpt-3.5-turbo-0613'
+        // function_call: 'auto',
+        // functions
       })
     }
   })
