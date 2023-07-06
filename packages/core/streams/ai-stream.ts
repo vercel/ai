@@ -4,6 +4,12 @@ import {
   type ParsedEvent,
   type ReconnectInterval
 } from 'eventsource-parser'
+import { Message } from '../shared/types'
+
+export interface FunctionCallPayload {
+  name: string
+  arguments: Object
+}
 
 /**
  * Helper callback methods for AIStream stream lifecycle events
@@ -13,6 +19,11 @@ export interface AIStreamCallbacks {
   onStart?: () => Promise<void>
   onCompletion?: (completion: string) => Promise<void>
   onToken?: (token: string) => Promise<void>
+
+  /**
+   * Only applicable for OpenAI
+   */
+  onFunctionCall?: (payload: FunctionCallPayload, messages: Message[]) => Promise<Response>
 }
 
 /**

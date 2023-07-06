@@ -1,7 +1,9 @@
+import { Message } from '../shared/types'
 import {
   AIStream,
   trimStartOfStreamHelper,
-  type AIStreamCallbacks
+  type AIStreamCallbacks,
+  FunctionCallPayload
 } from './ai-stream'
 
 function parseOpenAIStream(): (data: string) => string | void {
@@ -113,10 +115,85 @@ function parseOpenAIStream(): (data: string) => string | void {
     return text
   }
 }
-
 export function OpenAIStream(
   res: Response,
   cb?: AIStreamCallbacks
 ): ReadableStream {
-  return AIStream(res, parseOpenAIStream(), cb)
+  if (cb && cb.onFunctionCall) {
+    console.log('Creating function call transformer')
+    const functionCallTransformer = createFunctionCallTransformer(cb)
+    return AIStream(res, parseOpenAIStream(), cb).pipeThrough(
+      functionCallTransformer
+    )
+  } else {
+    console.log("default ai stream")
+    return AIStream(res, parseOpenAIStream(), cb)
+  }
+}
+
+function createFunctionCallTransformer(
+  callbacks: AIStreamCallbacks
+): TransformStream<string, Uint8Array> {
+  const textEncoder = new TextEncoder()
+  let isFirstChunk = true
+  let aggregatedResponse = ''
+  let isFunctionStreamingIn = false
+  let newMessages: Message[] = []
+
+  return new TransformStream({
+    async transform(chunk, controller): Promise<void> {
+      // @ts-expect-error
+      const message = new TextDecoder().decode(chunk)
+
+      if (isFirstChunk) {
+        if (message.startsWith('{"function_call":')) {
+          isFunctionStreamingIn = true
+
+          // Wait for the entire function call to finish
+          aggregatedResponse += message
+
+          console.log('Function call detected')
+        } else {
+          // Continue streaming
+          controller.enqueue(textEncoder.encode(message))
+        }
+
+        isFirstChunk = false
+      } else if (!isFunctionStreamingIn) {
+        // Continue streaming after function call
+        controller.enqueue(textEncoder.encode(message))
+      } else if (!isFirstChunk && callbacks.onFunctionCall && isFunctionStreamingIn) {
+        aggregatedResponse += message
+        console.log('Aggregated response', aggregatedResponse)
+        // Verify if the function call JSON is complete
+        if (message.endsWith('"}}')) {
+          isFunctionStreamingIn = false
+          console.log('Function call complete')
+          const payload = JSON.parse(aggregatedResponse)
+          // { function_call: { name: 'get_current_weather', arguments: '{"location": "San Francisco, CA", "format": "celsius"}' }
+          const response = await callbacks.onFunctionCall(
+            payload.function_call,
+            newMessages
+          )
+
+          const stream = OpenAIStream(response, {
+            onFunctionCall: callbacks.onFunctionCall
+          })
+
+          const reader = stream.getReader()
+
+
+          while (true) {
+            const { done, value } = await reader.read()
+
+            if (done) {
+              break
+            }
+
+            controller.enqueue(value)
+          }
+        }
+      }
+    }
+  })
 }
