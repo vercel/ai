@@ -94,8 +94,8 @@ importers:
         specifier: 2.1.15
         version: link:../../packages/core
       langchain:
-        specifier: ^0.0.99
-        version: 0.0.99
+        specifier: "langchain": "^0.0.103",
+        version: 0.0.103
       next:
         specifier: 13.4.4-canary.11
         version: 13.4.4-canary.11(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
@@ -186,8 +186,8 @@ importers:
         specifier: ^2.1.2
         version: link:../../packages/core
       langchain:
-        specifier: ^0.0.99
-        version: 0.0.99
+        specifier: ^0.0.103
+        version: 0.0.103
       nuxt-icon:
         specifier: ^0.4.1
         version: 0.4.1(vue@3.3.4)
@@ -8199,7 +8199,7 @@ packages:
     resolution: {integrity: sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==}
     dev: true
 
-  /langchain@0.0.99:
+  /langchain@0.0.103:
     resolution: {integrity: sha512-4pECzTgNJq06jCBx5B7QtbMxKdx6yDiKo5jjoZhGXgpmabqtSiQkzw/wjJiER+OfLjb52kQIXentxZcBKJZtLg==}
     engines: {node: '>=18'}
     peerDependencies:
