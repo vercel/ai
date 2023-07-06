@@ -169,7 +169,7 @@ function createFunctionCallTransformer(
       ) {
         aggregatedResponse += message
         console.log('Aggregated response', aggregatedResponse)
-        // Verify function is done streaming
+        // function is done streaming
         if (message.endsWith('"}}')) {
           isFunctionStreamingIn = false
           console.log('Function call complete')
@@ -180,22 +180,8 @@ function createFunctionCallTransformer(
             newMessages
           )
 
-          const stream = OpenAIStream(response, {
-            onFunctionCall: callbacks.onFunctionCall
-          })
+          // What to do with response?
 
-          const reader = stream.getReader()
-
-          while (true) {
-            const { done, value } = await reader.read()
-
-            if (done) {
-              break
-            }
-
-            controller.enqueue(value)
-          }
-        }
       }
     }
   })
