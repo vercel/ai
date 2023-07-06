@@ -81,7 +81,7 @@ export default function Chat() {
 
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     api: '/api/chat-with-functions',
-    experimental_onFunctionCall: functionCallHandler
+    // experimental_onFunctionCall: functionCallHandler
   })
 
   // Generate a map of message role to text color

@@ -126,7 +126,7 @@ export function OpenAIStream(
       functionCallTransformer
     )
   } else {
-    console.log("default ai stream")
+    console.log('default ai stream')
     return AIStream(res, parseOpenAIStream(), cb)
   }
 }
@@ -160,12 +160,16 @@ function createFunctionCallTransformer(
 
         isFirstChunk = false
       } else if (!isFunctionStreamingIn) {
-        // Continue streaming after function call
+        // Continue streaming as normal
         controller.enqueue(textEncoder.encode(message))
-      } else if (!isFirstChunk && callbacks.onFunctionCall && isFunctionStreamingIn) {
+      } else if (
+        !isFirstChunk &&
+        callbacks.onFunctionCall &&
+        isFunctionStreamingIn
+      ) {
         aggregatedResponse += message
         console.log('Aggregated response', aggregatedResponse)
-        // Verify if the function call JSON is complete
+        // Verify function is done streaming
         if (message.endsWith('"}}')) {
           isFunctionStreamingIn = false
           console.log('Function call complete')
@@ -181,7 +185,6 @@ function createFunctionCallTransformer(
           })
 
           const reader = stream.getReader()
-
 
           while (true) {
             const { done, value } = await reader.read()

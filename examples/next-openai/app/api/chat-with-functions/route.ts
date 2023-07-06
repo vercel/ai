@@ -67,9 +67,44 @@ export async function POST(req: Request) {
     stream: true,
     messages,
     functions,
-    function_call
+    function_call: 'auto'
   })
 
-  const stream = OpenAIStream(response)
+  const stream = OpenAIStream(response, {
+    onFunctionCall: async ({ name, arguments: args }, newMessages) => {
+      console.log('functionCall', { name, args })
+      console.log('newMessages', newMessages)
+
+      if (name === 'get_weather') {
+        const weatherData = {
+          temperature: 72,
+          unit: 'fahrenheit',
+          location: 'San Francisco, CA'
+        }
+        return await openai.createChatCompletion({
+          messages: [
+            ...(newMessages as any),
+            {
+              text: `The weather in ${weatherData.location} is ${weatherData.temperature} ${weatherData.unit}`
+            }
+          ],
+          stream: true,
+          model: 'gpt-3.5-turbo-0613',
+          function_call: 'auto',
+          functions
+        })
+      }
+
+      return await openai.createChatCompletion({
+        // @ts-ignore
+        messages: newMessages,
+        stream: true,
+        model: 'gpt-3.5-turbo-0613',
+        function_call: 'auto',
+        functions
+      })
+    }
+  })
+
   return new StreamingTextResponse(stream)
 }
