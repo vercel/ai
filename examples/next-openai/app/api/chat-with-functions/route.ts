@@ -85,8 +85,11 @@ export async function POST(req: Request) {
           messages: [
             ...(newMessages as any),
             {
-              text: `The weather in ${weatherData.location} is ${weatherData.temperature} ${weatherData.unit}`
+              role: 'function',
+              name,
+              content: JSON.stringify(weatherData)
             }
+            // ...
           ],
           stream: true,
           model: 'gpt-3.5-turbo-0613',
