@@ -8,8 +8,8 @@ import { Steps, Callout } from 'nextra-theme-docs'
 
 Vercel AI SDK provides a set of utilities to make it easy to use Hugging Face's APIs. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app. Hugging Face offers two API services:
 
-* **Free Inference API:** Use over 100k+ models out of the box. Ideal for quick exploration of models.
-* **Inference Endpoints:** Production-ready service with autoscaling, dedicated infra and flexibility.
+- **Free Inference API:** Use over 100k+ models out of the box. Ideal for quick exploration of models.
+- **Inference Endpoints:** Production-ready service with autoscaling, dedicated infra and flexibility.
 
 ## Guide: Chat Bot
 
@@ -238,12 +238,12 @@ export default function Completion() {
 
 ## Guide: Using Production-ready Inference Endpoints
 
-[Inference Endpoints](https://huggingface.co/inference-endpoints) offer a secure solution to deploy models from the Hub on dedicated and autoscaling infrastructure. 
+[Inference Endpoints](https://huggingface.co/inference-endpoints) offer a secure solution to deploy models from the Hub on dedicated and autoscaling infrastructure.
 `@huggingface/inference` also works with Inference Endpoints, making it very easy to switch between the two API services. The only change needed is how you create your inference instance.
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
 import { HfInferenceEndpoint } from '@huggingface/inference'
- 
+
 // Create a new Hugging Face Inference instance
 const endpointUrl = 'https://YOUR_ENDPOINT.endpoints.huggingface.cloud/gpt2'
 const Hf = new HfInferenceEndpoint(endpointUrl, process.env.HUGGINGFACE_API_KEY)
