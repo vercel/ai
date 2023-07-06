@@ -2,11 +2,14 @@
 title: HuggingFace
 ---
 
-# HuggingFace
+# Hugging Face
 
 import { Steps, Callout } from 'nextra-theme-docs'
 
-Vercel AI SDK provides a set of utilities to make it easy to use Hugging Face's API. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
+Vercel AI SDK provides a set of utilities to make it easy to use Hugging Face's APIs. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app. Hugging Face offers two API services:
+
+- **Free Inference API:** Use over 100k+ models out of the box. Ideal for quick exploration of models.
+- **Inference Endpoints:** Production-ready service with autoscaling, dedicated infra and flexibility.
 
 ## Guide: Chat Bot
 
@@ -24,7 +27,7 @@ pnpm install ai @huggingface/inference
 
 ### Add your Hugging Face API Key to `.env`
 
-Create a `.env` file in your project root and add your Hugging Face API Key:
+Create a `.env` file in your project root and add your Hugging Face token (generate one [here](https://huggingface.co/settings/tokens)):
 
 ```env filename=".env"
 HUGGINGFACE_API_KEY=xxxxxxxxx
@@ -69,7 +72,8 @@ export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
   const { messages } = await req.json()
 
-  const response = Hf.textGenerationStream({
+  // Initialize a text-generation stream using the Hugging Face Inference SDK
+  const response = await Hf.textGenerationStream({
     model: 'OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5',
     inputs: buildOpenAssistantPrompt(messages),
     parameters: {
@@ -82,10 +86,10 @@ export async function POST(req: Request) {
     }
   })
 
-  // Convert the response into a friendly text-stream
+  // Convert the async generator into a friendly text-stream
   const stream = HuggingFaceStream(response)
 
-  // Respond with the stream
+  // Respond with the stream, enabling the client to consume the response
   return new StreamingTextResponse(stream)
 }
 ```
@@ -231,6 +235,21 @@ export default function Completion() {
 ```
 
 </Steps>
+
+## Guide: Using Production-ready Inference Endpoints
+
+[Inference Endpoints](https://huggingface.co/inference-endpoints) offer a secure solution to deploy models from the Hub on dedicated and autoscaling infrastructure.
+`@huggingface/inference` also works with Inference Endpoints, making it very easy to switch between the two API services. The only change needed is how you create your inference instance.
+
+```tsx filename="app/api/completion/route.ts" showLineNumbers
+import { HfInferenceEndpoint } from '@huggingface/inference'
+
+// Create a new Hugging Face Inference instance
+const endpointUrl = 'https://YOUR_ENDPOINT.endpoints.huggingface.cloud/gpt2'
+const Hf = new HfInferenceEndpoint(endpointUrl, process.env.HUGGINGFACE_API_KEY)
+
+// Rest of the code stays the same
+```
 
 ## Guide: Save to Database After Completion
 
