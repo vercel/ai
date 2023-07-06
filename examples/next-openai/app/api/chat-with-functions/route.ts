@@ -18,10 +18,6 @@ const functions: ChatCompletionFunctions[] = [
     parameters: {
       type: 'object',
       properties: {
-        location: {
-          type: 'string',
-          description: 'The city and state, e.g. San Francisco, CA'
-        },
         format: {
           type: 'string',
           enum: ['celsius', 'fahrenheit'],
@@ -29,7 +25,7 @@ const functions: ChatCompletionFunctions[] = [
             'The temperature unit to use. Infer this from the users location.'
         }
       },
-      required: ['location', 'format']
+      required: ['format']
     }
   },
   {
@@ -76,11 +72,16 @@ export async function POST(req: Request) {
       console.log('newMessages', newMessages)
 
       if (name === 'get_current_weather') {
+        const city = decodeURIComponent(
+          req.headers.get('X-Vercel-IP-City') || 'San%20Francisco'
+        )
+
         const weatherData = {
           temperature: 72,
           unit: 'fahrenheit',
-          location: 'San Francisco, CA'
+          city
         }
+
         return openai.createChatCompletion({
           messages: [
             ...(newMessages as any),
