@@ -4,12 +4,10 @@ import type { ChatCompletionFunctions } from 'openai-edge/types/api'
 
 import { env } from '$env/dynamic/private'
 
-
 const config = new Configuration({
   apiKey: env.OPENAI_API_KEY
 })
 const openai = new OpenAIApi(config)
-
 
 const functions: ChatCompletionFunctions[] = [
   {
