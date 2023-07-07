@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.17
+
+### Patch Changes
+
+- 3ed65bf: Remove dependency on node crypto API
+
 ## 2.1.16
 
 ### Patch Changes
