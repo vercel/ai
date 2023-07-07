@@ -75,6 +75,8 @@ export function useCompletion({
   const { data, mutate } = useSWR<string>([api, completionId], null, {
     fallbackData: initialCompletion
   })
+  const [isLoading, setLoading] = useState(false)
+  const [error, setError] = useState<undefined | Error>(undefined)
   const completion = data!
 
   // Abort controller to cancel the current API call.
@@ -94,109 +96,97 @@ export function useCompletion({
     }
   }, [credentials, headers, body])
 
-  // Actual mutation hook to send messages to the API endpoint and update the
-  // chat state.
-  const { error, trigger, isMutating } = useSWRMutation<
-    string | null,
-    any,
-    [string, string],
-    {
-      prompt: string
-      options?: RequestOptions
-    }
-  >(
-    [api, completionId],
-    async (_, { arg }) => {
-      try {
-        const { prompt, options } = arg
+  async function triggerRequest(prompt: string, options?: RequestOptions) {
+    try {
+      setLoading(true)
 
-        const abortController = new AbortController()
-        setAbortController(abortController)
+      const abortController = new AbortController()
+      setAbortController(abortController)
 
-        // Empty the completion immediately.
-        mutate('', false)
+      // Empty the completion immediately.
+      mutate('', false)
 
-        const res = await fetch(api, {
-          method: 'POST',
-          body: JSON.stringify({
-            prompt,
-            ...extraMetadataRef.current.body,
-            ...options?.body
-          }),
-          credentials: extraMetadataRef.current.credentials,
-          headers: {
-            ...extraMetadataRef.current.headers,
-            ...options?.headers
-          },
-          signal: abortController.signal
-        }).catch(err => {
+      const res = await fetch(api, {
+        method: 'POST',
+        body: JSON.stringify({
+          prompt,
+          ...extraMetadataRef.current.body,
+          ...options?.body
+        }),
+        credentials: extraMetadataRef.current.credentials,
+        headers: {
+          ...extraMetadataRef.current.headers,
+          ...options?.headers
+        },
+        signal: abortController.signal
+      }).catch(err => {
+        throw err
+      })
+
+      if (onResponse) {
+        try {
+          await onResponse(res)
+        } catch (err) {
           throw err
-        })
+        }
+      }
 
-        if (onResponse) {
-          try {
-            await onResponse(res)
-          } catch (err) {
-            throw err
-          }
+      if (!res.ok) {
+        throw new Error(
+          (await res.text()) || 'Failed to fetch the chat response.'
+        )
+      }
+
+      if (!res.body) {
+        throw new Error('The response body is empty.')
+      }
+
+      let result = ''
+      const reader = res.body.getReader()
+      const decoder = createChunkDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) {
+          break
         }
 
-        if (!res.ok) {
-          throw new Error(
-            (await res.text()) || 'Failed to fetch the chat response.'
-          )
+        // Update the completion state with the new message tokens.
+        result += decoder(value)
+        mutate(result, false)
+
+        // The request has been aborted, stop reading the stream.
+        if (abortController === null) {
+          reader.cancel()
+          break
         }
+      }
 
-        if (!res.body) {
-          throw new Error('The response body is empty.')
-        }
+      if (onFinish) {
+        onFinish(prompt, result)
+      }
 
-        let result = ''
-        const reader = res.body.getReader()
-        const decoder = createChunkDecoder()
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) {
-            break
-          }
-
-          // Update the completion state with the new message tokens.
-          result += decoder(value)
-          mutate(result, false)
-
-          // The request has been aborted, stop reading the stream.
-          if (abortController === null) {
-            reader.cancel()
-            break
-          }
-        }
-
-        if (onFinish) {
-          onFinish(prompt, result)
-        }
-
+      setAbortController(null)
+      return result
+    } catch (err) {
+      // Ignore abort errors as they are expected.
+      if ((err as any).name === 'AbortError') {
         setAbortController(null)
-        return result
-      } catch (err) {
-        // Ignore abort errors as they are expected.
-        if ((err as any).name === 'AbortError') {
-          setAbortController(null)
-          return null
-        }
+        return null
+      }
 
-        if (onError && err instanceof Error) {
+      if (err instanceof Error) {
+        setError(err)
+        if (onError) {
           onError(err)
         }
-
-        throw err
       }
-    },
-    {
-      populateCache: false,
-      revalidate: false
+
+      throw err
+    } finally {
+      setLoading(false)
     }
-  )
+  }
 
   const stop = useCallback(() => {
     if (abortController) {
@@ -214,12 +204,9 @@ export function useCompletion({
 
   const complete = useCallback<UseCompletionHelpers['complete']>(
     async (prompt, options) => {
-      return trigger({
-        prompt,
-        options
-      })
+      return triggerRequest(prompt, options)
     },
-    [trigger]
+    [triggerRequest]
   )
 
   const [input, setInput] = useState(initialInput)
@@ -247,6 +234,6 @@ export function useCompletion({
     setInput,
     handleInputChange,
     handleSubmit,
-    isLoading: isMutating
+    isLoading
   }
 }
