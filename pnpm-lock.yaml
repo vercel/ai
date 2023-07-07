@@ -350,7 +350,7 @@ importers:
         specifier: ^1.10.0
         version: 1.10.0(svelte@4.0.0)
       svelte:
-        specifier: ^4.0.0
+        specifier: ^3.0.0 || ^4.0.0
         version: 4.0.0
       swr:
         specifier: 2.1.5
