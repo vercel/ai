@@ -52,5 +52,9 @@
     "singleQuote": true,
     "arrowParens": "avoid",
     "trailingComma": "none"
+  },
+  "resolutions": {
+    "h3": "npm:h3-nightly@latest",
+    "nitropack": "npm:nitropack-edge@latest"
   }
 }

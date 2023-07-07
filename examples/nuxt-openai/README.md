@@ -24,6 +24,19 @@ To run the example locally you need to:
 4. `pnpm install` to install the required dependencies.
 5. `pnpm dev` to launch the development server.
 
+## Deploy to Vercel
+
+This example can be directly deployed to Vercel, you can run the following commands:
+
+```bash
+pnpm run build
+vercel deploy
+```
+
+This example is configured to use the `vercel-edge` [[Nitro preset](https://nitro.unjs.io/deploy/providers/vercel#vercel-edge-functions).
+This means that the example will be deployed to Vercel's Edge Network.
+You can use different providers, such as `vercel` by modifying your `nuxt.config.ts` file, or using the `NITRO_PRESET` environment variable.
+
 ## Learn More
 
 To learn more about OpenAI, Nuxt, and the Vercel AI SDK take a look at the following resources:
