@@ -58,6 +58,7 @@ const functions: ChatCompletionFunctions[] = [
 export async function POST(req: Request) {
   const { messages, function_call } = await req.json()
 
+  
   const response = await openai.createChatCompletion({
     model: 'gpt-3.5-turbo-0613',
     stream: true,
@@ -68,20 +69,19 @@ export async function POST(req: Request) {
 
   const stream = OpenAIStream(response, {
     onFunctionCall: async ({ name, arguments: args }, newMessages) => {
-      console.log('functionCall', { name, args })
-      console.log('newMessages', newMessages)
-
       if (name === 'get_current_weather') {
-        const city = decodeURIComponent(
-          req.headers.get('X-Vercel-IP-City') || 'San%20Francisco'
-        )
+ 
 
+        const city = decodeURIComponent(
+          req.headers.get("X-Vercel-IP-City") || "San%20Francisco"
+        );
+        
         const weatherData = {
           temperature: 72,
           unit: 'fahrenheit',
           city
         }
-
+        
         return openai.createChatCompletion({
           messages: [
             ...(newMessages as any),

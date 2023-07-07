@@ -119,30 +119,27 @@ export function OpenAIStream(
   res: Response,
   cb?: AIStreamCallbacks
 ): ReadableStream {
+  const stream = AIStream(res, parseOpenAIStream(), cb)
+
   if (cb && cb.onFunctionCall) {
-    console.log('Creating function call transformer')
     const functionCallTransformer = createFunctionCallTransformer(cb)
-    return AIStream(res, parseOpenAIStream(), cb).pipeThrough(
-      functionCallTransformer
-    )
+    return stream.pipeThrough(functionCallTransformer)
   } else {
-    console.log('default ai stream')
-    return AIStream(res, parseOpenAIStream(), cb)
+    return stream
   }
 }
 
 function createFunctionCallTransformer(
   callbacks: AIStreamCallbacks
-): TransformStream<string, Uint8Array> {
+): TransformStream<Uint8Array, Uint8Array> {
   const textEncoder = new TextEncoder()
   let isFirstChunk = true
   let aggregatedResponse = ''
   let isFunctionStreamingIn = false
-  let newMessages: Message[] = []
+  let messages: Message[] = []
 
   return new TransformStream({
     async transform(chunk, controller): Promise<void> {
-      // @ts-expect-error
       const message = new TextDecoder().decode(chunk)
 
       if (isFirstChunk) {
@@ -177,11 +174,17 @@ function createFunctionCallTransformer(
           // { function_call: { name: 'get_current_weather', arguments: '{"location": "San Francisco, CA", "format": "celsius"}' }
           const response = await callbacks.onFunctionCall(
             payload.function_call,
-            newMessages
+            messages
           )
 
-          // What to do with response?
-
+          const openAIStream = OpenAIStream(response, callbacks)
+          const reader = openAIStream.getReader()
+          let result = await reader.read()
+          while (!result.done) {
+            controller.enqueue(result.value)
+            result = await reader.read()
+          }
+        }
       }
     }
   })
