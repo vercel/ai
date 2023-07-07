@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.16
+
+### Patch Changes
+
+- 8bfb43d: Fix svelte peer dependency version
+
 ## 2.1.15
 
 ### Patch Changes

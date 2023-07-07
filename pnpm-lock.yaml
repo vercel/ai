@@ -41,7 +41,7 @@ importers:
         specifier: ^2.5.1
         version: 2.5.1
       ai:
-        specifier: 2.1.15
+        specifier: 2.1.16
         version: link:../../packages/core
       next:
         specifier: 13.4.4-canary.11
@@ -87,7 +87,7 @@ importers:
   examples/next-langchain:
     dependencies:
       ai:
-        specifier: 2.1.15
+        specifier: 2.1.16
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.103
@@ -133,7 +133,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: ^2.1.15
+        specifier: ^2.1.16
         version: link:../../packages/core
       next:
         specifier: 13.4.4-canary.11
@@ -273,7 +273,7 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4
       ai:
-        specifier: 2.1.15
+        specifier: 2.1.16
         version: link:../../packages/core
       nuxt:
         specifier: ^3.5.2
@@ -294,7 +294,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       ai:
-        specifier: 2.1.15
+        specifier: 2.1.16
         version: link:../../packages/core
       openai-edge:
         specifier: ^0.5.1
@@ -346,7 +346,7 @@ importers:
         specifier: ^1.10.0
         version: 1.10.0(svelte@4.0.0)
       svelte:
-        specifier: ^4.0.0
+        specifier: ^3.0.0 || ^4.0.0
         version: 4.0.0
       swr:
         specifier: 2.1.5
