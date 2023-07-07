@@ -171,9 +171,13 @@ function createFunctionCallTransformer(
           isFunctionStreamingIn = false
           console.log('Function call complete')
           const payload = JSON.parse(aggregatedResponse)
-          // { function_call: { name: 'get_current_weather', arguments: '{"location": "San Francisco, CA", "format": "celsius"}' }
+          const argumentsPayload = JSON.parse(payload.function_call.arguments)
+
           const response = await callbacks.onFunctionCall(
-            payload.function_call,
+            {
+              name: payload.function_call.name,
+              arguments: argumentsPayload
+            },
             messages
           )
 
