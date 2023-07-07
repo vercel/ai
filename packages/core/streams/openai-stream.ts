@@ -136,7 +136,6 @@ function createFunctionCallTransformer(
   let isFirstChunk = true
   let aggregatedResponse = ''
   let isFunctionStreamingIn = false
-  let messages: Message[] = []
 
   return new TransformStream({
     async transform(chunk, controller): Promise<void> {
@@ -146,7 +145,6 @@ function createFunctionCallTransformer(
         if (message.startsWith('{"function_call":')) {
           isFunctionStreamingIn = true
 
-          // Wait for the entire function call to finish
           aggregatedResponse += message
 
           console.log('Function call detected')
@@ -165,8 +163,8 @@ function createFunctionCallTransformer(
         isFunctionStreamingIn
       ) {
         aggregatedResponse += message
-        console.log('Aggregated response', aggregatedResponse)
-        // function is done streaming
+
+        // End of the function
         if (message.endsWith('"}}')) {
           isFunctionStreamingIn = false
           console.log('Function call complete')
@@ -178,15 +176,19 @@ function createFunctionCallTransformer(
               name: payload.function_call.name,
               arguments: argumentsPayload
             },
-            messages
+            // TODO: newMessages
+            []
           )
 
           const openAIStream = OpenAIStream(response, callbacks)
           const reader = openAIStream.getReader()
-          let result = await reader.read()
-          while (!result.done) {
-            controller.enqueue(result.value)
-            result = await reader.read()
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) {
+              break
+            }
+            controller.enqueue(value)
           }
         }
       }

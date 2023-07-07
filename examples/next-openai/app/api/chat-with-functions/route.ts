@@ -70,8 +70,6 @@ export async function POST(req: Request) {
   const stream = OpenAIStream(response, {
     onFunctionCall: async ({ name, arguments: args }, newMessages) => {
       if (name === 'get_current_weather') {
- 
-
         const city = decodeURIComponent(
           req.headers.get("X-Vercel-IP-City") || "San%20Francisco"
         );
@@ -97,7 +95,13 @@ export async function POST(req: Request) {
           // function_call: { name },
           functions
         })
+      } else if (name === 'eval_code_in_browser') {
+        const { code } = args
+        console.log('code', code)
+        const evaled = eval(String(code))
+        console.log('evaled', evaled)
       }
+      
 
       return openai.createChatCompletion({
         // @ts-ignore

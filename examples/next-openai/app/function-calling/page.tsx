@@ -80,7 +80,7 @@ export default function Chat() {
   }
 
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: '/api/chat-with-functions',
+    api: '/api/chat-with-functions'
     // experimental_onFunctionCall: functionCallHandler
   })
 
@@ -90,24 +90,6 @@ export default function Chat() {
     user: 'black',
     function: 'blue',
     assistant: 'green'
-  }
-
-  const getRenderedMessage = (m: Message) => {
-    if (m.content === '' && m.function_call !== undefined) {
-      const functionCallString =
-        typeof m.function_call === 'string'
-          ? m.function_call
-          : JSON.stringify(m.function_call)
-      return (
-        <>
-          {functionCallString.split('\\n').map((line, index) => (
-            <p key={index}>{line}</p>
-          ))}
-        </>
-      )
-    } else {
-      return m.content
-    }
   }
 
   return (
@@ -120,7 +102,7 @@ export default function Chat() {
               style={{ color: roleToColorMap[m.role] }}
             >
               <strong>{`${m.role}: `}</strong>
-              {getRenderedMessage(m)}
+              {m.content}
               <br />
               <br />
             </div>
