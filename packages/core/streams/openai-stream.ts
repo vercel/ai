@@ -4,10 +4,16 @@ import {
   type AIStreamCallbacks
 } from './ai-stream'
 
+/**
+ * Creates a parser function for processing the OpenAI stream data.
+ * The parser extracts and trims text content from the JSON data. This parser
+ * can handle data for chat or completion models.
+ *
+ * @return {(data: string) => string | void} A parser function that takes a JSON string as input and returns the extracted text content or nothing.
+ */
 function parseOpenAIStream(): (data: string) => string | void {
   const trimStartOfStream = trimStartOfStreamHelper()
   return data => {
-    // TODO: Needs a type
     const json = JSON.parse(data)
 
     /*
@@ -105,11 +111,9 @@ function parseOpenAIStream(): (data: string) => string | void {
       return '"}}'
     }
 
-    // this can be used for either chat or completion models
     const text = trimStartOfStream(
       json.choices[0]?.delta?.content ?? json.choices[0]?.text ?? ''
     )
-
     return text
   }
 }

@@ -137,6 +137,14 @@ export function trimStartOfStreamHelper(): (text: string) => string {
  * Returns a ReadableStream created from the response, parsed and handled with custom logic.
  * The stream goes through two transformation stages, first parsing the events and then
  * invoking the provided callbacks.
+ * 
+ * For 2xx HTTP responses:
+ * - The function continues with standard stream processing.
+ *
+ * For non-2xx HTTP responses:
+ * - If the response body is defined, it asynchronously extracts and decodes the response body.
+ * - It then creates a custom ReadableStream to propagate a detailed error message.
+ * 
  * @param {Response} response - The response.
  * @param {AIStreamParser} customParser - The custom parser function.
  * @param {AIStreamCallbacks} callbacks - The callbacks.
@@ -149,9 +157,24 @@ export function AIStream(
   callbacks?: AIStreamCallbacks
 ): ReadableStream {
   if (!response.ok) {
-    throw new Error(
-      `Failed to convert the response to stream. Received status code: ${response.status}.`
-    )
+    if (response.body) {
+      const reader = response.body.getReader()
+      return new ReadableStream({
+        async start(controller) {
+          const { done, value } = await reader.read()
+          if (!done) {
+            const errorText = new TextDecoder().decode(value)
+            controller.error(new Error(`Response error: ${errorText}`))
+          }
+        }
+      })
+    } else {
+      return new ReadableStream({
+        start(controller) {
+          controller.error(new Error('Response error: No response body'))
+        }
+      })
+    }
   }
 
   const responseBodyStream = response.body || createEmptyReadableStream()
