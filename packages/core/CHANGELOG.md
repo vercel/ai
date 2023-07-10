@@ -1,5 +1,71 @@
 # ai
 
+## 2.1.17
+
+### Patch Changes
+
+- 3ed65bf: Remove dependency on node crypto API
+
+## 2.1.16
+
+### Patch Changes
+
+- 8bfb43d: Fix svelte peer dependency version
+
+## 2.1.15
+
+### Patch Changes
+
+- 4a2b978: Update cohere stream and add docs
+
+## 2.1.14
+
+### Patch Changes
+
+- 3164adb: Fix regression with generated ids
+
+## 2.1.13
+
+### Patch Changes
+
+- fd82961: Use rfc4122 IDs when generating chat/completion IDs
+
+## 2.1.12
+
+### Patch Changes
+
+- b7b93e5: Add <Tokens> RSC to ai/react
+
+## 2.1.11
+
+### Patch Changes
+
+- 8bf637a: Fix langchain handlers so that they now are correctly invoked and update examples and docs to show correct usage (passing the handlers to `llm.call` and not the model itself).
+
+## 2.1.10
+
+### Patch Changes
+
+- a7b3d0e: Experimental support for OpenAI function calling
+
+## 2.1.9
+
+### Patch Changes
+
+- 9cdf968: core/react: add Tokens react server component
+
+## 2.1.8
+
+### Patch Changes
+
+- 44d9879: Support extra request options in chat and completion hooks
+
+## 2.1.7
+
+### Patch Changes
+
+- bde3898: Allow an async onResponse callback in useChat/useCompletion
+
 ## 2.1.6
 
 ### Patch Changes

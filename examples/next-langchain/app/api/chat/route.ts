@@ -10,8 +10,7 @@ export async function POST(req: Request) {
   const { stream, handlers } = LangChainStream()
 
   const llm = new ChatOpenAI({
-    streaming: true,
-    callbacks: [handlers]
+    streaming: true
   })
 
   llm
@@ -20,7 +19,9 @@ export async function POST(req: Request) {
         m.role == 'user'
           ? new HumanChatMessage(m.content)
           : new AIChatMessage(m.content)
-      )
+      ),
+      {},
+      [handlers]
     )
     .catch(console.error)
 

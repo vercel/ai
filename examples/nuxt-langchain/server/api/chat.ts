@@ -16,8 +16,7 @@ export default defineEventHandler(async (event: any) => {
   } else {
     const llm = new ChatOpenAI({
       openAIApiKey: process.env.OPENAI_API_KEY,
-      streaming: true,
-      callbacks: [handlers]
+      streaming: true
     })
 
     llm
@@ -26,7 +25,9 @@ export default defineEventHandler(async (event: any) => {
           message.role === 'user'
             ? new HumanChatMessage(message.content)
             : new AIChatMessage(message.content)
-        )
+        ),
+        {},
+        [handlers]
       )
       // eslint-disable-next-line no-console
       .catch(console.error)
