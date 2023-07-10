@@ -23,7 +23,10 @@ export interface AIStreamCallbacks {
   /**
    * Only applicable for OpenAI
    */
-  onFunctionCall?: (payload: FunctionCallPayload, messages: Message[]) => Promise<Response>
+  onFunctionCall?: (
+    payload: FunctionCallPayload,
+    messages: Message[]
+  ) => Promise<Response | undefined>
 }
 
 /**

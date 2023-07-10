@@ -3,7 +3,7 @@ import { nanoid } from '../shared/utils'
 import {
   AIStream,
   trimStartOfStreamHelper,
-  type AIStreamCallbacks,
+  type AIStreamCallbacks
 } from './ai-stream'
 
 function parseOpenAIStream(): (data: string) => string | void {
@@ -166,16 +166,16 @@ function createFunctionCallTransformer(
       }
 
       if (isEndOfFunction) {
-        console.log("End of function call detected", aggregatedResponse)
+        console.log('End of function call detected', aggregatedResponse)
         isFunctionStreamingIn = false
         const payload = JSON.parse(aggregatedResponse)
         const argumentsPayload = JSON.parse(payload.function_call.arguments)
-        
+
         // TODO: this should never happen but TS is unhappy
         if (!callbacks.onFunctionCall) {
           return
         }
-    
+
         const functionResult = await callbacks.onFunctionCall(
           {
             name: payload.function_call.name,
@@ -184,12 +184,20 @@ function createFunctionCallTransformer(
           newMessages
         )
 
+        if (!functionResult) {
+          // The user didn't do anything with the function call on the server and wants
+          // to either do nothing or run it on the client
+          // so we just return the function call as a message
+          controller.enqueue(textEncoder.encode(aggregatedResponse))
+          return
+        }
+
         newMessages.push({
-          role: "function",
-          name: payload.function_call.name, 
+          role: 'function',
+          name: payload.function_call.name,
           content: JSON.stringify(functionResult),
           id: nanoid(),
-          createdAt: new Date(),
+          createdAt: new Date()
         })
 
         const openAIStream = OpenAIStream(functionResult, callbacks)
