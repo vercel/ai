@@ -141,26 +141,5 @@ export function OpenAIStream(
   res: Response,
   cb?: AIStreamCallbacks
 ): ReadableStream {
-  if (res.ok) {
-    return AIStream(res, parseOpenAIStream(), cb)
-  } else {
-    if (res.body) {
-      const reader = res.body.getReader()
-      return new ReadableStream({
-        async start(controller) {
-          const { done, value } = await reader.read()
-          if (!done) {
-            const errorText = new TextDecoder().decode(value)
-            controller.error(new Error(`Response error: ${errorText}`))
-          }
-        }
-      })
-    } else {
-      return new ReadableStream({
-        start(controller) {
-          controller.error(new Error('Response error: No response body'))
-        }
-      })
-    }
-  }
+  return AIStream(res, parseOpenAIStream(), cb)
 }
