@@ -168,10 +168,12 @@ function createFunctionCallTransformer(
         aggregatedResponse += message
         const payload = JSON.parse(aggregatedResponse)
         const argumentsPayload = JSON.parse(payload.function_call.arguments)
-        // TODO: this should never happen 
+        
+        // TODO: this should never happen but TS is unhappy
         if (!callbacks.onFunctionCall) {
           return
         }
+    
         const functionResult = await callbacks.onFunctionCall(
           {
             name: payload.function_call.name,
@@ -184,7 +186,8 @@ function createFunctionCallTransformer(
           role: "function",
           name: payload.function_call.name, 
           content: JSON.stringify(functionResult),
-          id: nanoid()
+          id: nanoid(),
+          createdAt: new Date(),
         })
 
         const openAIStream = OpenAIStream(functionResult, callbacks)
