@@ -161,11 +161,13 @@ function createFunctionCallTransformer(
       if (!isFunctionStreamingIn) {
         controller.enqueue(textEncoder.encode(message))
         return
+      } else {
+        aggregatedResponse += message
       }
 
       if (isEndOfFunction) {
+        console.log("End of function call detected", aggregatedResponse)
         isFunctionStreamingIn = false
-        aggregatedResponse += message
         const payload = JSON.parse(aggregatedResponse)
         const argumentsPayload = JSON.parse(payload.function_call.arguments)
         
