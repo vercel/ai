@@ -1,9 +1,9 @@
 import { Message } from '../shared/types'
+import { nanoid } from '../shared/utils'
 import {
   AIStream,
   trimStartOfStreamHelper,
   type AIStreamCallbacks,
-  FunctionCallPayload
 } from './ai-stream'
 
 function parseOpenAIStream(): (data: string) => string | void {
@@ -128,7 +128,6 @@ export function OpenAIStream(
     return stream
   }
 }
-
 function createFunctionCallTransformer(
   callbacks: AIStreamCallbacks
 ): TransformStream<Uint8Array, Uint8Array> {
@@ -140,56 +139,63 @@ function createFunctionCallTransformer(
   return new TransformStream({
     async transform(chunk, controller): Promise<void> {
       const message = new TextDecoder().decode(chunk)
+      let newMessages: Message[] = []
 
-      if (isFirstChunk) {
-        if (message.startsWith('{"function_call":')) {
-          isFunctionStreamingIn = true
-
-          aggregatedResponse += message
-
-          console.log('Function call detected')
-        } else {
-          // Continue streaming
-          controller.enqueue(textEncoder.encode(message))
-        }
-
-        isFirstChunk = false
-      } else if (!isFunctionStreamingIn) {
-        // Continue streaming as normal
-        controller.enqueue(textEncoder.encode(message))
-      } else if (
+      const shouldHandleAsFunction =
+        isFirstChunk && message.startsWith('{"function_call":')
+      const isEndOfFunction =
         !isFirstChunk &&
         callbacks.onFunctionCall &&
-        isFunctionStreamingIn
-      ) {
+        isFunctionStreamingIn &&
+        message.endsWith('"}}')
+
+      if (shouldHandleAsFunction) {
+        isFunctionStreamingIn = true
         aggregatedResponse += message
+        console.log('Function call detected')
+        isFirstChunk = false
+        return
+      }
 
-        // End of the function
-        if (message.endsWith('"}}')) {
-          isFunctionStreamingIn = false
-          console.log('Function call complete')
-          const payload = JSON.parse(aggregatedResponse)
-          const argumentsPayload = JSON.parse(payload.function_call.arguments)
+      // Stream as normal
+      if (!isFunctionStreamingIn) {
+        controller.enqueue(textEncoder.encode(message))
+        return
+      }
 
-          const response = await callbacks.onFunctionCall(
-            {
-              name: payload.function_call.name,
-              arguments: argumentsPayload
-            },
-            // TODO: newMessages
-            []
-          )
+      if (isEndOfFunction) {
+        isFunctionStreamingIn = false
+        aggregatedResponse += message
+        const payload = JSON.parse(aggregatedResponse)
+        const argumentsPayload = JSON.parse(payload.function_call.arguments)
+        // TODO: this should never happen 
+        if (!callbacks.onFunctionCall) {
+          return
+        }
+        const functionResult = await callbacks.onFunctionCall(
+          {
+            name: payload.function_call.name,
+            arguments: argumentsPayload
+          },
+          newMessages
+        )
 
-          const openAIStream = OpenAIStream(response, callbacks)
-          const reader = openAIStream.getReader()
+        newMessages.push({
+          role: "function",
+          name: payload.function_call.name, 
+          content: JSON.stringify(functionResult),
+          id: nanoid()
+        })
 
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) {
-              break
-            }
-            controller.enqueue(value)
+        const openAIStream = OpenAIStream(functionResult, callbacks)
+        const reader = openAIStream.getReader()
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) {
+            break
           }
+          controller.enqueue(value)
         }
       }
     }
