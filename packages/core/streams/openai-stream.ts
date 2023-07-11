@@ -163,7 +163,7 @@ function createFunctionCallTransformer(
 
       // Stream as normal
       if (!isFunctionStreamingIn) {
-        controller.enqueue(textEncoder.encode(message))
+        controller.enqueue(chunk)
         return
       } else {
         aggregatedResponse += message
