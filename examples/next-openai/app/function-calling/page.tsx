@@ -48,20 +48,18 @@ export default function Chat() {
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.length > 0
-        ? messages.map((m: Message) =>
-            m.content ? (
-              <div
-                key={m.id}
-                className="whitespace-pre-wrap"
-                style={{ color: roleToColorMap[m.role] }}
-              >
-                <strong>{`${m.role}: `}</strong>
-                {m.content}
-                <br />
-                <br />
-              </div>
-            ) : null
-          )
+        ? messages.map((m: Message) => (
+            <div
+              key={m.id}
+              className="whitespace-pre-wrap"
+              style={{ color: roleToColorMap[m.role] }}
+            >
+              <strong>{`${m.role}: `}</strong>
+              {m.content || JSON.stringify(m.function_call)}
+              <br />
+              <br />
+            </div>
+          ))
         : null}
       <div id="chart-goes-here"></div>
 
