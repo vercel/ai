@@ -139,19 +139,14 @@ function createFunctionCallTransformer(
   let isFirstChunk = true
   let aggregatedResponse = ''
   let isFunctionStreamingIn = false
+  let newMessages: Message[] = []
 
   return new TransformStream({
     async transform(chunk, controller): Promise<void> {
       const message = new TextDecoder().decode(chunk)
-      let newMessages: Message[] = []
 
       const shouldHandleAsFunction =
         isFirstChunk && message.startsWith('{"function_call":')
-      const isEndOfFunction =
-        !isFirstChunk &&
-        callbacks.onFunctionCall &&
-        isFunctionStreamingIn &&
-        message.endsWith('"}}')
 
       if (shouldHandleAsFunction) {
         isFunctionStreamingIn = true
@@ -168,15 +163,17 @@ function createFunctionCallTransformer(
       } else {
         aggregatedResponse += message
       }
+    },
+    async flush(controller): Promise<void> {
+      const isEndOfFunction =
+        !isFirstChunk && callbacks.onFunctionCall && isFunctionStreamingIn
 
       if (isEndOfFunction) {
-        console.log('End of function call detected', aggregatedResponse)
+        console.log('End of function call detected')
         isFunctionStreamingIn = false
         const payload = JSON.parse(aggregatedResponse)
         console.log(aggregatedResponse)
         const argumentsPayload = JSON.parse(payload.function_call.arguments)
-        console.log('Function call payload', payload)
-        console.log('Function call arguments', argumentsPayload)
 
         // TODO: this should never happen but TS is unhappy
         if (!callbacks.onFunctionCall) {
@@ -199,13 +196,14 @@ function createFunctionCallTransformer(
           return
         }
 
-        newMessages.push({
-          role: 'function',
-          name: payload.function_call.name,
-          content: JSON.stringify(await functionResponse.json()),
-          id: nanoid(),
-          createdAt: new Date()
-        })
+        // TODO: properly construct and recurse over the function call response
+        // newMessages.push({
+        //   role: 'function',
+        //   name: payload.function_call.name,
+        //   content: JSON.stringify(await functionResponse.json()),
+        //   id: nanoid(),
+        //   createdAt: new Date()
+        // })
 
         const openAIStream = OpenAIStream(functionResponse, callbacks)
         const reader = openAIStream.getReader()

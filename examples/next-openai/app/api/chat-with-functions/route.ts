@@ -29,15 +29,6 @@ const functions: ChatCompletionFunctions[] = [
     }
   },
   {
-    name: 'get_current_time',
-    description: 'Get the current time',
-    parameters: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  },
-  {
     name: 'eval_code_in_browser',
     description: 'Execute javascript code in the browser with eval().',
     parameters: {
@@ -62,12 +53,13 @@ export async function POST(req: Request) {
     model: 'gpt-3.5-turbo-0613',
     stream: true,
     messages,
-    functions
-    // function_call: 'auto'
+    functions,
+    function_call
   })
 
   const stream = OpenAIStream(response, {
     onFunctionCall: async ({ name, arguments: args }, newMessages) => {
+      console.log('Function call', name, args, newMessages)
       if (name === 'get_current_weather') {
         const city = decodeURIComponent(
           req.headers.get('X-Vercel-IP-City') || 'San%20Francisco'
@@ -79,6 +71,7 @@ export async function POST(req: Request) {
           city
         }
 
+        console.log('Weather data', weatherData)
         return openai.createChatCompletion({
           messages: [
             ...(newMessages as any),
@@ -87,28 +80,14 @@ export async function POST(req: Request) {
               name,
               content: JSON.stringify(weatherData)
             }
-            // ...
           ],
           stream: true,
           model: 'gpt-3.5-turbo-0613',
-          // function_call: { name },
           functions
         })
-      } else if (name === 'eval_code_in_browser') {
-        const { code } = args
-        console.log('code', code)
-        const evaled = eval(String(code))
-        console.log('evaled', evaled)
       }
 
-      return openai.createChatCompletion({
-        // @ts-ignore
-        messages: newMessages,
-        stream: true,
-        model: 'gpt-3.5-turbo-0613'
-        // function_call: 'auto',
-        // functions
-      })
+      return
     }
   })
 
