@@ -8,7 +8,7 @@ import { Message } from '../shared/types'
 
 export interface FunctionCallPayload {
   name: string
-  arguments: Object
+  arguments: Record<string, unknown>
 }
 
 /**

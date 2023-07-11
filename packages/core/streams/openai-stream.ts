@@ -156,7 +156,7 @@ function createFunctionCallTransformer(
       if (shouldHandleAsFunction) {
         isFunctionStreamingIn = true
         aggregatedResponse += message
-        console.log('Function call detected')
+        console.log('Function call detected', message)
         isFirstChunk = false
         return
       }
@@ -173,14 +173,17 @@ function createFunctionCallTransformer(
         console.log('End of function call detected', aggregatedResponse)
         isFunctionStreamingIn = false
         const payload = JSON.parse(aggregatedResponse)
+        console.log(aggregatedResponse)
         const argumentsPayload = JSON.parse(payload.function_call.arguments)
+        console.log('Function call payload', payload)
+        console.log('Function call arguments', argumentsPayload)
 
         // TODO: this should never happen but TS is unhappy
         if (!callbacks.onFunctionCall) {
           return
         }
 
-        const functionResult = await callbacks.onFunctionCall(
+        const functionResponse = await callbacks.onFunctionCall(
           {
             name: payload.function_call.name,
             arguments: argumentsPayload
@@ -188,7 +191,7 @@ function createFunctionCallTransformer(
           newMessages
         )
 
-        if (!functionResult) {
+        if (!functionResponse) {
           // The user didn't do anything with the function call on the server and wants
           // to either do nothing or run it on the client
           // so we just return the function call as a message
@@ -199,12 +202,12 @@ function createFunctionCallTransformer(
         newMessages.push({
           role: 'function',
           name: payload.function_call.name,
-          content: JSON.stringify(functionResult),
+          content: JSON.stringify(await functionResponse.json()),
           id: nanoid(),
           createdAt: new Date()
         })
 
-        const openAIStream = OpenAIStream(functionResult, callbacks)
+        const openAIStream = OpenAIStream(functionResponse, callbacks)
         const reader = openAIStream.getReader()
 
         while (true) {
