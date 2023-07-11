@@ -1,5 +1,5 @@
-import { Message } from '../shared/types'
-import { nanoid } from '../shared/utils'
+import { CreateMessage } from '../shared/types'
+
 import {
   AIStream,
   trimStartOfStreamHelper,
@@ -119,10 +119,20 @@ function parseOpenAIStream(): (data: string) => string | void {
     return text
   }
 }
+
+const __internal__OpenAIFnMessagesSymbol = Symbol('internal_openai_fn_messages')
+
 export function OpenAIStream(
   res: Response,
-  cb?: AIStreamCallbacks
+  callbacks?: AIStreamCallbacks
 ): ReadableStream {
+  // Annotate the internal `messages` property for recursive function calls
+  const cb:
+    | undefined
+    | (AIStreamCallbacks & {
+        [__internal__OpenAIFnMessagesSymbol]?: CreateMessage[]
+      }) = callbacks
+
   const stream = AIStream(res, parseOpenAIStream(), cb)
 
   if (cb && cb.onFunctionCall) {
@@ -132,14 +142,19 @@ export function OpenAIStream(
     return stream
   }
 }
+
 function createFunctionCallTransformer(
-  callbacks: AIStreamCallbacks
+  callbacks: AIStreamCallbacks & {
+    [__internal__OpenAIFnMessagesSymbol]?: CreateMessage[]
+  }
 ): TransformStream<Uint8Array, Uint8Array> {
   const textEncoder = new TextEncoder()
   let isFirstChunk = true
   let aggregatedResponse = ''
   let isFunctionStreamingIn = false
-  let newMessages: Message[] = []
+
+  let functionCallMessages: CreateMessage[] =
+    callbacks[__internal__OpenAIFnMessagesSymbol] || []
 
   return new TransformStream({
     async transform(chunk, controller): Promise<void> {
@@ -180,12 +195,33 @@ function createFunctionCallTransformer(
           return
         }
 
+        // Append the function call message to the list
+        let newFunctionCallMessages: CreateMessage[] = [...functionCallMessages]
+
         const functionResponse = await callbacks.onFunctionCall(
           {
             name: payload.function_call.name,
             arguments: argumentsPayload
           },
-          newMessages
+          result => {
+            // Append the function call request and result messages to the list
+            newFunctionCallMessages = [
+              ...functionCallMessages,
+              {
+                role: 'assistant',
+                content: '',
+                function_call: payload.function_call
+              },
+              {
+                role: 'function',
+                name: payload.function_call.name,
+                content: JSON.stringify(result)
+              }
+            ]
+
+            // Return it to the user
+            return newFunctionCallMessages
+          }
         )
 
         if (!functionResponse) {
@@ -196,16 +232,12 @@ function createFunctionCallTransformer(
           return
         }
 
-        // TODO: properly construct and recurse over the function call response
-        // newMessages.push({
-        //   role: 'function',
-        //   name: payload.function_call.name,
-        //   content: JSON.stringify(await functionResponse.json()),
-        //   id: nanoid(),
-        //   createdAt: new Date()
-        // })
+        // Recursively
+        const openAIStream = OpenAIStream(functionResponse, {
+          ...callbacks,
+          [__internal__OpenAIFnMessagesSymbol]: newFunctionCallMessages
+        } as AIStreamCallbacks)
 
-        const openAIStream = OpenAIStream(functionResponse, callbacks)
         const reader = openAIStream.getReader()
 
         while (true) {

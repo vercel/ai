@@ -4,7 +4,15 @@ import {
   type ParsedEvent,
   type ReconnectInterval
 } from 'eventsource-parser'
-import { Message } from '../shared/types'
+import { CreateMessage } from '../shared/types'
+
+type JSONValue =
+  | null
+  | string
+  | number
+  | boolean
+  | { [x: string]: JSONValue }
+  | Array<JSONValue>
 
 export interface FunctionCallPayload {
   name: string
@@ -22,10 +30,38 @@ export interface AIStreamCallbacks {
 
   /**
    * Only applicable for OpenAI
+   *
+   * @example
+   * ```js
+   * const response = await openai.createChatCompletion({
+   *   model: 'gpt-3.5-turbo-0613',
+   *   stream: true,
+   *   messages,
+   *   functions,
+   * })
+   *
+   * const stream = OpenAIStream(response, {
+   *   onFunctionCall: async (functionCallPayload, createFunctionCallMessages) => {
+   *     // ... run your custom logic here
+   *     const result = await myFunction(functionCallPayload)
+   *
+   *     // Ask for another completion
+   *     return await openai.createChatCompletion({
+   *       model: 'gpt-3.5-turbo-0613',
+   *       stream: true,
+   *       // Append the function call related messages
+   *       messages: [...messages, ...createFunctionCallMessages(result)],
+   *       functions,
+   *     })
+   *   }
+   * })
+   * ```
    */
   onFunctionCall?: (
-    payload: FunctionCallPayload,
-    messages: Message[]
+    functionCallPayload: FunctionCallPayload,
+    createFunctionCallMessages: (
+      functionCallResult: JSONValue
+    ) => CreateMessage[]
   ) => Promise<Response | undefined>
 }
 
@@ -151,14 +187,14 @@ export function trimStartOfStreamHelper(): (text: string) => string {
  * Returns a ReadableStream created from the response, parsed and handled with custom logic.
  * The stream goes through two transformation stages, first parsing the events and then
  * invoking the provided callbacks.
- * 
+ *
  * For 2xx HTTP responses:
  * - The function continues with standard stream processing.
  *
  * For non-2xx HTTP responses:
  * - If the response body is defined, it asynchronously extracts and decodes the response body.
  * - It then creates a custom ReadableStream to propagate a detailed error message.
- * 
+ *
  * @param {Response} response - The response.
  * @param {AIStreamParser} customParser - The custom parser function.
  * @param {AIStreamCallbacks} callbacks - The callbacks.
