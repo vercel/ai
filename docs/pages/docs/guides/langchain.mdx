@@ -11,7 +11,7 @@ However, LangChain does not provide a way to easily build UIs or a standard way 
 
 Here is an example implementation of a chat application that uses both Vercel AI SDK and LangChain's [OpenAIChat](https://js.langchain.com/docs/api/llms_openai/classes/OpenAIChat) together with [Next.js](https://nextjs.org/docs) App Router. It uses Vercel AI SDK's [`LangChainStream`](../api-reference/langchain-stream) to stream text to the client (from the edge) and then Vercel AI SDK's `useChat` to handle the chat UI.
 
-```tsx filename="app/api/chat/route.ts" {1,11,15,28}
+```tsx filename="app/api/chat/route.ts" {1,10,13,28}
 import { StreamingTextResponse, LangChainStream, Message } from 'ai'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
