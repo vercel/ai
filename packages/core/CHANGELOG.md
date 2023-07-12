@@ -1,5 +1,12 @@
 # ai
 
+## 2.1.18
+
+### Patch Changes
+
+- 6648b21: Add experimental client side OpenAI function calling to Svelte bindings
+- e5b983f: feat(streams): add http error handling for openai
+
 ## 2.1.17
 
 ### Patch Changes
