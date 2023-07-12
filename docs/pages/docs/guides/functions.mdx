@@ -64,8 +64,9 @@ You can then choose how you want to handle each function call: on the server or 
 
 ## Handling Function Calls on the Server
 
-On the server, you can pass an `experimental_onFunctionCall` callback to the `OpenAIStream`, which will be called when the model calls a function.
-In order to support recursively calling functions and to keep the message context in the function calls, you can use `createFunctionCallMessages` to construct the relevant "assistant" and "function" messages for you.
+On the server, you can pass an `experimental_onFunctionCall` callback to the `OpenAIStream`, which will be called when the stream processes a complete "function_call" message.
+The stream will block and wait for a function to be resolved or ignored before continuing streaming.
+You can use the `createFunctionCallMessages` callback provided to construct the relevant "assistant" and "function" messages to send in your request.
 
 ```ts {2,3,4,15}
 const stream = OpenAIStream(response, {
@@ -103,7 +104,7 @@ You will then receive a regular "assistant" message on the client containing the
 
 On the client, you can pass an `experimental_onFunctionCall` handler to the `useCompletion` and `useChat` hooks.
 This callback will be called when the server does not handle a function call and streams it to the client.
-The handler will be called when the function is invoked. Here's a sample function handler:
+Here's a sample function handler:
 
 ```tsx
 const functionCallHandler: FunctionCallHandler = async (
