@@ -135,7 +135,7 @@ export function OpenAIStream(
 
   const stream = AIStream(res, parseOpenAIStream(), cb)
 
-  if (cb && cb.onFunctionCall) {
+  if (cb && cb.experimental_onFunctionCall) {
     const functionCallTransformer = createFunctionCallTransformer(cb)
     return stream.pipeThrough(functionCallTransformer)
   } else {
@@ -180,7 +180,9 @@ function createFunctionCallTransformer(
     },
     async flush(controller): Promise<void> {
       const isEndOfFunction =
-        !isFirstChunk && callbacks.onFunctionCall && isFunctionStreamingIn
+        !isFirstChunk &&
+        callbacks.experimental_onFunctionCall &&
+        isFunctionStreamingIn
 
       if (isEndOfFunction) {
         isFunctionStreamingIn = false
@@ -188,14 +190,14 @@ function createFunctionCallTransformer(
         const argumentsPayload = JSON.parse(payload.function_call.arguments)
 
         // TODO: this should never happen but TS is unhappy
-        if (!callbacks.onFunctionCall) {
+        if (!callbacks.experimental_onFunctionCall) {
           return
         }
 
         // Append the function call message to the list
         let newFunctionCallMessages: CreateMessage[] = [...functionCallMessages]
 
-        const functionResponse = await callbacks.onFunctionCall(
+        const functionResponse = await callbacks.experimental_onFunctionCall(
           {
             name: payload.function_call.name,
             arguments: argumentsPayload

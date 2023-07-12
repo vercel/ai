@@ -41,7 +41,7 @@ export interface AIStreamCallbacks {
    * })
    *
    * const stream = OpenAIStream(response, {
-   *   onFunctionCall: async (functionCallPayload, createFunctionCallMessages) => {
+   *   experimental_onFunctionCall: async (functionCallPayload, createFunctionCallMessages) => {
    *     // ... run your custom logic here
    *     const result = await myFunction(functionCallPayload)
    *
@@ -57,7 +57,7 @@ export interface AIStreamCallbacks {
    * })
    * ```
    */
-  onFunctionCall?: (
+  experimental_onFunctionCall?: (
     functionCallPayload: FunctionCallPayload,
     createFunctionCallMessages: (
       functionCallResult: JSONValue
