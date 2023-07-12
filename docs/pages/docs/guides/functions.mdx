@@ -73,7 +73,8 @@ const stream = OpenAIStream(response, {
     { name, arguments: args },
     createFunctionCallMessages
   ) => {
-    // if you do nothing with the function call, it's passed to the client
+    // if you skip the function call and return nothing, the `function_call`
+    // message will be sent to the client for it to handle
     if (name === 'get_current_weather') {
       // Call a weather API here
       const weatherData = {
