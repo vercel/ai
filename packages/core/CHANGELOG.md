@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.19
+
+### Patch Changes
+
+- e4281ca: Add experimental server-side OpenAI function handling
+
 ## 2.1.18
 
 ### Patch Changes
