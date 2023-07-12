@@ -64,11 +64,10 @@ You can then choose how you want to handle each function call: on the server or 
 
 ## Handling Function Calls on the Server
 
-On the server, you can pass an `experimental_onFunctionCall` callback to the `OpenAIStream`, which will be called when the stream processes a complete "function_call" message.
-The stream will block and wait for a function to be resolved or ignored before continuing streaming.
-You can use the `createFunctionCallMessages` callback provided to construct the relevant "assistant" and "function" messages to send in your request.
+On the server, you can pass an `experimental_onFunctionCall` callback to the `OpenAIStream`, which will be called when the model calls a function.
+In order to support recursively calling functions and to construct the message context in the nested OpenAI calls, you can use `createFunctionCallMessages` to get the "assistant" and "function" messages.
 
-```ts {2,3,4,15}
+```ts {2,3,4,15,17,21,22}
 const stream = OpenAIStream(response, {
   experimental_onFunctionCall: async (
     { name, arguments: args },
@@ -85,12 +84,10 @@ const stream = OpenAIStream(response, {
       // `createFunctionCallMessages` constructs the relevant "assistant" and "function" messages for you
       const newMessages = createFunctionCallMessages(weatherData)
       return openai.createChatCompletion({
-        // We attach the new function call messages so the model for the function call has up-to-date context
         messages: [...messages, ...newMessages],
         stream: true,
         model: 'gpt-3.5-turbo-0613',
-        // If you want the function call to be able to call other functions, you need to pass a functions object again.
-        // It does NOT need to be the same functions as passed to the stream.
+        // see "Recursive Function Calls" below
         functions
       })
     }
@@ -100,11 +97,16 @@ const stream = OpenAIStream(response, {
 
 You will then receive a regular "assistant" message on the client containing the output of the function call.
 
+### Recursive Function Calls
+
+If you want to support recursive function calls, you need to pass the `functions` object to the `createChatCompletion` call in the `experimental_onFunctionCall` handler.
+The response from the nested call will be processed by the same logic (and therefore the same handler) as the initial OpenAI call, and the final response will be returned to the client.
+
 ## Handling Function Calls on the Client
 
 On the client, you can pass an `experimental_onFunctionCall` handler to the `useCompletion` and `useChat` hooks.
 This callback will be called when the server does not handle a function call and streams it to the client.
-Here's a sample function handler:
+The handler will be called when the function is invoked. Here's a sample function handler:
 
 ```tsx
 const functionCallHandler: FunctionCallHandler = async (
