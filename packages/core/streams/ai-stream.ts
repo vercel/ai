@@ -49,7 +49,7 @@ export interface AIStreamCallbacks {
    *     return await openai.createChatCompletion({
    *       model: 'gpt-3.5-turbo-0613',
    *       stream: true,
-   *       // Append the "assistant" and "function" call messages 
+   *       // Append the relevant "assistant" and "function" call messages 
    *       messages: [...messages, ...createFunctionCallMessages(result)],
    *       functions,
    *     })

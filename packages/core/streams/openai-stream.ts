@@ -166,7 +166,6 @@ function createFunctionCallTransformer(
       if (shouldHandleAsFunction) {
         isFunctionStreamingIn = true
         aggregatedResponse += message
-        console.log('Function call detected', message)
         isFirstChunk = false
         return
       }
@@ -184,10 +183,8 @@ function createFunctionCallTransformer(
         !isFirstChunk && callbacks.onFunctionCall && isFunctionStreamingIn
 
       if (isEndOfFunction) {
-        console.log('End of function call detected')
         isFunctionStreamingIn = false
         const payload = JSON.parse(aggregatedResponse)
-        console.log(aggregatedResponse)
         const argumentsPayload = JSON.parse(payload.function_call.arguments)
 
         // TODO: this should never happen but TS is unhappy
