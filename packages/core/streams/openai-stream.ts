@@ -3,8 +3,53 @@ import { CreateMessage } from '../shared/types'
 import {
   AIStream,
   trimStartOfStreamHelper,
-  type AIStreamCallbacks
+  type AIStreamCallbacks,
+  FunctionCallPayload
 } from './ai-stream'
+
+type JSONValue =
+  | null
+  | string
+  | number
+  | boolean
+  | { [x: string]: JSONValue }
+  | Array<JSONValue>
+
+export type OpenAIStreamCallbacks = AIStreamCallbacks & {
+  /**
+   * @example
+   * ```js
+   * const response = await openai.createChatCompletion({
+   *   model: 'gpt-3.5-turbo-0613',
+   *   stream: true,
+   *   messages,
+   *   functions,
+   * })
+   *
+   * const stream = OpenAIStream(response, {
+   *   experimental_onFunctionCall: async (functionCallPayload, createFunctionCallMessages) => {
+   *     // ... run your custom logic here
+   *     const result = await myFunction(functionCallPayload)
+   *
+   *     // Ask for another completion
+   *     return await openai.createChatCompletion({
+   *       model: 'gpt-3.5-turbo-0613',
+   *       stream: true,
+   *       // Append the relevant "assistant" and "function" call messages
+   *       messages: [...messages, ...createFunctionCallMessages(result)],
+   *       functions,
+   *     })
+   *   }
+   * })
+   * ```
+   */
+  experimental_onFunctionCall?: (
+    functionCallPayload: FunctionCallPayload,
+    createFunctionCallMessages: (
+      functionCallResult: JSONValue
+    ) => CreateMessage[]
+  ) => Promise<Response | undefined>
+}
 
 /**
  * Creates a parser function for processing the OpenAI stream data.
@@ -124,12 +169,12 @@ const __internal__OpenAIFnMessagesSymbol = Symbol('internal_openai_fn_messages')
 
 export function OpenAIStream(
   res: Response,
-  callbacks?: AIStreamCallbacks
+  callbacks?: OpenAIStreamCallbacks
 ): ReadableStream {
   // Annotate the internal `messages` property for recursive function calls
   const cb:
     | undefined
-    | (AIStreamCallbacks & {
+    | (OpenAIStreamCallbacks & {
         [__internal__OpenAIFnMessagesSymbol]?: CreateMessage[]
       }) = callbacks
 
@@ -144,7 +189,7 @@ export function OpenAIStream(
 }
 
 function createFunctionCallTransformer(
-  callbacks: AIStreamCallbacks & {
+  callbacks: OpenAIStreamCallbacks & {
     [__internal__OpenAIFnMessagesSymbol]?: CreateMessage[]
   }
 ): TransformStream<Uint8Array, Uint8Array> {
@@ -184,15 +229,10 @@ function createFunctionCallTransformer(
         callbacks.experimental_onFunctionCall &&
         isFunctionStreamingIn
 
-      if (isEndOfFunction) {
+      if (isEndOfFunction && callbacks.experimental_onFunctionCall) {
         isFunctionStreamingIn = false
         const payload = JSON.parse(aggregatedResponse)
         const argumentsPayload = JSON.parse(payload.function_call.arguments)
-
-        // TODO: this should never happen but TS is unhappy
-        if (!callbacks.experimental_onFunctionCall) {
-          return
-        }
 
         // Append the function call message to the list
         let newFunctionCallMessages: CreateMessage[] = [...functionCallMessages]

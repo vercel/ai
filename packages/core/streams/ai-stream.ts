@@ -6,14 +6,6 @@ import {
 } from 'eventsource-parser'
 import { CreateMessage } from '../shared/types'
 
-type JSONValue =
-  | null
-  | string
-  | number
-  | boolean
-  | { [x: string]: JSONValue }
-  | Array<JSONValue>
-
 export interface FunctionCallPayload {
   name: string
   arguments: Record<string, unknown>
@@ -27,42 +19,6 @@ export interface AIStreamCallbacks {
   onStart?: () => Promise<void>
   onCompletion?: (completion: string) => Promise<void>
   onToken?: (token: string) => Promise<void>
-
-  /**
-   * Only applicable for OpenAI
-   *
-   * @example
-   * ```js
-   * const response = await openai.createChatCompletion({
-   *   model: 'gpt-3.5-turbo-0613',
-   *   stream: true,
-   *   messages,
-   *   functions,
-   * })
-   *
-   * const stream = OpenAIStream(response, {
-   *   experimental_onFunctionCall: async (functionCallPayload, createFunctionCallMessages) => {
-   *     // ... run your custom logic here
-   *     const result = await myFunction(functionCallPayload)
-   *
-   *     // Ask for another completion
-   *     return await openai.createChatCompletion({
-   *       model: 'gpt-3.5-turbo-0613',
-   *       stream: true,
-   *       // Append the relevant "assistant" and "function" call messages 
-   *       messages: [...messages, ...createFunctionCallMessages(result)],
-   *       functions,
-   *     })
-   *   }
-   * })
-   * ```
-   */
-  experimental_onFunctionCall?: (
-    functionCallPayload: FunctionCallPayload,
-    createFunctionCallMessages: (
-      functionCallResult: JSONValue
-    ) => CreateMessage[]
-  ) => Promise<Response | undefined>
 }
 
 /**
