@@ -6,17 +6,107 @@ import { Steps, Callout } from 'nextra-theme-docs'
 
 # OpenAI Functions
 
-The Vercel AI SDK has **experimental client-side only support** for [OpenAI functions](https://openai.com/blog/function-calling-and-other-api-updates).
-Any of the content below is subject to change as OpenAI continues to develop their functions API and we iterate on the Vercel AI SDK.
-Server-side support is a work-in-progress and you can see the Vercel teams outline [here](https://twitter.com/jaredpalmer/status/1673350963191508993).
-If you are unfamiliar with OpenAI functions, it's recommended you refer to OpenAI's [announcement post](https://openai.com/blog/function-calling-and-other-api-updates) instead.
-It's important to know that OpenAI does _not_ handle calling the functions, but instead passes the function call to the client to handle via a special message and JSON.
+The Vercel AI SDK has **experimental support** for [OpenAI functions](https://openai.com/blog/function-calling-and-other-api-updates).
+Any of the content below is subject to change as OpenAI continues to develop their functions API and we iterate on the Vercel AI SDK. You can see our planned roadmap [here](https://twitter.com/jaredpalmer/status/1673350963191508993).
 
-## Usage with client hooks
+If you are unfamiliar with OpenAI functions, it's recommended you refer to OpenAI's [announcement post](https://openai.com/blog/function-calling-and-other-api-updates).
+It's important to know that OpenAI does _not_ handle calling the functions, but instead passes the function call to the consumer to handle via a special message and JSON.
 
-### Function Handler
+## Defining Functions
 
-You can currently handle function calls using the `useCompletion` and `useChat` hooks. In short, you create a Function Handler and pass it to the hook.
+To use functions with the OpenAI API, you need to pass a `functions` object to the API so the LLM knows it's capabilities.
+The `functions` object is an array containing the schema for each function you want to define.
+Here is an example:
+
+```ts {3, 34}
+import { ChatCompletionFunctions } from 'openai-edge/types/api'
+
+const functions: ChatCompletionFunctions[] = [
+  {
+    name: 'get_current_weather',
+    description: 'Get the current weather',
+    parameters: {
+      type: 'object',
+      properties: {
+        location: {
+          type: 'string',
+          description: 'The city and state, e.g. San Francisco, CA'
+        },
+        format: {
+          type: 'string',
+          enum: ['celsius', 'fahrenheit'],
+          description:
+            'The temperature unit to use. Infer this from the users location.'
+        }
+      },
+      required: ['location', 'format']
+    }
+  }
+]
+
+// And use it like this:
+export async function POST(req: Request) {
+  const { messages } = await req.json()
+
+  const response = await openai.createChatCompletion({
+    model: 'gpt-3.5-turbo-0613',
+    stream: true,
+    messages,
+    functions
+  })
+
+  const stream = OpenAIStream(response)
+  return new StreamingTextResponse(stream)
+}
+```
+
+You can then choose how you want to handle each function call: on the server or on the client.
+
+## Handling Function Calls on the Server
+
+On the server, you can pass an `experimental_onFunctionCall` callback to the `OpenAIStream`, which will be called when the model calls a function.
+In order to support recursively calling functions and to construct the message context in the nested OpenAI calls, you can use `createFunctionCallMessages` to get the "assistant" and "function" messages.
+
+```ts {2,3,4,15,17,21,22}
+const stream = OpenAIStream(response, {
+  experimental_onFunctionCall: async (
+    { name, arguments: args },
+    createFunctionCallMessages
+  ) => {
+    // if you skip the function call and return nothing, the `function_call`
+    // message will be sent to the client for it to handle
+    if (name === 'get_current_weather') {
+      // Call a weather API here
+      const weatherData = {
+        temperature: 20,
+        unit: args.format === 'celsius' ? 'C' : 'F'
+      }
+
+      // `createFunctionCallMessages` constructs the relevant "assistant" and "function" messages for you
+      const newMessages = createFunctionCallMessages(weatherData)
+      return openai.createChatCompletion({
+        messages: [...messages, ...newMessages],
+        stream: true,
+        model: 'gpt-3.5-turbo-0613',
+        // see "Recursive Function Calls" below
+        functions
+      })
+    }
+  }
+})
+```
+
+You will then receive a regular "assistant" message on the client containing the output of the function call.
+
+### Recursive Function Calls
+
+If you want to support recursive function calls, you need to pass the `functions` object to the `createChatCompletion` call in the `experimental_onFunctionCall` handler.
+The response from the nested call will be processed by the same logic (and therefore the same handler) as the initial OpenAI call, and the final response will be returned to the client.
+
+## Handling Function Calls on the Client
+
+On the client, you can pass an `experimental_onFunctionCall` handler to the `useCompletion` and `useChat` hooks.
+This callback will be called when the server does not handle a function call and streams it to the client.
 The handler will be called when the function is invoked. Here's a sample function handler:
 
 ```tsx
@@ -121,52 +211,5 @@ if (m.function_call) {
   )
 } else {
   return m.content
-}
-```
-
-## On the server
-
-To use functions with the OpenAI API, you need to pass the `functions` and `function_call` parameters to the API.
-Here is an example Next.js Route Handler:
-
-```
-import { ChatCompletionFunctions } from 'openai-edge/types/api'
-
-const functions: ChatCompletionFunctions[] = [
-  {
-    name: 'get_current_weather',
-    description: 'Get the current weather',
-    parameters: {
-      type: 'object',
-      properties: {
-        location: {
-          type: 'string',
-          description: 'The city and state, e.g. San Francisco, CA'
-        },
-        format: {
-          type: 'string',
-          enum: ['celsius', 'fahrenheit'],
-          description:
-            'The temperature unit to use. Infer this from the users location.'
-        }
-      },
-      required: ['location', 'format']
-    }
-  },
-]
-
-export async function POST(req: Request) {
-  const { messages, function_call } = await req.json()
-
-  const response = await openai.createChatCompletion({
-    model: 'gpt-3.5-turbo-0613',
-    stream: true,
-    messages,
-    functions,
-    function_call
-  })
-
-  const stream = OpenAIStream(response)
-  return new StreamingTextResponse(stream)
 }
 ```

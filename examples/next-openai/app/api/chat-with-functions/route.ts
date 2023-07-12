@@ -18,10 +18,6 @@ const functions: ChatCompletionFunctions[] = [
     parameters: {
       type: 'object',
       properties: {
-        location: {
-          type: 'string',
-          description: 'The city and state, e.g. San Francisco, CA'
-        },
         format: {
           type: 'string',
           enum: ['celsius', 'fahrenheit'],
@@ -29,16 +25,7 @@ const functions: ChatCompletionFunctions[] = [
             'The temperature unit to use. Infer this from the users location.'
         }
       },
-      required: ['location', 'format']
-    }
-  },
-  {
-    name: 'get_current_time',
-    description: 'Get the current time',
-    parameters: {
-      type: 'object',
-      properties: {},
-      required: []
+      required: ['format']
     }
   },
   {
@@ -60,16 +47,36 @@ const functions: ChatCompletionFunctions[] = [
 ]
 
 export async function POST(req: Request) {
-  const { messages, function_call } = await req.json()
+  const { messages } = await req.json()
 
   const response = await openai.createChatCompletion({
     model: 'gpt-3.5-turbo-0613',
     stream: true,
     messages,
-    functions,
-    function_call
+    functions
   })
 
-  const stream = OpenAIStream(response)
+  const stream = OpenAIStream(response, {
+    experimental_onFunctionCall: async (
+      { name, arguments: args },
+      createFunctionCallMessages
+    ) => {
+      if (name === 'get_current_weather') {
+        // Call a weather API here
+        const weatherData = {
+          temperature: 20,
+          unit: args.format === 'celsius' ? 'C' : 'F'
+        }
+        const newMessages = createFunctionCallMessages(weatherData)
+        return openai.createChatCompletion({
+          messages: [...messages, ...newMessages],
+          stream: true,
+          model: 'gpt-3.5-turbo-0613',
+          functions
+        })
+      }
+    }
+  })
+
   return new StreamingTextResponse(stream)
 }
