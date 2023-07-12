@@ -57,7 +57,7 @@ export async function POST(req: Request) {
   })
 
   const stream = OpenAIStream(response, {
-    onFunctionCall: async (
+    experimental_onFunctionCall: async (
       { name, arguments: args },
       createFunctionCallMessages
     ) => {
