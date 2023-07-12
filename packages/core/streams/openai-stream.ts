@@ -229,6 +229,7 @@ function createFunctionCallTransformer(
         callbacks.experimental_onFunctionCall &&
         isFunctionStreamingIn
 
+      // This callbacks.experimental_onFunctionCall check should not be necessary but TS complains
       if (isEndOfFunction && callbacks.experimental_onFunctionCall) {
         isFunctionStreamingIn = false
         const payload = JSON.parse(aggregatedResponse)
