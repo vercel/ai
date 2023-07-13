@@ -48,7 +48,7 @@ export type OpenAIStreamCallbacks = AIStreamCallbacks & {
     createFunctionCallMessages: (
       functionCallResult: JSONValue
     ) => CreateMessage[]
-  ) => Promise<Response | undefined>
+  ) => Promise<Response | undefined | void | string>
 }
 
 /**
@@ -269,6 +269,10 @@ function createFunctionCallTransformer(
           // to either do nothing or run it on the client
           // so we just return the function call as a message
           controller.enqueue(textEncoder.encode(aggregatedResponse))
+          return
+        } else if (typeof functionResponse === 'string') {
+          // The user returned a string, so we just return it as a message
+          controller.enqueue(textEncoder.encode(functionResponse))
           return
         }
 
