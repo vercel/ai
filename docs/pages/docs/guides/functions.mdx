@@ -66,6 +66,7 @@ You can then choose how you want to handle each function call: on the server or 
 
 On the server, you can pass an `experimental_onFunctionCall` callback to the `OpenAIStream`, which will be called when the model calls a function.
 In order to support recursively calling functions and to construct the message context in the nested OpenAI calls, you can use `createFunctionCallMessages` to get the "assistant" and "function" messages.
+You can also return a string which will be sent to the client as the "assistant" message (or returned back to the model as a response to a recursive function call).
 
 ```ts {2,3,4,15,17,21,22}
 const stream = OpenAIStream(response, {

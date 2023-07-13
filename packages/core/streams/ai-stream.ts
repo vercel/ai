@@ -4,7 +4,6 @@ import {
   type ParsedEvent,
   type ReconnectInterval
 } from 'eventsource-parser'
-import { CreateMessage } from '../shared/types'
 
 export interface FunctionCallPayload {
   name: string
