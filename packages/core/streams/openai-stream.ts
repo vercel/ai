@@ -31,7 +31,7 @@ export type OpenAIStreamCallbacks = AIStreamCallbacks & {
    *     // ... run your custom logic here
    *     const result = await myFunction(functionCallPayload)
    *
-   *     // Ask for another completion
+   *     // Ask for another completion, or return a string to send to the client as an assistant message.
    *     return await openai.createChatCompletion({
    *       model: 'gpt-3.5-turbo-0613',
    *       stream: true,
@@ -48,7 +48,7 @@ export type OpenAIStreamCallbacks = AIStreamCallbacks & {
     createFunctionCallMessages: (
       functionCallResult: JSONValue
     ) => CreateMessage[]
-  ) => Promise<Response | undefined>
+  ) => Promise<Response | undefined | void | string>
 }
 
 /**
@@ -269,6 +269,10 @@ function createFunctionCallTransformer(
           // to either do nothing or run it on the client
           // so we just return the function call as a message
           controller.enqueue(textEncoder.encode(aggregatedResponse))
+          return
+        } else if (typeof functionResponse === 'string') {
+          // The user returned a string, so we just return it as a message
+          controller.enqueue(textEncoder.encode(functionResponse))
           return
         }
 
