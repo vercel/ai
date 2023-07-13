@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.20
+
+### Patch Changes
+
+- e361114: OpenAI functions: allow returning string in callback
+
 ## 2.1.19
 
 ### Patch Changes
