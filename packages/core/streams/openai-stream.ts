@@ -115,7 +115,7 @@ function parseOpenAIStream(): (data: string) => string | void {
 
         ...
 
-        Finally, the last chunk has a `finish_reason` of `function_call`:
+        Finally, the last chunk has a `finish_reason` of either `function_call`:
 
           {
             ...
@@ -126,6 +126,17 @@ function parseOpenAIStream(): (data: string) => string | void {
             }]
           }
 
+        or `stop`, when the `function_call` request parameter 
+        is specified with a particular function via `{\"name\": \"my_function\"}` 
+
+          {
+            ...
+            "choices": [{
+              "index": 0,
+              "delta": {},
+              "finish_reason": "stop"
+            }]
+          }
 
         With the implementation below, the client will end up getting a
         response like the one below streamed to them whenever a function call
