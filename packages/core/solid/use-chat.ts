@@ -116,16 +116,7 @@ export function useChat({
       // immediately.
       const previousMessages = chatApiStore.get([key])
       mutate(messagesSnapshot)
-      console.log('fetch', {
-        messages: sendExtraMessageFields
-          ? messagesSnapshot
-          : messagesSnapshot.map(({ role, content }) => ({
-              role,
-              content
-            })),
-        ...body,
-        ...options?.body
-      })
+      
       const res = await fetch(api, {
         method: 'POST',
         body: JSON.stringify({
