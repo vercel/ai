@@ -47,6 +47,12 @@
       "import": "./vue/dist/index.mjs",
       "module": "./vue/dist/index.mjs",
       "require": "./vue/dist/index.js"
+    },
+    "./solid": {
+      "types": "./solid/dist/index.d.ts",
+      "import": "./solid/dist/index.mjs",
+      "module": "./solid/dist/index.mjs",
+      "require": "./solid/dist/index.js"
     }
   },
   "jest": {
@@ -55,9 +61,11 @@
   },
   "dependencies": {
     "eventsource-parser": "1.0.0",
-    "swr": "2.1.5",
     "nanoid": "^3.3.6",
+    "solid-swr-store": "^0.10.7",
     "sswr": "^1.10.0",
+    "swr": "2.1.5",
+    "swr-store": "^0.10.6",
     "swrv": "1.0.3"
   },
   "devDependencies": {
@@ -77,6 +85,7 @@
   },
   "peerDependencies": {
     "react": "^18.2.0",
+    "solid-js": "^1.7.7",
     "svelte": "^3.0.0 || ^4.0.0",
     "vue": "^3.3.4"
   },
