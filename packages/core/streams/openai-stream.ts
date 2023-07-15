@@ -167,9 +167,11 @@ function parseOpenAIStream(): (data: string) => string | void {
 
       return `${escapedPartialJson}`
     } else if (
-      json.choices[0]?.finish_reason === 'function_call' ||
-      (isFunctionStreamingIn && json.choices[0]?.finish_reason === 'stop')
+      (json.choices[0]?.finish_reason === 'function_call' ||
+        json.choices[0]?.finish_reason === 'stop') &&
+      isFunctionStreamingIn
     ) {
+      isFunctionStreamingIn = false // Reset the flag
       return '"}}'
     }
 
