@@ -60,9 +60,9 @@ export type OpenAIStreamCallbacks = AIStreamCallbacks & {
  */
 function parseOpenAIStream(): (data: string) => string | void {
   const trimStartOfStream = trimStartOfStreamHelper()
+  let isFunctionStreamingIn: boolean
   return data => {
     const json = JSON.parse(data)
-
     /*
        If the response is a function call, the first streaming chunk from OpenAI returns the name of the function like so
 
@@ -150,6 +150,7 @@ function parseOpenAIStream(): (data: string) => string | void {
           }
      */
     if (json.choices[0]?.delta?.function_call?.name) {
+      isFunctionStreamingIn = true
       return `{"function_call": {"name": "${json.choices[0]?.delta?.function_call.name}", "arguments": "`
     } else if (json.choices[0]?.delta?.function_call?.arguments) {
       const argumentChunk: string =
@@ -165,7 +166,10 @@ function parseOpenAIStream(): (data: string) => string | void {
         .replace(/\f/g, '\\f') // Escape form feeds
 
       return `${escapedPartialJson}`
-    } else if (json.choices[0]?.finish_reason === 'function_call') {
+    } else if (
+      json.choices[0]?.finish_reason === 'function_call' ||
+      (isFunctionStreamingIn && json.choices[0]?.finish_reason === 'stop')
+    ) {
       return '"}}'
     }
 

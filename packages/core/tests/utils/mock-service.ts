@@ -2,7 +2,8 @@ import { ServerResponse, createServer } from 'node:http'
 
 import {
   chatCompletionChunks,
-  chatCompletionChunksWithFunctionCall
+  chatCompletionChunksWithFunctionCall,
+  chatCompletionChunksWithSpecifiedFunctionCall
 } from '../snapshots/openai-chat'
 
 async function flushDataToResponse(
@@ -43,7 +44,8 @@ export const setup = () => {
     const type = req.headers['x-mock-type'] || 'chat' || 'func_call'
 
     switch (type) {
-      case 'func_call': // new case
+      case 'func_call':
+      case 'func_call_with_specified_function':
         switch (service) {
           case 'openai':
             res.writeHead(200, {
@@ -53,9 +55,13 @@ export const setup = () => {
             })
             res.flushHeaders()
             recentFlushed = []
+            const mock =
+              type === 'func_call_with_specified_function'
+                ? chatCompletionChunksWithSpecifiedFunctionCall
+                : chatCompletionChunksWithFunctionCall
             flushDataToResponse(
               res,
-              chatCompletionChunksWithFunctionCall.map(
+              mock.map(
                 value =>
                   new Proxy(
                     { value },

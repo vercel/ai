@@ -334,3 +334,14 @@ export const chatCompletionChunksWithFunctionCall = [
     choices: [{ index: 0, delta: {}, finish_reason: 'function_call' }]
   }
 ]
+
+export const chatCompletionChunksWithSpecifiedFunctionCall = [
+  ...chatCompletionChunksWithFunctionCall,
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-0613',
+    choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] // finish_reason is 'stop' whenever you provide a function to function_call parameter
+  }
+]
