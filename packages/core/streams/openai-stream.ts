@@ -62,7 +62,6 @@ function parseOpenAIStream(): (data: string) => string | void {
   const trimStartOfStream = trimStartOfStreamHelper()
   let isFunctionStreamingIn: boolean
   return data => {
-    const json = JSON.parse(data)
     /*
        If the response is a function call, the first streaming chunk from OpenAI returns the name of the function like so
 
@@ -149,6 +148,7 @@ function parseOpenAIStream(): (data: string) => string | void {
             }
           }
      */
+    const json = JSON.parse(data)
     if (json.choices[0]?.delta?.function_call?.name) {
       isFunctionStreamingIn = true
       return `{"function_call": {"name": "${json.choices[0]?.delta?.function_call.name}", "arguments": "`
