@@ -1,6 +1,6 @@
 import { Accessor, Resource, Setter, createSignal } from 'solid-js'
-import { createSWRStore } from 'swr-store'
 import { useSWRStore } from 'solid-swr-store'
+import { createSWRStore } from 'swr-store'
 
 import type {
   CreateMessage,
@@ -57,7 +57,6 @@ let uniqueId = 0
 
 const store: Record<string, Message[] | undefined> = {}
 const chatApiStore = createSWRStore<Message[], string[]>({
-  key: (key: string) => key,
   get: async (key: string) => {
     return store[key] ?? []
   }
@@ -82,11 +81,6 @@ export function useChat({
   const key = `${api}|${chatId}`
   const data = useSWRStore(chatApiStore, () => [key], {
     initialData: initialMessages
-  })
-  // Update cache with the initial messages.
-  chatApiStore.mutate([key], {
-    status: 'success',
-    data: initialMessages
   })
 
   const mutate = (data: Message[]) => {
@@ -114,9 +108,11 @@ export function useChat({
 
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
-      const previousMessages = chatApiStore.get([key])
+      const previousMessages = chatApiStore.get([key], {
+        shouldRevalidate: false
+      })
       mutate(messagesSnapshot)
-      
+
       const res = await fetch(api, {
         method: 'POST',
         body: JSON.stringify({
@@ -138,8 +134,7 @@ export function useChat({
       }).catch(err => {
         // Restore the previous messages if the request fails.
         if (previousMessages.status === 'success') {
-          // Should never be `undefined`
-          mutate(previousMessages.data as Message[])
+          mutate(previousMessages.data)
         }
         throw err
       })
@@ -155,8 +150,7 @@ export function useChat({
       if (!res.ok) {
         // Restore the previous messages if the request fails.
         if (previousMessages.status === 'success') {
-          // Should never be `undefined`
-          mutate(previousMessages.data as Message[])
+          mutate(previousMessages.data)
         }
         throw new Error(
           (await res.text()) || 'Failed to fetch the chat response.'

@@ -47,7 +47,6 @@ let uniqueId = 0
 
 const store: Record<string, any> = {}
 const completionApiStore = createSWRStore<any, string[]>({
-  key: (key: string) => key,
   get: async (key: string) => {
     return store[key] ?? []
   }
@@ -71,11 +70,6 @@ export function useCompletion({
   const key = `${api}|${completionId}`
   const data = useSWRStore(completionApiStore, () => [key], {
     initialData: initialCompletion
-  })
-  // Update cache with the initial messages.
-  completionApiStore.mutate([key], {
-    status: 'success',
-    data: initialCompletion
   })
 
   const mutate = (data: string) => {
