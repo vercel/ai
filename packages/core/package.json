@@ -106,6 +106,6 @@
     "url": "https://github.com/vercel-labs/ai/issues"
   },
   "keywords": [
-    "ai"
+    "ai", "nextjs", "svelte", "react", "vue"
   ]
 }
