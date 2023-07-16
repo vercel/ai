@@ -45,7 +45,7 @@ export type UseChatHelpers = {
   setMessages: (messages: Message[]) => void
   /** The current value of the input */
   input: Accessor<string>
-  /** setState-powered method to update the input value */
+  /** Signal setter to update the input value */
   setInput: Setter<string>
   /** Form submission handler to automattically reset input and append a user message  */
   handleSubmit: (e: any) => void
