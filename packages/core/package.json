@@ -10,11 +10,12 @@
     "dist/**/*",
     "react/dist/**/*",
     "svelte/dist/**/*",
-    "vue/dist/**/*"
+    "vue/dist/**/*",
+    "solid/dist/**/*"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
-    "clean": "rm -rf dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist",
+    "clean": "rm -rf dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -97,6 +98,9 @@
       "optional": true
     },
     "vue": {
+      "optional": true
+    },
+    "solid-js": {
       "optional": true
     }
   },
