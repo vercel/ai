@@ -6,7 +6,14 @@ export default defineConfig([
     entry: ['streams/index.ts'],
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue'],
-    dts: true
+    dts: true,
+  },
+  {
+    entry: ['functions/index.ts'],
+    outDir: 'functions/dist',
+    format: ['cjs', 'esm'],
+    external: ['react', 'svelte', 'vue'],
+    dts: true,
   },
   {
     entry: ['prompts/index.ts'],

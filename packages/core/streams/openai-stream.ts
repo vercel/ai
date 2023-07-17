@@ -362,7 +362,7 @@ function createFunctionCallTransformer(
           }
         )
 
-        if (!functionResponse) {
+        if (functionResponse === undefined) {
           // The user didn't do anything with the function call on the server and wants
           // to either do nothing or run it on the client
           // so we just return the function call as a message
