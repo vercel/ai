@@ -29,6 +29,12 @@
       "module": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
+    "./prompts": {
+      "types": "./prompts/dist/index.d.ts",
+      "import": "./prompts/dist/index.mjs",
+      "module": "./prompts/dist/index.mjs",
+      "require": "./prompts/dist/index.js"
+    },
     "./react": {
       "types": "./react/dist/index.d.ts",
       "react-server": "./react/dist/index.server.mjs",
@@ -106,6 +112,10 @@
     "url": "https://github.com/vercel-labs/ai/issues"
   },
   "keywords": [
-    "ai", "nextjs", "svelte", "react", "vue"
+    "ai",
+    "nextjs",
+    "svelte",
+    "react",
+    "vue"
   ]
 }
