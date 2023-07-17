@@ -96,5 +96,16 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "homepage": "https://github.com/vercel-labs/ai#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vercel-labs/ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel-labs/ai/issues"
+  },
+  "keywords": [
+    "ai", "nextjs", "svelte", "react", "vue"
+  ]
 }
