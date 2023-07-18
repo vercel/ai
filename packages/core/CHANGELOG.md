@@ -1,5 +1,12 @@
 # ai
 
+## 2.1.22
+
+### Patch Changes
+
+- 9320e95: Add (experimental) prompt construction helpers for StarChat and OpenAssistant
+- e3a7ec8: Support <|end|> token for StarChat beta in huggingface-stream
+
 ## 2.1.21
 
 ### Patch Changes
