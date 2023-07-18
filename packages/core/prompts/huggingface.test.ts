@@ -1,6 +1,6 @@
 import {
-  buildOpenAssistantPrompt,
-  buildStarChatBetaPrompt
+  experimental_buildOpenAssistantPrompt,
+  experimental_buildStarChatBetaPrompt
 } from './huggingface'
 import type { Message } from '../shared/types'
 
@@ -13,7 +13,7 @@ describe('buildStarChatBetaPrompt', () => {
     ]
 
     const expectedPrompt = `<|system|>\nYou are a chat bot.<|end|>\n<|user|>\nHello!<|end|>\n<|assistant|>\nHi there!<|end|>\n<|assistant|>`
-    const prompt = buildStarChatBetaPrompt(messages)
+    const prompt = experimental_buildStarChatBetaPrompt(messages)
     expect(prompt).toEqual(expectedPrompt)
   })
 
@@ -21,7 +21,7 @@ describe('buildStarChatBetaPrompt', () => {
     const messages: Pick<Message, 'content' | 'role'>[] = [
       { content: 'someFunction()', role: 'function' }
     ]
-    expect(() => buildStarChatBetaPrompt(messages)).toThrow()
+    expect(() => experimental_buildStarChatBetaPrompt(messages)).toThrow()
   })
 })
 
@@ -34,7 +34,7 @@ describe('buildOpenAssistantPrompt', () => {
 
     const expectedPrompt =
       '<|prompter|>Hello!<|endoftext|><|assistant|>Hi there!<|endoftext|><|assistant|>'
-    const prompt = buildOpenAssistantPrompt(messages)
+    const prompt = experimental_buildOpenAssistantPrompt(messages)
     expect(prompt).toEqual(expectedPrompt)
   })
 
@@ -42,6 +42,6 @@ describe('buildOpenAssistantPrompt', () => {
     const messages: Pick<Message, 'content' | 'role'>[] = [
       { content: 'someFunction()', role: 'function' }
     ]
-    expect(() => buildOpenAssistantPrompt(messages)).toThrow()
+    expect(() => experimental_buildOpenAssistantPrompt(messages)).toThrow()
   })
 })
