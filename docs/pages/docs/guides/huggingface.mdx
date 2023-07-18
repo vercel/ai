@@ -42,31 +42,13 @@ For this example, we'll create a route handler at `app/api/chat/route.ts` that a
 ```tsx filename="app/api/chat/route.ts" showLineNumbers
 import { HfInference } from '@huggingface/inference'
 import { HuggingFaceStream, StreamingTextResponse } from 'ai'
+import { experimental_buildOpenAssistantPrompt } from 'ai/prompts'
 
 // Create a new Hugging Face Inference instance
 const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY)
 
 // IMPORTANT! Set the runtime to edge
 export const runtime = 'edge'
-
-// Build a prompt from the messages
-// Note: this is specific to the OpenAssistant model we're using
-// @see https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5#prompting
-function buildOpenAssistantPrompt(
-  messages: { content: string; role: 'system' | 'user' | 'assistant' }[]
-) {
-  return (
-    messages
-      .map(({ content, role }) => {
-        if (role === 'user') {
-          return `<|prompter|>${content}<|endoftext|>`
-        } else {
-          return `<|assistant|>${content}<|endoftext|>`
-        }
-      })
-      .join('') + '<|assistant|>'
-  )
-}
 
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
@@ -75,7 +57,7 @@ export async function POST(req: Request) {
   // Initialize a text-generation stream using the Hugging Face Inference SDK
   const response = await Hf.textGenerationStream({
     model: 'OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5',
-    inputs: buildOpenAssistantPrompt(messages),
+    inputs: experimental_buildOpenAssistantPrompt(messages),
     parameters: {
       max_new_tokens: 200,
       // @ts-ignore (this is a valid parameter specifically in OpenAssistant models)

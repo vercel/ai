@@ -5,7 +5,7 @@ import { Message } from '../shared/types'
  * Does not support `function` messages.
  * @see https://huggingface.co/HuggingFaceH4/starchat-beta
  */
-export function buildStarChatBetaPrompt(
+export function experimental_buildStarChatBetaPrompt(
   messages: Pick<Message, 'content' | 'role'>[]
 ) {
   return (
@@ -30,7 +30,7 @@ export function buildStarChatBetaPrompt(
  * Does not support `function` or `system` messages.
  * @see https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5
  */
-export function buildOpenAssistantPrompt(
+export function experimental_buildOpenAssistantPrompt(
   messages: Pick<Message, 'content' | 'role'>[]
 ) {
   return (

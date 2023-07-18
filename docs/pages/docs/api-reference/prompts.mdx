@@ -33,7 +33,7 @@ const response = Hf.textGenerationStream({
 Uses `<|user|>`, `<|end|>`, `<|system|>`, and `<|assistant>` tokens. If a `Message` with an unsupported `role` is passed, an error will be thrown.
 
 ```ts filename="route.ts" {6}
-import { buildStarChatBetaPrompt } from 'ai/prompts'
+import { experimental_buildStarChatBetaPrompt } from 'ai/prompts'
 
 const { messages } = await req.json()
 const response = Hf.textGenerationStream({
