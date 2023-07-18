@@ -236,3 +236,28 @@ export async function POST(req: Request) {
   return new StreamingTextResponse(stream)
 }
 ```
+
+## Guide: Use with Azure OpenAI Service
+
+You can pass custom options to the `Configuration` from the OpenAI package to connect to the an Azure instance.
+
+```tsx filename="app/api/completion/route.ts"
+const AZURE_OPENAI_API_INSTANCE_NAME = '...'
+const AZURE_OPENAI_API_DEPLOYMENT_NAME = '...'
+const AZURE_OPENAI_API_KEY = '...'
+const AZURE_OPENAI_API_VERSION = '...'
+
+const endpoint = `https://${AZURE_OPENAI_API_INSTANCE_NAME}.openai.azure.com`
+
+export const config = new Configuration({
+  basePath: `${endpoint}/openai/deployments/${AZURE_OPENAI_API_DEPLOYMENT_NAME}`,
+  defaultQueryParams: new URLSearchParams({
+    'api-version': AZURE_OPENAI_API_VERSION
+  }),
+  baseOptions: {
+    headers: {
+      'api-key': AZURE_OPENAI_API_KEY
+    }
+  }
+})
+```
