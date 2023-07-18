@@ -80,7 +80,8 @@
     "sswr": "2.0.0",
     "swr": "2.2.0",
     "swr-store": "0.10.6",
-    "swrv": "1.0.4"
+    "swrv": "1.0.4",
+    "zod": "3.21.4"
   },
   "devDependencies": {
     "@edge-runtime/jest-environment": "1.1.0-beta.31",

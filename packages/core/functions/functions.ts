@@ -1,8 +1,21 @@
-import type { ChatCompletionFunctions } from 'openai-edge'
+import { z } from 'zod'
+
 import type { OpenAIStreamCallbacks } from '../streams'
 import type { JSONValue, Message } from '../shared/types'
 
-type FunctionSchema = ChatCompletionFunctions
+const FunctionParameters = z.object({
+  type: z.enum(['object', 'array', 'string', 'number', 'boolean']),
+  required: z.array(z.string()).optional(),
+  properties: z.record(z.any()).optional()
+})
+
+const FunctionSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  parameters: FunctionParameters.optional()
+})
+
+type FunctionSchema = z.infer<typeof FunctionSchema>
 
 type ExperimentalOnFunctionCall = NonNullable<
   OpenAIStreamCallbacks['experimental_onFunctionCall']
@@ -39,17 +52,23 @@ export class experimental_ChatFunction {
       createFunctionCallMessages: CreateFunctionCallMessages
     ) => FunctionResponse
   }) {
-    if (!functionSchema?.name) console.trace('Function name is required')
-    this.name = functionSchema.name
-    this.description = functionSchema.description
-    this.parameters = functionSchema.parameters
+    const parsedSchema = FunctionSchema.safeParse(functionSchema)
+
+    if (!parsedSchema.success) {
+      console.trace('Function schema is invalid', parsedSchema.error)
+      throw new Error('Function schema is invalid')
+    }
+
+    this.name = parsedSchema.data.name
+    this.description = parsedSchema.data.description
+    this.parameters = parsedSchema.data.parameters
     this.handler = handler
   }
 
   private validate(args: any): any {
     if (!this.parameters) return args
 
-    for (const key of Object.keys(this.parameters.properties)) {
+    for (const key of Object.keys(this.parameters.properties || {})) {
       if (!(key in args)) {
         throw new Error(`Missing required parameter: ${key}`)
       }
