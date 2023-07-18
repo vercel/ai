@@ -214,7 +214,10 @@ export function useChat({
     if (!message.id) {
       message.id = nanoid()
     }
-    return triggerRequest(messages.value.concat(message as ClientMessage), options)
+    return triggerRequest(
+      messages.value.concat(message as ClientMessage),
+      options
+    )
   }
 
   const reload: UseChatHelpers['reload'] = async options => {

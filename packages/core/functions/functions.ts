@@ -39,6 +39,7 @@ export class experimental_ChatFunction {
       createFunctionCallMessages: CreateFunctionCallMessages
     ) => FunctionResponse
   }) {
+    if (!functionSchema?.name) console.trace('Function name is required')
     this.name = functionSchema.name
     this.description = functionSchema.description
     this.parameters = functionSchema.parameters
@@ -99,8 +100,14 @@ type FunctionHandlerType = (
   createFunctionCallMessages: CreateFunctionCallMessages
 ) => FunctionResponse
 
+type Options = {
+  debug?: boolean
+}
+
 export class experimental_ChatFunctionHandler extends Array<experimental_ChatFunction> {
-  constructor(functions: FunctionInput) {
+  private options: Options = {}
+
+  constructor(functions: FunctionInput, options?: Options) {
     super()
 
     if (Array.isArray(functions)) {
@@ -110,6 +117,10 @@ export class experimental_ChatFunctionHandler extends Array<experimental_ChatFun
     } else {
       this.add(functions)
     }
+
+    if (options) {
+      this.options = options
+    }
   }
 
   add(
@@ -117,9 +128,11 @@ export class experimental_ChatFunctionHandler extends Array<experimental_ChatFun
       | experimental_ChatFunction
       | { function: FunctionSchema; handler?: FunctionHandlerType }
   ) {
+    if (this.options.debug) console.debug('Adding function', func)
     if (func instanceof experimental_ChatFunction) {
       this.push(func)
     } else {
+      if (!func?.function) return
       // If it's not an instance of experimental_ChatFunction, we assume it's a FunctionSchema
       // and create a new experimental_ChatFunction from it
       const { function: functionSchema, handler } = func
@@ -149,6 +162,7 @@ export class experimental_ChatFunctionHandler extends Array<experimental_ChatFun
         ])
       }
 
+      if (this.options.debug) console.debug('Executing function', name, args)
       return functionHandler.execute(
         args,
         createFunctionCallMessagesWithMessages

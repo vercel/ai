@@ -40,6 +40,8 @@ const functions: experimental_ChatFunctionHandler =
         return openai.createChatCompletion({
           model: 'gpt-3.5-turbo-0613',
           stream: true,
+          // Messages from the `onFunctionCallHandler` are automatically appended to the messages array.
+          // Further messages can be added as a second argument below:
           messages: createFunctionCallMessages(weatherData),
           functions: functions.schemas
         })

@@ -352,7 +352,10 @@ function createFunctionCallTransformer(
             ]
 
             // Return it to the user
-            return [...(messages || []), ...newFunctionCallMessages] as ChatCompletionRequestMessage[]
+            return [
+              ...(messages || []),
+              ...newFunctionCallMessages
+            ] as ChatCompletionRequestMessage[]
           }
         )
 
