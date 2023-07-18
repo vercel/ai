@@ -61,8 +61,8 @@
   },
   "dependencies": {
     "eventsource-parser": "1.0.0",
-    "nanoid": "^3.3.6",
-    "sswr": "^2.0.0",
+    "nanoid": "4.0.2",
+    "sswr": "2.0.0",
     "swr": "2.2.0",
     "swrv": "1.0.4"
   },
