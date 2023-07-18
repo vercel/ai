@@ -4,17 +4,18 @@ import type { Ref } from 'vue'
 
 import type {
   Message,
+  ClientMessage,
   CreateMessage,
   UseChatOptions,
   RequestOptions
 } from '../shared/types'
 import { createChunkDecoder, nanoid } from '../shared/utils'
 
-export type { Message, CreateMessage, UseChatOptions }
+export type { Message, ClientMessage, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
-  messages: Ref<Message[]>
+  messages: Ref<ClientMessage[]>
   /** The error object of the API request */
   error: Ref<undefined | Error>
   /**
@@ -22,7 +23,7 @@ export type UseChatHelpers = {
    * the assistant's response.
    */
   append: (
-    message: Message | CreateMessage,
+    message: ClientMessage | CreateMessage,
     options?: RequestOptions
   ) => Promise<string | null | undefined>
   /**
@@ -40,7 +41,7 @@ export type UseChatHelpers = {
    * edit the messages on the client, and then trigger the `reload` method
    * manually to regenerate the AI response.
    */
-  setMessages: (messages: Message[]) => void
+  setMessages: (messages: ClientMessage[]) => void
   /** The current value of the input */
   input: Ref<string>
   /** Form submission handler to automattically reset input and append a user message  */
@@ -53,7 +54,7 @@ let uniqueId = 0
 
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv
-const store: Record<string, Message[] | undefined> = {}
+const store: Record<string, ClientMessage[] | undefined> = {}
 
 export function useChat({
   api = '/api/chat',
@@ -72,7 +73,7 @@ export function useChat({
   const chatId = id || `chat-${uniqueId++}`
 
   const key = `${api}|${chatId}`
-  const { data, mutate: originalMutate } = useSWRV<Message[]>(
+  const { data, mutate: originalMutate } = useSWRV<ClientMessage[]>(
     key,
     () => store[key] || initialMessages
   )
@@ -84,19 +85,19 @@ export function useChat({
   // Force the `data` to be `initialMessages` if it's `undefined`.
   data.value ||= initialMessages
 
-  const mutate = (data?: Message[]) => {
+  const mutate = (data?: ClientMessage[]) => {
     store[key] = data
     return originalMutate()
   }
 
   // Because of the `initialData` option, the `data` will never be `undefined`.
-  const messages = data as Ref<Message[]>
+  const messages = data as Ref<ClientMessage[]>
 
   const error = ref<undefined | Error>(undefined)
 
   let abortController: AbortController | null = null
   async function triggerRequest(
-    messagesSnapshot: Message[],
+    messagesSnapshot: ClientMessage[],
     options?: RequestOptions
   ) {
     try {
@@ -213,7 +214,7 @@ export function useChat({
     if (!message.id) {
       message.id = nanoid()
     }
-    return triggerRequest(messages.value.concat(message as Message), options)
+    return triggerRequest(messages.value.concat(message as ClientMessage), options)
   }
 
   const reload: UseChatHelpers['reload'] = async options => {
@@ -234,7 +235,7 @@ export function useChat({
     }
   }
 
-  const setMessages = (messages: Message[]) => {
+  const setMessages = (messages: ClientMessage[]) => {
     mutate(messages)
   }
 

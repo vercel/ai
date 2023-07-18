@@ -30,11 +30,7 @@ const functions: experimental_ChatFunctionHandler =
           required: ['location', 'format']
         }
       },
-      handler: async (
-        { location, format },
-        createFunctionCallMessages,
-        messages = []
-      ) => {
+      handler: async ({ location, format }, createFunctionCallMessages) => {
         // Call a weather API here
         const weatherData = {
           temperature: 20,
@@ -44,10 +40,7 @@ const functions: experimental_ChatFunctionHandler =
         return openai.createChatCompletion({
           model: 'gpt-3.5-turbo-0613',
           stream: true,
-          messages: [
-            ...messages,
-            ...(createFunctionCallMessages(weatherData) as any)
-          ],
+          messages: createFunctionCallMessages(weatherData),
           functions: functions.schemas
         })
       }

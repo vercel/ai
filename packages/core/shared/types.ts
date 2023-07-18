@@ -22,6 +22,13 @@ export type Message = {
    * contains the function call name and arguments. Otherwise, the field should
    * not be set.
    */
+  function_call?: ChatCompletionRequestMessageFunctionCall
+}
+
+/**
+ * Identical to Message except `function_call` may be a string when streaming in.
+ */
+export type ClientMessage = Omit<Message, 'function_call'> & {
   function_call?: string | ChatCompletionRequestMessageFunctionCall
 }
 
@@ -30,14 +37,14 @@ export type CreateMessage = Omit<Message, 'id'> & {
 }
 
 export type ChatRequest = {
-  messages: Message[]
+  messages: ClientMessage[]
   options?: RequestOptions
   functions?: Array<ChatCompletionFunctions>
   function_call?: CreateChatCompletionRequestFunctionCall
 }
 
-export type FunctionCallHandler = (
-  chatMessages: Message[],
+export type ClientFunctionCallHandler = (
+  chatMessages: ClientMessage[],
   functionCall: ChatCompletionRequestMessageFunctionCall
 ) => Promise<ChatRequest | void>
 
@@ -69,7 +76,7 @@ export type UseChatOptions = {
   /**
    * Initial messages of the chat. Useful to load an existing chat history.
    */
-  initialMessages?: Message[]
+  initialMessages?: ClientMessage[]
 
   /**
    * Initial input of the chat.
@@ -81,7 +88,7 @@ export type UseChatOptions = {
    * If the function returns a `ChatRequest` object, the request will be sent
    * automatically to the API and will be used to update the chat.
    */
-  experimental_onFunctionCall?: FunctionCallHandler
+  experimental_onFunctionCall?: ClientFunctionCallHandler
 
   /**
    * Callback function to be called when the API response is received.
@@ -91,7 +98,7 @@ export type UseChatOptions = {
   /**
    * Callback function to be called when the chat is finished streaming.
    */
-  onFinish?: (message: Message) => void
+  onFinish?: (message: ClientMessage) => void
 
   /**
    * Callback function to be called when an error is encountered.
@@ -196,3 +203,11 @@ export type UseCompletionOptions = {
    */
   body?: object
 }
+
+export type JSONValue =
+  | null
+  | string
+  | number
+  | boolean
+  | { [x: string]: JSONValue }
+  | Array<JSONValue>

@@ -7,14 +7,15 @@ import type {
   CreateMessage,
   Message,
   UseChatOptions,
-  ChatRequestOptions
+  ChatRequestOptions,
+  ClientMessage
 } from '../shared/types'
 import { ChatCompletionRequestMessageFunctionCall } from 'openai-edge'
 export type { Message, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
-  messages: Readable<Message[]>
+  messages: Readable<ClientMessage[]>
   /** The error object of the API request */
   error: Readable<undefined | Error>
   /**
@@ -24,7 +25,7 @@ export type UseChatHelpers = {
    * @param chatRequestOptions Additional options to pass to the API call
    */
   append: (
-    message: Message | CreateMessage,
+    message: ClientMessage | CreateMessage,
     chatRequestOptions?: ChatRequestOptions
   ) => Promise<string | null | undefined>
   /**
@@ -44,7 +45,7 @@ export type UseChatHelpers = {
    * edit the messages on the client, and then trigger the `reload` method
    * manually to regenerate the AI response.
    */
-  setMessages: (messages: Message[]) => void
+  setMessages: (messages: ClientMessage[]) => void
   /** The current value of the input */
   input: Writable<string>
   /** Form submission handler to automattically reset input and append a user message  */
@@ -56,15 +57,15 @@ export type UseChatHelpers = {
 const getStreamedResponse = async (
   api: string,
   chatRequest: ChatRequest,
-  mutate: (messages: Message[]) => void,
+  mutate: (messages: ClientMessage[]) => void,
   extraMetadata: {
     credentials?: RequestCredentials
     headers?: Record<string, string> | Headers
     body?: any
   },
-  previousMessages: Message[],
+  previousMessages: ClientMessage[],
   abortControllerRef: AbortController | null,
-  onFinish?: (message: Message) => void,
+  onFinish?: (message: ClientMessage) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean
 ) => {
@@ -134,7 +135,7 @@ const getStreamedResponse = async (
   const reader = res.body.getReader()
   const decode = createChunkDecoder()
 
-  let responseMessage: Message = {
+  let responseMessage: ClientMessage = {
     id: replyId,
     createdAt,
     content: '',
@@ -190,7 +191,7 @@ const getStreamedResponse = async (
 
 let uniqueId = 0
 
-const store: Record<string, Message[] | undefined> = {}
+const store: Record<string, ClientMessage[] | undefined> = {}
 
 export function useChat({
   api = '/api/chat',
@@ -214,7 +215,7 @@ export function useChat({
     data,
     mutate: originalMutate,
     isLoading: isSWRLoading
-  } = useSWR<Message[]>(key, {
+  } = useSWR<ClientMessage[]>(key, {
     fetcher: () => store[key] || initialMessages,
     fallbackData: initialMessages
   })
@@ -224,13 +225,13 @@ export function useChat({
   // Force the `data` to be `initialMessages` if it's `undefined`.
   data.set(initialMessages)
 
-  const mutate = (data: Message[]) => {
+  const mutate = (data: ClientMessage[]) => {
     store[key] = data
     return originalMutate(data)
   }
 
-  // Because of the `fallbackData` option, the `data` will never be `undefined`.
-  const messages = data as Writable<Message[]>
+  // Because of the `initialData` option, the `data` will never be `undefined`.
+  const messages = data as Writable<ClientMessage[]>
 
   // Abort controller to cancel the current API call.
   let abortController: AbortController | null = null
@@ -311,7 +312,7 @@ export function useChat({
   }
 
   const append: UseChatHelpers['append'] = async (
-    message: Message | CreateMessage,
+    message: ClientMessage | CreateMessage,
     { options, functions, function_call }: ChatRequestOptions = {}
   ) => {
     if (!message.id) {
@@ -319,7 +320,7 @@ export function useChat({
     }
 
     const chatRequest: ChatRequest = {
-      messages: get(messages).concat(message as Message),
+      messages: get(messages).concat(message as ClientMessage),
       options,
       ...(functions !== undefined && { functions }),
       ...(function_call !== undefined && { function_call })
@@ -364,7 +365,7 @@ export function useChat({
     }
   }
 
-  const setMessages = (messages: Message[]) => {
+  const setMessages = (messages: ClientMessage[]) => {
     mutate(messages)
   }
 

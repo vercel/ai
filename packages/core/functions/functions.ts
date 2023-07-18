@@ -1,6 +1,6 @@
 import type { ChatCompletionFunctions } from 'openai-edge'
 import type { OpenAIStreamCallbacks } from '../streams'
-import type { Message } from '../shared/types'
+import type { JSONValue, Message } from '../shared/types'
 
 type FunctionSchema = ChatCompletionFunctions
 
@@ -26,8 +26,7 @@ export class experimental_ChatFunction {
    */
   private handler?: (
     args: any,
-    createFunctionCallMessages: CreateFunctionCallMessages,
-    messages: Message[]
+    createFunctionCallMessages: CreateFunctionCallMessages
   ) => FunctionResponse
 
   constructor({
@@ -37,8 +36,7 @@ export class experimental_ChatFunction {
     function: FunctionSchema
     handler?: (
       args: any,
-      createFunctionCallMessages: CreateFunctionCallMessages,
-      messages: Message[]
+      createFunctionCallMessages: CreateFunctionCallMessages
     ) => FunctionResponse
   }) {
     this.name = functionSchema.name
@@ -72,15 +70,11 @@ export class experimental_ChatFunction {
     /**
      * This should be the function from the `experimental_onFunctionCall` callback.
      */
-    createFunctionCallMessages: CreateFunctionCallMessages,
-    /**
-     *  Any messages to be included in the context.
-     */
-    messages: Message[]
+    createFunctionCallMessages: CreateFunctionCallMessages
   ): Promise<any> {
     if (!this.handler) return Promise.resolve(undefined)
     const validatedArgs = this.validate(args)
-    return this.handler(validatedArgs, createFunctionCallMessages, messages)
+    return this.handler(validatedArgs, createFunctionCallMessages)
   }
 
   get schema(): FunctionSchema {
@@ -102,8 +96,7 @@ type FunctionInput =
 
 type FunctionHandlerType = (
   args: any,
-  createFunctionCallMessages: CreateFunctionCallMessages,
-  messages: Message[]
+  createFunctionCallMessages: CreateFunctionCallMessages
 ) => FunctionResponse
 
 export class experimental_ChatFunctionHandler extends Array<experimental_ChatFunction> {
@@ -139,14 +132,27 @@ export class experimental_ChatFunctionHandler extends Array<experimental_ChatFun
     }
   }
 
-  onFunctionCallHandler(messages: Message[]): ExperimentalOnFunctionCall {
+  onFunctionCallHandler(messages?: Message[]): ExperimentalOnFunctionCall {
     return async ({ name, arguments: args }, createFunctionCallMessages) => {
       const functionHandler = this.find(f => f.name === name)
       if (!functionHandler) {
         throw new Error(`Function ${name} not found`)
       }
 
-      return functionHandler.execute(args, createFunctionCallMessages, messages)
+      const createFunctionCallMessagesWithMessages = (
+        result: JSONValue,
+        messagesFromHandler: Message[] | undefined
+      ) => {
+        return createFunctionCallMessages(result, [
+          ...(messages || []),
+          ...(messagesFromHandler || [])
+        ])
+      }
+
+      return functionHandler.execute(
+        args,
+        createFunctionCallMessagesWithMessages
+      )
     }
   }
 
