@@ -10,7 +10,8 @@
     "dist/**/*",
     "react/dist/**/*",
     "svelte/dist/**/*",
-    "vue/dist/**/*"
+    "vue/dist/**/*",
+    "prompts/dist/**/*"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
