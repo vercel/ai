@@ -8,6 +8,13 @@ export default defineConfig([
     external: ['react', 'svelte', 'vue'],
     dts: true
   },
+  {
+    entry: ['prompts/index.ts'],
+    format: ['cjs', 'esm'],
+    external: ['react', 'svelte', 'vue'],
+    outDir: 'prompts/dist',
+    dts: true
+  },
   // React APIs
   {
     entry: ['react/index.ts'],
