@@ -89,3 +89,7 @@ This library is created by [Vercel](https://vercel.com) and [Next.js](https://ne
 - Justin Ridgewell ([@jridgewell](https://github.com/jridgewell)) - [Vercel](https://vercel.com)
 
 [Contributors](https://github.com/vercel-labs/ai/graphs/contributors)
+
+## Usage Trends
+
+https://npm-compare.com/ai
