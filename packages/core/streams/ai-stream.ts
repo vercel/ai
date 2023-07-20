@@ -15,9 +15,9 @@ export interface FunctionCallPayload {
  * @interface
  */
 export interface AIStreamCallbacks {
-  onStart?: () => Promise<void>
-  onCompletion?: (completion: string) => Promise<void>
-  onToken?: (token: string) => Promise<void>
+  onStart?: () => Promise<void> | void
+  onCompletion?: (completion: string) => Promise<void> | void
+  onToken?: (token: string) => Promise<void> | void
 }
 
 /**
