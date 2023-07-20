@@ -160,7 +160,7 @@ export function AIStream(
   response: Response,
   customParser: AIStreamParser,
   callbacks?: AIStreamCallbacks
-): ReadableStream {
+): ReadableStream<Uint8Array> {
   if (!response.ok) {
     if (response.body) {
       const reader = response.body.getReader()
@@ -200,6 +200,25 @@ function createEmptyReadableStream(): ReadableStream {
   return new ReadableStream({
     start(controller) {
       controller.close()
+    }
+  })
+}
+
+/**
+ * Implements ReadableStream.from(asyncIterable), which isn't documented in MDN and isn't implemented in node.
+ * https://github.com/whatwg/streams/commit/8d7a0bf26eb2cc23e884ddbaac7c1da4b91cf2bc
+ */
+export function readableFromAsyncIterable<T>(iterable: AsyncIterable<T>) {
+  let it = iterable[Symbol.asyncIterator]()
+  return new ReadableStream<T>({
+    async pull(controller) {
+      const { done, value } = await it.next()
+      if (done) controller.close()
+      else controller.enqueue(value)
+    },
+
+    async cancel(reason) {
+      await it.return?.(reason)
     }
   })
 }
