@@ -293,9 +293,19 @@ function createFunctionCallTransformer(
           return
         }
 
-        // Recursively
-        const openAIStream = OpenAIStream(functionResponse, {
+        // Recursively:
+
+        // We don't want to trigger onStart or onComplete recursively
+        // so we remove them from the callbacks
+        // see https://github.com/vercel-labs/ai/issues/351
+        const filteredCallbacks: OpenAIStreamCallbacks = {
           ...callbacks,
+          onStart: undefined,
+          onCompletion: undefined
+        }
+
+        const openAIStream = OpenAIStream(functionResponse, {
+          ...filteredCallbacks,
           [__internal__OpenAIFnMessagesSymbol]: newFunctionCallMessages
         } as AIStreamCallbacks)
 
