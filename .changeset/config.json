@@ -11,6 +11,9 @@
     "next-langchain",
     "next-openai",
     "next-huggingface",
-    "sveltekit-openai"
+    "sveltekit-openai",
+    "nuxt-openai",
+    "nuxt-langchain",
+    "solidstart-openai"
   ]
 }
