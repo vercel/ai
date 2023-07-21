@@ -1,7 +1,7 @@
 import { AIStream, type AIStreamCallbacks } from './ai-stream'
 
 function parseAnthropicStream(): (data: string) => string | void {
-  let previous = ''
+  let previous = Buffer.from('', 'utf8')
 
   return data => {
     const json = JSON.parse(data as string) as {
@@ -14,12 +14,19 @@ function parseAnthropicStream(): (data: string) => string | void {
       exception: string | null
     }
 
-    // Anthropic's `completion` field is cumulative unlike OpenAI's
-    // deltas. In order to compute the delta, we must slice out the text
-    // we previously received.
-    const text = json.completion
-    const delta = text.slice(previous.length)
-    previous = text
+    // Convert the incoming text to a buffer.
+    const textBuffer = Buffer.from(json.completion, 'utf8')
+
+    // If the new buffer is longer, slice out the new part.
+    const deltaBuffer = textBuffer.length > previous.length
+      ? textBuffer.slice(previous.length)
+      : Buffer.from('', 'utf8')
+    
+    // Store the full text for the next comparison.
+    previous = textBuffer
+
+    // Convert the delta back to a string for further processing.
+    const delta = deltaBuffer.toString('utf8')
 
     return delta
   }
