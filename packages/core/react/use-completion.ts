@@ -194,7 +194,9 @@ export function useCompletion({
     },
     {
       populateCache: false,
-      revalidate: false
+      revalidate: false,
+      // @ts-expect-error - SWR tries to be clever with the throwOnError type
+      throwOnError: Boolean(onError)
     }
   )
 
