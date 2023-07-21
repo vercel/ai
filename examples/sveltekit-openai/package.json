@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "openai-edge": "^1.1.1",
-    "ai": "2.1.23"
+    "ai": "2.1.24"
   },
   "devDependencies": {
     "@fontsource/fira-mono": "^4.5.10",
