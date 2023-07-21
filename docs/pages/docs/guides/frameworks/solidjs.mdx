@@ -1,0 +1,81 @@
+---
+title: Solid.js
+---
+
+# Solid.js
+
+## On the client
+
+The Vercel AI SDKs [`useChat`](./api-reference/use-chat) and [`useCompletion`](./api-reference/use-completion) hooks are available from the
+`ai/solid` subpackage. You can use them in your Solid.js application like this:
+
+```jsx
+import { For, JSX } from 'solid-js'
+import { useChat } from 'ai/solid'
+
+export default function Chat() {
+  const { messages, input, setInput, handleSubmit } = useChat()
+
+  const handleInputChange: JSX.ChangeEventHandlerUnion<
+    HTMLInputElement,
+    Event
+  > = e => {
+    setInput(e.target.value)
+  }
+
+  return (
+    <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      <For each={messages()}>
+        {m => (
+          <div class="whitespace-pre-wrap">
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+          </div>
+        )}
+      </For>
+
+      <form onSubmit={handleSubmit}>
+        <input
+          class="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input()}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  )
+}
+```
+
+## On the server
+
+If you're using a server like the one provided by Node.js' `http` module or Express
+that doesn't support returning a stream, you can use the [`streamToResponse`](./api-reference/stream-to-response)
+function to convert the stream into a Response object. See an example on the [`streamToResponse`](./api-reference/stream-to-response#example-nodejs-http-server) page.
+
+Alternatively, if you're using a meta-framework like [SolidStart](https://start.solidjs.com), you can use the
+AI SDK's [`StreamingTextResponse`](./api-reference/streaming-text-response):
+
+```js filename="api/chat/index.ts"
+export const POST = async (event: APIEvent) => {
+  // Extract the `prompt` from the body of the request
+  const { messages } = await event.request.json()
+
+  // Ask OpenAI for a streaming chat completion given the prompt
+  const response = await openai.createChatCompletion({
+    model: 'gpt-3.5-turbo',
+    stream: true,
+    messages: messages.map((message: any) => ({
+      content: message.content,
+      role: message.role
+    }))
+  })
+
+  // Convert the response into a friendly text-stream
+  const stream = OpenAIStream(response)
+  // Respond with the stream
+  return new StreamingTextResponse(stream)
+}
+```
+
+You can visit the full SolidStart example [on GitHub](https://github.com/vercel-labs/ai/blob/main/examples/solidstart-openai).
