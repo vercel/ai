@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.25
+
+### Patch Changes
+
+- 877c16f: ai/react: don't throw error if onError is passed
+
 ## 2.1.24
 
 ### Patch Changes
