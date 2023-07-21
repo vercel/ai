@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.23
+
+### Patch Changes
+
+- 0ebc2f0: streams/openai-stream: don't call onStart/onCompletion when recursing
+
 ## 2.1.22
 
 ### Patch Changes
