@@ -24,8 +24,9 @@ function createParser(res: AsyncGenerator<any>) {
       }
 
       // <|endoftext|> is for https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5
+      // <|end|> is for https://huggingface.co/HuggingFaceH4/starchat-beta
       // </s> is also often last token in the stream depending on the model
-      if (text === '</s>' || text === '<|endoftext|>') {
+      if (text === '</s>' || text === '<|endoftext|>' || text === '<|end|>') {
         controller.close()
       } else {
         controller.enqueue(text)

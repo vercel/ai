@@ -1,5 +1,18 @@
 # ai
 
+## 2.1.22
+
+### Patch Changes
+
+- 9320e95: Add (experimental) prompt construction helpers for StarChat and OpenAssistant
+- e3a7ec8: Support <|end|> token for StarChat beta in huggingface-stream
+
+## 2.1.21
+
+### Patch Changes
+
+- 561a49a: Providing a function to `function_call` request parameter of the OpenAI Chat Completions API no longer breaks OpenAI function stream parsing.
+
 ## 2.1.20
 
 ### Patch Changes

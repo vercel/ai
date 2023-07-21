@@ -60,9 +60,8 @@ export type OpenAIStreamCallbacks = AIStreamCallbacks & {
  */
 function parseOpenAIStream(): (data: string) => string | void {
   const trimStartOfStream = trimStartOfStreamHelper()
+  let isFunctionStreamingIn: boolean
   return data => {
-    const json = JSON.parse(data)
-
     /*
        If the response is a function call, the first streaming chunk from OpenAI returns the name of the function like so
 
@@ -115,7 +114,7 @@ function parseOpenAIStream(): (data: string) => string | void {
 
         ...
 
-        Finally, the last chunk has a `finish_reason` of `function_call`:
+        Finally, the last chunk has a `finish_reason` of either `function_call`:
 
           {
             ...
@@ -126,6 +125,17 @@ function parseOpenAIStream(): (data: string) => string | void {
             }]
           }
 
+        or `stop`, when the `function_call` request parameter 
+        is specified with a particular function via `{\"name\": \"my_function\"}` 
+
+          {
+            ...
+            "choices": [{
+              "index": 0,
+              "delta": {},
+              "finish_reason": "stop"
+            }]
+          }
 
         With the implementation below, the client will end up getting a
         response like the one below streamed to them whenever a function call
@@ -138,7 +148,9 @@ function parseOpenAIStream(): (data: string) => string | void {
             }
           }
      */
+    const json = JSON.parse(data)
     if (json.choices[0]?.delta?.function_call?.name) {
+      isFunctionStreamingIn = true
       return `{"function_call": {"name": "${json.choices[0]?.delta?.function_call.name}", "arguments": "`
     } else if (json.choices[0]?.delta?.function_call?.arguments) {
       const argumentChunk: string =
@@ -154,7 +166,12 @@ function parseOpenAIStream(): (data: string) => string | void {
         .replace(/\f/g, '\\f') // Escape form feeds
 
       return `${escapedPartialJson}`
-    } else if (json.choices[0]?.finish_reason === 'function_call') {
+    } else if (
+      (json.choices[0]?.finish_reason === 'function_call' ||
+        json.choices[0]?.finish_reason === 'stop') &&
+      isFunctionStreamingIn
+    ) {
+      isFunctionStreamingIn = false // Reset the flag
       return '"}}'
     }
 

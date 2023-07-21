@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "2.1.20",
+  "version": "2.1.22",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -11,7 +11,8 @@
     "react/dist/**/*",
     "svelte/dist/**/*",
     "vue/dist/**/*",
-    "solid/dist/**/*"
+    "solid/dist/**/*",
+    "prompts/dist/**/*"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
@@ -29,6 +30,12 @@
       "import": "./dist/index.mjs",
       "module": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./prompts": {
+      "types": "./prompts/dist/index.d.ts",
+      "import": "./prompts/dist/index.mjs",
+      "module": "./prompts/dist/index.mjs",
+      "require": "./prompts/dist/index.js"
     },
     "./react": {
       "types": "./react/dist/index.d.ts",
@@ -109,5 +116,20 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "homepage": "https://github.com/vercel-labs/ai#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vercel-labs/ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel-labs/ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "nextjs",
+    "svelte",
+    "react",
+    "vue"
+  ]
 }
