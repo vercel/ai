@@ -22,3 +22,6 @@ gitignore
 # System Files
 .DS_Store
 Thumbs.db
+
+# Local env files
+.env
