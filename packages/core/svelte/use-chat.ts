@@ -212,7 +212,7 @@ export function useChat({
   const key = `${api}|${chatId}`
   const { data, mutate: originalMutate } = useSWR<Message[]>(key, {
     fetcher: () => store[key] || initialMessages,
-    initialData: initialMessages
+    fallbackData: initialMessages
   })
   // Force the `data` to be `initialMessages` if it's `undefined`.
   data.set(initialMessages)
@@ -222,7 +222,7 @@ export function useChat({
     return originalMutate(data)
   }
 
-  // Because of the `initialData` option, the `data` will never be `undefined`.
+  // Because of the `fallbackData` option, the `data` will never be `undefined`.
   const messages = data as Writable<Message[]>
 
   // Abort controller to cancel the current API call.

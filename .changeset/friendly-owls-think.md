@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Adds solid helpers and solidstart example
+Adds SolidJS support and SolidStart example

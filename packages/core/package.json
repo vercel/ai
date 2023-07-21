@@ -69,12 +69,12 @@
   },
   "dependencies": {
     "eventsource-parser": "1.0.0",
-    "nanoid": "^3.3.6",
-    "solid-swr-store": "^0.10.7",
-    "sswr": "^1.10.0",
-    "swr": "2.1.5",
-    "swr-store": "^0.10.6",
-    "swrv": "1.0.3"
+    "nanoid": "3.3.6",
+    "sswr": "2.0.0",
+    "swr": "2.2.0",
+    "swrv": "1.0.4",
+    "solid-swr-store": "0.10.7",
+    "swr-store": "0.10.6"
   },
   "devDependencies": {
     "@edge-runtime/jest-environment": "1.1.0-beta.31",

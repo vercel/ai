@@ -64,7 +64,7 @@ export function useCompletion({
   const key = `${api}|${completionId}`
   const { data, mutate: originalMutate } = useSWR<string>(key, {
     fetcher: () => store[key] || initialCompletion,
-    initialData: initialCompletion
+    fallbackData: initialCompletion
   })
   // Force the `data` to be `initialCompletion` if it's `undefined`.
   data.set(initialCompletion)
@@ -74,7 +74,7 @@ export function useCompletion({
     return originalMutate(data)
   }
 
-  // Because of the `initialData` option, the `data` will never be `undefined`.
+  // Because of the `fallbackData` option, the `data` will never be `undefined`.
   const completion = data as Writable<string>
 
   const error = writable<undefined | Error>(undefined)
