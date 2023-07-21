@@ -1,5 +1,5 @@
 ---
-'ai': minor
+'ai': patch
 ---
 
 Adds solid helpers and solidstart example
