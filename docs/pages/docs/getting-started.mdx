@@ -98,10 +98,10 @@ We've written some code to get you started — follow the instructions below to 
     import { OpenAIStream, StreamingTextResponse } from 'ai';
 
     // Create an OpenAI API client (that's edge friendly!)
-    const config = new Configuration({
+    const openAIConfig = new Configuration({
       apiKey: process.env.OPENAI_API_KEY,
     });
-    const openai = new OpenAIApi(config);
+    const openai = new OpenAIApi(openAIConfig);
 
     // Set the runtime to edge for best performance
     export const runtime = 'edge';
@@ -142,10 +142,10 @@ We've written some code to get you started — follow the instructions below to 
     import { OPENAI_API_KEY } from '$env/static/private';
 
     // Create an OpenAI API client (that's edge friendly!)
-    const config = new Configuration({
+    const openAIConfig = new Configuration({
       apiKey: OPENAI_API_KEY,
     });
-    const openai = new OpenAIApi(config);
+    const openai = new OpenAIApi(openAIConfig);
 
     // Set the runtime to edge for best performance
     export const config = {
