@@ -8,14 +8,9 @@ import type {
   CreateMessage,
   Message,
   UseChatOptions,
-  RequestOptions,
   ChatRequestOptions
 } from '../shared/types'
-import {
-  ChatCompletionRequestMessageFunctionCall,
-  CreateChatCompletionRequestFunctionCall
-} from 'openai-edge'
-import { ChatCompletionFunctions } from 'openai-edge/types/api'
+import { ChatCompletionRequestMessageFunctionCall } from 'openai-edge'
 export type { Message, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {
@@ -320,7 +315,9 @@ export function useChat({
     },
     {
       populateCache: false,
-      revalidate: false
+      revalidate: false,
+      // @ts-expect-error - SWR tries to be clever with the throwOnError type
+      throwOnError: Boolean(!onError)
     }
   )
 
