@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.24
+
+### Patch Changes
+
+- f3f5866: Adds SolidJS support and SolidStart example
+
 ## 2.1.23
 
 ### Patch Changes
