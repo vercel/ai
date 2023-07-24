@@ -50,25 +50,27 @@ describe('buildOpenAssistantPrompt', () => {
 describe('buildLlamaPrompt', () => {
   it('should return a string with user instruction', () => {
     const messages: Pick<Message, 'content' | 'role'>[] = [
-      { content: 'Hello, how are you?', role: 'user' },
+      { content: 'Hello, how are you?', role: 'user' }
     ]
 
-    const expectedPrompt =
-      '<s>[INST] hello, how are you? [/INST]'
+    const expectedPrompt = '<s>[INST] Hello, how are you? [/INST]'
     const prompt = experimental_buildLlama2Prompt(messages)
     expect(prompt).toEqual(expectedPrompt)
   })
 
   it('should return a string with system, user and assistant messages', () => {
     const messages: Pick<Message, 'content' | 'role'>[] = [
-      { content: 'You are helpful assistant, but you are drunk, hick', role: 'system' },
+      {
+        content: 'You are helpful assistant, but you are drunk, hick',
+        role: 'system'
+      },
       { content: 'Hi there!', role: 'user' },
       { content: 'Sup, partner!', role: 'assistant' },
-      { content: 'What are you doing?', role: 'user' },
+      { content: 'What are you doing?', role: 'user' }
     ]
 
     const expectedPrompt =
-      '<s>[INST] <<SYS>>\nYou are helpful assistant, but you are drunk, hick\n<</SYS>>\n\nhello [/INST] Sup, partner!</s><s>[INST] what are you doing? [/INST]'
+      '<s>[INST] <<SYS>>\nYou are helpful assistant, but you are drunk, hick\n<</SYS>>\n\nHi there! [/INST] Sup, partner!</s><s>[INST] What are you doing? [/INST]'
     const prompt = experimental_buildLlama2Prompt(messages)
     expect(prompt).toEqual(expectedPrompt)
   })
