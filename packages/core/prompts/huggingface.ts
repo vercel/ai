@@ -58,7 +58,7 @@ export function experimental_buildOpenAssistantPrompt(
  * Does not support `function` messages.
  * @see https://huggingface.co/meta-llama/Llama-2-70b-chat-hf and https://huggingface.co/blog/llama2#how-to-prompt-llama-2
  */
-export function experimental_buildOLlama2Prompt(
+export function experimental_buildLlama2Prompt(
   messages: Pick<Message, 'content' | 'role'>[]
 ) {
   const startPrompt = `<s>[INST] `
