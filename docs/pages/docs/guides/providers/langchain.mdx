@@ -9,7 +9,7 @@ However, LangChain does not provide a way to easily build UIs or a standard way 
 
 ## Example
 
-Here is an example implementation of a chat application that uses both Vercel AI SDK and LangChain's [OpenAIChat](https://js.langchain.com/docs/api/llms_openai/classes/OpenAIChat) together with [Next.js](https://nextjs.org/docs) App Router. It uses Vercel AI SDK's [`LangChainStream`](../api-reference/langchain-stream) to stream text to the client (from the edge) and then Vercel AI SDK's `useChat` to handle the chat UI.
+Here is an example implementation of a chat application that uses both Vercel AI SDK and LangChain's [OpenAIChat](https://js.langchain.com/docs/api/llms_openai/classes/OpenAIChat) together with [Next.js](https://nextjs.org/docs) App Router. It uses Vercel AI SDK's [`LangChainStream`](/docs/api-reference/langchain-stream) to stream text to the client (from the edge) and then Vercel AI SDK's `useChat` to handle the chat UI.
 
 ```tsx filename="app/api/chat/route.ts" {1,10,13,28}
 import { StreamingTextResponse, LangChainStream, Message } from 'ai'
@@ -46,9 +46,9 @@ export async function POST(req: Request) {
 The `handlers` object returned by `LangChainStream` is used to handle certain
 [callbacks](https://js.langchain.com/docs/api/callbacks/) provided by LangChain on your behalf.
 Under the hood it is a wrapper over LangChain's [`callbacks`](https://js.langchain.com/docs/production/callbacks/).
-We wrap over these methods to provide which then write to the `stream` which can then be passed directly to [`StreamingTextResponse`](../api-reference/streaming-text-response).
+We wrap over these methods to provide which then write to the `stream` which can then be passed directly to [`StreamingTextResponse`](/docs/api-reference/streaming-text-response).
 
-The result is that the Vercel AI SDK's [`useChat`](../api-reference/use-chat) and [`useCompletion`](../api-reference/use-completion) work flawlessly:
+The result is that the Vercel AI SDK's [`useChat`](/docs/api-reference/use-chat) and [`useCompletion`](/docs/api-reference/use-completion) work flawlessly:
 
 ```tsx filename="app/page.tsx"
 'use client'
