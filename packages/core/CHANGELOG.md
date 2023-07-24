@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.26
+
+### Patch Changes
+
+- f50d9ef: Add experimental_buildLlama2Prompt helper for Hugging Face
+
 ## 2.1.25
 
 ### Patch Changes
