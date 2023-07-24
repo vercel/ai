@@ -1,6 +1,6 @@
 import { StreamingTextResponse, LangChainStream, Message } from 'ai'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
-import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
+import { AIMessage, HumanMessage } from 'langchain/schema'
 
 export const runtime = 'edge'
 
@@ -17,8 +17,8 @@ export async function POST(req: Request) {
     .call(
       (messages as Message[]).map(m =>
         m.role == 'user'
-          ? new HumanChatMessage(m.content)
-          : new AIChatMessage(m.content)
+          ? new HumanMessage(m.content)
+          : new AIMessage(m.content)
       ),
       {},
       [handlers]

@@ -1,6 +1,6 @@
 import { LangChainStream, Message, streamToResponse } from 'ai'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
-import { AIChatMessage, HumanChatMessage } from 'langchain/schema'
+import { AIMessage, HumanMessage } from 'langchain/schema'
 
 export const runtime = 'edge'
 
@@ -23,8 +23,8 @@ export default defineEventHandler(async (event: any) => {
       .call(
         (messages as Message[]).map(message =>
           message.role === 'user'
-            ? new HumanChatMessage(message.content)
-            : new AIChatMessage(message.content)
+            ? new HumanMessage(message.content)
+            : new AIMessage(message.content)
         ),
         {},
         [handlers]
