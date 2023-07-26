@@ -4,14 +4,23 @@ function parseAnthropicStream(): (data: string) => string | void {
   let previous = ''
 
   return data => {
-    const json = JSON.parse(data as string) as {
-      completion: string
-      stop: string | null
-      stop_reason: string | null
-      truncated: boolean
-      log_id: string
-      model: string
-      exception: string | null
+    const json = JSON.parse(data as string) as
+      | {
+          completion: string
+          stop: string | null
+          stop_reason: string | null
+          truncated: boolean
+          log_id: string
+          model: string
+          exception: string | null
+        }
+      | {
+          error: string
+          type: string
+        }
+
+    if ('error' in json) {
+      throw new Error(json.error)
     }
 
     // Anthropic's `completion` field is cumulative unlike OpenAI's
