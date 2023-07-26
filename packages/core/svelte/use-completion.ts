@@ -39,7 +39,7 @@ export type UseCompletionHelpers = {
    */
   handleSubmit: (e: any) => void
   /** Whether the API request is in progress */
-  isLoading: Writable<boolean>
+  isLoading: Readable<boolean>
 }
 
 let uniqueId = 0
@@ -62,7 +62,7 @@ export function useCompletion({
   const completionId = id || `completion-${uniqueId++}`
 
   const key = `${api}|${completionId}`
-  const { data, mutate: originalMutate } = useSWR<string>(key, {
+  const { data, mutate: originalMutate, isLoading: isSWRLoading } = useSWR<string>(key, {
     fetcher: () => store[key] || initialCompletion,
     fallbackData: initialCompletion
   })
@@ -202,6 +202,6 @@ export function useCompletion({
     setCompletion,
     input,
     handleSubmit,
-    isLoading
+    isLoading: isSWRLoading || isLoading
   }
 }

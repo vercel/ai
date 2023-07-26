@@ -210,7 +210,7 @@ export function useChat({
   const chatId = id || hookId
 
   // Store the chat state in SWR, using the chatId as the key to share states.
-  const { data, mutate } = useSWR<Message[]>([api, chatId], null, {
+  const { data, mutate, isLoading: isSWRLoading } = useSWR<Message[]>([api, chatId], null, {
     fallbackData: initialMessages
   })
   const messages = data!
@@ -420,6 +420,6 @@ export function useChat({
     setInput,
     handleInputChange,
     handleSubmit,
-    isLoading
+    isLoading: isSWRLoading || isLoading
   }
 }

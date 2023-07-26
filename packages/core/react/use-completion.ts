@@ -71,7 +71,7 @@ export function useCompletion({
   const completionId = id || hookId
 
   // Store the completion state in SWR, using the completionId as the key to share states.
-  const { data, mutate } = useSWR<string>([api, completionId], null, {
+  const { data, mutate, isLoading: isSWRLoading } = useSWR<string>([api, completionId], null, {
     fallbackData: initialCompletion
   })
   const [isLoading, setLoading] = useState(false)
@@ -232,6 +232,6 @@ export function useCompletion({
     setInput,
     handleInputChange,
     handleSubmit,
-    isLoading
+    isLoading: isSWRLoading || isLoading
   }
 }

@@ -51,7 +51,7 @@ export type UseChatHelpers = {
   handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void
   metadata?: Object
   /** Whether the API request is in progress */
-  isLoading: Writable<boolean>
+  isLoading: Readable<boolean>
 }
 const getStreamedResponse = async (
   api: string,
@@ -210,7 +210,11 @@ export function useChat({
   const chatId = id || `chat-${uniqueId++}`
 
   const key = `${api}|${chatId}`
-  const { data, mutate: originalMutate } = useSWR<Message[]>(key, {
+  const {
+    data,
+    mutate: originalMutate,
+    isLoading: isSWRLoading
+  } = useSWR<Message[]>(key, {
     fetcher: () => store[key] || initialMessages,
     fallbackData: initialMessages
   })
@@ -389,6 +393,6 @@ export function useChat({
     setMessages,
     input,
     handleSubmit,
-    isLoading
+    isLoading: isSWRLoading || isLoading
   }
 }
