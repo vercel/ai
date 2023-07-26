@@ -1,15 +1,4 @@
 {
-  "openai": "OpenAI",
-  "huggingface": "Hugging Face",
-  "anthropic": "Anthropic",
-  "langchain": "LangChain",
-  "cohere": "Cohere",
-  "nextjs-app": "Next.js App Router",
-  "nextjs-pages": "Next.js Pages Router",
-  "sveltekit": {
-    "title": "SvelteKit",
-    "type": "page",
-    "href": "/docs/getting-started#build-your-app"
-  },
-  "functions": "Functions"
+  "frameworks": "Frameworks",
+  "providers": "Providers"
 }

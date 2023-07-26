@@ -13,6 +13,12 @@ In this quickstart tutorial, you'll build a simple sample AI-powered slogan gene
 
 If you are unfamiliar with the concepts of [Prompt Engineering](/docs/concepts/prompt-engineering) and [HTTP Streaming](/docs/concepts/streaming), you can optionally read these documents first.
 
+<Callout>
+  The below example uses a completion API and the `useCompletion` hook. If you
+  want to see a chat example (using ChatGPT 3.5-turbo), see a [chat
+  guide](https://sdk.vercel.ai/docs/guides/openai#guide-chat-bot).
+</Callout>
+
 <Steps>
 
 ### Build your app
@@ -92,10 +98,10 @@ We've written some code to get you started — follow the instructions below to 
     import { OpenAIStream, StreamingTextResponse } from 'ai';
 
     // Create an OpenAI API client (that's edge friendly!)
-    const config = new Configuration({
+    const openAIConfig = new Configuration({
       apiKey: process.env.OPENAI_API_KEY,
     });
-    const openai = new OpenAIApi(config);
+    const openai = new OpenAIApi(openAIConfig);
 
     // Set the runtime to edge for best performance
     export const runtime = 'edge';
@@ -136,13 +142,15 @@ We've written some code to get you started — follow the instructions below to 
     import { OPENAI_API_KEY } from '$env/static/private';
 
     // Create an OpenAI API client (that's edge friendly!)
-    const config = new Configuration({
+    const openAIConfig = new Configuration({
       apiKey: OPENAI_API_KEY,
     });
-    const openai = new OpenAIApi(config);
+    const openai = new OpenAIApi(openAIConfig);
 
     // Set the runtime to edge for best performance
-    export const runtime = 'edge'
+    export const config = {
+      runtime: 'edge'
+    };
 
     export async function POST({ request }) {
       const { prompt } = await request.json();

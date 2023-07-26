@@ -1,5 +1,67 @@
 # ai
 
+## 2.1.26
+
+### Patch Changes
+
+- f50d9ef: Add experimental_buildLlama2Prompt helper for Hugging Face
+
+## 2.1.25
+
+### Patch Changes
+
+- 877c16f: ai/react: don't throw error if onError is passed
+
+## 2.1.24
+
+### Patch Changes
+
+- f3f5866: Adds SolidJS support and SolidStart example
+
+## 2.1.23
+
+### Patch Changes
+
+- 0ebc2f0: streams/openai-stream: don't call onStart/onCompletion when recursing
+
+## 2.1.22
+
+### Patch Changes
+
+- 9320e95: Add (experimental) prompt construction helpers for StarChat and OpenAssistant
+- e3a7ec8: Support <|end|> token for StarChat beta in huggingface-stream
+
+## 2.1.21
+
+### Patch Changes
+
+- 561a49a: Providing a function to `function_call` request parameter of the OpenAI Chat Completions API no longer breaks OpenAI function stream parsing.
+
+## 2.1.20
+
+### Patch Changes
+
+- e361114: OpenAI functions: allow returning string in callback
+
+## 2.1.19
+
+### Patch Changes
+
+- e4281ca: Add experimental server-side OpenAI function handling
+
+## 2.1.18
+
+### Patch Changes
+
+- 6648b21: Add experimental client side OpenAI function calling to Svelte bindings
+- e5b983f: feat(streams): add http error handling for openai
+
+## 2.1.17
+
+### Patch Changes
+
+- 3ed65bf: Remove dependency on node crypto API
+
 ## 2.1.16
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "2.1.16",
+  "version": "2.1.26",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -10,11 +10,13 @@
     "dist/**/*",
     "react/dist/**/*",
     "svelte/dist/**/*",
-    "vue/dist/**/*"
+    "vue/dist/**/*",
+    "solid/dist/**/*",
+    "prompts/dist/**/*"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
-    "clean": "rm -rf dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist",
+    "clean": "rm -rf dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -28,6 +30,12 @@
       "import": "./dist/index.mjs",
       "module": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./prompts": {
+      "types": "./prompts/dist/index.d.ts",
+      "import": "./prompts/dist/index.mjs",
+      "module": "./prompts/dist/index.mjs",
+      "require": "./prompts/dist/index.js"
     },
     "./react": {
       "types": "./react/dist/index.d.ts",
@@ -47,6 +55,12 @@
       "import": "./vue/dist/index.mjs",
       "module": "./vue/dist/index.mjs",
       "require": "./vue/dist/index.js"
+    },
+    "./solid": {
+      "types": "./solid/dist/index.d.ts",
+      "import": "./solid/dist/index.mjs",
+      "module": "./solid/dist/index.mjs",
+      "require": "./solid/dist/index.js"
     }
   },
   "jest": {
@@ -55,10 +69,12 @@
   },
   "dependencies": {
     "eventsource-parser": "1.0.0",
-    "swr": "2.1.5",
-    "nanoid": "^3.3.6",
-    "sswr": "^1.10.0",
-    "swrv": "1.0.3"
+    "nanoid": "3.3.6",
+    "sswr": "2.0.0",
+    "swr": "2.2.0",
+    "swrv": "1.0.4",
+    "solid-swr-store": "0.10.7",
+    "swr-store": "0.10.6"
   },
   "devDependencies": {
     "@edge-runtime/jest-environment": "1.1.0-beta.31",
@@ -77,6 +93,7 @@
   },
   "peerDependencies": {
     "react": "^18.2.0",
+    "solid-js": "^1.7.7",
     "svelte": "^3.0.0 || ^4.0.0",
     "vue": "^3.3.4"
   },
@@ -89,6 +106,9 @@
     },
     "vue": {
       "optional": true
+    },
+    "solid-js": {
+      "optional": true
     }
   },
   "engines": {
@@ -96,5 +116,20 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "homepage": "https://github.com/vercel-labs/ai#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vercel-labs/ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel-labs/ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "nextjs",
+    "svelte",
+    "react",
+    "vue"
+  ]
 }
