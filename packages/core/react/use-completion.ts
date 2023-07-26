@@ -176,11 +176,12 @@ export function useCompletion({
       }
 
       if (err instanceof Error) {
-        setError(err)
         if (onError) {
           onError(err)
         }
       }
+
+      setError(err as Error)
     } finally {
       setLoading(false)
     }
