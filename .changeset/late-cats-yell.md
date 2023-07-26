@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-react/use-completion: keep isLoading in sync between hooks with the same ID, don't throw error when submitting
+ai/react: keep isLoading in sync between hooks with the same ID, don't throw error when submitting
