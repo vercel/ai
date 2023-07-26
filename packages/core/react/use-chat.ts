@@ -240,86 +240,74 @@ export function useChat({
 
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
-  const { error, trigger, isMutating } = useSWRMutation<
-    null,
-    any,
-    [string, string],
-    ChatRequest
-  >(
-    [api, chatId],
-    async (_, { arg: initialChatRequest }) => {
-      try {
-        const abortController = new AbortController()
-        abortControllerRef.current = abortController
+  const [error, setError] = useState<undefined | Error>()
+  const [isLoading, setIsLoading] = useState(false)
 
-        let chatRequest = initialChatRequest
+  async function triggerRequest(chatRequest: ChatRequest) {
+    try {
+      setIsLoading(true)
+      const abortController = new AbortController()
+      abortControllerRef.current = abortController
 
-        while (true) {
-          const streamedResponseMessage = await getStreamedResponse(
-            api,
-            chatRequest,
-            mutate,
-            extraMetadataRef,
-            messagesRef,
-            abortControllerRef,
-            onFinish,
-            onResponse,
-            sendExtraMessageFields
-          )
+      while (true) {
+        const streamedResponseMessage = await getStreamedResponse(
+          api,
+          chatRequest,
+          mutate,
+          extraMetadataRef,
+          messagesRef,
+          abortControllerRef,
+          onFinish,
+          onResponse,
+          sendExtraMessageFields
+        )
 
-          if (
-            streamedResponseMessage.function_call === undefined ||
-            typeof streamedResponseMessage.function_call === 'string'
-          ) {
-            break
-          }
-
-          // Streamed response is a function call, invoke the function call handler if it exists.
-          if (experimental_onFunctionCall) {
-            const functionCall = streamedResponseMessage.function_call
-
-            // User handles the function call in their own functionCallHandler.
-            // The "arguments" key of the function call object will still be a string which will have to be parsed in the function handler.
-            // If the "arguments" JSON is malformed due to model error the user will have to handle that themselves.
-
-            const functionCallResponse: ChatRequest | void =
-              await experimental_onFunctionCall(
-                messagesRef.current,
-                functionCall
-              )
-
-            // If the user does not return anything as a result of the function call, the loop will break.
-            if (functionCallResponse === undefined) break
-
-            // A function call response was returned.
-            // The updated chat with function call response will be sent to the API in the next iteration of the loop.
-            chatRequest = functionCallResponse
-          }
+        if (
+          streamedResponseMessage.function_call === undefined ||
+          typeof streamedResponseMessage.function_call === 'string'
+        ) {
+          break
         }
 
+        // Streamed response is a function call, invoke the function call handler if it exists.
+        if (experimental_onFunctionCall) {
+          const functionCall = streamedResponseMessage.function_call
+
+          // User handles the function call in their own functionCallHandler.
+          // The "arguments" key of the function call object will still be a string which will have to be parsed in the function handler.
+          // If the "arguments" JSON is malformed due to model error the user will have to handle that themselves.
+
+          const functionCallResponse: ChatRequest | void =
+            await experimental_onFunctionCall(messagesRef.current, functionCall)
+
+          // If the user does not return anything as a result of the function call, the loop will break.
+          if (functionCallResponse === undefined) break
+
+          // A function call response was returned.
+          // The updated chat with function call response will be sent to the API in the next iteration of the loop.
+          chatRequest = functionCallResponse
+        }
+      }
+
+      abortControllerRef.current = null
+
+      return null
+    } catch (err) {
+      // Ignore abort errors as they are expected.
+      if ((err as any).name === 'AbortError') {
         abortControllerRef.current = null
         return null
-      } catch (err) {
-        // Ignore abort errors as they are expected.
-        if ((err as any).name === 'AbortError') {
-          abortControllerRef.current = null
-          return null
-        }
-
-        if (onError && err instanceof Error) {
-          onError(err)
-        }
-
-        throw err
       }
-    },
-    {
-      populateCache: false,
-      revalidate: false,
-      // @ts-expect-error - SWR tries to be clever with the throwOnError type
-      throwOnError: Boolean(!onError)
+
+      if (onError && err instanceof Error) {
+        onError(err)
+      }
+
+      setError(err as Error)
+    } finally {
+      setIsLoading(false)
     }
-  )
+  }
 
   const append = useCallback(
     async (
@@ -337,9 +325,9 @@ export function useChat({
         ...(function_call !== undefined && { function_call })
       }
 
-      return trigger(chatRequest)
+      return triggerRequest(chatRequest)
     },
-    [trigger]
+    [triggerRequest]
   )
 
   const reload = useCallback(
@@ -356,7 +344,7 @@ export function useChat({
           ...(function_call !== undefined && { function_call })
         }
 
-        return trigger(chatRequest)
+        return triggerRequest(chatRequest)
       }
 
       const chatRequest: ChatRequest = {
@@ -366,9 +354,9 @@ export function useChat({
         ...(function_call !== undefined && { function_call })
       }
 
-      return trigger(chatRequest)
+      return triggerRequest(chatRequest)
     },
-    [trigger]
+    [triggerRequest]
   )
 
   const stop = useCallback(() => {
@@ -433,6 +421,6 @@ export function useChat({
     setInput,
     handleInputChange,
     handleSubmit,
-    isLoading: isMutating
+    isLoading
   }
 }
