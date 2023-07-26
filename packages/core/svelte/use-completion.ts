@@ -62,7 +62,11 @@ export function useCompletion({
   const completionId = id || `completion-${uniqueId++}`
 
   const key = `${api}|${completionId}`
-  const { data, mutate: originalMutate, isLoading: isSWRLoading } = useSWR<string>(key, {
+  const {
+    data,
+    mutate: originalMutate,
+    isLoading: isSWRLoading
+  } = useSWR<string>(key, {
     fetcher: () => store[key] || initialCompletion,
     fallbackData: initialCompletion
   })
@@ -78,7 +82,7 @@ export function useCompletion({
   const completion = data as Writable<string>
 
   const error = writable<undefined | Error>(undefined)
-  const isLoading = writable(false)
+  const isLoading = writable(get(isSWRLoading))
 
   let abortController: AbortController | null = null
   async function triggerRequest(prompt: string, options?: RequestOptions) {
@@ -202,6 +206,6 @@ export function useCompletion({
     setCompletion,
     input,
     handleSubmit,
-    isLoading: isSWRLoading || isLoading
+    isLoading
   }
 }

@@ -210,11 +210,7 @@ export function useChat({
   const chatId = id || `chat-${uniqueId++}`
 
   const key = `${api}|${chatId}`
-  const {
-    data,
-    mutate: originalMutate,
-    isLoading: isSWRLoading
-  } = useSWR<Message[]>(key, {
+  const { data, mutate: originalMutate, isLoading: isSWRLoading } = useSWR<Message[]>(key, {
     fetcher: () => store[key] || initialMessages,
     fallbackData: initialMessages
   })
@@ -239,7 +235,7 @@ export function useChat({
   }
 
   const error = writable<undefined | Error>(undefined)
-  const isLoading = writable(false)
+  const isLoading = writable(get(isSWRLoading))
 
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
@@ -393,6 +389,6 @@ export function useChat({
     setMessages,
     input,
     handleSubmit,
-    isLoading: isSWRLoading || isLoading
+    isLoading
   }
 }
