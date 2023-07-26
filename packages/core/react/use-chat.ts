@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import useSWRMutation from 'swr/mutation'
 import useSWR, { KeyedMutator } from 'swr'
 import { nanoid, createChunkDecoder } from '../shared/utils'
 

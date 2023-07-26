@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
 
 import { createChunkDecoder } from '../shared/utils'
