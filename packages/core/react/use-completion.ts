@@ -181,8 +181,6 @@ export function useCompletion({
           onError(err)
         }
       }
-
-      throw err
     } finally {
       setLoading(false)
     }
@@ -215,7 +213,11 @@ export function useCompletion({
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault()
       if (!input) return
-      return complete(input)
+      try {
+        return complete(input)
+      } catch (err) {
+        setError(err)
+      }
     },
     [input, complete]
   )
