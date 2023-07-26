@@ -71,10 +71,15 @@ export function useCompletion({
   const completionId = id || hookId
 
   // Store the completion state in SWR, using the completionId as the key to share states.
-  const { data, mutate, isLoading: isSWRLoading } = useSWR<string>([api, completionId], null, {
+  const { data, mutate } = useSWR<string>([api, completionId], null, {
     fallbackData: initialCompletion
   })
-  const [isLoading, setLoading] = useState(false)
+
+  const { data: isLoading = false, mutate: mutateLoading } = useSWR<boolean>(
+    [api, completionId, 'loading'],
+    null
+  )
+
   const [error, setError] = useState<undefined | Error>(undefined)
   const completion = data!
 
@@ -97,7 +102,7 @@ export function useCompletion({
 
   async function triggerRequest(prompt: string, options?: RequestOptions) {
     try {
-      setLoading(true)
+      mutateLoading(true)
 
       const abortController = new AbortController()
       setAbortController(abortController)
@@ -182,7 +187,7 @@ export function useCompletion({
 
       setError(err as Error)
     } finally {
-      setLoading(false)
+      mutateLoading(false)
     }
   }
 
@@ -232,6 +237,6 @@ export function useCompletion({
     setInput,
     handleInputChange,
     handleSubmit,
-    isLoading: isSWRLoading || isLoading
+    isLoading
   }
 }
