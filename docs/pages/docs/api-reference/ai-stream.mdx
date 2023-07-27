@@ -65,11 +65,7 @@ This is an object that contains the following properties:
 Here is real example of how to use `AIStream` to create a stream that will work with [`useChat`](./use-chat) and [`useCompletion`](./use-completion). Here's is the implementation for [`AnthropicStream`](./anthropic-stream) which expects a response returned by `fetch`. [`AnthropicStream`](./anthropic-stream) is a specific implementation of `AIStream` for the Anthropic AI platform.
 
 ```tsx
-import {
-  AIStream,
-  type AIStreamParser,
-  type AIStreamCallbacks
-} from 'ai'
+import { AIStream, type AIStreamParser, type AIStreamCallbacks } from 'ai'
 
 function parseAnthropicStream(): AIStreamParser {
   let previous = ''
