@@ -6,7 +6,7 @@ import { OptionTable } from '@/components/table'
 
 # AIStream
 
-## `AIStream(res: Response, customParser: (opts: AIStreamParserOptions) => void, callbacks?: AIStreamCallbacks): ReadableStream` [#aistream]
+## `AIStream(res: Response, customParser: AIStreamParser => void, callbacks?: AIStreamCallbacks): ReadableStream` [#aistream]
 
 `AIStream` is a helper function for creating a readable stream for AI responses. This is based on the responses returned by `fetch` and serves as the basis for the [`OpenAIStream`](./openai-stream) and [`AnthropicStream`](./anthropic-stream). It allows you to handle AI response streams in a controlled and customized manner that will work with [`useChat`](./use-chat) and [`useCompletion`](./use-completion).
 
@@ -18,9 +18,9 @@ import { OptionTable } from '@/components/table'
 
 This is the response object returned by `fetch`. It's used as the source of the readable stream.
 
-### `customParser: (opts: AIStreamParserOptions) => void`
+### `customParser: AIStreamParser => void`
 
-This is a function that is used to parse the events in the stream. It takes an `AIStreamParserOptions` object as a parameter. The function is expected to return nothing (`void`).
+This is a function that is used to parse the events in the stream. It should return a function that receives a stringified chunk from the LLM and extracts the message content. The function is expected to return nothing (`void`) or a string.
 
 ### `callbacks?: AIStreamCallbacks`
 
@@ -28,26 +28,13 @@ This is an optional parameter which is an object that contains callback function
 
 ### Types
 
-#### `AIStreamParserOptions`
+#### `AIStreamParser`
 
-This is an object that contains the following properties:
-
-<OptionTable
-  options={[
-    ['data', 'any', 'The data extracted from the event in the stream.'],
-    [
-      'controller',
-      'ReadableStreamDefaultController',
-      'The controller of the readable stream.'
-    ],
-    [
-      'counter',
-      'number',
-      'A counter variable, initialized as 0 and incremented each time the parser function is called.'
-    ],
-    ['encoder', 'TextEncoder', 'A `TextEncoder` instance.']
-  ]}
-/>
+```tsx
+interface AIStreamParser {
+  (data: string): string | void
+}
+```
 
 #### `AIStreamCallbacks`
 
@@ -80,20 +67,15 @@ Here is real example of how to use `AIStream` to create a stream that will work 
 ```tsx
 import {
   AIStream,
-  type AIStreamParserOptions,
+  type AIStreamParser,
   type AIStreamCallbacks
 } from 'ai'
 
-// The custom parser for Anthropic responses
-function parseAnthropicStream({
-  data,
-  controller,
-  counter,
-  encoder
-}: AIStreamParserOptions): void {
-  try {
-    // Parse the JSON data
-    const json = JSON.parse(data as string) as {
+function parseAnthropicStream(): AIStreamParser {
+  let previous = ''
+
+  return data => {
+    const json = JSON.parse(data) as {
       completion: string
       stop: string | null
       stop_reason: string | null
@@ -103,32 +85,22 @@ function parseAnthropicStream({
       exception: string | null
     }
 
+    // Anthropic's `completion` field is cumulative unlike OpenAI's
+    // deltas. In order to compute the delta, we must slice out the text
+    // we previously received.
     const text = json.completion
+    const delta = text.slice(previous.length)
+    previous = text
 
-    // If there are newline characters in the text, skip the first two lines
-    if (counter < 2 && (/\n/.exec(text) || []).length) {
-      return
-    }
-
-    // Encode the text and enqueue it into the stream
-    const queue = encoder.encode(`${JSON.stringify(text)}\n`)
-    controller.enqueue(queue)
-
-    // Increment the counter
-    counter++
-  } catch (e) {
-    // In case of any errors, signal the error to the stream
-    controller.error(e)
+    return delta
   }
 }
 
 export function AnthropicStream(
   res: Response,
-
   cb?: AIStreamCallbacks
 ): ReadableStream {
-  // Create a new AIStream with the Anthropic parser and the provided callbacks
-  return AIStream(res, parseAnthropicStream, cb)
+  return AIStream(res, parseAnthropicStream(), cb)
 }
 
 // Then you can use AnthropicStream like this:
