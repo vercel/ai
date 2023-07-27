@@ -1,5 +1,13 @@
 # ai
 
+## 2.1.27
+
+### Patch Changes
+
+- 3d29799: React/Svelte/Vue: keep isLoading in sync between hooks with the same ID.
+
+  React: don't throw error when submitting
+
 ## 2.1.26
 
 ### Patch Changes
