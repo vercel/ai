@@ -210,9 +210,15 @@ export function useChat({
   const chatId = id || hookId
 
   // Store the chat state in SWR, using the chatId as the key to share states.
-  const { data, mutate, isLoading: isSWRLoading } = useSWR<Message[]>([api, chatId], null, {
+  const { data, mutate } = useSWR<Message[]>([api, chatId], null, {
     fallbackData: initialMessages
   })
+
+  const { data: isLoading = false, mutate: mutateLoading } = useSWR<boolean>(
+    [api, chatId, 'loading'],
+    null
+  )
+
   const messages = data!
 
   // Keep the latest messages in a ref.
@@ -240,11 +246,10 @@ export function useChat({
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
   const [error, setError] = useState<undefined | Error>()
-  const [isLoading, setIsLoading] = useState(false)
 
   async function triggerRequest(chatRequest: ChatRequest) {
     try {
-      setIsLoading(true)
+      mutateLoading(true)
       const abortController = new AbortController()
       abortControllerRef.current = abortController
 
@@ -304,7 +309,7 @@ export function useChat({
 
       setError(err as Error)
     } finally {
-      setIsLoading(false)
+      mutateLoading(false)
     }
   }
 
@@ -420,6 +425,6 @@ export function useChat({
     setInput,
     handleInputChange,
     handleSubmit,
-    isLoading: isSWRLoading || isLoading
+    isLoading
   }
 }

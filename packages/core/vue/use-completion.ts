@@ -38,7 +38,7 @@ export type UseCompletionHelpers = {
    */
   handleSubmit: (e: any) => void
   /** Whether the API request is in progress */
-  isLoading: Ref<boolean>
+  isLoading: Ref<boolean | undefined>
 }
 
 let uniqueId = 0
@@ -68,6 +68,10 @@ export function useCompletion({
     () => store[key] || initialCompletion
   )
 
+  const { data: isLoading, mutate: mutateLoading } = useSWRV<boolean>(
+    `${key}-loading`
+  )
+
   // Force the `data` to be `initialCompletion` if it's `undefined`.
   data.value ||= initialCompletion
 
@@ -80,12 +84,11 @@ export function useCompletion({
   const completion = data as Ref<string>
 
   const error = ref<undefined | Error>(undefined)
-  const isLoading = ref(false)
 
   let abortController: AbortController | null = null
   async function triggerRequest(prompt: string, options?: RequestOptions) {
     try {
-      isLoading.value = true
+      mutateLoading(() => true)
       abortController = new AbortController()
 
       // Empty the completion immediately.
@@ -165,7 +168,7 @@ export function useCompletion({
 
       error.value = err as Error
     } finally {
-      isLoading.value = false
+      mutateLoading(() => false)
     }
   }
 
