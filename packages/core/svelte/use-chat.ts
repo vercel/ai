@@ -51,7 +51,7 @@ export type UseChatHelpers = {
   handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void
   metadata?: Object
   /** Whether the API request is in progress */
-  isLoading: Writable<boolean>
+  isLoading: Writable<boolean | undefined>
 }
 const getStreamedResponse = async (
   api: string,
@@ -214,6 +214,11 @@ export function useChat({
     fetcher: () => store[key] || initialMessages,
     fallbackData: initialMessages
   })
+
+  const { data: isLoading, mutate: mutateLoading } = useSWR<boolean>(
+    `${key}-loading`
+  )
+
   // Force the `data` to be `initialMessages` if it's `undefined`.
   data.set(initialMessages)
 
@@ -235,13 +240,12 @@ export function useChat({
   }
 
   const error = writable<undefined | Error>(undefined)
-  const isLoading = writable(false)
 
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
   async function triggerRequest(chatRequest: ChatRequest) {
     try {
-      isLoading.set(true)
+      mutateLoading(true)
       abortController = new AbortController()
 
       while (true) {
@@ -300,7 +304,7 @@ export function useChat({
 
       error.set(err as Error)
     } finally {
-      isLoading.set(false)
+      mutateLoading(false)
     }
   }
 

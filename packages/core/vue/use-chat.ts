@@ -46,7 +46,7 @@ export type UseChatHelpers = {
   /** Form submission handler to automattically reset input and append a user message  */
   handleSubmit: (e: any) => void
   /** Whether the API request is in progress */
-  isLoading: Ref<boolean>
+  isLoading: Ref<boolean | undefined>
 }
 
 let uniqueId = 0
@@ -76,6 +76,11 @@ export function useChat({
     key,
     () => store[key] || initialMessages
   )
+
+  const { data: isLoading, mutate: mutateLoading } = useSWRV<boolean>(
+    `${key}-loading`
+  )
+
   // Force the `data` to be `initialMessages` if it's `undefined`.
   data.value ||= initialMessages
 
@@ -88,7 +93,6 @@ export function useChat({
   const messages = data as Ref<Message[]>
 
   const error = ref<undefined | Error>(undefined)
-  const isLoading = ref(false)
 
   let abortController: AbortController | null = null
   async function triggerRequest(
@@ -96,7 +100,7 @@ export function useChat({
     options?: RequestOptions
   ) {
     try {
-      isLoading.value = true
+      mutateLoading(() => true)
       abortController = new AbortController()
 
       // Do an optimistic update to the chat state to show the updated messages
@@ -201,7 +205,7 @@ export function useChat({
 
       error.value = err as Error
     } finally {
-      isLoading.value = false
+      mutateLoading(() => false)
     }
   }
 
