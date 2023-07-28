@@ -39,7 +39,7 @@ export type UseCompletionHelpers = {
    */
   handleSubmit: (e: any) => void
   /** Whether the API request is in progress */
-  isLoading: Writable<boolean | undefined>
+  isLoading: Readable<boolean | undefined>
 }
 
 let uniqueId = 0
@@ -71,9 +71,7 @@ export function useCompletion({
     fallbackData: initialCompletion
   })
 
-  const { data: isLoading, mutate: mutateLoading } = useSWR<boolean>(
-    `${key}-loading`
-  )
+  const loading = writable<boolean>(false)
 
   // Force the `data` to be `initialCompletion` if it's `undefined`.
   data.set(initialCompletion)
@@ -91,7 +89,7 @@ export function useCompletion({
   let abortController: AbortController | null = null
   async function triggerRequest(prompt: string, options?: RequestOptions) {
     try {
-      mutateLoading(true)
+      loading.set(true)
       abortController = new AbortController()
 
       // Empty the completion immediately.
@@ -171,7 +169,7 @@ export function useCompletion({
 
       error.set(err as Error)
     } finally {
-      mutateLoading(false)
+      loading.set(false)
     }
   }
 
@@ -210,6 +208,6 @@ export function useCompletion({
     setCompletion,
     input,
     handleSubmit,
-    isLoading
+    isLoading: isSWRLoading || loading
   }
 }

@@ -215,7 +215,7 @@ export function useChat({
   })
 
   const { data: isLoading = false, mutate: mutateLoading } = useSWR<boolean>(
-    [api, chatId, 'loading'],
+    [chatId, 'loading'],
     null
   )
 

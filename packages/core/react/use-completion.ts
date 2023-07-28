@@ -76,7 +76,7 @@ export function useCompletion({
   })
 
   const { data: isLoading = false, mutate: mutateLoading } = useSWR<boolean>(
-    [api, completionId, 'loading'],
+    [completionId, 'loading'],
     null
   )
 

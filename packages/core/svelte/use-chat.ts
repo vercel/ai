@@ -51,7 +51,7 @@ export type UseChatHelpers = {
   handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void
   metadata?: Object
   /** Whether the API request is in progress */
-  isLoading: Writable<boolean | undefined>
+  isLoading: Readable<boolean | undefined>
 }
 const getStreamedResponse = async (
   api: string,
@@ -210,14 +210,16 @@ export function useChat({
   const chatId = id || `chat-${uniqueId++}`
 
   const key = `${api}|${chatId}`
-  const { data, mutate: originalMutate } = useSWR<Message[]>(key, {
+  const {
+    data,
+    mutate: originalMutate,
+    isLoading: isSWRLoading
+  } = useSWR<Message[]>(key, {
     fetcher: () => store[key] || initialMessages,
     fallbackData: initialMessages
   })
 
-  const { data: isLoading, mutate: mutateLoading } = useSWR<boolean>(
-    `${key}-loading`
-  )
+  const loading = writable<boolean>(false)
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
   data.set(initialMessages)
@@ -245,7 +247,7 @@ export function useChat({
   // chat state.
   async function triggerRequest(chatRequest: ChatRequest) {
     try {
-      mutateLoading(true)
+      loading.set(true)
       abortController = new AbortController()
 
       while (true) {
@@ -304,7 +306,7 @@ export function useChat({
 
       error.set(err as Error)
     } finally {
-      mutateLoading(false)
+      loading.set(false)
     }
   }
 
@@ -393,6 +395,6 @@ export function useChat({
     setMessages,
     input,
     handleSubmit,
-    isLoading
+    isLoading: isSWRLoading || loading
   }
 }

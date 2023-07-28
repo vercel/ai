@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       status: response.status
     })
   }
-  
+
   // Convert the async generator into a friendly text-stream
   const stream = HuggingFaceStream(response)
 
