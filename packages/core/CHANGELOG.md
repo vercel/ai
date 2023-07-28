@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.28
+
+### Patch Changes
+
+- 9012e17: react/svelte/vue: fix making unnecessary SWR request to API endpoint
+
 ## 2.1.27
 
 ### Patch Changes
