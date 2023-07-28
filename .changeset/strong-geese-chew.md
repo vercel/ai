@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-react/svelte/vue: don't use api as part of loading SWR key
+react/svelte/vue: fix making unnecessary SWR request to API endpoint
