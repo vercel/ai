@@ -150,6 +150,13 @@ export async function POST(req: Request) {
     prompt
   })
 
+  // Check for errors
+  if (!response.ok) {
+    return new Response(await response.text(), {
+      status: response.status
+    })
+  }
+
   // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response)
 
