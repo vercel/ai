@@ -63,6 +63,13 @@ export async function POST(req: Request) {
     body
   })
 
+  // Check for errors
+  if (!response.ok) {
+    return new Response(await response.text(), {
+      status: response.status
+    })
+  }
+
   // Extract the text response from the Cohere stream
   const stream = CohereStream(response)
 
