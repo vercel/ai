@@ -78,7 +78,7 @@ export function useChat({
   )
 
   const { data: isLoading, mutate: mutateLoading } = useSWRV<boolean>(
-    `${key}-loading`
+    `${chatId}-loading`
   )
 
   // Force the `data` to be `initialMessages` if it's `undefined`.

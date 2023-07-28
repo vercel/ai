@@ -72,7 +72,7 @@ export function useCompletion({
   })
 
   const { data: isLoading, mutate: mutateLoading } = useSWR<boolean>(
-    `${key}-loading`
+    `${completionId}-loading`
   )
 
   // Force the `data` to be `initialCompletion` if it's `undefined`.
