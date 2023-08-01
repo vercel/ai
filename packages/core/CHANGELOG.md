@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.29
+
+### Patch Changes
+
+- 3929a41: Add ReplicateStream helper
+
 ## 2.1.28
 
 ### Patch Changes
