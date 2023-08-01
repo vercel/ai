@@ -6,10 +6,10 @@ import { Steps, Callout } from 'nextra-theme-docs'
 
 # Replicate
 
-Vercel AI SDK supports streaming responses for certain Replicate models.
+Vercel AI SDK supports streaming responses for certain [Replicate](https://replicate.com) text models (including Llama 2).
 You can see supported models [on their website](https://replicate.com/docs/streaming).
 
-## Guide: Text Completion
+## Guide: Llama 2 Chatbot
 
 <Steps>
 
@@ -33,7 +33,7 @@ REPLICATE_API_KEY=xxxxxxxxx
 
 ### Create a Route Handler
 
-```tsx filename="app/api/completion/route.ts" showLineNumbers
+```tsx filename="app/api/chat/route.ts" showLineNumbers
 import { ReplicateStream, StreamingTextResponse } from 'ai'
 import Replicate from 'replicate'
 
@@ -53,16 +53,18 @@ export async function POST(req: Request) {}
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
 export async function POST(req: Request) {
   // Get the prompt from the request body
-  const { prompt } = await req.json()
+  const { messages } = await req.json()
 
   const response = await replicate.predictions.create({
-    // IMPORTANT! You must enable streaming.
+    // You must enable streaming.
     stream: true,
+    // The model must support streaming. See https://replicate.com/docs/streaming
+    // This is the model ID for Llama 2 70b Chat
+    version: '2c1608e18606fad2812020dc541930f2d0495ce32eee50074220b87300bc16e1',
+    // Format the message list into a single string with newlines
     input: {
-      prompt
-    },
-    // IMPORTANT! The model must support streaming. See https://replicate.com/docs/streaming
-    version: '2c1608e18606fad2812020dc541930f2d0495ce32eee50074220b87300bc16e1'
+      prompt: messages.map(message => message.content).join('\n')
+    }
   })
 
   // Convert the response into a friendly text-stream
@@ -74,27 +76,26 @@ export async function POST(req: Request) {
 
 ### Wire up the UI
 
-We can use the [`useCompletion`](/docs/api-reference/use-completion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
+Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
+By default, the [`useChat`](/docs/api-reference/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client'
 
-import { useCompletion } from 'ai/react'
+import { useChat } from 'ai/react'
 
-export default function Completion() {
-  const {
-    completion,
-    input,
-    stop,
-    isLoading,
-    handleInputChange,
-    handleSubmit
-  } = useCompletion({
-    api: '/api/completion'
-  })
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat()
 
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
+
       <form onSubmit={handleSubmit}>
         <label>
           Say something...
@@ -104,13 +105,7 @@ export default function Completion() {
             onChange={handleInputChange}
           />
         </label>
-        <output>Completion result: {completion}</output>
-        <button type="button" onClick={stop}>
-          Stop
-        </button>
-        <button disabled={isLoading} type="submit">
-          Send
-        </button>
+        <button type="submit">Send</button>
       </form>
     </div>
   )
@@ -123,7 +118,7 @@ export default function Completion() {
 
 It’s common to want to save the result of a completion to a database after streaming it back to the user. The `ReplicateStream` adapter accepts a couple of optional callbacks that can be used to do this.
 
-```tsx filename="app/api/completion/route.ts" showLineNumbers
+```tsx filename="app/api/chat/route.ts" showLineNumbers
 export async function POST(req: Request) {
   // ...
 
