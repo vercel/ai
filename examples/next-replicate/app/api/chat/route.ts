@@ -3,7 +3,7 @@ import Replicate from 'replicate'
 import { type Message, ReplicateStream, StreamingTextResponse } from 'ai'
 
 // Create a Replicate API client (that's edge friendly!)
-export const replicate = new Replicate({
+const replicate = new Replicate({
   auth: process.env.REPLICATE_API_KEY || ''
 })
 
