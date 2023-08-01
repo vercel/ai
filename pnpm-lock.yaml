@@ -183,7 +183,7 @@ importers:
   examples/next-replicate:
     dependencies:
       ai:
-        specifier: workspace:*
+        specifier: ^2.1.29
         version: link:../../packages/core
       next:
         specifier: 13.4.4-canary.11
