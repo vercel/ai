@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.31
+
+### Patch Changes
+
+- ab2b973: fix pnpm-lock.yaml
+
 ## 2.1.30
 
 ### Patch Changes
