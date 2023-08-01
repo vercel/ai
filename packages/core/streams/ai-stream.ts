@@ -46,7 +46,7 @@ export function createEventStreamTransformer(
           if (
             'data' in event &&
             event.type === 'event' &&
-            (event.data === '[DONE]' || event.event === 'done')
+            event.data === '[DONE]'
           ) {
             controller.terminate()
             return
