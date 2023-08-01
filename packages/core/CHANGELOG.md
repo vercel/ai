@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.30
+
+### Patch Changes
+
+- 4df2a49: Fix termination of ReplicateStream by removing the terminating `{}`from output
+
 ## 2.1.29
 
 ### Patch Changes
