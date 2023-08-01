@@ -34,7 +34,7 @@ export interface AIStreamParser {
  * @returns {TransformStream<Uint8Array, string>} TransformStream parsing events.
  */
 export function createEventStreamTransformer(
-  customParser: AIStreamParser
+  customParser?: AIStreamParser
 ): TransformStream<Uint8Array, string> {
   const textDecoder = new TextDecoder()
   let eventSourceParser: EventSourceParser
@@ -53,7 +53,9 @@ export function createEventStreamTransformer(
           }
 
           if ('data' in event) {
-            const parsedMessage = customParser(event.data)
+            const parsedMessage = customParser
+              ? customParser(event.data)
+              : event.data
             if (parsedMessage) controller.enqueue(parsedMessage)
           }
         }
@@ -158,7 +160,7 @@ export function trimStartOfStreamHelper(): (text: string) => string {
  */
 export function AIStream(
   response: Response,
-  customParser: AIStreamParser,
+  customParser?: AIStreamParser,
   callbacks?: AIStreamCallbacks
 ): ReadableStream<Uint8Array> {
   if (!response.ok) {
