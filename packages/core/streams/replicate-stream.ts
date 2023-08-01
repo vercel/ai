@@ -3,8 +3,22 @@ import type { Prediction } from 'replicate'
 
 /**
  * Stream predictions from Replicate.
- * Only certain models are supported.
+ * Only certain models are supported and you must pass `stream: true` to
+ * replicate.predictions.create().
  * @see https://github.com/replicate/replicate-javascript#streaming
+ *
+ * @example
+ * const response = await replicate.predictions.create({
+ *  stream: true,
+ *  input: {
+ *    prompt: messages.join('\n')
+ *  },
+ *  version: '2c1608e18606fad2812020dc541930f2d0495ce32eee50074220b87300bc16e1'
+ * })
+ *
+ * const stream = await ReplicateStream(response)
+ * return new StreamingTextResponse(stream)
+ *
  */
 export async function ReplicateStream(
   res: Prediction,
