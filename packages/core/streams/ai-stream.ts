@@ -44,9 +44,12 @@ export function createEventStreamTransformer(
       eventSourceParser = createParser(
         (event: ParsedEvent | ReconnectInterval) => {
           if (
-            'data' in event &&
-            event.type === 'event' &&
-            event.data === '[DONE]'
+            ('data' in event &&
+              event.type === 'event' &&
+              event.data === '[DONE]') ||
+            // Replicate doesn't send [DONE] but does send a 'done' event
+            // @see https://replicate.com/docs/streaming
+            (event as any).event === 'done'
           ) {
             controller.terminate()
             return
