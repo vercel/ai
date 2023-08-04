@@ -1,5 +1,5 @@
 import { useSWR } from 'sswr'
-import { Readable, get, writable } from 'svelte/store'
+import { Readable, derived, get, writable } from 'svelte/store'
 
 import { Writable } from 'svelte/store'
 
@@ -200,6 +200,13 @@ export function useCompletion({
     return complete(inputValue)
   }
 
+  const isLoading = derived(
+    [isSWRLoading, loading],
+    ([$isSWRLoading, $loading]) => {
+      return $isSWRLoading || $loading
+    }
+  )
+
   return {
     completion,
     complete,
@@ -208,6 +215,6 @@ export function useCompletion({
     setCompletion,
     input,
     handleSubmit,
-    isLoading: isSWRLoading || loading
+    isLoading
   }
 }
