@@ -1,4 +1,4 @@
-import { Readable, get, writable, Writable } from 'svelte/store'
+import { Readable, get, writable, Writable, derived } from 'svelte/store'
 import { useSWR } from 'sswr'
 import { nanoid, createChunkDecoder } from '../shared/utils'
 
@@ -386,6 +386,13 @@ export function useChat({
     input.set('')
   }
 
+  const isLoading = derived(
+    [isSWRLoading, loading],
+    ([$isSWRLoading, $loading]) => {
+      return $isSWRLoading || $loading
+    }
+  )
+
   return {
     messages,
     error,
@@ -395,6 +402,6 @@ export function useChat({
     setMessages,
     input,
     handleSubmit,
-    isLoading: isSWRLoading || loading
+    isLoading: isLoading
   }
 }
