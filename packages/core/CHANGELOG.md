@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.32
+
+### Patch Changes
+
+- 5f91427: ai/svelte: fix isLoading return value
+
 ## 2.1.31
 
 ### Patch Changes
