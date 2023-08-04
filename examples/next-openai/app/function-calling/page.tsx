@@ -2,7 +2,7 @@
 
 import { Message } from 'ai/react'
 import { useChat } from 'ai/react'
-import { ChatRequest, FunctionCallHandler, nanoid } from 'ai'
+import { ChatRequest, ClientMessage, FunctionCallHandler, nanoid } from 'ai'
 
 export default function Chat() {
   const functionCallHandler: FunctionCallHandler = async (
@@ -49,7 +49,7 @@ export default function Chat() {
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.length > 0
-        ? messages.map((m: Message) => (
+        ? messages.map((m: ClientMessage) => (
             <div
               key={m.id}
               className="whitespace-pre-wrap"

@@ -7,14 +7,15 @@ import type {
   CreateMessage,
   Message,
   UseChatOptions,
-  ChatRequestOptions
+  ChatRequestOptions,
+  ClientMessage
 } from '../shared/types'
 import { ChatCompletionRequestMessageFunctionCall } from 'openai-edge'
 export type { Message, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
-  messages: Message[]
+  messages: ClientMessage[]
   /** The error object of the API request */
   error: undefined | Error
   /**
@@ -24,7 +25,7 @@ export type UseChatHelpers = {
    * @param options Additional options to pass to the API call
    */
   append: (
-    message: Message | CreateMessage,
+    message: ClientMessage | CreateMessage,
     chatRequestOptions?: ChatRequestOptions
   ) => Promise<string | null | undefined>
   /**
@@ -44,7 +45,7 @@ export type UseChatHelpers = {
    * edit the messages on the client, and then trigger the `reload` method
    * manually to regenerate the AI response.
    */
-  setMessages: (messages: Message[]) => void
+  setMessages: (messages: ClientMessage[]) => void
   /** The current value of the input */
   input: string
   /** setState-powered method to update the input value */
@@ -68,11 +69,11 @@ export type UseChatHelpers = {
 const getStreamedResponse = async (
   api: string,
   chatRequest: ChatRequest,
-  mutate: KeyedMutator<Message[]>,
+  mutate: KeyedMutator<ClientMessage[]>,
   extraMetadataRef: React.MutableRefObject<any>,
-  messagesRef: React.MutableRefObject<Message[]>,
+  messagesRef: React.MutableRefObject<ClientMessage[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
-  onFinish?: (message: Message) => void,
+  onFinish?: (message: ClientMessage) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean
 ) => {
@@ -143,7 +144,7 @@ const getStreamedResponse = async (
   const reader = res.body.getReader()
   const decode = createChunkDecoder()
 
-  let responseMessage: Message = {
+  let responseMessage: ClientMessage = {
     id: replyId,
     createdAt,
     content: '',
@@ -210,7 +211,7 @@ export function useChat({
   const chatId = id || hookId
 
   // Store the chat state in SWR, using the chatId as the key to share states.
-  const { data, mutate } = useSWR<Message[]>([api, chatId], null, {
+  const { data, mutate } = useSWR<ClientMessage[]>([api, chatId], null, {
     fallbackData: initialMessages
   })
 
@@ -222,7 +223,7 @@ export function useChat({
   const messages = data!
 
   // Keep the latest messages in a ref.
-  const messagesRef = useRef<Message[]>(messages)
+  const messagesRef = useRef<ClientMessage[]>(messages)
   useEffect(() => {
     messagesRef.current = messages
   }, [messages])
@@ -315,7 +316,7 @@ export function useChat({
 
   const append = useCallback(
     async (
-      message: Message | CreateMessage,
+      message: ClientMessage | CreateMessage,
       { options, functions, function_call }: ChatRequestOptions = {}
     ) => {
       if (!message.id) {
@@ -323,7 +324,7 @@ export function useChat({
       }
 
       const chatRequest: ChatRequest = {
-        messages: messagesRef.current.concat(message as Message),
+        messages: messagesRef.current.concat(message as ClientMessage),
         options,
         ...(functions !== undefined && { functions }),
         ...(function_call !== undefined && { function_call })
@@ -371,7 +372,7 @@ export function useChat({
   }, [])
 
   const setMessages = useCallback(
-    (messages: Message[]) => {
+    (messages: ClientMessage[]) => {
       mutate(messages, false)
       messagesRef.current = messages
     },
