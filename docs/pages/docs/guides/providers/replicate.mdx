@@ -51,7 +51,7 @@ export async function POST(req: Request) {}
 ### Create and stream a completion
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
-import { experimental_buildLlama2Prompt } from 'ai/prompt'
+import { experimental_buildLlama2Prompt } from 'ai/prompts'
 
 export async function POST(req: Request) {
   // Get the prompt from the request body
