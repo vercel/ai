@@ -82,7 +82,7 @@ export default async function Page({
     stream: true,
     messages: [
       {
-        role: 'system',
+        role: 'user',
         content:
           searchParams['prompt'] ?? 'Give me code for generating a JSX button'
       }
