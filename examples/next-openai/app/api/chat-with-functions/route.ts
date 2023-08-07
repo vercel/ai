@@ -1,5 +1,5 @@
 import { Configuration, OpenAIApi } from 'openai-edge'
-import { OpenAIStream, StreamingTextResponse } from 'ai'
+import { OpenAIStream, StreamData, StreamingTextResponse } from 'ai'
 import { ChatCompletionFunctions } from 'openai-edge/types/api'
 
 // Create an OpenAI API client (that's edge friendly!)
@@ -56,6 +56,7 @@ export async function POST(req: Request) {
     functions
   })
 
+  const data = new StreamData()
   const stream = OpenAIStream(response, {
     experimental_onFunctionCall: async (
       { name, arguments: args },
@@ -67,16 +68,22 @@ export async function POST(req: Request) {
           temperature: 20,
           unit: args.format === 'celsius' ? 'C' : 'F'
         }
-        const newMessages = createFunctionCallMessages(weatherData)
-        return openai.createChatCompletion({
-          messages: [...messages, ...newMessages],
-          stream: true,
-          model: 'gpt-3.5-turbo-0613',
-          functions
+
+        data.append({
+          text: 'Some custom data'
         })
+
+        return;
       }
     }
   })
 
-  return new StreamingTextResponse(stream)
+  data.append({
+    text: 'Hello, how are you?'
+  })
+
+  const finalStream = stream.pipeThrough(data.stream)
+  data.close();
+
+  return new StreamingTextResponse(finalStream)
 }

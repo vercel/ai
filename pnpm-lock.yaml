@@ -45,14 +45,11 @@ importers:
         specifier: ^2.5.1
         version: 2.5.1
       ai:
-        specifier: 2.1.31
+        specifier: 2.1.32
         version: link:../../packages/core
       next:
         specifier: 13.4.4-canary.11
         version: 13.4.4-canary.11(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
-      openai-edge:
-        specifier: ^0.5.1
-        version: 0.5.1
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -91,7 +88,7 @@ importers:
   examples/next-langchain:
     dependencies:
       ai:
-        specifier: 2.1.31
+        specifier: 2.1.32
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.103
@@ -137,7 +134,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: ^2.1.31
+        specifier: workspace:*
         version: link:../../packages/core
       next:
         specifier: 13.4.4-canary.11
@@ -229,7 +226,7 @@ importers:
   examples/nuxt-langchain:
     dependencies:
       ai:
-        specifier: ^2.1.31
+        specifier: ^2.1.32
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.103
@@ -323,7 +320,7 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4
       ai:
-        specifier: 2.1.31
+        specifier: 2.1.32
         version: link:../../packages/core
       nuxt:
         specifier: ^3.5.2
@@ -387,7 +384,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       ai:
-        specifier: 2.1.31
+        specifier: 2.1.32
         version: link:../../packages/core
       openai-edge:
         specifier: ^1.1.1

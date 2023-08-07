@@ -1,4 +1,5 @@
-import { CreateMessage } from '../shared/types'
+import { CreateMessage, JSONValue } from '../shared/types'
+import { getStreamString } from '../shared/utils'
 
 import {
   AIStream,
@@ -8,14 +9,6 @@ import {
   readableFromAsyncIterable,
   createCallbacksTransformer
 } from './ai-stream'
-
-type JSONValue =
-  | null
-  | string
-  | number
-  | boolean
-  | { [x: string]: JSONValue }
-  | Array<JSONValue>
 
 export type OpenAIStreamCallbacks = AIStreamCallbacks & {
   /**
@@ -315,7 +308,9 @@ function createFunctionCallTransformer(
 
       // Stream as normal
       if (!isFunctionStreamingIn) {
-        controller.enqueue(chunk)
+        controller.enqueue(
+          textEncoder.encode(getStreamString('text', message))
+        )
         return
       } else {
         aggregatedResponse += message
@@ -366,11 +361,17 @@ function createFunctionCallTransformer(
           // The user didn't do anything with the function call on the server and wants
           // to either do nothing or run it on the client
           // so we just return the function call as a message
-          controller.enqueue(textEncoder.encode(aggregatedResponse))
+          controller.enqueue(
+            textEncoder.encode(
+              getStreamString('function_call', aggregatedResponse)
+            )
+          )
           return
         } else if (typeof functionResponse === 'string') {
           // The user returned a string, so we just return it as a message
-          controller.enqueue(textEncoder.encode(functionResponse))
+          controller.enqueue(
+            textEncoder.encode(getStreamString('text', functionResponse))
+          )
           return
         }
 

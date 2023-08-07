@@ -20,6 +20,8 @@ export interface AIStreamCallbacks {
   onToken?: (token: string) => Promise<void> | void
 }
 
+// new TokenData()
+// data: TokenData,
 /**
  * Custom parser for AIStream data.
  * @interface
@@ -193,6 +195,12 @@ export function AIStream(
     .pipeThrough(createEventStreamTransformer(customParser))
     .pipeThrough(createCallbacksTransformer(callbacks))
 }
+
+// outputs lines like
+// 0: chunk
+// 0: more chunk
+// 1: a fct call
+// z: added data from Data
 
 /**
  * Creates an empty ReadableStream that immediately closes upon creation.
