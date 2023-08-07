@@ -50,9 +50,6 @@ importers:
       next:
         specifier: 13.4.4-canary.11
         version: 13.4.4-canary.11(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
-      openai-edge:
-        specifier: ^0.5.1
-        version: 0.5.1
       react:
         specifier: 18.2.0
         version: 18.2.0
