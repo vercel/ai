@@ -27,7 +27,7 @@ pnpm create next-app --example https://github.com/vercel-labs/ai/tree/main/examp
 To run the example locally you need to:
 
 1. Sign up at [Hugging Face](https://huggingface.co/join).
-2. Go to your [Hugging Face account settings](https://huggingface.co/settings/tokens). Create a User Access Token with `write` access.
+2. Go to your [Hugging Face account settings](https://huggingface.co/settings/tokens). Create a User Access Token with `read` access.
 3. Set the required Hugging Face environment variable with the token as shown [the example env file](./.env.local.example) but in a new file called `.env.local`.
 4. `pnpm install` to install the required dependencies.
 5. `pnpm dev` to launch the development server.
