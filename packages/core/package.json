@@ -87,7 +87,7 @@
     "eslint-config-vercel-ai": "workspace:*",
     "jest": "29.2.1",
     "openai-edge": "^1.1.0",
-    "replicate": "^0.14.1",
+    "replicate": "^0.16.0",
     "ts-jest": "29.0.3",
     "tsup": "^6.7.0",
     "typescript": "5.1.3"
