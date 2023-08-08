@@ -58,16 +58,17 @@ export class StreamData {
   }
 
   async close(): Promise<void> {
+    console.trace("Closing DataStream")
     if (this.isClosed) {
       throw new Error('Data Stream has already been closed.')
     }
 
-    this.isClosed = true
     if (!this.controller) {
       throw new Error('Stream controller is not initialized.')
     }
 
     this.isClosedPromiseResolver?.()
+    this.isClosed = true
   }
 
   append(value: JSONValue): void {

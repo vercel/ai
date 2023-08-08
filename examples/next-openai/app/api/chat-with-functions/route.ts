@@ -73,8 +73,15 @@ export async function POST(req: Request) {
           text: 'Some custom data'
         })
 
-        return;
+        return openai.createChatCompletion({
+          model: 'gpt-3.5-turbo-0613',
+          stream: true,
+          messages: [...messages, ...createFunctionCallMessages(weatherData)]
+        })
       }
+    },
+    onCompletion: async completion => {
+      await data.close()
     }
   })
 
@@ -83,7 +90,6 @@ export async function POST(req: Request) {
   })
 
   const finalStream = stream.pipeThrough(data.stream)
-  data.close();
 
   return new StreamingTextResponse(finalStream)
 }

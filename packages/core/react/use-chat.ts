@@ -83,7 +83,7 @@ const getStreamedResponse = async (
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean
 ) => {
-  // Do an optimistic update to the chat state to show the updated messages
+  // Do an optimistic update to the chat state to show the updated
   // immediately.
   const previousMessages = messagesRef.current
   mutate(chatRequest.messages, false)
@@ -264,6 +264,11 @@ export function useChat({
     null
   )
 
+  const { data: streamData, mutate: mutateStreamData } = useSWR<any>(
+    [chatId, 'streamData'],
+    null
+  )
+
   // Keep the latest messages in a ref.
   const messagesRef = useRef<Message[]>(messages || [])
   useEffect(() => {
@@ -309,6 +314,8 @@ export function useChat({
             onResponse,
             sendExtraMessageFields
           )
+
+        mutateStreamData([...data, ...streamData])
 
         for (const message of streamedResponseMessages) {
           if (
@@ -464,7 +471,7 @@ export function useChat({
   }
 
   return {
-    messages,
+    messages: messages || [],
     error,
     append,
     reload,
@@ -474,6 +481,7 @@ export function useChat({
     setInput,
     handleInputChange,
     handleSubmit,
-    isLoading
+    isLoading,
+    data: streamData
   }
 }
