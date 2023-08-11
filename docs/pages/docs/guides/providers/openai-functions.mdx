@@ -19,9 +19,9 @@ The `functions` object is an array containing the schema for each function you w
 Here is an example:
 
 ```ts {3, 34}
-import { ChatCompletionFunctions } from 'openai-edge/types/api'
+import type { CompletionCreateParams } from 'openai/resources/chat'
 
-const functions: ChatCompletionFunctions[] = [
+const functions: CompletionCreateParams.Function[] = [
   {
     name: 'get_current_weather',
     description: 'Get the current weather',

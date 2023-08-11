@@ -14,12 +14,12 @@ Vercel AI SDK provides a set of utilities to make it easy to use OpenAI's API. I
 
 ### Create a Next.js app
 
-Create a Next.js application and install `ai` and `openai-edge`. We currently prefer the latter `openai-edge` library over the official OpenAI SDK because the official SDK uses `axios` which is not compatible with Vercel Edge Functions.
+Create a Next.js application and install `ai` and `openai`, the Vercel AI SDK and OpenAI API client respectively:
 
 ```sh
 pnpm dlx create-next-app my-ai-app
 cd my-ai-app
-pnpm install ai openai-edge
+pnpm install ai openai
 ```
 
 ### Add your OpenAI API Key to `.env`
