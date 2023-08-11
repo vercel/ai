@@ -79,7 +79,7 @@ export function useChat({
 
   const { data: isLoading, mutate: mutateLoading } = useSWRV<boolean>(
     `${chatId}-loading`,
-    null,
+    null
   )
 
   isLoading.value ??= false
