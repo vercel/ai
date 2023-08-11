@@ -20,7 +20,7 @@ It takes this stream and uses Vercel AI SDK's [`StreamingTextResponse`](/docs/ap
 to pipe text to the client (from the edge) and then Vercel AI SDK's `useChat` to handle the chat UI.
 
 ```tsx filename="app/api/chat/route.ts" {1,10,13,28}
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { Message as VercelChatMessage, StreamingTextResponse } from 'ai'
 
 import { ChatOpenAI } from 'langchain/chat_models/openai'
