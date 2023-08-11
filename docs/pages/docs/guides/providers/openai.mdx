@@ -8,6 +8,11 @@ import { Steps, Callout } from 'nextra-theme-docs'
 
 Vercel AI SDK provides a set of utilities to make it easy to use OpenAI's API. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
 
+<Callout>
+Before the release of `openai@4`, we recommended using the `openai-edge` library because of it's compatibility with Vercel Edge Runtime. 
+The OpenAI SDk now supports Edge Runtime out of the box, so we recommend using the official `openai` library instead.
+</Callout>
+
 ## Guide: Chat Bot
 
 <Steps>

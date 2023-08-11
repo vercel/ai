@@ -134,7 +134,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: workspace:*
+        specifier: 2.1.32
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -186,7 +186,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
       ai:
-        specifier: workspace:*
+        specifier: 2.1.32
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -402,7 +402,7 @@ importers:
         specifier: ^0.8.2
         version: 0.8.2(solid-js@1.7.2)
       ai:
-        specifier: workspace:*
+        specifier: 2.1.32
         version: link:../../packages/core
       openai:
         specifier: 4.0.0-beta.9
@@ -434,7 +434,7 @@ importers:
         version: 4.9.4
       vite:
         specifier: ^4.1.4
-        version: 4.3.9(@types/node@18.0.0)
+        version: 4.3.9(@types/node@20.0.0)
 
   examples/sveltekit-openai:
     dependencies:
@@ -474,7 +474,7 @@ importers:
         version: 5.1.3
       vite:
         specifier: ^4.3.9
-        version: 4.3.9(@types/node@18.0.0)
+        version: 4.3.9(@types/node@20.0.0)
 
   packages/core:
     dependencies:
@@ -2910,8 +2910,8 @@ packages:
       '@nuxt/kit': 3.6.1
       '@nuxt/schema': 3.6.1
       execa: 7.1.1
-      nuxt: 3.5.3(@types/node@20.0.0)(eslint@8.42.0)(typescript@5.1.3)
-      vite: 4.3.9(@types/node@20.0.0)
+      nuxt: 3.5.3(@types/node@18.0.0)(eslint@7.32.0)(typescript@4.9.4)
+      vite: 4.3.9(@types/node@18.0.0)
     transitivePeerDependencies:
       - rollup
       - supports-color
@@ -2959,7 +2959,7 @@ packages:
       launch-editor: 2.6.0
       local-pkg: 0.4.3
       magicast: 0.2.9
-      nuxt: 3.5.3(@types/node@20.0.0)(eslint@8.42.0)(typescript@5.1.3)
+      nuxt: 3.5.3(@types/node@18.0.0)(eslint@7.32.0)(typescript@4.9.4)
       nypm: 0.2.1
       pacote: 15.2.0
       pathe: 1.1.1
@@ -2970,7 +2970,7 @@ packages:
       semver: 7.5.3
       sirv: 2.0.3
       unimport: 3.0.10(rollup@3.25.1)
-      vite: 4.3.9(@types/node@20.0.0)
+      vite: 4.3.9(@types/node@18.0.0)
       vite-plugin-inspect: 0.7.29(vite@4.3.9)
       vite-plugin-vue-inspector: 3.4.2(vite@4.3.9)
       wait-on: 7.0.1
@@ -3642,7 +3642,7 @@ packages:
       sirv: 2.0.3
       svelte: 4.0.1
       undici: 5.22.1
-      vite: 4.3.9(@types/node@18.0.0)
+      vite: 4.3.9(@types/node@20.0.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -3658,7 +3658,7 @@ packages:
       '@sveltejs/vite-plugin-svelte': 2.4.1(svelte@4.0.1)(vite@4.3.9)
       debug: 4.3.4
       svelte: 4.0.1
-      vite: 4.3.9(@types/node@18.0.0)
+      vite: 4.3.9(@types/node@20.0.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -3677,7 +3677,7 @@ packages:
       magic-string: 0.30.0
       svelte: 4.0.1
       svelte-hmr: 0.15.2(svelte@4.0.1)
-      vite: 4.3.9(@types/node@18.0.0)
+      vite: 4.3.9(@types/node@20.0.0)
       vitefu: 0.2.4(vite@4.3.9)
     transitivePeerDependencies:
       - supports-color
@@ -3828,6 +3828,7 @@ packages:
 
   /@types/node@18.0.0:
     resolution: {integrity: sha512-cHlGmko4gWLVI27cGJntjs/Sj8th9aYwplmZFwmmgYQQvL5NUsgVJG7OddLvNfLqYS31KFN0s3qlaD9qCaxACA==}
+    dev: true
 
   /@types/node@18.17.4:
     resolution: {integrity: sha512-ATL4WLgr7/W40+Sp1WnNTSKbgVn6Pvhc/2RHAdt8fl6NsQyp4oPCi2eKcGOvA494bwf1K/W6nGgZ9TwDqvpjdw==}
@@ -3997,6 +3998,7 @@ packages:
       typescript: 5.1.3
     transitivePeerDependencies:
       - supports-color
+    dev: true
 
   /@typescript-eslint/scope-manager@5.59.11:
     resolution: {integrity: sha512-dHFOsxoLFtrIcSj5h0QoBT/89hxQONwmn3FOQ0GOQcLOOXm+MIrS8zEAhs4tWl5MraxCY3ZJpaXQQdFMc2Tu+Q==}
@@ -4081,6 +4083,7 @@ packages:
       typescript: 5.1.3
     transitivePeerDependencies:
       - supports-color
+    dev: true
 
   /@typescript-eslint/typescript-estree@5.60.0(typescript@5.1.3):
     resolution: {integrity: sha512-R43thAuwarC99SnvrBmh26tc7F6sPa2B3evkXp/8q954kYL6Ro56AwASYWtEEi+4j09GbiNAHqYwNNZuNlARGQ==}
@@ -4250,7 +4253,7 @@ packages:
       '@babel/core': 7.22.5
       '@babel/plugin-transform-typescript': 7.22.5(@babel/core@7.22.5)
       '@vue/babel-plugin-jsx': 1.1.1(@babel/core@7.22.5)
-      vite: 4.3.9(@types/node@20.0.0)
+      vite: 4.3.9(@types/node@18.0.0)
       vue: 3.3.4
     transitivePeerDependencies:
       - supports-color
@@ -4263,7 +4266,7 @@ packages:
       vite: ^4.0.0
       vue: ^3.2.25
     dependencies:
-      vite: 4.3.9(@types/node@20.0.0)
+      vite: 4.3.9(@types/node@18.0.0)
       vue: 3.3.4
     dev: true
 
@@ -6814,7 +6817,7 @@ packages:
       '@typescript-eslint/parser':
         optional: true
     dependencies:
-      '@typescript-eslint/parser': 5.59.11(eslint@8.42.0)(typescript@5.1.3)
+      '@typescript-eslint/parser': 5.59.11(eslint@8.42.0)(typescript@4.9.4)
       array-includes: 3.1.6
       array.prototype.flat: 1.3.1
       array.prototype.flatmap: 1.3.1
@@ -12744,7 +12747,7 @@ packages:
       solid-start: 0.2.26(@solidjs/meta@0.28.2)(@solidjs/router@0.8.2)(solid-js@1.7.2)(solid-start-node@0.2.19)(vite@4.3.9)
       terser: 5.18.1
       undici: 5.22.1
-      vite: 4.3.9(@types/node@18.0.0)
+      vite: 4.3.9(@types/node@20.0.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -12814,7 +12817,7 @@ packages:
       solid-start-node: 0.2.19(solid-start@0.2.26)(undici@5.22.1)(vite@4.3.9)
       terser: 5.18.1
       undici: 5.22.1
-      vite: 4.3.9(@types/node@18.0.0)
+      vite: 4.3.9(@types/node@20.0.0)
       vite-plugin-inspect: 0.7.29(rollup@3.25.1)(vite@4.3.9)
       vite-plugin-solid: 2.7.0(solid-js@1.7.2)(vite@4.3.9)
       wait-on: 6.0.1(debug@4.3.4)
@@ -13724,6 +13727,7 @@ packages:
     dependencies:
       tslib: 1.14.1
       typescript: 5.1.3
+    dev: true
 
   /tsx@3.12.7:
     resolution: {integrity: sha512-C2Ip+jPmqKd1GWVQDvz/Eyc6QJbGfE7NrR3fx5BpEHMZsEHoIxHL1j+lKdGobr8ovEyqeNkPLSKp6SCSOt7gmw==}
@@ -13885,6 +13889,7 @@ packages:
     resolution: {integrity: sha512-XH627E9vkeqhlZFQuL+UsyAXEnibT0kWR2FWONlr4sTjvxyJYnyefgrkyECLzM5NenmKzRAy2rR/OlYLA1HkZw==}
     engines: {node: '>=14.17'}
     hasBin: true
+    dev: true
 
   /ufo@1.1.2:
     resolution: {integrity: sha512-TrY6DsjTQQgyS3E3dBaOXf0TpPD8u9FVrVYmKVegJuFw51n/YB9XPt+U6ydzFG5ZIN7+DIjPbNmXoBj9esYhgQ==}
@@ -14379,7 +14384,7 @@ packages:
       open: 9.1.0
       picocolors: 1.0.0
       sirv: 2.0.3
-      vite: 4.3.9(@types/node@18.0.0)
+      vite: 4.3.9(@types/node@20.0.0)
     transitivePeerDependencies:
       - rollup
       - supports-color
@@ -14397,7 +14402,7 @@ packages:
       open: 9.1.0
       picocolors: 1.0.0
       sirv: 2.0.3
-      vite: 4.3.9(@types/node@20.0.0)
+      vite: 4.3.9(@types/node@18.0.0)
     transitivePeerDependencies:
       - rollup
       - supports-color
@@ -14416,7 +14421,7 @@ packages:
       merge-anything: 5.1.7
       solid-js: 1.7.2
       solid-refresh: 0.5.3(solid-js@1.7.2)
-      vite: 4.3.9(@types/node@18.0.0)
+      vite: 4.3.9(@types/node@20.0.0)
       vitefu: 0.2.4(vite@4.3.9)
     transitivePeerDependencies:
       - supports-color
@@ -14435,7 +14440,7 @@ packages:
       kolorist: 1.8.0
       magic-string: 0.30.0
       shell-quote: 1.8.1
-      vite: 4.3.9(@types/node@20.0.0)
+      vite: 4.3.9(@types/node@18.0.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -14471,6 +14476,7 @@ packages:
       rollup: 3.25.1
     optionalDependencies:
       fsevents: 2.3.2
+    dev: true
 
   /vite@4.3.9(@types/node@20.0.0):
     resolution: {integrity: sha512-qsTNZjO9NoJNW7KnOrgYwczm0WctJ8m/yqYAMAK9Lxt4SoySUfS5S8ia9K7JHpa3KEeMfyF8LoJ3c5NeBJy6pg==}
@@ -14503,7 +14509,6 @@ packages:
       rollup: 3.25.1
     optionalDependencies:
       fsevents: 2.3.2
-    dev: true
 
   /vitefu@0.2.4(vite@4.3.9):
     resolution: {integrity: sha512-fanAXjSaf9xXtOOeno8wZXIhgia+CZury481LsDaV++lSvcU2R9Ch2bPh3PYFyoHW+w9LqAeYRISVQjUIew14g==}
@@ -14513,7 +14518,7 @@ packages:
       vite:
         optional: true
     dependencies:
-      vite: 4.3.9(@types/node@18.0.0)
+      vite: 4.3.9(@types/node@20.0.0)
 
   /vscode-jsonrpc@6.0.0:
     resolution: {integrity: sha512-wnJA4BnEjOSyFMvjZdpiOwhSq9uDoK8e/kpRJDTaMYzwlkrhG1fwDIZI94CLsLzlCK5cIbMMtFlJlfR57Lavmg==}
