@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Use native vue `ref` to track loading state, preventing extraneous network requests
+Prevent `isLoading` in vue integration from triggering extraneous network requests

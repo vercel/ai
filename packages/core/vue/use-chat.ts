@@ -77,7 +77,12 @@ export function useChat({
     () => store[key] || initialMessages
   )
 
-  const isLoading = ref(false)
+  const { data: isLoading, mutate: mutateLoading } = useSWRV<boolean>(
+    `${chatId}-loading`,
+    null,
+  )
+
+  isLoading.value ??= false
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
   data.value ||= initialMessages
@@ -98,7 +103,7 @@ export function useChat({
     options?: RequestOptions
   ) {
     try {
-      isLoading.value = true
+      mutateLoading(() => true)
       abortController = new AbortController()
 
       // Do an optimistic update to the chat state to show the updated messages
@@ -203,7 +208,7 @@ export function useChat({
 
       error.value = err as Error
     } finally {
-      isLoading.value = false
+      mutateLoading(() => false)
     }
   }
 
