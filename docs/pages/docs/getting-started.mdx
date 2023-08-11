@@ -63,10 +63,10 @@ We've written some code to get you started — follow the instructions below to 
 
     #### Install Dependencies
 
-    Next, we'll install `ai` and `openai-edge`. The latter is preferred over the official OpenAI SDK due to its compatibility with Vercel Edge Functions.
+    Next, we'll install `ai` and `openai`, OpenAI's official JavaScript SDK compatible with the Vercel Edge Runtime.
 
     ```sh
-    pnpm install ai openai-edge
+    pnpm install ai openai
     ```
 
     #### Configure OpenAI API Key
@@ -94,14 +94,13 @@ We've written some code to get you started — follow the instructions below to 
     Here's what the route handler should look like:
 
     ```tsx filename="app/api/completion/route.ts"
-    import { Configuration, OpenAIApi } from 'openai-edge';
+    import OpenAI from 'openai';
     import { OpenAIStream, StreamingTextResponse } from 'ai';
 
     // Create an OpenAI API client (that's edge friendly!)
-    const openAIConfig = new Configuration({
+    const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
-    const openai = new OpenAIApi(openAIConfig);
 
     // Set the runtime to edge for best performance
     export const runtime = 'edge';
@@ -110,7 +109,7 @@ We've written some code to get you started — follow the instructions below to 
       const { prompt } = await req.json();
 
       // Ask OpenAI for a streaming completion given the prompt
-      const response = await openai.createCompletion({
+      const response = await openai.completions.create({
         model: 'text-davinci-003',
         stream: true,
         temperature: 0.6,
@@ -137,15 +136,14 @@ We've written some code to get you started — follow the instructions below to 
     Here's what the endpoint should look like:
 
     ```tsx filename="src/routes/api/completion/+server.js"
-    import { Configuration, OpenAIApi } from 'openai-edge';
+    import OpenAI from 'openai';
     import { OpenAIStream, StreamingTextResponse } from 'ai';
     import { OPENAI_API_KEY } from '$env/static/private';
 
     // Create an OpenAI API client (that's edge friendly!)
-    const openAIConfig = new Configuration({
+    const openai = new OpenAI({
       apiKey: OPENAI_API_KEY,
     });
-    const openai = new OpenAIApi(openAIConfig);
 
     // Set the runtime to edge for best performance
     export const config = {
@@ -156,7 +154,7 @@ We've written some code to get you started — follow the instructions below to 
       const { prompt } = await request.json();
 
       // Ask OpenAI for a streaming completion given the prompt
-      const response = await openai.createCompletion({
+      const response = await openai.completions.create({
         model: 'text-davinci-003',
         stream: true,
         temperature: 0.6,
@@ -178,7 +176,7 @@ We've written some code to get you started — follow the instructions below to 
     ```
     </Tab>
     </Tabs>
-    In the above code, the `openai.createCompletion` method gets a response stream from the OpenAI API. We then pass the response into the `OpenAIStream` provided by this library.
+    In the above code, the `openai.completions.create` method gets a response stream from the OpenAI API. We then pass the response into the `OpenAIStream` provided by this library.
     Then we use `StreamingTextResponse` to set the proper headers and response details in order to stream the response back to the client.
 
     #### Wire up a UI
