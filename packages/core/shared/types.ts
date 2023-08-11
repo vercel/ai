@@ -1,8 +1,8 @@
 import {
-  ChatCompletionRequestMessageFunctionCall,
-  CreateChatCompletionRequestFunctionCall
-} from 'openai-edge'
-import { ChatCompletionFunctions } from 'openai-edge/types/api'
+  ChatCompletionMessage,
+  CreateChatCompletionRequestMessage,
+  CompletionCreateParams
+} from 'openai/resources/chat'
 
 /**
  * Shared types between the API and UI packages.
@@ -22,7 +22,7 @@ export type Message = {
    * contains the function call name and arguments. Otherwise, the field should
    * not be set.
    */
-  function_call?: string | ChatCompletionRequestMessageFunctionCall
+  function_call?: string | ChatCompletionMessage.FunctionCall
 }
 
 export type CreateMessage = Omit<Message, 'id'> & {
@@ -32,13 +32,13 @@ export type CreateMessage = Omit<Message, 'id'> & {
 export type ChatRequest = {
   messages: Message[]
   options?: RequestOptions
-  functions?: Array<ChatCompletionFunctions>
-  function_call?: CreateChatCompletionRequestFunctionCall
+  functions?: Array<CompletionCreateParams.Function>
+  function_call?: CreateChatCompletionRequestMessage.FunctionCall
 }
 
 export type FunctionCallHandler = (
   chatMessages: Message[],
-  functionCall: ChatCompletionRequestMessageFunctionCall
+  functionCall: ChatCompletionMessage.FunctionCall
 ) => Promise<ChatRequest | void>
 
 export type RequestOptions = {
@@ -48,8 +48,8 @@ export type RequestOptions = {
 
 export type ChatRequestOptions = {
   options?: RequestOptions
-  functions?: Array<ChatCompletionFunctions>
-  function_call?: CreateChatCompletionRequestFunctionCall
+  functions?: Array<CompletionCreateParams.Function>
+  function_call?: CreateChatCompletionRequestMessage.FunctionCall
 }
 
 export type UseChatOptions = {
