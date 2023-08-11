@@ -19,7 +19,7 @@ then streams the result through an encoding output parser.
 It takes this stream and uses Vercel AI SDK's [`StreamingTextResponse`](/docs/api-reference/streaming-text-response)
 to pipe text to the client (from the edge) and then Vercel AI SDK's `useChat` to handle the chat UI.
 
-```tsx filename="app/api/chat/route.ts" {1,10,13,28}
+```tsx filename="app/api/chat/route.ts"
 import { NextRequest } from 'next/server'
 import { Message as VercelChatMessage, StreamingTextResponse } from 'ai'
 
