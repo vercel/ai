@@ -1,5 +1,11 @@
 # ai
 
+## 2.1.33
+
+### Patch Changes
+
+- 4ef8015: Prevent `isLoading` in vue integration from triggering extraneous network requests
+
 ## 2.1.32
 
 ### Patch Changes
