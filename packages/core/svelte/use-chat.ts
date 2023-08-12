@@ -173,8 +173,9 @@ const getStreamedResponse = async (
 
   if (typeof responseMessage.function_call === 'string') {
     // Once the stream is complete, the function call is parsed into an object.
-    const parsedFunctionCall: ChatCompletionMessage.FunctionCall =
-      JSON.parse(responseMessage.function_call).function_call
+    const parsedFunctionCall: ChatCompletionMessage.FunctionCall = JSON.parse(
+      responseMessage.function_call
+    ).function_call
 
     responseMessage.function_call = parsedFunctionCall
 

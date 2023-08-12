@@ -9,7 +9,7 @@ This works with a variety of OpenAI models, including:
 - `gpt-4`, `gpt-4-0314`, `gpt-4-32k`, `gpt-4-32k-0314`, `gpt-3.5-turbo`, `gpt-3.5-turbo-0301`
 - `text-davinci-003`, `text-davinci-002`, `text-curie-001`, `text-babbage-001`, `text-ada-001`
 
-It is designed to work with responses from either `openai.completions.create` or `openai.chat.completions.create` methods. 
+It is designed to work with responses from either `openai.completions.create` or `openai.chat.completions.create` methods.
 
 Note: Prior to v4, the official OpenAI API SDK does not support the Edge Runtime and only works in serverless environments. The `openai-edge` package is based on `fetch` instead of `axios` (and thus works in the Edge Runtime) so we recommend using `openai` v4+ or `openai-edge`.
 
