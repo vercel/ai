@@ -252,24 +252,24 @@ export async function POST(req: Request) {
 ## Guide: Use with Azure OpenAI Service
 
 You can pass custom options to the `Configuration` from the OpenAI package to connect to the an Azure instance.
+See the [OpenAI client repository](https://github.com/openai/openai-node/blob/v4/examples/azure.ts) for a more complete example.
 
 ```tsx filename="app/api/completion/route.ts"
-const AZURE_OPENAI_API_INSTANCE_NAME = '...'
-const AZURE_OPENAI_API_DEPLOYMENT_NAME = '...'
-const AZURE_OPENAI_API_KEY = '...'
-const AZURE_OPENAI_API_VERSION = '...'
+import OpenAI from 'openai'
 
-const endpoint = `https://${AZURE_OPENAI_API_INSTANCE_NAME}.openai.azure.com`
+const resource = '<your resource name>'
+const model = '<your model>'
 
-export const config = new Configuration({
-  basePath: `${endpoint}/openai/deployments/${AZURE_OPENAI_API_DEPLOYMENT_NAME}`,
-  defaultQueryParams: new URLSearchParams({
-    'api-version': AZURE_OPENAI_API_VERSION
-  }),
-  baseOptions: {
-    headers: {
-      'api-key': AZURE_OPENAI_API_KEY
-    }
-  }
+const apiKey = process.env.AZURE_OPENAI_API_KEY
+if (!apiKey) {
+  throw new Error('AZURE_OPENAI_API_KEY is missing from the environment.')
+}
+
+// Azure OpenAI requires a custom baseURL, api-version query param, and api-key header.
+const openai = new OpenAI({
+  apiKey,
+  baseURL: `https://${resource}.openai.azure.com/openai/deployments/${model}`,
+  defaultQuery: { 'api-version': '2023-06-01-preview' },
+  defaultHeaders: { 'api-key': apiKey }
 })
 ```
