@@ -32,7 +32,7 @@ interface CompletionChunk {
 /**
  * Intended for API versions before 2023-06-01
  */
-function parseAnthropicStreamLegacy(): (data: string) => string | void {
+function parseAnthropicStream(): (data: string) => string | void {
   let previous = ''
 
   return data => {
@@ -46,19 +46,6 @@ function parseAnthropicStreamLegacy(): (data: string) => string | void {
     const delta = text.slice(previous.length)
     previous = text
 
-    return delta
-  }
-}
-
-/**
- * Intended for v2023-06-01 and greater,
- * but may need to be adjusted for future versions.
- * https://docs.anthropic.com/claude/reference/versioning#version-history
- */
-function parseAnthropicStream(): (data: string) => string | void {
-  return data => {
-    const json = JSON.parse(data as string) as CompletionChunk
-    const delta = json.completion
     return delta
   }
 }
@@ -84,9 +71,6 @@ export function AnthropicStream(
       createCallbacksTransformer(cb)
     )
   } else {
-    if (res.headers.get('anthropic-version') === '2023-01-01') {
-      return AIStream(res, parseAnthropicStreamLegacy(), cb)
-    }
     return AIStream(res, parseAnthropicStream(), cb)
   }
 }
