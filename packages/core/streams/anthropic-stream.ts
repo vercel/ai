@@ -84,9 +84,14 @@ export function AnthropicStream(
       createCallbacksTransformer(cb)
     )
   } else {
-    if (res.headers.get('anthropic-version') === '2023-01-01') {
+    const apiVersion = res.headers.get('anthropic-version')
+
+    // TODO(2023-12-01): after this version has been out for a while,
+    // assume a missing version header means the newer version.
+    if (!apiVersion || apiVersion === '2023-01-01') {
       return AIStream(res, parseAnthropicStreamLegacy(), cb)
     }
+
     return AIStream(res, parseAnthropicStream(), cb)
   }
 }
