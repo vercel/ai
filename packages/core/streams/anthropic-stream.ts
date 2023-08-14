@@ -29,10 +29,7 @@ interface CompletionChunk {
   stop_reason: string
 }
 
-/**
- * Intended for API versions before 2023-06-01
- */
-function parseAnthropicStreamLegacy(): (data: string) => string | void {
+function parseAnthropicStream(): (data: string) => string | void {
   let previous = ''
 
   return data => {
@@ -43,23 +40,17 @@ function parseAnthropicStreamLegacy(): (data: string) => string | void {
     // deltas. In order to compute the delta, we must slice out the text
     // we previously received.
     const text = json.completion
-    const delta = text.slice(previous.length)
-    previous = text
+    if (
+      !previous ||
+      (text.length > previous.length && text.startsWith(previous))
+    ) {
+      const delta = text.slice(previous.length)
+      previous = text
 
-    return delta
-  }
-}
+      return delta
+    }
 
-/**
- * Intended for v2023-06-01 and greater,
- * but may need to be adjusted for future versions.
- * https://docs.anthropic.com/claude/reference/versioning#version-history
- */
-function parseAnthropicStream(): (data: string) => string | void {
-  return data => {
-    const json = JSON.parse(data as string) as CompletionChunk
-    const delta = json.completion
-    return delta
+    return text
   }
 }
 
@@ -84,14 +75,6 @@ export function AnthropicStream(
       createCallbacksTransformer(cb)
     )
   } else {
-    const apiVersion = res.headers.get('anthropic-version')
-
-    // TODO(2023-12-01): after this version has been out for a while,
-    // assume a missing version header means the newer version.
-    if (!apiVersion || apiVersion === '2023-01-01') {
-      return AIStream(res, parseAnthropicStreamLegacy(), cb)
-    }
-
     return AIStream(res, parseAnthropicStream(), cb)
   }
 }
