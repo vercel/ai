@@ -118,7 +118,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://vercel.com/templates/ai",
+  "homepage": "https://sdk.vercel.ai/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git"
