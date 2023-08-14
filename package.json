@@ -32,14 +32,14 @@
     "ts-jest": "29.0.3",
     "turbo": "^1.10.0"
   },
-  "homepage": "https://github.com/vercel-labs/ai#readme",
+  "homepage": "https://vercel.com/templates/ai",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel-labs/ai.git"
+    "url": "git+https://github.com/vercel/ai.git"
   },
   "license": "Apache License",
   "bugs": {
-    "url": "https://github.com/vercel-labs/ai/issues"
+    "url": "https://github.com/vercel/ai/issues"
   },
   "keywords": [
     "ai"

@@ -6,22 +6,22 @@ This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) wi
 
 Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=ai-sdk-example):
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai%2Ftree%2Fmain%2Fexamples%2Fnext-replicate&env=REPLICATE_API_KEY&envDescription=Replicate%20API%20Key&envLink=https://replicate.com/account/api-tokens&project-name=vercel-ai-chat-replicate&repository-name=vercel-ai-chat-replicate)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fai%2Ftree%2Fmain%2Fexamples%2Fnext-replicate&env=REPLICATE_API_KEY&envDescription=Replicate%20API%20Key&envLink=https://replicate.com/account/api-tokens&project-name=vercel-ai-chat-replicate&repository-name=vercel-ai-chat-replicate)
 
 ## How to use
 
 Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
 
 ```bash
-npx create-next-app --example https://github.com/vercel-labs/ai/tree/main/examples/next-replicate next-replicate-app
+npx create-next-app --example https://github.com/vercel/ai/tree/main/examples/next-replicate next-replicate-app
 ```
 
 ```bash
-yarn create next-app --example https://github.com/vercel-labs/ai/tree/main/examples/next-replicate next-replicate-app
+yarn create next-app --example https://github.com/vercel/ai/tree/main/examples/next-replicate next-replicate-app
 ```
 
 ```bash
-pnpm create next-app --example https://github.com/vercel-labs/ai/tree/main/examples/next-replicate next-replicate-app
+pnpm create next-app --example https://github.com/vercel/ai/tree/main/examples/next-replicate next-replicate-app
 ```
 
 To run the example locally you need to:
