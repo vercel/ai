@@ -4,7 +4,7 @@
 
 The `HuggingFaceStream` function is a utility that transforms the output from an array of text generation models hosted on [Hugging Face.co](https://huggingface.co) into a `ReadableStream`. The transformation uses an `AsyncGenerator` as provided by the [Hugging Face Inference SDK](https://huggingface.co/docs/huggingface.js/inference/README)'s `hf.textGenerationStream` method. This feature enables you to handle AI responses in real-time by means of a readable stream.
 
-While `HuggingFaceStream` is compatible with _most_ Hugging Face text generation models, the rapidly evolving landscape of models may result in certain new or niche models not being supported. If you encounter a model that isn't supported, we encourage you to [open an issue](https://github.com/vercel-labs/ai/issues/new).
+While `HuggingFaceStream` is compatible with _most_ Hugging Face text generation models, the rapidly evolving landscape of models may result in certain new or niche models not being supported. If you encounter a model that isn't supported, we encourage you to [open an issue](https://github.com/vercel/ai/issues/new).
 
 To ensure that AI responses are comprised purely of text without any delimiters that could pose issues when rendering in chat or completion modes, we standardize and remove special end-of-response tokens. If your use case requires a different handling of responses, you can fork and modify this stream to meet your specific needs.
 

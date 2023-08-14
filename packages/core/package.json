@@ -118,13 +118,13 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://github.com/vercel-labs/ai#readme",
+  "homepage": "https://sdk.vercel.ai/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel-labs/ai.git"
+    "url": "git+https://github.com/vercel/ai.git"
   },
   "bugs": {
-    "url": "https://github.com/vercel-labs/ai/issues"
+    "url": "https://github.com/vercel/ai/issues"
   },
   "keywords": [
     "ai",
