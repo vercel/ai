@@ -1,5 +1,5 @@
 {
-  "name": "next-langchain",
+  "name": "next-openai-rate-limits",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,11 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "ai": "2.1.33",
-    "langchain": "^0.0.103",
+    "@upstash/ratelimit": "^0.4.3",
+    "@vercel/kv": "^0.2.2",
+    "ai": "latest",
     "next": "13.4.12",
+    "openai-edge": "^1.1.0",
     "react": "18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "sonner": "^0.6.2"
   },
   "devDependencies": {
     "@types/node": "^17.0.12",

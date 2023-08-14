@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "2.1.32",
+  "version": "2.1.33",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -87,7 +87,7 @@
     "eslint-config-vercel-ai": "workspace:*",
     "jest": "29.2.1",
     "openai-edge": "^1.1.0",
-    "replicate": "^0.14.1",
+    "replicate": "^0.16.0",
     "ts-jest": "29.0.3",
     "tsup": "^6.7.0",
     "typescript": "5.1.3"
@@ -118,13 +118,13 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://github.com/vercel-labs/ai#readme",
+  "homepage": "https://sdk.vercel.ai/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel-labs/ai.git"
+    "url": "git+https://github.com/vercel/ai.git"
   },
   "bugs": {
-    "url": "https://github.com/vercel-labs/ai/issues"
+    "url": "https://github.com/vercel/ai/issues"
   },
   "keywords": [
     "ai",
