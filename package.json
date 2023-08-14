@@ -32,7 +32,7 @@
     "ts-jest": "29.0.3",
     "turbo": "^1.10.0"
   },
-  "homepage": "https://vercel.com/templates/ai",
+  "homepage": "https://sdk.vercel.ai/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git"
