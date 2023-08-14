@@ -29,11 +29,32 @@ interface CompletionChunk {
   stop_reason: string
 }
 
+interface StreamError {
+  error: {
+    type: string
+    message: string
+  }
+}
+
+interface StreamPing {}
+
+type StreamData = CompletionChunk | StreamError | StreamPing
+
 function parseAnthropicStream(): (data: string) => string | void {
   let previous = ''
 
   return data => {
-    const json = JSON.parse(data as string) as CompletionChunk
+    const json = JSON.parse(data as string) as StreamData
+
+    // error event
+    if ('error' in json) {
+      throw new Error(`${json.error.type}: ${json.error.message}`)
+    }
+
+    // ping event
+    if (!('completion' in json)) {
+      return
+    }
 
     // On API versions older than 2023-06-01,
     // Anthropic's `completion` field is cumulative unlike OpenAI's
