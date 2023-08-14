@@ -5,7 +5,7 @@ import type { CompletionCreateParams } from 'openai/resources/chat'
 import { env } from '$env/dynamic/private'
 
 const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY || undefined
+  apiKey: env.OPENAI_API_KEY || ''
 })
 
 const functions: CompletionCreateParams.Function[] = [
