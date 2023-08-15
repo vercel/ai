@@ -23,6 +23,7 @@ export type Message = {
    * not be set.
    */
   function_call?: string | ChatCompletionRequestMessageFunctionCall
+  data?: JSONValue[]
 }
 
 export type CreateMessage = Omit<Message, 'id'> & {

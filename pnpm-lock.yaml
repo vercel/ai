@@ -45,7 +45,7 @@ importers:
         specifier: ^2.5.1
         version: 2.5.1
       ai:
-        specifier: 2.1.33
+        specifier: 2.1.34
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -88,7 +88,7 @@ importers:
   examples/next-langchain:
     dependencies:
       ai:
-        specifier: 2.1.33
+        specifier: 2.1.34
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.103
@@ -281,7 +281,7 @@ importers:
   examples/nuxt-langchain:
     dependencies:
       ai:
-        specifier: ^2.1.33
+        specifier: ^2.1.34
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.103
@@ -375,7 +375,7 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4
       ai:
-        specifier: 2.1.33
+        specifier: 2.1.34
         version: link:../../packages/core
       nuxt:
         specifier: ^3.5.2
@@ -439,7 +439,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       ai:
-        specifier: 2.1.33
+        specifier: 2.1.34
         version: link:../../packages/core
       openai-edge:
         specifier: ^1.1.1

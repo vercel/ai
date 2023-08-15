@@ -4,7 +4,6 @@ import {
   nanoid,
   createChunkDecoder,
   StreamStringPrefixes,
-  isStreamStringEqualToType
 } from '../shared/utils'
 
 import type {
@@ -199,16 +198,14 @@ const getStreamedResponse = async (
       }
 
       const finishedFunctionCall = prefixMap.get('function_call')
+      // MERGE WITH BELOW
       if (finishedFunctionCall?.function_call) {
         // Once the stream is complete, the function call is parsed into an object.
         const parsedFunctionCall: ChatCompletionRequestMessageFunctionCall =
-          // JSON.parse(prefixMap.get('function_call') || '').function_call
           JSON.parse(finishedFunctionCall.function_call as string)
 
-        // responseMessage['function_call'] = parsedFunctionCall
         finishedFunctionCall.function_call = parsedFunctionCall
 
-        // mutate([...chatRequest.messages, { ...responseMessage }])
         mutate([...chatRequest.messages, ...prefixMap.values()])
       }
     }
@@ -221,6 +218,7 @@ const getStreamedResponse = async (
       item.function_call = parsedFunctionCall
       item.name = parsedFunctionCall.name
     }
+  
     if (onFinish) {
       onFinish(item)
     }
@@ -231,6 +229,7 @@ const getStreamedResponse = async (
       responseMessages.push(item)
     }
   }
+
 
   return { messages: responseMessages, data: responseData }
 }

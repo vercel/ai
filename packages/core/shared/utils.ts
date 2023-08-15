@@ -14,7 +14,6 @@ export function createChunkDecoder() {
     value: string
   }[] {
     const decoded = decoder.decode(chunk, { stream: true }).split('\n')
-    console.log('decoded', decoded)
     return decoded.map(getStreamStringTypeAndValue).filter(Boolean) as any
   }
 }
@@ -62,6 +61,7 @@ export const getStreamString = (
 
 export type StreamString =
   `${(typeof StreamStringPrefixes)[keyof typeof StreamStringPrefixes]}:${string}\n`
+
 export const getStreamStringTypeAndValue = (
   line: string
 ): { type: keyof typeof StreamStringPrefixes; value: string } => {
@@ -73,10 +73,10 @@ export const getStreamStringTypeAndValue = (
       StreamStringPrefixes[key as keyof typeof StreamStringPrefixes] ===
       Number(prefix)
   ) as keyof typeof StreamStringPrefixes
+
   const val = line.slice(firstSeperatorIndex + 1)
 
   let parsedVal = val
-  console.log('parsedVal', parsedVal)
 
   if (!val) {
     return { type, value: '' }

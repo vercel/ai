@@ -80,8 +80,8 @@ export async function POST(req: Request) {
         })
       }
     },
-    onCompletion: async completion => {
-      await data.close()
+      onCompletion: async completion => {
+        console.log(completion)
     }
   })
 
@@ -91,5 +91,8 @@ export async function POST(req: Request) {
 
   const finalStream = stream.pipeThrough(data.stream)
 
+  setTimeout(() => { 
+     data.close()
+  }, 5000)
   return new StreamingTextResponse(finalStream)
 }

@@ -9,6 +9,7 @@ import {
   readableFromAsyncIterable,
   createCallbacksTransformer
 } from './ai-stream'
+import { createStreamDataTransformer } from './stream-data'
 
 export type OpenAIStreamCallbacks = AIStreamCallbacks & {
   /**
@@ -275,7 +276,7 @@ export function OpenAIStream(
     const functionCallTransformer = createFunctionCallTransformer(cb)
     return stream.pipeThrough(functionCallTransformer)
   } else {
-    return stream
+    return stream.pipeThrough(createStreamDataTransformer())
   }
 }
 

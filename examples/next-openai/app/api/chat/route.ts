@@ -19,10 +19,7 @@ export async function POST(req: Request) {
   const response = await openai.createChatCompletion({
     model: 'gpt-3.5-turbo',
     stream: true,
-    messages: messages.map((message: any) => ({
-      content: message.content,
-      role: message.role
-    }))
+    messages: messages
   })
 
   // Convert the response into a friendly text-stream

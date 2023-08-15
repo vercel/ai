@@ -76,7 +76,7 @@ export default function Chat() {
 
 ---
 
-View the full documentation and examples on [sdk.vercel.ai/docs](https://sdk.vercel.ai/docs)
+View the full documentation and examples on [sdk.vercel.ai/docs](https://sdk.vercel.ai/docs).
 
 ## Authors
 
