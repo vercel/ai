@@ -1,7 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { useChat } from 'ai/vue'
 
-const { messages, input, handleInputChange, handleSubmit } = useChat()
+const { messages, input, handleSubmit } = useChat({
+  headers: { 'Content-Type': 'application/json' }
+})
 </script>
 
 <template>
@@ -10,13 +12,12 @@ const { messages, input, handleInputChange, handleSubmit } = useChat()
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
       {{ m.content }}
     </div>
-  
+
     <form @submit="handleSubmit">
       <input
         class="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
         v-model="input"
         placeholder="Say something..."
-        @change="handleInputChange"
       />
     </form>
   </div>
