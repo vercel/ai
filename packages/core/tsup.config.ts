@@ -32,7 +32,7 @@ export default defineConfig([
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue', 'solid-js'],
     dts: true
-  },
+  }
   // // Svelte APIs
   // {
   //   entry: ['svelte/index.ts'],

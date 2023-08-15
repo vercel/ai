@@ -39,5 +39,7 @@ export async function ReplicateStream(
     }
   })
 
-  return AIStream(eventStream, undefined, cb).pipeThrough(createStreamDataTransformer(cb?.experimental_streamData))
+  return AIStream(eventStream, undefined, cb).pipeThrough(
+    createStreamDataTransformer(cb?.experimental_streamData)
+  )
 }

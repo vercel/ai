@@ -97,6 +97,8 @@ export function AnthropicStream(
       createCallbacksTransformer(cb)
     )
   } else {
-    return AIStream(res, parseAnthropicStream(), cb).pipeThrough(createStreamDataTransformer(cb?.experimental_streamData))
+    return AIStream(res, parseAnthropicStream(), cb).pipeThrough(
+      createStreamDataTransformer(cb?.experimental_streamData)
+    )
   }
 }
