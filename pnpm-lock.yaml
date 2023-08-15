@@ -140,8 +140,8 @@ importers:
         specifier: 13.4.12
         version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
       openai:
-        specifier: 4.0.0-beta.11
-        version: 4.0.0-beta.11
+        specifier: 4.0.0-beta.12
+        version: 4.0.0-beta.12
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -192,8 +192,8 @@ importers:
         specifier: 13.4.12
         version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
       openai:
-        specifier: 4.0.0-beta.11
-        version: 4.0.0-beta.11
+        specifier: 4.0.0-beta.12
+        version: 4.0.0-beta.12
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -381,8 +381,8 @@ importers:
         specifier: ^3.5.2
         version: 3.5.3(@types/node@18.0.0)(eslint@7.32.0)(typescript@4.9.4)
       openai:
-        specifier: 4.0.0-beta.11
-        version: 4.0.0-beta.11
+        specifier: 4.0.0-beta.12
+        version: 4.0.0-beta.12
       tailwindcss:
         specifier: ^3.3.2
         version: 3.3.2
@@ -405,8 +405,8 @@ importers:
         specifier: 2.1.33
         version: link:../../packages/core
       openai:
-        specifier: 4.0.0-beta.11
-        version: 4.0.0-beta.11
+        specifier: 4.0.0-beta.12
+        version: 4.0.0-beta.12
       solid-js:
         specifier: ^1.7.2
         version: 1.7.2
@@ -442,8 +442,8 @@ importers:
         specifier: 2.1.33
         version: link:../../packages/core
       openai:
-        specifier: 4.0.0-beta.11
-        version: 4.0.0-beta.11
+        specifier: 4.0.0-beta.12
+        version: 4.0.0-beta.12
     devDependencies:
       '@fontsource/fira-mono':
         specifier: ^4.5.10
@@ -485,8 +485,8 @@ importers:
         specifier: 3.3.6
         version: 3.3.6
       openai:
-        specifier: 4.0.0-beta.11
-        version: 4.0.0-beta.11
+        specifier: 4.0.0-beta.12
+        version: 4.0.0-beta.12
       react:
         specifier: ^18.2.0
         version: 18.2.0
@@ -11045,8 +11045,8 @@ packages:
       - debug
     dev: false
 
-  /openai@4.0.0-beta.11:
-    resolution: {integrity: sha512-uIvizM2fwO/3ZsiN5fXZt9V6lG5i/3Zh8XXyAGPMCJmwP2ixPh67nc72GpZsozTaRVLSd/ZLgZKfjgEKTHnUjQ==}
+  /openai@4.0.0-beta.12:
+    resolution: {integrity: sha512-K7PrIyF+Rv2kI8/FKcb1ZiM4L9ORR5J8DnoSgOT+mHrR9d3eBkAdxqVJ4uCXLFTGh7rDzU4pbuD+DpfdgzL1IQ==}
     hasBin: true
     dependencies:
       '@types/node': 18.17.4

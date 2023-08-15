@@ -70,7 +70,7 @@
   "dependencies": {
     "eventsource-parser": "1.0.0",
     "nanoid": "3.3.6",
-    "openai": "4.0.0-beta.11",
+    "openai": "4.0.0-beta.12",
     "solid-swr-store": "0.10.7",
     "sswr": "2.0.0",
     "swr": "2.2.0",
