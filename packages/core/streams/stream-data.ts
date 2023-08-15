@@ -58,7 +58,6 @@ export class experimental_StreamData {
   }
 
   async close(): Promise<void> {
-    console.trace('Closing DataStream')
     if (this.isClosed) {
       throw new Error('Data Stream has already been closed.')
     }
