@@ -4,7 +4,7 @@ import { getStreamString } from '../shared/utils'
 /**
  * A stream wrapper to send custom JSON-encoded data back to the client.
  */
-export class StreamData {
+export class experimental_StreamData {
   private encoder = new TextEncoder()
 
   private controller: TransformStreamDefaultController<Uint8Array> | null = null

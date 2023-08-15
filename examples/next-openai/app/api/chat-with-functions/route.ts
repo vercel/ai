@@ -1,5 +1,10 @@
 import { Configuration, OpenAIApi } from 'openai-edge'
-import { OpenAIStream, StreamData, StreamingTextResponse } from 'ai'
+import {
+  OpenAIStream,
+  StreamData,
+  StreamingTextResponse,
+  experimental_StreamData
+} from 'ai'
 import { ChatCompletionFunctions } from 'openai-edge/types/api'
 
 // Create an OpenAI API client (that's edge friendly!)
@@ -56,7 +61,7 @@ export async function POST(req: Request) {
     functions
   })
 
-  const data = new StreamData()
+  const data = new experimental_StreamData()
   const stream = OpenAIStream(response, {
     experimental_onFunctionCall: async (
       { name, arguments: args },
@@ -80,8 +85,8 @@ export async function POST(req: Request) {
         })
       }
     },
-      onCompletion: async completion => {
-        console.log(completion)
+    onCompletion: async completion => {
+      console.log(completion)
     }
   })
 
@@ -91,8 +96,8 @@ export async function POST(req: Request) {
 
   const finalStream = stream.pipeThrough(data.stream)
 
-  setTimeout(() => { 
-     data.close()
+  setTimeout(() => {
+    data.close()
   }, 5000)
   return new StreamingTextResponse(finalStream)
 }
