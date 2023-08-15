@@ -1,7 +1,7 @@
 import {
   AIStream,
   readableFromAsyncIterable,
-  type AIStreamCallbacks,
+  type AIStreamCallbacksAndOptions,
   createCallbacksTransformer
 } from './ai-stream'
 import { createStreamDataTransformer } from './stream-data'
@@ -90,13 +90,13 @@ async function* streamable(stream: AsyncIterable<CompletionChunk>) {
  */
 export function AnthropicStream(
   res: Response | AsyncIterable<CompletionChunk>,
-  cb?: AIStreamCallbacks
+  cb?: AIStreamCallbacksAndOptions
 ): ReadableStream {
   if (Symbol.asyncIterator in res) {
     return readableFromAsyncIterable(streamable(res)).pipeThrough(
       createCallbacksTransformer(cb)
     )
   } else {
-    return AIStream(res, parseAnthropicStream(), cb).pipeThrough(createStreamDataTransformer())
+    return AIStream(res, parseAnthropicStream(), cb).pipeThrough(createStreamDataTransformer(cb?.experimental_streamData))
   }
 }

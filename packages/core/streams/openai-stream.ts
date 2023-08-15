@@ -4,14 +4,14 @@ import { getStreamString } from '../shared/utils'
 import {
   AIStream,
   trimStartOfStreamHelper,
-  type AIStreamCallbacks,
+  type AIStreamCallbacksAndOptions,
   FunctionCallPayload,
   readableFromAsyncIterable,
   createCallbacksTransformer
 } from './ai-stream'
 import { createStreamDataTransformer } from './stream-data'
 
-export type OpenAIStreamCallbacks = AIStreamCallbacks & {
+export type OpenAIStreamCallbacks = AIStreamCallbacksAndOptions & {
   /**
    * @example
    * ```js
@@ -276,7 +276,9 @@ export function OpenAIStream(
     const functionCallTransformer = createFunctionCallTransformer(cb)
     return stream.pipeThrough(functionCallTransformer)
   } else {
-    return stream.pipeThrough(createStreamDataTransformer())
+    return stream.pipeThrough(
+      createStreamDataTransformer(cb?.experimental_streamData)
+    )
   }
 }
 
@@ -292,6 +294,8 @@ function createFunctionCallTransformer(
 
   let functionCallMessages: CreateMessage[] =
     callbacks[__internal__OpenAIFnMessagesSymbol] || []
+
+  const isComplexMode = callbacks?.experimental_streamData
 
   return new TransformStream({
     async transform(chunk, controller): Promise<void> {
@@ -310,7 +314,9 @@ function createFunctionCallTransformer(
       // Stream as normal
       if (!isFunctionStreamingIn) {
         controller.enqueue(
-          textEncoder.encode(getStreamString('text', message))
+          isComplexMode
+            ? textEncoder.encode(getStreamString('text', message))
+            : chunk
         )
         return
       } else {
@@ -364,14 +370,18 @@ function createFunctionCallTransformer(
           // so we just return the function call as a message
           controller.enqueue(
             textEncoder.encode(
-              getStreamString('function_call', aggregatedResponse)
+              isComplexMode
+                ? getStreamString('function_call', aggregatedResponse)
+                : aggregatedResponse
             )
           )
           return
         } else if (typeof functionResponse === 'string') {
           // The user returned a string, so we just return it as a message
           controller.enqueue(
-            textEncoder.encode(getStreamString('text', functionResponse))
+            isComplexMode
+              ? textEncoder.encode(getStreamString('text', functionResponse))
+              : textEncoder.encode(functionResponse)
           )
           return
         }
@@ -390,7 +400,7 @@ function createFunctionCallTransformer(
         const openAIStream = OpenAIStream(functionResponse, {
           ...filteredCallbacks,
           [__internal__OpenAIFnMessagesSymbol]: newFunctionCallMessages
-        } as AIStreamCallbacks)
+        } as AIStreamCallbacksAndOptions)
 
         const reader = openAIStream.getReader()
 

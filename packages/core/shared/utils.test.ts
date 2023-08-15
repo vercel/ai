@@ -1,15 +1,33 @@
 import { createChunkDecoder } from './utils'
 
 describe('utils', () => {
-  it('correctly decode streamed utf8 chunks', () => {
-    const decoder = createChunkDecoder()
+  it('correctly decodes streamed utf8 chunks in complex mode', () => {
+    const decoder = createChunkDecoder(true)
     const encoder = new TextEncoder()
     const prefixChunkUint8 = encoder.encode('0:')
     const chunk1 = new Uint8Array([...prefixChunkUint8, 226, 153])
     const chunk2 = new Uint8Array([...prefixChunkUint8, 165])
-    const { value: decodedValue1 } = decoder(chunk1)
-    const { value: decodedValue2 } = decoder(chunk2)
-    console.log(decodedValue1, decodedValue2)
-    expect(decodedValue1 + decodedValue2).toBe('♥')
+    const values = decoder(chunk1)
+    const secondValues = decoder(chunk2)
+    if (typeof values === 'string' || typeof secondValues === 'string') {
+      throw new Error('Expected values to be objects, not strings')
+    }
+
+    expect(values[0].value + secondValues[0].value).toBe('♥')
+  })
+
+  it('correctly decodes streamed utf8 chunks in simple mode', () => {
+    const decoder = createChunkDecoder(false)
+    const encoder = new TextEncoder()
+    const prefixChunkUint8 = encoder.encode('0:')
+    const chunk1 = new Uint8Array([...prefixChunkUint8, 226, 153])
+    const chunk2 = new Uint8Array([...prefixChunkUint8, 165])
+    const values = decoder(chunk1)
+    const secondValues = decoder(chunk2)
+    if (typeof values !== 'string' || typeof secondValues !== 'string') {
+      throw new Error('Expected values to be strings, not objects')
+    }
+
+    expect(values + secondValues).toBe('♥')
   })
 })

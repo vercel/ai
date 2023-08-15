@@ -11,13 +11,20 @@ export interface FunctionCallPayload {
 }
 
 /**
- * Helper callback methods for AIStream stream lifecycle events
+ * Configuration options and helper callback methods for AIStream stream lifecycle events.
  * @interface
  */
-export interface AIStreamCallbacks {
+export interface AIStreamCallbacksAndOptions {
   onStart?: () => Promise<void> | void
   onCompletion?: (completion: string) => Promise<void> | void
   onToken?: (token: string) => Promise<void> | void
+  /**
+   * A flag for enabling the experimental_StreamData class and the new protocol.
+   * @see https://github.com/vercel-labs/ai/pull/425
+   *
+   * When StreamData is rolled out, this will be removed and the new protocol will be used by default.
+   */
+  experimental_streamData?: boolean
 }
 
 // new TokenData()
@@ -82,7 +89,7 @@ export function createEventStreamTransformer(
  *
  * This function is useful when you want to process a stream of messages and perform specific actions during the stream's lifecycle.
  *
- * @param {AIStreamCallbacks} [callbacks] - An object containing the callback functions.
+ * @param {AIStreamCallbacksAndOptions} [callbacks] - An object containing the callback functions.
  * @return {TransformStream<string, Uint8Array>} A transform stream that encodes input messages as Uint8Array and allows the execution of custom logic through callbacks.
  *
  * @example
@@ -94,7 +101,7 @@ export function createEventStreamTransformer(
  * const transformer = createCallbacksTransformer(callbacks);
  */
 export function createCallbacksTransformer(
-  callbacks: AIStreamCallbacks | undefined
+  callbacks: AIStreamCallbacksAndOptions | undefined
 ): TransformStream<string, Uint8Array> {
   const textEncoder = new TextEncoder()
   let aggregatedResponse = ''
@@ -159,14 +166,14 @@ export function trimStartOfStreamHelper(): (text: string) => string {
  *
  * @param {Response} response - The response.
  * @param {AIStreamParser} customParser - The custom parser function.
- * @param {AIStreamCallbacks} callbacks - The callbacks.
+ * @param {AIStreamCallbacksAndOptions} callbacks - The callbacks.
  * @return {ReadableStream} The AIStream.
  * @throws Will throw an error if the response is not OK.
  */
 export function AIStream(
   response: Response,
   customParser?: AIStreamParser,
-  callbacks?: AIStreamCallbacks
+  callbacks?: AIStreamCallbacksAndOptions
 ): ReadableStream<Uint8Array> {
   if (!response.ok) {
     if (response.body) {

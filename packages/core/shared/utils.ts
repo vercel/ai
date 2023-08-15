@@ -6,9 +6,23 @@ export const nanoid = customAlphabet(
   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
   7
 )
+interface FalseConfig {
+  complex: false
+}
 
-export function createChunkDecoder() {
+interface TrueConfig {
+  complex: true
+}
+export function createChunkDecoder(complex?: boolean) {
   const decoder = new TextDecoder()
+
+  if (!complex) {
+    return function (chunk: Uint8Array | undefined): string {
+      if (!chunk) return ''
+      return decoder.decode(chunk, { stream: true })
+    }
+  }
+
   return function (chunk: Uint8Array | undefined): {
     type: keyof typeof StreamStringPrefixes
     value: string
@@ -17,7 +31,6 @@ export function createChunkDecoder() {
     return decoded.map(getStreamStringTypeAndValue).filter(Boolean) as any
   }
 }
-
 /**
  * The map of prefixes for data in the stream
  *
@@ -90,3 +103,8 @@ export const getStreamStringTypeAndValue = (
 
   return { type, value: parsedVal }
 }
+
+/**
+ * A header sent to the client so it knows how to handle parsing the stream (as a deprecated text response or using the new prefixed protocol)
+ */
+export const COMPLEX_HEADER = 'X-Experimental-Stream-Data'
