@@ -1,7 +1,7 @@
 import { Configuration, OpenAIApi } from 'openai-edge'
 import {
+  COMPLEX_HEADER,
   OpenAIStream,
-  StreamData,
   StreamingTextResponse,
   experimental_StreamData
 } from 'ai'
@@ -87,17 +87,21 @@ export async function POST(req: Request) {
     },
     onCompletion: async completion => {
       console.log(completion)
-    }
+    },
+    experimental_streamData: true
   })
 
   data.append({
     text: 'Hello, how are you?'
   })
 
-  const finalStream = stream.pipeThrough(data.stream)
-
-  setTimeout(() => {
-    data.close()
-  }, 5000)
-  return new StreamingTextResponse(finalStream)
+  return new StreamingTextResponse(
+    stream,
+    {
+      headers: {
+        [COMPLEX_HEADER]: data ? 'true' : 'false'
+      }
+    },
+    data
+  )
 }

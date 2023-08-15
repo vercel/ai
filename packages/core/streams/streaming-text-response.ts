@@ -21,7 +21,6 @@ export class StreamingTextResponse extends Response {
       status: 200,
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'X-Experimental-Stream-Data': data ? 'true' : 'false',
         ...init?.headers
       }
     })
