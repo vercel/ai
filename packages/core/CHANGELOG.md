@@ -1,5 +1,17 @@
 # ai
 
+## 2.1.34
+
+### Patch Changes
+
+- c2917d3: Add support for the Anthropic SDK, newer Anthropic API versions, and improve Anthropic error handling
+
+## 2.1.33
+
+### Patch Changes
+
+- 4ef8015: Prevent `isLoading` in vue integration from triggering extraneous network requests
+
 ## 2.1.32
 
 ### Patch Changes
