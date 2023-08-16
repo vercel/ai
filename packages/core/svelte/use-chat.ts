@@ -147,8 +147,7 @@ const getStreamedResponse = async (
       break
     }
     // Update the chat state with the new message tokens.
-    const { type, value: decodedValue } = decode(value)
-    streamedResponse += decodedValue
+    streamedResponse += decode(value)
 
     // Check to see if there is a function, so we don't bother parsing if there isn't one.
     const functionStart = streamedResponse.indexOf('{')

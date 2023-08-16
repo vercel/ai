@@ -172,9 +172,8 @@ export function useChat({
           break
         }
         // Update the chat state with the new message tokens.
-        const { type, value: decodedValue } = decoder(value)
+        result += decoder(value)
 
-        result += decodedValue
         mutate([
           ...messagesSnapshot,
           {

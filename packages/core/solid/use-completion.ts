@@ -140,8 +140,7 @@ export function useCompletion({
           break
         }
         // Update the chat state with the new message tokens.
-        const { type, value: decodedValue } = decoder(value)
-        result += decodedValue
+        result += decoder(value)
         mutate(result)
 
         // The request has been aborted, stop reading the stream.
