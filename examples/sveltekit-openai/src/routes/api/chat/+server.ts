@@ -10,7 +10,7 @@ import type { RequestHandler } from './$types'
 
 // Create an OpenAI API client
 const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY
+  apiKey: env.OPENAI_API_KEY || ''
 })
 
 export const POST = (async ({ request }) => {
