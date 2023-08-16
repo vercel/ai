@@ -7,7 +7,20 @@ export const nanoid = customAlphabet(
   7
 )
 
-export function createChunkDecoder(complex?: boolean) {
+// Type overloads
+// FIXME: Uncomment this when the complex decoder implemented in all framework files.
+// function createChunkDecoder(): (chunk: Uint8Array | undefined) => string
+// function createChunkDecoder(
+//   complex?: false
+// ): (chunk: Uint8Array | undefined) => string
+// function createChunkDecoder(complex?: true): (
+//   chunk: Uint8Array | undefined
+// ) => {
+//   type: keyof typeof StreamStringPrefixes
+//   value: string
+// }[]
+
+function createChunkDecoder(complex?: boolean) {
   const decoder = new TextDecoder()
 
   if (!complex) {
@@ -17,14 +30,14 @@ export function createChunkDecoder(complex?: boolean) {
     }
   }
 
-  return function (chunk: Uint8Array | undefined): {
-    type: keyof typeof StreamStringPrefixes
-    value: string
-  }[] {
+  return function (chunk: Uint8Array | undefined) {
     const decoded = decoder.decode(chunk, { stream: true }).split('\n')
     return decoded.map(getStreamStringTypeAndValue).filter(Boolean) as any
   }
 }
+
+export { createChunkDecoder }
+
 /**
  * The map of prefixes for data in the stream
  *

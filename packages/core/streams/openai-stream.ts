@@ -1,5 +1,5 @@
 import { CreateMessage, JSONValue } from '../shared/types'
-import { getStreamString } from '../shared/utils'
+import { createChunkDecoder, getStreamString } from '../shared/utils'
 
 import {
   AIStream,
@@ -296,10 +296,11 @@ function createFunctionCallTransformer(
     callbacks[__internal__OpenAIFnMessagesSymbol] || []
 
   const isComplexMode = callbacks?.experimental_streamData
+  const decode = createChunkDecoder()
 
   return new TransformStream({
     async transform(chunk, controller): Promise<void> {
-      const message = new TextDecoder().decode(chunk)
+      const message = decode(chunk)
 
       const shouldHandleAsFunction =
         isFirstChunk && message.startsWith('{"function_call":')
