@@ -86,7 +86,8 @@ export async function POST(req: Request) {
       }
     },
     onCompletion(completion) {
-      console.log(completion)
+      console.log('!!!!', completion)
+      data.close()
     },
     experimental_streamData: true
   })

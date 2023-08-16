@@ -101,26 +101,27 @@ export function createEventStreamTransformer(
  * const transformer = createCallbacksTransformer(callbacks);
  */
 export function createCallbacksTransformer(
-  callbacks: AIStreamCallbacksAndOptions | undefined
+  cb: AIStreamCallbacksAndOptions | undefined
 ): TransformStream<string, Uint8Array> {
   const textEncoder = new TextEncoder()
   let aggregatedResponse = ''
-  const { onStart, onToken, onCompletion } = callbacks || {}
+  const callbacks = cb || {}
 
   return new TransformStream({
     async start(): Promise<void> {
-      if (onStart) await onStart()
+      if (callbacks.onStart) await callbacks.onStart()
     },
 
     async transform(message, controller): Promise<void> {
       controller.enqueue(textEncoder.encode(message))
 
-      if (onToken) await onToken(message)
-      if (onCompletion) aggregatedResponse += message
+      if (callbacks.onToken) await callbacks.onToken(message)
+      if (callbacks.onCompletion) aggregatedResponse += message
     },
 
     async flush(): Promise<void> {
-      if (onCompletion) await onCompletion(aggregatedResponse)
+      if (callbacks.onCompletion)
+        await callbacks.onCompletion(aggregatedResponse)
     }
   })
 }
