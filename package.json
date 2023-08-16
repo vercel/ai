@@ -44,7 +44,7 @@
   "keywords": [
     "ai"
   ],
-  "packageManager": "pnpm@8.6.3",
+  "packageManager": "pnpm@8.6.9",
   "prettier": {
     "tabWidth": 2,
     "semi": false,
