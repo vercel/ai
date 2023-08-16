@@ -57,10 +57,12 @@ export class experimental_StreamData {
           clearTimeout(warningTimeout)
         }
 
-        const encodedData = self.encoder.encode(
-          getStreamString('data', JSON.stringify(self.data))
-        )
-        controller.enqueue(encodedData)
+        if (self.data.length) {
+          const encodedData = self.encoder.encode(
+            getStreamString('data', JSON.stringify(self.data))
+          )
+          controller.enqueue(encodedData)
+        }
       }
     })
   }
