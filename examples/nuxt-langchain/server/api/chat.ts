@@ -14,8 +14,8 @@ export default defineLazyEventHandler(() => {
     streaming: true
   })
 
-  return defineEventHandler(async (event) => {
-  // Extract the `prompt` from the body of the request
+  return defineEventHandler(async event => {
+    // Extract the `prompt` from the body of the request
     const { messages } = await readBody(event)
 
     const { stream, handlers } = LangChainStream()
