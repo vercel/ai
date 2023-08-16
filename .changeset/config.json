@@ -14,6 +14,8 @@
     "sveltekit-openai",
     "nuxt-openai",
     "nuxt-langchain",
-    "solidstart-openai"
+    "solidstart-openai",
+    "next-openai-rate-limits",
+    "next-replicate"
   ]
 }

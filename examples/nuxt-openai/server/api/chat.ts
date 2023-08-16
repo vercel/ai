@@ -1,43 +1,31 @@
-// ./api/chat.ts
-import { Configuration, OpenAIApi } from 'openai-edge'
-import { OpenAIStream, streamToResponse } from 'ai'
+import OpenAI from 'openai'
+import { OpenAIStream } from 'ai'
+import { CreateChatCompletionRequestMessage } from 'openai/resources/chat'
 
-// Create an OpenAI API client (that's edge friendly!)
-const config = new Configuration({
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  apiKey: useRuntimeConfig().openaiApiKey
-})
-const openai = new OpenAIApi(config)
-
-export default defineEventHandler(async (event: any) => {
-  // Extract the `prompt` from the body of the request
-  const { messages } = await readBody(event)
-
-  // Ask OpenAI for a streaming chat completion given the prompt
-  const response = await openai.createChatCompletion({
-    model: 'gpt-3.5-turbo',
-    stream: true,
-    messages: messages.map((message: any) => ({
-      content: message.content,
-      role: message.role
-    }))
+export default defineLazyEventHandler(async () => {
+  const apiKey = useRuntimeConfig().openaiApiKey
+  if (!apiKey) throw new Error('Missing OpenAI API key')
+  const openai = new OpenAI({
+    apiKey: apiKey
   })
 
-  // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response)
-  // Respond with the stream
-  const reader = stream.getReader()
-  return new Promise((resolve, reject) => {
-    function read() {
-      reader.read().then(({ done, value }) => {
-        if (done) {
-          event.node.res.end()
-          return
-        }
-        event.node.res.write(value)
-        read()
-      })
+  return defineEventHandler(async event => {
+    // Extract the `prompt` from the body of the request
+    const { messages } = (await readBody(event)) as {
+      messages: CreateChatCompletionRequestMessage[]
     }
-    read()
+
+    // Ask OpenAI for a streaming chat completion given the prompt
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      stream: true,
+      messages: messages.map(message => ({
+        content: message.content,
+        role: message.role
+      }))
+    })
+
+    // Convert the response into a friendly text-stream
+    return OpenAIStream(response)
   })
 })

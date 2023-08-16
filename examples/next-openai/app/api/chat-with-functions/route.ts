@@ -1,22 +1,20 @@
-import { Configuration, OpenAIApi } from 'openai-edge'
 import {
   COMPLEX_HEADER,
   OpenAIStream,
   StreamingTextResponse,
   experimental_StreamData
 } from 'ai'
-import { ChatCompletionFunctions } from 'openai-edge/types/api'
-
+import OpenAI from 'openai'
+import { CompletionCreateParams } from 'openai/resources/chat'
 // Create an OpenAI API client (that's edge friendly!)
-const config = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || ''
 })
-const openai = new OpenAIApi(config)
 
 // IMPORTANT! Set the runtime to edge
 export const runtime = 'edge'
 
-const functions: ChatCompletionFunctions[] = [
+const functions: CompletionCreateParams.Function[] = [
   {
     name: 'get_current_weather',
     description: 'Get the current weather.',
@@ -26,8 +24,7 @@ const functions: ChatCompletionFunctions[] = [
         format: {
           type: 'string',
           enum: ['celsius', 'fahrenheit'],
-          description:
-            'The temperature unit to use.'
+          description: 'The temperature unit to use.'
         }
       },
       required: ['format']
@@ -53,9 +50,8 @@ const functions: ChatCompletionFunctions[] = [
 
 export async function POST(req: Request) {
   const { messages } = await req.json()
-  console.log(messages)
 
-  const response = await openai.createChatCompletion({
+  const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo-0613',
     stream: true,
     messages,
@@ -79,18 +75,18 @@ export async function POST(req: Request) {
           text: 'Some custom data'
         })
 
-        return openai.createChatCompletion({
-          model: 'gpt-3.5-turbo-0613',
+        const newMessages = createFunctionCallMessages(weatherData)
+        return openai.chat.completions.create({
+          messages: [...messages, ...newMessages],
           stream: true,
-          messages: [...messages, ...createFunctionCallMessages(weatherData)]
+          model: 'gpt-3.5-turbo-0613'
         })
       }
     },
     onCompletion(completion) {
-      console.log('!!!!', completion)
+      console.log('completion', completion)
     },
     onFinal(completion) {
-      console.log('????', completion)
       data.close()
     },
     experimental_streamData: true

@@ -49,16 +49,15 @@ Here is an example of using `streamToResponse` to pipe an AI stream to a Node.js
 
 ```js
 import { createServer } from 'http'
-import { Configuration, OpenAIApi } from 'openai-edge'
+import OpenAI from 'openai'
 import { OpenAIStream, streamToResponse } from 'ai'
 
-const config = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
-const openai = new OpenAIApi(config)
 
 const server = createServer((req, res) => {
-  const aiResponse = await openai.createChatCompletion({
+  const aiResponse = await openai.chat.completions.create({
     model: 'gpt-4',
     stream: true,
     messages: /* ... */

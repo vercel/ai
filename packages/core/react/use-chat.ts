@@ -13,7 +13,7 @@ import type {
   UseChatOptions,
   ChatRequestOptions
 } from '../shared/types'
-import { ChatCompletionRequestMessageFunctionCall } from 'openai-edge'
+import { CreateChatCompletionRequestMessage } from 'openai/resources/chat'
 export type { Message, CreateMessage, UseChatOptions }
 
 export type UseChatHelpers = {
@@ -164,7 +164,7 @@ const getStreamedResponse = async (
   let responseData: any = []
   type PrefixMap = {
     text?: Message
-    function_call?: string | ChatCompletionRequestMessageFunctionCall
+    function_call?: string | CreateChatCompletionRequestMessage
     data?: string[]
   }
 
@@ -215,13 +215,12 @@ const getStreamedResponse = async (
           }
         }
 
-
         const data = prefixMap['data']
         const responseMessage = prefixMap['text']
         let functionCall = prefixMap['function_call']
         let functionCallMessage: Message | null = null
         if (functionCall) {
-          const parsedFunctionCall: ChatCompletionRequestMessageFunctionCall =
+          const parsedFunctionCall: CreateChatCompletionRequestMessage.FunctionCall =
             JSON.parse(functionCall as string).function_call
 
           functionCallMessage = {
@@ -289,7 +288,7 @@ const getStreamedResponse = async (
 
     if (streamedResponse.startsWith('{"function_call":')) {
       // Once the stream is complete, the function call is parsed into an object.
-      const parsedFunctionCall: ChatCompletionRequestMessageFunctionCall =
+      const parsedFunctionCall: CreateChatCompletionRequestMessage.FunctionCall =
         JSON.parse(streamedResponse).function_call
 
       responseMessage['function_call'] = parsedFunctionCall

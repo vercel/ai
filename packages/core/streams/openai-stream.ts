@@ -15,7 +15,7 @@ export type OpenAIStreamCallbacks = AIStreamCallbacksAndOptions & {
   /**
    * @example
    * ```js
-   * const response = await openai.createChatCompletion({
+   * const response = await openai.chat.completions.create({
    *   model: 'gpt-3.5-turbo-0613',
    *   stream: true,
    *   messages,
@@ -28,7 +28,7 @@ export type OpenAIStreamCallbacks = AIStreamCallbacksAndOptions & {
    *     const result = await myFunction(functionCallPayload)
    *
    *     // Ask for another completion, or return a string to send to the client as an assistant message.
-   *     return await openai.createChatCompletion({
+   *     return await openai.chat.completions.create({
    *       model: 'gpt-3.5-turbo-0613',
    *       stream: true,
    *       // Append the relevant "assistant" and "function" call messages
@@ -44,7 +44,9 @@ export type OpenAIStreamCallbacks = AIStreamCallbacksAndOptions & {
     createFunctionCallMessages: (
       functionCallResult: JSONValue
     ) => CreateMessage[]
-  ) => Promise<Response | undefined | void | string>
+  ) => Promise<
+    Response | undefined | void | string | AsyncIterable<ChatCompletionChunk>
+  >
 }
 
 

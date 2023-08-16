@@ -131,11 +131,11 @@ export function createCallbacksTransformer(
       const isOpenAICallbacks = isOfTypeOpenAIStreamCallbacks(callbacks)
       // If it's OpenAICallbacks, it has an experimental_onFunctionCall which means that the createFunctionCallTransformer
       // will handle calling onComplete.
-      if (callbacks.onCompletion && !isOpenAICallbacks) {
+      if (callbacks.onCompletion) {
         await callbacks.onCompletion(aggregatedResponse)
       }
 
-      if (callbacks.onFinal) {
+      if (callbacks.onFinal && !isOpenAICallbacks) {
         await callbacks.onFinal(aggregatedResponse)
       }
     }

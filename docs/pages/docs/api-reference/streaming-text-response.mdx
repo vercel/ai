@@ -33,7 +33,7 @@ import { OpenAIStream, StreamingTextResponse } from 'ai'
 export const runtime = 'edge'
 
 export async function POST() {
-  const response = await openai.createChatCompletion({
+  const response = await openai.chat.completions.create({
     model: 'gpt-4',
     stream: true,
     messages: [{ role: 'user', content: 'What is love?' }]

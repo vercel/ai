@@ -1,5 +1,17 @@
 # ai
 
+## 2.2.1
+
+### Patch Changes
+
+- 04084a8: openai-stream: fix experimental_onFunctionCall types for OpenAI SDK v4
+
+## 2.2.0
+
+### Minor Changes
+
+- dca1ed9: Update packages and examples to use OpenAI SDK v4
+
 ## 2.1.34
 
 ### Patch Changes

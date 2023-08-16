@@ -20,7 +20,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2.2.2
         with:
-          version: 8.6.3
+          version: 8.6.9
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v2

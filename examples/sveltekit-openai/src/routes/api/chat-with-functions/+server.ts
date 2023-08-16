@@ -1,15 +1,14 @@
-import { Configuration, OpenAIApi } from 'openai-edge'
+import OpenAI from 'openai'
 import { OpenAIStream, StreamingTextResponse } from 'ai'
-import type { ChatCompletionFunctions } from 'openai-edge/types/api'
+import type { CompletionCreateParams } from 'openai/resources/chat'
 
 import { env } from '$env/dynamic/private'
 
-const config = new Configuration({
-  apiKey: env.OPENAI_API_KEY
+const openai = new OpenAI({
+  apiKey: env.OPENAI_API_KEY || ''
 })
-const openai = new OpenAIApi(config)
 
-const functions: ChatCompletionFunctions[] = [
+const functions: CompletionCreateParams.Function[] = [
   {
     name: 'get_current_weather',
     description: 'Get the current weather',
@@ -60,7 +59,7 @@ const functions: ChatCompletionFunctions[] = [
 export async function POST({ request }) {
   const { messages, function_call } = await request.json()
 
-  const response = await openai.createChatCompletion({
+  const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo-0613',
     stream: true,
     messages,
