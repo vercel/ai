@@ -9,10 +9,10 @@
     "postinstall": "nuxt prepare"
   },
   "devDependencies": {
-    "@nuxt/devtools": "0.6.7",
+    "@nuxt/devtools": "0.8.0",
     "@nuxt/ui-templates": "^1.3.1",
     "@nuxtjs/tailwindcss": "^6.8.0",
-    "@types/node": "^20.4.1",
+    "@types/node": "^20.5.0",
     "@vue/reactivity": "^3.3.4",
     "@vue/runtime-core": "^3.3.4",
     "@vue/runtime-dom": "^3.3.4",
@@ -20,7 +20,7 @@
     "ai": "2.1.34",
     "nuxt": "^3.6.5",
     "openai-edge": "^1.2.2",
-    "tailwindcss": "^3.3.2",
+    "tailwindcss": "^3.3.3",
     "unctx": "^2.3.1",
     "vue": "^3.3.4"
   }
