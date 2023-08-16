@@ -134,7 +134,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: workspace:*
+        specifier: 2.2.1
         version: link:../../packages/core
       next:
         specifier: 13.4.12
