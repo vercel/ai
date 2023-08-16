@@ -6,13 +6,7 @@ export const nanoid = customAlphabet(
   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
   7
 )
-interface FalseConfig {
-  complex: false
-}
 
-interface TrueConfig {
-  complex: true
-}
 export function createChunkDecoder(complex?: boolean) {
   const decoder = new TextDecoder()
 

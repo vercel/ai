@@ -19,7 +19,7 @@ export class experimental_StreamData {
   // array to store appended data
   private data: JSONValue[] = []
   constructor() {
-    this.isClosedPromise = new Promise((resolve) => {
+    this.isClosedPromise = new Promise(resolve => {
       this.isClosedPromiseResolver = resolve
     })
 
@@ -42,13 +42,10 @@ export class experimental_StreamData {
       },
       async flush(controller) {
         await self.isClosedPromise
-        // add the rest
-        self.data.forEach(value => {
-          const encodedData = self.encoder.encode(
-            getStreamString('data', JSON.stringify(value))
-          )
-          controller.enqueue(encodedData)
-        })
+        const encodedData = self.encoder.encode(
+          getStreamString('data', JSON.stringify(self.data))
+        )
+        controller.enqueue(encodedData)
       }
     })
   }
