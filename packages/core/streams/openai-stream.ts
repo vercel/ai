@@ -50,7 +50,9 @@ export type OpenAIStreamCallbacks = AIStreamCallbacks & {
     createFunctionCallMessages: (
       functionCallResult: JSONValue
     ) => CreateMessage[]
-  ) => Promise<Response | undefined | void | string>
+  ) => Promise<
+    Response | undefined | void | string | AsyncIterable<ChatCompletionChunk>
+  >
 }
 
 // https://github.com/openai/openai-node/blob/07b3504e1c40fd929f4aae1651b83afc19e3baf8/src/resources/chat/completions.ts#L28-L40

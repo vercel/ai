@@ -5,7 +5,7 @@ import { APIEvent } from 'solid-start/api'
 
 // Create an OpenAI API client
 const openai = new OpenAI({
-  apiKey: process.env['OPENAI_API_KEY']
+  apiKey: process.env['OPENAI_API_KEY'] || ''
 })
 
 export const POST = async (event: APIEvent) => {
