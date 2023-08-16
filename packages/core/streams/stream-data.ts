@@ -19,12 +19,8 @@ export class experimental_StreamData {
   // array to store appended data
   private data: JSONValue[] = []
   constructor() {
-    this.isClosedPromise = new Promise((resolve, reject) => {
-      try {
-        this.isClosedPromiseResolver = resolve
-      } catch (e) {
-        reject(e)
-      }
+    this.isClosedPromise = new Promise((resolve) => {
+      this.isClosedPromiseResolver = resolve
     })
 
     const self = this
