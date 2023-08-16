@@ -95,9 +95,5 @@ export async function POST(req: Request) {
     text: 'Hello, how are you?'
   })
 
-  return new StreamingTextResponse(
-    stream,
-    {},
-    data
-  )
+  return new StreamingTextResponse(stream, {}, data)
 }
