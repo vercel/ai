@@ -387,8 +387,8 @@ importers:
         specifier: ^0.8.2
         version: 0.8.2(solid-js@1.7.2)
       ai:
-        specifier: 2.1.33
-        version: 2.1.33(react@18.2.0)(solid-js@1.7.2)(svelte@4.0.1)(vue@3.3.4)
+        specifier: 2.1.34
+        version: link:../../packages/core
       openai:
         specifier: 4.0.0
         version: 4.0.0
@@ -4594,37 +4594,6 @@ packages:
       clean-stack: 2.2.0
       indent-string: 4.0.0
     dev: true
-
-  /ai@2.1.33(react@18.2.0)(solid-js@1.7.2)(svelte@4.0.1)(vue@3.3.4):
-    resolution: {integrity: sha512-8VK/yl8vME9a/F1aIOi384wyDC/A+/8bQVrspvUJUA5De03DZBecw7LDOyee50kEjT7c64GNXOmBc8pBkX4oXw==}
-    engines: {node: '>=14.6'}
-    peerDependencies:
-      react: ^18.2.0
-      solid-js: ^1.7.7
-      svelte: ^3.0.0 || ^4.0.0
-      vue: ^3.3.4
-    peerDependenciesMeta:
-      react:
-        optional: true
-      solid-js:
-        optional: true
-      svelte:
-        optional: true
-      vue:
-        optional: true
-    dependencies:
-      eventsource-parser: 1.0.0
-      nanoid: 3.3.6
-      react: 18.2.0
-      solid-js: 1.7.2
-      solid-swr-store: 0.10.7(solid-js@1.7.2)(swr-store@0.10.6)
-      sswr: 2.0.0(svelte@4.0.1)
-      svelte: 4.0.1
-      swr: 2.2.0(react@18.2.0)
-      swr-store: 0.10.6
-      swrv: 1.0.4(vue@3.3.4)
-      vue: 3.3.4
-    dev: false
 
   /ajv-keywords@3.5.2(ajv@6.12.6):
     resolution: {integrity: sha512-5p6WTN0DdTGVQk6VjcEju19IgaHudalcfabD7yhDGeA6bcQnmL+CpveLJq/3hvfwd1aof6L386Ougkx6RfyMIQ==}
@@ -12682,17 +12651,6 @@ packages:
     transitivePeerDependencies:
       - supports-color
 
-  /solid-swr-store@0.10.7(solid-js@1.7.2)(swr-store@0.10.6):
-    resolution: {integrity: sha512-A6d68aJmRP471aWqKKPE2tpgOiR5fH4qXQNfKIec+Vap+MGQm3tvXlT8n0I8UgJSlNAsSAUuw2VTviH2h3Vv5g==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      solid-js: ^1.2
-      swr-store: ^0.10
-    dependencies:
-      solid-js: 1.7.2
-      swr-store: 0.10.6
-    dev: false
-
   /solid-swr-store@0.10.7(solid-js@1.7.7)(swr-store@0.10.6):
     resolution: {integrity: sha512-A6d68aJmRP471aWqKKPE2tpgOiR5fH4qXQNfKIec+Vap+MGQm3tvXlT8n0I8UgJSlNAsSAUuw2VTviH2h3Vv5g==}
     engines: {node: '>=10'}
@@ -12801,15 +12759,6 @@ packages:
       svelte: ^4.0.0
     dependencies:
       svelte: 4.0.0
-      swrev: 4.0.0
-    dev: false
-
-  /sswr@2.0.0(svelte@4.0.1):
-    resolution: {integrity: sha512-mV0kkeBHcjcb0M5NqKtKVg/uTIYNlIIniyDfSGrSfxpEdM9C365jK0z55pl9K0xAkNTJi2OAOVFQpgMPUk+V0w==}
-    peerDependencies:
-      svelte: ^4.0.0
-    dependencies:
-      svelte: 4.0.1
       swrev: 4.0.0
     dev: false
 
@@ -13170,6 +13119,7 @@ packages:
       locate-character: 3.0.0
       magic-string: 0.30.0
       periscopic: 3.1.0
+    dev: true
 
   /svg-tags@1.0.0:
     resolution: {integrity: sha512-ovssysQTa+luh7A5Weu3Rta6FJlFBBbInjOh722LIt6klpU2/HtdUbszju/G4devcvk8PGt7FCLv5wftu3THUA==}
