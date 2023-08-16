@@ -10,8 +10,8 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
   },
   "dependencies": {
-    "ai": "2.1.33",
-    "openai": "4.0.0-beta.12"
+    "openai": "4.0.0-beta.12",
+    "ai": "2.1.34"
   },
   "devDependencies": {
     "@fontsource/fira-mono": "^4.5.10",

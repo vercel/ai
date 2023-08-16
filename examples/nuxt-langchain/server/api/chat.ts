@@ -1,24 +1,24 @@
-import { LangChainStream, Message, streamToResponse } from 'ai'
+import { LangChainStream, Message, StreamingTextResponse } from 'ai'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { AIMessage, HumanMessage } from 'langchain/schema'
 
 export const runtime = 'edge'
 
-export default defineEventHandler(async (event: any) => {
-  // Extract the `prompt` from the body of the request
-  const { messages } = await readBody(event)
+export default defineLazyEventHandler(() => {
+  const apiKey = useRuntimeConfig().openaiApiKey
+  if (!apiKey) {
+    throw createError('Missing OpenAI API key')
+  }
+  const llm = new ChatOpenAI({
+    openAIApiKey: apiKey,
+    streaming: true
+  })
 
-  const { stream, handlers } = LangChainStream()
+  return defineEventHandler(async event => {
+    // Extract the `prompt` from the body of the request
+    const { messages } = await readBody(event)
 
-  const openaiApiKey = process.env.OPENAI_API_KEY || ''
-  if (!openaiApiKey) {
-    throw new Error('OPENAI_API_KEY is not set in the environment')
-  } else {
-    const llm = new ChatOpenAI({
-      openAIApiKey: process.env.OPENAI_API_KEY,
-      streaming: true
-    })
-
+    const { stream, handlers } = LangChainStream()
     llm
       .call(
         (messages as Message[]).map(message =>
@@ -32,6 +32,6 @@ export default defineEventHandler(async (event: any) => {
       // eslint-disable-next-line no-console
       .catch(console.error)
 
-    return streamToResponse(stream, event.node.res)
-  }
+    return new StreamingTextResponse(stream)
+  })
 })
