@@ -2,4 +2,4 @@
 'ai': minor
 ---
 
-Update packages and examples to use openai@beta-4
+Update packages and examples to use OpenAI SDK v4
