@@ -49,7 +49,6 @@ export type OpenAIStreamCallbacks = AIStreamCallbacksAndOptions & {
   >
 }
 
-
 // https://github.com/openai/openai-node/blob/07b3504e1c40fd929f4aae1651b83afc19e3baf8/src/resources/chat/completions.ts#L28-L40
 interface ChatCompletionChunk {
   id: string
@@ -268,9 +267,9 @@ export function OpenAIStream(
 
   let stream: ReadableStream<Uint8Array>
   if (Symbol.asyncIterator in res) {
-    stream = readableFromAsyncIterable(streamable(res)).pipeThrough(
-      createCallbacksTransformer(cb)
-    )
+    stream = readableFromAsyncIterable(streamable(res))
+      .pipeThrough(createCallbacksTransformer(cb))
+      .pipeThrough(createStreamDataTransformer(cb?.experimental_streamData))
   } else {
     stream = AIStream(
       res,

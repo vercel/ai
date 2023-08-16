@@ -95,6 +95,8 @@ export function AnthropicStream(
   if (Symbol.asyncIterator in res) {
     return readableFromAsyncIterable(streamable(res)).pipeThrough(
       createCallbacksTransformer(cb)
+    ).pipeThrough(
+      createStreamDataTransformer(cb?.experimental_streamData)
     )
   } else {
     return AIStream(res, parseAnthropicStream(), cb).pipeThrough(
