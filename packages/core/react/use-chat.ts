@@ -215,37 +215,6 @@ const getStreamedResponse = async (
           }
         }
 
-        // const fromMap = prefixMap[type as keyof PrefixMap]
-        // if (fromMap) {
-        //   if (type === 'text' ||  type === 'function_call') {
-        //     prefixMap[type as keyof PrefixMap] = {
-        //       ...fromMap,
-        //       content: fromMap.content + value
-        //     }
-        //  } else {
-        //     prefixMap[type as keyof PrefixMap] = {
-        //       ...fromMap,
-        //       ...value
-        //     }
-        //  }
-        // } else {
-        //   if (type === 'text' || type === 'function_call') {
-        //     prefixMap[type as keyof PrefixMap] = {
-        //       id: nanoid(),
-        //       role: type === 'function_call' ? 'function' : 'assistant',
-        //       content: value,
-        //       createdAt
-        //     }
-        //  } else {
-        //   prefixMap[type as keyof PrefixMap] = {
-
-        //   }
-        //  }
-        // }
-
-        // if (type === 'function_call') {
-        //   prefixMap[type as keyof PrefixMap].function_call = value
-        // }
 
         const data = prefixMap['data']
         const responseMessage = prefixMap['text']
@@ -259,7 +228,6 @@ const getStreamedResponse = async (
             id: nanoid(),
             role: 'function',
             content: '',
-            function_call: parsedFunctionCall,
             name: parsedFunctionCall.name,
             createdAt
           }

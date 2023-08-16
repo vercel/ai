@@ -4,6 +4,7 @@ import {
   type ParsedEvent,
   type ReconnectInterval
 } from 'eventsource-parser'
+import { OpenAIStreamCallbacks } from './openai-stream'
 
 export interface FunctionCallPayload {
   name: string
@@ -15,8 +16,13 @@ export interface FunctionCallPayload {
  * @interface
  */
 export interface AIStreamCallbacksAndOptions {
+  /** `onStart`: Called once when the stream is initialized. */
   onStart?: () => Promise<void> | void
+  /** `onCompletion`: Called for each tokenized message. */
   onCompletion?: (completion: string) => Promise<void> | void
+  /** `onFinal`: Called once when the stream is closed with the final completion message. */
+  onFinal?: (completion: string) => Promise<void> | void
+  /** `onToken`: Called for each tokenized message. */
   onToken?: (token: string) => Promise<void> | void
   /**
    * A flag for enabling the experimental_StreamData class and the new protocol.
@@ -85,7 +91,8 @@ export function createEventStreamTransformer(
  * The transform stream uses the provided callbacks to execute custom logic at different stages of the stream's lifecycle.
  * - `onStart`: Called once when the stream is initialized.
  * - `onToken`: Called for each tokenized message.
- * - `onCompletion`: Called once when the stream is flushed, with the aggregated messages.
+ * - `onCompletion`: Called every time an AIStream completion message is received. This can occur multiple times when using e.g. OpenAI functions
+ * - `onFinal`: Called once when the stream is closed with the final completion message.
  *
  * This function is useful when you want to process a stream of messages and perform specific actions during the stream's lifecycle.
  *
@@ -97,11 +104,12 @@ export function createEventStreamTransformer(
  *   onStart: async () => console.log('Stream started'),
  *   onToken: async (token) => console.log(`Token: ${token}`),
  *   onCompletion: async (completion) => console.log(`Completion: ${completion}`)
+ *   onFinal: async () => data.close()
  * };
  * const transformer = createCallbacksTransformer(callbacks);
  */
 export function createCallbacksTransformer(
-  cb: AIStreamCallbacksAndOptions | undefined
+  cb: AIStreamCallbacksAndOptions | OpenAIStreamCallbacks | undefined
 ): TransformStream<string, Uint8Array> {
   const textEncoder = new TextEncoder()
   let aggregatedResponse = ''
@@ -120,12 +128,25 @@ export function createCallbacksTransformer(
     },
 
     async flush(): Promise<void> {
-      if (callbacks.onCompletion)
+      const isOpenAICallbacks = isOfTypeOpenAIStreamCallbacks(callbacks)
+      // If it's OpenAICallbacks, it has an experimental_onFunctionCall which means that the createFunctionCallTransformer
+      // will handle calling onComplete.
+      if (callbacks.onCompletion && !isOpenAICallbacks) {
         await callbacks.onCompletion(aggregatedResponse)
+      }
+
+      if (callbacks.onFinal) {
+        await callbacks.onFinal(aggregatedResponse)
+      }
     }
   })
 }
 
+function isOfTypeOpenAIStreamCallbacks(
+  callbacks: AIStreamCallbacksAndOptions | OpenAIStreamCallbacks
+): callbacks is OpenAIStreamCallbacks {
+  return 'experimental_onFunctionCall' in callbacks
+}
 /**
  * Returns a stateful function that, when invoked, trims leading whitespace
  * from the input text. The trimming only occurs on the first invocation, ensuring that

@@ -47,6 +47,7 @@ export type OpenAIStreamCallbacks = AIStreamCallbacksAndOptions & {
   ) => Promise<Response | undefined | void | string>
 }
 
+
 // https://github.com/openai/openai-node/blob/07b3504e1c40fd929f4aae1651b83afc19e3baf8/src/resources/chat/completions.ts#L28-L40
 interface ChatCompletionChunk {
   id: string
@@ -275,7 +276,7 @@ export function OpenAIStream(
       cb?.experimental_onFunctionCall
         ? {
             ...cb,
-            onCompletion: undefined
+            onFinal: undefined
           }
         : {
             ...cb
@@ -412,7 +413,8 @@ function createFunctionCallTransformer(
             ...callbacks,
             onStart: undefined
           }
-          callbacks.onCompletion = undefined
+          // We only want onFinal to be called the _last_ time
+          callbacks.onFinal = undefined
 
           const openAIStream = OpenAIStream(functionResponse, {
             ...filteredCallbacks,
@@ -430,8 +432,8 @@ function createFunctionCallTransformer(
           }
         }
       } finally {
-        if (callbacks.onCompletion) {
-          await callbacks.onCompletion(aggregatedFinalCompletionResponse)
+        if (callbacks.onFinal && aggregatedFinalCompletionResponse) {
+          await callbacks.onFinal(aggregatedFinalCompletionResponse)
         }
       }
     }

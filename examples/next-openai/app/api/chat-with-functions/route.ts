@@ -19,7 +19,7 @@ export const runtime = 'edge'
 const functions: ChatCompletionFunctions[] = [
   {
     name: 'get_current_weather',
-    description: 'Get the current weather',
+    description: 'Get the current weather.',
     parameters: {
       type: 'object',
       properties: {
@@ -27,7 +27,7 @@ const functions: ChatCompletionFunctions[] = [
           type: 'string',
           enum: ['celsius', 'fahrenheit'],
           description:
-            'The temperature unit to use. Infer this from the users location.'
+            'The temperature unit to use.'
         }
       },
       required: ['format']
@@ -53,6 +53,7 @@ const functions: ChatCompletionFunctions[] = [
 
 export async function POST(req: Request) {
   const { messages } = await req.json()
+  console.log(messages)
 
   const response = await openai.createChatCompletion({
     model: 'gpt-3.5-turbo-0613',
@@ -87,6 +88,9 @@ export async function POST(req: Request) {
     },
     onCompletion(completion) {
       console.log('!!!!', completion)
+    },
+    onFinal(completion) {
+      console.log('????', completion)
       data.close()
     },
     experimental_streamData: true
