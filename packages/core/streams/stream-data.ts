@@ -41,7 +41,22 @@ export class experimental_StreamData {
         }
       },
       async flush(controller) {
+        // Show a warning during dev if the data stream is hanging after 3 seconds.
+        const warningTimeout =
+          process.env.NODE_ENV === 'development'
+            ? setTimeout(() => {
+                console.warn(
+                  'The data stream is hanging. Did you forget to close it with `data.close()`?'
+                )
+              }, 3000)
+            : null
+
         await self.isClosedPromise
+
+        if (warningTimeout !== null) {
+          clearTimeout(warningTimeout)
+        }
+
         const encodedData = self.encoder.encode(
           getStreamString('data', JSON.stringify(self.data))
         )
