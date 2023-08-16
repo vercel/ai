@@ -3,7 +3,8 @@ import useSWR, { KeyedMutator } from 'swr'
 import {
   nanoid,
   createChunkDecoder,
-  StreamStringPrefixes
+  StreamStringPrefixes,
+  COMPLEX_HEADER
 } from '../shared/utils'
 
 import type {
@@ -145,7 +146,7 @@ const getStreamedResponse = async (
     throw new Error('The response body is empty.')
   }
 
-  const isComplexMode = res.headers.get('X-Experimental-Stream-Data') === 'true'
+  const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true'
   const createdAt = new Date()
   const reader = res.body.getReader()
   const decode = createChunkDecoder(isComplexMode)

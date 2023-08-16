@@ -1,5 +1,4 @@
 import {
-  COMPLEX_HEADER,
   OpenAIStream,
   StreamingTextResponse,
   experimental_StreamData
@@ -98,11 +97,7 @@ export async function POST(req: Request) {
 
   return new StreamingTextResponse(
     stream,
-    {
-      headers: {
-        [COMPLEX_HEADER]: 'true'
-      }
-    },
+    {},
     data
   )
 }
