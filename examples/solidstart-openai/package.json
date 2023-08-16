@@ -18,11 +18,11 @@
   "dependencies": {
     "@solidjs/meta": "^0.28.2",
     "@solidjs/router": "^0.8.2",
+    "ai": "2.1.33",
+    "openai": "4.0.0",
     "solid-js": "^1.7.2",
     "solid-start": "^0.2.26",
-    "undici": "^5.15.1",
-    "ai": "*",
-    "openai-edge": "^0.5.1"
+    "undici": "^5.15.1"
   },
   "engines": {
     "node": ">=16"

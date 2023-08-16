@@ -13,17 +13,15 @@ Each stream helper for each provider has special lifecycle callbacks you can use
 This example uses [Vercel KV](https://vercel.com/storage/kv) and Next.js to cache the OpenAI response for 1 hour.
 
 ```tsx filename="app/api/chat/route.ts"
-import { Configuration, OpenAIApi } from 'openai-edge'
+import OpenAI from 'openai'
 import { OpenAIStream, StreamingTextResponse } from 'ai'
 import kv from '@vercel/kv'
 
 export const runtime = 'edge'
 
-const apiConfig = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!
 })
-
-const openai = new OpenAIApi(apiConfig)
 
 export async function POST(req: Request) {
   const { messages } = await req.json()
@@ -56,7 +54,7 @@ export async function POST(req: Request) {
     // return new StreamingTextResponse(stream);
   }
 
-  const response = await openai.createChatCompletion({
+  const response = await openai.chat.completions.create({
     // ... omitted for brevity
   })
 

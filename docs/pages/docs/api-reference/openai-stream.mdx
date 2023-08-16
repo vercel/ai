@@ -9,15 +9,15 @@ This works with a variety of OpenAI models, including:
 - `gpt-4`, `gpt-4-0314`, `gpt-4-32k`, `gpt-4-32k-0314`, `gpt-3.5-turbo`, `gpt-3.5-turbo-0301`
 - `text-davinci-003`, `text-davinci-002`, `text-curie-001`, `text-babbage-001`, `text-ada-001`
 
-It is designed to work with responses from either `openai.createCompletion` or `openai.createChatCompletion` methods. To get the full advantage of streaming capabilities, it's recommended to use the `openai-edge` package, which allows streaming of completions and chats from an edge function.
+It is designed to work with responses from either `openai.completions.create` or `openai.chat.completions.create` methods.
 
-Note: The official OpenAI API SDK does not yet support the Edge Runtime and will only work in serverless environments at the moment. The `openai-edge` package is based on `fetch` instead of `axios` (and thus works in the Edge Runtime) so we suggest using it instead.
+Note: Prior to v4, the official OpenAI API SDK does not support the Edge Runtime and only works in serverless environments. The `openai-edge` package is based on `fetch` instead of `axios` (and thus works in the Edge Runtime) so we recommend using `openai` v4+ or `openai-edge`.
 
 ## Parameters [#parameters]
 
 ### `res: Response`
 
-This is the response object returned by either `openai.createCompletion` or `openai.createChatCompletion` methods.
+This is the response object returned by either `openai.completions.create` or `openai.chat.completions.create` methods.
 
 ### `cb?: AIStreamCallbacks`
 
@@ -30,20 +30,19 @@ Below are some examples of how to use `OpenAIStream` with chat and completion mo
 ### Chat Model Example
 
 ```tsx
-import { Configuration, OpenAIApi } from 'openai-edge'
+import OpenAI from 'openai'
 import { OpenAIStream, StreamingTextResponse } from 'ai'
 
-const config = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
-const openai = new OpenAIApi(config)
 
 export const runtime = 'edge'
 
 export async function POST(req: Request) {
   const { messages } = await req.json()
-  // Create a chat completion using OpenAIApi
-  const response = await openai.createChatCompletion({
+  // Create a chat completion using OpenAI
+  const response = await openai.chat.completions.create({
     model: 'gpt-4',
     stream: true,
     messages
@@ -60,20 +59,19 @@ export async function POST(req: Request) {
 ### Completion Model Example
 
 ```tsx
-import { Configuration, OpenAIApi } from 'openai-edge'
+import OpenAI from 'openai'
 import { OpenAIStream, StreamingTextResponse } from 'ai'
 
-const config = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
-const openai = new OpenAIApi(config)
 
 export const runtime = 'edge'
 
 export async function POST(req: Request) {
   const { prompt } = await req.json()
-  // Create a completion using OpenAIApi
-  const response = await openai.createCompletion({
+  // Create a completion using OpenAI
+  const response = await openai.completions.create({
     model: 'text-davinci-003',
     stream: true,
     prompt

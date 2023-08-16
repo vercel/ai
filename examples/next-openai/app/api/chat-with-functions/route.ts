@@ -1,17 +1,15 @@
-import { Configuration, OpenAIApi } from 'openai-edge'
 import { OpenAIStream, StreamingTextResponse } from 'ai'
-import { ChatCompletionFunctions } from 'openai-edge/types/api'
-
+import OpenAI from 'openai'
+import { CompletionCreateParams } from 'openai/resources/chat'
 // Create an OpenAI API client (that's edge friendly!)
-const config = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
-const openai = new OpenAIApi(config)
 
 // IMPORTANT! Set the runtime to edge
 export const runtime = 'edge'
 
-const functions: ChatCompletionFunctions[] = [
+const functions: CompletionCreateParams.Function[] = [
   {
     name: 'get_current_weather',
     description: 'Get the current weather',
@@ -49,7 +47,7 @@ const functions: ChatCompletionFunctions[] = [
 export async function POST(req: Request) {
   const { messages } = await req.json()
 
-  const response = await openai.createChatCompletion({
+  const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo-0613',
     stream: true,
     messages,
@@ -68,7 +66,7 @@ export async function POST(req: Request) {
           unit: args.format === 'celsius' ? 'C' : 'F'
         }
         const newMessages = createFunctionCallMessages(weatherData)
-        return openai.createChatCompletion({
+        return openai.chat.completions.create({
           messages: [...messages, ...newMessages],
           stream: true,
           model: 'gpt-3.5-turbo-0613',
