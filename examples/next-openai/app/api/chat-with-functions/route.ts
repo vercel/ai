@@ -85,7 +85,7 @@ export async function POST(req: Request) {
         })
       }
     },
-    onCompletion: async completion => {
+    onCompletion(completion) {
       console.log(completion)
     },
     experimental_streamData: true
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
     stream,
     {
       headers: {
-        [COMPLEX_HEADER]: data ? 'true' : 'false'
+        [COMPLEX_HEADER]: 'true'
       }
     },
     data

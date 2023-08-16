@@ -394,8 +394,7 @@ function createFunctionCallTransformer(
         // see https://github.com/vercel/ai/issues/351
         const filteredCallbacks: OpenAIStreamCallbacks = {
           ...callbacks,
-          onStart: undefined,
-          onCompletion: undefined
+          onStart: undefined
         }
 
         const openAIStream = OpenAIStream(functionResponse, {

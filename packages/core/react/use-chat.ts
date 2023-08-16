@@ -75,6 +75,8 @@ const getStreamedResponse = async (
   api: string,
   chatRequest: ChatRequest,
   mutate: KeyedMutator<Message[]>,
+  mutateStreamData: KeyedMutator<any[]>,
+  existingData: any,
   extraMetadataRef: React.MutableRefObject<any>,
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
@@ -160,7 +162,13 @@ const getStreamedResponse = async (
   }
   // END TODO-STREAMDATA
   let responseData: any = []
-  const prefixMap = new Map<keyof typeof StreamStringPrefixes, Message>()
+  type PrefixMap = {
+    text?: Message
+    function_call?: string | ChatCompletionRequestMessageFunctionCall
+    data?: string[]
+  }
+
+  const prefixMap: PrefixMap = {}
 
   if (isComplexMode) {
     while (true) {
@@ -178,79 +186,112 @@ const getStreamedResponse = async (
 
       // we create a map of each prefix, and for each prefixed message we push to the map
       for (const { type, value } of lines) {
-        // streamedResponse += decodedValue
-
-        const fromMap = prefixMap.get(type)
-        if (fromMap) {
-          prefixMap.set(type, {
-            ...fromMap,
-            content: fromMap.content + value
-          })
-        } else {
-          prefixMap.set(type, {
-            id: nanoid(),
-            role: type === 'function_call' ? 'function' : 'assistant',
-            content: value,
-            createdAt
-          })
+        if (type === 'text') {
+          if (prefixMap['text']) {
+            prefixMap['text'] = {
+              ...prefixMap['text'],
+              content: (prefixMap['text'].content || '') + value
+            }
+          } else {
+            prefixMap['text'] = {
+              id: nanoid(),
+              role: 'assistant',
+              content: value,
+              createdAt
+            }
+          }
         }
 
         if (type === 'function_call') {
-          prefixMap.get(type)!.function_call = value
+          prefixMap['function_call'] = value
         }
 
-        const data = prefixMap.get('data')
-        const responseMessage = prefixMap.get('text')
-        const functionCall = prefixMap.get('function_call')
+        if (type === 'data') {
+          const parsedValue = JSON.parse(value)
+          if (prefixMap['data']) {
+            prefixMap['data'] = [...prefixMap['data'], ...parsedValue]
+          } else {
+            prefixMap['data'] = parsedValue
+          }
+        }
 
-        // We add function calls and respnse messages to the messages[], but data is its own thing
-        const merged = [functionCall, responseMessage].filter(
+        // const fromMap = prefixMap[type as keyof PrefixMap]
+        // if (fromMap) {
+        //   if (type === 'text' ||  type === 'function_call') {
+        //     prefixMap[type as keyof PrefixMap] = {
+        //       ...fromMap,
+        //       content: fromMap.content + value
+        //     }
+        //  } else {
+        //     prefixMap[type as keyof PrefixMap] = {
+        //       ...fromMap,
+        //       ...value
+        //     }
+        //  }
+        // } else {
+        //   if (type === 'text' || type === 'function_call') {
+        //     prefixMap[type as keyof PrefixMap] = {
+        //       id: nanoid(),
+        //       role: type === 'function_call' ? 'function' : 'assistant',
+        //       content: value,
+        //       createdAt
+        //     }
+        //  } else {
+        //   prefixMap[type as keyof PrefixMap] = {
+
+        //   }
+        //  }
+        // }
+
+        // if (type === 'function_call') {
+        //   prefixMap[type as keyof PrefixMap].function_call = value
+        // }
+
+        const data = prefixMap['data']
+        const responseMessage = prefixMap['text']
+        let functionCall = prefixMap['function_call']
+        let functionCallMessage: Message | null = null
+        if (functionCall) {
+          const parsedFunctionCall: ChatCompletionRequestMessageFunctionCall =
+            JSON.parse(functionCall as string).function_call
+
+          functionCallMessage = {
+            id: nanoid(),
+            role: 'function',
+            content: '',
+            function_call: parsedFunctionCall,
+            name: parsedFunctionCall.name,
+            createdAt
+          }
+        }
+
+        // We add function calls and response messages to the messages[], but data is its own thing
+        const merged = [functionCallMessage, responseMessage].filter(
           Boolean
         ) as Message[]
 
         mutate([...chatRequest.messages, ...merged], false)
+        mutateStreamData([...(existingData || []), ...(data || [])])
 
         // The request has been aborted, stop reading the stream.
         if (abortControllerRef.current === null) {
           reader.cancel()
           break
         }
-
-        const finishedFunctionCall = prefixMap.get('function_call')
-
-        if (finishedFunctionCall?.function_call) {
-          // Once the stream is complete, the function call is parsed into an object.
-          const parsedFunctionCall: ChatCompletionRequestMessageFunctionCall =
-            JSON.parse(finishedFunctionCall.function_call as string)
-
-          finishedFunctionCall.function_call = parsedFunctionCall
-
-          mutate([...chatRequest.messages, ...prefixMap.values()])
-        }
       }
     }
 
-    for (const [type, item] of prefixMap) {
-      if (item.function_call) {
-        const parsedFunctionCall: ChatCompletionRequestMessageFunctionCall =
-          JSON.parse(item.function_call as string)
-        item.function_call = parsedFunctionCall
-        item.name = parsedFunctionCall.name
-      } else {
-        item.data = responseData
-      }
-
-      if (onFinish) {
-        onFinish(item)
+    for (const [type, item] of Object.entries(prefixMap)) {
+      if (onFinish && type === 'text') {
+        onFinish(item as Message)
       }
 
       if (type === 'data') {
         responseData.push(item)
       } else {
-        responseMessages.push(item)
+        responseMessages.push(item as Message)
       }
     }
-
     return { messages: responseMessages, data: responseData }
   } else {
     // TODO-STREAMDATA: Remove this once Strem Data is not experimental
@@ -282,8 +323,12 @@ const getStreamedResponse = async (
       // Once the stream is complete, the function call is parsed into an object.
       const parsedFunctionCall: ChatCompletionRequestMessageFunctionCall =
         JSON.parse(streamedResponse).function_call
+
+      responseMessage['function_call'] = parsedFunctionCall
+
       mutate([...chatRequest.messages, { ...responseMessage }])
     }
+
     if (onFinish) {
       onFinish(responseMessage)
     }
@@ -365,6 +410,8 @@ export function useChat({
           api,
           chatRequest,
           mutate,
+          mutateStreamData,
+          streamData,
           extraMetadataRef,
           messagesRef,
           abortControllerRef,
@@ -372,13 +419,6 @@ export function useChat({
           onResponse,
           sendExtraMessageFields
         )
-
-        if (messagesAndDataOrJustMessage.data) {
-          mutateStreamData([
-            ...messagesAndDataOrJustMessage.data,
-            ...streamData
-          ])
-        }
 
         // Using experimental stream data
         if ('messages' in messagesAndDataOrJustMessage) {
