@@ -250,7 +250,7 @@ export async function POST(req: Request) {
       console.log(token)
     },
     onCompletion: async (completion: string) => {
-      // This callback is called when the stream completes
+      // This callback is called when the completion is ready
       // You can use this to save the final completion to your database
       await saveCompletionToDatabase(completion)
     }

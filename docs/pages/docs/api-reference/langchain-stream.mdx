@@ -14,7 +14,8 @@ The `AIStreamCallbacks` object has the following properties:
 
 - `onStart?: () => Promise<void>`: A function that is called at the start of the process.
 - `onToken?: (token: string) => Promise<void>`: A function that is called for each new token. The token is passed as a parameter.
-- `onCompletion?: (fullResponse: string) => Promise<void>`: A function that is called when the process is complete. The full response is passed as a parameter.
+- `onCompletion?: (completion: string) => Promise<void>`: A function that is called when a completion is complete. The full completion is passed as a parameter.
+- `onFinal?: (completion: string) => Promise<void>`: A function that is called when a response is complete. The full completion is passed as a parameter.
 
 ## Returns
 

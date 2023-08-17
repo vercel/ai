@@ -50,7 +50,12 @@ This is an object that contains the following properties:
     [
       'onCompletion',
       '(completion: string) => Promise<void>',
-      "An optional function that is called when the stream processing is complete. It's passed the completion as a string."
+      "An optional function that is called for every completion. It's passed the completion as a string."
+    ],
+    [
+      'onFinal',
+      '(completion: string) => Promise<void>',
+      "An optional function that is called once for every request. It's passed the completion as a string. Differs from onCompletion when function calls are present."
     ],
     [
       'onToken',
@@ -106,8 +111,11 @@ const anthropicStream = AnthropicStream(fetchResponse, {
     console.log('Stream started')
   },
   onCompletion: async completion => {
-    console.log('Stream completed', completion)
+    console.log('Completion completed', completion)
   },
+  onFinal: async completion => {
+    console.log("Stream completed", completion)
+  }
   onToken: async token => {
     console.log('Token received', token)
   }

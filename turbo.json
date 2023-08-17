@@ -3,7 +3,7 @@
   "pipeline": {
     "build": {
       "dependsOn": ["^build"],
-      "env": ["OPENAI_API_KEY", "HUGGINGFACE_API_KEY", "REPLICATE_API_KEY"],
+      "env": ["OPENAI_API_KEY", "HUGGINGFACE_API_KEY", "REPLICATE_API_KEY", "NODE_ENV"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {

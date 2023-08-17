@@ -4,6 +4,7 @@ import {
   type ParsedEvent,
   type ReconnectInterval
 } from 'eventsource-parser'
+import { OpenAIStreamCallbacks } from './openai-stream'
 
 export interface FunctionCallPayload {
   name: string
@@ -11,15 +12,29 @@ export interface FunctionCallPayload {
 }
 
 /**
- * Helper callback methods for AIStream stream lifecycle events
+ * Configuration options and helper callback methods for AIStream stream lifecycle events.
  * @interface
  */
-export interface AIStreamCallbacks {
+export interface AIStreamCallbacksAndOptions {
+  /** `onStart`: Called once when the stream is initialized. */
   onStart?: () => Promise<void> | void
+  /** `onCompletion`: Called for each tokenized message. */
   onCompletion?: (completion: string) => Promise<void> | void
+  /** `onFinal`: Called once when the stream is closed with the final completion message. */
+  onFinal?: (completion: string) => Promise<void> | void
+  /** `onToken`: Called for each tokenized message. */
   onToken?: (token: string) => Promise<void> | void
+  /**
+   * A flag for enabling the experimental_StreamData class and the new protocol.
+   * @see https://github.com/vercel-labs/ai/pull/425
+   *
+   * When StreamData is rolled out, this will be removed and the new protocol will be used by default.
+   */
+  experimental_streamData?: boolean
 }
 
+// new TokenData()
+// data: TokenData,
 /**
  * Custom parser for AIStream data.
  * @interface
@@ -76,11 +91,12 @@ export function createEventStreamTransformer(
  * The transform stream uses the provided callbacks to execute custom logic at different stages of the stream's lifecycle.
  * - `onStart`: Called once when the stream is initialized.
  * - `onToken`: Called for each tokenized message.
- * - `onCompletion`: Called once when the stream is flushed, with the aggregated messages.
+ * - `onCompletion`: Called every time an AIStream completion message is received. This can occur multiple times when using e.g. OpenAI functions
+ * - `onFinal`: Called once when the stream is closed with the final completion message.
  *
  * This function is useful when you want to process a stream of messages and perform specific actions during the stream's lifecycle.
  *
- * @param {AIStreamCallbacks} [callbacks] - An object containing the callback functions.
+ * @param {AIStreamCallbacksAndOptions} [callbacks] - An object containing the callback functions.
  * @return {TransformStream<string, Uint8Array>} A transform stream that encodes input messages as Uint8Array and allows the execution of custom logic through callbacks.
  *
  * @example
@@ -88,34 +104,49 @@ export function createEventStreamTransformer(
  *   onStart: async () => console.log('Stream started'),
  *   onToken: async (token) => console.log(`Token: ${token}`),
  *   onCompletion: async (completion) => console.log(`Completion: ${completion}`)
+ *   onFinal: async () => data.close()
  * };
  * const transformer = createCallbacksTransformer(callbacks);
  */
 export function createCallbacksTransformer(
-  callbacks: AIStreamCallbacks | undefined
+  cb: AIStreamCallbacksAndOptions | OpenAIStreamCallbacks | undefined
 ): TransformStream<string, Uint8Array> {
   const textEncoder = new TextEncoder()
   let aggregatedResponse = ''
-  const { onStart, onToken, onCompletion } = callbacks || {}
+  const callbacks = cb || {}
 
   return new TransformStream({
     async start(): Promise<void> {
-      if (onStart) await onStart()
+      if (callbacks.onStart) await callbacks.onStart()
     },
 
     async transform(message, controller): Promise<void> {
       controller.enqueue(textEncoder.encode(message))
 
-      if (onToken) await onToken(message)
-      if (onCompletion) aggregatedResponse += message
+      if (callbacks.onToken) await callbacks.onToken(message)
+      if (callbacks.onCompletion) aggregatedResponse += message
     },
 
     async flush(): Promise<void> {
-      if (onCompletion) await onCompletion(aggregatedResponse)
+      const isOpenAICallbacks = isOfTypeOpenAIStreamCallbacks(callbacks)
+      // If it's OpenAICallbacks, it has an experimental_onFunctionCall which means that the createFunctionCallTransformer
+      // will handle calling onComplete.
+      if (callbacks.onCompletion) {
+        await callbacks.onCompletion(aggregatedResponse)
+      }
+
+      if (callbacks.onFinal && !isOpenAICallbacks) {
+        await callbacks.onFinal(aggregatedResponse)
+      }
     }
   })
 }
 
+function isOfTypeOpenAIStreamCallbacks(
+  callbacks: AIStreamCallbacksAndOptions | OpenAIStreamCallbacks
+): callbacks is OpenAIStreamCallbacks {
+  return 'experimental_onFunctionCall' in callbacks
+}
 /**
  * Returns a stateful function that, when invoked, trims leading whitespace
  * from the input text. The trimming only occurs on the first invocation, ensuring that
@@ -157,14 +188,14 @@ export function trimStartOfStreamHelper(): (text: string) => string {
  *
  * @param {Response} response - The response.
  * @param {AIStreamParser} customParser - The custom parser function.
- * @param {AIStreamCallbacks} callbacks - The callbacks.
+ * @param {AIStreamCallbacksAndOptions} callbacks - The callbacks.
  * @return {ReadableStream} The AIStream.
  * @throws Will throw an error if the response is not OK.
  */
 export function AIStream(
   response: Response,
   customParser?: AIStreamParser,
-  callbacks?: AIStreamCallbacks
+  callbacks?: AIStreamCallbacksAndOptions
 ): ReadableStream<Uint8Array> {
   if (!response.ok) {
     if (response.body) {
@@ -193,6 +224,12 @@ export function AIStream(
     .pipeThrough(createEventStreamTransformer(customParser))
     .pipeThrough(createCallbacksTransformer(callbacks))
 }
+
+// outputs lines like
+// 0: chunk
+// 0: more chunk
+// 1: a fct call
+// z: added data from Data
 
 /**
  * Creates an empty ReadableStream that immediately closes upon creation.

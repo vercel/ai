@@ -1,5 +1,6 @@
-import { AIStream, type AIStreamCallbacks } from './ai-stream'
+import { AIStream, type AIStreamCallbacksAndOptions } from './ai-stream'
 import type { Prediction } from 'replicate'
+import { createStreamDataTransformer } from './stream-data'
 
 /**
  * Stream predictions from Replicate.
@@ -22,7 +23,7 @@ import type { Prediction } from 'replicate'
  */
 export async function ReplicateStream(
   res: Prediction,
-  cb?: AIStreamCallbacks
+  cb?: AIStreamCallbacksAndOptions
 ): Promise<ReadableStream> {
   const url = res.urls?.stream
 
@@ -38,5 +39,7 @@ export async function ReplicateStream(
     }
   })
 
-  return AIStream(eventStream, undefined, cb)
+  return AIStream(eventStream, undefined, cb).pipeThrough(
+    createStreamDataTransformer(cb?.experimental_streamData)
+  )
 }

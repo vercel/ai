@@ -1,23 +1,17 @@
-import { CreateMessage } from '../shared/types'
+import { CreateMessage, JSONValue } from '../shared/types'
+import { createChunkDecoder, getStreamString } from '../shared/utils'
 
 import {
   AIStream,
   trimStartOfStreamHelper,
-  type AIStreamCallbacks,
+  type AIStreamCallbacksAndOptions,
   FunctionCallPayload,
   readableFromAsyncIterable,
   createCallbacksTransformer
 } from './ai-stream'
+import { createStreamDataTransformer } from './stream-data'
 
-type JSONValue =
-  | null
-  | string
-  | number
-  | boolean
-  | { [x: string]: JSONValue }
-  | Array<JSONValue>
-
-export type OpenAIStreamCallbacks = AIStreamCallbacks & {
+export type OpenAIStreamCallbacks = AIStreamCallbacksAndOptions & {
   /**
    * @example
    * ```js
@@ -274,17 +268,39 @@ export function OpenAIStream(
   let stream: ReadableStream<Uint8Array>
   if (Symbol.asyncIterator in res) {
     stream = readableFromAsyncIterable(streamable(res)).pipeThrough(
-      createCallbacksTransformer(cb)
+      createCallbacksTransformer(
+        cb?.experimental_onFunctionCall
+          ? {
+              ...cb,
+              onFinal: undefined
+            }
+          : {
+              ...cb
+            }
+      )
     )
   } else {
-    stream = AIStream(res, parseOpenAIStream(), cb)
+    stream = AIStream(
+      res,
+      parseOpenAIStream(),
+      cb?.experimental_onFunctionCall
+        ? {
+            ...cb,
+            onFinal: undefined
+          }
+        : {
+            ...cb
+          }
+    )
   }
 
   if (cb && cb.experimental_onFunctionCall) {
     const functionCallTransformer = createFunctionCallTransformer(cb)
     return stream.pipeThrough(functionCallTransformer)
   } else {
-    return stream
+    return stream.pipeThrough(
+      createStreamDataTransformer(cb?.experimental_streamData)
+    )
   }
 }
 
@@ -296,14 +312,19 @@ function createFunctionCallTransformer(
   const textEncoder = new TextEncoder()
   let isFirstChunk = true
   let aggregatedResponse = ''
+  let aggregatedFinalCompletionResponse = ''
   let isFunctionStreamingIn = false
 
   let functionCallMessages: CreateMessage[] =
     callbacks[__internal__OpenAIFnMessagesSymbol] || []
 
+  const isComplexMode = callbacks?.experimental_streamData
+  const decode = createChunkDecoder()
+
   return new TransformStream({
     async transform(chunk, controller): Promise<void> {
-      const message = new TextDecoder().decode(chunk)
+      const message = decode(chunk)
+      aggregatedFinalCompletionResponse += message
 
       const shouldHandleAsFunction =
         isFirstChunk && message.startsWith('{"function_call":')
@@ -317,89 +338,112 @@ function createFunctionCallTransformer(
 
       // Stream as normal
       if (!isFunctionStreamingIn) {
-        controller.enqueue(chunk)
+        controller.enqueue(
+          isComplexMode
+            ? textEncoder.encode(getStreamString('text', message))
+            : chunk
+        )
         return
       } else {
         aggregatedResponse += message
       }
     },
     async flush(controller): Promise<void> {
-      const isEndOfFunction =
-        !isFirstChunk &&
-        callbacks.experimental_onFunctionCall &&
-        isFunctionStreamingIn
+      try {
+        const isEndOfFunction =
+          !isFirstChunk &&
+          callbacks.experimental_onFunctionCall &&
+          isFunctionStreamingIn
 
-      // This callbacks.experimental_onFunctionCall check should not be necessary but TS complains
-      if (isEndOfFunction && callbacks.experimental_onFunctionCall) {
-        isFunctionStreamingIn = false
-        const payload = JSON.parse(aggregatedResponse)
-        const argumentsPayload = JSON.parse(payload.function_call.arguments)
+        // This callbacks.experimental_onFunctionCall check should not be necessary but TS complains
+        if (isEndOfFunction && callbacks.experimental_onFunctionCall) {
+          isFunctionStreamingIn = false
+          const payload = JSON.parse(aggregatedResponse)
+          const argumentsPayload = JSON.parse(payload.function_call.arguments)
 
-        // Append the function call message to the list
-        let newFunctionCallMessages: CreateMessage[] = [...functionCallMessages]
+          // Append the function call message to the list
+          let newFunctionCallMessages: CreateMessage[] = [
+            ...functionCallMessages
+          ]
 
-        const functionResponse = await callbacks.experimental_onFunctionCall(
-          {
-            name: payload.function_call.name,
-            arguments: argumentsPayload
-          },
-          result => {
-            // Append the function call request and result messages to the list
-            newFunctionCallMessages = [
-              ...functionCallMessages,
-              {
-                role: 'assistant',
-                content: '',
-                function_call: payload.function_call
-              },
-              {
-                role: 'function',
-                name: payload.function_call.name,
-                content: JSON.stringify(result)
-              }
-            ]
+          const functionResponse = await callbacks.experimental_onFunctionCall(
+            {
+              name: payload.function_call.name,
+              arguments: argumentsPayload
+            },
+            result => {
+              // Append the function call request and result messages to the list
+              newFunctionCallMessages = [
+                ...functionCallMessages,
+                {
+                  role: 'assistant',
+                  content: '',
+                  function_call: payload.function_call
+                },
+                {
+                  role: 'function',
+                  name: payload.function_call.name,
+                  content: JSON.stringify(result)
+                }
+              ]
 
-            // Return it to the user
-            return newFunctionCallMessages
+              // Return it to the user
+              return newFunctionCallMessages
+            }
+          )
+
+          if (!functionResponse) {
+            // The user didn't do anything with the function call on the server and wants
+            // to either do nothing or run it on the client
+            // so we just return the function call as a message
+            controller.enqueue(
+              textEncoder.encode(
+                isComplexMode
+                  ? getStreamString('function_call', aggregatedResponse)
+                  : aggregatedResponse
+              )
+            )
+            return
+          } else if (typeof functionResponse === 'string') {
+            // The user returned a string, so we just return it as a message
+            controller.enqueue(
+              isComplexMode
+                ? textEncoder.encode(getStreamString('text', functionResponse))
+                : textEncoder.encode(functionResponse)
+            )
+            return
           }
-        )
 
-        if (!functionResponse) {
-          // The user didn't do anything with the function call on the server and wants
-          // to either do nothing or run it on the client
-          // so we just return the function call as a message
-          controller.enqueue(textEncoder.encode(aggregatedResponse))
-          return
-        } else if (typeof functionResponse === 'string') {
-          // The user returned a string, so we just return it as a message
-          controller.enqueue(textEncoder.encode(functionResponse))
-          return
-        }
+          // Recursively:
 
-        // Recursively:
-
-        // We don't want to trigger onStart or onComplete recursively
-        // so we remove them from the callbacks
-        // see https://github.com/vercel/ai/issues/351
-        const filteredCallbacks: OpenAIStreamCallbacks = {
-          ...callbacks,
-          onStart: undefined,
-          onCompletion: undefined
-        }
-
-        const openAIStream = OpenAIStream(functionResponse, {
-          ...filteredCallbacks,
-          [__internal__OpenAIFnMessagesSymbol]: newFunctionCallMessages
-        } as AIStreamCallbacks)
-
-        const reader = openAIStream.getReader()
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) {
-            break
+          // We don't want to trigger onStart or onComplete recursively
+          // so we remove them from the callbacks
+          // see https://github.com/vercel/ai/issues/351
+          const filteredCallbacks: OpenAIStreamCallbacks = {
+            ...callbacks,
+            onStart: undefined
           }
-          controller.enqueue(value)
+          // We only want onFinal to be called the _last_ time
+          callbacks.onFinal = undefined
+
+          const openAIStream = OpenAIStream(functionResponse, {
+            ...filteredCallbacks,
+            [__internal__OpenAIFnMessagesSymbol]: newFunctionCallMessages
+          } as AIStreamCallbacksAndOptions)
+
+          const reader = openAIStream.getReader()
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) {
+              break
+            }
+            controller.enqueue(value)
+          }
+        }
+      } finally {
+        if (callbacks.onFinal && aggregatedFinalCompletionResponse) {
+          await callbacks.onFinal(aggregatedFinalCompletionResponse)
         }
       }
     }
