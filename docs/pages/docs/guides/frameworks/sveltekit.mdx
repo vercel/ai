@@ -1,0 +1,102 @@
+---
+title: SvelteKit
+---
+
+# SvelteKit
+
+This is an example of using the AI SDK and OpenAI's completion service with SvelteKit.
+
+## Endpoint
+
+Create a new file in `src/routes/api/chat/+server.ts` with the following contents:
+
+```ts filename="src/routes/api/chat/+server.ts"
+import OpenAI from 'openai'
+import { OpenAIStream, StreamingTextResponse } from 'ai'
+
+import { env } from '$env/dynamic/private'
+// You may want to replace the above with a static private env variable
+// for dead-code elimination and build-time type-checking:
+// import { OPENAI_API_KEY } from '$env/static/private'
+
+import type { RequestHandler } from './$types'
+
+// Create an OpenAI API client
+const openai = new OpenAI({
+  apiKey: env.OPENAI_API_KEY || ''
+})
+
+export const POST = (async ({ request }) => {
+  // Extract the `prompt` from the body of the request
+  const { messages } = await request.json()
+
+  // Ask OpenAI for a streaming chat completion given the prompt
+  const response = await openai.chat.completions.create({
+    model: 'gpt-3.5-turbo',
+    stream: true,
+    messages: messages.map((message: any) => ({
+      content: message.content,
+      role: message.role
+    }))
+  })
+
+  // Convert the response into a friendly text-stream
+  const stream = OpenAIStream(response)
+  // Respond with the stream
+  return new StreamingTextResponse(stream)
+}) satisfies RequestHandler
+```
+
+It creates a new API endpoint that accepts a `POST` request with a `messages` array in the body. It then uses the AI SDK to ask OpenAI for a streaming chat completion given the messages.
+
+## UI Component
+
+On the client-side, we'll create a simple chat UI that sends messages to the endpoint we created above and displays the responses. Create a new file in `app.vue` with the following contents:
+
+```vue filename="src/routes/+page.svelte"
+<script>
+import { useChat } from 'ai/svelte'
+
+const { input, handleSubmit, messages } = useChat()
+</script>
+
+<svelte:head>
+	<title>Home</title>
+	<meta name="description" content="Svelte demo app" />
+</svelte:head>
+
+<section>
+	<h1>useChat</h1>
+	<ul>
+		{#each $messages as message}
+			<li>{message.role}: {message.content}</li>
+		{/each}
+	</ul>
+	<form on:submit={handleSubmit}>
+		<input bind:value={$input} />
+		<button type="submit">Send</button>
+	</form>
+</section>
+
+<style>
+section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex: 0.6;
+}
+
+h1 {
+  width: 100%;
+}
+</style>
+```
+
+It uses the `useChat` API from the `ai/vue` package to manage the state of the chat. It also uses the `handleSubmit` and `handleInputChange` methods to send messages to the endpoint and update the input field.
+
+To see the full list of options for `useChat`, see the [API reference](/docs/api-reference/use-chat).
+
+## Examples
+
+- [sveltekit-openai](https://github.com/vercel/ai/tree/main/examples/sveltekit-openai)
