@@ -1,0 +1,87 @@
+---
+title: Nuxt
+---
+
+# Nuxt
+
+This is an example of using the AI SDK and OpenAI's completion service within Nuxt.
+
+## Endpoint
+
+Create a new file in `server/api/chat.ts` with the following contents:
+
+```ts filename="/server/api/chat.ts"
+import OpenAI from 'openai'
+import { OpenAIStream } from 'ai'
+import { CreateChatCompletionRequestMessage } from 'openai/resources/chat'
+
+export default defineLazyEventHandler(async () => {
+  const apiKey = useRuntimeConfig().openaiApiKey
+  if (!apiKey) throw new Error('Missing OpenAI API key')
+  const openai = new OpenAI({
+    apiKey: apiKey
+  })
+
+  return defineEventHandler(async event => {
+    // Extract the `prompt` from the body of the request
+    const { messages } = (await readBody(event)) as {
+      messages: CreateChatCompletionRequestMessage[]
+    }
+
+    // Ask OpenAI for a streaming chat completion given the prompt
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      stream: true,
+      messages: messages.map(message => ({
+        content: message.content,
+        role: message.role
+      }))
+    })
+
+    // Convert the response into a friendly text-stream
+    return OpenAIStream(response)
+  })
+})
+```
+
+It creates a new API endpoint that accepts a `POST` request with a `messages` array in the body. It then uses the AI SDK to ask OpenAI for a streaming chat completion given the messages.
+
+## UI Component
+
+On the client-side, we'll create a simple chat UI that sends messages to the endpoint we created above and displays the responses. Create a new file in `app.vue` with the following contents:
+
+```vue filename="~/app.vue"
+<script setup lang="ts">
+import { useChat } from 'ai/vue'
+
+const { messages, input, handleSubmit } = useChat({
+  headers: { 'Content-Type': 'application/json' }
+})
+</script>
+
+<template>
+  <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+    <div v-for="m in messages" key="m.id" class="whitespace-pre-wrap">
+      {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
+      {{ m.content }}
+    </div>
+
+    <form @submit="handleSubmit">
+      <input
+        class="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+        v-model="input"
+        placeholder="Say something..."
+      />
+    </form>
+  </div>
+</template>
+```
+
+It uses the `useChat` API from the `ai/vue` package to manage the state of the chat. It also uses the `handleSubmit` and `handleInputChange` methods to send messages to the endpoint and update the input field.
+
+To see the full list of options for `useChat`, see the [API reference](/docs/api-reference/use-chat).
+
+## Examples
+
+- [nuxt-openai](https://github.com/vercel/ai/tree/main/examples/nuxt-openai)
+- [nuxt-langchain](https://github.com/vercel/ai/tree/main/examples/nuxt-langchain)
