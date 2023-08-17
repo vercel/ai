@@ -3,7 +3,6 @@ import useSWR, { KeyedMutator } from 'swr'
 import {
   nanoid,
   createChunkDecoder,
-  StreamStringPrefixes,
   COMPLEX_HEADER
 } from '../shared/utils'
 
@@ -85,7 +84,7 @@ const getStreamedResponse = async (
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean
 ) => {
-  // Do an optimistic update to the chat state to show the updated
+  // Do an optimistic update to the chat state to show the updated messages
   // immediately.
   const previousMessages = messagesRef.current
   mutate(chatRequest.messages, false)
