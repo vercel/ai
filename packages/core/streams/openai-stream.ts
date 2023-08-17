@@ -267,8 +267,18 @@ export function OpenAIStream(
 
   let stream: ReadableStream<Uint8Array>
   if (Symbol.asyncIterator in res) {
-    stream = readableFromAsyncIterable(streamable(res))
-      .pipeThrough(createCallbacksTransformer(cb))
+    stream = readableFromAsyncIterable(streamable(res)).pipeThrough(
+      createCallbacksTransformer(
+        cb?.experimental_onFunctionCall
+          ? {
+              ...cb,
+              onFinal: undefined
+            }
+          : {
+              ...cb
+            }
+      )
+    )
   } else {
     stream = AIStream(
       res,
