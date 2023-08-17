@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import useSWR, { KeyedMutator } from 'swr'
-import {
-  nanoid,
-  createChunkDecoder,
-  COMPLEX_HEADER
-} from '../shared/utils'
+import { nanoid, createChunkDecoder, COMPLEX_HEADER } from '../shared/utils'
 
 import type {
   ChatRequest,
