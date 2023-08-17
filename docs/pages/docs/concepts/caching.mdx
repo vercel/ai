@@ -60,8 +60,8 @@ export async function POST(req: Request) {
 
   // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response, {
-    async onCompletion(completion) {
-      // Cache the response
+    async onFinal(completion) {
+      // Cache the response. Note that this will also cache function calls.
       await kv.set(key, completion)
       await kv.expire(key, 60 * 60)
     }

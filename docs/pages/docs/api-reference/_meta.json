@@ -7,6 +7,7 @@
   "langchain-stream": "LangChainStream",
   "openai-stream": "OpenAIStream",
   "replicate-stream": "ReplicateStream",
+  "stream-data": "experimental_StreamData",
   "streaming-text-response": "StreamingTextResponse",
   "stream-to-response": "streamToResponse",
   "tokens": "<Tokens />"
