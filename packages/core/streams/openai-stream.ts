@@ -269,7 +269,6 @@ export function OpenAIStream(
   if (Symbol.asyncIterator in res) {
     stream = readableFromAsyncIterable(streamable(res))
       .pipeThrough(createCallbacksTransformer(cb))
-      .pipeThrough(createStreamDataTransformer(cb?.experimental_streamData))
   } else {
     stream = AIStream(
       res,
