@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.4
+
+### Patch Changes
+
+- 7b389a7: fix: improve safety for type check in openai-stream
+
 ## 2.2.3
 
 ### Patch Changes
