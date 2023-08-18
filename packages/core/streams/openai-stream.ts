@@ -322,11 +322,21 @@ type OpenAIStreamReturnTypes = ExtractType<AsyncIterableOpenAIStreamReturnTypes>
 function isChatCompletionChunk(
   data: OpenAIStreamReturnTypes
 ): data is ChatCompletionChunk {
-  return 'choices' in data && 'delta' in data.choices[0]
+  return (
+    'choices' in data &&
+    data.choices &&
+    data.choices[0] &&
+    'delta' in data.choices[0]
+  )
 }
 
 function isCompletion(data: OpenAIStreamReturnTypes): data is Completion {
-  return 'choices' in data && 'text' in data.choices[0]
+  return (
+    'choices' in data &&
+    data.choices &&
+    data.choices[0] &&
+    'text' in data.choices[0]
+  )
 }
 
 export function OpenAIStream(
