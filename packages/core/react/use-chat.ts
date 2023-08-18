@@ -448,8 +448,6 @@ export function useChat({
           }
         }
         abortControllerRef.current = null
-
-        return null
       }
     } catch (err) {
       // Ignore abort errors as they are expected.
