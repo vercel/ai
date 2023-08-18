@@ -1,5 +1,13 @@
 # ai
 
+## 2.2.3
+
+### Patch Changes
+
+- 867a3f9: Fix client-side function calling (#467, #469)
+
+  add Completion type from the `openai` SDK to openai-stream (#472)
+
 ## 2.2.2
 
 ### Patch Changes
