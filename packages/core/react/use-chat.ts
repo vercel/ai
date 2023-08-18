@@ -147,15 +147,6 @@ const getStreamedResponse = async (
   const decode = createChunkDecoder(isComplexMode)
   let responseMessages: Message[] = []
 
-  // TODO-STREAMDATA: Remove this once Strem Data is not experimental
-  let streamedResponse = ''
-  const replyId = nanoid()
-  let responseMessage: Message = {
-    id: replyId,
-    createdAt,
-    content: '',
-    role: 'assistant'
-  }
   // END TODO-STREAMDATA
   let responseData: any = []
   type PrefixMap = {
@@ -198,8 +189,28 @@ const getStreamedResponse = async (
           }
         }
 
+        let functionCallMessage: Message | null = null
+
         if (type === 'function_call') {
           prefixMap['function_call'] = value
+
+          let functionCall = prefixMap['function_call']
+          // Ensure it hasn't been parsed
+          if (functionCall && typeof functionCall === 'string') {
+            const parsedFunctionCall: CreateChatCompletionRequestMessage.FunctionCall =
+              JSON.parse(functionCall as string).function_call
+
+            functionCallMessage = {
+              id: nanoid(),
+              role: 'assistant',
+              content: '',
+              function_call: parsedFunctionCall,
+              name: parsedFunctionCall.name,
+              createdAt
+            }
+
+            prefixMap['function_call'] = functionCallMessage as any
+          }
         }
 
         if (type === 'data') {
@@ -213,20 +224,6 @@ const getStreamedResponse = async (
 
         const data = prefixMap['data']
         const responseMessage = prefixMap['text']
-        let functionCall = prefixMap['function_call']
-        let functionCallMessage: Message | null = null
-        if (functionCall) {
-          const parsedFunctionCall: CreateChatCompletionRequestMessage.FunctionCall =
-            JSON.parse(functionCall as string).function_call
-
-          functionCallMessage = {
-            id: nanoid(),
-            role: 'function',
-            content: '',
-            name: parsedFunctionCall.name,
-            createdAt
-          }
-        }
 
         // We add function calls and response messages to the messages[], but data is its own thing
         const merged = [functionCallMessage, responseMessage].filter(
@@ -234,7 +231,7 @@ const getStreamedResponse = async (
         ) as Message[]
 
         mutate([...chatRequest.messages, ...merged], false)
-        mutateStreamData([...(existingData || []), ...(data || [])])
+        mutateStreamData([...(existingData || []), ...(data || [])], false)
 
         // The request has been aborted, stop reading the stream.
         if (abortControllerRef.current === null) {
@@ -248,7 +245,6 @@ const getStreamedResponse = async (
       if (onFinish && type === 'text') {
         onFinish(item as Message)
       }
-
       if (type === 'data') {
         responseData.push(item)
       } else {
@@ -257,6 +253,16 @@ const getStreamedResponse = async (
     }
     return { messages: responseMessages, data: responseData }
   } else {
+    // TODO-STREAMDATA: Remove this once Strem Data is not experimental
+    let streamedResponse = ''
+    const replyId = nanoid()
+    let responseMessage: Message = {
+      id: replyId,
+      createdAt,
+      content: '',
+      role: 'assistant'
+    }
+
     // TODO-STREAMDATA: Remove this once Strem Data is not experimental
     while (true) {
       const { done, value } = await reader.read()
@@ -417,7 +423,7 @@ export function useChat({
           }
         } else {
           const streamedResponseMessage = messagesAndDataOrJustMessage
-          // TODO-STREAMDATA: Remove this once Strem Data is not experimental
+          // TODO-STREAMDATA: Remove this once Stream Data is not experimental
           if (
             streamedResponseMessage.function_call === undefined ||
             typeof streamedResponseMessage.function_call === 'string'
