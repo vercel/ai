@@ -99,8 +99,8 @@ export function useCompletion({
         method: 'POST',
         body: JSON.stringify({
           prompt,
-          ...body,
-          ...options?.body
+		  ...(body instanceof Function ? body() : body),
+		  ...(options?.body instanceof Function ? options.body() : options?.body),
         }),
         headers: {
           ...headers,

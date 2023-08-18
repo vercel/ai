@@ -120,8 +120,8 @@ export function useChat({
                 role,
                 content
               })),
-          ...body,
-          ...options?.body
+          ...(body instanceof Function ? body() : body),
+		  ...(options?.body instanceof Function ? options.body() : options?.body),
         }),
         headers: {
           ...headers,

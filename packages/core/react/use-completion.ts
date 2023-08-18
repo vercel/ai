@@ -114,8 +114,8 @@ export function useCompletion({
         method: 'POST',
         body: JSON.stringify({
           prompt,
-          ...extraMetadataRef.current.body,
-          ...options?.body
+		  ...(extraMetadataRef?.current?.body instanceof Function ? extraMetadataRef.current.body() : extraMetadataRef?.current?.body),
+		  ...(options?.body instanceof Function ? options.body() : options?.body),
         }),
         credentials: extraMetadataRef.current.credentials,
         headers: {

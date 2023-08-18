@@ -100,8 +100,8 @@ const getStreamedResponse = async (
               })
             })
           ),
-      ...extraMetadataRef.current.body,
-      ...chatRequest.options?.body,
+		...(extraMetadataRef?.current?.body instanceof Function ? extraMetadataRef.current.body() : extraMetadataRef?.current?.body),
+		...(chatRequest.options?.body instanceof Function ? chatRequest.options.body() : chatRequest.options?.body),
       ...(chatRequest.functions !== undefined && {
         functions: chatRequest.functions
       }),
