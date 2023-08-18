@@ -45,7 +45,7 @@ export type OpenAIStreamCallbacks = AIStreamCallbacksAndOptions & {
       functionCallResult: JSONValue
     ) => CreateMessage[]
   ) => Promise<
-    Response | undefined | void | string | AsyncIterable<ChatCompletionChunk>
+    Response | undefined | void | string | AsyncIterableOpenAIStreamReturnTypes
   >
 }
 
@@ -103,6 +103,53 @@ interface FunctionCall {
 }
 
 /**
+ * https://github.com/openai/openai-node/blob/3ec43ee790a2eb6a0ccdd5f25faa23251b0f9b8e/src/resources/completions.ts#L28C1-L64C1
+ * Completions API. Streamed and non-streamed responses are the same.
+ */
+interface Completion {
+  /**
+   * A unique identifier for the completion.
+   */
+  id: string
+
+  /**
+   * The list of completion choices the model generated for the input prompt.
+   */
+  choices: Array<CompletionChoice>
+
+  /**
+   * The Unix timestamp of when the completion was created.
+   */
+  created: number
+
+  /**
+   * The model used for completion.
+   */
+  model: string
+
+  /**
+   * The object type, which is always "text_completion"
+   */
+  object: string
+}
+
+interface CompletionChoice {
+  /**
+   * The reason the model stopped generating tokens. This will be `stop` if the model
+   * hit a natural stop point or a provided stop sequence, or `length` if the maximum
+   * number of tokens specified in the request was reached.
+   */
+  finish_reason: 'stop' | 'length'
+
+  index: number
+
+  // edited: Removed CompletionChoice.logProbs and replaced with any
+  logprobs: any | null
+
+  text: string
+}
+
+/**
  * Creates a parser function for processing the OpenAI stream data.
  * The parser extracts and trims text content from the JSON data. This parser
  * can handle data for chat or completion models.
@@ -112,7 +159,7 @@ interface FunctionCall {
 function parseOpenAIStream(): (data: string) => string | void {
   const extract = chunkToText()
   return data => {
-    return extract(JSON.parse(data) as ChatCompletionChunk)
+    return extract(JSON.parse(data) as OpenAIStreamReturnTypes)
   }
 }
 
@@ -121,7 +168,7 @@ function parseOpenAIStream(): (data: string) => string | void {
  * the same as the old Response body interface with an included SSE parser
  * doing the parsing for us.
  */
-async function* streamable(stream: AsyncIterable<ChatCompletionChunk>) {
+async function* streamable(stream: AsyncIterableOpenAIStreamReturnTypes) {
   const extract = chunkToText()
   for await (const chunk of stream) {
     const text = extract(chunk)
@@ -129,7 +176,7 @@ async function* streamable(stream: AsyncIterable<ChatCompletionChunk>) {
   }
 }
 
-function chunkToText(): (chunk: ChatCompletionChunk) => string | void {
+function chunkToText(): (chunk: OpenAIStreamReturnTypes) => string | void {
   const trimStartOfStream = trimStartOfStreamHelper()
   let isFunctionStreamingIn: boolean
   return json => {
@@ -219,10 +266,16 @@ function chunkToText(): (chunk: ChatCompletionChunk) => string | void {
             }
           }
      */
-    if (json.choices[0]?.delta?.function_call?.name) {
+    if (
+      isChatCompletionChunk(json) &&
+      json.choices[0]?.delta?.function_call?.name
+    ) {
       isFunctionStreamingIn = true
       return `{"function_call": {"name": "${json.choices[0]?.delta?.function_call.name}", "arguments": "`
-    } else if (json.choices[0]?.delta?.function_call?.arguments) {
+    } else if (
+      isChatCompletionChunk(json) &&
+      json.choices[0]?.delta?.function_call?.arguments
+    ) {
       const argumentChunk: string =
         json.choices[0].delta.function_call.arguments
 
@@ -246,7 +299,11 @@ function chunkToText(): (chunk: ChatCompletionChunk) => string | void {
     }
 
     const text = trimStartOfStream(
-      json.choices[0]?.delta?.content ?? (json.choices[0] as any)?.text ?? ''
+      isChatCompletionChunk(json) && json.choices[0].delta.content
+        ? json.choices[0].delta.content
+        : isCompletion(json)
+        ? json.choices[0].text
+        : ''
     )
     return text
   }
@@ -254,8 +311,26 @@ function chunkToText(): (chunk: ChatCompletionChunk) => string | void {
 
 const __internal__OpenAIFnMessagesSymbol = Symbol('internal_openai_fn_messages')
 
+type AsyncIterableOpenAIStreamReturnTypes =
+  | AsyncIterable<ChatCompletionChunk>
+  | AsyncIterable<Completion>
+
+type ExtractType<T> = T extends AsyncIterable<infer U> ? U : never
+
+type OpenAIStreamReturnTypes = ExtractType<AsyncIterableOpenAIStreamReturnTypes>
+
+function isChatCompletionChunk(
+  data: OpenAIStreamReturnTypes
+): data is ChatCompletionChunk {
+  return 'choices' in data && 'delta' in data.choices[0]
+}
+
+function isCompletion(data: OpenAIStreamReturnTypes): data is Completion {
+  return 'choices' in data && 'text' in data.choices[0]
+}
+
 export function OpenAIStream(
-  res: Response | AsyncIterable<ChatCompletionChunk>,
+  res: Response | AsyncIterableOpenAIStreamReturnTypes,
   callbacks?: OpenAIStreamCallbacks
 ): ReadableStream {
   // Annotate the internal `messages` property for recursive function calls
