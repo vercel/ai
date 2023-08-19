@@ -1,6 +1,6 @@
 {
   "name": "next-huggingface",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -11,7 +11,7 @@
   "dependencies": {
     "@huggingface/inference": "^2.5.1",
     "next": "13.4.12",
-    "ai": "2.2.4",
+    "ai": "2.2.5",
     "react": "18.2.0",
     "react-dom": "^18.2.0"
   },

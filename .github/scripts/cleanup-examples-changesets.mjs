@@ -30,7 +30,8 @@ for (const app of readdirSync(examplesDir)) {
     writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n')
 
     try {
-      const changelogUrl = new URL(`${app}/CHANGELOG.md`, examplesUrl)
+      const changelogUrl = new URL(`examples/${app}/CHANGELOG.md`, examplesUrl)
+      console.log('Deleting', changelogUrl)
       unlinkSync(changelogUrl)
     } catch (err) {
       if (err.code !== 'ENOENT') throw err

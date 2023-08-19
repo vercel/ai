@@ -1,6 +1,6 @@
 {
   "name": "next-langchain",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "ai": "2.2.4",
+    "ai": "2.2.5",
     "langchain": "^0.0.129",
     "next": "13.4.12",
     "react": "18.2.0",

@@ -1,5 +1,13 @@
 # ai
 
+## 2.2.5
+
+### Patch Changes
+
+- e5bf68d: react/use-chat: fix experimental functions returning proper function messages
+
+  Closes #478
+
 ## 2.2.4
 
 ### Patch Changes
