@@ -11,7 +11,7 @@
     "type-check": "turbo type-check",
     "prettier-fix": "prettier --write \"**/*.{js,ts,tsx,md,mdx}\"",
     "publint": "turbo publint",
-    "release": "turbo clean && turbo build --filter=ai... && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile && changeset publish",
+    "release": "turbo clean && turbo build --filter=ai... && changeset publish && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "test": "turbo test --filter=ai..."
   },
   "lint-staged": {
