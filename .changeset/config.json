@@ -6,16 +6,5 @@
   "linked": [],
   "access": "public",
   "baseBranch": "main",
-  "updateInternalDependencies": "patch",
-  "ignore": [
-    "next-langchain",
-    "next-openai",
-    "next-huggingface",
-    "sveltekit-openai",
-    "nuxt-openai",
-    "nuxt-langchain",
-    "solidstart-openai",
-    "next-openai-rate-limits",
-    "next-replicate"
-  ]
+  "updateInternalDependencies": "patch"
 }

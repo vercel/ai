@@ -13,7 +13,7 @@
     "publint": "turbo publint",
     "release": "turbo clean && turbo build --filter=ai... && changeset publish",
     "test": "turbo test --filter=ai...",
-    "version-packages": "changeset version"
+    "version-packages": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile"
   },
   "lint-staged": {
     "*": [
