@@ -391,15 +391,15 @@ export function useChat({
 
         // Using experimental stream data
         if ('messages' in messagesAndDataOrJustMessage) {
-          let hasFollowingResponse = false;
+          let hasFollowingResponse = false
           for (const message of messagesAndDataOrJustMessage.messages) {
             if (
               message.function_call === undefined ||
               typeof message.function_call === 'string'
             ) {
-              continue;
+              continue
             }
-            hasFollowingResponse = true;
+            hasFollowingResponse = true
             // Streamed response is a function call, invoke the function call handler if it exists.
             if (experimental_onFunctionCall) {
               const functionCall = message.function_call
@@ -423,7 +423,7 @@ export function useChat({
             }
           }
           if (!hasFollowingResponse) {
-            break;
+            break
           }
         } else {
           const streamedResponseMessage = messagesAndDataOrJustMessage
