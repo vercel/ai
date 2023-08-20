@@ -391,14 +391,15 @@ export function useChat({
 
         // Using experimental stream data
         if ('messages' in messagesAndDataOrJustMessage) {
+          let hasFollowingResponse = false;
           for (const message of messagesAndDataOrJustMessage.messages) {
             if (
               message.function_call === undefined ||
               typeof message.function_call === 'string'
             ) {
-              break
+              continue;
             }
-
+            hasFollowingResponse = true;
             // Streamed response is a function call, invoke the function call handler if it exists.
             if (experimental_onFunctionCall) {
               const functionCall = message.function_call
@@ -420,6 +421,9 @@ export function useChat({
               // The updated chat with function call response will be sent to the API in the next iteration of the loop.
               chatRequest = functionCallResponse
             }
+          }
+          if (!hasFollowingResponse) {
+            break;
           }
         } else {
           const streamedResponseMessage = messagesAndDataOrJustMessage
