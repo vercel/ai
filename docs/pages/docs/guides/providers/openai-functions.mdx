@@ -214,3 +214,9 @@ if (m.function_call) {
   return m.content
 }
 ```
+
+<Callout>
+  When using the `experimental_StreamData` API, the assistant message containing
+  the `function_call` has no `content`. Previously, it contained the stringified
+  function_call contents.
+</Callout>

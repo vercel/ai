@@ -451,8 +451,9 @@ export function useChat({
             chatRequest = functionCallResponse
           }
         }
-        abortControllerRef.current = null
       }
+
+      abortControllerRef.current = null
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
