@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.7
+
+### Patch Changes
+
+- 2f97630: react/use-chat: fix aborting clientside function calls too early
+
 ## 2.2.6
 
 ### Patch Changes
