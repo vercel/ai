@@ -5,7 +5,7 @@
 ### Patch Changes
 
 - 2f97630: react/use-chat: fix aborting clientside function calls too early
-
+- 1157340: fix: infinite loop for experimental stream data (#484)
 ## 2.2.6
 
 ### Patch Changes
