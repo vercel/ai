@@ -366,7 +366,6 @@ export function useChat({
   // chat state.
   const [error, setError] = useState<undefined | Error>()
 
-  // async function triggerRequest(chatRequest: ChatRequest) {
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
       try {
