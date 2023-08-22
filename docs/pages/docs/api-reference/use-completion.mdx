@@ -458,7 +458,7 @@ export default function PostEditorPage() {
   // Locally store our blog posts content
   const [content, setContent] = useState('')
   const { complete } = useCompletion({
-    api: '/api/complete'
+    api: '/api/completion'
   })
 
   const checkAndPublish = useCallback(
