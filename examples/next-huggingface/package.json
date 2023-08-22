@@ -11,7 +11,7 @@
   "dependencies": {
     "@huggingface/inference": "^2.5.1",
     "next": "13.4.12",
-    "ai": "2.2.7",
+    "ai": "2.2.8",
     "react": "18.2.0",
     "react-dom": "^18.2.0"
   },

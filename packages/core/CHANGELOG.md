@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.8
+
+### Patch Changes
+
+- 26bf998: ai/react: make reload/complete/append functions stable via useCallback
+
 ## 2.2.7
 
 ### Patch Changes
