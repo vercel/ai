@@ -100,96 +100,109 @@ export function useCompletion({
     }
   }, [credentials, headers, body])
 
-  async function triggerRequest(prompt: string, options?: RequestOptions) {
-    try {
-      mutateLoading(true)
+  const triggerRequest = useCallback(
+    async (prompt: string, options?: RequestOptions) => {
+      try {
+        mutateLoading(true)
 
-      const abortController = new AbortController()
-      setAbortController(abortController)
+        const abortController = new AbortController()
+        setAbortController(abortController)
 
-      // Empty the completion immediately.
-      mutate('', false)
+        // Empty the completion immediately.
+        mutate('', false)
 
-      const res = await fetch(api, {
-        method: 'POST',
-        body: JSON.stringify({
-          prompt,
-          ...extraMetadataRef.current.body,
-          ...options?.body
-        }),
-        credentials: extraMetadataRef.current.credentials,
-        headers: {
-          ...extraMetadataRef.current.headers,
-          ...options?.headers
-        },
-        signal: abortController.signal
-      }).catch(err => {
-        throw err
-      })
-
-      if (onResponse) {
-        try {
-          await onResponse(res)
-        } catch (err) {
+        const res = await fetch(api, {
+          method: 'POST',
+          body: JSON.stringify({
+            prompt,
+            ...extraMetadataRef.current.body,
+            ...options?.body
+          }),
+          credentials: extraMetadataRef.current.credentials,
+          headers: {
+            ...extraMetadataRef.current.headers,
+            ...options?.headers
+          },
+          signal: abortController.signal
+        }).catch(err => {
           throw err
-        }
-      }
+        })
 
-      if (!res.ok) {
-        throw new Error(
-          (await res.text()) || 'Failed to fetch the chat response.'
-        )
-      }
-
-      if (!res.body) {
-        throw new Error('The response body is empty.')
-      }
-
-      let result = ''
-      const reader = res.body.getReader()
-      const decoder = createChunkDecoder()
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) {
-          break
+        if (onResponse) {
+          try {
+            await onResponse(res)
+          } catch (err) {
+            throw err
+          }
         }
 
-        // Update the completion state with the new message tokens.
-        result += decoder(value)
-        mutate(result, false)
-
-        // The request has been aborted, stop reading the stream.
-        if (abortController === null) {
-          reader.cancel()
-          break
+        if (!res.ok) {
+          throw new Error(
+            (await res.text()) || 'Failed to fetch the chat response.'
+          )
         }
-      }
 
-      if (onFinish) {
-        onFinish(prompt, result)
-      }
+        if (!res.body) {
+          throw new Error('The response body is empty.')
+        }
 
-      setAbortController(null)
-      return result
-    } catch (err) {
-      // Ignore abort errors as they are expected.
-      if ((err as any).name === 'AbortError') {
+        let result = ''
+        const reader = res.body.getReader()
+        const decoder = createChunkDecoder()
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) {
+            break
+          }
+
+          // Update the completion state with the new message tokens.
+          result += decoder(value)
+          mutate(result, false)
+
+          // The request has been aborted, stop reading the stream.
+          if (abortController === null) {
+            reader.cancel()
+            break
+          }
+        }
+
+        if (onFinish) {
+          onFinish(prompt, result)
+        }
+
         setAbortController(null)
-        return null
-      }
-
-      if (err instanceof Error) {
-        if (onError) {
-          onError(err)
+        return result
+      } catch (err) {
+        // Ignore abort errors as they are expected.
+        if ((err as any).name === 'AbortError') {
+          setAbortController(null)
+          return null
         }
-      }
 
-      setError(err as Error)
-    } finally {
-      mutateLoading(false)
-    }
-  }
+        if (err instanceof Error) {
+          if (onError) {
+            onError(err)
+          }
+        }
+
+        setError(err as Error)
+      } finally {
+        mutateLoading(false)
+      }
+    },
+    [
+      mutate,
+      mutateLoading,
+      api,
+      extraMetadataRef,
+      setAbortController,
+      onResponse,
+      onFinish,
+      onError,
+      setError
+    ]
+  )
 
   const stop = useCallback(() => {
     if (abortController) {
