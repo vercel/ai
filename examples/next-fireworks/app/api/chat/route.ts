@@ -4,7 +4,7 @@ import { OpenAIStream, StreamingTextResponse } from 'ai'
 // Create an OpenAI API client (that's edge friendly!)
 // but configure it to point to fireworks.ai
 const fireworks = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || '',
   baseURL: process.env.OPENAI_API_BASE // "https://api.fireworks.ai/inference/v1"
 })
 // IMPORTANT! Set the runtime to edge
