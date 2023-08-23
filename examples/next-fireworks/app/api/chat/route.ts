@@ -5,7 +5,7 @@ import { OpenAIStream, StreamingTextResponse } from 'ai'
 // but configure it to point to fireworks.ai
 const fireworks = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
-  baseURL: process.env.OPENAI_API_BASE || "https://api.fireworks.ai/inference/v1"
+  baseURL: 'https://api.fireworks.ai/inference/v1'
 })
 // IMPORTANT! Set the runtime to edge
 export const runtime = 'edge'
