@@ -149,11 +149,17 @@ export async function POST(req: Request) {
   const { prompt } = await req.json()
 
   // Ask OpenAI for a streaming completion given the prompt
-  const response = await openai.completions.create({
+  const completions = await openai.completions.create({
     model: 'text-davinci-003',
     stream: true,
     prompt
   })
+
+  // Convert the response into a friendly text-stream
+  const stream = OpenAIStream(completions)
+
+  // Respond with the stream
+  const response = new StreamingTextResponse(stream)
 
   // Check for errors
   if (!response.ok) {
@@ -162,11 +168,7 @@ export async function POST(req: Request) {
     })
   }
 
-  // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response)
-
-  // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return response
 }
 ```
 
