@@ -140,8 +140,8 @@ importers:
         specifier: 13.4.12
         version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
       openai:
-        specifier: 4.0.0
-        version: 4.0.0
+        specifier: 4.2.0
+        version: 4.2.0
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -192,8 +192,8 @@ importers:
         specifier: 13.4.12
         version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
       openai:
-        specifier: 4.0.0
-        version: 4.0.0
+        specifier: 4.2.0
+        version: 4.2.0
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -366,8 +366,8 @@ importers:
         specifier: ^3.6.5
         version: 3.6.5(@types/node@20.5.0)(eslint@7.32.0)(typescript@4.9.4)
       openai:
-        specifier: 4.0.0
-        version: 4.0.0
+        specifier: 4.2.0
+        version: 4.2.0
       tailwindcss:
         specifier: ^3.3.3
         version: 3.3.3
@@ -393,8 +393,8 @@ importers:
         specifier: 2.2.8
         version: link:../../packages/core
       openai:
-        specifier: 4.0.0
-        version: 4.0.0
+        specifier: 4.2.0
+        version: 4.2.0
       solid-js:
         specifier: ^1.7.2
         version: 1.7.2
@@ -430,8 +430,8 @@ importers:
         specifier: 2.2.8
         version: link:../../packages/core
       openai:
-        specifier: 4.0.0
-        version: 4.0.0
+        specifier: 4.2.0
+        version: 4.2.0
     devDependencies:
       '@fontsource/fira-mono':
         specifier: ^4.5.10
@@ -473,8 +473,8 @@ importers:
         specifier: 3.3.6
         version: 3.3.6
       openai:
-        specifier: 4.0.0
-        version: 4.0.0
+        specifier: 4.2.0
+        version: 4.2.0
       react:
         specifier: ^18.2.0
         version: 18.2.0
@@ -10421,8 +10421,8 @@ packages:
       - debug
     dev: false
 
-  /openai@4.0.0:
-    resolution: {integrity: sha512-UHv70gIw20pxu9tiUueE9iS+4U4eTGiTgQr+zlJ5aX4oj6LUUp+7mBn0xAqilawftwUB/biohPth2vcZFmoNYw==}
+  /openai@4.2.0:
+    resolution: {integrity: sha512-zfvpO2eITIxIjTG8T6Cek7NB2dMvP/LW0TRUJ4P9E8+qbBNKw00DrtfF64b+fAV2+wUYCVyynT6iSycJ//TtbA==}
     hasBin: true
     dependencies:
       '@types/node': 18.17.5
