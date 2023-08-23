@@ -5,7 +5,7 @@ The Vercel AI SDK is **a library for building AI-powered streaming text and chat
 ## Features
 
 - [SWR](https://swr.vercel.app)-powered React, Svelte, Vue and Solid helpers for streaming text responses and building chat and completion UIs
-- First-class support for [LangChain](https://js.langchain.com/docs) and [OpenAI](https://openai.com), [Anthropic](https://www.anthropic.com), [Cohere](https://cohere.com), [Hugging Face](https://huggingface.co), and [Replicate](https://replicate.com)
+- First-class support for [LangChain](https://js.langchain.com/docs) and [OpenAI](https://openai.com), [Anthropic](https://www.anthropic.com), [Cohere](https://cohere.com), [Hugging Face](https://huggingface.co), [Fireworks](https://app.fireworks.ai) and [Replicate](https://replicate.com)
 - Node.js, Serverless, and [Edge Runtime](https://edge-runtime.vercel.app/) support
 - Callbacks for saving completed streaming responses to a database (in the same request)
 
