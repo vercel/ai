@@ -39,6 +39,52 @@ importers:
         specifier: ^1.10.0
         version: 1.10.0
 
+  examples/next-fireworks:
+    dependencies:
+      ai:
+        specifier: 2.2.8
+        version: link:../../packages/core
+      next:
+        specifier: 13.4.12
+        version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
+      openai:
+        specifier: 4.2.0
+        version: 4.2.0
+      react:
+        specifier: 18.2.0
+        version: 18.2.0
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.2.0(react@18.2.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^17.0.12
+        version: 17.0.12
+      '@types/react':
+        specifier: 18.2.8
+        version: 18.2.8
+      '@types/react-dom':
+        specifier: 18.2.4
+        version: 18.2.4
+      autoprefixer:
+        specifier: ^10.4.14
+        version: 10.4.14(postcss@8.4.24)
+      eslint:
+        specifier: ^7.32.0
+        version: 7.32.0
+      eslint-config-next:
+        specifier: 13.4.12
+        version: 13.4.12(eslint@7.32.0)(typescript@5.1.3)
+      postcss:
+        specifier: ^8.4.23
+        version: 8.4.24
+      tailwindcss:
+        specifier: ^3.3.2
+        version: 3.3.3
+      typescript:
+        specifier: 5.1.3
+        version: 5.1.3
+
   examples/next-huggingface:
     dependencies:
       '@huggingface/inference':
@@ -3030,7 +3076,7 @@ packages:
       '@nuxt/kit': 3.6.5
       '@nuxt/schema': 3.6.5
       execa: 7.2.0
-      nuxt: 3.6.5(@types/node@20.5.0)(eslint@7.32.0)(typescript@4.9.4)
+      nuxt: 3.6.5(@types/node@20.5.0)(eslint@7.32.0)(typescript@5.1.6)
       vite: 4.3.9(@types/node@20.5.0)
     transitivePeerDependencies:
       - rollup
@@ -3080,7 +3126,7 @@ packages:
       launch-editor: 2.6.0
       local-pkg: 0.4.3
       magicast: 0.2.10
-      nuxt: 3.6.5(@types/node@20.5.0)(eslint@7.32.0)(typescript@4.9.4)
+      nuxt: 3.6.5(@types/node@20.5.0)(eslint@7.32.0)(typescript@5.1.6)
       nypm: 0.2.2
       pacote: 15.2.0
       pathe: 1.1.1
@@ -10436,6 +10482,23 @@ packages:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  /openai@4.2.0:
+    resolution: {integrity: sha512-zfvpO2eITIxIjTG8T6Cek7NB2dMvP/LW0TRUJ4P9E8+qbBNKw00DrtfF64b+fAV2+wUYCVyynT6iSycJ//TtbA==}
+    hasBin: true
+    dependencies:
+      '@types/node': 18.17.5
+      '@types/node-fetch': 2.6.4
+      abort-controller: 3.0.0
+      agentkeepalive: 4.3.0
+      digest-fetch: 1.3.0
+      form-data-encoder: 1.7.2
+      formdata-node: 4.4.1
+      node-fetch: 2.6.11
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    dev: false
 
   /openapi-types@12.1.3:
     resolution: {integrity: sha512-N4YtSYJqghVu4iek2ZUvcN/0aqH1kRDuNqzcycDxhOUpg7GdvLa2F3DgS6yBNhInhv2r/6I0Flkn7CqL8+nIcw==}
