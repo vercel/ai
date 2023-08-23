@@ -36,8 +36,8 @@ importers:
         specifier: 29.0.3
         version: 29.0.3(@babel/core@7.22.5)(jest@29.2.1)(typescript@4.9.4)
       turbo:
-        specifier: ^1.10.0
-        version: 1.10.0
+        specifier: ^1.10.13
+        version: 1.10.13
 
   examples/next-huggingface:
     dependencies:
@@ -3030,7 +3030,7 @@ packages:
       '@nuxt/kit': 3.6.5
       '@nuxt/schema': 3.6.5
       execa: 7.2.0
-      nuxt: 3.6.5(@types/node@20.5.0)(eslint@7.32.0)(typescript@4.9.4)
+      nuxt: 3.6.5(@types/node@20.5.0)(eslint@7.32.0)(typescript@5.1.6)
       vite: 4.3.9(@types/node@20.5.0)
     transitivePeerDependencies:
       - rollup
@@ -3080,7 +3080,7 @@ packages:
       launch-editor: 2.6.0
       local-pkg: 0.4.3
       magicast: 0.2.10
-      nuxt: 3.6.5(@types/node@20.5.0)(eslint@7.32.0)(typescript@4.9.4)
+      nuxt: 3.6.5(@types/node@20.5.0)(eslint@7.32.0)(typescript@5.1.6)
       nypm: 0.2.2
       pacote: 15.2.0
       pathe: 1.1.1
@@ -13131,65 +13131,64 @@ packages:
       - supports-color
     dev: true
 
-  /turbo-darwin-64@1.10.0:
-    resolution: {integrity: sha512-N0aVGFtBgOKd7pIdUiKREwnDhNHRIvpMJbmUw04c1AqEoTiKAKT6iuzcCozO5N/gYMVr0hxrXgLal5OLYXtcsw==}
+  /turbo-darwin-64@1.10.13:
+    resolution: {integrity: sha512-vmngGfa2dlYvX7UFVncsNDMuT4X2KPyPJ2Jj+xvf5nvQnZR/3IeDEGleGVuMi/hRzdinoxwXqgk9flEmAYp0Xw==}
     cpu: [x64]
     os: [darwin]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-darwin-arm64@1.10.0:
-    resolution: {integrity: sha512-boXzhaHTS5MsTMv48I/JmYp9/fYplXk5nACUDrqV6nD1hzO5PMn5wNg75ATbpkaMaeuD+hjuobeSxn1p4vpqQg==}
+  /turbo-darwin-arm64@1.10.13:
+    resolution: {integrity: sha512-eMoJC+k7gIS4i2qL6rKmrIQGP6Wr9nN4odzzgHFngLTMimok2cGLK3qbJs5O5F/XAtEeRAmuxeRnzQwTl/iuAw==}
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-linux-64@1.10.0:
-    resolution: {integrity: sha512-crKQuS1jrp4vp+Th6EmUqqmAlvYNnzGmwWMLeckmYILrV7zAddu87eJu4hB7V6uV+W1qHZUTw8WXa1w1+8boBw==}
+  /turbo-linux-64@1.10.13:
+    resolution: {integrity: sha512-0CyYmnKTs6kcx7+JRH3nPEqCnzWduM0hj8GP/aodhaIkLNSAGAa+RiYZz6C7IXN+xUVh5rrWTnU2f1SkIy7Gdg==}
     cpu: [x64]
     os: [linux]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-linux-arm64@1.10.0:
-    resolution: {integrity: sha512-Y2fhWe0xepLjl7doIvsJK7mp2h8E+OF6qJsUHRgxFeRWQWi1I6clD2aEQeykHK8Tp+qp8pKFMocj32nFBvuCcg==}
+  /turbo-linux-arm64@1.10.13:
+    resolution: {integrity: sha512-0iBKviSGQQlh2OjZgBsGjkPXoxvRIxrrLLbLObwJo3sOjIH0loGmVIimGS5E323soMfi/o+sidjk2wU1kFfD7Q==}
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-windows-64@1.10.0:
-    resolution: {integrity: sha512-uh8rEqH6teaHysEMjinwWBqyNwv4IvgSAwbq/OphP8jObstTYHoR+gFPo8RQUSTaBYy4QVszgi5eO5YLvEQqNA==}
+  /turbo-windows-64@1.10.13:
+    resolution: {integrity: sha512-S5XySRfW2AmnTeY1IT+Jdr6Goq7mxWganVFfrmqU+qqq3Om/nr0GkcUX+KTIo9mPrN0D3p5QViBRzulwB5iuUQ==}
     cpu: [x64]
     os: [win32]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-windows-arm64@1.10.0:
-    resolution: {integrity: sha512-JaVj3iM7qyRD6xYGZLL/Gs4mQKfM1zL0f91AwHZLNkk1CrJ6i5kO4ZjhKkwXSpVOTNKW3sX0Q7dExXj85Vv7UQ==}
+  /turbo-windows-arm64@1.10.13:
+    resolution: {integrity: sha512-nKol6+CyiExJIuoIc3exUQPIBjP9nIq5SkMJgJuxsot2hkgGrafAg/izVDRDrRduQcXj2s8LdtxJHvvnbI8hEQ==}
     cpu: [arm64]
     os: [win32]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo@1.10.0:
-    resolution: {integrity: sha512-GWxoL2zJduiNaEHz78o74l2jCQEeuUZ3MdpMPz0SpZOvt3nimpvQPNxiyfbqt3U9/V5G375PWKYSbXkVnIbQcA==}
+  /turbo@1.10.13:
+    resolution: {integrity: sha512-vOF5IPytgQPIsgGtT0n2uGZizR2N3kKuPIn4b5p5DdeLoI0BV7uNiydT7eSzdkPRpdXNnO8UwS658VaI4+YSzQ==}
     hasBin: true
-    requiresBuild: true
     optionalDependencies:
-      turbo-darwin-64: 1.10.0
-      turbo-darwin-arm64: 1.10.0
-      turbo-linux-64: 1.10.0
-      turbo-linux-arm64: 1.10.0
-      turbo-windows-64: 1.10.0
-      turbo-windows-arm64: 1.10.0
+      turbo-darwin-64: 1.10.13
+      turbo-darwin-arm64: 1.10.13
+      turbo-linux-64: 1.10.13
+      turbo-linux-arm64: 1.10.13
+      turbo-windows-64: 1.10.13
+      turbo-windows-arm64: 1.10.13
     dev: true
 
   /type-check@0.4.0:
