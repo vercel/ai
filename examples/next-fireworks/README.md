@@ -1,4 +1,4 @@
-# Vercel AI SDK, Next.js, and Fireworks.ai Chat Example
+2# Vercel AI SDK, Next.js, and Fireworks.ai Chat Example
 
 This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) and [Fireworks.ai](https://app.fireworks.ai) to create a ChatGPT-like AI-powered streaming chat bot. Fireworks.ai's APIs are compatible with OpenAI's so we use the OpenAI JS SDK but change its base URL to point to Fireworks's API with an environment variable.
 
@@ -6,7 +6,7 @@ This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) wi
 
 Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=ai-sdk-example):
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fai%2Ftree%2Fmain%2Fexamples%2Fnext-fireworks&env=OPENAI_API_KEY&envDescription=Fireworks%20API%20Key&envLink=https%3A%2F%2Fplatform.openai.com%2Faccount%2Fapi-keys&project-name=vercel-ai-chat-fireworks&repository-name=vercel-ai-chat-fireworks)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fai%2Ftree%2Fmain%2Fexamples%2Fnext-fireworks&env=OPENAI_API_KEY&envDescription=Fireworks%20API%20Key&envLink=https%3A%2F%2Fapp.fireworks.ai%2Faccount%2Fapi-keys&project-name=vercel-ai-chat-fireworks&repository-name=vercel-ai-chat-fireworks)
 
 ## How to use
 
