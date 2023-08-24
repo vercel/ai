@@ -4,3 +4,4 @@ node_modules
 dist
 .svelte-kit
 .solid
+_nuxt
