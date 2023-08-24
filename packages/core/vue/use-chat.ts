@@ -1,5 +1,5 @@
 import swrv from 'swrv'
-import { ref } from 'vue'
+import { ref, unref } from 'vue'
 import type { Ref } from 'vue'
 
 import type {
@@ -120,7 +120,7 @@ export function useChat({
                 role,
                 content
               })),
-          ...body,
+          ...unref(body), // Use unref to unwrap the ref value
           ...options?.body
         }),
         headers: {
