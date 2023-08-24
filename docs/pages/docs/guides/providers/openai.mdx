@@ -100,7 +100,7 @@ export default function Chat() {
   return (
     <main className="mx-auto w-full h-screen max-w-lg p-24 flex flex-col">
       <section className="mb-auto m">
-        {messages.map((m) => (
+        {messages.map(m => (
           <div className="mb-4" key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
             {m.content}
