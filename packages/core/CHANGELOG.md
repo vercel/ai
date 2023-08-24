@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.9
+
+### Patch Changes
+
+- 3fc2b32: ai/vue: fix: make body parameter reactive
+
 ## 2.2.8
 
 ### Patch Changes

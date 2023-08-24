@@ -42,7 +42,7 @@ importers:
   examples/next-fireworks:
     dependencies:
       ai:
-        specifier: 2.2.8
+        specifier: 2.2.9
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -91,7 +91,7 @@ importers:
         specifier: ^2.5.1
         version: 2.5.1
       ai:
-        specifier: 2.2.8
+        specifier: 2.2.9
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -134,7 +134,7 @@ importers:
   examples/next-langchain:
     dependencies:
       ai:
-        specifier: 2.2.8
+        specifier: 2.2.9
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.129
@@ -180,7 +180,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: 2.2.8
+        specifier: 2.2.9
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -232,7 +232,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
       ai:
-        specifier: 2.2.8
+        specifier: 2.2.9
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -406,7 +406,7 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4
       ai:
-        specifier: 2.2.8
+        specifier: 2.2.9
         version: link:../../packages/core
       nuxt:
         specifier: ^3.6.5
@@ -436,7 +436,7 @@ importers:
         specifier: ^0.8.2
         version: 0.8.2(solid-js@1.7.2)
       ai:
-        specifier: 2.2.8
+        specifier: 2.2.9
         version: link:../../packages/core
       openai:
         specifier: 4.2.0
@@ -473,7 +473,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       ai:
-        specifier: 2.2.8
+        specifier: 2.2.9
         version: link:../../packages/core
       openai:
         specifier: 4.2.0
