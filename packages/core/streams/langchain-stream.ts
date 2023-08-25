@@ -35,6 +35,7 @@ export function LangChainStream(callbacks?: AIStreamCallbacksAndOptions) {
       .pipeThrough(
         createStreamDataTransformer(callbacks?.experimental_streamData)
       ),
+    writer,
     handlers: {
       handleLLMNewToken: async (token: string) => {
         await writer.ready
