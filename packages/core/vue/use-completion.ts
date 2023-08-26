@@ -69,8 +69,11 @@ export function useCompletion({
   )
 
   const { data: isLoading, mutate: mutateLoading } = useSWRV<boolean>(
-    `${completionId}-loading`
+    `${completionId}-loading`,
+    null
   )
+
+  isLoading.value ??= false
 
   // Force the `data` to be `initialCompletion` if it's `undefined`.
   data.value ||= initialCompletion
