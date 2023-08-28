@@ -1,5 +1,12 @@
 # ai
 
+## 2.2.10
+
+### Patch Changes
+
+- 8a2cbaf: vue/use-completion: fix: don't send network request for loading state"
+- bbf4403: langchain-stream: return langchain `writer` from LangChainStream
+
 ## 2.2.9
 
 ### Patch Changes
