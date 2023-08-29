@@ -159,10 +159,21 @@ const getStreamedResponse = async (
 
   if (isComplexMode) {
     while (true) {
-      const { done, value } = await reader.read()
+      const { done, value: partialValue } = await reader.read()
       if (done) {
         break
       }
+
+      let value = partialValue
+      // while last character of value is not a newline, keep reading
+      while (value[value.length - 1] !== 10) {
+        const { done, value: partialValue } = await reader.read()
+        if (done) {
+          break
+        }
+        value = new Uint8Array([...value, ...partialValue])
+      }
+
       // Update the chat state with the new message tokens.
       const lines = decode(value)
       if (typeof lines === 'string') {
