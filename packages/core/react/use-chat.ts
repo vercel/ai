@@ -165,13 +165,30 @@ const getStreamedResponse = async (
       }
 
       let value = partialValue
-      // while last character of value is not a newline, keep reading
-      while (value[value.length - 1] !== 10) {
-        const { done, value: partialValue } = await reader.read()
-        if (done) {
-          break
+
+      if (value[value.length - 1] !== 10) {
+        // if the last character is not a newline (ASCII code 10), we need to read more chunks
+        let buffer = new Uint8Array(value.length * 2);
+        buffer.set(value, 0); // copy the first chunk into the buffer
+        let offset = value.length;
+        while (value[value.length - 1] !== 10) {
+          // read more chunks until we get a newline
+          const { done, value: partialValue } = await reader.read();
+          if (done) {
+            break;
+          }
+
+          if (offset + partialValue.length > buffer.length) {
+            // resize the buffer if we need more space
+            let newBuffer = new Uint8Array(Math.max(buffer.length * 2, offset + partialValue.length));
+            newBuffer.set(buffer);
+            buffer = newBuffer;
+          }
+
+          buffer.set(partialValue, offset);
+          offset += partialValue.length;
         }
-        value = new Uint8Array([...value, ...partialValue])
+        value = new Uint8Array(buffer.buffer, 0, offset);
       }
 
       // Update the chat state with the new message tokens.
