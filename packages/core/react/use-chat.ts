@@ -184,6 +184,8 @@ const getStreamedResponse = async (
         concatenatedChunks.set(chunk, offset)
         offset += chunk.length
       }
+      chunks.length = 0;
+      totalLength = 0;
 
       // Update the chat state with the new message tokens.
       const lines = decode(concatenatedChunks)
