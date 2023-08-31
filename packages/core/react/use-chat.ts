@@ -156,7 +156,7 @@ const getStreamedResponse = async (
   }
 
   const prefixMap: PrefixMap = {}
-  const NEWLINE = '\n'.charCodeAt(0);
+  const NEWLINE = '\n'.charCodeAt(0)
 
   if (isComplexMode) {
     while (true) {
