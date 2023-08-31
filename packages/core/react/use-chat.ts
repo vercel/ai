@@ -157,23 +157,18 @@ const getStreamedResponse = async (
 
   const prefixMap: PrefixMap = {}
   const NEWLINE = '\n'.charCodeAt(0)
+  let chunks: Uint8Array[] = []
+  let totalLength = 0
 
   if (isComplexMode) {
     while (true) {
-      // iterate over each line in the stream
-      let chunks: Uint8Array[] = []
-      let totalLength = 0
-      while (true) {
-        // interate over each chunk in the line
-        const { done, value: partialValue } = await reader.read()
-        if (done) {
-          break
-        }
-        chunks.push(partialValue)
-        totalLength += partialValue.length
-        if (partialValue[partialValue.length - 1] === NEWLINE) {
-          // if the last character is a newline, we have read the whole line
-          break
+      const { value } = await reader.read()
+      if (value) {
+        chunks.push(value)
+        totalLength += value.length
+        if (value[value.length - 1] !== NEWLINE) {
+          // if the last character is not a newline, we have not read the whole JSON value
+          continue
         }
       }
 
@@ -183,10 +178,10 @@ const getStreamedResponse = async (
       }
 
       // concatenate all the chunks into a single Uint8Array
-      let value = new Uint8Array(totalLength)
+      let concatenatedChunks = new Uint8Array(totalLength)
       let offset = 0
       for (const chunk of chunks) {
-        value.set(chunk, offset)
+        concatenatedChunks.set(chunk, offset)
         offset += chunk.length
       }
 
