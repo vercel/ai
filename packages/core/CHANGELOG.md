@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.11
+
+### Patch Changes
+
+- 2470658: ai/react: fix: handle partial chunks in react getStreamedResponse when using experimental_StreamData
+
 ## 2.2.10
 
 ### Patch Changes
