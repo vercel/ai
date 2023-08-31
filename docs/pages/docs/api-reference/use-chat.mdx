@@ -105,6 +105,11 @@ Options passed to `useChat`:
       'credentials',
       '"omit" | "same-origin" | "include"',
       'An optional literal that sets the mode of credentials to be used on the request. Defaults to "same-origin".'
+    ],
+    [
+      'sendExtraMessageFields',
+      'boolean',
+      'An optional boolean that determines whether to send extra fields you\'ve added to `messages`. Defaults to `false` and only the `content` and `role` fields will be sent to the API endpoint.'
     ]
   ]}
 />
