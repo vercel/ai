@@ -156,15 +156,39 @@ const getStreamedResponse = async (
   }
 
   const prefixMap: PrefixMap = {}
+  const NEWLINE = '\n'.charCodeAt(0)
+  let chunks: Uint8Array[] = []
+  let totalLength = 0
 
   if (isComplexMode) {
     while (true) {
-      const { done, value } = await reader.read()
-      if (done) {
+      const { value } = await reader.read()
+      if (value) {
+        chunks.push(value)
+        totalLength += value.length
+        if (value[value.length - 1] !== NEWLINE) {
+          // if the last character is not a newline, we have not read the whole JSON value
+          continue
+        }
+      }
+
+      if (chunks.length === 0) {
+        // we have reached the end of the stream
         break
       }
+
+      // concatenate all the chunks into a single Uint8Array
+      let concatenatedChunks = new Uint8Array(totalLength)
+      let offset = 0
+      for (const chunk of chunks) {
+        concatenatedChunks.set(chunk, offset)
+        offset += chunk.length
+      }
+      chunks.length = 0
+      totalLength = 0
+
       // Update the chat state with the new message tokens.
-      const lines = decode(value)
+      const lines = decode(concatenatedChunks)
       if (typeof lines === 'string') {
         throw new Error(
           'Invalid response format. Complex mode was set but the response is a string. This should never happen.'
