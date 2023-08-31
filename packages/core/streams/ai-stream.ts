@@ -2,13 +2,13 @@ import {
   createParser,
   type EventSourceParser,
   type ParsedEvent,
-  type ReconnectInterval
-} from 'eventsource-parser'
-import { OpenAIStreamCallbacks } from './openai-stream'
+  type ReconnectInterval,
+} from 'eventsource-parser';
+import { OpenAIStreamCallbacks } from './openai-stream';
 
 export interface FunctionCallPayload {
-  name: string
-  arguments: Record<string, unknown>
+  name: string;
+  arguments: Record<string, unknown>;
 }
 
 /**
@@ -17,20 +17,20 @@ export interface FunctionCallPayload {
  */
 export interface AIStreamCallbacksAndOptions {
   /** `onStart`: Called once when the stream is initialized. */
-  onStart?: () => Promise<void> | void
+  onStart?: () => Promise<void> | void;
   /** `onCompletion`: Called for each tokenized message. */
-  onCompletion?: (completion: string) => Promise<void> | void
+  onCompletion?: (completion: string) => Promise<void> | void;
   /** `onFinal`: Called once when the stream is closed with the final completion message. */
-  onFinal?: (completion: string) => Promise<void> | void
+  onFinal?: (completion: string) => Promise<void> | void;
   /** `onToken`: Called for each tokenized message. */
-  onToken?: (token: string) => Promise<void> | void
+  onToken?: (token: string) => Promise<void> | void;
   /**
    * A flag for enabling the experimental_StreamData class and the new protocol.
    * @see https://github.com/vercel-labs/ai/pull/425
    *
    * When StreamData is rolled out, this will be removed and the new protocol will be used by default.
    */
-  experimental_streamData?: boolean
+  experimental_streamData?: boolean;
 }
 
 // new TokenData()
@@ -40,7 +40,7 @@ export interface AIStreamCallbacksAndOptions {
  * @interface
  */
 export interface AIStreamParser {
-  (data: string): string | void
+  (data: string): string | void;
 }
 
 /**
@@ -49,10 +49,10 @@ export interface AIStreamParser {
  * @returns {TransformStream<Uint8Array, string>} TransformStream parsing events.
  */
 export function createEventStreamTransformer(
-  customParser?: AIStreamParser
+  customParser?: AIStreamParser,
 ): TransformStream<Uint8Array, string> {
-  const textDecoder = new TextDecoder()
-  let eventSourceParser: EventSourceParser
+  const textDecoder = new TextDecoder();
+  let eventSourceParser: EventSourceParser;
 
   return new TransformStream({
     async start(controller): Promise<void> {
@@ -66,24 +66,24 @@ export function createEventStreamTransformer(
             // @see https://replicate.com/docs/streaming
             (event as any).event === 'done'
           ) {
-            controller.terminate()
-            return
+            controller.terminate();
+            return;
           }
 
           if ('data' in event) {
             const parsedMessage = customParser
               ? customParser(event.data)
-              : event.data
-            if (parsedMessage) controller.enqueue(parsedMessage)
+              : event.data;
+            if (parsedMessage) controller.enqueue(parsedMessage);
           }
-        }
-      )
+        },
+      );
     },
 
     transform(chunk) {
-      eventSourceParser.feed(textDecoder.decode(chunk))
-    }
-  })
+      eventSourceParser.feed(textDecoder.decode(chunk));
+    },
+  });
 }
 
 /**
@@ -109,43 +109,43 @@ export function createEventStreamTransformer(
  * const transformer = createCallbacksTransformer(callbacks);
  */
 export function createCallbacksTransformer(
-  cb: AIStreamCallbacksAndOptions | OpenAIStreamCallbacks | undefined
+  cb: AIStreamCallbacksAndOptions | OpenAIStreamCallbacks | undefined,
 ): TransformStream<string, Uint8Array> {
-  const textEncoder = new TextEncoder()
-  let aggregatedResponse = ''
-  const callbacks = cb || {}
+  const textEncoder = new TextEncoder();
+  let aggregatedResponse = '';
+  const callbacks = cb || {};
 
   return new TransformStream({
     async start(): Promise<void> {
-      if (callbacks.onStart) await callbacks.onStart()
+      if (callbacks.onStart) await callbacks.onStart();
     },
 
     async transform(message, controller): Promise<void> {
-      controller.enqueue(textEncoder.encode(message))
+      controller.enqueue(textEncoder.encode(message));
 
-      if (callbacks.onToken) await callbacks.onToken(message)
-      if (callbacks.onCompletion) aggregatedResponse += message
+      if (callbacks.onToken) await callbacks.onToken(message);
+      if (callbacks.onCompletion) aggregatedResponse += message;
     },
 
     async flush(): Promise<void> {
-      const isOpenAICallbacks = isOfTypeOpenAIStreamCallbacks(callbacks)
+      const isOpenAICallbacks = isOfTypeOpenAIStreamCallbacks(callbacks);
       // If it's OpenAICallbacks, it has an experimental_onFunctionCall which means that the createFunctionCallTransformer
       // will handle calling onComplete.
       if (callbacks.onCompletion) {
-        await callbacks.onCompletion(aggregatedResponse)
+        await callbacks.onCompletion(aggregatedResponse);
       }
 
       if (callbacks.onFinal && !isOpenAICallbacks) {
-        await callbacks.onFinal(aggregatedResponse)
+        await callbacks.onFinal(aggregatedResponse);
       }
-    }
-  })
+    },
+  });
 }
 
 function isOfTypeOpenAIStreamCallbacks(
-  callbacks: AIStreamCallbacksAndOptions | OpenAIStreamCallbacks
+  callbacks: AIStreamCallbacksAndOptions | OpenAIStreamCallbacks,
 ): callbacks is OpenAIStreamCallbacks {
-  return 'experimental_onFunctionCall' in callbacks
+  return 'experimental_onFunctionCall' in callbacks;
 }
 /**
  * Returns a stateful function that, when invoked, trims leading whitespace
@@ -163,15 +163,15 @@ function isOfTypeOpenAIStreamCallbacks(
  *
  */
 export function trimStartOfStreamHelper(): (text: string) => string {
-  let isStreamStart = true
+  let isStreamStart = true;
 
   return (text: string): string => {
     if (isStreamStart) {
-      text = text.trimStart()
-      if (text) isStreamStart = false
+      text = text.trimStart();
+      if (text) isStreamStart = false;
     }
-    return text
-  }
+    return text;
+  };
 }
 
 /**
@@ -195,34 +195,34 @@ export function trimStartOfStreamHelper(): (text: string) => string {
 export function AIStream(
   response: Response,
   customParser?: AIStreamParser,
-  callbacks?: AIStreamCallbacksAndOptions
+  callbacks?: AIStreamCallbacksAndOptions,
 ): ReadableStream<Uint8Array> {
   if (!response.ok) {
     if (response.body) {
-      const reader = response.body.getReader()
+      const reader = response.body.getReader();
       return new ReadableStream({
         async start(controller) {
-          const { done, value } = await reader.read()
+          const { done, value } = await reader.read();
           if (!done) {
-            const errorText = new TextDecoder().decode(value)
-            controller.error(new Error(`Response error: ${errorText}`))
+            const errorText = new TextDecoder().decode(value);
+            controller.error(new Error(`Response error: ${errorText}`));
           }
-        }
-      })
+        },
+      });
     } else {
       return new ReadableStream({
         start(controller) {
-          controller.error(new Error('Response error: No response body'))
-        }
-      })
+          controller.error(new Error('Response error: No response body'));
+        },
+      });
     }
   }
 
-  const responseBodyStream = response.body || createEmptyReadableStream()
+  const responseBodyStream = response.body || createEmptyReadableStream();
 
   return responseBodyStream
     .pipeThrough(createEventStreamTransformer(customParser))
-    .pipeThrough(createCallbacksTransformer(callbacks))
+    .pipeThrough(createCallbacksTransformer(callbacks));
 }
 
 // outputs lines like
@@ -241,9 +241,9 @@ export function AIStream(
 function createEmptyReadableStream(): ReadableStream {
   return new ReadableStream({
     start(controller) {
-      controller.close()
-    }
-  })
+      controller.close();
+    },
+  });
 }
 
 /**
@@ -251,16 +251,16 @@ function createEmptyReadableStream(): ReadableStream {
  * https://github.com/whatwg/streams/commit/8d7a0bf26eb2cc23e884ddbaac7c1da4b91cf2bc
  */
 export function readableFromAsyncIterable<T>(iterable: AsyncIterable<T>) {
-  let it = iterable[Symbol.asyncIterator]()
+  let it = iterable[Symbol.asyncIterator]();
   return new ReadableStream<T>({
     async pull(controller) {
-      const { done, value } = await it.next()
-      if (done) controller.close()
-      else controller.enqueue(value)
+      const { done, value } = await it.next();
+      if (done) controller.close();
+      else controller.enqueue(value);
     },
 
     async cancel(reason) {
-      await it.return?.(reason)
-    }
-  })
+      await it.return?.(reason);
+    },
+  });
 }

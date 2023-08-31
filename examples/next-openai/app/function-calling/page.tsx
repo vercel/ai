@@ -1,22 +1,22 @@
-'use client'
+'use client';
 
-import { Message } from 'ai/react'
-import { useChat } from 'ai/react'
-import { ChatRequest, FunctionCallHandler, nanoid } from 'ai'
+import { Message } from 'ai/react';
+import { useChat } from 'ai/react';
+import { ChatRequest, FunctionCallHandler, nanoid } from 'ai';
 
 export default function Chat() {
   const functionCallHandler: FunctionCallHandler = async (
     chatMessages,
-    functionCall
+    functionCall,
   ) => {
     if (functionCall.name === 'eval_code_in_browser') {
       if (functionCall.arguments) {
         // Parsing here does not always work since it seems that some characters in generated code aren't escaped properly.
         const parsedFunctionCallArguments: { code: string } = JSON.parse(
-          functionCall.arguments
-        )
+          functionCall.arguments,
+        );
         // WARNING: Do NOT do this in real-world applications!
-        eval(parsedFunctionCallArguments.code)
+        eval(parsedFunctionCallArguments.code);
         const functionResponse = {
           messages: [
             ...chatMessages,
@@ -24,27 +24,27 @@ export default function Chat() {
               id: nanoid(),
               name: 'eval_code_in_browser',
               role: 'function' as const,
-              content: parsedFunctionCallArguments.code
-            }
-          ]
-        }
-        return functionResponse
+              content: parsedFunctionCallArguments.code,
+            },
+          ],
+        };
+        return functionResponse;
       }
     }
-  }
+  };
 
   const { messages, input, handleInputChange, handleSubmit, data } = useChat({
     api: '/api/chat-with-functions',
-    experimental_onFunctionCall: functionCallHandler
-  })
+    experimental_onFunctionCall: functionCallHandler,
+  });
 
   // Generate a map of message role to text color
   const roleToColorMap: Record<Message['role'], string> = {
     system: 'red',
     user: 'black',
     function: 'blue',
-    assistant: 'green'
-  }
+    assistant: 'green',
+  };
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -72,5 +72,5 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }

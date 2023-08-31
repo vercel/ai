@@ -1,14 +1,14 @@
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
-import { toast } from 'sonner'
+import { useChat } from 'ai/react';
+import { toast } from 'sonner';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     onError: err => {
-      toast.error(err.message)
-    }
-  })
+      toast.error(err.message);
+    },
+  });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -30,5 +30,5 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }

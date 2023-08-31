@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsup';
 
 export default defineConfig([
   // Universal APIs
@@ -6,32 +6,32 @@ export default defineConfig([
     entry: ['streams/index.ts'],
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue'],
-    dts: true
+    dts: true,
   },
   {
     entry: ['prompts/index.ts'],
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue'],
     outDir: 'prompts/dist',
-    dts: true
+    dts: true,
   },
   // React APIs
   {
     entry: ['react/index.ts'],
     outDir: 'react/dist',
     banner: {
-      js: "'use client'"
+      js: "'use client'",
     },
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue', 'solid-js'],
-    dts: true
+    dts: true,
   },
   {
     entry: ['react/index.server.ts'],
     outDir: 'react/dist',
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue', 'solid-js'],
-    dts: true
+    dts: true,
   },
   // Svelte APIs
   {
@@ -43,7 +43,7 @@ export default defineConfig([
     dts: true,
     // `sswr` has some issue with `.es.js` that can't be resolved correctly by
     // vite so we have to bundle it here.
-    noExternal: ['sswr']
+    noExternal: ['sswr'],
   },
   // Vue APIs
   {
@@ -52,7 +52,7 @@ export default defineConfig([
     banner: {},
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue', 'solid-js'],
-    dts: true
+    dts: true,
   },
   // Solid APIs
   {
@@ -61,6 +61,6 @@ export default defineConfig([
     banner: {},
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue', 'solid-js'],
-    dts: true
-  }
-])
+    dts: true,
+  },
+]);

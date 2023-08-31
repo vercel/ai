@@ -23,35 +23,35 @@ With the Vercel AI SDK, you can build a ChatGPT-like app in just a few lines of 
 
 ```tsx
 // ./app/api/chat/route.js
-import OpenAI from 'openai'
-import { OpenAIStream, StreamingTextResponse } from 'ai'
+import OpenAI from 'openai';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-export const runtime = 'edge'
+export const runtime = 'edge';
 
 export async function POST(req) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
   const response = await openai.chat.completions.create({
     model: 'gpt-4',
     stream: true,
-    messages
-  })
-  const stream = OpenAIStream(response)
-  return new StreamingTextResponse(stream)
+    messages,
+  });
+  const stream = OpenAIStream(response);
+  return new StreamingTextResponse(stream);
 }
 ```
 
 ```tsx
 // ./app/page.js
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat()
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
 
   return (
     <div>
@@ -69,7 +69,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 

@@ -47,10 +47,9 @@
   "packageManager": "pnpm@8.6.9",
   "prettier": {
     "tabWidth": 2,
-    "semi": false,
     "useTabs": false,
     "singleQuote": true,
     "arrowParens": "avoid",
-    "trailingComma": "none"
+    "trailingComma": "all"
   }
 }

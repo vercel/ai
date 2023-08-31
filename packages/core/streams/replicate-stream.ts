@@ -1,6 +1,6 @@
-import { AIStream, type AIStreamCallbacksAndOptions } from './ai-stream'
-import type { Prediction } from 'replicate'
-import { createStreamDataTransformer } from './stream-data'
+import { AIStream, type AIStreamCallbacksAndOptions } from './ai-stream';
+import type { Prediction } from 'replicate';
+import { createStreamDataTransformer } from './stream-data';
 
 /**
  * Stream predictions from Replicate.
@@ -23,23 +23,23 @@ import { createStreamDataTransformer } from './stream-data'
  */
 export async function ReplicateStream(
   res: Prediction,
-  cb?: AIStreamCallbacksAndOptions
+  cb?: AIStreamCallbacksAndOptions,
 ): Promise<ReadableStream> {
-  const url = res.urls?.stream
+  const url = res.urls?.stream;
 
   if (!url) {
-    if (res.error) throw new Error(res.error)
-    else throw new Error('Missing stream URL in Replicate response')
+    if (res.error) throw new Error(res.error);
+    else throw new Error('Missing stream URL in Replicate response');
   }
 
   const eventStream = await fetch(url, {
     method: 'GET',
     headers: {
-      Accept: 'text/event-stream'
-    }
-  })
+      Accept: 'text/event-stream',
+    },
+  });
 
   return AIStream(eventStream, undefined, cb).pipeThrough(
-    createStreamDataTransformer(cb?.experimental_streamData)
-  )
+    createStreamDataTransformer(cb?.experimental_streamData),
+  );
 }
