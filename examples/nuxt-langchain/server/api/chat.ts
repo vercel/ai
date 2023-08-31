@@ -1,37 +1,37 @@
-import { LangChainStream, Message, StreamingTextResponse } from 'ai'
-import { ChatOpenAI } from 'langchain/chat_models/openai'
-import { AIMessage, HumanMessage } from 'langchain/schema'
+import { LangChainStream, Message, StreamingTextResponse } from 'ai';
+import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { AIMessage, HumanMessage } from 'langchain/schema';
 
-export const runtime = 'edge'
+export const runtime = 'edge';
 
 export default defineLazyEventHandler(() => {
-  const apiKey = useRuntimeConfig().openaiApiKey
+  const apiKey = useRuntimeConfig().openaiApiKey;
   if (!apiKey) {
-    throw createError('Missing OpenAI API key')
+    throw createError('Missing OpenAI API key');
   }
   const llm = new ChatOpenAI({
     openAIApiKey: apiKey,
-    streaming: true
-  })
+    streaming: true,
+  });
 
   return defineEventHandler(async event => {
     // Extract the `prompt` from the body of the request
-    const { messages } = await readBody(event)
+    const { messages } = await readBody(event);
 
-    const { stream, handlers } = LangChainStream()
+    const { stream, handlers } = LangChainStream();
     llm
       .call(
         (messages as Message[]).map(message =>
           message.role === 'user'
             ? new HumanMessage(message.content)
-            : new AIMessage(message.content)
+            : new AIMessage(message.content),
         ),
         {},
-        [handlers]
+        [handlers],
       )
       // eslint-disable-next-line no-console
-      .catch(console.error)
+      .catch(console.error);
 
-    return new StreamingTextResponse(stream)
-  })
-})
+    return new StreamingTextResponse(stream);
+  });
+});

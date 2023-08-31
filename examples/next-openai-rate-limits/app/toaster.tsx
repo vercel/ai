@@ -1,3 +1,3 @@
-'use client'
+'use client';
 
-export { Toaster as default } from 'sonner'
+export { Toaster as default } from 'sonner';

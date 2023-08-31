@@ -2,7 +2,7 @@
 title: AIStream
 ---
 
-import { OptionTable } from '@/components/table'
+import { OptionTable } from '@/components/table';
 
 # AIStream
 
@@ -32,7 +32,7 @@ This is an optional parameter which is an object that contains callback function
 
 ```tsx
 interface AIStreamParser {
-  (data: string): string | void
+  (data: string): string | void;
 }
 ```
 
@@ -45,23 +45,23 @@ This is an object that contains the following properties:
     [
       'onStart',
       '() => Promise<void>',
-      'An optional function that is called at the start of the stream processing.'
+      'An optional function that is called at the start of the stream processing.',
     ],
     [
       'onCompletion',
       '(completion: string) => Promise<void>',
-      "An optional function that is called for every completion. It's passed the completion as a string."
+      "An optional function that is called for every completion. It's passed the completion as a string.",
     ],
     [
       'onFinal',
       '(completion: string) => Promise<void>',
-      "An optional function that is called once for every request. It's passed the completion as a string. Differs from onCompletion when function calls are present."
+      "An optional function that is called once for every request. It's passed the completion as a string. Differs from onCompletion when function calls are present.",
     ],
     [
       'onToken',
       '(token: string) => Promise<void>',
-      "An optional function that is called for each token in the stream. It's passed the token as a string."
-    ]
+      "An optional function that is called for each token in the stream. It's passed the token as a string.",
+    ],
   ]}
 />
 

@@ -11,22 +11,22 @@ This is an example of using the AI SDK and OpenAI's completion service within Nu
 Create a new file in `server/api/chat.ts` with the following contents:
 
 ```ts filename="/server/api/chat.ts"
-import OpenAI from 'openai'
-import { OpenAIStream } from 'ai'
-import { CreateChatCompletionRequestMessage } from 'openai/resources/chat'
+import OpenAI from 'openai';
+import { OpenAIStream } from 'ai';
+import { CreateChatCompletionRequestMessage } from 'openai/resources/chat';
 
 export default defineLazyEventHandler(async () => {
-  const apiKey = useRuntimeConfig().openaiApiKey
-  if (!apiKey) throw new Error('Missing OpenAI API key')
+  const apiKey = useRuntimeConfig().openaiApiKey;
+  if (!apiKey) throw new Error('Missing OpenAI API key');
   const openai = new OpenAI({
-    apiKey: apiKey
-  })
+    apiKey: apiKey,
+  });
 
   return defineEventHandler(async event => {
     // Extract the `prompt` from the body of the request
     const { messages } = (await readBody(event)) as {
-      messages: CreateChatCompletionRequestMessage[]
-    }
+      messages: CreateChatCompletionRequestMessage[];
+    };
 
     // Ask OpenAI for a streaming chat completion given the prompt
     const response = await openai.chat.completions.create({
@@ -34,14 +34,14 @@ export default defineLazyEventHandler(async () => {
       stream: true,
       messages: messages.map(message => ({
         content: message.content,
-        role: message.role
-      }))
-    })
+        role: message.role,
+      })),
+    });
 
     // Convert the response into a friendly text-stream
-    return OpenAIStream(response)
-  })
-})
+    return OpenAIStream(response);
+  });
+});
 ```
 
 It creates a new API endpoint that accepts a `POST` request with a `messages` array in the body. It then uses the AI SDK to ask OpenAI for a streaming chat completion given the messages.
@@ -52,11 +52,11 @@ On the client-side, we'll create a simple chat UI that sends messages to the end
 
 ```vue filename="~/app.vue"
 <script setup lang="ts">
-import { useChat } from 'ai/vue'
+import { useChat } from 'ai/vue';
 
 const { messages, input, handleSubmit } = useChat({
-  headers: { 'Content-Type': 'application/json' }
-})
+  headers: { 'Content-Type': 'application/json' },
+});
 </script>
 
 <template>

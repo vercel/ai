@@ -1,15 +1,15 @@
-import { For, JSX } from 'solid-js'
-import { useChat } from 'ai/solid'
+import { For, JSX } from 'solid-js';
+import { useChat } from 'ai/solid';
 
 export default function Chat() {
-  const { messages, input, setInput, handleSubmit } = useChat()
+  const { messages, input, setInput, handleSubmit } = useChat();
 
   const handleInputChange: JSX.ChangeEventHandlerUnion<
     HTMLInputElement,
     Event
   > = e => {
-    setInput(e.target.value)
-  }
+    setInput(e.target.value);
+  };
 
   return (
     <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -31,5 +31,5 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }

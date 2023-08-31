@@ -2,7 +2,7 @@
 title: Next.js Pages Router
 ---
 
-import { Callout } from 'nextra-theme-docs'
+import { Callout } from 'nextra-theme-docs';
 
 # Next.js Pages Router
 
@@ -48,30 +48,30 @@ Node.js offers different Request and Response types compared to the Edge Runtime
 in place of `StreamingTextResponse`.
 
 ```jsx
-import { OpenAIStream, streamToResponse } from 'ai'
-import { NextApiRequest, NextApiResponse } from 'next'
-import OpenAI from 'openai'
+import { OpenAIStream, streamToResponse } from 'ai';
+import { NextApiRequest, NextApiResponse } from 'next';
+import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   const aiResponse = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo',
     stream: true,
-    messages: [{ role: 'user', content: 'What is love?' }]
-  })
+    messages: [{ role: 'user', content: 'What is love?' }],
+  });
 
-  const stream = OpenAIStream(aiResponse)
+  const stream = OpenAIStream(aiResponse);
 
   /**
    * Converts the stream to a Node.js Response-like object
    */
-  return streamToResponse(stream, res)
+  return streamToResponse(stream, res);
 }
 ```
 
@@ -80,13 +80,13 @@ export default async function handler(
 You can use the client `useChat` and `useCompletion` hooks the same between the Pages and App Router.
 
 ```jsx
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 // Optional but recommended: use the Edge Runtime. This can only be done at the page level, not inside nested components.
-export const runtime = 'experimental-edge'
+export const runtime = 'experimental-edge';
 
 export default function IndexPage() {
-  const { messages, handleSubmit, input, handleInputChange } = useChat()
+  const { messages, handleSubmit, input, handleInputChange } = useChat();
 
   return (
     <form onSubmit={handleSubmit}>
@@ -102,6 +102,6 @@ export default function IndexPage() {
         <div key={i}>{message.content}</div>
       ))}
     </form>
-  )
+  );
 }
 ```

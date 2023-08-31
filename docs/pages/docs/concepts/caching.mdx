@@ -13,24 +13,24 @@ Each stream helper for each provider has special lifecycle callbacks you can use
 This example uses [Vercel KV](https://vercel.com/storage/kv) and Next.js to cache the OpenAI response for 1 hour.
 
 ```tsx filename="app/api/chat/route.ts"
-import OpenAI from 'openai'
-import { OpenAIStream, StreamingTextResponse } from 'ai'
-import kv from '@vercel/kv'
+import OpenAI from 'openai';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
+import kv from '@vercel/kv';
 
-export const runtime = 'edge'
+export const runtime = 'edge';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!
-})
+  apiKey: process.env.OPENAI_API_KEY!,
+});
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
-  const key = JSON.stringify(messages) // come up with a key based on the request
+  const { messages } = await req.json();
+  const key = JSON.stringify(messages); // come up with a key based on the request
 
   // Check if we have a cached response
-  const cached = await kv.get(key)
+  const cached = await kv.get(key);
   if (cached) {
-    return new Response(cached)
+    return new Response(cached);
 
     // Optional: Emulate streaming by breaking the cached response into chunks
 
@@ -56,17 +56,17 @@ export async function POST(req: Request) {
 
   const response = await openai.chat.completions.create({
     // ... omitted for brevity
-  })
+  });
 
   // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response, {
     async onFinal(completion) {
       // Cache the response. Note that this will also cache function calls.
-      await kv.set(key, completion)
-      await kv.expire(key, 60 * 60)
-    }
-  })
+      await kv.set(key, completion);
+      await kv.expire(key, 60 * 60);
+    },
+  });
 
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```

@@ -1,12 +1,12 @@
-import OpenAI from 'openai'
-import { OpenAIStream, StreamingTextResponse } from 'ai'
-import type { CompletionCreateParams } from 'openai/resources/chat'
+import OpenAI from 'openai';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
+import type { CompletionCreateParams } from 'openai/resources/chat';
 
-import { env } from '$env/dynamic/private'
+import { env } from '$env/dynamic/private';
 
 const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY || ''
-})
+  apiKey: env.OPENAI_API_KEY || '',
+});
 
 const functions: CompletionCreateParams.Function[] = [
   {
@@ -17,17 +17,17 @@ const functions: CompletionCreateParams.Function[] = [
       properties: {
         location: {
           type: 'string',
-          description: 'The city and state, e.g. San Francisco, CA'
+          description: 'The city and state, e.g. San Francisco, CA',
         },
         format: {
           type: 'string',
           enum: ['celsius', 'fahrenheit'],
           description:
-            'The temperature unit to use. Infer this from the users location.'
-        }
+            'The temperature unit to use. Infer this from the users location.',
+        },
       },
-      required: ['location', 'format']
-    }
+      required: ['location', 'format'],
+    },
   },
   {
     name: 'get_current_time',
@@ -35,8 +35,8 @@ const functions: CompletionCreateParams.Function[] = [
     parameters: {
       type: 'object',
       properties: {},
-      required: []
-    }
+      required: [],
+    },
   },
   {
     name: 'eval_code_in_browser',
@@ -48,25 +48,25 @@ const functions: CompletionCreateParams.Function[] = [
           type: 'string',
           description: `Javascript code that will be directly executed via eval(). Do not use backticks in your response.
            DO NOT include any newlines in your response, and be sure to provide only valid JSON when providing the arguments object.
-           The output of the eval() will be returned directly by the function.`
-        }
+           The output of the eval() will be returned directly by the function.`,
+        },
       },
-      required: ['code']
-    }
-  }
-]
+      required: ['code'],
+    },
+  },
+];
 
 export async function POST({ request }) {
-  const { messages, function_call } = await request.json()
+  const { messages, function_call } = await request.json();
 
   const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo-0613',
     stream: true,
     messages,
     functions,
-    function_call
-  })
+    function_call,
+  });
 
-  const stream = OpenAIStream(response)
-  return new StreamingTextResponse(stream)
+  const stream = OpenAIStream(response);
+  return new StreamingTextResponse(stream);
 }

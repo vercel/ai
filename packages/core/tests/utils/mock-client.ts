@@ -2,36 +2,36 @@ export const createClient = (response: Response) => {
   return {
     async readAll() {
       if (!response.body) {
-        throw new Error('Response body is not readable')
+        throw new Error('Response body is not readable');
       }
 
-      let chunks: string[] = []
-      const reader = response.body.getReader()
+      let chunks: string[] = [];
+      const reader = response.body.getReader();
       while (true) {
-        const { done, value } = await reader.read()
+        const { done, value } = await reader.read();
         if (done) {
-          break
+          break;
         }
-        chunks.push(new TextDecoder().decode(value))
+        chunks.push(new TextDecoder().decode(value));
       }
-      return chunks
+      return chunks;
     },
 
     async readAndAbort(controller: AbortController) {
       if (!response.body) {
-        throw new Error('Response body is not readable')
+        throw new Error('Response body is not readable');
       }
 
-      let chunks: string[] = []
-      const reader = response.body.getReader()
-      const { done, value } = await reader.read()
+      let chunks: string[] = [];
+      const reader = response.body.getReader();
+      const { done, value } = await reader.read();
       if (!done) {
-        chunks.push(new TextDecoder().decode(value))
+        chunks.push(new TextDecoder().decode(value));
       }
       // Abort
-      controller.abort()
-      reader.cancel()
-      return chunks
-    }
-  }
-}
+      controller.abort();
+      reader.cancel();
+      return chunks;
+    },
+  };
+};

@@ -30,58 +30,58 @@ Below are some examples of how to use `OpenAIStream` with chat and completion mo
 ### Chat Model Example
 
 ```tsx
-import OpenAI from 'openai'
-import { OpenAIStream, StreamingTextResponse } from 'ai'
+import OpenAI from 'openai';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-export const runtime = 'edge'
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
   // Create a chat completion using OpenAI
   const response = await openai.chat.completions.create({
     model: 'gpt-4',
     stream: true,
-    messages
-  })
+    messages,
+  });
 
   // Transform the response into a readable stream
-  const stream = OpenAIStream(response)
+  const stream = OpenAIStream(response);
 
   // Return a StreamingTextResponse, which can be consumed by the client
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```
 
 ### Completion Model Example
 
 ```tsx
-import OpenAI from 'openai'
-import { OpenAIStream, StreamingTextResponse } from 'ai'
+import OpenAI from 'openai';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-export const runtime = 'edge'
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
-  const { prompt } = await req.json()
+  const { prompt } = await req.json();
   // Create a completion using OpenAI
   const response = await openai.completions.create({
     model: 'text-davinci-003',
     stream: true,
-    prompt
-  })
+    prompt,
+  });
 
   // Transform the response into a readable stream
-  const stream = OpenAIStream(response)
+  const stream = OpenAIStream(response);
 
   // Return a StreamingTextResponse, which can be consumed by the client
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```
 

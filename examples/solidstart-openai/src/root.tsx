@@ -1,5 +1,5 @@
 // @refresh reload
-import { Suspense } from 'solid-js'
+import { Suspense } from 'solid-js';
 import {
   Body,
   ErrorBoundary,
@@ -9,9 +9,9 @@ import {
   Meta,
   Routes,
   Scripts,
-  Title
-} from 'solid-start'
-import './root.css'
+  Title,
+} from 'solid-start';
+import './root.css';
 
 export default function Root() {
   return (
@@ -32,5 +32,5 @@ export default function Root() {
         <Scripts />
       </Body>
     </Html>
-  )
+  );
 }

@@ -1,1 +1,1 @@
-export * from './huggingface'
+export * from './huggingface';
