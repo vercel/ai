@@ -156,39 +156,38 @@ const getStreamedResponse = async (
   }
 
   const prefixMap: PrefixMap = {}
+  const NEWLINE = '\n'.charCodeAt(0);
 
   if (isComplexMode) {
     while (true) {
-      const { done, value: partialValue } = await reader.read()
-      if (done) {
+      // iterate over each line in the stream
+      let chunks: Uint8Array[] = []
+      let totalLength = 0
+      while (true) {
+        // interate over each chunk in the line
+        const { done, value: partialValue } = await reader.read()
+        if (done) {
+          break
+        }
+        chunks.push(partialValue)
+        totalLength += partialValue.length
+        if (partialValue[partialValue.length - 1] === NEWLINE) {
+          // if the last character is a newline, we have read the whole line
+          break
+        }
+      }
+
+      if (chunks.length === 0) {
+        // we have reached the end of the stream
         break
       }
 
-      let value = partialValue
-
-      if (value[value.length - 1] !== 10) {
-        // if the last character is not a newline (ASCII code 10), we need to read more chunks
-        let buffer = new Uint8Array(value.length * 2);
-        buffer.set(value, 0); // copy the first chunk into the buffer
-        let offset = value.length;
-        while (value[value.length - 1] !== 10) {
-          // read more chunks until we get a newline
-          const { done, value: partialValue } = await reader.read();
-          if (done) {
-            break;
-          }
-
-          if (offset + partialValue.length > buffer.length) {
-            // resize the buffer if we need more space
-            let newBuffer = new Uint8Array(Math.max(buffer.length * 2, offset + partialValue.length));
-            newBuffer.set(buffer);
-            buffer = newBuffer;
-          }
-
-          buffer.set(partialValue, offset);
-          offset += partialValue.length;
-        }
-        value = new Uint8Array(buffer.buffer, 0, offset);
+      // concatenate all the chunks into a single Uint8Array
+      let value = new Uint8Array(totalLength)
+      let offset = 0
+      for (const chunk of chunks) {
+        value.set(chunk, offset)
+        offset += chunk.length
       }
 
       // Update the chat state with the new message tokens.
