@@ -87,8 +87,8 @@ const getStreamedResponse = async (
               }),
             }),
           ),
-      ...extraMetadata.body,
-      ...chatRequest.options?.body,
+      ...(extraMetadata?.body instanceof Function ? extraMetadata.body() : extraMetadata?.body),
+      ...(chatRequest?.options?.body instanceof Function ? chatRequest.options.body() : chatRequest?.options?.body),
       ...(chatRequest.functions !== undefined && {
         functions: chatRequest.functions,
       }),
