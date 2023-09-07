@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.12
+
+### Patch Changes
+
+- cb181b4: ai/vue: wrap body with unref to support reactivity
+
 ## 2.2.11
 
 ### Patch Changes
