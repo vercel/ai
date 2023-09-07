@@ -1,5 +1,5 @@
 import swrv from 'swrv';
-import { ref } from 'vue';
+import { ref, unref } from 'vue';
 import type { Ref } from 'vue';
 
 import type { UseCompletionOptions, RequestOptions } from '../shared/types';
@@ -101,7 +101,7 @@ export function useCompletion({
         method: 'POST',
         body: JSON.stringify({
           prompt,
-          ...body,
+          ...unref(body),
           ...options?.body,
         }),
         headers: {
