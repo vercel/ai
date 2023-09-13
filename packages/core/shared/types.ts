@@ -89,6 +89,16 @@ export type UseChatOptions = {
   onResponse?: (response: Response) => void | Promise<void>;
 
   /**
+   * Callback function to be called for each tokenized message.
+   */
+  onCompletion?: (message: Message) => void;
+
+  /**
+   * Callback function to be called once after the final tokenized message.
+   */
+  onFinal?: (message: Message) => void;
+
+  /**
    * Callback function to be called when the chat is finished streaming.
    */
   onFinish?: (message: Message) => void;

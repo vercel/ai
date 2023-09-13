@@ -62,6 +62,8 @@ export const StreamStringPrefixes = {
   text: 0,
   function_call: 1,
   data: 2,
+  completion: 3,
+  final: 4,
   // user_err: 3?
 } as const;
 

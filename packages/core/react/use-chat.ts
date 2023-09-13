@@ -76,6 +76,8 @@ const getStreamedResponse = async (
   extraMetadataRef: React.MutableRefObject<any>,
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
+  onCompletion?: (message: Message) => void,
+  onFinal?: (message: Message) => void,
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean,
@@ -246,6 +248,14 @@ const getStreamedResponse = async (
           }
         }
 
+        if (type === 'completion') {
+          onCompletion?.(value as Message);
+        }
+
+        if (type === 'final') {
+          onFinal?.(value as Message);
+        }
+
         const data = prefixMap['data'];
         const responseMessage = prefixMap['text'];
 
@@ -338,6 +348,8 @@ export function useChat({
   sendExtraMessageFields,
   experimental_onFunctionCall,
   onResponse,
+  onCompletion,
+  onFinal,
   onFinish,
   onError,
   credentials,
@@ -411,6 +423,8 @@ export function useChat({
             extraMetadataRef,
             messagesRef,
             abortControllerRef,
+            onCompletion,
+            onFinal,
             onFinish,
             onResponse,
             sendExtraMessageFields,
@@ -503,6 +517,8 @@ export function useChat({
       api,
       extraMetadataRef,
       onResponse,
+      onCompletion,
+      onFinal,
       onFinish,
       onError,
       setError,

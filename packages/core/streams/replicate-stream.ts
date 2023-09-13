@@ -1,6 +1,5 @@
 import { AIStream, type AIStreamCallbacksAndOptions } from './ai-stream';
 import type { Prediction } from 'replicate';
-import { createStreamDataTransformer } from './stream-data';
 
 /**
  * Stream predictions from Replicate.
@@ -39,7 +38,5 @@ export async function ReplicateStream(
     },
   });
 
-  return AIStream(eventStream, undefined, cb).pipeThrough(
-    createStreamDataTransformer(cb?.experimental_streamData),
-  );
+  return AIStream(eventStream, undefined, cb);
 }

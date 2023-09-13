@@ -9,7 +9,6 @@ import {
   readableFromAsyncIterable,
   createCallbacksTransformer,
 } from './ai-stream';
-import { createStreamDataTransformer } from './stream-data';
 
 export type OpenAIStreamCallbacks = AIStreamCallbacksAndOptions & {
   /**
@@ -365,6 +364,7 @@ export function OpenAIStream(
           : {
               ...cb,
             },
+        cb?.experimental_streamData,
       ),
     );
   } else {
@@ -386,9 +386,7 @@ export function OpenAIStream(
     const functionCallTransformer = createFunctionCallTransformer(cb);
     return stream.pipeThrough(functionCallTransformer);
   } else {
-    return stream.pipeThrough(
-      createStreamDataTransformer(cb?.experimental_streamData),
-    );
+    return stream;
   }
 }
 
@@ -426,11 +424,7 @@ function createFunctionCallTransformer(
 
       // Stream as normal
       if (!isFunctionStreamingIn) {
-        controller.enqueue(
-          isComplexMode
-            ? textEncoder.encode(getStreamString('text', message))
-            : chunk,
-        );
+        controller.enqueue(chunk);
         return;
       } else {
         aggregatedResponse += message;
@@ -494,11 +488,7 @@ function createFunctionCallTransformer(
             return;
           } else if (typeof functionResponse === 'string') {
             // The user returned a string, so we just return it as a message
-            controller.enqueue(
-              isComplexMode
-                ? textEncoder.encode(getStreamString('text', functionResponse))
-                : textEncoder.encode(functionResponse),
-            );
+            controller.enqueue(textEncoder.encode(functionResponse));
             return;
           }
 

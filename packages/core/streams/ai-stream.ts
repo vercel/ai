@@ -5,6 +5,7 @@ import {
   type ReconnectInterval,
 } from 'eventsource-parser';
 import { OpenAIStreamCallbacks } from './openai-stream';
+import { getStreamString } from '../shared/utils';
 
 export interface FunctionCallPayload {
   name: string;
@@ -110,6 +111,7 @@ export function createEventStreamTransformer(
  */
 export function createCallbacksTransformer(
   cb: AIStreamCallbacksAndOptions | OpenAIStreamCallbacks | undefined,
+  isComplexMode = false,
 ): TransformStream<string, Uint8Array> {
   const textEncoder = new TextEncoder();
   let aggregatedResponse = '';
@@ -121,20 +123,38 @@ export function createCallbacksTransformer(
     },
 
     async transform(message, controller): Promise<void> {
-      controller.enqueue(textEncoder.encode(message));
+      if (isComplexMode) {
+        controller.enqueue(
+          textEncoder.encode(getStreamString('text', message)),
+        );
+      } else {
+        controller.enqueue(textEncoder.encode(message));
+      }
 
       if (callbacks.onToken) await callbacks.onToken(message);
       if (callbacks.onCompletion) aggregatedResponse += message;
     },
 
-    async flush(): Promise<void> {
+    async flush(controller): Promise<void> {
       const isOpenAICallbacks = isOfTypeOpenAIStreamCallbacks(callbacks);
       // If it's OpenAICallbacks, it has an experimental_onFunctionCall which means that the createFunctionCallTransformer
       // will handle calling onComplete.
+      const encoder = new TextEncoder();
+
+      if (isComplexMode) {
+        controller.enqueue(
+          encoder.encode(getStreamString('completion', aggregatedResponse)),
+        );
+      }
       if (callbacks.onCompletion) {
         await callbacks.onCompletion(aggregatedResponse);
       }
 
+      if (isComplexMode) {
+        controller.enqueue(
+          encoder.encode(getStreamString('final', aggregatedResponse)),
+        );
+      }
       if (callbacks.onFinal && !isOpenAICallbacks) {
         await callbacks.onFinal(aggregatedResponse);
       }
