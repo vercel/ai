@@ -248,6 +248,7 @@ export function useChat({
   // chat state.
   async function triggerRequest(chatRequest: ChatRequest) {
     try {
+      error.set(undefined);
       loading.set(true);
       abortController = new AbortController();
 

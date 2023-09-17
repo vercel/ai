@@ -103,6 +103,7 @@ export function useChat({
     options?: RequestOptions,
   ) {
     try {
+      error.value = undefined;
       mutateLoading(() => true);
       abortController = new AbortController();
 
