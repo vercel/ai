@@ -4,6 +4,7 @@
     "build": {
       "dependsOn": ["^build"],
       "env": [
+        "ANTHROPIC_API_KEY",
         "OPENAI_API_KEY",
         "OPENAI_API_BASE",
         "HUGGINGFACE_API_KEY",
