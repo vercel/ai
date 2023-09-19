@@ -35,10 +35,11 @@ export async function POST(req: Request) {
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
       prompt,
-      model: 'claude-v1',
+      model: 'claude-v2',
       max_tokens_to_sample: 300,
       temperature: 0.9,
       stream: true,
