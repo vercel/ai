@@ -103,7 +103,9 @@ export function useChat({
     options?: RequestOptions,
   ) {
     try {
+      setError(undefined);
       setIsLoading(true);
+
       abortController = new AbortController();
 
       // Do an optimistic update to the chat state to show the updated messages

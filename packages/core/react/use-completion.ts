@@ -104,6 +104,7 @@ export function useCompletion({
     async (prompt: string, options?: RequestOptions) => {
       try {
         mutateLoading(true);
+        setError(undefined);
 
         const abortController = new AbortController();
         setAbortController(abortController);

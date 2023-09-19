@@ -394,6 +394,8 @@ export function useChat({
     async (chatRequest: ChatRequest) => {
       try {
         mutateLoading(true);
+        setError(undefined);
+
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
