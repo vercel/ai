@@ -39,6 +39,52 @@ importers:
         specifier: ^1.10.13
         version: 1.10.13
 
+  examples/next-anthropic:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.6.2
+        version: 0.6.2
+      ai:
+        specifier: 2.2.12
+        version: link:../../packages/core
+      next:
+        specifier: 13.4.12
+        version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
+      react:
+        specifier: 18.2.0
+        version: 18.2.0
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.2.0(react@18.2.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^17.0.12
+        version: 17.0.12
+      '@types/react':
+        specifier: 18.2.8
+        version: 18.2.8
+      '@types/react-dom':
+        specifier: 18.2.4
+        version: 18.2.4
+      autoprefixer:
+        specifier: ^10.4.14
+        version: 10.4.14(postcss@8.4.23)
+      eslint:
+        specifier: ^7.32.0
+        version: 7.32.0
+      eslint-config-next:
+        specifier: 13.4.12
+        version: 13.4.12(eslint@7.32.0)(typescript@5.1.3)
+      postcss:
+        specifier: ^8.4.23
+        version: 8.4.23
+      tailwindcss:
+        specifier: ^3.3.2
+        version: 3.3.3
+      typescript:
+        specifier: 5.1.3
+        version: 5.1.3
+
   examples/next-fireworks:
     dependencies:
       ai:
@@ -625,6 +671,22 @@ packages:
 
   /@anthropic-ai/sdk@0.5.10:
     resolution: {integrity: sha512-P8xrIuTUO/6wDzcjQRUROXp4WSqtngbXaE4GpEu0PhEmnq/1Q8vbF1s0o7W07EV3j8zzRoyJxAKovUJtNXH7ew==}
+    dependencies:
+      '@types/node': 18.17.5
+      '@types/node-fetch': 2.6.4
+      abort-controller: 3.0.0
+      agentkeepalive: 4.3.0
+      digest-fetch: 1.3.0
+      form-data-encoder: 1.7.2
+      formdata-node: 4.4.1
+      node-fetch: 2.6.11
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    dev: false
+
+  /@anthropic-ai/sdk@0.6.2:
+    resolution: {integrity: sha512-fB9PUj9RFT+XjkL+E9Ol864ZIJi+1P8WnbHspN3N3/GK2uSzjd0cbVIKTGgf4v3N8MwaQu+UWnU7C4BG/fap/g==}
     dependencies:
       '@types/node': 18.17.5
       '@types/node-fetch': 2.6.4
