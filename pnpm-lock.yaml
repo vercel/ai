@@ -45,7 +45,7 @@ importers:
         specifier: ^0.6.2
         version: 0.6.2
       ai:
-        specifier: ^2.2.4
+        specifier: 2.2.12
         version: link:../../packages/core
       next:
         specifier: 13.4.12
