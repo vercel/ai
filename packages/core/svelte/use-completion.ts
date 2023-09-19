@@ -89,6 +89,7 @@ export function useCompletion({
   let abortController: AbortController | null = null;
   async function triggerRequest(prompt: string, options?: RequestOptions) {
     try {
+      error.set(undefined);
       loading.set(true);
       abortController = new AbortController();
 
