@@ -23,23 +23,23 @@ The `AnthropicStream` function can be coupled with a `fetch` call to the Anthrop
 Here's a step-by-step example of how to implement this in Next.js:
 
 ```js filename="app/api/completion/route.ts"
-import { AnthropicStream, StreamingTextResponse } from "ai";
+import { AnthropicStream, StreamingTextResponse } from 'ai';
 
-export const runtime = "edge";
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
 
-  const response = await fetch("https://api.anthropic.com/v1/complete", {
-    method: "POST",
+  const response = await fetch('https://api.anthropic.com/v1/complete', {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
       prompt,
-      model: "claude-v2",
+      model: 'claude-v2',
       max_tokens_to_sample: 300,
       temperature: 0.9,
       stream: true,

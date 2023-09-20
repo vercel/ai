@@ -1,6 +1,6 @@
 # Anthropic
 
-import { Steps, Callout } from "nextra-theme-docs";
+import { Steps, Callout } from 'nextra-theme-docs';
 
 Vercel AI SDK provides a set of utilities to make it easy to use Anthropic's API. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
 
@@ -33,25 +33,25 @@ Create a Next.js Route Handler that uses the Edge Runtime to generate a response
 For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
 
 ```tsx filename="app/api/chat/route.ts" showLineNumbers
-import { AnthropicStream, StreamingTextResponse } from "ai";
+import { AnthropicStream, StreamingTextResponse } from 'ai';
 
 // IMPORTANT! Set the runtime to edge
-export const runtime = "edge";
+export const runtime = 'edge';
 
 // Build a prompt from the messages
 function buildPrompt(
-  messages: { content: string; role: "system" | "user" | "assistant" }[]
+  messages: { content: string; role: 'system' | 'user' | 'assistant' }[],
 ) {
   return (
     messages
       .map(({ content, role }) => {
-        if (role === "user") {
+        if (role === 'user') {
           return `Human: ${content}`;
         } else {
           return `Assistant: ${content}`;
         }
       })
-      .join("\n\n") + "Assistant:"
+      .join('\n\n') + 'Assistant:'
   );
 }
 
@@ -59,15 +59,15 @@ export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
   const { messages } = await req.json();
 
-  const response = await fetch("https://api.anthropic.com/v1/complete", {
-    method: "POST",
+  const response = await fetch('https://api.anthropic.com/v1/complete', {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
     },
     body: JSON.stringify({
       prompt: buildPrompt(messages),
-      model: "claude-v1",
+      model: 'claude-v1',
       max_tokens_to_sample: 300,
       temperature: 0.9,
       stream: true,
@@ -107,18 +107,18 @@ Create a Client component with a form that we'll use to gather the prompt from t
 By default, the [`useChat`](/docs/api-reference#usechat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
-"use client";
+'use client';
 
-import { useChat } from "ai/react";
+import { useChat } from 'ai/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
 
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
-      {messages.map((m) => (
+      {messages.map(m => (
         <div key={m.id}>
-          {m.role === "user" ? "User: " : "AI: "}
+          {m.role === 'user' ? 'User: ' : 'AI: '}
           {m.content}
         </div>
       ))}
@@ -150,25 +150,25 @@ export default function Chat() {
 Similar to the Chat Bot example above, we'll create a Next.js Route Handler that generates a text completion via the same Anthropic API that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
-import { AnthropicStream, StreamingTextResponse } from "ai";
+import { AnthropicStream, StreamingTextResponse } from 'ai';
 
 // IMPORTANT! Set the runtime to edge
-export const runtime = "edge";
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
 
-  const response = await fetch("https://api.anthropic.com/v1/complete", {
-    method: "POST",
+  const response = await fetch('https://api.anthropic.com/v1/complete', {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
       prompt: `Human: ${prompt}\n\nAssistant:`,
-      model: "claude-v2",
+      model: 'claude-v2',
       max_tokens_to_sample: 300,
       temperature: 0.9,
       stream: true,
@@ -188,9 +188,9 @@ export async function POST(req: Request) {
 We can use the [`useCompletion`](/docs/api-reference#usecompletion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
-"use client";
+'use client';
 
-import { useCompletion } from "ai/react";
+import { useCompletion } from 'ai/react';
 
 export default function Completion() {
   const {
@@ -201,7 +201,7 @@ export default function Completion() {
     handleInputChange,
     handleSubmit,
   } = useCompletion({
-    api: "/api/completion",
+    api: '/api/completion',
   });
 
   return (
