@@ -67,6 +67,7 @@ export function CohereStream(
   reader: Response,
   callbacks?: AIStreamCallbacksAndOptions,
 ): ReadableStream {
-  return createParser(reader)
-    .pipeThrough(createCallbacksTransformer(callbacks));
+  return createParser(reader).pipeThrough(
+    createCallbacksTransformer(callbacks),
+  );
 }

@@ -29,8 +29,7 @@ export function LangChainStream(callbacks?: AIStreamCallbacksAndOptions) {
   };
 
   return {
-    stream: stream.readable
-      .pipeThrough(createCallbacksTransformer(callbacks)),
+    stream: stream.readable.pipeThrough(createCallbacksTransformer(callbacks)),
     writer,
     handlers: {
       handleLLMNewToken: async (token: string) => {

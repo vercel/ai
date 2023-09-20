@@ -39,6 +39,5 @@ export function HuggingFaceStream(
   res: AsyncGenerator<any>,
   callbacks?: AIStreamCallbacksAndOptions,
 ): ReadableStream {
-  return createParser(res)
-    .pipeThrough(createCallbacksTransformer(callbacks));
+  return createParser(res).pipeThrough(createCallbacksTransformer(callbacks));
 }
