@@ -124,7 +124,7 @@ The `useChat` hook returns an object containing several helper methods and varia
     ['error', 'Error | undefined', 'An error object returned by SWR, if any.'],
     [
       'append',
-      '(message: Message | CreateMessage, options: { headers, body }) => Promise<string | undefined>',
+      '(message: Message | CreateMessage, chatRequestOptions: { options: { headers, body } }) => Promise<string | undefined>',
       'Function to append a message to the chat, triggering an API call for the AI response. It returns a promise that resolves to full response message content when the API call is successfully finished, or throws an error when the API call fails.',
     ],
     [
