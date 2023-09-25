@@ -59,6 +59,7 @@ export type UseChatHelpers = {
   handleSubmit: (
     e: React.FormEvent<HTMLFormElement>,
     chatRequestOptions?: ChatRequestOptions,
+    metadata?: Object,
   ) => void;
   metadata?: Object;
   /** Whether the API request is in progress */
