@@ -51,9 +51,9 @@ It creates a new API endpoint that accepts a `POST` request with a `messages` ar
 
 ## UI Component
 
-On the client-side, we'll create a simple chat UI that sends messages to the endpoint we created above and displays the responses. Create a new file in `app.vue` with the following contents:
+On the client-side, we'll create a simple chat UI that sends messages to the endpoint we created above and displays the responses. Update `src/routes/+page.svelte` with the following contents:
 
-```vue filename="src/routes/+page.svelte"
+```svelte filename="src/routes/+page.svelte"
 <script>
 import { useChat } from 'ai/svelte';
 
