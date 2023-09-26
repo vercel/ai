@@ -55,7 +55,7 @@ export type UseChatHelpers = {
       | React.ChangeEvent<HTMLInputElement>
       | React.ChangeEvent<HTMLTextAreaElement>,
   ) => void;
-  /** Form submission handler to automattically reset input and append a user message  */
+  /** Form submission handler to automatically reset input and append a user message  */
   handleSubmit: (
     e: React.FormEvent<HTMLFormElement>,
     chatRequestOptions?: ChatRequestOptions,
