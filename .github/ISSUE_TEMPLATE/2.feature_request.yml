@@ -1,0 +1,29 @@
+name: Feature Request
+description: Propose a new feature for the AI SDK.
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This template is to propose new features for the AI SDK. If you need help with your own project, feel free to [start a new thread in our discussions](https://github.com/vercel/ai/discussions).
+  - type: textarea
+    attributes:
+      label: Feature Description
+      description: A detailed description of the feature you are proposing for the SDK. This includes helpful information such as the API you are using, the framework, and AI provider.
+      placeholder: |
+        Feature description...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Use Case
+      description: Provide a use case where this feature would be beneficial
+      placeholder: |
+        Use case...
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: |
+        Any extra information that might help us understand your feature request.
+      placeholder: |
+        Additional context...

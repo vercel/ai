@@ -1,0 +1,29 @@
+name: Bug report
+description: Create a bug report for the AI SDK.
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This template is to report bugs for the AI SDK. If you need help with your own project, feel free to [start a new thread in our discussions](https://github.com/vercel/ai/discussions).
+  - type: textarea
+    attributes:
+      label: Description
+      description: A detailed description of the bug you are encountering with the SDK, and how other people can reproduce it. This includes helpful information such as the API you are using, the framework and AI provider.
+      placeholder: |
+        Reproduction steps...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Code example
+      description: Provide an example code snippet that has the problem
+      placeholder: |
+        import OpenAI from 'openai';
+        import { OpenAIStream, StreamingTextResponse } from 'ai';
+        ...
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: |
+        Any extra information that might help us investigate.
