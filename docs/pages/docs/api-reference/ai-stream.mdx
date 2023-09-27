@@ -115,7 +115,7 @@ const anthropicStream = AnthropicStream(fetchResponse, {
   },
   onFinal: async completion => {
     console.log("Stream completed", completion)
-  }
+  },
   onToken: async token => {
     console.log('Token received', token)
   }
