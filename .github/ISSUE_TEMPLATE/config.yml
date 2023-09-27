@@ -3,6 +3,3 @@ contact_links:
   - name: Ask a question
     url: https://github.com/vercel/ai/discussions
     about: Please ask questions in our discussions forum.
-  - name: Bug report and feature request
-    url: https://bounty.github.com/
-    about: Create a bug report or a feature request
