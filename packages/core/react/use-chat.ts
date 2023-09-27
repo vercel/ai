@@ -300,7 +300,15 @@ const getStreamedResponse = async (
         // While the function call is streaming, it will be a string.
         responseMessage['function_call'] = streamedResponse;
       } else {
-        responseMessage['content'] = streamedResponse;
+        // Check for embedded function calls, don't show as streaming in.
+        let functionCallIndex = streamedResponse.indexOf('{"function_call":');
+
+        if (functionCallIndex !== -1) {
+          let textResponse = streamedResponse.substring(0, functionCallIndex);
+          responseMessages['content'] = textResponse;
+        } else {
+          responseMessage['content'] = streamedResponse;
+        }
       }
 
       mutate([...chatRequest.messages, { ...responseMessage }], false);
@@ -320,6 +328,52 @@ const getStreamedResponse = async (
       responseMessage['function_call'] = parsedFunctionCall;
 
       mutate([...chatRequest.messages, { ...responseMessage }]);
+    } else {
+      // Check for an embedded function call.
+      // TODO: Support N function calls?
+      let functionCallIndex = streamedResponse.indexOf('{"function_call":');
+      if (functionCallIndex !== -1) {
+        let textResponse = streamedResponse.substring(0, functionCallIndex);
+        let functionCallString = streamedResponse.substring(functionCallIndex);
+
+        // Create a message for the text before the function call
+        if (textResponse) {
+          let textMessage = {
+            id: replyId,
+            createdAt,
+            content: textResponse,
+            role: 'assistant' as const,
+          };
+
+          mutate(prevMessages => {
+            if (!prevMessages) {
+              return [{ ...textMessage }];
+            } else {
+              return [...prevMessages, { ...textMessage }];
+            }
+          });
+        }
+
+        // Parse the function call and create a separate message for it
+        let parsedFunctionCall = JSON.parse(functionCallString).function_call;
+        let functionCallMessage = {
+          id: nanoid(),
+          createdAt,
+          function_call: parsedFunctionCall,
+          content: '',
+          role: 'assistant' as const,
+        };
+
+        mutate(prevMessages => {
+          if (!prevMessages) {
+            return [{ ...functionCallMessage }];
+          } else {
+            return [...prevMessages, { ...functionCallMessage }];
+          }
+        });
+
+        responseMessage = functionCallMessage;
+      }
     }
 
     if (onFinish) {
