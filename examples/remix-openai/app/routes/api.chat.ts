@@ -1,9 +1,9 @@
-import type { ActionFunctionArgs } from "@vercel/remix";
-import { OpenAIStream, StreamingTextResponse } from "ai";
-import OpenAI from "openai";
+import type { ActionFunctionArgs } from '@vercel/remix';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
+import OpenAI from 'openai';
 
 // IMPORTANT! Set the runtime to edge when deployed to vercel
-export const config = { runtime: "edge" };
+export const config = { runtime: 'edge' };
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -12,7 +12,7 @@ const openai = new OpenAI({
 export async function action({ request }: ActionFunctionArgs) {
   const { messages } = await request.json();
   const response = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
+    model: 'gpt-3.5-turbo',
     stream: true,
     messages,
   });
