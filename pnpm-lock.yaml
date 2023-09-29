@@ -46,7 +46,7 @@ importers:
         version: 0.6.2
       ai:
         specifier: 2.2.12
-        version: link:../../packages/core
+        version: 2.2.12(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4)
       next:
         specifier: 13.4.12
         version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
@@ -88,7 +88,7 @@ importers:
   examples/next-fireworks:
     dependencies:
       ai:
-        specifier: 2.2.13
+        specifier: 2.2.14
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -137,7 +137,7 @@ importers:
         specifier: ^2.5.1
         version: 2.5.1
       ai:
-        specifier: 2.2.13
+        specifier: 2.2.14
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -180,7 +180,7 @@ importers:
   examples/next-langchain:
     dependencies:
       ai:
-        specifier: 2.2.13
+        specifier: 2.2.14
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.129
@@ -226,7 +226,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: 2.2.13
+        specifier: 2.2.14
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -278,7 +278,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
       ai:
-        specifier: 2.2.13
+        specifier: 2.2.14
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -452,7 +452,7 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4
       ai:
-        specifier: 2.2.13
+        specifier: 2.2.14
         version: link:../../packages/core
       nuxt:
         specifier: ^3.6.5
@@ -482,7 +482,7 @@ importers:
         specifier: ^0.8.2
         version: 0.8.2(solid-js@1.7.2)
       ai:
-        specifier: 2.2.13
+        specifier: 2.2.14
         version: link:../../packages/core
       openai:
         specifier: 4.2.0
@@ -519,7 +519,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       ai:
-        specifier: 2.2.13
+        specifier: 2.2.14
         version: link:../../packages/core
       openai:
         specifier: 4.2.0
@@ -4567,6 +4567,41 @@ packages:
       clean-stack: 2.2.0
       indent-string: 4.0.0
     dev: true
+
+  /ai@2.2.12(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4):
+    resolution: {integrity: sha512-UdTbykzU9EvqwLv8KyJD4Avzsi9DYXZlE+6S4jd86iyp56jRJeg9Vmsnc+2487qI20aMIqKkm07R3qqJ1DH6lA==}
+    engines: {node: '>=14.6'}
+    peerDependencies:
+      react: ^18.2.0
+      solid-js: ^1.7.7
+      svelte: ^3.0.0 || ^4.0.0
+      vue: ^3.3.4
+    peerDependenciesMeta:
+      react:
+        optional: true
+      solid-js:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+    dependencies:
+      eventsource-parser: 1.0.0
+      nanoid: 3.3.6
+      openai: 4.2.0
+      react: 18.2.0
+      solid-js: 1.7.7
+      solid-swr-store: 0.10.7(solid-js@1.7.7)(swr-store@0.10.6)
+      sswr: 2.0.0(svelte@4.0.1)
+      svelte: 4.0.1
+      swr: 2.2.0(react@18.2.0)
+      swr-store: 0.10.6
+      swrv: 1.0.4(vue@3.3.4)
+      vue: 3.3.4
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    dev: false
 
   /ajv-keywords@3.5.2(ajv@6.12.6):
     resolution: {integrity: sha512-5p6WTN0DdTGVQk6VjcEju19IgaHudalcfabD7yhDGeA6bcQnmL+CpveLJq/3hvfwd1aof6L386Ougkx6RfyMIQ==}

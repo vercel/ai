@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "openai": "4.2.0",
-    "ai": "2.2.13"
+    "ai": "2.2.14"
   },
   "devDependencies": {
     "@fontsource/fira-mono": "^4.5.10",

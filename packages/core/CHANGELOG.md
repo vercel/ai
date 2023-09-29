@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.14
+
+### Patch Changes
+
+- 7a6dc3b: openai: fix type support for openai@4.10+
+
 ## 2.2.13
 
 ### Patch Changes
