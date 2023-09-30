@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-openai: fix openai types in openai@4.10+
+openai: fix OpenAIStream types with openai@4.11+
