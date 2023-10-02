@@ -29,7 +29,7 @@ export type UseCompletionHelpers = {
   /** The current value of the input */
   input: Writable<string>;
   /**
-   * Form submission handler to automattically reset input and append a user message
+   * Form submission handler to automatically reset input and append a user message
    * @example
    * ```jsx
    * <form onSubmit={handleSubmit}>

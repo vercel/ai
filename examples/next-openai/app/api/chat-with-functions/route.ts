@@ -4,7 +4,7 @@ import {
   experimental_StreamData,
 } from 'ai';
 import OpenAI from 'openai';
-import { CompletionCreateParams } from 'openai/resources/chat';
+import type { ChatCompletionCreateParams } from 'openai/resources/chat';
 // Create an OpenAI API client (that's edge friendly!)
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
@@ -13,7 +13,7 @@ const openai = new OpenAI({
 // IMPORTANT! Set the runtime to edge
 export const runtime = 'edge';
 
-const functions: CompletionCreateParams.Function[] = [
+const functions: ChatCompletionCreateParams.Function[] = [
   {
     name: 'get_current_weather',
     description: 'Get the current weather.',

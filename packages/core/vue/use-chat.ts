@@ -43,7 +43,7 @@ export type UseChatHelpers = {
   setMessages: (messages: Message[]) => void;
   /** The current value of the input */
   input: Ref<string>;
-  /** Form submission handler to automattically reset input and append a user message  */
+  /** Form submission handler to automatically reset input and append a user message  */
   handleSubmit: (e: any) => void;
   /** Whether the API request is in progress */
   isLoading: Ref<boolean | undefined>;

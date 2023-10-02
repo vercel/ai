@@ -8,8 +8,8 @@ import type {
   Message,
   UseChatOptions,
   ChatRequestOptions,
+  FunctionCall,
 } from '../shared/types';
-import { ChatCompletionMessage } from 'openai/resources/chat';
 export type { Message, CreateMessage, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -47,7 +47,7 @@ export type UseChatHelpers = {
   setMessages: (messages: Message[]) => void;
   /** The current value of the input */
   input: Writable<string>;
-  /** Form submission handler to automattically reset input and append a user message  */
+  /** Form submission handler to automatically reset input and append a user message  */
   handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void;
   metadata?: Object;
   /** Whether the API request is in progress */
@@ -173,7 +173,7 @@ const getStreamedResponse = async (
 
   if (typeof responseMessage.function_call === 'string') {
     // Once the stream is complete, the function call is parsed into an object.
-    const parsedFunctionCall: ChatCompletionMessage.FunctionCall = JSON.parse(
+    const parsedFunctionCall: FunctionCall = JSON.parse(
       responseMessage.function_call,
     ).function_call;
 

@@ -47,7 +47,7 @@ export type UseChatHelpers = {
   input: Accessor<string>;
   /** Signal setter to update the input value */
   setInput: Setter<string>;
-  /** Form submission handler to automattically reset input and append a user message  */
+  /** Form submission handler to automatically reset input and append a user message  */
   handleSubmit: (e: any) => void;
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;

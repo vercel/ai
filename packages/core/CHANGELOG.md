@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.14
+
+### Patch Changes
+
+- 6229d6b: openai: fix OpenAIStream types with openai@4.11+
+
 ## 2.2.13
 
 ### Patch Changes
