@@ -43,7 +43,7 @@ interface Function {
 /**
  * Shared types between the API and UI packages.
  */
-export type Message = {
+export interface Message {
   id: string;
   createdAt?: Date;
   content: string;
@@ -59,7 +59,7 @@ export type Message = {
    * not be set.
    */
   function_call?: string | FunctionCall;
-};
+}
 
 export type CreateMessage = Omit<Message, 'id'> & {
   id?: Message['id'];
