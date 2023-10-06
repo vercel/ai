@@ -124,7 +124,7 @@ export function createCallbacksTransformer(
       controller.enqueue(textEncoder.encode(message));
 
       if (callbacks.onToken) await callbacks.onToken(message);
-      if (callbacks.onCompletion) aggregatedResponse += message;
+      aggregatedResponse += message;
     },
 
     async flush(): Promise<void> {
