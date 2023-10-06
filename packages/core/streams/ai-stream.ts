@@ -123,8 +123,8 @@ export function createCallbacksTransformer(
     async transform(message, controller): Promise<void> {
       controller.enqueue(textEncoder.encode(message));
 
-      if (callbacks.onToken) await callbacks.onToken(message);
       aggregatedResponse += message;
+      if (callbacks.onToken) await callbacks.onToken(message);
     },
 
     async flush(): Promise<void> {
