@@ -159,7 +159,7 @@ export async function POST(req: Request) {
     model: 'accounts/fireworks/models/llama-v2-70b-chat',
     stream: true,
     max_tokens: 1000,
-    promopt,
+    prompt,
   });
   // Convert the response into a friendly text-stream.
   const stream = OpenAIStream(response);
