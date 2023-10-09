@@ -1,4 +1,4 @@
-2# Vercel AI SDK, Next.js, and Lepton AI Chat Example
+# Vercel AI SDK, Next.js, and Lepton AI Chat Example
 
 This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) and [Lepton AI](https://www.lepton.ai/) to create a ChatGPT-like AI-powered streaming chat bot. Lepton AI's APIs are compatible with OpenAI's so we use the OpenAI JS SDK but change its base URL to point to Lepton AI's API with an environment variable.
 
