@@ -339,8 +339,8 @@ importers:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
       replicate:
-        specifier: ^0.16.0
-        version: 0.16.0
+        specifier: ^0.20.1
+        version: 0.20.1
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
@@ -11732,8 +11732,8 @@ packages:
       yargs: 17.7.2
     dev: true
 
-  /replicate@0.16.0:
-    resolution: {integrity: sha512-VFrR2RXmul/sUGJAcW7SCyljGtik8oLjSD7m6Sus6EyEpa/uqmLlFGvG72jG/7MBRkg0l8+5SEWDsth+k6kssw==}
+  /replicate@0.20.1:
+    resolution: {integrity: sha512-QVyI1rowGsSfNuDrRmumYPdCHa/fN/RkI3NHpcK0i5hSSiWK69URAyheAC/0MIAiS3oUs4kD56PB9zEI4oHENw==}
     engines: {git: '>=2.11.0', node: '>=18.0.0', npm: '>=7.19.0', yarn: '>=1.7.0'}
     dev: false
 
