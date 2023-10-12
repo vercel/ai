@@ -17,7 +17,7 @@ interface Prediction {
   webhook?: string;
   webhook_events_filter?: ('start' | 'output' | 'logs' | 'completed')[];
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   completed_at?: string;
   urls: {
     get: string;

@@ -45,7 +45,7 @@ importers:
         specifier: ^0.6.2
         version: 0.6.2
       ai:
-        specifier: 2.2.14
+        specifier: 2.2.15
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -88,7 +88,7 @@ importers:
   examples/next-fireworks:
     dependencies:
       ai:
-        specifier: 2.2.14
+        specifier: 2.2.15
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -137,7 +137,7 @@ importers:
         specifier: ^2.5.1
         version: 2.5.1
       ai:
-        specifier: 2.2.14
+        specifier: 2.2.15
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -180,7 +180,7 @@ importers:
   examples/next-langchain:
     dependencies:
       ai:
-        specifier: 2.2.14
+        specifier: 2.2.15
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.129
@@ -226,7 +226,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: 2.2.14
+        specifier: 2.2.15
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -278,7 +278,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
       ai:
-        specifier: 2.2.14
+        specifier: 2.2.15
         version: link:../../packages/core
       next:
         specifier: 13.4.12
@@ -339,8 +339,8 @@ importers:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
       replicate:
-        specifier: ^0.16.0
-        version: 0.16.0
+        specifier: ^0.20.1
+        version: 0.20.1
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
@@ -452,7 +452,7 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4
       ai:
-        specifier: 2.2.14
+        specifier: 2.2.15
         version: link:../../packages/core
       nuxt:
         specifier: ^3.6.5
@@ -482,7 +482,7 @@ importers:
         specifier: ^0.8.2
         version: 0.8.2(solid-js@1.7.2)
       ai:
-        specifier: 2.2.14
+        specifier: 2.2.15
         version: link:../../packages/core
       openai:
         specifier: 4.11.0
@@ -519,7 +519,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       ai:
-        specifier: 2.2.14
+        specifier: 2.2.15
         version: link:../../packages/core
       openai:
         specifier: 4.11.0
@@ -11732,8 +11732,8 @@ packages:
       yargs: 17.7.2
     dev: true
 
-  /replicate@0.16.0:
-    resolution: {integrity: sha512-VFrR2RXmul/sUGJAcW7SCyljGtik8oLjSD7m6Sus6EyEpa/uqmLlFGvG72jG/7MBRkg0l8+5SEWDsth+k6kssw==}
+  /replicate@0.20.1:
+    resolution: {integrity: sha512-QVyI1rowGsSfNuDrRmumYPdCHa/fN/RkI3NHpcK0i5hSSiWK69URAyheAC/0MIAiS3oUs4kD56PB9zEI4oHENw==}
     engines: {git: '>=2.11.0', node: '>=18.0.0', npm: '>=7.19.0', yarn: '>=1.7.0'}
     dev: false
 

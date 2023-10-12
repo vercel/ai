@@ -1,5 +1,12 @@
 # ai
 
+## 2.2.15
+
+### Patch Changes
+
+- c5d1857: fix: return complete response in onFinish when onCompletion isn't passed
+- c5d1857: replicate-stream: fix types for replicate@0.20.0+
+
 ## 2.2.14
 
 ### Patch Changes
