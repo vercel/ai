@@ -2,6 +2,8 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
 import { nanoid, createChunkDecoder, COMPLEX_HEADER } from '../shared/utils';
 
+import type { ResponseError } from '../shared/error';
+import { handleResponseError } from '../shared/response';
 import type {
   ChatRequest,
   CreateMessage,
@@ -10,6 +12,7 @@ import type {
   ChatRequestOptions,
   FunctionCall,
 } from '../shared/types';
+
 export type { Message, CreateMessage, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -131,15 +134,13 @@ const getStreamedResponse = async (
     }
   }
 
-  if (!res.ok) {
+  // Throw an error if the response is not ok.
+  handleResponseError(
+    res,
+    await res.text(),
     // Restore the previous messages if the request fails.
-    mutate(previousMessages, false);
-    throw new Error((await res.text()) || 'Failed to fetch the chat response.');
-  }
-
-  if (!res.body) {
-    throw new Error('The response body is empty.');
-  }
+    () => mutate(previousMessages, false),
+  );
 
   const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
   const createdAt = new Date();
@@ -391,7 +392,7 @@ export function useChat({
 
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
-  const [error, setError] = useState<undefined | Error>();
+  const [error, setError] = useState<undefined | ResponseError>();
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
@@ -495,7 +496,7 @@ export function useChat({
           onError(err);
         }
 
-        setError(err as Error);
+        setError(err as ResponseError);
       } finally {
         mutateLoading(false);
       }

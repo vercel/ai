@@ -1,3 +1,5 @@
+import { ResponseError } from './error';
+
 // https://github.com/openai/openai-node/blob/07b3504e1c40fd929f4aae1651b83afc19e3baf8/src/resources/chat/completions.ts#L146-L159
 export interface FunctionCall {
   /**
@@ -132,7 +134,7 @@ export type UseChatOptions = {
   /**
    * Callback function to be called when an error is encountered.
    */
-  onError?: (error: Error) => void;
+  onError?: (error: ResponseError) => void;
 
   /**
    * The credentials mode to be used for the fetch request.

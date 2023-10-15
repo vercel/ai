@@ -2,13 +2,16 @@ import { Accessor, Resource, Setter, createSignal } from 'solid-js';
 import { useSWRStore } from 'solid-swr-store';
 import { createSWRStore } from 'swr-store';
 
+import { createChunkDecoder, nanoid } from '../shared/utils';
+import { ResponseError } from '../shared/error';
+import { handleResponseError } from '../shared/response';
+
 import type {
   CreateMessage,
   Message,
   RequestOptions,
   UseChatOptions,
 } from '../shared/types';
-import { createChunkDecoder, nanoid } from '../shared/utils';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -94,7 +97,7 @@ export function useChat({
   // Because of the `initialData` option, the `data` will never be `undefined`.
   const messages = data as Resource<Message[]>;
 
-  const [error, setError] = createSignal<undefined | Error>(undefined);
+  const [error, setError] = createSignal<undefined | ResponseError>(undefined);
   const [isLoading, setIsLoading] = createSignal(false);
 
   let abortController: AbortController | null = null;
@@ -149,18 +152,17 @@ export function useChat({
         }
       }
 
-      if (!res.ok) {
+      // Throw an error if the response is not ok.
+      handleResponseError(
+        res,
+        await res.text(),
         // Restore the previous messages if the request fails.
-        if (previousMessages.status === 'success') {
-          mutate(previousMessages.data);
-        }
-        throw new Error(
-          (await res.text()) || 'Failed to fetch the chat response.',
-        );
-      }
-      if (!res.body) {
-        throw new Error('The response body is empty.');
-      }
+        () => {
+          if (previousMessages.status === 'success') {
+            mutate(previousMessages.data);
+          }
+        },
+      );
 
       let result = '';
       const createdAt = new Date();
@@ -214,7 +216,7 @@ export function useChat({
         onError(err);
       }
 
-      setError(err as Error);
+      setError(err as ResponseError);
     } finally {
       setIsLoading(false);
     }

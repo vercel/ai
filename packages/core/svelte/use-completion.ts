@@ -4,7 +4,9 @@ import { Readable, derived, get, writable } from 'svelte/store';
 import { Writable } from 'svelte/store';
 
 import type { UseCompletionOptions, RequestOptions } from '../shared/types';
+import type { ResponseError } from '../shared/error';
 import { createChunkDecoder } from '../shared/utils';
+import { handleResponseError } from '../shared/response';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -84,7 +86,7 @@ export function useCompletion({
   // Because of the `fallbackData` option, the `data` will never be `undefined`.
   const completion = data as Writable<string>;
 
-  const error = writable<undefined | Error>(undefined);
+  const error = writable<undefined | ResponseError>(undefined);
 
   let abortController: AbortController | null = null;
   async function triggerRequest(prompt: string, options?: RequestOptions) {
@@ -121,15 +123,8 @@ export function useCompletion({
         }
       }
 
-      if (!res.ok) {
-        throw new Error(
-          (await res.text()) || 'Failed to fetch the chat response.',
-        );
-      }
-
-      if (!res.body) {
-        throw new Error('The response body is empty.');
-      }
+      // Throw an error if the response is not ok.
+      handleResponseError(res, await res.json());
 
       let result = '';
       const reader = res.body.getReader();
@@ -168,7 +163,7 @@ export function useCompletion({
         onError(error);
       }
 
-      error.set(err as Error);
+      error.set(err as ResponseError);
     } finally {
       loading.set(false);
     }

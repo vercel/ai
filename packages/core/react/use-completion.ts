@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
 
+import type { ResponseError } from '../shared/error';
+import type { UseCompletionOptions, RequestOptions } from '../shared/types';
 import { createChunkDecoder } from '../shared/utils';
-import { UseCompletionOptions, RequestOptions } from '../shared/types';
+import { handleResponseError } from '../shared/response';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -80,7 +82,7 @@ export function useCompletion({
     null,
   );
 
-  const [error, setError] = useState<undefined | Error>(undefined);
+  const [error, setError] = useState<undefined | ResponseError>(undefined);
   const completion = data!;
 
   // Abort controller to cancel the current API call.
@@ -137,15 +139,8 @@ export function useCompletion({
           }
         }
 
-        if (!res.ok) {
-          throw new Error(
-            (await res.text()) || 'Failed to fetch the chat response.',
-          );
-        }
-
-        if (!res.body) {
-          throw new Error('The response body is empty.');
-        }
+        // Throw an error if the response is not ok.
+        handleResponseError(res, await res.text());
 
         let result = '';
         const reader = res.body.getReader();
@@ -187,7 +182,7 @@ export function useCompletion({
           }
         }
 
-        setError(err as Error);
+        setError(err as ResponseError);
       } finally {
         mutateLoading(false);
       }

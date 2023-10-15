@@ -3,7 +3,9 @@ import { ref, unref } from 'vue';
 import type { Ref } from 'vue';
 
 import type { UseCompletionOptions, RequestOptions } from '../shared/types';
+import type { ResponseError } from '../shared/error';
 import { createChunkDecoder } from '../shared/utils';
+import { handleResponseError } from '../shared/response';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -86,7 +88,7 @@ export function useCompletion({
   // Because of the `initialData` option, the `data` will never be `undefined`.
   const completion = data as Ref<string>;
 
-  const error = ref<undefined | Error>(undefined);
+  const error = ref<undefined | ResponseError>(undefined);
 
   let abortController: AbortController | null = null;
   async function triggerRequest(prompt: string, options?: RequestOptions) {
@@ -123,15 +125,8 @@ export function useCompletion({
         }
       }
 
-      if (!res.ok) {
-        throw new Error(
-          (await res.text()) || 'Failed to fetch the chat response.',
-        );
-      }
-
-      if (!res.body) {
-        throw new Error('The response body is empty.');
-      }
+      // Throw an error if the response is not ok.
+      handleResponseError(res, await res.text());
 
       let result = '';
       const reader = res.body.getReader();
@@ -170,7 +165,7 @@ export function useCompletion({
         onError(error);
       }
 
-      error.value = err as Error;
+      error.value = err as ResponseError;
     } finally {
       mutateLoading(() => false);
     }

@@ -4,6 +4,8 @@ import { useSWRStore } from 'solid-swr-store';
 
 import type { UseCompletionOptions, RequestOptions } from '../shared/types';
 import { createChunkDecoder } from '../shared/utils';
+import { ResponseError } from '../shared/error';
+import { handleResponseError } from '../shared/response';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -122,15 +124,8 @@ export function useCompletion({
         }
       }
 
-      if (!res.ok) {
-        throw new Error(
-          (await res.text()) || 'Failed to fetch the chat response.',
-        );
-      }
-
-      if (!res.body) {
-        throw new Error('The response body is empty.');
-      }
+      // Throw an error if the response is not ok.
+      handleResponseError(res, await res.text());
 
       let result = '';
       const reader = res.body.getReader();
@@ -169,7 +164,7 @@ export function useCompletion({
         onError(error);
       }
 
-      setError(err as Error);
+      setError(err as ResponseError);
     } finally {
       setIsLoading(false);
     }

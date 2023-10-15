@@ -1,7 +1,9 @@
 import { Readable, get, writable, Writable, derived } from 'svelte/store';
 import { useSWR } from 'sswr';
 import { nanoid, createChunkDecoder } from '../shared/utils';
+import { handleResponseError } from '../shared/response';
 
+import type { ResponseError } from '../shared/error';
 import type {
   ChatRequest,
   CreateMessage,
@@ -10,6 +12,7 @@ import type {
   ChatRequestOptions,
   FunctionCall,
 } from '../shared/types';
+
 export type { Message, CreateMessage, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -118,15 +121,13 @@ const getStreamedResponse = async (
     }
   }
 
-  if (!res.ok) {
+  // Throw an error if the response is not ok.
+  handleResponseError(
+    res,
+    await res.text(),
     // Restore the previous messages if the request fails.
-    mutate(previousMessages);
-    throw new Error((await res.text()) || 'Failed to fetch the chat response.');
-  }
-
-  if (!res.body) {
-    throw new Error('The response body is empty.');
-  }
+    () => mutate(previousMessages),
+  );
 
   let streamedResponse = '';
   const createdAt = new Date();
@@ -242,7 +243,7 @@ export function useChat({
     body,
   };
 
-  const error = writable<undefined | Error>(undefined);
+  const error = writable<undefined | ResponseError>(undefined);
 
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
@@ -306,7 +307,7 @@ export function useChat({
         onError(err);
       }
 
-      error.set(err as Error);
+      error.set(err as ResponseError);
     } finally {
       loading.set(false);
     }

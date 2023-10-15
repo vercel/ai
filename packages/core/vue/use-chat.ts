@@ -2,6 +2,7 @@ import swrv from 'swrv';
 import { ref, unref } from 'vue';
 import type { Ref } from 'vue';
 
+import type { ResponseError } from '../shared/error';
 import type {
   Message,
   CreateMessage,
@@ -9,6 +10,7 @@ import type {
   RequestOptions,
 } from '../shared/types';
 import { createChunkDecoder, nanoid } from '../shared/utils';
+import { handleResponseError } from '../shared/response';
 
 export type { Message, CreateMessage, UseChatOptions };
 
@@ -95,7 +97,7 @@ export function useChat({
   // Because of the `initialData` option, the `data` will never be `undefined`.
   const messages = data as Ref<Message[]>;
 
-  const error = ref<undefined | Error>(undefined);
+  const error = ref<undefined | ResponseError>(undefined);
 
   let abortController: AbortController | null = null;
   async function triggerRequest(
@@ -144,16 +146,13 @@ export function useChat({
         }
       }
 
-      if (!res.ok) {
+      // Throw an error if the response is not ok.
+      handleResponseError(
+        res,
+        await res.text(),
         // Restore the previous messages if the request fails.
-        mutate(previousMessages);
-        throw new Error(
-          (await res.text()) || 'Failed to fetch the chat response.',
-        );
-      }
-      if (!res.body) {
-        throw new Error('The response body is empty.');
-      }
+        () => mutate(previousMessages),
+      );
 
       let result = '';
       const createdAt = new Date();
@@ -207,7 +206,7 @@ export function useChat({
         onError(err);
       }
 
-      error.value = err as Error;
+      error.value = err as ResponseError;
     } finally {
       mutateLoading(() => false);
     }
