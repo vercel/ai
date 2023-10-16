@@ -119,6 +119,11 @@ interface Completion {
    * The object type, which is always "text_completion"
    */
   object: string;
+
+  /**
+   * Usage statistics for the completion request.
+   */
+  usage?: CompletionUsage;
 }
 
 interface CompletionChoice {
@@ -127,7 +132,7 @@ interface CompletionChoice {
    * hit a natural stop point or a provided stop sequence, or `length` if the maximum
    * number of tokens specified in the request was reached.
    */
-  finish_reason: 'stop' | 'length';
+  finish_reason: 'stop' | 'length' | 'content_filter';
 
   index: number;
 
@@ -135,6 +140,27 @@ interface CompletionChoice {
   logprobs: any | null;
 
   text: string;
+}
+
+export interface CompletionUsage {
+  /**
+   * Usage statistics for the completion request.
+   */
+
+  /**
+   * Number of tokens in the generated completion.
+   */
+  completion_tokens: number;
+
+  /**
+   * Number of tokens in the prompt.
+   */
+  prompt_tokens: number;
+
+  /**
+   * Total number of tokens used in the request (prompt + completion).
+   */
+  total_tokens: number;
 }
 
 /**
