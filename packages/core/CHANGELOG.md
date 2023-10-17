@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.16
+
+### Patch Changes
+
+- e569688: Fix for #637, resync interfaces
+
 ## 2.2.15
 
 ### Patch Changes
