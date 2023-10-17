@@ -1,18 +1,18 @@
 ---
-'next-anthropic': patch
-'next-fireworks': patch
-'next-huggingface': patch
-'next-langchain': patch
-'next-openai': patch
-'next-openai-rate-limits': patch
-'next-replicate': patch
-'nuxt-langchain': patch
-'nuxt-openai': patch
-'solidstart-openai': patch
-'sveltekit-openai': patch
+'next-anthropic': none
+'next-fireworks': none
+'next-huggingface': none
+'next-langchain': none
+'next-openai': none
+'next-openai-rate-limits': none
+'next-replicate': none
+'nuxt-langchain': none
+'nuxt-openai': none
+'solidstart-openai': none
+'sveltekit-openai': none
 'ai': patch
-'eslint-config-vercel-ai': patch
-'@vercel/ai-tsconfig': patch
+'eslint-config-vercel-ai': none
+'@vercel/ai-tsconfig': none
 ---
 
 Fix for #637, resync interfaces
