@@ -1,5 +1,24 @@
 # ai
 
+## 2.2.16
+
+### Patch Changes
+
+- e569688: Fix for #637, resync interfaces
+
+## 2.2.15
+
+### Patch Changes
+
+- c5d1857: fix: return complete response in onFinish when onCompletion isn't passed
+- c5d1857: replicate-stream: fix types for replicate@0.20.0+
+
+## 2.2.14
+
+### Patch Changes
+
+- 6229d6b: openai: fix OpenAIStream types with openai@4.11+
+
 ## 2.2.13
 
 ### Patch Changes

@@ -1,6 +1,30 @@
 import { AIStream, type AIStreamCallbacksAndOptions } from './ai-stream';
-import type { Prediction } from 'replicate';
 import { createStreamDataTransformer } from './stream-data';
+
+// from replicate SDK
+interface Prediction {
+  id: string;
+  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
+  version: string;
+  input: object;
+  output?: any;
+  source: 'api' | 'web';
+  error?: any;
+  logs?: string;
+  metrics?: {
+    predict_time?: number;
+  };
+  webhook?: string;
+  webhook_events_filter?: ('start' | 'output' | 'logs' | 'completed')[];
+  created_at: string;
+  updated_at?: string;
+  completed_at?: string;
+  urls: {
+    get: string;
+    cancel: string;
+    stream?: string;
+  };
+}
 
 /**
  * Stream predictions from Replicate.

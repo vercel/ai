@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "2.2.13",
+  "version": "2.2.16",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -70,7 +70,6 @@
   "dependencies": {
     "eventsource-parser": "1.0.0",
     "nanoid": "3.3.6",
-    "openai": "4.2.0",
     "solid-swr-store": "0.10.7",
     "sswr": "2.0.0",
     "swr": "2.2.0",
@@ -87,7 +86,6 @@
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
     "jest": "29.2.1",
-    "replicate": "^0.16.0",
     "ts-jest": "29.0.3",
     "tsup": "^6.7.0",
     "typescript": "5.1.3"

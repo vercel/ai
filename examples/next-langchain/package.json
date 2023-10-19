@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "ai": "2.2.13",
+    "ai": "2.2.16",
     "langchain": "^0.0.129",
     "next": "13.4.12",
     "react": "18.2.0",
