@@ -308,7 +308,7 @@ const getStreamedResponse = async (
 
         if (functionCallIndex !== -1) {
           let textResponse = streamedResponse.substring(0, functionCallIndex);
-          responseMessages['content'] = textResponse;
+          responseMessage['content'] = textResponse;
         } else {
           responseMessage['content'] = streamedResponse;
         }
