@@ -61,6 +61,15 @@ export interface Message {
   function_call?: string | FunctionCall;
 }
 
+/**
+ * SimpleMessage is intended to be helpful for content that is passed over the wire to the API.
+ * Note that it mirrors the OpenAI API input, as of now. Note also the reorder from the Message type.
+ */
+export type SimpleMessage = {
+  role: 'system' | 'user' | 'assistant' | 'function';
+  content: string;
+};
+
 export type CreateMessage = Omit<Message, 'id'> & {
   id?: Message['id'];
 };

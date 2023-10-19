@@ -1,6 +1,10 @@
 import { Message } from '../shared/types';
 
 /**
+ * This file preceded the advent of AIPrompt, and is now deprecated.
+ */
+
+/**
  * A prompt constructor for the HuggingFace StarChat Beta model.
  * Does not support `function` messages.
  * @see https://huggingface.co/HuggingFaceH4/starchat-beta
