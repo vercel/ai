@@ -1,5 +1,12 @@
 # ai
 
+## 2.2.17
+
+### Patch Changes
+
+- 5ed581d: Use interface instead of type for Message to allow declaration merging
+- 9adec1e: vue and solid: fix including `function_call` and `name` fields in subsequent requests
+
 ## 2.2.16
 
 ### Patch Changes
