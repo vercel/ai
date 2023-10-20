@@ -117,10 +117,16 @@ export function useChat({
         body: JSON.stringify({
           messages: sendExtraMessageFields
             ? messagesSnapshot
-            : messagesSnapshot.map(({ role, content }) => ({
-                role,
-                content,
-              })),
+            : messagesSnapshot.map(
+                ({ role, content, name, function_call }) => ({
+                  role,
+                  content,
+                  ...(name !== undefined && { name }),
+                  ...(function_call !== undefined && {
+                    function_call: function_call,
+                  }),
+                }),
+              ),
           ...unref(body), // Use unref to unwrap the ref value
           ...options?.body,
         }),
