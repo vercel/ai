@@ -56,6 +56,9 @@ export function AnthropicPrompt(messages: SimpleMessage[]): Anthropic_AIPrompt {
     role: 'user' | 'assistant' | 'system' | 'function' = 'system',
     location: 'before' | 'after' = 'after',
   ): void => {
+    //if content is null we'll just skip the message.
+    if (content === null) return;
+
     if (role === 'function') {
       //skip function messages for prompts as of now
     } else if (role === 'system') {
