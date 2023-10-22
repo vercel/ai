@@ -79,7 +79,7 @@ const getStreamedResponse = async (
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean,
-  sendHistory?: boolean,
+  sendHistory: boolean = true,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
