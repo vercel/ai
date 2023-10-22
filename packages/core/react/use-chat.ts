@@ -79,27 +79,35 @@ const getStreamedResponse = async (
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean,
+  sendHistory?: boolean,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
   const previousMessages = messagesRef.current;
   mutate(chatRequest.messages, false);
 
+  let sendMessages: Partial<Message>[] = chatRequest.messages;
+  if (sendExtraMessageFields) {
+    sendMessages = chatRequest.messages.map(
+      ({ role, content, name, function_call }) => ({
+        role,
+        content,
+        ...(name !== undefined && { name }),
+        ...(function_call !== undefined && {
+          function_call: function_call,
+        }),
+      }),
+    );
+  }
+
+  if (!sendHistory) {
+    sendMessages = sendMessages.slice(-1);
+  }
+
   const res = await fetch(api, {
     method: 'POST',
     body: JSON.stringify({
-      messages: sendExtraMessageFields
-        ? chatRequest.messages
-        : chatRequest.messages.map(
-            ({ role, content, name, function_call }) => ({
-              role,
-              content,
-              ...(name !== undefined && { name }),
-              ...(function_call !== undefined && {
-                function_call: function_call,
-              }),
-            }),
-          ),
+      messages: sendMessages,
       ...extraMetadataRef.current.body,
       ...chatRequest.options?.body,
       ...(chatRequest.functions !== undefined && {

@@ -166,6 +166,9 @@ export type UseChatOptions = {
    * handle the extra fields before forwarding the request to the AI service.
    */
   sendExtraMessageFields?: boolean;
+
+  /** Whether to send the entire chat history to the API. Defaults to `true`. */
+  sendHistory?: boolean;
 };
 
 export type UseCompletionOptions = {
