@@ -127,9 +127,12 @@ describe('AIStream', () => {
           const client = createClient(response);
           const chunks = await client.readAll();
 
-          expect(JSON.stringify(chunks)).toMatchInlineSnapshot(
-            `"["0:\\"Hello\\"\\n","0:\\",\\"\\n","0:\\" world\\"\\n","0:\\".\\"\\n"]"`,
-          );
+          expect(chunks).toEqual([
+            '0:"Hello"\n',
+            '0:","\n',
+            '0:" world"\n',
+            '0:"."\n',
+          ]);
         });
 
         it('should send function call result', async () => {
@@ -155,29 +158,29 @@ describe('AIStream', () => {
           const client = createClient(response);
           const chunks = await client.readAll();
 
-          expect(JSON.stringify(chunks)).toMatchInlineSnapshot(
-            '"["0:\\"{\\\\\\"function_call\\\\\\": {\\\\\\"name\\\\\\": \\\\\\"get_current_weather\\\\\\", \\\\\\"arguments\\\\\\": \\\\\\"\\"\\n",' +
-              '"0:\\"{\\\\\\\\n\\"\\n",' +
-              '"0:\\"\\\\\\\\\\\\\\"\\"\\n",' +
-              '"0:\\"location\\"\\n",' +
-              '"0:\\"\\\\\\\\\\\\\\":\\"\\n",' +
-              '"0:\\" \\\\\\\\\\\\\\"\\"\\n",' +
-              '"0:\\"Char\\"\\n",' +
-              '"0:\\"l\\"\\n",' +
-              '"0:\\"ottesville\\"\\n",' +
-              '"0:\\",\\"\\n",' +
-              '"0:\\" Virginia\\"\\n",' +
-              '"0:\\"\\\\\\\\\\\\\\",\\\\\\\\n\\"\\n",' +
-              '"0:\\"\\\\\\\\\\\\\\"\\"\\n",' +
-              '"0:\\"format\\"\\n",' +
-              '"0:\\"\\\\\\\\\\\\\\":\\"\\n",' +
-              '"0:\\" \\\\\\\\\\\\\\"\\"\\n",' +
-              '"0:\\"c\\"\\n",' +
-              '"0:\\"elsius\\"\\n",' +
-              '"0:\\"\\\\\\\\\\\\\\"\\\\\\\\n\\"\\n",' +
-              '"0:\\"}\\"\\n",' +
-              '"0:\\"\\\\\\"}}\\"\\n"]"',
-          );
+          expect(chunks).toEqual([
+            '0:"{\\"function_call\\": {\\"name\\": \\"get_current_weather\\", \\"arguments\\": \\""\n',
+            '0:"{\\\\n"\n',
+            '0:"\\\\\\""\n',
+            '0:"location"\n',
+            '0:"\\\\\\":"\n',
+            '0:" \\\\\\""\n',
+            '0:"Char"\n',
+            '0:"l"\n',
+            '0:"ottesville"\n',
+            '0:","\n',
+            '0:" Virginia"\n',
+            '0:"\\\\\\",\\\\n"\n',
+            '0:"\\\\\\""\n',
+            '0:"format"\n',
+            '0:"\\\\\\":"\n',
+            '0:" \\\\\\""\n',
+            '0:"c"\n',
+            '0:"elsius"\n',
+            '0:"\\\\\\"\\\\n"\n',
+            '0:"}"\n',
+            '0:"\\"}}"\n',
+          ]);
         });
 
         it('should send text and data', async () => {
@@ -205,9 +208,13 @@ describe('AIStream', () => {
           const client = createClient(response);
           const chunks = await client.readAll();
 
-          expect(JSON.stringify(chunks)).toMatchInlineSnapshot(
-            `"["0:\\"Hello\\"\\n","2:\\"[{\\\\\\"t1\\\\\\":\\\\\\"v1\\\\\\"}]\\"\\n","0:\\",\\"\\n","0:\\" world\\"\\n","0:\\".\\"\\n"]"`,
-          );
+          expect(chunks).toEqual([
+            '0:"Hello"\n',
+            '2:"[{\\"t1\\":\\"v1\\"}]"\n',
+            '0:","\n',
+            '0:" world"\n',
+            '0:"."\n',
+          ]);
         });
       });
     }
