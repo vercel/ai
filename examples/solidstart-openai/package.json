@@ -18,7 +18,7 @@
   "dependencies": {
     "@solidjs/meta": "^0.28.2",
     "@solidjs/router": "^0.8.2",
-    "ai": "2.2.17",
+    "ai": "2.2.18",
     "openai": "4.11.0",
     "solid-js": "^1.7.2",
     "solid-start": "^0.2.26",
