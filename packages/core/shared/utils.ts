@@ -7,19 +7,25 @@ export const nanoid = customAlphabet(
   7,
 );
 
-// Type overloads
-// FIXME: Uncomment this when the complex decoder implemented in all framework files.
-// function createChunkDecoder(): (chunk: Uint8Array | undefined) => string
-// function createChunkDecoder(
-//   complex?: false
-// ): (chunk: Uint8Array | undefined) => string
-// function createChunkDecoder(complex?: true): (
-//   chunk: Uint8Array | undefined
-// ) => {
-//   type: keyof typeof StreamStringPrefixes
-//   value: string
-// }[]
-
+// simple decoder signatures:
+function createChunkDecoder(): (chunk: Uint8Array | undefined) => string;
+function createChunkDecoder(
+  complex: false,
+): (chunk: Uint8Array | undefined) => string;
+// complex decoder signature:
+function createChunkDecoder(complex: true): (chunk: Uint8Array | undefined) => {
+  type: keyof typeof StreamStringPrefixes;
+  value: string;
+}[];
+// combined signature for when the client calls this function with a boolean:
+function createChunkDecoder(complex?: boolean): (
+  chunk: Uint8Array | undefined,
+) =>
+  | {
+      type: keyof typeof StreamStringPrefixes;
+      value: string;
+    }[]
+  | string;
 function createChunkDecoder(complex?: boolean) {
   const decoder = new TextDecoder();
 
