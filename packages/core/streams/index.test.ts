@@ -214,6 +214,40 @@ describe('AIStream', () => {
           ]);
         });
 
+        it('should send function response and data when onFunctionCall is defined, returns undefined, and data is added', async () => {
+          const data = new experimental_StreamData();
+
+          const stream = OpenAIStream(
+            await fetch(server.api + '/mock-func-call', {
+              headers: {
+                'x-mock-service': 'openai',
+                'x-mock-type': 'func_call',
+              },
+            }),
+            {
+              onFinal() {
+                data.close();
+              },
+              async experimental_onFunctionCall({ name }) {
+                data.append({ fn: name });
+
+                // no response
+              },
+              experimental_streamData: true,
+            },
+          );
+
+          const response = new StreamingTextResponse(stream, {}, data);
+
+          const client = createClient(response);
+          const chunks = await client.readAll();
+
+          expect(chunks).toEqual([
+            '1:"{\\"function_call\\": {\\"name\\": \\"get_current_weather\\", \\"arguments\\": \\"{\\\\n\\\\\\"location\\\\\\": \\\\\\"Charlottesville, Virginia\\\\\\",\\\\n\\\\\\"format\\\\\\": \\\\\\"celsius\\\\\\"\\\\n}\\"}}"\n',
+            '2:"[{\\"fn\\":\\"get_current_weather\\"}]"\n',
+          ]);
+        });
+
         it('should send return value when onFunctionCall is defined and returns value', async () => {
           const data = new experimental_StreamData();
 
@@ -242,6 +276,39 @@ describe('AIStream', () => {
 
           expect(chunks).toEqual([
             '0:"experimental_onFunctionCall-return-value"\n',
+          ]);
+        });
+
+        it('should send return value and data when onFunctionCall is defined, returns value and data is added', async () => {
+          const data = new experimental_StreamData();
+
+          const stream = OpenAIStream(
+            await fetch(server.api + '/mock-func-call', {
+              headers: {
+                'x-mock-service': 'openai',
+                'x-mock-type': 'func_call',
+              },
+            }),
+            {
+              onFinal() {
+                data.close();
+              },
+              async experimental_onFunctionCall({ name }) {
+                data.append({ fn: name });
+                return 'experimental_onFunctionCall-return-value';
+              },
+              experimental_streamData: true,
+            },
+          );
+
+          const response = new StreamingTextResponse(stream, {}, data);
+
+          const client = createClient(response);
+          const chunks = await client.readAll();
+
+          expect(chunks).toEqual([
+            '0:"experimental_onFunctionCall-return-value"\n',
+            '2:"[{\\"fn\\":\\"get_current_weather\\"}]"\n',
           ]);
         });
 
