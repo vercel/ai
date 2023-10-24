@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.18
+
+### Patch Changes
+
+- 0bd27f6: react/use-chat: allow client-side handling of function call without following response
+
 ## 2.2.17
 
 ### Patch Changes
