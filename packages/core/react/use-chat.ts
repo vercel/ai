@@ -445,7 +445,10 @@ export function useChat({
                   );
 
                 // If the user does not return anything as a result of the function call, the loop will break.
-                if (functionCallResponse === undefined) break;
+                if (functionCallResponse === undefined) {
+                  hasFollowingResponse = false;
+                  break;
+                }
 
                 // A function call response was returned.
                 // The updated chat with function call response will be sent to the API in the next iteration of the loop.
