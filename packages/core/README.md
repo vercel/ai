@@ -36,7 +36,7 @@ const openai = new OpenAI({
 
 export const runtime = 'edge';
 
-export default async function POST(req) {
+export async function POST(req) {
   const { messages } = await req.json();
   const response = await openai.chat.completions.create({
     model: 'gpt-4',
