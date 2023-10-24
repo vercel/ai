@@ -204,7 +204,11 @@ We've written some code to get you started — follow the instructions below to 
                 onChange={handleInputChange}
               />
             </form>
-            <div className="whitespace-pre-wrap my-6">{completion}</div>
+            {completion ? (
+              <div className="whitespace-pre-wrap my-4">{completion}</div>
+            ) : (
+              <div>Enter a business description and click enter to generate slogans.</div>
+            )}
           </div>
         );
       }
