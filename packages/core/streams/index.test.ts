@@ -135,7 +135,7 @@ describe('AIStream', () => {
           ]);
         });
 
-        it('should send function call result', async () => {
+        it('should send function response as text stream when onFunctionCall is not defined', async () => {
           const data = new experimental_StreamData();
 
           const stream = OpenAIStream(
@@ -180,6 +180,68 @@ describe('AIStream', () => {
             '0:"\\\\\\"\\\\n"\n',
             '0:"}"\n',
             '0:"\\"}}"\n',
+          ]);
+        });
+
+        it('should send function response when onFunctionCall is defined and returns undefined', async () => {
+          const data = new experimental_StreamData();
+
+          const stream = OpenAIStream(
+            await fetch(server.api + '/mock-func-call', {
+              headers: {
+                'x-mock-service': 'openai',
+                'x-mock-type': 'func_call',
+              },
+            }),
+            {
+              onFinal() {
+                data.close();
+              },
+              async experimental_onFunctionCall({ name }) {
+                // no response
+              },
+              experimental_streamData: true,
+            },
+          );
+
+          const response = new StreamingTextResponse(stream, {}, data);
+
+          const client = createClient(response);
+          const chunks = await client.readAll();
+
+          expect(chunks).toEqual([
+            '1:"{\\"function_call\\": {\\"name\\": \\"get_current_weather\\", \\"arguments\\": \\"{\\\\n\\\\\\"location\\\\\\": \\\\\\"Charlottesville, Virginia\\\\\\",\\\\n\\\\\\"format\\\\\\": \\\\\\"celsius\\\\\\"\\\\n}\\"}}"\n',
+          ]);
+        });
+
+        it('should send return value when onFunctionCall is defined and returns value', async () => {
+          const data = new experimental_StreamData();
+
+          const stream = OpenAIStream(
+            await fetch(server.api + '/mock-func-call', {
+              headers: {
+                'x-mock-service': 'openai',
+                'x-mock-type': 'func_call',
+              },
+            }),
+            {
+              onFinal() {
+                data.close();
+              },
+              async experimental_onFunctionCall({ name }) {
+                return 'experimental_onFunctionCall-return-value';
+              },
+              experimental_streamData: true,
+            },
+          );
+
+          const response = new StreamingTextResponse(stream, {}, data);
+
+          const client = createClient(response);
+          const chunks = await client.readAll();
+
+          expect(chunks).toEqual([
+            '0:"experimental_onFunctionCall-return-value"\n',
           ]);
         });
 
