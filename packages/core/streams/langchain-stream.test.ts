@@ -11,7 +11,7 @@ describe('LangchainStream', () => {
 
   let server: ReturnType<typeof setup>;
   beforeAll(() => {
-    server = setup();
+    server = setup(3031);
   });
   afterAll(() => {
     server.teardown();
