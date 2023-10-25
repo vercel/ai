@@ -1,20 +1,23 @@
 import { parseComplexResponse } from './parseComplexResponse';
 
+function createTestReader(chunks: string[]) {
+  const readableStream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      for (const chunk of chunks) {
+        controller.enqueue(Buffer.from(chunk, 'utf-8'));
+      }
+      controller.close();
+    },
+  });
+  return readableStream.getReader();
+}
+
 describe('parseComplexResponse function', () => {
   it('should parse a single text message', async () => {
-    const mockData = '0:"Hello"\n';
-
-    const readableStream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        controller.enqueue(Buffer.from(mockData, 'utf-8'));
-        controller.close();
-      },
-    });
-
     const mockUpdate = jest.fn();
 
     const result = await parseComplexResponse({
-      reader: readableStream.getReader(),
+      reader: createTestReader(['0:"Hello"\n']),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,
     });
@@ -37,21 +40,15 @@ describe('parseComplexResponse function', () => {
   });
 
   it('should parse a sequence of text messages', async () => {
-    const mockData = ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'];
-
-    const readableStream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        for (const chunk of mockData) {
-          controller.enqueue(Buffer.from(chunk, 'utf-8'));
-        }
-        controller.close();
-      },
-    });
-
     const mockUpdate = jest.fn();
 
     const result = await parseComplexResponse({
-      reader: readableStream.getReader(),
+      reader: createTestReader([
+        '0:"Hello"\n',
+        '0:","\n',
+        '0:" world"\n',
+        '0:"."\n',
+      ]),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,
     });
