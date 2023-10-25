@@ -10,7 +10,7 @@ async function flushDataToResponse(
   res: ServerResponse,
   chunks: { value: object }[],
   suffix?: string,
-  delayInMs = 100,
+  delayInMs = 5,
 ) {
   let resolve = () => {};
   let waitForDrain = new Promise<void>(res => (resolve = res));
@@ -37,7 +37,7 @@ async function flushDataToResponse(
   res.end();
 }
 
-export const setup = () => {
+export const setup = (port = 3030) => {
   let recentFlushed: any[] = [];
 
   const server = createServer((req, res) => {
@@ -122,11 +122,11 @@ export const setup = () => {
     }
   });
 
-  server.listen(3030);
+  server.listen(port);
 
   return {
-    port: 3030,
-    api: 'http://localhost:3030',
+    port,
+    api: `http://localhost:${port}`,
     teardown: () => {
       server.close();
     },
