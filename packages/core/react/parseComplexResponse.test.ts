@@ -1,11 +1,6 @@
 import { parseComplexResponse } from './parseComplexResponse';
 
 describe('parseComplexResponse function', () => {
-  if (typeof Response === 'undefined') {
-    xit("should skip this test on Node 16 because it doesn't support `Response`", () => {});
-    return;
-  }
-
   function createTestReader(chunks: string[]) {
     const readableStream = new ReadableStream<Uint8Array>({
       async start(controller) {
