@@ -2,11 +2,6 @@ import { createClient } from '../tests/utils/mock-client';
 import { setup } from '../tests/utils/mock-service';
 
 describe('LangchainStream', () => {
-  if (typeof Response === 'undefined') {
-    xit("should skip this test on Node 16 because it doesn't support `Response`", () => {});
-    return;
-  }
-
   let server: ReturnType<typeof setup>;
   beforeAll(() => {
     server = setup(3031);
