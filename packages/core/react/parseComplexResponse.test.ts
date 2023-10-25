@@ -135,6 +135,65 @@ describe('parseComplexResponse function', () => {
     });
   });
 
+  it('should parse a function call', async () => {
+    const mockUpdate = jest.fn();
+
+    const result = await parseComplexResponse({
+      reader: createTestReader([
+        '1:"{\\"function_call\\": {\\"name\\": \\"get_current_weather\\", \\"arguments\\": \\"{\\\\n\\\\\\"location\\\\\\": \\\\\\"Charlottesville, Virginia\\\\\\",\\\\n\\\\\\"format\\\\\\": \\\\\\"celsius\\\\\\"\\\\n}\\"}}"\n',
+      ]),
+      abortControllerRef: { current: new AbortController() },
+      update: mockUpdate,
+    });
+
+    // check the mockUpdate call:
+    expect(mockUpdate).toHaveBeenCalledTimes(2);
+    expect(mockUpdate.mock.calls[0][0]).toEqual([
+      {
+        id: expect.any(String),
+        role: 'assistant',
+        content: '',
+        name: 'get_current_weather',
+        function_call: {
+          name: 'get_current_weather',
+          arguments:
+            '{\n"location": "Charlottesville, Virginia",\n"format": "celsius"\n}',
+        },
+        createdAt: expect.any(Date),
+      },
+    ]);
+    expect(mockUpdate.mock.calls[1][0]).toEqual([
+      {
+        id: expect.any(String),
+        role: 'assistant',
+        content: '',
+        createdAt: expect.any(Date),
+      },
+    ]);
+
+    // check the prefix map:
+    expect(result).toHaveProperty('text');
+    expect(result.text).toEqual({
+      id: expect.any(String),
+      role: 'assistant',
+      content: '',
+      createdAt: expect.any(Date),
+    });
+    expect(result.function_call).toEqual({
+      id: expect.any(String),
+      role: 'assistant',
+      content: '',
+      name: 'get_current_weather',
+      function_call: {
+        name: 'get_current_weather',
+        arguments:
+          '{\n"location": "Charlottesville, Virginia",\n"format": "celsius"\n}',
+      },
+      createdAt: expect.any(Date),
+    });
+    expect(result).not.toHaveProperty('data');
+  });
+
   it('should parse a combination of a data and a text message', async () => {
     const mockUpdate = jest.fn();
 
