@@ -134,4 +134,68 @@ describe('parseComplexResponse function', () => {
       createdAt: expect.any(Date),
     });
   });
+
+  it('should parse a combination of a data and a text message', async () => {
+    const mockUpdate = jest.fn();
+
+    // Execute the parser function
+    const result = await parseComplexResponse({
+      reader: createTestReader([
+        '2:"[{\\"t1\\":\\"v1\\"}]"\n',
+        '0:"Sample text message."\n',
+      ]),
+      abortControllerRef: { current: new AbortController() },
+      update: mockUpdate,
+    });
+
+    const expectedData = [{ t1: 'v1' }];
+
+    // check the mockUpdate call:
+    expect(mockUpdate).toHaveBeenCalledTimes(4);
+
+    expect(mockUpdate.mock.calls[0][0]).toEqual([]);
+    expect(mockUpdate.mock.calls[0][1]).toEqual(expectedData);
+
+    expect(mockUpdate.mock.calls[1][0]).toEqual([
+      {
+        id: expect.any(String),
+        role: 'assistant',
+        content: '',
+        createdAt: expect.any(Date),
+      },
+    ]);
+    expect(mockUpdate.mock.calls[1][1]).toEqual(expectedData);
+
+    expect(mockUpdate.mock.calls[2][0]).toEqual([
+      {
+        id: expect.any(String),
+        role: 'assistant',
+        content: 'Sample text message.',
+        createdAt: expect.any(Date),
+      },
+    ]);
+    expect(mockUpdate.mock.calls[2][1]).toEqual(expectedData);
+
+    expect(mockUpdate.mock.calls[3][0]).toEqual([
+      {
+        id: expect.any(String),
+        role: 'assistant',
+        content: 'Sample text message.',
+        createdAt: expect.any(Date),
+      },
+    ]);
+    expect(mockUpdate.mock.calls[3][1]).toEqual(expectedData);
+
+    // check the prefix map:
+    expect(result).toHaveProperty('data');
+    expect(result.data).toEqual(expectedData);
+
+    expect(result).toHaveProperty('text');
+    expect(result.text).toEqual({
+      id: expect.any(String),
+      role: 'assistant',
+      content: 'Sample text message.',
+      createdAt: expect.any(Date),
+    });
+  });
 });
