@@ -128,8 +128,8 @@ describe('LangchainStream', () => {
       const response = new StreamingTextResponse(stream, {}, data);
 
       expect(await readAllChunks(response)).toEqual([
-        '0:""\n',
         '2:"[{\\"t1\\":\\"v1\\"}]"\n',
+        '0:""\n',
         '0:"Hello"\n',
         '0:","\n',
         '0:" world"\n',
