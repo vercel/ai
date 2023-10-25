@@ -10,6 +10,15 @@ describe('LangchainStream', () => {
     server.teardown();
   });
 
+  jest.mock('uuid', () => {
+    let count = 0;
+    return {
+      v4: () => {
+        return `uuid-${count++}`;
+      },
+    };
+  });
+
   const { LangChainStream, StreamingTextResponse, experimental_StreamData } =
     require('.') as typeof import('.');
   const { ChatOpenAI } =
