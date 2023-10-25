@@ -1,18 +1,23 @@
 import { parseComplexResponse } from './parseComplexResponse';
 
-function createTestReader(chunks: string[]) {
-  const readableStream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      for (const chunk of chunks) {
-        controller.enqueue(Buffer.from(chunk, 'utf-8'));
-      }
-      controller.close();
-    },
-  });
-  return readableStream.getReader();
-}
-
 describe('parseComplexResponse function', () => {
+  if (typeof Response === 'undefined') {
+    xit("should skip this test on Node 16 because it doesn't support `Response`", () => {});
+    return;
+  }
+
+  function createTestReader(chunks: string[]) {
+    const readableStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        for (const chunk of chunks) {
+          controller.enqueue(Buffer.from(chunk, 'utf-8'));
+        }
+        controller.close();
+      },
+    });
+    return readableStream.getReader();
+  }
+
   it('should parse a single text message', async () => {
     const mockUpdate = jest.fn();
 
