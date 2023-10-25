@@ -30,8 +30,6 @@ export class experimental_StreamData {
         self.controller = controller;
       },
       transform: async (chunk, controller) => {
-        controller.enqueue(chunk);
-
         // add buffered data to the stream
         if (self.data.length > 0) {
           const encodedData = self.encoder.encode(
@@ -40,6 +38,8 @@ export class experimental_StreamData {
           self.data = [];
           controller.enqueue(encodedData);
         }
+
+        controller.enqueue(chunk);
       },
       async flush(controller) {
         // Show a warning during dev if the data stream is hanging after 3 seconds.
