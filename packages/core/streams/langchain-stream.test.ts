@@ -1,5 +1,3 @@
-import { ChatOpenAI } from 'langchain/chat_models/openai';
-import { HumanMessage } from 'langchain/schema';
 import { createClient } from '../tests/utils/mock-client';
 import { setup } from '../tests/utils/mock-service';
 
@@ -19,6 +17,10 @@ describe('LangchainStream', () => {
 
   const { LangChainStream, StreamingTextResponse, experimental_StreamData } =
     require('.') as typeof import('.');
+  const { ChatOpenAI } =
+    require('langchain/chat_models/openai') as typeof import('langchain/chat_models/openai');
+  const { HumanMessage } =
+    require('langchain/schema') as typeof import('langchain/schema');
 
   function readAllChunks(response: Response) {
     return createClient(response).readAll();
