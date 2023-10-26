@@ -10,6 +10,7 @@ import { cohereChunks } from '../snapshots/cohere';
 async function flushDataToResponse(
   res: ServerResponse,
   chunks: { value: object }[],
+  format: (value: string) => string,
   suffix?: string,
   delayInMs = 5,
 ) {
@@ -22,7 +23,7 @@ async function flushDataToResponse(
 
   try {
     for (const item of chunks) {
-      const data = `data: ${JSON.stringify(item.value)}\n\n`;
+      const data = format(JSON.stringify(item.value));
       const ok = res.write(data);
       if (!ok) {
         await waitForDrain;
@@ -31,34 +32,8 @@ async function flushDataToResponse(
       await new Promise(r => setTimeout(r, delayInMs));
     }
     if (suffix) {
-      const data = `data: ${suffix}\n\n`;
+      const data = format(suffix);
       res.write(data);
-    }
-  } catch (e) {}
-  res.end();
-}
-
-async function flushDataToResponseCohere(
-  res: ServerResponse,
-  chunks: { value: object }[],
-  delayInMs = 5,
-) {
-  let resolve = () => {};
-  let waitForDrain = new Promise<void>(res => (resolve = res));
-  res.addListener('drain', () => {
-    resolve();
-    waitForDrain = new Promise<void>(res => (resolve = res));
-  });
-
-  try {
-    for (const item of chunks) {
-      const data = `${JSON.stringify(item.value)}\n`;
-      const ok = res.write(data);
-      if (!ok) {
-        await waitForDrain;
-      }
-
-      await new Promise(r => setTimeout(r, delayInMs));
     }
   } catch (e) {}
   res.end();
@@ -104,6 +79,7 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
+              (value: string) => `data: ${value}\n\n`,
               '[DONE]',
               flushDelayInMs,
             );
@@ -123,7 +99,7 @@ export const setup = (port = 3030) => {
             res.flushHeaders();
             recentFlushed = [];
 
-            flushDataToResponseCohere(
+            flushDataToResponse(
               res,
               cohereChunks.map(
                 value =>
@@ -137,6 +113,8 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
+              (value: string) => `${value}\n`,
+              undefined,
               flushDelayInMs,
             );
             break;
@@ -163,6 +141,7 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
+              (value: string) => `data: ${value}\n\n`,
               '[DONE]',
               flushDelayInMs,
             );
