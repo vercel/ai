@@ -5,6 +5,7 @@ import {
   chatCompletionChunksWithFunctionCall,
   chatCompletionChunksWithSpecifiedFunctionCall,
 } from '../snapshots/openai-chat';
+import { cohereChunks } from '../snapshots/cohere';
 
 async function flushDataToResponse(
   res: ServerResponse,
@@ -32,6 +33,32 @@ async function flushDataToResponse(
     if (suffix) {
       const data = `data: ${suffix}\n\n`;
       res.write(data);
+    }
+  } catch (e) {}
+  res.end();
+}
+
+async function flushDataToResponseCohere(
+  res: ServerResponse,
+  chunks: { value: object }[],
+  delayInMs = 5,
+) {
+  let resolve = () => {};
+  let waitForDrain = new Promise<void>(res => (resolve = res));
+  res.addListener('drain', () => {
+    resolve();
+    waitForDrain = new Promise<void>(res => (resolve = res));
+  });
+
+  try {
+    for (const item of chunks) {
+      const data = `${JSON.stringify(item.value)}\n`;
+      const ok = res.write(data);
+      if (!ok) {
+        await waitForDrain;
+      }
+
+      await new Promise(r => setTimeout(r, delayInMs));
     }
   } catch (e) {}
   res.end();
@@ -87,6 +114,33 @@ export const setup = (port = 3030) => {
         break;
       case 'chat':
         switch (service) {
+          case 'cohere': {
+            res.writeHead(200, {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            });
+            res.flushHeaders();
+            recentFlushed = [];
+
+            flushDataToResponseCohere(
+              res,
+              cohereChunks.map(
+                value =>
+                  new Proxy(
+                    { value },
+                    {
+                      get(target) {
+                        recentFlushed.push(target.value);
+                        return target.value;
+                      },
+                    },
+                  ),
+              ),
+              flushDelayInMs,
+            );
+            break;
+          }
           case 'openai':
             res.writeHead(200, {
               'Content-Type': 'text/event-stream',
