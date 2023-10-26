@@ -34,9 +34,8 @@ describe('parseComplexResponse function', () => {
     const expectedMessage = assistantTextMessage('Hello');
 
     // check the mockUpdate call:
-    expect(mockUpdate).toHaveBeenCalledTimes(2);
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(mockUpdate.mock.calls[0][0]).toEqual([expectedMessage]);
-    expect(mockUpdate.mock.calls[1][0]).toEqual([expectedMessage]);
 
     // check the prefix map:
     expect(result).toHaveProperty('text');
@@ -58,29 +57,17 @@ describe('parseComplexResponse function', () => {
     });
 
     // check the mockUpdate call:
-    expect(mockUpdate).toHaveBeenCalledTimes(8);
+    expect(mockUpdate).toHaveBeenCalledTimes(4);
     expect(mockUpdate.mock.calls[0][0]).toEqual([
       assistantTextMessage('Hello'),
     ]);
     expect(mockUpdate.mock.calls[1][0]).toEqual([
-      assistantTextMessage('Hello'),
+      assistantTextMessage('Hello,'),
     ]);
     expect(mockUpdate.mock.calls[2][0]).toEqual([
-      assistantTextMessage('Hello,'),
+      assistantTextMessage('Hello, world'),
     ]);
     expect(mockUpdate.mock.calls[3][0]).toEqual([
-      assistantTextMessage('Hello,'),
-    ]);
-    expect(mockUpdate.mock.calls[4][0]).toEqual([
-      assistantTextMessage('Hello, world'),
-    ]);
-    expect(mockUpdate.mock.calls[5][0]).toEqual([
-      assistantTextMessage('Hello, world'),
-    ]);
-    expect(mockUpdate.mock.calls[6][0]).toEqual([
-      assistantTextMessage('Hello, world.'),
-    ]);
-    expect(mockUpdate.mock.calls[7][0]).toEqual([
       assistantTextMessage('Hello, world.'),
     ]);
 
@@ -101,7 +88,7 @@ describe('parseComplexResponse function', () => {
     });
 
     // check the mockUpdate call:
-    expect(mockUpdate).toHaveBeenCalledTimes(2);
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(mockUpdate.mock.calls[0][0]).toEqual([
       {
         id: expect.any(String),
@@ -116,11 +103,8 @@ describe('parseComplexResponse function', () => {
         createdAt: expect.any(Date),
       },
     ]);
-    expect(mockUpdate.mock.calls[1][0]).toEqual([assistantTextMessage('')]);
 
     // check the prefix map:
-    expect(result).toHaveProperty('text');
-    expect(result.text).toEqual(assistantTextMessage(''));
     expect(result.function_call).toEqual({
       id: expect.any(String),
       role: 'assistant',
@@ -133,6 +117,7 @@ describe('parseComplexResponse function', () => {
       },
       createdAt: expect.any(Date),
     });
+    expect(result).not.toHaveProperty('text');
     expect(result).not.toHaveProperty('data');
   });
 
@@ -152,23 +137,15 @@ describe('parseComplexResponse function', () => {
     const expectedData = [{ t1: 'v1' }];
 
     // check the mockUpdate call:
-    expect(mockUpdate).toHaveBeenCalledTimes(4);
+    expect(mockUpdate).toHaveBeenCalledTimes(2);
 
     expect(mockUpdate.mock.calls[0][0]).toEqual([]);
     expect(mockUpdate.mock.calls[0][1]).toEqual(expectedData);
 
-    expect(mockUpdate.mock.calls[1][0]).toEqual([assistantTextMessage('')]);
+    expect(mockUpdate.mock.calls[1][0]).toEqual([
+      assistantTextMessage('Sample text message.'),
+    ]);
     expect(mockUpdate.mock.calls[1][1]).toEqual(expectedData);
-
-    expect(mockUpdate.mock.calls[2][0]).toEqual([
-      assistantTextMessage('Sample text message.'),
-    ]);
-    expect(mockUpdate.mock.calls[2][1]).toEqual(expectedData);
-
-    expect(mockUpdate.mock.calls[3][0]).toEqual([
-      assistantTextMessage('Sample text message.'),
-    ]);
-    expect(mockUpdate.mock.calls[3][1]).toEqual(expectedData);
 
     // check the prefix map:
     expect(result).toHaveProperty('data');

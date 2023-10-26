@@ -55,6 +55,7 @@ export async function parseComplexResponse({
 
     // Update the chat state with the new message tokens.
     const lines = decode(concatenatedChunks);
+
     if (typeof lines === 'string') {
       throw new Error(
         'Invalid response format. Complex mode was set but the response is a string. This should never happen.',
