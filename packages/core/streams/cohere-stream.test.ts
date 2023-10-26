@@ -44,4 +44,67 @@ describe('CohereStream', () => {
       ' ',
     ]);
   });
+
+  describe('StreamData prototcol', () => {
+    it('should send text', async () => {
+      const data = new experimental_StreamData();
+
+      const stream = CohereStream(
+        await fetch(server.api, {
+          headers: {
+            'x-mock-service': 'cohere',
+            'x-mock-type': 'chat',
+          },
+        }),
+        {
+          onFinal() {
+            data.close();
+          },
+          experimental_streamData: true,
+        },
+      );
+
+      const response = new StreamingTextResponse(stream, {}, data);
+
+      expect(await readAllChunks(response)).toEqual([
+        '0:" Hello"\n',
+        '0:","\n',
+        '0:" world"\n',
+        '0:"."\n',
+        '0:" "\n',
+      ]);
+    });
+
+    it('should send text and data', async () => {
+      const data = new experimental_StreamData();
+
+      data.append({ t1: 'v1' });
+
+      const stream = CohereStream(
+        await fetch(server.api, {
+          headers: {
+            'x-mock-service': 'cohere',
+            'x-mock-type': 'chat',
+          },
+        }),
+        {
+          onFinal() {
+            data.close();
+          },
+          experimental_streamData: true,
+        },
+      );
+
+      const response = new StreamingTextResponse(stream, {}, data);
+
+      expect(await readAllChunks(response)).toEqual([
+        '2:"[{\\"t1\\":\\"v1\\"}]"\n',
+        '0:" Hello"\n',
+        '0:","\n',
+        '0:" world"\n',
+        '0:"."\n',
+        '0:" "\n',
+      ]);
+    });
+  });
 });
