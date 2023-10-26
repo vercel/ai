@@ -1,5 +1,12 @@
 # ai
 
+## 2.2.20
+
+### Patch Changes
+
+- 424d5ee: experimental_StreamData: fix trailing newline parsing bug in decoder
+- c364c6a: cohere: fix closing cohere stream, avoids response from hanging
+
 ## 2.2.19
 
 ### Patch Changes
