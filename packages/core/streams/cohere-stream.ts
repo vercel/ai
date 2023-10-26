@@ -13,9 +13,8 @@ async function processLines(
   for (const line of lines) {
     const { text, is_finished } = JSON.parse(line);
 
-    if (is_finished === true) {
-      controller.close();
-    } else {
+    // closing the reader is handed in readAndProcessLines
+    if (!is_finished) {
       controller.enqueue(text);
     }
   }
