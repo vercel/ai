@@ -11,7 +11,10 @@ import type {
   FunctionCall,
 } from '../shared/types';
 
-import type { ReactResponseRow } from '../streams/streaming-react-response';
+import type {
+  ReactResponseRow,
+  experimental_StreamingReactResponse,
+} from '../streams/streaming-react-response';
 export type { Message, CreateMessage, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -71,7 +74,7 @@ export type UseChatHelpers = {
 
 type StreamingReactResponseAction = (payload: {
   messages: Message[];
-}) => Promise<ReactResponseRow>;
+}) => Promise<experimental_StreamingReactResponse>;
 
 const getStreamedResponse = async (
   api: string | StreamingReactResponseAction,
@@ -131,7 +134,7 @@ const getStreamedResponse = async (
     try {
       const promise = api({
         messages: constructedMessagesPayload as Message[],
-      });
+      }) as Promise<ReactResponseRow>;
       await readRow(promise);
     } catch (e) {
       // Restore the previous messages if the request fails.
@@ -396,7 +399,9 @@ export function useChat({
   credentials,
   headers,
   body,
-}: UseChatOptions = {}): UseChatHelpers {
+}: Omit<UseChatOptions, 'api'> & {
+  api?: string | StreamingReactResponseAction;
+} = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
   const hookId = useId();
   const chatId = id || hookId;

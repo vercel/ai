@@ -70,6 +70,8 @@ export class experimental_StreamingReactResponse {
       if (done) {
         return;
       }
+
+      await readChunk();
     }
     readChunk();
 
