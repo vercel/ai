@@ -10,6 +10,7 @@ async function flushDataToResponse(
   res: ServerResponse,
   chunks: { value: object }[],
   suffix?: string,
+  delayInMs = 5,
 ) {
   let resolve = () => {};
   let waitForDrain = new Promise<void>(res => (resolve = res));
@@ -26,7 +27,7 @@ async function flushDataToResponse(
         await waitForDrain;
       }
 
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, delayInMs));
     }
     if (suffix) {
       const data = `data: ${suffix}\n\n`;
@@ -36,12 +37,15 @@ async function flushDataToResponse(
   res.end();
 }
 
-export const setup = () => {
+export const setup = (port = 3030) => {
   let recentFlushed: any[] = [];
 
   const server = createServer((req, res) => {
     const service = req.headers['x-mock-service'] || 'openai';
     const type = req.headers['x-mock-type'] || 'chat' || 'func_call';
+    const flushDelayHeader = req.headers['x-flush-delay'];
+    const flushDelayInMs =
+      flushDelayHeader === undefined ? undefined : +flushDelayHeader;
 
     switch (type) {
       case 'func_call':
@@ -74,6 +78,7 @@ export const setup = () => {
                   ),
               ),
               '[DONE]',
+              flushDelayInMs,
             );
             break;
           default:
@@ -105,6 +110,7 @@ export const setup = () => {
                   ),
               ),
               '[DONE]',
+              flushDelayInMs,
             );
             break;
           default:
@@ -116,11 +122,11 @@ export const setup = () => {
     }
   });
 
-  server.listen(3030);
+  server.listen(port);
 
   return {
-    port: 3030,
-    api: 'http://localhost:3030',
+    port,
+    api: `http://localhost:${port}`,
     teardown: () => {
       server.close();
     },
