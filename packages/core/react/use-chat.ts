@@ -11,6 +11,11 @@ import type {
   FunctionCall,
 } from '../shared/types';
 import { parseComplexResponse } from './parseComplexResponse';
+
+import type {
+  ReactResponseRow,
+  experimental_StreamingReactResponse,
+} from '../streams/streaming-react-response';
 export type { Message, CreateMessage, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -68,8 +73,12 @@ export type UseChatHelpers = {
   data?: any;
 };
 
+type StreamingReactResponseAction = (payload: {
+  messages: Message[];
+}) => Promise<experimental_StreamingReactResponse>;
+
 const getStreamedResponse = async (
-  api: string,
+  api: string | StreamingReactResponseAction,
   chatRequest: ChatRequest,
   mutate: KeyedMutator<Message[]>,
   mutateStreamData: KeyedMutator<any[]>,
@@ -86,21 +95,65 @@ const getStreamedResponse = async (
   const previousMessages = messagesRef.current;
   mutate(chatRequest.messages, false);
 
+  const constructedMessagesPayload = sendExtraMessageFields
+    ? chatRequest.messages
+    : chatRequest.messages.map(({ role, content, name, function_call }) => ({
+        role,
+        content,
+        ...(name !== undefined && { name }),
+        ...(function_call !== undefined && {
+          function_call: function_call,
+        }),
+      }));
+
+  if (typeof api !== 'string') {
+    // In this case, we are handling a Server Action. No complex mode handling needed.
+
+    const replyId = nanoid();
+    const createdAt = new Date();
+    let responseMessage: Message = {
+      id: replyId,
+      createdAt,
+      content: '',
+      role: 'assistant',
+    };
+
+    async function readRow(promise: Promise<ReactResponseRow>) {
+      const { content, ui, next } = await promise;
+
+      // TODO: Handle function calls.
+      responseMessage['content'] = content;
+      responseMessage['ui'] = await ui;
+
+      mutate([...chatRequest.messages, { ...responseMessage }], false);
+
+      if (next) {
+        await readRow(next);
+      }
+    }
+
+    try {
+      const promise = api({
+        messages: constructedMessagesPayload as Message[],
+      }) as Promise<ReactResponseRow>;
+      await readRow(promise);
+    } catch (e) {
+      // Restore the previous messages if the request fails.
+      mutate(previousMessages, false);
+      throw e;
+    }
+
+    if (onFinish) {
+      onFinish(responseMessage);
+    }
+
+    return responseMessage;
+  }
+
   const res = await fetch(api, {
     method: 'POST',
     body: JSON.stringify({
-      messages: sendExtraMessageFields
-        ? chatRequest.messages
-        : chatRequest.messages.map(
-            ({ role, content, name, function_call }) => ({
-              role,
-              content,
-              ...(name !== undefined && { name }),
-              ...(function_call !== undefined && {
-                function_call: function_call,
-              }),
-            }),
-          ),
+      messages: constructedMessagesPayload,
       ...extraMetadataRef.current.body,
       ...chatRequest.options?.body,
       ...(chatRequest.functions !== undefined && {
@@ -240,7 +293,9 @@ export function useChat({
   credentials,
   headers,
   body,
-}: UseChatOptions = {}): UseChatHelpers {
+}: Omit<UseChatOptions, 'api'> & {
+  api?: string | StreamingReactResponseAction;
+} = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
   const hookId = useId();
   const chatId = id || hookId;
