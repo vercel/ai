@@ -37,7 +37,11 @@ function createChunkDecoder(complex?: boolean) {
   }
 
   return function (chunk: Uint8Array | undefined) {
-    const decoded = decoder.decode(chunk, { stream: true }).split('\n');
+    const decoded = decoder
+      .decode(chunk, { stream: true })
+      .split('\n')
+      .filter(line => line !== ''); // splitting leaves an empty string at the end
+
     return decoded.map(getStreamStringTypeAndValue).filter(Boolean) as any;
   };
 }

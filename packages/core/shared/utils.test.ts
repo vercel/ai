@@ -9,10 +9,7 @@ describe('utils', () => {
       const chunk = encoder.encode(getStreamString('text', 'Hello, world!'));
       const values = decoder(chunk);
 
-      expect(values).toStrictEqual([
-        { type: 'text', value: 'Hello, world!' },
-        { type: 'text', value: '' },
-      ]);
+      expect(values).toStrictEqual([{ type: 'text', value: 'Hello, world!' }]);
     });
 
     it('should correctly decode function chunk in complex mode', () => {
@@ -32,7 +29,6 @@ describe('utils', () => {
 
       expect(values).toStrictEqual([
         { type: 'function_call', value: functionCall },
-        { type: 'text', value: '' },
       ]);
     });
 
@@ -45,10 +41,7 @@ describe('utils', () => {
       const chunk = encoder.encode(getStreamString('data', data));
       const values = decoder(chunk);
 
-      expect(values).toStrictEqual([
-        { type: 'data', value: data },
-        { type: 'text', value: '' },
-      ]);
+      expect(values).toStrictEqual([{ type: 'data', value: data }]);
     });
 
     it('should correctly decode streamed utf8 chunks in complex mode', () => {
