@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.19
+
+### Patch Changes
+
+- 699552d: add experimental_StreamingReactResponse
+
 ## 2.2.18
 
 ### Patch Changes
