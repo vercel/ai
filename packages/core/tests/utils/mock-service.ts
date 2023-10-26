@@ -5,10 +5,12 @@ import {
   chatCompletionChunksWithFunctionCall,
   chatCompletionChunksWithSpecifiedFunctionCall,
 } from '../snapshots/openai-chat';
+import { cohereChunks } from '../snapshots/cohere';
 
 async function flushDataToResponse(
   res: ServerResponse,
   chunks: { value: object }[],
+  format: (value: string) => string,
   suffix?: string,
   delayInMs = 5,
 ) {
@@ -21,7 +23,7 @@ async function flushDataToResponse(
 
   try {
     for (const item of chunks) {
-      const data = `data: ${JSON.stringify(item.value)}\n\n`;
+      const data = format(JSON.stringify(item.value));
       const ok = res.write(data);
       if (!ok) {
         await waitForDrain;
@@ -30,7 +32,7 @@ async function flushDataToResponse(
       await new Promise(r => setTimeout(r, delayInMs));
     }
     if (suffix) {
-      const data = `data: ${suffix}\n\n`;
+      const data = format(suffix);
       res.write(data);
     }
   } catch (e) {}
@@ -77,6 +79,7 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
+              (value: string) => `data: ${value}\n\n`,
               '[DONE]',
               flushDelayInMs,
             );
@@ -87,6 +90,35 @@ export const setup = (port = 3030) => {
         break;
       case 'chat':
         switch (service) {
+          case 'cohere': {
+            res.writeHead(200, {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            });
+            res.flushHeaders();
+            recentFlushed = [];
+
+            flushDataToResponse(
+              res,
+              cohereChunks.map(
+                value =>
+                  new Proxy(
+                    { value },
+                    {
+                      get(target) {
+                        recentFlushed.push(target.value);
+                        return target.value;
+                      },
+                    },
+                  ),
+              ),
+              (value: string) => `${value}\n`,
+              undefined,
+              flushDelayInMs,
+            );
+            break;
+          }
           case 'openai':
             res.writeHead(200, {
               'Content-Type': 'text/event-stream',
@@ -109,6 +141,7 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
+              (value: string) => `data: ${value}\n\n`,
               '[DONE]',
               flushDelayInMs,
             );
