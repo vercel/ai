@@ -10,14 +10,14 @@ import { setup } from '../tests/utils/mock-service';
 jest.mock('uuid', () => {
   let count = 0;
   return {
-    v4: () => {
-      return `uuid-${count++}`;
-    },
+    v4: () => `uuid-${count++}`,
   };
 });
 
 import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { BytesOutputParser } from 'langchain/schema/output_parser';
 import { HumanMessage } from 'langchain/schema';
+import { PromptTemplate } from 'langchain/prompts';
 
 describe('LangchainStream', () => {
   let server: ReturnType<typeof setup>;
@@ -32,46 +32,42 @@ describe('LangchainStream', () => {
     return createClient(response).readAll();
   }
 
-  it('should be able to parse SSE and receive the streamed response', async () => {
-    const { stream, handlers } = LangChainStream();
-
-    const llm = new ChatOpenAI({
-      streaming: true,
-      openAIApiKey: 'fake',
-      configuration: {
-        baseURL: server.api,
-        defaultHeaders: {
-          'x-mock-service': 'openai',
-          'x-mock-type': 'chat',
-          'x-flush-delay': '5',
+  describe('LangChain Expression Language call', () => {
+    it('should be able to parse SSE and receive the streamed response', async () => {
+      const model = new ChatOpenAI({
+        streaming: true,
+        openAIApiKey: 'fake',
+        configuration: {
+          baseURL: server.api,
+          defaultHeaders: {
+            'x-mock-service': 'openai',
+            'x-mock-type': 'chat',
+            'x-flush-delay': '5',
+          },
         },
-      },
+      });
+
+      const stream = await PromptTemplate.fromTemplate('{input}')
+        .pipe(model)
+        .pipe(new BytesOutputParser())
+        .stream({ input: 'Hello' });
+
+      const response = new StreamingTextResponse(stream);
+
+      expect(await readAllChunks(response)).toEqual([
+        '',
+        'Hello',
+        ',',
+        ' world',
+        '.',
+        '',
+      ]);
     });
-
-    llm.call([new HumanMessage('hello')], {}, [handlers]).catch(console.error);
-
-    const response = new StreamingTextResponse(stream);
-
-    expect(await readAllChunks(response)).toEqual([
-      '',
-      'Hello',
-      ',',
-      ' world',
-      '.',
-      '',
-    ]);
   });
 
-  describe('StreamData prototcol', () => {
-    it('should send text', async () => {
-      const data = new experimental_StreamData();
-
-      const { stream, handlers } = LangChainStream({
-        onFinal() {
-          data.close();
-        },
-        experimental_streamData: true,
-      });
+  describe('LangChain LLM call', () => {
+    it('should be able to parse SSE and receive the streamed response', async () => {
+      const { stream, handlers } = LangChainStream();
 
       const llm = new ChatOpenAI({
         streaming: true,
@@ -90,58 +86,99 @@ describe('LangchainStream', () => {
         .call([new HumanMessage('hello')], {}, [handlers])
         .catch(console.error);
 
-      const response = new StreamingTextResponse(stream, {}, data);
+      const response = new StreamingTextResponse(stream);
 
       expect(await readAllChunks(response)).toEqual([
-        '0:""\n',
-        '0:"Hello"\n',
-        '0:","\n',
-        '0:" world"\n',
-        '0:"."\n',
-        '0:""\n',
+        '',
+        'Hello',
+        ',',
+        ' world',
+        '.',
+        '',
       ]);
     });
 
-    it('should send text and data', async () => {
-      const data = new experimental_StreamData();
+    describe('StreamData prototcol', () => {
+      it('should send text', async () => {
+        const data = new experimental_StreamData();
 
-      data.append({ t1: 'v1' });
-
-      const { stream, handlers } = LangChainStream({
-        onFinal() {
-          data.close();
-        },
-        experimental_streamData: true,
-      });
-
-      const llm = new ChatOpenAI({
-        streaming: true,
-        openAIApiKey: 'fake',
-        configuration: {
-          baseURL: server.api,
-          defaultHeaders: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'chat',
-            'x-flush-delay': '5',
+        const { stream, handlers } = LangChainStream({
+          onFinal() {
+            data.close();
           },
-        },
+          experimental_streamData: true,
+        });
+
+        const llm = new ChatOpenAI({
+          streaming: true,
+          openAIApiKey: 'fake',
+          configuration: {
+            baseURL: server.api,
+            defaultHeaders: {
+              'x-mock-service': 'openai',
+              'x-mock-type': 'chat',
+              'x-flush-delay': '5',
+            },
+          },
+        });
+
+        llm
+          .call([new HumanMessage('hello')], {}, [handlers])
+          .catch(console.error);
+
+        const response = new StreamingTextResponse(stream, {}, data);
+
+        expect(await readAllChunks(response)).toEqual([
+          '0:""\n',
+          '0:"Hello"\n',
+          '0:","\n',
+          '0:" world"\n',
+          '0:"."\n',
+          '0:""\n',
+        ]);
       });
 
-      llm
-        .call([new HumanMessage('hello')], {}, [handlers])
-        .catch(console.error);
+      it('should send text and data', async () => {
+        const data = new experimental_StreamData();
 
-      const response = new StreamingTextResponse(stream, {}, data);
+        data.append({ t1: 'v1' });
 
-      expect(await readAllChunks(response)).toEqual([
-        '2:"[{\\"t1\\":\\"v1\\"}]"\n',
-        '0:""\n',
-        '0:"Hello"\n',
-        '0:","\n',
-        '0:" world"\n',
-        '0:"."\n',
-        '0:""\n',
-      ]);
+        const { stream, handlers } = LangChainStream({
+          onFinal() {
+            data.close();
+          },
+          experimental_streamData: true,
+        });
+
+        const llm = new ChatOpenAI({
+          streaming: true,
+          openAIApiKey: 'fake',
+          configuration: {
+            baseURL: server.api,
+            defaultHeaders: {
+              'x-mock-service': 'openai',
+              'x-mock-type': 'chat',
+              'x-flush-delay': '5',
+            },
+          },
+        });
+
+        llm
+          .call([new HumanMessage('hello')], {}, [handlers])
+          .catch(console.error);
+
+        const response = new StreamingTextResponse(stream, {}, data);
+
+        expect(await readAllChunks(response)).toEqual([
+          '2:"[{\\"t1\\":\\"v1\\"}]"\n',
+          '0:""\n',
+          '0:"Hello"\n',
+          '0:","\n',
+          '0:" world"\n',
+          '0:"."\n',
+          '0:""\n',
+        ]);
+      });
     });
   });
 });
