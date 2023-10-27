@@ -42,7 +42,6 @@ describe('LangchainStream', () => {
           defaultHeaders: {
             'x-mock-service': 'openai',
             'x-mock-type': 'chat',
-            'x-flush-delay': '5',
           },
         },
       });
@@ -63,6 +62,40 @@ describe('LangchainStream', () => {
         '',
       ]);
     });
+
+    describe('StreamData prototcol', () => {
+      it('should send text', async () => {
+        const data = new experimental_StreamData();
+
+        const model = new ChatOpenAI({
+          streaming: true,
+          openAIApiKey: 'fake',
+          configuration: {
+            baseURL: server.api,
+            defaultHeaders: {
+              'x-mock-service': 'openai',
+              'x-mock-type': 'chat',
+            },
+          },
+        });
+
+        const stream = await PromptTemplate.fromTemplate('{input}')
+          .pipe(model)
+          .pipe(new BytesOutputParser())
+          .stream({ input: 'Hello' });
+
+        const response = new StreamingTextResponse(stream, {}, data);
+
+        expect(await readAllChunks(response)).toEqual([
+          '0:""\n',
+          '0:"Hello"\n',
+          '0:","\n',
+          '0:" world"\n',
+          '0:"."\n',
+          '0:""\n',
+        ]);
+      });
+    });
   });
 
   describe('LangChain LLM call', () => {
@@ -77,7 +110,6 @@ describe('LangchainStream', () => {
           defaultHeaders: {
             'x-mock-service': 'openai',
             'x-mock-type': 'chat',
-            'x-flush-delay': '5',
           },
         },
       });
@@ -117,7 +149,6 @@ describe('LangchainStream', () => {
             defaultHeaders: {
               'x-mock-service': 'openai',
               'x-mock-type': 'chat',
-              'x-flush-delay': '5',
             },
           },
         });
@@ -158,7 +189,6 @@ describe('LangchainStream', () => {
             defaultHeaders: {
               'x-mock-service': 'openai',
               'x-mock-type': 'chat',
-              'x-flush-delay': '5',
             },
           },
         });
