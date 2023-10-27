@@ -1,6 +1,7 @@
 import {
   LangChainStream,
   StreamingTextResponse,
+  createStreamDataTransformer,
   experimental_StreamData,
 } from '.';
 import { createClient } from '../tests/utils/mock-client';
@@ -82,11 +83,82 @@ describe('LangchainStream', () => {
         const stream = await PromptTemplate.fromTemplate('{input}')
           .pipe(model)
           .pipe(new BytesOutputParser())
-          .stream({ input: 'Hello' });
+          .stream(
+            { input: 'Hello' },
+            {
+              callbacks: [
+                {
+                  handleChainEnd(outputs, runId, parentRunId) {
+                    // check that main chain (without parent) is finished:
+                    if (parentRunId == null) {
+                      data.close();
+                    }
+                  },
+                },
+              ],
+            },
+          );
 
-        const response = new StreamingTextResponse(stream, {}, data);
+        const response = new StreamingTextResponse(
+          stream.pipeThrough(createStreamDataTransformer(true)),
+          {},
+          data,
+        );
 
         expect(await readAllChunks(response)).toEqual([
+          '0:""\n',
+          '0:"Hello"\n',
+          '0:","\n',
+          '0:" world"\n',
+          '0:"."\n',
+          '0:""\n',
+        ]);
+      });
+
+      it('should send text and data', async () => {
+        const data = new experimental_StreamData();
+
+        data.append({ t1: 'v1' });
+
+        const model = new ChatOpenAI({
+          streaming: true,
+          openAIApiKey: 'fake',
+          configuration: {
+            baseURL: server.api,
+            defaultHeaders: {
+              'x-mock-service': 'openai',
+              'x-mock-type': 'chat',
+            },
+          },
+        });
+
+        const stream = await PromptTemplate.fromTemplate('{input}')
+          .pipe(model)
+          .pipe(new BytesOutputParser())
+          .stream(
+            { input: 'Hello' },
+            {
+              callbacks: [
+                {
+                  handleChainEnd(outputs, runId, parentRunId) {
+                    // check that main chain (without parent) is finished:
+                    if (parentRunId == null) {
+                      data.close();
+                    }
+                  },
+                },
+              ],
+            },
+          );
+
+        const response = new StreamingTextResponse(
+          stream.pipeThrough(createStreamDataTransformer(true)),
+          {},
+          data,
+        );
+
+        expect(await readAllChunks(response)).toEqual([
+          '2:"[{\\"t1\\":\\"v1\\"}]"\n',
           '0:""\n',
           '0:"Hello"\n',
           '0:","\n',
