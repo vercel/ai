@@ -301,7 +301,7 @@ export function useChat({
   const chatId = id || hookId;
 
   // Store initial messages as a state to avoid re-rendering when using memo:
-  const [initialMessages] = useState(initialMessagesParam);
+  const [initialMessages] = useState(initialMessagesParam ?? []);
 
   // Store the chat state in SWR, using the chatId as the key to share states.
   const { data: messages, mutate } = useSWR<Message[]>([api, chatId], null, {
