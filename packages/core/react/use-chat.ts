@@ -299,7 +299,7 @@ function traceMessages(trace: string, messages?: Message[]) {
 export function useChat({
   api = '/api/chat',
   id,
-  initialMessages = [],
+  initialMessages: initialMessagesParam,
   initialInput = '',
   sendExtraMessageFields,
   experimental_onFunctionCall,
@@ -315,6 +315,9 @@ export function useChat({
   // Generate a unique id for the chat if not provided.
   const hookId = useId();
   const chatId = id || hookId;
+
+  // Store initial messages as a state to avoid re-rendering when using memo:
+  const [initialMessages] = useState(initialMessagesParam);
 
   // Store the chat state in SWR, using the chatId as the key to share states.
   const { data: messages, mutate } = useSWR<Message[]>([api, chatId], null, {
