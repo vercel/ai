@@ -280,6 +280,22 @@ const getStreamedResponse = async (
   }
 };
 
+const allMessages = new Map<Message[], number>();
+
+function traceMessages(trace: string, messages?: Message[]) {
+  if (messages === undefined) {
+    console.log(trace, 'undefined');
+    return;
+  }
+
+  if (!allMessages.has(messages)) {
+    allMessages.set(messages, allMessages.size);
+  }
+
+  const id = allMessages.get(messages);
+  console.log(trace, id, messages);
+}
+
 export function useChat({
   api = '/api/chat',
   id,
@@ -317,8 +333,10 @@ export function useChat({
   );
 
   // Keep the latest messages in a ref.
+  traceMessages('T1', messages);
   const messagesRef = useRef<Message[]>(messages || []);
   useEffect(() => {
+    traceMessages('T2', messages);
     messagesRef.current = messages || [];
   }, [messages]);
 
@@ -571,8 +589,10 @@ export function useChat({
     setInput(e.target.value);
   };
 
+  traceMessages('T3', messages);
+
   return {
-    messages: messages || [],
+    messages: messages ?? [],
     error,
     append,
     reload,
