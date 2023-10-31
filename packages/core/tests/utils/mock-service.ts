@@ -189,8 +189,16 @@ export const setup = (port = 3030) => {
   return {
     port,
     api: `http://localhost:${port}`,
-    teardown: () => {
-      server.close();
+    teardown: async () => {
+      await new Promise((resolve, reject) => {
+        server.close(err => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(undefined);
+          }
+        });
+      });
     },
     getRecentFlushed: () => recentFlushed,
   };

@@ -1,3 +1,8 @@
+import {
+  CohereStream,
+  StreamingTextResponse,
+  experimental_StreamData,
+} from '.';
 import { createClient } from '../tests/utils/mock-client';
 import { setup } from '../tests/utils/mock-service';
 
@@ -6,19 +11,7 @@ describe('CohereStream', () => {
   beforeAll(() => {
     server = setup(3032);
   });
-  afterAll(() => {
-    server.teardown();
-  });
-
-  jest.mock('uuid', () => {
-    let count = 0;
-    return {
-      v4: () => `uuid-${count++}`,
-    };
-  });
-
-  const { CohereStream, StreamingTextResponse, experimental_StreamData } =
-    require('.') as typeof import('.');
+  afterAll(async () => server.teardown());
 
   function readAllChunks(response: Response) {
     return createClient(response).readAll();
