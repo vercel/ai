@@ -11,9 +11,7 @@ describe('ReplicateStream', () => {
   beforeAll(() => {
     server = setup(3034);
   });
-  afterAll(async () => {
-    await server.teardown();
-  });
+  afterAll(async () => server.teardown());
 
   function readAllChunks(response: Response) {
     return createClient(response).readAll();
