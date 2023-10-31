@@ -1,13 +1,6 @@
-import {
-  CohereStream,
-  ReplicateStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from '.';
-import { experimental_buildLlama2Prompt } from '../prompts';
+import { ReplicateStream, StreamingTextResponse } from '.';
 import { createClient } from '../tests/utils/mock-client';
 import { setup } from '../tests/utils/mock-service';
-import Replicate from 'replicate';
 
 describe('ReplicateStream', () => {
   let server: ReturnType<typeof setup>;
@@ -23,33 +16,26 @@ describe('ReplicateStream', () => {
   }
 
   it('should be able to parse SSE and receive the streamed response', async () => {
-    const replicate = new Replicate({});
+    // Note: this only tests the streaming response from Replicate, not the framework invocation.
 
-    const replicateResponse = await replicate.predictions.create({
-      stream: true,
-      version:
-        'ac944f2e49c55c7e965fc3d93ad9a7d9d947866d6793fb849dd6b4747d0c061c',
-      input: {
-        prompt: experimental_buildLlama2Prompt([
-          {
-            role: 'user',
-            content: 'Hello, world.',
-          },
-        ]),
+    const stream = await ReplicateStream(
+      {
+        id: 'fake',
+        status: 'processing',
+        version: 'fake',
+        input: {},
+        source: 'api',
+        created_at: 'fake',
+        urls: { get: '', cancel: '', stream: server.api },
       },
-    });
-
-    // Convert the response into a friendly text-stream
-    const stream = await ReplicateStream(replicateResponse);
+      undefined,
+      {
+        headers: { 'x-mock-service': 'replicate', 'x-mock-type': 'chat' },
+      },
+    );
 
     const response = new StreamingTextResponse(stream);
 
-    expect(await readAllChunks(response)).toEqual([
-      ' Hello',
-      ',',
-      ' world',
-      '.',
-      ' ',
-    ]);
+    expect(await readAllChunks(response)).toEqual([' Hello,', ' world', '.']);
   });
 });

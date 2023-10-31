@@ -7,10 +7,11 @@ import {
 } from '../snapshots/openai-chat';
 import { cohereChunks } from '../snapshots/cohere';
 import { huggingfaceChunks } from '../snapshots/huggingface';
+import { replicateTextChunks } from '../snapshots/replicate';
 
 async function flushDataToResponse(
   res: ServerResponse,
-  chunks: { value: object }[],
+  chunks: { value: object | string }[],
   format: (value: string) => string,
   suffix?: string,
   delayInMs = 5,
@@ -24,7 +25,12 @@ async function flushDataToResponse(
 
   try {
     for (const item of chunks) {
-      const data = format(JSON.stringify(item.value));
+      const data = format(
+        typeof item.value === 'string'
+          ? item.value
+          : JSON.stringify(item.value),
+      );
+
       const ok = res.write(data);
       if (!ok) {
         await waitForDrain;
@@ -175,6 +181,36 @@ export const setup = (port = 3030) => {
               flushDelayInMs,
             );
             break;
+
+          case 'replicate': {
+            res.writeHead(200, {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            });
+            res.flushHeaders();
+            recentFlushed = [];
+            flushDataToResponse(
+              res,
+              replicateTextChunks.map(
+                value =>
+                  new Proxy(
+                    { value },
+                    {
+                      get(target) {
+                        recentFlushed.push(target.value);
+                        return target.value;
+                      },
+                    },
+                  ),
+              ),
+              (value: string) => value,
+              undefined,
+              flushDelayInMs,
+            );
+            break;
+          }
+
           default:
             throw new Error(`Unknown service: ${service}`);
         }
