@@ -11,9 +11,7 @@ describe('CohereStream', () => {
   beforeAll(() => {
     server = setup(3032);
   });
-  afterAll(() => {
-    server.teardown();
-  });
+  afterAll(async () => server.teardown());
 
   function readAllChunks(response: Response) {
     return createClient(response).readAll();
