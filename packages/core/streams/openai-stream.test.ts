@@ -11,9 +11,7 @@ describe('OpenAIStream', () => {
   beforeAll(() => {
     server = setup();
   });
-  afterAll(() => {
-    server.teardown();
-  });
+  afterAll(async () => server.teardown());
 
   it('should be able to parse SSE and receive the streamed response', async () => {
     const stream = OpenAIStream(
