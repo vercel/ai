@@ -12,7 +12,7 @@ import { replicateTextChunks } from '../snapshots/replicate';
 async function flushDataToResponse(
   res: ServerResponse,
   chunks: { value: object | string }[],
-  format: (value: string) => string,
+  format: (value: object | string) => string,
   suffix?: string,
   delayInMs = 5,
 ) {
@@ -25,13 +25,7 @@ async function flushDataToResponse(
 
   try {
     for (const item of chunks) {
-      const data = format(
-        typeof item.value === 'string'
-          ? item.value
-          : JSON.stringify(item.value),
-      );
-
-      const ok = res.write(data);
+      const ok = res.write(format(item.value));
       if (!ok) {
         await waitForDrain;
       }
@@ -39,8 +33,7 @@ async function flushDataToResponse(
       await new Promise(r => setTimeout(r, delayInMs));
     }
     if (suffix) {
-      const data = format(suffix);
-      res.write(data);
+      res.write(suffix);
     }
   } catch (e) {}
   res.end();
@@ -86,8 +79,8 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
-              (value: string) => `data: ${value}\n\n`,
-              '[DONE]',
+              value => `data: ${JSON.stringify(value)}\n\n`,
+              'data: [DONE]',
               flushDelayInMs,
             );
             break;
@@ -120,7 +113,7 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
-              (value: string) => `${value}\n`,
+              value => `${JSON.stringify(value)}\n`,
               undefined,
               flushDelayInMs,
             );
@@ -148,7 +141,7 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
-              (value: string) => `data: ${value}\n\n`,
+              value => `data: ${JSON.stringify(value)}\n\n`,
               undefined,
               flushDelayInMs,
             );
@@ -176,8 +169,8 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
-              (value: string) => `data: ${value}\n\n`,
-              '[DONE]',
+              value => `data: ${JSON.stringify(value)}\n\n`,
+              'data: [DONE]',
               flushDelayInMs,
             );
             break;
@@ -204,7 +197,7 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
-              (value: string) => value,
+              value => value.toString(),
               undefined,
               flushDelayInMs,
             );
