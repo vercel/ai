@@ -25,9 +25,7 @@ describe('LangchainStream', () => {
   beforeAll(() => {
     server = setup(3031);
   });
-  afterAll(() => {
-    server.teardown();
-  });
+  afterAll(async () => server.teardown());
 
   function readAllChunks(response: Response) {
     return createClient(response).readAll();
