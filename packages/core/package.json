@@ -21,7 +21,10 @@
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
-    "test": "jest --forceExit --env @edge-runtime/jest-environment .test.ts && jest --forceExit --env node .test.ts"
+    "test": "pnpm test:node && pnpm test:edge && pnpm test:ui",
+    "test:edge": "jest --forceExit --config jest.node.config.js --env @edge-runtime/jest-environment .test.ts ",
+    "test:node": "jest --forceExit --config jest.node.config.js --env node .test.ts",
+    "test:ui": "jest --forceExit --config jest.ui.config.js .ui.test.ts"
   },
   "exports": {
     "./package.json": "./package.json",
