@@ -1,4 +1,4 @@
-import { parseComplexResponse } from './parseComplexResponse';
+import { parseComplexResponse } from './parse-complex-response';
 
 describe('parseComplexResponse function', () => {
   function createTestReader(chunks: string[]) {
