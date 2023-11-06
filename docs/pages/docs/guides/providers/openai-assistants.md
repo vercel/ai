@@ -130,6 +130,36 @@ export async function POST(req: Request) {
 }
 ```
 
-## Annotations
+## Annotations and images
 
-The code interpreter and retrieval tools can add annotations to text passages. Those annotations can be used to highlight the text in the UI.
+The code interpreter and retrieval tools can add annotations to text passages. Those annotations can be used to highlight the text in the UI. Additionally messages can contain images or images and text.
+
+A message component can use the annotations to highlight the text and show images.
+
+```ts
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handeFileUpload, handleSubmit } =
+    useChat();
+
+  return (
+    <div>
+      {messages.map(m => (
+        <Message message={message} />
+      ))}
+
+      <form onSubmit={handleSubmit}>
+        <label>
+          Say something...
+          <input value={input} onChange={handleInputChange} />
+          <input type="file" onChange={handeFileUpload} />
+        </label>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  );
+}
+```
