@@ -72,16 +72,45 @@ const steps = await openai.threads.runs.steps.list({
 Per-thread file sharing, e.g. by dropping the files into the dialog panel in the UI. The file ids can then be attached to messages.
 
 ```ts
+'use client';
 
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handeFileUpload, handleSubmit } =
+    useChat();
+
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
+
+      <form onSubmit={handleSubmit}>
+        <label>
+          Say something...
+          <input value={input} onChange={handleInputChange} />
+          <input type="file" onChange={handeFileUpload} />
+        </label>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  );
+}
 ```
 
 ## Output files
 
 Code Interpreter can output files. Those files are attached to response messages as file ids. The files can be retrieved through separate API calls.
 
+We can attach the output files to the response to forward them to the client.
+
 ```ts
 export async function POST(req: Request) {
-  // ...
+  // ... code that results in a completed message ...
 
   const message = await openai.beta.threads.message.get(thread.id, message.id);
 
@@ -97,11 +126,10 @@ export async function POST(req: Request) {
 
   data.appendFile(file.name, file.content);
 
-  // TODO: how can we get a streaming response for assistant msgs?
-  const stream = OpenAIStream(message, {
-    experimental_streamData: true,
-  });
-
-  return new StreamingTextResponse(stream, {}, data);
+  return new MessageTextResponse(message, {}, data);
 }
 ```
+
+## Annotations
+
+The code interpreter and retrieval tools can add annotations to text passages. Those annotations can be used to highlight the text in the UI.
