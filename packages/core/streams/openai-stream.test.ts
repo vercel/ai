@@ -3,6 +3,7 @@ import {
   StreamingTextResponse,
   experimental_StreamData,
 } from '.';
+import OpenAI from 'openai';
 import { createClient } from '../tests/utils/mock-client';
 import { setup } from '../tests/utils/mock-service';
 
@@ -12,6 +13,25 @@ describe('OpenAIStream', () => {
     server = setup();
   });
   afterAll(async () => server.teardown());
+
+  // deactivated to only test types
+  xit('should not throw type errors', async () => {
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo-16k',
+      stream: true,
+      temperature: 0.0,
+      messages: [
+        { role: 'system', content: 'You are a helpful yada yada' },
+        { role: 'user', content: '' },
+      ],
+    });
+
+    const stream = OpenAIStream(response);
+  });
 
   it('should be able to parse SSE and receive the streamed response', async () => {
     const stream = OpenAIStream(
