@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "2.2.20",
+  "version": "2.2.21",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -78,6 +78,7 @@
   },
   "devDependencies": {
     "@edge-runtime/jest-environment": "1.1.0-beta.31",
+    "@huggingface/inference": "2.6.4",
     "@types/jest": "29.2.0",
     "@types/node": "^17.0.12",
     "@types/react": "^18.2.8",
@@ -87,6 +88,7 @@
     "eslint-config-vercel-ai": "workspace:*",
     "jest": "29.2.1",
     "langchain": "0.0.172",
+    "openai": "4.16.1",
     "ts-jest": "29.0.3",
     "tsup": "^6.7.0",
     "typescript": "5.1.3"

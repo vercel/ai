@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.21
+
+### Patch Changes
+
+- 2c8d4bd: Support openai@4.16.0 and later
+
 ## 2.2.20
 
 ### Patch Changes
