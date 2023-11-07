@@ -595,6 +595,9 @@ importers:
       '@edge-runtime/jest-environment':
         specifier: 1.1.0-beta.31
         version: 1.1.0-beta.31
+      '@huggingface/inference':
+        specifier: 2.6.4
+        version: 2.6.4
       '@types/jest':
         specifier: 29.2.0
         version: 29.2.0
@@ -621,7 +624,7 @@ importers:
         version: 29.2.1(@types/node@17.0.12)
       langchain:
         specifier: 0.0.172
-        version: 0.0.172
+        version: 0.0.172(@huggingface/inference@2.6.4)
       openai:
         specifier: 4.16.1
         version: 4.16.1
@@ -2545,6 +2548,11 @@ packages:
     resolution: {integrity: sha512-5Jx+cwRYrGtvN/27VJbzEcjFlFR7ixd+jNC/hbjcRDSZ3QteEUVKwMCgXplwjWkQbvoeWik+reR2m5fAWUvvpw==}
     engines: {node: '>=18'}
     dev: false
+
+  /@huggingface/inference@2.6.4:
+    resolution: {integrity: sha512-Xna7arltBSBoKaH3diGi3sYvkExgJMd/pF4T6vl2YbmDccbr1G/X5EPZ2048p+YgrJYG1jTYFCtY6Dr3HvJaow==}
+    engines: {node: '>=18'}
+    dev: true
 
   /@humanwhocodes/config-array@0.5.0:
     resolution: {integrity: sha512-FagtKFz74XrTl7y6HCzQpwDfXP0yhxe9lHLD1UZxjvZIcbyRz8zTFF/yYNfSfzU414eDwZ1SrO0Qvtyf+wFMQg==}
@@ -9140,7 +9148,7 @@ packages:
       - supports-color
     dev: false
 
-  /langchain@0.0.172:
+  /langchain@0.0.172(@huggingface/inference@2.6.4):
     resolution: {integrity: sha512-HsUpAJmR3UPWmjuDckItddRPor5gViOQ3p+SgLMHJj4QR9igJi0YqE6g1x2iqSH6GH8ZP45dgP014xvK2vBsYA==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -9432,6 +9440,7 @@ packages:
         optional: true
     dependencies:
       '@anthropic-ai/sdk': 0.6.2
+      '@huggingface/inference': 2.6.4
       ansi-styles: 5.2.0
       binary-extensions: 2.2.0
       camelcase: 6.3.0
