@@ -1,13 +1,12 @@
 'use server';
 
-import OpenAI from 'openai';
 import {
-  OpenAIStream,
-  experimental_StreamingReactResponse,
   Message,
+  OpenAIStream,
   experimental_StreamData,
+  experimental_StreamingReactResponse,
 } from 'ai';
-import { Counter } from './counter';
+import OpenAI from 'openai';
 import { ChatCompletionCreateParams } from 'openai/resources/chat';
 
 const openai = new OpenAI({
@@ -63,12 +62,11 @@ export async function handler({ messages }: { messages: Message[] }) {
         ({
           role: m.role,
           content: m.content,
-        } as any),
+        } as any), // TODO cleanup
     ),
     functions,
   });
 
-  // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response, {
     onFinal() {
       data.close();
@@ -89,6 +87,7 @@ export async function handler({ messages }: { messages: Message[] }) {
         case 'create_image': {
           const { description } = args;
 
+          // generate image
           const response = await openai.images.generate({
             model: 'dall-e-2',
             prompt: `${description} in the style of an early 20th century expressionism painting`,
@@ -110,7 +109,6 @@ export async function handler({ messages }: { messages: Message[] }) {
     experimental_streamData: true,
   });
 
-  // Respond with the stream
   return new experimental_StreamingReactResponse(stream, {
     data,
     dataUi({ messages, content, data }) {
