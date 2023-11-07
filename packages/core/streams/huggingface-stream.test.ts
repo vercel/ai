@@ -14,9 +14,7 @@ describe('HuggingFace stream', () => {
   beforeAll(() => {
     server = setup(3033);
   });
-  afterAll(() => {
-    server.teardown();
-  });
+  afterAll(async () => server.teardown());
 
   function readAllChunks(response: Response) {
     return createClient(response).readAll();

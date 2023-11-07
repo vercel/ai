@@ -10,7 +10,7 @@ import type {
   ChatRequestOptions,
   FunctionCall,
 } from '../shared/types';
-import { parseComplexResponse } from './parseComplexResponse';
+import { parseComplexResponse } from './parse-complex-response';
 
 import type {
   ReactResponseRow,
