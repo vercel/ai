@@ -69,8 +69,7 @@ export async function handler({ messages }: { messages: Message[] }) {
   });
 
   // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response as any, {
-    // TODO remove as any ^ post fix #716
+  const stream = OpenAIStream(response, {
     onFinal() {
       data.close();
     },
