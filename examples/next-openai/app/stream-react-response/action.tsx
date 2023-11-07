@@ -114,7 +114,7 @@ export async function handler({ messages }: { messages: Message[] }) {
     data,
     dataUi({ messages, content, data }) {
       if (data != null) {
-        const value = (data as JSONValue[])[0] as any; // TODO cleanup
+        const value = (data as JSONValue[])[0] as any;
 
         switch (value.type) {
           case 'weather': {
