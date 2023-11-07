@@ -10,10 +10,6 @@ import {
 import OpenAI from 'openai';
 import { ChatCompletionCreateParams } from 'openai/resources/chat';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
-
 const functions: ChatCompletionCreateParams.Function[] = [
   {
     name: 'get_current_weather',
@@ -53,6 +49,10 @@ const functions: ChatCompletionCreateParams.Function[] = [
 
 export async function handler({ messages }: { messages: Message[] }) {
   const data = new experimental_StreamData();
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  });
 
   // Request the OpenAI API for the response based on the prompt
   const response = await openai.chat.completions.create({
