@@ -346,6 +346,26 @@ describe('OpenAIStream', () => {
   });
 
   describe('React Streaming', () => {
+    async function extractReactRowContents(
+      response: Promise<ReactResponseRow>,
+    ) {
+      let current: ReactResponseRow | null = await response;
+      const rows: {
+        ui: string | JSX.Element | JSX.Element[] | null | undefined;
+        content: string;
+      }[] = [];
+
+      while (current != null) {
+        rows.push({
+          ui: await current.ui,
+          content: current.content,
+        });
+        current = await current.next;
+      }
+
+      return rows;
+    }
+
     it('should stream text response as React rows', async () => {
       const stream = OpenAIStream(
         await fetch(server.api, {
@@ -360,19 +380,7 @@ describe('OpenAIStream', () => {
         {},
       ) as Promise<ReactResponseRow>;
 
-      let current: ReactResponseRow | null = await response;
-      const rows: {
-        ui: string | JSX.Element | JSX.Element[] | null | undefined;
-        content: string;
-      }[] = [];
-
-      while (current != null) {
-        rows.push({
-          ui: await current.ui,
-          content: current.content,
-        });
-        current = await current.next;
-      }
+      const rows = await extractReactRowContents(response);
 
       expect(rows).toEqual([
         { ui: 'Hello', content: 'Hello' },
