@@ -21,7 +21,7 @@ export function Chat({ handler }: { handler: any }) {
       <form onSubmit={handleSubmit}>
         <input
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          placeholder="what is Next.js..."
+          placeholder="E.g. 'What's Next.js?' or 'Give me a counter.'"
           value={input}
           onChange={handleInputChange}
           autoFocus
