@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   OpenAIStream,
   ReactResponseRow,
@@ -388,6 +389,30 @@ describe('OpenAIStream', () => {
         { ui: 'Hello, world', content: 'Hello, world' },
         { ui: 'Hello, world.', content: 'Hello, world.' },
         { ui: 'Hello, world.', content: 'Hello, world.' },
+      ]);
+    });
+
+    it('should stream React response as React rows', async () => {
+      const stream = OpenAIStream(
+        await fetch(server.api, {
+          headers: {
+            'x-mock-service': 'openai',
+            'x-mock-type': 'chat',
+          },
+        }),
+      );
+      const response = new experimental_StreamingReactResponse(stream, {
+        ui: ({ content }) => <span>{content}</span>,
+      }) as Promise<ReactResponseRow>;
+
+      const rows = await extractReactRowContents(response);
+
+      expect(rows).toEqual([
+        { ui: <span>Hello</span>, content: 'Hello' },
+        { ui: <span>Hello,</span>, content: 'Hello,' },
+        { ui: <span>Hello, world</span>, content: 'Hello, world' },
+        { ui: <span>Hello, world.</span>, content: 'Hello, world.' },
+        { ui: <span>Hello, world.</span>, content: 'Hello, world.' },
       ]);
     });
   });
