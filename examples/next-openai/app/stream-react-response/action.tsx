@@ -119,18 +119,26 @@ export async function handler({ messages }: { messages: Message[] }) {
         switch (value.type) {
           case 'weather': {
             return (
-              <div className="flex flex-col items-center p-4 bg-blue-100 rounded-lg shadow">
-                <p className="text-sm text-blue-900 mb-2 font-medium">
-                  The current temperature in
-                  <span className="text-lg text-blue-700 font-semibold">
-                    {' '}
-                    {value.location}{' '}
-                  </span>
-                  is
-                  <span className="text-lg text-blue-700 font-semibold">
-                    {' '}
-                    {value.temperature}° {value.format}
-                  </span>
+              <div className="bg-blue-500 text-white p-6 rounded-lg shadow-md">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">{value.location}</h2>
+                  <svg
+                    className=" w-8 h-8"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+                  </svg>
+                </div>
+                <p className="text-4xl font-semibold mt-2">
+                  {value.temperature}° {value.format}
                 </p>
               </div>
             );
