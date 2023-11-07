@@ -146,8 +146,14 @@ export async function handler({ messages }: { messages: Message[] }) {
 
           case 'image': {
             return (
-              <div className="flex flex-col items-center">
-                <img src={value.url} className="mb-2" />
+              <div className="border-8 border-[#8B4513] dark:border-[#5D2E1F] rounded-lg overflow-hidden">
+                <img
+                  alt="Framed Image"
+                  className="aspect-square object-cover w-full"
+                  height="500"
+                  src={value.url}
+                  width="500"
+                />
               </div>
             );
           }
