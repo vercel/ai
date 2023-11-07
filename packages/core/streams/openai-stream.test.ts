@@ -1,7 +1,9 @@
 import {
   OpenAIStream,
+  ReactResponseRow,
   StreamingTextResponse,
   experimental_StreamData,
+  experimental_StreamingReactResponse,
 } from '.';
 import { createClient } from '../tests/utils/mock-client';
 import { setup } from '../tests/utils/mock-service';
@@ -339,6 +341,45 @@ describe('OpenAIStream', () => {
         '0:","\n',
         '0:" world"\n',
         '0:"."\n',
+      ]);
+    });
+  });
+
+  describe('React Streaming', () => {
+    it('should stream text response as React rows', async () => {
+      const stream = OpenAIStream(
+        await fetch(server.api, {
+          headers: {
+            'x-mock-service': 'openai',
+            'x-mock-type': 'chat',
+          },
+        }),
+      );
+      const response = new experimental_StreamingReactResponse(
+        stream,
+        {},
+      ) as Promise<ReactResponseRow>;
+
+      let current: ReactResponseRow | null = await response;
+      const rows: {
+        ui: string | JSX.Element | JSX.Element[] | null | undefined;
+        content: string;
+      }[] = [];
+
+      while (current != null) {
+        rows.push({
+          ui: await current.ui,
+          content: current.content,
+        });
+        current = await current.next;
+      }
+
+      expect(rows).toEqual([
+        { ui: 'Hello', content: 'Hello' },
+        { ui: 'Hello,', content: 'Hello,' },
+        { ui: 'Hello, world', content: 'Hello, world' },
+        { ui: 'Hello, world.', content: 'Hello, world.' },
+        { ui: 'Hello, world.', content: 'Hello, world.' },
       ]);
     });
   });
