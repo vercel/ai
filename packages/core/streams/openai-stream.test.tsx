@@ -565,5 +565,59 @@ describe('OpenAIStream', () => {
         },
       ]);
     });
+
+    it('should stream React response as React rows from data stream when onFunctionCall is defined and returns value', async () => {
+      const data = new experimental_StreamData();
+
+      const stream = OpenAIStream(
+        await fetch(server.api + '/mock-func-call', {
+          headers: {
+            'x-mock-service': 'openai',
+            'x-mock-type': 'func_call',
+          },
+        }),
+        {
+          onFinal() {
+            data.close();
+          },
+          async experimental_onFunctionCall({ name }) {
+            data.append({
+              fn: name,
+            });
+
+            return undefined;
+          },
+          experimental_streamData: true,
+        },
+      );
+
+      const response = new experimental_StreamingReactResponse(stream, {
+        data,
+        dataUi: ({ content, data }) => {
+          if (data != null) {
+            return <pre>{JSON.stringify(data)}</pre>;
+          }
+
+          return <span>{content}</span>;
+        },
+      }) as Promise<ReactResponseRow>;
+
+      const rows = await extractReactRowContents(response);
+
+      expect(rows).toStrictEqual([
+        {
+          ui: '<pre>[{&quot;fn&quot;:&quot;get_current_weather&quot;}]</pre>',
+          content: '',
+        },
+        {
+          ui: '<pre>[{&quot;fn&quot;:&quot;get_current_weather&quot;}]</pre>',
+          content: '',
+        },
+        {
+          ui: '<pre>[{&quot;fn&quot;:&quot;get_current_weather&quot;}]</pre>',
+          content: '',
+        },
+      ]);
+    });
   });
 });

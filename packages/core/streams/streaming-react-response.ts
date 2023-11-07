@@ -63,7 +63,7 @@ export class experimental_StreamingReactResponse {
           current: new AbortController(),
         },
         update: (merged, data) => {
-          const content = merged[0].content;
+          const content = merged[0]?.content ?? '';
           const ui =
             options?.dataUi?.({
               content,
