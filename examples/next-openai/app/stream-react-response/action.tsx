@@ -44,7 +44,7 @@ export async function handler({ messages }: { messages: Message[] }) {
           ) : null}
           {content.toLowerCase().includes('counter') ? (
             <p className="text-sm mb-1">
-              Here's a counter component:
+              Here is a counter component:
               <Counter />
             </p>
           ) : null}
