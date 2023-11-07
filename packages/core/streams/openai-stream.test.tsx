@@ -448,5 +448,39 @@ describe('OpenAIStream', () => {
         { ui: 'Hello, world.', content: 'Hello, world.' },
       ]);
     });
+
+    it('should stream React response as React rows from data stream', async () => {
+      const data = new experimental_StreamData();
+
+      const stream = OpenAIStream(
+        await fetch(server.api, {
+          headers: {
+            'x-mock-service': 'openai',
+            'x-mock-type': 'chat',
+          },
+        }),
+        {
+          onFinal() {
+            data.close();
+          },
+          experimental_streamData: true,
+        },
+      );
+
+      const response = new experimental_StreamingReactResponse(stream, {
+        data,
+        ui: ({ content }) => <span>{content}</span>,
+      }) as Promise<ReactResponseRow>;
+
+      const rows = await extractReactRowContents(response);
+
+      expect(rows).toEqual([
+        { ui: <span>Hello</span>, content: 'Hello' },
+        { ui: <span>Hello,</span>, content: 'Hello,' },
+        { ui: <span>Hello, world</span>, content: 'Hello, world' },
+        { ui: <span>Hello, world.</span>, content: 'Hello, world.' },
+        { ui: <span>Hello, world.</span>, content: 'Hello, world.' },
+      ]);
+    });
   });
 });
