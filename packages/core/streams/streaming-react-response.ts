@@ -9,6 +9,7 @@
  */
 
 import { parseComplexResponse } from '../react/parse-complex-response';
+import { Message } from '../shared/types';
 import { createChunkDecoder } from '../shared/utils';
 import { experimental_StreamData } from './stream-data';
 
@@ -31,6 +32,15 @@ export class experimental_StreamingReactResponse {
     res: ReadableStream,
     options?: {
       ui?: (message: { content: string }) => UINode | Promise<UINode>;
+      dataUi?: ({
+        content,
+        messages,
+        data,
+      }: {
+        content: string;
+        messages: Message[];
+        data: string[] | undefined;
+      }) => UINode | Promise<UINode>;
       data?: experimental_StreamData;
     },
   ) {
@@ -54,7 +64,12 @@ export class experimental_StreamingReactResponse {
         },
         update: (merged, data) => {
           const content = merged[0].content;
-          const ui = options?.ui?.({ content }) || content;
+          const ui =
+            options?.dataUi?.({
+              content,
+              messages: merged,
+              data,
+            }) || content;
           const payload: Payload = { ui, content };
 
           const resolvePrevious = resolveFunc;

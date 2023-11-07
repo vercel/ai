@@ -8,6 +8,7 @@ import {
 } from '.';
 import { createClient } from '../tests/utils/mock-client';
 import { setup } from '../tests/utils/mock-service';
+import ReactDOMServer from 'react-dom/server';
 
 describe('OpenAIStream', () => {
   let server: ReturnType<typeof setup>;
@@ -357,8 +358,14 @@ describe('OpenAIStream', () => {
       }[] = [];
 
       while (current != null) {
+        let ui = await current.ui;
+
+        if (ui != null && typeof ui !== 'string' && !Array.isArray(ui)) {
+          ui = ReactDOMServer.renderToStaticMarkup(ui);
+        }
+
         rows.push({
-          ui: await current.ui,
+          ui: ui,
           content: current.content,
         });
         current = await current.next;
@@ -408,11 +415,11 @@ describe('OpenAIStream', () => {
       const rows = await extractReactRowContents(response);
 
       expect(rows).toEqual([
-        { ui: <span>Hello</span>, content: 'Hello' },
-        { ui: <span>Hello,</span>, content: 'Hello,' },
-        { ui: <span>Hello, world</span>, content: 'Hello, world' },
-        { ui: <span>Hello, world.</span>, content: 'Hello, world.' },
-        { ui: <span>Hello, world.</span>, content: 'Hello, world.' },
+        { ui: '<span>Hello</span>', content: 'Hello' },
+        { ui: '<span>Hello,</span>', content: 'Hello,' },
+        { ui: '<span>Hello, world</span>', content: 'Hello, world' },
+        { ui: '<span>Hello, world.</span>', content: 'Hello, world.' },
+        { ui: '<span>Hello, world.</span>', content: 'Hello, world.' },
       ]);
     });
 
@@ -469,17 +476,93 @@ describe('OpenAIStream', () => {
 
       const response = new experimental_StreamingReactResponse(stream, {
         data,
-        ui: ({ content }) => <span>{content}</span>,
+        dataUi: ({ content }) => <span>{content}</span>,
       }) as Promise<ReactResponseRow>;
 
       const rows = await extractReactRowContents(response);
 
       expect(rows).toEqual([
-        { ui: <span>Hello</span>, content: 'Hello' },
-        { ui: <span>Hello,</span>, content: 'Hello,' },
-        { ui: <span>Hello, world</span>, content: 'Hello, world' },
-        { ui: <span>Hello, world.</span>, content: 'Hello, world.' },
-        { ui: <span>Hello, world.</span>, content: 'Hello, world.' },
+        { ui: '<span>Hello</span>', content: 'Hello' },
+        { ui: '<span>Hello,</span>', content: 'Hello,' },
+        { ui: '<span>Hello, world</span>', content: 'Hello, world' },
+        { ui: '<span>Hello, world.</span>', content: 'Hello, world.' },
+        { ui: '<span>Hello, world.</span>', content: 'Hello, world.' },
+      ]);
+    });
+
+    it('should stream React response as React rows from data stream when onFunctionCall is defined and returns undefined', async () => {
+      const data = new experimental_StreamData();
+
+      const stream = OpenAIStream(
+        await fetch(server.api + '/mock-func-call', {
+          headers: {
+            'x-mock-service': 'openai',
+            'x-mock-type': 'func_call',
+          },
+        }),
+        {
+          onFinal() {
+            data.close();
+          },
+          async experimental_onFunctionCall({ name }) {
+            // no response
+          },
+          experimental_streamData: true,
+        },
+      );
+
+      const response = new experimental_StreamingReactResponse(stream, {
+        data,
+        dataUi: ({ messages, content }) => {
+          const message = messages[0];
+
+          if (message.function_call != null) {
+            if (typeof message.function_call === 'string') {
+              return <span>{message.function_call}</span>;
+            }
+
+            const args = JSON.parse(message.function_call.arguments!);
+            const result = 20; // would be a function call
+
+            return (
+              <div>
+                <span>Location: {args.location}</span>
+                <span>
+                  Temperature: {result} degree {args.format}
+                </span>
+              </div>
+            );
+          }
+
+          return <span>{content}</span>;
+        },
+      }) as Promise<ReactResponseRow>;
+
+      const rows = await extractReactRowContents(response);
+
+      expect(rows).toStrictEqual([
+        {
+          ui: ReactDOMServer.renderToStaticMarkup(
+            <div>
+              <span>Location: {'Charlottesville, Virginia'}</span>
+              <span>
+                Temperature: {'20'} degree {'celsius'}
+              </span>
+            </div>,
+          ),
+          content: '',
+        },
+        {
+          ui: ReactDOMServer.renderToStaticMarkup(
+            <div>
+              <span>Location: {'Charlottesville, Virginia'}</span>
+              <span>
+                Temperature: {'20'} degree {'celsius'}
+              </span>
+            </div>,
+          ),
+          content: '',
+        },
       ]);
     });
   });
