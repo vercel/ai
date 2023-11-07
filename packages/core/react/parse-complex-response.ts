@@ -13,12 +13,14 @@ export async function parseComplexResponse({
   reader,
   abortControllerRef,
   update,
+  onFinish,
 }: {
   reader: ReadableStreamDefaultReader<Uint8Array>;
   abortControllerRef: {
     current: AbortController | null;
   };
   update: (merged: Message[], data: string[] | undefined) => void;
+  onFinish?: (prefixMap: PrefixMap) => void;
 }) {
   const decode = createChunkDecoder(true);
   const createdAt = new Date();
@@ -130,6 +132,8 @@ export async function parseComplexResponse({
       }
     }
   }
+
+  onFinish?.(prefixMap);
 
   return prefixMap;
 }

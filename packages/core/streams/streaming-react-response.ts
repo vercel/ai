@@ -8,7 +8,9 @@
  * between the rows, but flushing the full payload on each row.
  */
 
+import { parseComplexResponse } from '../react/parse-complex-response';
 import { createChunkDecoder } from '../shared/utils';
+import { experimental_StreamData } from './stream-data';
 
 type UINode = string | JSX.Element | JSX.Element[] | null | undefined;
 
@@ -29,6 +31,7 @@ export class experimental_StreamingReactResponse {
     res: ReadableStream,
     options?: {
       ui?: (message: { content: string }) => UINode | Promise<UINode>;
+      data?: experimental_StreamData;
     },
   ) {
     let resolveFunc: (row: ReactResponseRow) => void = () => {};
@@ -36,44 +39,85 @@ export class experimental_StreamingReactResponse {
       resolveFunc = resolve;
     });
 
-    let content = '';
+    if (options?.data) {
+      const processedStream: ReadableStream<Uint8Array> = res.pipeThrough(
+        options.data.stream,
+      );
 
-    const decode = createChunkDecoder();
-    const reader = res.getReader();
-    async function readChunk() {
-      const { done, value } = await reader.read();
-      if (!done) {
-        content += decode(value);
-      }
+      let lastPayload: Payload | undefined = undefined;
 
-      // TODO: Handle generators. With this current implementation we can support
-      // synchronous and asynchronous UIs.
-      // TODO: Handle function calls.
-      const ui = options?.ui?.({ content }) || content;
+      // runs asynchronously (no await on purpose)
+      parseComplexResponse({
+        reader: processedStream.getReader(),
+        abortControllerRef: {
+          current: new AbortController(),
+        },
+        update: (merged, data) => {
+          const content = merged[0].content;
+          const ui = options?.ui?.({ content }) || content;
+          const payload: Payload = { ui, content };
 
-      const payload: Payload = {
-        ui,
-        content,
-      };
-
-      const resolvePrevious = resolveFunc;
-      const nextRow = done
-        ? null
-        : new Promise<ReactResponseRow>(resolve => {
+          const resolvePrevious = resolveFunc;
+          const nextRow = new Promise<ReactResponseRow>(resolve => {
             resolveFunc = resolve;
           });
-      resolvePrevious({
-        next: nextRow,
-        ...payload,
+
+          resolvePrevious({
+            next: nextRow,
+            ...payload,
+          });
+
+          lastPayload = payload;
+        },
+        onFinish: () => {
+          if (lastPayload !== undefined) {
+            resolveFunc({
+              next: null,
+              ...lastPayload,
+            });
+          }
+        },
       });
+    } else {
+      let content = '';
 
-      if (done) {
-        return;
+      const decode = createChunkDecoder();
+      const reader = res.getReader();
+      async function readChunk() {
+        const { done, value } = await reader.read();
+        if (!done) {
+          content += decode(value);
+        }
+
+        // TODO: Handle generators. With this current implementation we can support
+        // synchronous and asynchronous UIs.
+        // TODO: Handle function calls.
+        const ui = options?.ui?.({ content }) || content;
+
+        const payload: Payload = {
+          ui,
+          content,
+        };
+
+        const resolvePrevious = resolveFunc;
+        const nextRow = done
+          ? null
+          : new Promise<ReactResponseRow>(resolve => {
+              resolveFunc = resolve;
+            });
+        resolvePrevious({
+          next: nextRow,
+          ...payload,
+        });
+
+        if (done) {
+          return;
+        }
+
+        await readChunk();
       }
-
-      await readChunk();
+      readChunk();
     }
-    readChunk();
 
     return next;
   }
