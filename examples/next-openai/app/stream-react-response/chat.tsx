@@ -8,7 +8,7 @@ export function Chat({ handler }: { handler: any }) {
   });
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       <ul>
         {messages.map((m, index) => (
           <li key={index}>
@@ -18,20 +18,14 @@ export function Chat({ handler }: { handler: any }) {
         ))}
       </ul>
 
-      <form
-        className="flex gap-2 fixed bottom-0 left-0 w-full p-4 border-t"
-        onSubmit={handleSubmit}
-      >
+      <form onSubmit={handleSubmit}>
         <input
-          className="border border-gray-500 rounded p-2 w-full"
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           placeholder="what is Next.js..."
           value={input}
           onChange={handleInputChange}
           autoFocus
         />
-        <button type="submit" className="bg-black text-white rounded px-4">
-          Send
-        </button>
       </form>
     </div>
   );
