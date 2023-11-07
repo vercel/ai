@@ -1,6 +1,7 @@
 'use server';
 
 import {
+  JSONValue,
   Message,
   OpenAIStream,
   experimental_StreamData,
@@ -113,15 +114,23 @@ export async function handler({ messages }: { messages: Message[] }) {
     data,
     dataUi({ messages, content, data }) {
       if (data != null) {
-        const data2 = (data as any)[0]; // TODO cleanup
+        const value = (data as JSONValue[])[0] as any; // TODO cleanup
 
-        switch (data2.type) {
+        switch (value.type) {
           case 'weather': {
             return (
-              <div className="flex flex-col items-center">
-                <p className="text-sm mb-1">
-                  The current temperature in {data2.location} is{' '}
-                  {data2.temperature} degrees {data2.format}
+              <div className="flex flex-col items-center p-4 bg-blue-100 rounded-lg shadow">
+                <p className="text-sm text-blue-900 mb-2 font-medium">
+                  The current temperature in
+                  <span className="text-lg text-blue-700 font-semibold">
+                    {' '}
+                    {value.location}{' '}
+                  </span>
+                  is
+                  <span className="text-lg text-blue-700 font-semibold">
+                    {' '}
+                    {value.temperature}° {value.format}
+                  </span>
                 </p>
               </div>
             );
@@ -130,7 +139,7 @@ export async function handler({ messages }: { messages: Message[] }) {
           case 'image': {
             return (
               <div className="flex flex-col items-center">
-                <img src={data2.url} className="mb-2" />
+                <img src={value.url} className="mb-2" />
               </div>
             );
           }
