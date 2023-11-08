@@ -10,6 +10,7 @@ function createParser(res: AsyncGenerator<any>) {
   return new ReadableStream<string>({
     async pull(controller): Promise<void> {
       const { value, done } = await res.next();
+
       if (done) {
         controller.close();
         return;
@@ -20,7 +21,6 @@ function createParser(res: AsyncGenerator<any>) {
 
       // some HF models return generated_text instead of a real ending token
       if (value.generated_text != null && value.generated_text.length > 0) {
-        controller.close();
         return;
       }
 
@@ -28,10 +28,10 @@ function createParser(res: AsyncGenerator<any>) {
       // <|end|> is for https://huggingface.co/HuggingFaceH4/starchat-beta
       // </s> is also often last token in the stream depending on the model
       if (text === '</s>' || text === '<|endoftext|>' || text === '<|end|>') {
-        controller.close();
-      } else {
-        controller.enqueue(text);
+        return;
       }
+
+      controller.enqueue(text);
     },
   });
 }
