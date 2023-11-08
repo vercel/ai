@@ -48,6 +48,9 @@ interface Prediction {
 export async function ReplicateStream(
   res: Prediction,
   cb?: AIStreamCallbacksAndOptions,
+  options?: {
+    headers?: Record<string, string>;
+  },
 ): Promise<ReadableStream> {
   const url = res.urls?.stream;
 
@@ -60,6 +63,7 @@ export async function ReplicateStream(
     method: 'GET',
     headers: {
       Accept: 'text/event-stream',
+      ...options?.headers,
     },
   });
 
