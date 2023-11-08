@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "2.2.20",
+  "version": "2.2.21",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -92,6 +92,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "jsdom": "^22.1.0",
     "langchain": "0.0.172",
+    "openai": "4.16.1",
     "ts-jest": "29.0.3",
     "tsup": "^6.7.0",
     "typescript": "5.1.3"

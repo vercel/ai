@@ -1,4 +1,4 @@
-import type { FunctionCall, Message } from '../shared/types';
+import type { FunctionCall, JSONValue, Message } from '../shared/types';
 import { nanoid, createChunkDecoder } from '../shared/utils';
 
 type PrefixMap = {
@@ -6,7 +6,7 @@ type PrefixMap = {
   function_call?:
     | string
     | Pick<Message, 'function_call' | 'role' | 'content' | 'name'>;
-  data?: string[];
+  data?: JSONValue[];
 };
 
 export async function parseComplexResponse({
@@ -18,7 +18,7 @@ export async function parseComplexResponse({
   abortControllerRef: {
     current: AbortController | null;
   };
-  update: (merged: Message[], data: string[] | undefined) => void;
+  update: (merged: Message[], data: JSONValue[] | undefined) => void;
 }) {
   const decode = createChunkDecoder(true);
   const createdAt = new Date();
