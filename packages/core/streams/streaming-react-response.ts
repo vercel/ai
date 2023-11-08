@@ -9,7 +9,7 @@
  */
 
 import { parseComplexResponse } from '../react/parse-complex-response';
-import { Message } from '../shared/types';
+import { JSONValue, Message } from '../shared/types';
 import { createChunkDecoder } from '../shared/utils';
 import { experimental_StreamData } from './stream-data';
 
@@ -39,7 +39,7 @@ export class experimental_StreamingReactResponse {
       }: {
         content: string;
         messages: Message[];
-        data: string[] | undefined;
+        data: JSONValue[] | undefined;
       }) => UINode | Promise<UINode>;
       data?: experimental_StreamData;
     },
