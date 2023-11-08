@@ -30,38 +30,37 @@ Lets assume the math assistant:
 
 ```ts
 // 1. Create a thread
-const thread = await openai.threads.create();
+const thread = await openai.beta.threads.create({});
 
 // 2. Add a message to the thread
-const message = await openai.threads.messages.create({
-  threadId: thread.id,
-  {
-    author: {
-      role: "user"
-    },
-    content: {
-      type: "text",
-      text: "I need to solve the equation `3x + 11 = 14`. Can you help me?"
-    }
-  }
+const message = await openai.beta.threads.messages.create(thread.id, {
+  role: 'user',
+  content: 'I need to solve the equation `3x + 11 = 14`. Can you help me?',
 });
 
 // 3. Run the assistant on the thread
-const response = await openai.threads.run({
-  assistantId: "asst_BMRA0KXcpSq9JzQNgnpoxU2E",
-  instructions: "Please address the user as Jane Doe. The user has a premium account."
+let run = await openai.beta.threads.runs.create(thread.id, {
+  assistant_id: 'asst_ASDJ',
+  instructions:
+    'Please address the user as Jane Doe. The user has a premium account.',
 });
 
 // 4. Poll for status change
+while (run.status === 'queued' || run.status === 'in_progress') {
+  // delay for 500ms:
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  run = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+}
 
 // 5. Get thread messages
 const messages = await openai.threads.messages.list({
-  threadId: thread.id
+  threadId: thread.id,
 });
 
 // 6. List the run steps
 const steps = await openai.threads.runs.steps.list({
-  runId: response.id
+  runId: response.id,
 });
 
 // 7. Retrieve any code interpreter output
