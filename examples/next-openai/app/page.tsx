@@ -15,11 +15,20 @@ export default function Chat() {
           ))
         : null}
 
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={e => {
+          handleSubmit(e, {
+            metadata: {
+              imageUrl:
+                'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Field_sparrow_in_CP_%2841484%29_%28cropped%29.jpg/733px-Field_sparrow_in_CP_%2841484%29_%28cropped%29.jpg',
+            },
+          });
+        }}
+      >
         <input
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           value={input}
-          placeholder="Say something..."
+          placeholder="Say say something..."
           onChange={handleInputChange}
         />
       </form>

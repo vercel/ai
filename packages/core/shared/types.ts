@@ -71,6 +71,7 @@ export type ChatRequest = {
   options?: RequestOptions;
   functions?: Array<Function>;
   function_call?: FunctionCall;
+  metadata?: Record<string, string>;
 };
 
 export type FunctionCallHandler = (
@@ -87,6 +88,7 @@ export type ChatRequestOptions = {
   options?: RequestOptions;
   functions?: Array<Function>;
   function_call?: FunctionCall;
+  metadata?: Record<string, string>;
 };
 
 export type UseChatOptions = {
