@@ -283,7 +283,7 @@ const getStreamedResponse = async (
 export function useChat({
   api = '/api/chat',
   id,
-  initialMessages: initialMessagesParam,
+  initialMessages,
   initialInput = '',
   sendExtraMessageFields,
   experimental_onFunctionCall,
@@ -300,12 +300,14 @@ export function useChat({
   const hookId = useId();
   const chatId = id || hookId;
 
-  // Store initial messages as a state to avoid re-rendering when using memo:
-  const [initialMessages] = useState(initialMessagesParam ?? []);
+  // Store a empty array as the initial messages
+  // (instead of using a default parameter value that gets re-created each time)
+  // to avoid re-renders:
+  const [initialMessagesFallback] = useState([]);
 
   // Store the chat state in SWR, using the chatId as the key to share states.
   const { data: messages, mutate } = useSWR<Message[]>([api, chatId], null, {
-    fallbackData: initialMessages,
+    fallbackData: initialMessages ?? initialMessagesFallback,
   });
 
   // We store loading state in another hook to sync loading states across hook invocations
