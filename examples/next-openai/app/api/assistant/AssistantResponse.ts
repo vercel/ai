@@ -26,6 +26,7 @@ export function AssistantResponse(
     sendStatus: (status: AssistantStatus) => void;
     sendThreadId: (threadId: string) => void;
     sendMessage: (message: AssistantMessage) => void;
+    sendData: (data: JSONValue) => void;
   }) => Promise<void>,
 ): Response {
   const stream = new ReadableStream({
@@ -39,6 +40,12 @@ export function AssistantResponse(
           // TODO have a smarter streaming protocol that only sends delta + msg id
           controller.enqueue(
             textEncoder.encode(`0: ${JSON.stringify(message)}\n\n`),
+          );
+        },
+
+        sendData: (data: JSONValue) => {
+          controller.enqueue(
+            textEncoder.encode(`2: ${JSON.stringify(data)}\n\n`),
           );
         },
 

@@ -1,4 +1,4 @@
-import { nanoid } from 'ai';
+import { JSONValue, nanoid } from 'ai';
 import { Message } from 'ai/react';
 import { useState } from 'react';
 import { processMessageStream } from './processMessageStream';
@@ -9,6 +9,10 @@ export function useAssistant({ api }: { api: string }) {
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<AssistantStatus | undefined>(undefined);
+
+  // TODO data should be a list of the streamed data (and then use a custom reducer)
+  // TODO figure out how to associate data with messages to show it inline in the conversation
+  const [data, setData] = useState<JSONValue | undefined>(undefined);
 
   const handleInputChange = (e: any) => {
     setInput(e.target.value);
@@ -68,6 +72,10 @@ export function useAssistant({ api }: { api: string }) {
 
             break;
           }
+          case '2': {
+            setData(messageContent);
+            break;
+          }
           case '3': {
             setStatus(messageContent);
             break;
@@ -90,5 +98,6 @@ export function useAssistant({ api }: { api: string }) {
     handleInputChange,
     submitMessage,
     status,
+    data,
   };
 }

@@ -48,3 +48,27 @@ The system uses temperature in Celsius. If the user requests Fahrenheit, you sho
   }
 }
 ```
+
+### showRoomTemperatureToUser function
+
+```json
+{
+  "name": "showRoomTemperatureToUser",
+  "description": "Show the temperature in a room to the user",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "room": {
+        "type": "string",
+        "enum": ["bedroom", "home office", "living room", "kitchen", "bathroom"]
+      },
+      "temperature": { "type": "number" },
+      "unit": {
+        "type": "string",
+        "enum": ["Celsius", "Fahrenheit"]
+      }
+    },
+    "required": ["location", "temperature"]
+  }
+}
+```

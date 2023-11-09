@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const message = input.message;
 
   return AssistantResponse(
-    async ({ sendStatus, sendThreadId, sendMessage }) => {
+    async ({ sendStatus, sendThreadId, sendMessage, sendData }) => {
       // 1. Create a thread if needed
       if (threadId == null) {
         sendStatus({
@@ -60,95 +60,111 @@ export async function POST(req: Request) {
         status: 'in_progress',
         information: 'Running the assistant on the thread...',
       });
-      let run = await openai.beta.threads.runs.create(threadId, {
+      const run = await openai.beta.threads.runs.create(threadId, {
         assistant_id: 'asst_1wdVNBWkyIHZ6TBoZTpFOZYs',
       });
 
-      // 4. Poll for status change
-      while (run.status === 'queued' || run.status === 'in_progress') {
-        // delay for 500ms:
-        await new Promise(resolve => setTimeout(resolve, 500));
+      async function waitForRun(run: OpenAI.Beta.Threads.Runs.Run) {
+        // Poll for status change
+        while (run.status === 'queued' || run.status === 'in_progress') {
+          // delay for 500ms:
+          await new Promise(resolve => setTimeout(resolve, 500));
 
-        run = await openai.beta.threads.runs.retrieve(threadId, run.id);
-      }
+          run = await openai.beta.threads.runs.retrieve(threadId!, run.id);
+        }
 
-      // 5. Check the run status
-      if (
-        run.status === 'cancelled' ||
-        run.status === 'cancelling' ||
-        run.status === 'failed' ||
-        run.status === 'expired'
-      ) {
-        sendStatus({
-          status: 'failed',
-          information: run.status,
-        });
-        throw new Error(run.status);
-      }
+        // Check the run status
+        if (
+          run.status === 'cancelled' ||
+          run.status === 'cancelling' ||
+          run.status === 'failed' ||
+          run.status === 'expired'
+        ) {
+          sendStatus({
+            status: 'failed',
+            information: run.status,
+          });
+          throw new Error(run.status);
+        }
 
-      if (run.status === 'requires_action') {
-        if (run.required_action?.type === 'submit_tool_outputs') {
-          // TODO support loops (e.g. when the run request more information in a 2nd and 3rd round)
-          // TODO support several tool calls in parallel (e.g. temperature for all rooms)
-          const toolCall =
-            run.required_action.submit_tool_outputs.tool_calls[0];
+        if (run.status === 'requires_action') {
+          if (run.required_action?.type === 'submit_tool_outputs') {
+            // TODO support loops (e.g. when the run request more information in a 2nd and 3rd round)
+            // TODO support several tool calls in parallel (e.g. temperature for all rooms)
+            const toolCall =
+              run.required_action.submit_tool_outputs.tool_calls[0];
 
-          if (toolCall.function.name === 'getRoomTemperature') {
-            const parameters = JSON.parse(toolCall.function.arguments);
-            const temperature =
+            if (toolCall.function.name === 'getRoomTemperature') {
+              const parameters = JSON.parse(toolCall.function.arguments);
+              const temperature =
+                homeTemperatures[
+                  parameters.room as keyof typeof homeTemperatures
+                ];
+
+              run = await openai.beta.threads.runs.submitToolOutputs(
+                threadId!,
+                run.id,
+                {
+                  tool_outputs: [
+                    {
+                      tool_call_id: toolCall.id,
+                      output: temperature.toString(),
+                    },
+                  ],
+                },
+              );
+
+              await waitForRun(run);
+            } else if (toolCall.function.name === 'setRoomTemperature') {
+              const parameters = JSON.parse(toolCall.function.arguments);
+              const temperature = parameters.temperature;
+
               homeTemperatures[
                 parameters.room as keyof typeof homeTemperatures
-              ];
+              ] = temperature;
 
-            run = await openai.beta.threads.runs.submitToolOutputs(
-              threadId,
-              run.id,
-              {
-                tool_outputs: [
-                  {
-                    tool_call_id: toolCall.id,
-                    output: temperature.toString(),
-                  },
-                ],
-              },
-            );
+              run = await openai.beta.threads.runs.submitToolOutputs(
+                threadId!,
+                run.id,
+                {
+                  tool_outputs: [
+                    {
+                      tool_call_id: toolCall.id,
+                      output: `New temperature ${temperature} degrees celcius set.`,
+                    },
+                  ],
+                },
+              );
 
-            while (run.status === 'queued' || run.status === 'in_progress') {
-              // delay for 500ms:
-              await new Promise(resolve => setTimeout(resolve, 500));
+              await waitForRun(run);
+            } else if (toolCall.function.name === 'showRoomTemperatureToUser') {
+              const parameters = JSON.parse(toolCall.function.arguments);
+              const temperature = parameters.temperature;
+              const unit = parameters.unit;
+              const room = parameters.room;
 
-              run = await openai.beta.threads.runs.retrieve(threadId, run.id);
+              sendData({
+                type: 'roomTemperature',
+                room,
+                temperature,
+                unit,
+              });
+
+              run = await openai.beta.threads.runs.submitToolOutputs(
+                threadId!,
+                run.id,
+                {
+                  tool_outputs: [
+                    {
+                      tool_call_id: toolCall.id,
+                      output: `The temperature information is shown to the user.`,
+                    },
+                  ],
+                },
+              );
+
+              await waitForRun(run);
             }
-
-            // TODO check status etc.
-          } else if (toolCall.function.name === 'setRoomTemperature') {
-            const parameters = JSON.parse(toolCall.function.arguments);
-            const temperature = parameters.temperature;
-
-            homeTemperatures[parameters.room as keyof typeof homeTemperatures] =
-              temperature;
-
-            run = await openai.beta.threads.runs.submitToolOutputs(
-              threadId,
-              run.id,
-              {
-                tool_outputs: [
-                  {
-                    tool_call_id: toolCall.id,
-                    output: `New temperature ${temperature} degrees celcius set.`,
-                  },
-                ],
-              },
-            );
-
-            while (run.status === 'queued' || run.status === 'in_progress') {
-              // delay for 500ms:
-              await new Promise(resolve => setTimeout(resolve, 500));
-
-              run = await openai.beta.threads.runs.retrieve(threadId, run.id);
-            }
-
-            // TODO check status etc.
           }
         }
 
@@ -162,6 +178,8 @@ export async function POST(req: Request) {
         // });
         // return;
       }
+
+      await waitForRun(run);
 
       // 6. Get new thread messages (after our message)
       sendStatus({
