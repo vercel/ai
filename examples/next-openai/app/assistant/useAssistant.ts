@@ -52,47 +52,36 @@ export function useAssistant() {
           throw new Error('No content found in the message.');
         }
 
-        // Parse the JSON part
         const messageContent = JSON.parse(messageContentText);
 
-        // Log or handle the parsed instruction number and data here
-        console.log(
-          `Instruction [${counter++}]: Number: ${messageType}, Data:`,
-          messageContent,
-        );
-
         switch (messageType) {
-          case '3':
+          case '0': {
+            // TODO support streaming message updates
+            setMessages(messages => [
+              ...messages,
+              {
+                id: messageContent.id,
+                role: messageContent.role,
+                content: messageContent.content[0].text.value,
+              },
+            ]);
+
+            break;
+          }
+          case '3': {
             setStatus(messageContent);
             break;
-          case '4':
+          }
+          case '4': {
             setThreadId(messageContent);
             break;
+          }
         }
       } catch (error) {
         // Handle any parsing errors
         console.error(`Error parsing instruction [${counter++}]:`, error);
       }
     });
-
-    console.log('DONE');
-
-    // TODO what about the messageId
-    // const { threadId: newThreadId, responseMessages } =
-    //   (await result.json()) as {
-    //     threadId: string;
-    //     responseMessages: any[];
-    //   };
-
-    // setThreadId(newThreadId);
-    // setMessages(messages => [
-    //   ...messages,
-    //   ...responseMessages.map((original: any) => ({
-    //     id: original.id,
-    //     role: original.role,
-    //     content: original.content[0].text.value,
-    //   })),
-    // ]);
   };
 
   return {

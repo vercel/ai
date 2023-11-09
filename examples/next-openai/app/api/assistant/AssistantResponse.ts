@@ -3,10 +3,22 @@ export type AssistantStatus = {
   information?: string;
 };
 
+export type AssistantMessage = {
+  id: string;
+  role: 'assistant';
+  content: Array<{
+    type: 'text';
+    text: {
+      value: string;
+    };
+  }>;
+};
+
 export function AssistantResponse(
   process: (stream: {
     sendStatus: (status: AssistantStatus) => void;
     sendThreadId: (threadId: string) => void;
+    sendMessage: (message: AssistantMessage) => void;
   }) => Promise<void>,
 ): Response {
   const stream = new ReadableStream({
@@ -14,8 +26,7 @@ export function AssistantResponse(
       const textEncoder = new TextEncoder();
 
       await process({
-        // TODO write custom data
-        // TODO write message
+        // TODO send custom data
 
         sendStatus: (status: AssistantStatus) => {
           controller.enqueue(
@@ -26,6 +37,13 @@ export function AssistantResponse(
         sendThreadId: (threadId: string) => {
           controller.enqueue(
             textEncoder.encode(`4: ${JSON.stringify(threadId)}\n\n`),
+          );
+        },
+
+        sendMessage: (message: AssistantMessage) => {
+          // TODO have a smarter streaming protocol that only sends delta + msg id
+          controller.enqueue(
+            textEncoder.encode(`0: ${JSON.stringify(message)}\n\n`),
           );
         },
       });
