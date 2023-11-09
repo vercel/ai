@@ -1,7 +1,14 @@
-export type AssistantStatus = {
-  status: 'in_progress' | 'complete' | 'failed';
-  information?: string;
-};
+import { JSONValue } from 'ai';
+
+export type AssistantStatus =
+  | {
+      status: 'in_progress' | 'complete' | 'failed';
+      information?: string;
+    }
+  | {
+      status: 'requires_action';
+      data: JSONValue;
+    };
 
 export type AssistantMessage = {
   id: string;

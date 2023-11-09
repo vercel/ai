@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { processMessageStream } from './processMessageStream';
 import { AssistantStatus } from '../api/assistant/AssistantResponse';
 
-export function useAssistant() {
+export function useAssistant({ api }: { api: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
@@ -30,7 +30,7 @@ export function useAssistant() {
 
     setInput('');
 
-    const result = await fetch('/api/assistant', {
+    const result = await fetch(api, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

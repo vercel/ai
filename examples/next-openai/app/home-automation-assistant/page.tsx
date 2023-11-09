@@ -1,7 +1,7 @@
 'use client';
 
 import { Message } from 'ai/react';
-import { useAssistant } from './useAssistant';
+import { useAssistant } from '../assistant/useAssistant';
 
 const roleToColorMap: Record<Message['role'], string> = {
   system: 'red',
@@ -13,7 +13,7 @@ const roleToColorMap: Record<Message['role'], string> = {
 export default function Chat() {
   const { status, messages, input, submitMessage, handleInputChange } =
     useAssistant({
-      api: '/api/assistant',
+      api: '/api/home-automation-assistant',
     });
 
   return (
