@@ -28,6 +28,13 @@ export function AssistantResponse(
       await process({
         // TODO send custom data
 
+        sendMessage: (message: AssistantMessage) => {
+          // TODO have a smarter streaming protocol that only sends delta + msg id
+          controller.enqueue(
+            textEncoder.encode(`0: ${JSON.stringify(message)}\n\n`),
+          );
+        },
+
         sendStatus: (status: AssistantStatus) => {
           controller.enqueue(
             textEncoder.encode(`3: ${JSON.stringify(status)}\n\n`),
@@ -37,13 +44,6 @@ export function AssistantResponse(
         sendThreadId: (threadId: string) => {
           controller.enqueue(
             textEncoder.encode(`4: ${JSON.stringify(threadId)}\n\n`),
-          );
-        },
-
-        sendMessage: (message: AssistantMessage) => {
-          // TODO have a smarter streaming protocol that only sends delta + msg id
-          controller.enqueue(
-            textEncoder.encode(`0: ${JSON.stringify(message)}\n\n`),
           );
         },
       });

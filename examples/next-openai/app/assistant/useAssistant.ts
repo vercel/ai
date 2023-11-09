@@ -14,7 +14,7 @@ export function useAssistant() {
     setInput(e.target.value);
   };
 
-  // TODO support adding custom data
+  // TODO support adding custom data that's sent to the server
   const submitMessage = async (e: any) => {
     e.preventDefault();
 
