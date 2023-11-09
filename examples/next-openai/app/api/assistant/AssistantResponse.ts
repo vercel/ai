@@ -5,7 +5,8 @@ export type AssistantStatus = {
 
 export function AssistantResponse(
   process: (stream: {
-    writeStatus: (status: AssistantStatus) => void;
+    sendStatus: (status: AssistantStatus) => void;
+    sendThreadId: (threadId: string) => void;
   }) => Promise<void>,
 ): Response {
   const stream = new ReadableStream({
@@ -16,9 +17,15 @@ export function AssistantResponse(
         // TODO write custom data
         // TODO write message
 
-        writeStatus: (status: AssistantStatus) => {
+        sendStatus: (status: AssistantStatus) => {
           controller.enqueue(
             textEncoder.encode(`3: ${JSON.stringify(status)}\n\n`),
+          );
+        },
+
+        sendThreadId: (threadId: string) => {
+          controller.enqueue(
+            textEncoder.encode(`4: ${JSON.stringify(threadId)}\n\n`),
           );
         },
       });

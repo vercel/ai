@@ -1,6 +1,6 @@
-export async function processInstructionStream(
+export async function processMessageStream(
   reader: ReadableStreamDefaultReader<Uint8Array>,
-  processInstruction: (instruction: string) => void | Promise<void>,
+  processMessage: (message: string) => void | Promise<void>,
 ) {
   const decoder = new TextDecoder();
   let buffer = '';
@@ -9,7 +9,7 @@ export async function processInstructionStream(
 
     if (done) {
       if (buffer.length > 0) {
-        processInstruction(buffer);
+        processMessage(buffer);
       }
       break;
     }
@@ -18,7 +18,7 @@ export async function processInstructionStream(
 
     let endIndex: number;
     while ((endIndex = buffer.indexOf('\n\n')) !== -1) {
-      processInstruction(buffer.substring(0, endIndex).trim());
+      processMessage(buffer.substring(0, endIndex).trim());
       buffer = buffer.substring(endIndex + 2); // Remove the processed instruction + delimiter
     }
   }

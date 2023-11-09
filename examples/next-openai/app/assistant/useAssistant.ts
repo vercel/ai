@@ -1,7 +1,7 @@
 import { nanoid } from 'ai';
 import { Message } from 'ai/react';
 import { useState } from 'react';
-import { processInstructionStream } from './processInstructionStream';
+import { processMessageStream } from './processMessageStream';
 import { AssistantStatus } from '../api/assistant/AssistantResponse';
 
 export function useAssistant() {
@@ -44,36 +44,36 @@ export function useAssistant() {
     }
 
     let counter = 0;
-    await processInstructionStream(
-      result.body.getReader(),
-      (instruction: string) => {
-        // Attempt to parse the instruction
-        try {
-          // Split the instruction at the first colon followed by a space to separate the number from the JSON
-          const [numberPart, jsonPart] = instruction.split(/:\s/, 2);
-          if (!jsonPart) {
-            throw new Error('No JSON part found in the instruction.');
-          }
+    await processMessageStream(result.body.getReader(), (message: string) => {
+      try {
+        const [messageType, messageContentText] = message.split(/:\s/, 2);
 
-          // Parse the JSON part
-          const instructionData = JSON.parse(jsonPart);
-
-          // Log or handle the parsed instruction number and data here
-          console.log(
-            `Instruction [${counter++}]: Number: ${numberPart}, Data:`,
-            instructionData,
-          );
-
-          // status:
-          if (numberPart === '3') {
-            setStatus(instructionData);
-          }
-        } catch (error) {
-          // Handle any parsing errors
-          console.error(`Error parsing instruction [${counter++}]:`, error);
+        if (!messageContentText) {
+          throw new Error('No content found in the message.');
         }
-      },
-    );
+
+        // Parse the JSON part
+        const messageContent = JSON.parse(messageContentText);
+
+        // Log or handle the parsed instruction number and data here
+        console.log(
+          `Instruction [${counter++}]: Number: ${messageType}, Data:`,
+          messageContent,
+        );
+
+        switch (messageType) {
+          case '3':
+            setStatus(messageContent);
+            break;
+          case '4':
+            setThreadId(messageContent);
+            break;
+        }
+      } catch (error) {
+        // Handle any parsing errors
+        console.error(`Error parsing instruction [${counter++}]:`, error);
+      }
+    });
 
     console.log('DONE');
 

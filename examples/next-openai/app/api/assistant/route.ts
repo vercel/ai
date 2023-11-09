@@ -19,20 +19,21 @@ export async function POST(req: Request) {
   let threadId = input.threadId;
   const message = input.message;
 
-  return AssistantResponse(async ({ writeStatus }) => {
+  return AssistantResponse(async ({ sendStatus, sendThreadId }) => {
     // 1. Create a thread if needed
     if (threadId == null) {
-      writeStatus({
+      sendStatus({
         status: 'in_progress',
         information: 'Creating a thread...',
       });
 
       const thread = await openai.beta.threads.create({});
       threadId = thread.id;
+      sendThreadId(threadId);
     }
 
     // 2. Add a message to the thread
-    writeStatus({
+    sendStatus({
       status: 'in_progress',
       information: 'Adding a message to the thread...',
     });
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
     });
 
     // 3. Run the assistant on the thread
-    writeStatus({
+    sendStatus({
       status: 'in_progress',
       information: 'Running the assistant on the thread...',
     });
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
       run.status === 'failed' ||
       run.status === 'expired'
     ) {
-      writeStatus({
+      sendStatus({
         status: 'failed',
         information: run.status,
       });
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
     }
 
     // 6. Get new thread messages (after our message)
-    writeStatus({
+    sendStatus({
       status: 'in_progress',
       information: 'Getting new thread messages...',
     });
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
 
     console.log(JSON.stringify(responseMessages, null, 2));
 
-    writeStatus({
+    sendStatus({
       status: 'complete',
     });
   });
