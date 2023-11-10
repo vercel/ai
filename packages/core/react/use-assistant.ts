@@ -5,7 +5,13 @@ import { Message } from '../shared/types';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
-export function useAssistant_experimental({ api }: { api: string }) {
+export function useAssistant_experimental({
+  api,
+  threadId: threadIdParam,
+}: {
+  api: string;
+  threadId?: string | undefined;
+}) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
@@ -37,7 +43,8 @@ export function useAssistant_experimental({ api }: { api: string }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        threadId: threadId ?? null,
+        // always use user-provided threadId when available:
+        threadId: threadIdParam ?? threadId ?? null,
         message: input,
       }),
     });
