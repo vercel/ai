@@ -53,9 +53,6 @@ export class experimental_StreamingReactResponse {
       // runs asynchronously (no await on purpose)
       parseComplexResponse({
         reader: processedStream.getReader(),
-        abortControllerRef: {
-          current: new AbortController(),
-        },
         update: (merged, data) => {
           const content = merged[0]?.content ?? '';
           const ui = options?.ui?.({ content, data }) || content;
@@ -74,6 +71,8 @@ export class experimental_StreamingReactResponse {
           lastPayload = payload;
         },
         onFinish: () => {
+          // The last payload is resolved twice. This is necessary because we immediately
+          // push out a payload, but we also need to forward the finish event with a payload.
           if (lastPayload !== undefined) {
             resolveFunc({
               next: null,

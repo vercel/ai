@@ -16,7 +16,7 @@ export async function parseComplexResponse({
   onFinish,
 }: {
   reader: ReadableStreamDefaultReader<Uint8Array>;
-  abortControllerRef: {
+  abortControllerRef?: {
     current: AbortController | null;
   };
   update: (merged: Message[], data: JSONValue[] | undefined) => void;
@@ -126,7 +126,8 @@ export async function parseComplexResponse({
       update(merged, data);
 
       // The request has been aborted, stop reading the stream.
-      if (abortControllerRef.current === null) {
+      // If abortControllerRef is undefined, this is intentionally not executed.
+      if (abortControllerRef?.current === null) {
         reader.cancel();
         break;
       }
