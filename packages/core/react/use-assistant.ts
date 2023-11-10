@@ -93,5 +93,6 @@ export function useAssistant_experimental({ api }: { api: string }) {
     handleInputChange,
     submitMessage,
     status,
+    error,
   };
 }

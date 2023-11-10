@@ -11,7 +11,7 @@ const roleToColorMap: Record<Message['role'], string> = {
 };
 
 export default function Chat() {
-  const { status, messages, input, submitMessage, handleInputChange } =
+  const { status, messages, input, submitMessage, handleInputChange, error } =
     useAssistant_experimental({
       api: '/api/assistant',
     });
@@ -26,6 +26,14 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {error != null && (
+        <div className="relative bg-red-500 text-white px-6 py-4 rounded-md">
+          <span className="block sm:inline">
+            Error: {(error as any).toString()}
+          </span>
+        </div>
+      )}
+
       {messages.map((m: Message) => (
         <div
           key={m.id}
