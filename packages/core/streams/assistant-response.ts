@@ -1,4 +1,4 @@
-import { AssistantMessage, AssistantStatus } from '../shared/types';
+import { AssistantMessage } from '../shared/types';
 
 export function expertimental_AssistantResponse(
   process: (stream: {
@@ -16,9 +16,9 @@ export function expertimental_AssistantResponse(
         );
       };
 
-      const sendStatus = (status: AssistantStatus) => {
+      const sendError = (errorMessage: string) => {
         controller.enqueue(
-          textEncoder.encode(`3: ${JSON.stringify(status)}\n\n`),
+          textEncoder.encode(`3: ${JSON.stringify(errorMessage)}\n\n`),
         );
       };
 
@@ -28,17 +28,11 @@ export function expertimental_AssistantResponse(
         );
       };
 
-      sendStatus({ status: 'in_progress' });
-
       try {
         await process({ sendMessage, sendThreadId });
       } catch (error) {
-        sendStatus({
-          status: 'failed',
-          message: (error as any).message ?? `${error}`,
-        });
+        sendError((error as any).message ?? `${error}`);
       } finally {
-        sendStatus({ status: 'complete' });
         controller.close();
       }
     },

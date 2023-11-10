@@ -1,13 +1,16 @@
 import { nanoid } from 'nanoid';
 import { useState } from 'react';
 import { processMessageStream } from '../shared/process-message-stream';
-import { AssistantStatus, Message } from '../shared/types';
+import { Message } from '../shared/types';
+
+export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
 export function useAssistant_experimental({ api }: { api: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
-  const [status, setStatus] = useState<AssistantStatus | undefined>(undefined);
+  const [status, setStatus] = useState<AssistantStatus>('awaiting_message');
+  const [error, setError] = useState<unknown | undefined>(undefined);
 
   const handleInputChange = (e: any) => {
     setInput(e.target.value);
@@ -19,6 +22,8 @@ export function useAssistant_experimental({ api }: { api: string }) {
     if (input === '') {
       return;
     }
+
+    setStatus('in_progress');
 
     setMessages(messages => [
       ...messages,
@@ -66,7 +71,7 @@ export function useAssistant_experimental({ api }: { api: string }) {
             break;
           }
           case '3': {
-            setStatus(messageContent);
+            setError(messageContent);
             break;
           }
           case '4': {
@@ -75,10 +80,11 @@ export function useAssistant_experimental({ api }: { api: string }) {
           }
         }
       } catch (error) {
-        // Handle any parsing errors
-        console.error(`Error parsing instruction`, error);
+        setError(error);
       }
     });
+
+    setStatus('awaiting_message');
   };
 
   return {
@@ -87,6 +93,5 @@ export function useAssistant_experimental({ api }: { api: string }) {
     handleInputChange,
     submitMessage,
     status,
-    acceptsMessage: status == undefined || status.status === 'complete',
   };
 }

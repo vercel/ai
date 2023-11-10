@@ -242,15 +242,6 @@ export type JSONValue =
   | { [x: string]: JSONValue }
   | Array<JSONValue>;
 
-export type AssistantStatus =
-  | {
-      status: 'in_progress' | 'complete';
-    }
-  | {
-      status: 'failed';
-      message?: string;
-    };
-
 export type AssistantMessage = {
   id: string;
   role: 'assistant';
