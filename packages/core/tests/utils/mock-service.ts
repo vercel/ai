@@ -7,11 +7,12 @@ import {
 } from '../snapshots/openai-chat';
 import { cohereChunks } from '../snapshots/cohere';
 import { huggingfaceChunks } from '../snapshots/huggingface';
+import { replicateTextChunks } from '../snapshots/replicate';
 
 async function flushDataToResponse(
   res: ServerResponse,
-  chunks: { value: object }[],
-  format: (value: string) => string,
+  chunks: { value: object | string }[],
+  format: (value: object | string) => string,
   suffix?: string,
   delayInMs = 5,
 ) {
@@ -24,8 +25,7 @@ async function flushDataToResponse(
 
   try {
     for (const item of chunks) {
-      const data = format(JSON.stringify(item.value));
-      const ok = res.write(data);
+      const ok = res.write(format(item.value));
       if (!ok) {
         await waitForDrain;
       }
@@ -33,8 +33,7 @@ async function flushDataToResponse(
       await new Promise(r => setTimeout(r, delayInMs));
     }
     if (suffix) {
-      const data = format(suffix);
-      res.write(data);
+      res.write(suffix);
     }
   } catch (e) {}
   res.end();
@@ -80,8 +79,8 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
-              (value: string) => `data: ${value}\n\n`,
-              '[DONE]',
+              value => `data: ${JSON.stringify(value)}\n\n`,
+              'data: [DONE]',
               flushDelayInMs,
             );
             break;
@@ -114,7 +113,7 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
-              (value: string) => `${value}\n`,
+              value => `${JSON.stringify(value)}\n`,
               undefined,
               flushDelayInMs,
             );
@@ -142,7 +141,35 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
-              (value: string) => `data: ${value}\n\n`,
+              value => `data: ${JSON.stringify(value)}\n\n`,
+              undefined,
+              flushDelayInMs,
+            );
+            break;
+          }
+          case 'huggingface': {
+            res.writeHead(200, {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            });
+            res.flushHeaders();
+            recentFlushed = [];
+            flushDataToResponse(
+              res,
+              huggingfaceChunks.map(
+                value =>
+                  new Proxy(
+                    { value },
+                    {
+                      get(target) {
+                        recentFlushed.push(target.value);
+                        return target.value;
+                      },
+                    },
+                  ),
+              ),
+              value => `data: ${value}\n\n`,
               undefined,
               flushDelayInMs,
             );
@@ -170,11 +197,41 @@ export const setup = (port = 3030) => {
                     },
                   ),
               ),
-              (value: string) => `data: ${value}\n\n`,
-              '[DONE]',
+              value => `data: ${JSON.stringify(value)}\n\n`,
+              'data: [DONE]',
               flushDelayInMs,
             );
             break;
+
+          case 'replicate': {
+            res.writeHead(200, {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            });
+            res.flushHeaders();
+            recentFlushed = [];
+            flushDataToResponse(
+              res,
+              replicateTextChunks.map(
+                value =>
+                  new Proxy(
+                    { value },
+                    {
+                      get(target) {
+                        recentFlushed.push(target.value);
+                        return target.value;
+                      },
+                    },
+                  ),
+              ),
+              value => value.toString(),
+              undefined,
+              flushDelayInMs,
+            );
+            break;
+          }
+
           default:
             throw new Error(`Unknown service: ${service}`);
         }
