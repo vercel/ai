@@ -81,46 +81,48 @@ export class experimental_StreamingReactResponse {
           }
         },
       });
-    } else {
-      let content = '';
 
-      const decode = createChunkDecoder();
-      const reader = res.getReader();
-      async function readChunk() {
-        const { done, value } = await reader.read();
-        if (!done) {
-          content += decode(value);
-        }
-
-        // TODO: Handle generators. With this current implementation we can support
-        // synchronous and asynchronous UIs.
-        // TODO: Handle function calls.
-        const ui = options?.ui?.({ content }) || content;
-
-        const payload: Payload = {
-          ui,
-          content,
-        };
-
-        const resolvePrevious = resolveFunc;
-        const nextRow = done
-          ? null
-          : new Promise<ReactResponseRow>(resolve => {
-              resolveFunc = resolve;
-            });
-        resolvePrevious({
-          next: nextRow,
-          ...payload,
-        });
-
-        if (done) {
-          return;
-        }
-
-        await readChunk();
-      }
-      readChunk();
+      return next;
     }
+
+    let content = '';
+
+    const decode = createChunkDecoder();
+    const reader = res.getReader();
+    async function readChunk() {
+      const { done, value } = await reader.read();
+      if (!done) {
+        content += decode(value);
+      }
+
+      // TODO: Handle generators. With this current implementation we can support
+      // synchronous and asynchronous UIs.
+      // TODO: Handle function calls.
+      const ui = options?.ui?.({ content }) || content;
+
+      const payload: Payload = {
+        ui,
+        content,
+      };
+
+      const resolvePrevious = resolveFunc;
+      const nextRow = done
+        ? null
+        : new Promise<ReactResponseRow>(resolve => {
+            resolveFunc = resolve;
+          });
+      resolvePrevious({
+        next: nextRow,
+        ...payload,
+      });
+
+      if (done) {
+        return;
+      }
+
+      await readChunk();
+    }
+    readChunk();
 
     return next;
   }
