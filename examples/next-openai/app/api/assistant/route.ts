@@ -45,7 +45,11 @@ export async function POST(req: Request) {
 
       // Run the assistant on the thread
       const run = await openai.beta.threads.runs.create(threadId, {
-        assistant_id: 'asst_1wdVNBWkyIHZ6TBoZTpFOZYs',
+        assistant_id:
+          process.env.ASSISTANT_ID ??
+          (() => {
+            throw new Error('ASSISTANT_ID is not set');
+          })(),
       });
 
       async function waitForRun(run: OpenAI.Beta.Threads.Runs.Run) {
