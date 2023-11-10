@@ -30,36 +30,22 @@ export async function POST(req: Request) {
 
   return expertimental_AssistantResponse(
     async ({ sendStatus, sendThreadId, sendMessage, sendData }) => {
+      sendStatus({ status: 'in_progress' });
+
       // Create a thread if needed
       if (threadId == null) {
-        sendStatus({
-          status: 'in_progress',
-          information: 'Creating a thread...',
-        });
-
         const thread = await openai.beta.threads.create({});
         threadId = thread.id;
         sendThreadId(threadId);
       }
 
       // Add a message to the thread
-      sendStatus({
-        status: 'in_progress',
-        information: 'Adding a message to the thread...',
-      });
       const createdMessage = await openai.beta.threads.messages.create(
         threadId,
-        {
-          role: 'user',
-          content: message,
-        },
+        { role: 'user', content: message },
       );
 
       // Run the assistant on the thread
-      sendStatus({
-        status: 'in_progress',
-        information: 'Running the assistant on the thread...',
-      });
       const run = await openai.beta.threads.runs.create(threadId, {
         assistant_id: 'asst_1wdVNBWkyIHZ6TBoZTpFOZYs',
       });
@@ -141,11 +127,6 @@ export async function POST(req: Request) {
       await waitForRun(run);
 
       // Get new thread messages (after our message)
-      sendStatus({
-        status: 'in_progress',
-        information: 'Getting new thread messages...',
-      });
-
       const responseMessages = (
         await openai.beta.threads.messages.list(threadId, {
           after: createdMessage.id,
@@ -165,9 +146,7 @@ export async function POST(req: Request) {
         });
       }
 
-      sendStatus({
-        status: 'complete',
-      });
+      sendStatus({ status: 'complete' });
     },
   );
 }
