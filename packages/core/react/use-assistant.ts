@@ -41,10 +41,10 @@ export function experimental_useAssistant({ api }: { api: string }) {
       throw new Error('The response body is empty.');
     }
 
-    let counter = 0;
     await processMessageStream(result.body.getReader(), (message: string) => {
       try {
-        const [messageType, messageContentText] = message.split(/:\s/, 2);
+        const [messageType, ...rest] = message.split(/:(.+)/);
+        const messageContentText = rest.join('');
 
         if (!messageContentText) {
           throw new Error('No content found in the message.');
@@ -76,7 +76,7 @@ export function experimental_useAssistant({ api }: { api: string }) {
         }
       } catch (error) {
         // Handle any parsing errors
-        console.error(`Error parsing instruction [${counter++}]:`, error);
+        console.error(`Error parsing instruction`, error);
       }
     });
   };

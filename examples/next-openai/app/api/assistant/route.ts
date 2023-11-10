@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const message = input.message;
 
   return expertimental_AssistantResponse(
-    async ({ sendStatus, sendThreadId, sendMessage, sendData }) => {
+    async ({ sendStatus, sendThreadId, sendMessage }) => {
       sendStatus({ status: 'in_progress' });
 
       // Create a thread if needed
@@ -75,49 +75,48 @@ export async function POST(req: Request) {
 
         if (run.status === 'requires_action') {
           if (run.required_action?.type === 'submit_tool_outputs') {
-            // TODO support several tool calls in parallel (e.g. temperature for all rooms)
-            const toolCall =
-              run.required_action.submit_tool_outputs.tool_calls[0];
-            const parameters = JSON.parse(toolCall.function.arguments);
+            const tool_outputs =
+              run.required_action.submit_tool_outputs.tool_calls.map(
+                toolCall => {
+                  const parameters = JSON.parse(toolCall.function.arguments);
 
-            if (toolCall.function.name === 'getRoomTemperature') {
-              const temperature =
-                homeTemperatures[
-                  parameters.room as keyof typeof homeTemperatures
-                ];
+                  switch (toolCall.function.name) {
+                    case 'getRoomTemperature': {
+                      const temperature =
+                        homeTemperatures[
+                          parameters.room as keyof typeof homeTemperatures
+                        ];
 
-              run = await openai.beta.threads.runs.submitToolOutputs(
-                threadId!,
-                run.id,
-                {
-                  tool_outputs: [
-                    {
-                      tool_call_id: toolCall.id,
-                      output: temperature.toString(),
-                    },
-                  ],
+                      return {
+                        tool_call_id: toolCall.id,
+                        output: temperature.toString(),
+                      };
+                    }
+
+                    case 'setRoomTemperature': {
+                      homeTemperatures[
+                        parameters.room as keyof typeof homeTemperatures
+                      ] = parameters.temperature;
+
+                      return {
+                        tool_call_id: toolCall.id,
+                        output: `temperature set successfully`,
+                      };
+                    }
+
+                    default:
+                      throw new Error(
+                        `Unknown tool call function: ${toolCall.function.name}`,
+                      );
+                  }
                 },
               );
-            } else if (toolCall.function.name === 'setRoomTemperature') {
-              const temperature = parameters.temperature;
 
-              homeTemperatures[
-                parameters.room as keyof typeof homeTemperatures
-              ] = temperature;
-
-              run = await openai.beta.threads.runs.submitToolOutputs(
-                threadId!,
-                run.id,
-                {
-                  tool_outputs: [
-                    {
-                      tool_call_id: toolCall.id,
-                      output: `New temperature ${temperature} degrees celcius set.`,
-                    },
-                  ],
-                },
-              );
-            }
+            run = await openai.beta.threads.runs.submitToolOutputs(
+              threadId!,
+              run.id,
+              { tool_outputs },
+            );
 
             await waitForRun(run);
           }
