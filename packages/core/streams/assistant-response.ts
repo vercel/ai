@@ -11,33 +11,32 @@ export function expertimental_AssistantResponse(
     async start(controller) {
       const textEncoder = new TextEncoder();
 
-      await process({
-        sendMessage: (message: AssistantMessage) => {
-          // TODO have a smarter streaming protocol that only sends delta + msg id
-          controller.enqueue(
-            textEncoder.encode(`0: ${JSON.stringify(message)}\n\n`),
-          );
-        },
+      try {
+        await process({
+          sendMessage: (message: AssistantMessage) => {
+            controller.enqueue(
+              textEncoder.encode(`0: ${JSON.stringify(message)}\n\n`),
+            );
+          },
 
-        sendStatus: (status: AssistantStatus) => {
-          controller.enqueue(
-            textEncoder.encode(`3: ${JSON.stringify(status)}\n\n`),
-          );
-        },
+          sendStatus: (status: AssistantStatus) => {
+            controller.enqueue(
+              textEncoder.encode(`3: ${JSON.stringify(status)}\n\n`),
+            );
+          },
 
-        sendThreadId: (threadId: string) => {
-          controller.enqueue(
-            textEncoder.encode(`4: ${JSON.stringify(threadId)}\n\n`),
-          );
-        },
-      });
-
-      controller.close();
+          sendThreadId: (threadId: string) => {
+            controller.enqueue(
+              textEncoder.encode(`4: ${JSON.stringify(threadId)}\n\n`),
+            );
+          },
+        });
+      } finally {
+        controller.close();
+      }
     },
     pull(controller) {},
-    cancel() {
-      // This is called if the reader cancels,
-    },
+    cancel() {},
   });
 
   return new Response(stream, {
