@@ -29,9 +29,7 @@ export async function POST(req: Request) {
   const message = input.message;
 
   return expertimental_AssistantResponse(
-    async ({ sendStatus, sendThreadId, sendMessage }) => {
-      sendStatus({ status: 'in_progress' });
-
+    async ({ sendThreadId, sendMessage }) => {
       // Create a thread if needed
       if (threadId == null) {
         const thread = await openai.beta.threads.create({});
@@ -66,10 +64,6 @@ export async function POST(req: Request) {
           run.status === 'failed' ||
           run.status === 'expired'
         ) {
-          sendStatus({
-            status: 'failed',
-            information: run.status,
-          });
           throw new Error(run.status);
         }
 
@@ -144,8 +138,6 @@ export async function POST(req: Request) {
           ) as Array<MessageContentText>,
         });
       }
-
-      sendStatus({ status: 'complete' });
     },
   );
 }

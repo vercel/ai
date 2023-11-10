@@ -244,12 +244,11 @@ export type JSONValue =
 
 export type AssistantStatus =
   | {
-      status: 'in_progress' | 'complete' | 'failed';
-      information?: string;
+      status: 'in_progress' | 'complete';
     }
   | {
-      status: 'requires_action';
-      data: JSONValue;
+      status: 'failed';
+      message?: string;
     };
 
 export type AssistantMessage = {
