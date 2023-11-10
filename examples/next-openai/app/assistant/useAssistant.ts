@@ -98,5 +98,6 @@ export function experimental_useAssistant({ api }: { api: string }) {
     submitMessage,
     status,
     data,
+    acceptsMessage: status == undefined || status.status === 'complete',
   };
 }

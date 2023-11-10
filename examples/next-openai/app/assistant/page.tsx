@@ -11,10 +11,17 @@ const roleToColorMap: Record<Message['role'], string> = {
 };
 
 export default function Chat() {
-  const { status, messages, input, submitMessage, handleInputChange, data } =
-    experimental_useAssistant({
-      api: '/api/assistant',
-    });
+  const {
+    status,
+    messages,
+    input,
+    submitMessage,
+    handleInputChange,
+    data,
+    acceptsMessage,
+  } = experimental_useAssistant({
+    api: '/api/assistant',
+  });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -43,6 +50,7 @@ export default function Chat() {
 
       <form onSubmit={submitMessage}>
         <input
+          disabled={!acceptsMessage}
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           value={input}
           placeholder="Say something..."
