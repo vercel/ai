@@ -21,7 +21,7 @@ export type AssistantMessage = {
   }>;
 };
 
-export function AssistantResponse(
+export function expertimental_AssistantResponse(
   process: (stream: {
     sendStatus: (status: AssistantStatus) => void;
     sendThreadId: (threadId: string) => void;
@@ -34,8 +34,6 @@ export function AssistantResponse(
       const textEncoder = new TextEncoder();
 
       await process({
-        // TODO send custom data
-
         sendMessage: (message: AssistantMessage) => {
           // TODO have a smarter streaming protocol that only sends delta + msg id
           controller.enqueue(

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { processMessageStream } from './processMessageStream';
 import { AssistantStatus } from '../api/assistant/AssistantResponse';
 
-export function useAssistant({ api }: { api: string }) {
+export function experimental_useAssistant({ api }: { api: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
@@ -18,7 +18,6 @@ export function useAssistant({ api }: { api: string }) {
     setInput(e.target.value);
   };
 
-  // TODO support adding custom data that's sent to the server
   const submitMessage = async (e: any) => {
     e.preventDefault();
 
@@ -28,7 +27,7 @@ export function useAssistant({ api }: { api: string }) {
 
     setMessages(messages => [
       ...messages,
-      // TODO should have correct message id etc
+      // TODO should have correct message id and timestamp
       { id: nanoid(), role: 'user', content: input },
     ]);
 
