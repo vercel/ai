@@ -9,6 +9,7 @@ import {
 } from 'ai';
 import OpenAI from 'openai';
 import { ChatCompletionCreateParams } from 'openai/resources/chat';
+import { asOpenAIMessages } from './asOpenAIMessages';
 
 const functions: ChatCompletionCreateParams.Function[] = [
   {
@@ -58,13 +59,7 @@ export async function handler({ messages }: { messages: Message[] }) {
   const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo',
     stream: true,
-    messages: messages.map(
-      m =>
-        ({
-          role: m.role,
-          content: m.content,
-        } as any), // TODO cleanup
-    ),
+    messages: asOpenAIMessages(messages),
     functions,
   });
 
