@@ -1,6 +1,6 @@
 'use client';
 
-import { Message, experimental_useAssistant } from 'ai/react';
+import { Message, useAssistant_experimental } from 'ai/react';
 import { useEffect, useRef } from 'react';
 
 const roleToColorMap: Record<Message['role'], string> = {
@@ -17,9 +17,8 @@ export default function Chat() {
     input,
     submitMessage,
     handleInputChange,
-    data,
     acceptsMessage,
-  } = experimental_useAssistant({
+  } = useAssistant_experimental({
     api: '/api/assistant',
   });
 
@@ -33,12 +32,6 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {data && (
-        <pre>
-          <code>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      )}
-
       {messages.map((m: Message) => (
         <div
           key={m.id}

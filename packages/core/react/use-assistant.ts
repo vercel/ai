@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { processMessageStream } from '../shared/process-message-stream';
 import { AssistantStatus, Message } from '../shared/types';
 
-export function experimental_useAssistant({ api }: { api: string }) {
+export function useAssistant_experimental({ api }: { api: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
