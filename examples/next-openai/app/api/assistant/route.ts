@@ -132,7 +132,6 @@ export async function POST(req: Request) {
         sendMessage({
           id: message.id,
           role: 'assistant',
-          // TODO add image support
           content: message.content.filter(
             content => content.type === 'text',
           ) as Array<MessageContentText>,
