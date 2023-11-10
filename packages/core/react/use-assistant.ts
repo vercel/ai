@@ -1,17 +1,13 @@
 import { nanoid } from 'nanoid';
 import { useState } from 'react';
 import { processMessageStream } from '../shared/process-message-stream';
-import { AssistantStatus, JSONValue, Message } from '../shared/types';
+import { AssistantStatus, Message } from '../shared/types';
 
 export function experimental_useAssistant({ api }: { api: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<AssistantStatus | undefined>(undefined);
-
-  // TODO data should be a list of the streamed data (and then use a custom reducer)
-  // TODO figure out how to associate data with messages to show it inline in the conversation
-  const [data, setData] = useState<JSONValue | undefined>(undefined);
 
   const handleInputChange = (e: any) => {
     setInput(e.target.value);
@@ -58,7 +54,6 @@ export function experimental_useAssistant({ api }: { api: string }) {
 
         switch (messageType) {
           case '0': {
-            // TODO support streaming message updates
             setMessages(messages => [
               ...messages,
               {
@@ -68,10 +63,6 @@ export function experimental_useAssistant({ api }: { api: string }) {
               },
             ]);
 
-            break;
-          }
-          case '2': {
-            setData(messageContent);
             break;
           }
           case '3': {
@@ -96,7 +87,6 @@ export function experimental_useAssistant({ api }: { api: string }) {
     handleInputChange,
     submitMessage,
     status,
-    data,
     acceptsMessage: status == undefined || status.status === 'complete',
   };
 }

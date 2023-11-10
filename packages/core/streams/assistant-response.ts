@@ -1,11 +1,10 @@
-import { AssistantMessage, AssistantStatus, JSONValue } from '../shared/types';
+import { AssistantMessage, AssistantStatus } from '../shared/types';
 
 export function expertimental_AssistantResponse(
   process: (stream: {
     sendStatus: (status: AssistantStatus) => void;
     sendThreadId: (threadId: string) => void;
     sendMessage: (message: AssistantMessage) => void;
-    sendData: (data: JSONValue) => void;
   }) => Promise<void>,
 ): Response {
   const stream = new ReadableStream({
@@ -17,12 +16,6 @@ export function expertimental_AssistantResponse(
           // TODO have a smarter streaming protocol that only sends delta + msg id
           controller.enqueue(
             textEncoder.encode(`0: ${JSON.stringify(message)}\n\n`),
-          );
-        },
-
-        sendData: (data: JSONValue) => {
-          controller.enqueue(
-            textEncoder.encode(`2: ${JSON.stringify(data)}\n\n`),
           );
         },
 
