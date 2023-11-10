@@ -1,5 +1,5 @@
+import { expertimental_AssistantResponse } from 'ai';
 import OpenAI from 'openai';
-import { expertimental_AssistantResponse } from './AssistantResponse';
 import { MessageContentText } from 'openai/resources/beta/threads/messages/messages';
 
 // Create an OpenAI API client (that's edge friendly!)

@@ -1,7 +1,6 @@
 'use client';
 
-import { Message } from 'ai/react';
-import { experimental_useAssistant } from './useAssistant';
+import { Message, experimental_useAssistant } from 'ai/react';
 import { useEffect, useRef } from 'react';
 
 const roleToColorMap: Record<Message['role'], string> = {
@@ -24,10 +23,9 @@ export default function Chat() {
     api: '/api/assistant',
   });
 
-  const inputRef = useRef<HTMLInputElement>(null); // Create a ref for the input element
-
+  // When acceptsMessage changes and is true, focus the input:
+  const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    // When acceptsMessage changes and is true, focus the input
     if (acceptsMessage) {
       inputRef.current?.focus();
     }

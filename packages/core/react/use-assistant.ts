@@ -1,8 +1,7 @@
-import { JSONValue, nanoid } from 'ai';
-import { Message } from 'ai/react';
+import { nanoid } from 'nanoid';
 import { useState } from 'react';
-import { processMessageStream } from './processMessageStream';
-import { AssistantStatus } from '../api/assistant/AssistantResponse';
+import { processMessageStream } from '../shared/process-message-stream';
+import { AssistantStatus, JSONValue, Message } from '../shared/types';
 
 export function experimental_useAssistant({ api }: { api: string }) {
   const [messages, setMessages] = useState<Message[]>([]);

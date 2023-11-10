@@ -1,25 +1,4 @@
-import { JSONValue } from 'ai';
-
-export type AssistantStatus =
-  | {
-      status: 'in_progress' | 'complete' | 'failed';
-      information?: string;
-    }
-  | {
-      status: 'requires_action';
-      data: JSONValue;
-    };
-
-export type AssistantMessage = {
-  id: string;
-  role: 'assistant';
-  content: Array<{
-    type: 'text';
-    text: {
-      value: string;
-    };
-  }>;
-};
+import { AssistantMessage, AssistantStatus, JSONValue } from '../shared/types';
 
 export function expertimental_AssistantResponse(
   process: (stream: {

@@ -241,3 +241,24 @@ export type JSONValue =
   | boolean
   | { [x: string]: JSONValue }
   | Array<JSONValue>;
+
+export type AssistantStatus =
+  | {
+      status: 'in_progress' | 'complete' | 'failed';
+      information?: string;
+    }
+  | {
+      status: 'requires_action';
+      data: JSONValue;
+    };
+
+export type AssistantMessage = {
+  id: string;
+  role: 'assistant';
+  content: Array<{
+    type: 'text';
+    text: {
+      value: string;
+    };
+  }>;
+};
