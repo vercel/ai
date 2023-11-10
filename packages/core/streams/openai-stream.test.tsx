@@ -496,7 +496,7 @@ describe('OpenAIStream', () => {
 
       const response = new experimental_StreamingReactResponse(stream, {
         data,
-        dataUi: ({ content }) => <span>{content}</span>,
+        ui: ({ content }) => <span>{content}</span>,
       }) as Promise<ReactResponseRow>;
 
       const rows = await extractReactRowContents(response);
@@ -510,7 +510,7 @@ describe('OpenAIStream', () => {
       ]);
     });
 
-    it('should stream React response as React rows from data stream when onFunctionCall is defined and returns undefined', async () => {
+    it('should stream React response as React rows from data stream when data is appended', async () => {
       const data = new experimental_StreamData();
 
       const stream = OpenAIStream(
@@ -525,86 +525,7 @@ describe('OpenAIStream', () => {
             data.close();
           },
           async experimental_onFunctionCall({ name }) {
-            // no response
-          },
-          experimental_streamData: true,
-        },
-      );
-
-      const response = new experimental_StreamingReactResponse(stream, {
-        data,
-        dataUi: ({ messages, content }) => {
-          const message = messages[0];
-
-          if (message.function_call != null) {
-            if (typeof message.function_call === 'string') {
-              return <span>{message.function_call}</span>;
-            }
-
-            const args = JSON.parse(message.function_call.arguments!);
-            const result = 20; // would be a function call
-
-            return (
-              <div>
-                <span>Location: {args.location}</span>
-                <span>
-                  Temperature: {result} degree {args.format}
-                </span>
-              </div>
-            );
-          }
-
-          return <span>{content}</span>;
-        },
-      }) as Promise<ReactResponseRow>;
-
-      const rows = await extractReactRowContents(response);
-
-      expect(rows).toStrictEqual([
-        {
-          ui: ReactDOMServer.renderToStaticMarkup(
-            <div>
-              <span>Location: {'Charlottesville, Virginia'}</span>
-              <span>
-                Temperature: {'20'} degree {'celsius'}
-              </span>
-            </div>,
-          ),
-          content: '',
-        },
-        {
-          ui: ReactDOMServer.renderToStaticMarkup(
-            <div>
-              <span>Location: {'Charlottesville, Virginia'}</span>
-              <span>
-                Temperature: {'20'} degree {'celsius'}
-              </span>
-            </div>,
-          ),
-          content: '',
-        },
-      ]);
-    });
-
-    it('should stream React response as React rows from data stream when onFunctionCall is defined and returns value', async () => {
-      const data = new experimental_StreamData();
-
-      const stream = OpenAIStream(
-        await fetch(server.api + '/mock-func-call', {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'func_call',
-          },
-        }),
-        {
-          onFinal() {
-            data.close();
-          },
-          async experimental_onFunctionCall({ name }) {
-            data.append({
-              fn: name,
-            });
-
+            data.append({ fn: name });
             return undefined;
           },
           experimental_streamData: true,
@@ -613,7 +534,7 @@ describe('OpenAIStream', () => {
 
       const response = new experimental_StreamingReactResponse(stream, {
         data,
-        dataUi: ({ content, data }) => {
+        ui: ({ content, data }) => {
           if (data != null) {
             return <pre>{JSON.stringify(data)}</pre>;
           }

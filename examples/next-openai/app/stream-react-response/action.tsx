@@ -112,7 +112,7 @@ export async function handler({ messages }: { messages: Message[] }) {
 
   return new experimental_StreamingReactResponse(stream, {
     data,
-    dataUi({ messages, content, data }) {
+    ui({ content, data }) {
       if (data != null) {
         const value = (data as JSONValue[])[0] as any;
 
@@ -160,7 +160,7 @@ export async function handler({ messages }: { messages: Message[] }) {
         }
       }
 
-      return <div className="italic text-red-800"></div>;
+      return <div>{content}</div>;
     },
   });
 }
