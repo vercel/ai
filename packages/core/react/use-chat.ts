@@ -9,6 +9,7 @@ import type {
   UseChatOptions,
   ChatRequestOptions,
   FunctionCall,
+  IdGenerator,
 } from '../shared/types';
 import { parseComplexResponse } from './parse-complex-response';
 
@@ -17,6 +18,7 @@ import type {
   experimental_StreamingReactResponse,
 } from '../streams/streaming-react-response';
 export type { Message, CreateMessage, UseChatOptions };
+
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
@@ -86,6 +88,7 @@ const getStreamedResponse = async (
   extraMetadataRef: React.MutableRefObject<any>,
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
+  generateId: IdGenerator,
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean,
@@ -229,7 +232,7 @@ const getStreamedResponse = async (
 
     // TODO-STREAMDATA: Remove this once Strem Data is not experimental
     let streamedResponse = '';
-    const replyId = nanoid();
+    const replyId = generateId();
     let responseMessage: Message = {
       id: replyId,
       createdAt,
@@ -293,9 +296,11 @@ export function useChat({
   credentials,
   headers,
   body,
+  generateId,
 }: Omit<UseChatOptions, 'api'> & {
   api?: string | StreamingReactResponseAction;
 } = {}): UseChatHelpers {
+  const genId = generateId ?? nanoid;
   // Generate a unique id for the chat if not provided.
   const hookId = useId();
   const chatId = id || hookId;
@@ -368,6 +373,7 @@ export function useChat({
             extraMetadataRef,
             messagesRef,
             abortControllerRef,
+            genId,
             onFinish,
             onResponse,
             sendExtraMessageFields,
@@ -472,6 +478,7 @@ export function useChat({
       experimental_onFunctionCall,
       messagesRef.current,
       abortControllerRef.current,
+      genId,
     ],
   );
 
@@ -481,7 +488,7 @@ export function useChat({
       { options, functions, function_call }: ChatRequestOptions = {},
     ) => {
       if (!message.id) {
-        message.id = nanoid();
+        message.id = genId();
       }
 
       const chatRequest: ChatRequest = {
@@ -493,7 +500,7 @@ export function useChat({
 
       return triggerRequest(chatRequest);
     },
-    [triggerRequest],
+    [triggerRequest, genId],
   );
 
   const reload = useCallback(

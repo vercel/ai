@@ -40,6 +40,8 @@ interface Function {
   description?: string;
 }
 
+export type IdGenerator = () => string;
+
 /**
  * Shared types between the API and UI packages.
  */
@@ -134,6 +136,12 @@ export type UseChatOptions = {
    * Callback function to be called when an error is encountered.
    */
   onError?: (error: Error) => void;
+
+  /**
+   * A way to provide a function that is going to be used for ids for messages.
+   * If not provided nanoid is used by default.
+   */
+  generateId?: IdGenerator;
 
   /**
    * The credentials mode to be used for the fetch request.

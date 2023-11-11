@@ -9,6 +9,7 @@ import type {
   UseChatOptions,
   ChatRequestOptions,
   FunctionCall,
+  IdGenerator,
 } from '../shared/types';
 export type { Message, CreateMessage, UseChatOptions };
 
@@ -64,6 +65,7 @@ const getStreamedResponse = async (
   },
   previousMessages: Message[],
   abortControllerRef: AbortController | null,
+  generateId: IdGenerator,
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean,
@@ -130,7 +132,7 @@ const getStreamedResponse = async (
 
   let streamedResponse = '';
   const createdAt = new Date();
-  const replyId = nanoid();
+  const replyId = generateId();
   const reader = res.body.getReader();
   const decode = createChunkDecoder();
 
@@ -206,9 +208,11 @@ export function useChat({
   credentials,
   headers,
   body,
+  generateId,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
+  const genId = generateId ?? nanoid;
 
   const key = `${api}|${chatId}`;
   const {
@@ -260,6 +264,7 @@ export function useChat({
           extraMetadata,
           get(messages),
           abortController,
+          genId,
           onFinish,
           onResponse,
           sendExtraMessageFields,
@@ -317,7 +322,7 @@ export function useChat({
     { options, functions, function_call }: ChatRequestOptions = {},
   ) => {
     if (!message.id) {
-      message.id = nanoid();
+      message.id = genId();
     }
 
     const chatRequest: ChatRequest = {

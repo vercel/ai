@@ -74,9 +74,11 @@ export function useChat({
   credentials,
   headers,
   body,
+  generateId,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
+  const genId = generateId ?? nanoid;
 
   const key = `${api}|${chatId}`;
   const data = useSWRStore(chatApiStore, () => [key], {
@@ -170,7 +172,7 @@ export function useChat({
 
       let result = '';
       const createdAt = new Date();
-      const replyId = nanoid();
+      const replyId = genId();
       const reader = res.body.getReader();
       const decoder = createChunkDecoder();
 
@@ -228,7 +230,7 @@ export function useChat({
 
   const append: UseChatHelpers['append'] = async (message, options) => {
     if (!message.id) {
-      message.id = nanoid();
+      message.id = genId();
     }
     return triggerRequest(
       (messages() ?? []).concat(message as Message),
