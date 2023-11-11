@@ -19,7 +19,6 @@ import type {
 } from '../streams/streaming-react-response';
 export type { Message, CreateMessage, UseChatOptions };
 
-
 export type UseChatHelpers = {
   /** Current messages in the chat */
   messages: Message[];
