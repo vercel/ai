@@ -95,7 +95,6 @@ export type StreamString =
 export const getStreamStringTypeAndValue = (
   line: string,
 ): { type: keyof typeof StreamStringPrefixes; value: string } => {
-  // const split = line.split(':', 2)
   const firstSeperatorIndex = line.indexOf(':');
   const prefix = line.slice(0, firstSeperatorIndex);
   const type = Object.keys(StreamStringPrefixes).find(
