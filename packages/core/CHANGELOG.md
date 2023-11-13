@@ -1,5 +1,12 @@
 # ai
 
+## 2.2.22
+
+### Patch Changes
+
+- 4529831: ai/react: Do not store initialMessages in useState
+- db5378c: experimental_StreamData: fix data type to be JSONValue
+
 ## 2.2.21
 
 ### Patch Changes

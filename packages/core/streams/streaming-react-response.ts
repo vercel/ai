@@ -8,7 +8,10 @@
  * between the rows, but flushing the full payload on each row.
  */
 
+import { parseComplexResponse } from '../react/parse-complex-response';
+import { JSONValue } from '../shared/types';
 import { createChunkDecoder } from '../shared/utils';
+import { experimental_StreamData } from './stream-data';
 
 type UINode = string | JSX.Element | JSX.Element[] | null | undefined;
 
@@ -28,13 +31,59 @@ export class experimental_StreamingReactResponse {
   constructor(
     res: ReadableStream,
     options?: {
-      ui?: (message: { content: string }) => UINode | Promise<UINode>;
+      ui?: (message: {
+        content: string;
+        data?: JSONValue[] | undefined;
+      }) => UINode | Promise<UINode>;
+      data?: experimental_StreamData;
     },
   ) {
     let resolveFunc: (row: ReactResponseRow) => void = () => {};
     let next = new Promise<ReactResponseRow>(resolve => {
       resolveFunc = resolve;
     });
+
+    if (options?.data) {
+      const processedStream: ReadableStream<Uint8Array> = res.pipeThrough(
+        options.data.stream,
+      );
+
+      let lastPayload: Payload | undefined = undefined;
+
+      // runs asynchronously (no await on purpose)
+      parseComplexResponse({
+        reader: processedStream.getReader(),
+        update: (merged, data) => {
+          const content = merged[0]?.content ?? '';
+          const ui = options?.ui?.({ content, data }) || content;
+          const payload: Payload = { ui, content };
+
+          const resolvePrevious = resolveFunc;
+          const nextRow = new Promise<ReactResponseRow>(resolve => {
+            resolveFunc = resolve;
+          });
+
+          resolvePrevious({
+            next: nextRow,
+            ...payload,
+          });
+
+          lastPayload = payload;
+        },
+        onFinish: () => {
+          // The last payload is resolved twice. This is necessary because we immediately
+          // push out a payload, but we also need to forward the finish event with a payload.
+          if (lastPayload !== undefined) {
+            resolveFunc({
+              next: null,
+              ...lastPayload,
+            });
+          }
+        },
+      });
+
+      return next;
+    }
 
     let content = '';
 

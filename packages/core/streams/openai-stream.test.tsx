@@ -1,11 +1,15 @@
+import React from 'react';
 import {
   OpenAIStream,
+  ReactResponseRow,
   StreamingTextResponse,
   experimental_StreamData,
+  experimental_StreamingReactResponse,
 } from '.';
 import OpenAI from 'openai';
 import { createClient } from '../tests/utils/mock-client';
 import { setup } from '../tests/utils/mock-service';
+import ReactDOMServer from 'react-dom/server';
 
 describe('OpenAIStream', () => {
   let server: ReturnType<typeof setup>;
@@ -359,6 +363,201 @@ describe('OpenAIStream', () => {
         '0:","\n',
         '0:" world"\n',
         '0:"."\n',
+      ]);
+    });
+  });
+
+  describe('React Streaming', () => {
+    async function extractReactRowContents(
+      response: Promise<ReactResponseRow>,
+    ) {
+      let current: ReactResponseRow | null = await response;
+      const rows: {
+        ui: string | JSX.Element | JSX.Element[] | null | undefined;
+        content: string;
+      }[] = [];
+
+      while (current != null) {
+        let ui = await current.ui;
+
+        if (ui != null && typeof ui !== 'string' && !Array.isArray(ui)) {
+          ui = ReactDOMServer.renderToStaticMarkup(ui);
+        }
+
+        rows.push({
+          ui: ui,
+          content: current.content,
+        });
+        current = await current.next;
+      }
+
+      return rows;
+    }
+
+    it('should stream text response as React rows', async () => {
+      const stream = OpenAIStream(
+        await fetch(server.api, {
+          headers: {
+            'x-mock-service': 'openai',
+            'x-mock-type': 'chat',
+          },
+        }),
+      );
+      const response = new experimental_StreamingReactResponse(
+        stream,
+        {},
+      ) as Promise<ReactResponseRow>;
+
+      const rows = await extractReactRowContents(response);
+
+      expect(rows).toEqual([
+        { ui: 'Hello', content: 'Hello' },
+        { ui: 'Hello,', content: 'Hello,' },
+        { ui: 'Hello, world', content: 'Hello, world' },
+        { ui: 'Hello, world.', content: 'Hello, world.' },
+        { ui: 'Hello, world.', content: 'Hello, world.' },
+      ]);
+    });
+
+    it('should stream React response as React rows', async () => {
+      const stream = OpenAIStream(
+        await fetch(server.api, {
+          headers: {
+            'x-mock-service': 'openai',
+            'x-mock-type': 'chat',
+          },
+        }),
+      );
+      const response = new experimental_StreamingReactResponse(stream, {
+        ui: ({ content }) => <span>{content}</span>,
+      }) as Promise<ReactResponseRow>;
+
+      const rows = await extractReactRowContents(response);
+
+      expect(rows).toEqual([
+        { ui: '<span>Hello</span>', content: 'Hello' },
+        { ui: '<span>Hello,</span>', content: 'Hello,' },
+        { ui: '<span>Hello, world</span>', content: 'Hello, world' },
+        { ui: '<span>Hello, world.</span>', content: 'Hello, world.' },
+        { ui: '<span>Hello, world.</span>', content: 'Hello, world.' },
+      ]);
+    });
+
+    it('should stream text response as React rows from data stream', async () => {
+      const data = new experimental_StreamData();
+
+      const stream = OpenAIStream(
+        await fetch(server.api, {
+          headers: {
+            'x-mock-service': 'openai',
+            'x-mock-type': 'chat',
+          },
+        }),
+        {
+          onFinal() {
+            data.close();
+          },
+          experimental_streamData: true,
+        },
+      );
+
+      const response = new experimental_StreamingReactResponse(stream, {
+        data,
+      }) as Promise<ReactResponseRow>;
+
+      const rows = await extractReactRowContents(response);
+
+      expect(rows).toEqual([
+        { ui: 'Hello', content: 'Hello' },
+        { ui: 'Hello,', content: 'Hello,' },
+        { ui: 'Hello, world', content: 'Hello, world' },
+        { ui: 'Hello, world.', content: 'Hello, world.' },
+        { ui: 'Hello, world.', content: 'Hello, world.' },
+      ]);
+    });
+
+    it('should stream React response as React rows from data stream', async () => {
+      const data = new experimental_StreamData();
+
+      const stream = OpenAIStream(
+        await fetch(server.api, {
+          headers: {
+            'x-mock-service': 'openai',
+            'x-mock-type': 'chat',
+          },
+        }),
+        {
+          onFinal() {
+            data.close();
+          },
+          experimental_streamData: true,
+        },
+      );
+
+      const response = new experimental_StreamingReactResponse(stream, {
+        data,
+        ui: ({ content }) => <span>{content}</span>,
+      }) as Promise<ReactResponseRow>;
+
+      const rows = await extractReactRowContents(response);
+
+      expect(rows).toEqual([
+        { ui: '<span>Hello</span>', content: 'Hello' },
+        { ui: '<span>Hello,</span>', content: 'Hello,' },
+        { ui: '<span>Hello, world</span>', content: 'Hello, world' },
+        { ui: '<span>Hello, world.</span>', content: 'Hello, world.' },
+        { ui: '<span>Hello, world.</span>', content: 'Hello, world.' },
+      ]);
+    });
+
+    it('should stream React response as React rows from data stream when data is appended', async () => {
+      const data = new experimental_StreamData();
+
+      const stream = OpenAIStream(
+        await fetch(server.api + '/mock-func-call', {
+          headers: {
+            'x-mock-service': 'openai',
+            'x-mock-type': 'func_call',
+          },
+        }),
+        {
+          onFinal() {
+            data.close();
+          },
+          async experimental_onFunctionCall({ name }) {
+            data.append({ fn: name });
+            return undefined;
+          },
+          experimental_streamData: true,
+        },
+      );
+
+      const response = new experimental_StreamingReactResponse(stream, {
+        data,
+        ui: ({ content, data }) => {
+          if (data != null) {
+            return <pre>{JSON.stringify(data)}</pre>;
+          }
+
+          return <span>{content}</span>;
+        },
+      }) as Promise<ReactResponseRow>;
+
+      const rows = await extractReactRowContents(response);
+
+      expect(rows).toStrictEqual([
+        {
+          ui: '<pre>[{&quot;fn&quot;:&quot;get_current_weather&quot;}]</pre>',
+          content: '',
+        },
+        {
+          ui: '<pre>[{&quot;fn&quot;:&quot;get_current_weather&quot;}]</pre>',
+          content: '',
+        },
+        {
+          ui: '<pre>[{&quot;fn&quot;:&quot;get_current_weather&quot;}]</pre>',
+          content: '',
+        },
       ]);
     });
   });
