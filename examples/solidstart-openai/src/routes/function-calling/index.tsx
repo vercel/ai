@@ -1,10 +1,48 @@
-import { For, JSX } from 'solid-js';
+import { FunctionCallHandler, Message, nanoid } from 'ai';
 import { useChat } from 'ai/solid';
+import { For, JSX } from 'solid-js';
 
 export default function Chat() {
+  const functionCallHandler: FunctionCallHandler = async (
+    chatMessages,
+    functionCall,
+  ) => {
+    if (functionCall.name === 'eval_code_in_browser') {
+      if (functionCall.arguments) {
+        // Parsing here does not always work since it seems that some characters in generated code aren't escaped properly.
+        const parsedFunctionCallArguments: { code: string } = JSON.parse(
+          functionCall.arguments,
+        );
+        // WARNING: Do NOT do this in real-world applications!
+        eval(parsedFunctionCallArguments.code);
+        const functionResponse = {
+          messages: [
+            ...chatMessages,
+            {
+              id: nanoid(),
+              name: 'eval_code_in_browser',
+              role: 'function' as const,
+              content: parsedFunctionCallArguments.code,
+            },
+          ],
+        };
+        return functionResponse;
+      }
+    }
+  };
+
   const { messages, input, setInput, handleSubmit, data } = useChat({
-    api: '/api/chat-stream-data',
+    api: '/api/chat-with-functions',
+    experimental_onFunctionCall: functionCallHandler,
   });
+
+  // Generate a map of message role to text color
+  const roleToColorMap: Record<Message['role'], string> = {
+    system: 'red',
+    user: 'black',
+    function: 'blue',
+    assistant: 'green',
+  };
 
   const handleInputChange: JSX.ChangeEventHandlerUnion<
     HTMLInputElement,
@@ -25,9 +63,14 @@ export default function Chat() {
 
       <For each={messages()}>
         {m => (
-          <div class="whitespace-pre-wrap">
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
+          <div
+            class="whitespace-pre-wrap"
+            style={{ color: roleToColorMap[m.role] }}
+          >
+            <strong>{`${m.role}: `}</strong>
+            {m.content || JSON.stringify(m.function_call)}
+            <br />
+            <br />
           </div>
         )}
       </For>

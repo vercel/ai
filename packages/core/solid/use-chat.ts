@@ -3,7 +3,9 @@ import { useSWRStore } from 'solid-swr-store';
 import { createSWRStore } from 'swr-store';
 
 import type {
+  ChatRequest,
   CreateMessage,
+  FunctionCall,
   Message,
   RequestOptions,
   UseChatOptions,
@@ -71,6 +73,7 @@ export function useChat({
   initialMessages = [],
   initialInput = '',
   sendExtraMessageFields,
+  experimental_onFunctionCall,
   onResponse,
   onFinish,
   onError,
@@ -113,127 +116,250 @@ export function useChat({
 
       abortController = new AbortController();
 
-      // Do an optimistic update to the chat state to show the updated messages
-      // immediately.
-      const previousMessages = chatApiStore.get([key], {
-        shouldRevalidate: false,
-      });
-      mutate(messagesSnapshot);
-
-      const res = await fetch(api, {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: sendExtraMessageFields
-            ? messagesSnapshot
-            : messagesSnapshot.map(
-                ({ role, content, name, function_call }) => ({
-                  role,
-                  content,
-                  ...(name !== undefined && { name }),
-                  ...(function_call !== undefined && {
-                    function_call: function_call,
-                  }),
-                }),
-              ),
-          ...body,
-          ...options?.body,
-        }),
-        headers: {
-          ...headers,
-          ...options?.headers,
-        },
-        signal: abortController.signal,
-        credentials,
-      }).catch(err => {
-        // Restore the previous messages if the request fails.
-        if (previousMessages.status === 'success') {
-          mutate(previousMessages.data);
-        }
-        throw err;
-      });
-
-      if (onResponse) {
-        try {
-          await onResponse(res);
-        } catch (err) {
-          throw err;
-        }
-      }
-
-      if (!res.ok) {
-        // Restore the previous messages if the request fails.
-        if (previousMessages.status === 'success') {
-          mutate(previousMessages.data);
-        }
-        throw new Error(
-          (await res.text()) || 'Failed to fetch the chat response.',
-        );
-      }
-      if (!res.body) {
-        throw new Error('The response body is empty.');
-      }
-
-      const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
-      const existingData = streamData() ?? [];
-
-      if (isComplexMode) {
-        console.log('complex mode');
-
-        const prefixMap = await parseComplexResponse({
-          reader: res.body.getReader(),
-          abortControllerRef: {
-            current: abortController,
-          },
-          update(merged, data) {
-            mutate([...messagesSnapshot, ...merged]);
-            setStreamData([...existingData, ...(data ?? [])]);
-          },
+      const getCurrentMessages = () =>
+        chatApiStore.get([key], {
+          shouldRevalidate: false,
         });
 
-        console.log(prefixMap);
-      } else {
-        let result = '';
-        const createdAt = new Date();
-        const replyId = nanoid();
-        const reader = res.body.getReader();
-        const decoder = createChunkDecoder();
+      // Do an optimistic update to the chat state to show the updated messages
+      // immediately.
+      const previousMessages = getCurrentMessages();
+      mutate(messagesSnapshot);
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
+      let chatRequest: ChatRequest = {
+        messages: messagesSnapshot,
+        options,
+      };
+
+      const getStreamedResponse = async () => {
+        const res = await fetch(api, {
+          method: 'POST',
+          body: JSON.stringify({
+            messages: sendExtraMessageFields
+              ? chatRequest.messages
+              : chatRequest.messages.map(
+                  ({ role, content, name, function_call }) => ({
+                    role,
+                    content,
+                    ...(name !== undefined && { name }),
+                    ...(function_call !== undefined && {
+                      function_call: function_call,
+                    }),
+                  }),
+                ),
+            ...body,
+            ...options?.body,
+          }),
+          headers: {
+            ...headers,
+            ...options?.headers,
+          },
+          signal: abortController?.signal,
+          credentials,
+        }).catch(err => {
+          // Restore the previous messages if the request fails.
+          if (previousMessages.status === 'success') {
+            mutate(previousMessages.data);
           }
-          // Update the chat state with the new message tokens.
-          result += decoder(value);
-          mutate([
-            ...messagesSnapshot,
-            {
-              id: replyId,
-              createdAt,
-              content: result,
-              role: 'assistant',
-            },
-          ]);
+          throw err;
+        });
 
-          // The request has been aborted, stop reading the stream.
-          if (abortController === null) {
-            reader.cancel();
-            break;
+        if (onResponse) {
+          try {
+            await onResponse(res);
+          } catch (err) {
+            throw err;
           }
         }
 
-        if (onFinish) {
-          onFinish({
+        if (!res.ok) {
+          // Restore the previous messages if the request fails.
+          if (previousMessages.status === 'success') {
+            mutate(previousMessages.data);
+          }
+          throw new Error(
+            (await res.text()) || 'Failed to fetch the chat response.',
+          );
+        }
+        if (!res.body) {
+          throw new Error('The response body is empty.');
+        }
+
+        const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
+        const existingData = streamData() ?? [];
+        const reader = res.body.getReader();
+
+        if (isComplexMode) {
+          const prefixMap = await parseComplexResponse({
+            reader,
+            abortControllerRef: {
+              current: abortController,
+            },
+            update(merged, data) {
+              mutate([...chatRequest.messages, ...merged]);
+              setStreamData([...existingData, ...(data ?? [])]);
+            },
+          });
+
+          const responseMessages: Message[] = [];
+          const responseData: any = [];
+          for (const [type, item] of Object.entries(prefixMap)) {
+            if (onFinish && type === 'text') {
+              onFinish(item as Message);
+            }
+            if (type === 'data') {
+              responseData.push(item);
+            } else {
+              responseMessages.push(item as Message);
+            }
+          }
+
+          return { messages: responseMessages, data: responseData };
+        } else {
+          const createdAt = new Date();
+          const decode = createChunkDecoder();
+
+          // TODO-STREAMDATA: Remove this once Strem Data is not experimental
+          let streamedResponse = '';
+          const replyId = nanoid();
+          let responseMessage: Message = {
             id: replyId,
             createdAt,
-            content: result,
+            content: '',
             role: 'assistant',
-          });
-        }
+          };
 
-        abortController = null;
-        return result;
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              break;
+            }
+            // Update the chat state with the new message tokens.
+            streamedResponse += decode(value);
+
+            if (streamedResponse.startsWith('{"function_call":')) {
+              // While the function call is streaming, it will be a string.
+              responseMessage['function_call'] = streamedResponse;
+            } else {
+              responseMessage['content'] = streamedResponse;
+            }
+
+            mutate([...chatRequest.messages, { ...responseMessage }]);
+
+            // The request has been aborted, stop reading the stream.
+            if (abortController === null) {
+              reader.cancel();
+              break;
+            }
+          }
+
+          if (streamedResponse.startsWith('{"function_call":')) {
+            // Once the stream is complete, the function call is parsed into an object.
+            const parsedFunctionCall: FunctionCall =
+              JSON.parse(streamedResponse).function_call;
+
+            responseMessage['function_call'] = parsedFunctionCall;
+
+            mutate([...chatRequest.messages, { ...responseMessage }]);
+          }
+
+          if (onFinish) {
+            onFinish(responseMessage);
+          }
+
+          return responseMessage;
+        }
+      };
+
+      while (true) {
+        // TODO-STREAMDATA: This should be {  const { messages: streamedResponseMessages, data } =
+        // await getStreamedResponse(} once Stream Data is not experimental
+        const messagesAndDataOrJustMessage = await getStreamedResponse();
+
+        // Using experimental stream data
+        if ('messages' in messagesAndDataOrJustMessage) {
+          let hasFollowingResponse = false;
+          for (const message of messagesAndDataOrJustMessage.messages) {
+            if (
+              message.function_call === undefined ||
+              typeof message.function_call === 'string'
+            ) {
+              continue;
+            }
+            hasFollowingResponse = true;
+            // Streamed response is a function call, invoke the function call handler if it exists.
+            if (experimental_onFunctionCall) {
+              const functionCall = message.function_call;
+
+              const currentMessages = getCurrentMessages();
+
+              if (currentMessages.status !== 'success') {
+                throw new Error(
+                  'The current messages state is not ready yet. Please try again.',
+                );
+              }
+
+              // User handles the function call in their own functionCallHandler.
+              // The "arguments" key of the function call object will still be a string which will have to be parsed in the function handler.
+              // If the "arguments" JSON is malformed due to model error the user will have to handle that themselves.
+
+              const functionCallResponse: ChatRequest | void =
+                await experimental_onFunctionCall(
+                  currentMessages.data,
+                  functionCall,
+                );
+
+              // If the user does not return anything as a result of the function call, the loop will break.
+              if (functionCallResponse === undefined) {
+                hasFollowingResponse = false;
+                break;
+              }
+
+              // A function call response was returned.
+              // The updated chat with function call response will be sent to the API in the next iteration of the loop.
+              chatRequest = functionCallResponse;
+            }
+          }
+          if (!hasFollowingResponse) {
+            break;
+          }
+        } else {
+          const streamedResponseMessage = messagesAndDataOrJustMessage;
+          // TODO-STREAMDATA: Remove this once Stream Data is not experimental
+          if (
+            streamedResponseMessage.function_call === undefined ||
+            typeof streamedResponseMessage.function_call === 'string'
+          ) {
+            break;
+          }
+
+          // Streamed response is a function call, invoke the function call handler if it exists.
+          if (experimental_onFunctionCall) {
+            const currentMessages = getCurrentMessages();
+
+            if (currentMessages.status !== 'success') {
+              throw new Error(
+                'The current messages state is not ready yet. Please try again.',
+              );
+            }
+
+            const functionCall = streamedResponseMessage.function_call;
+            const functionCallResponse: ChatRequest | void =
+              await experimental_onFunctionCall(
+                currentMessages.data,
+                functionCall,
+              );
+
+            // If the user does not return anything as a result of the function call, the loop will break.
+            if (functionCallResponse === undefined) break;
+            // A function call response was returned.
+            // The updated chat with function call response will be sent to the API in the next iteration of the loop.
+            chatRequest = functionCallResponse;
+          }
+        }
       }
+
+      abortController = null;
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
