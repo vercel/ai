@@ -37,7 +37,7 @@ The system uses temperature in Celsius. If the user requests Fahrenheit, you sho
 }
 ```
 
-### setRooomTemperature function
+### setRoomTemperature function
 
 ```json
 {

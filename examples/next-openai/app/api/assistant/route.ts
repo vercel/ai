@@ -1,4 +1,4 @@
-import { expertimental_AssistantResponse } from 'ai';
+import { experimental_AssistantResponse } from 'ai';
 import OpenAI from 'openai';
 import { MessageContentText } from 'openai/resources/beta/threads/messages/messages';
 
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   let threadId = input.threadId;
   const message = input.message;
 
-  return expertimental_AssistantResponse(
+  return experimental_AssistantResponse(
     async ({ sendThreadId, sendMessage }) => {
       // Create a thread if needed
       if (threadId == null) {

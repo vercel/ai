@@ -1,6 +1,6 @@
 import { AssistantMessage } from '../shared/types';
 
-export function expertimental_AssistantResponse(
+export function experimental_AssistantResponse(
   process: (stream: {
     sendThreadId: (threadId: string) => void;
     sendMessage: (message: AssistantMessage) => void;
