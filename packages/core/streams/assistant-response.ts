@@ -1,8 +1,10 @@
 import { AssistantMessage } from '../shared/types';
 
 export function experimental_AssistantResponse(
+  { threadId, messageId }: { threadId: string; messageId: string },
   process: (stream: {
-    sendThreadId: (threadId: string) => void;
+    threadId: string;
+    messageId: string;
     sendMessage: (message: AssistantMessage) => void;
   }) => Promise<void>,
 ): Response {
@@ -22,14 +24,22 @@ export function experimental_AssistantResponse(
         );
       };
 
-      const sendThreadId = (threadId: string) => {
-        controller.enqueue(
-          textEncoder.encode(`4: ${JSON.stringify(threadId)}\n\n`),
-        );
-      };
+      // send the threadId and messageId as the first message:
+      controller.enqueue(
+        textEncoder.encode(
+          `4: ${JSON.stringify({
+            threadId,
+            messageId,
+          })}\n\n`,
+        ),
+      );
 
       try {
-        await process({ sendMessage, sendThreadId });
+        await process({
+          threadId,
+          messageId,
+          sendMessage,
+        });
       } catch (error) {
         sendError((error as any).message ?? `${error}`);
       } finally {

@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid';
 import { useState } from 'react';
 import { processMessageStream } from '../shared/process-message-stream';
 import { Message } from '../shared/types';
@@ -33,8 +32,7 @@ export function useAssistant_experimental({
 
     setMessages(messages => [
       ...messages,
-      // TODO should have correct message id and timestamp
-      { id: nanoid(), role: 'user', content: input },
+      { id: '', role: 'user', content: input },
     ]);
 
     setInput('');
@@ -66,6 +64,7 @@ export function useAssistant_experimental({
 
         switch (messageType) {
           case '0': {
+            // append message:
             setMessages(messages => [
               ...messages,
               {
@@ -82,7 +81,15 @@ export function useAssistant_experimental({
             break;
           }
           case '4': {
-            setThreadId(messageContent);
+            setThreadId(messageContent.threadId);
+
+            // set id of last message:
+            setMessages(messages => {
+              const lastMessage = messages[messages.length - 1];
+              lastMessage.id = messageContent.messageId;
+              return [...messages.slice(0, messages.length - 1), lastMessage];
+            });
+
             break;
           }
         }

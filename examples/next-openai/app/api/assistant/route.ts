@@ -25,24 +25,18 @@ export async function POST(req: Request) {
     message: string;
   } = await req.json();
 
-  let threadId = input.threadId;
-  const message = input.message;
+  // Create a thread if needed
+  const threadId = input.threadId ?? (await openai.beta.threads.create({})).id;
+
+  // Add a message to the thread
+  const createdMessage = await openai.beta.threads.messages.create(threadId, {
+    role: 'user',
+    content: input.message,
+  });
 
   return experimental_AssistantResponse(
-    async ({ sendThreadId, sendMessage }) => {
-      // Create a thread if needed
-      if (threadId == null) {
-        const thread = await openai.beta.threads.create({});
-        threadId = thread.id;
-        sendThreadId(threadId);
-      }
-
-      // Add a message to the thread
-      const createdMessage = await openai.beta.threads.messages.create(
-        threadId,
-        { role: 'user', content: message },
-      );
-
+    { threadId, messageId: createdMessage.id },
+    async ({ threadId, sendMessage }) => {
       // Run the assistant on the thread
       const run = await openai.beta.threads.runs.create(threadId, {
         assistant_id:
