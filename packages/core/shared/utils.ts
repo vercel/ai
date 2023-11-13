@@ -96,8 +96,12 @@ export type StreamString =
 export const getStreamStringTypeAndValue = (
   line: string,
 ): { type: keyof typeof StreamStringPrefixes; value: JSONValue } => {
-  // const split = line.split(':', 2)
   const firstSeperatorIndex = line.indexOf(':');
+
+  if (firstSeperatorIndex === -1) {
+    throw new Error('Failed to parse stream string');
+  }
+
   const prefix = line.slice(0, firstSeperatorIndex);
   const type = Object.keys(StreamStringPrefixes).find(
     key =>
