@@ -185,9 +185,6 @@ export function useChat({
             current: abortController,
           },
           update(merged, data) {
-            console.log(messagesSnapshot.length, merged.length);
-            console.log('merged', merged, data);
-
             mutate([...messagesSnapshot, ...merged]);
             setStreamData([...existingData, ...(data ?? [])]);
           },
