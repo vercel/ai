@@ -8,7 +8,8 @@ import type {
   RequestOptions,
   UseChatOptions,
 } from '../shared/types';
-import { createChunkDecoder, nanoid } from '../shared/utils';
+import { COMPLEX_HEADER, createChunkDecoder, nanoid } from '../shared/utils';
+import { parseComplexResponse } from '../react/parse-complex-response';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -51,6 +52,8 @@ export type UseChatHelpers = {
   handleSubmit: (e: any) => void;
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;
+  /** Additional data added on the server via StreamData */
+  data?: any;
 };
 
 let uniqueId = 0;
@@ -79,9 +82,11 @@ export function useChat({
   const chatId = id || `chat-${uniqueId++}`;
 
   const key = `${api}|${chatId}`;
-  const data = useSWRStore(chatApiStore, () => [key], {
+
+  // Because of the `initialData` option, the `data` will never be `undefined`:
+  const messages = useSWRStore(chatApiStore, () => [key], {
     initialData: initialMessages,
-  });
+  }) as Resource<Message[]>;
 
   const mutate = (data: Message[]) => {
     store[key] = data;
@@ -91,10 +96,10 @@ export function useChat({
     });
   };
 
-  // Because of the `initialData` option, the `data` will never be `undefined`.
-  const messages = data as Resource<Message[]>;
-
   const [error, setError] = createSignal<undefined | Error>(undefined);
+  const [streamData, setStreamData] = createSignal<undefined | any[]>(
+    undefined,
+  );
   const [isLoading, setIsLoading] = createSignal(false);
 
   let abortController: AbortController | null = null;
@@ -168,47 +173,70 @@ export function useChat({
         throw new Error('The response body is empty.');
       }
 
-      let result = '';
-      const createdAt = new Date();
-      const replyId = nanoid();
-      const reader = res.body.getReader();
-      const decoder = createChunkDecoder();
+      const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
+      const existingData = streamData() ?? [];
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
+      if (isComplexMode) {
+        console.log('complex mode');
+
+        const prefixMap = await parseComplexResponse({
+          reader: res.body.getReader(),
+          abortControllerRef: {
+            current: abortController,
+          },
+          update(merged, data) {
+            console.log(messagesSnapshot.length, merged.length);
+            console.log('merged', merged, data);
+
+            mutate([...messagesSnapshot, ...merged]);
+            setStreamData([...existingData, ...(data ?? [])]);
+          },
+        });
+
+        console.log(prefixMap);
+      } else {
+        let result = '';
+        const createdAt = new Date();
+        const replyId = nanoid();
+        const reader = res.body.getReader();
+        const decoder = createChunkDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            break;
+          }
+          // Update the chat state with the new message tokens.
+          result += decoder(value);
+          mutate([
+            ...messagesSnapshot,
+            {
+              id: replyId,
+              createdAt,
+              content: result,
+              role: 'assistant',
+            },
+          ]);
+
+          // The request has been aborted, stop reading the stream.
+          if (abortController === null) {
+            reader.cancel();
+            break;
+          }
         }
-        // Update the chat state with the new message tokens.
-        result += decoder(value);
-        mutate([
-          ...messagesSnapshot,
-          {
+
+        if (onFinish) {
+          onFinish({
             id: replyId,
             createdAt,
             content: result,
             role: 'assistant',
-          },
-        ]);
-
-        // The request has been aborted, stop reading the stream.
-        if (abortController === null) {
-          reader.cancel();
-          break;
+          });
         }
-      }
 
-      if (onFinish) {
-        onFinish({
-          id: replyId,
-          createdAt,
-          content: result,
-          role: 'assistant',
-        });
+        abortController = null;
+        return result;
       }
-
-      abortController = null;
-      return result;
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
@@ -283,5 +311,6 @@ export function useChat({
     setInput,
     handleSubmit,
     isLoading,
+    data: streamData,
   };
 }
