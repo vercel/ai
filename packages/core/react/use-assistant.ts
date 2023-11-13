@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { processMessageStream } from '../shared/process-message-stream';
 import { Message } from '../shared/types';
+import { getStreamStringTypeAndValue } from '../shared/utils';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
@@ -53,17 +54,11 @@ export function useAssistant_experimental({
 
     await processMessageStream(result.body.getReader(), (message: string) => {
       try {
-        const [messageType, ...rest] = message.split(/:(.+)/);
-        const messageContentText = rest.join('');
+        const { type, value } = getStreamStringTypeAndValue(message);
+        const messageContent = value as any;
 
-        if (!messageContentText) {
-          throw new Error('No content found in the message.');
-        }
-
-        const messageContent = JSON.parse(messageContentText);
-
-        switch (messageType) {
-          case '0': {
+        switch (type) {
+          case 'text': {
             // append message:
             setMessages(messages => [
               ...messages,
@@ -76,11 +71,11 @@ export function useAssistant_experimental({
 
             break;
           }
-          case '3': {
+          case 'error': {
             setError(messageContent);
             break;
           }
-          case '4': {
+          case 'control_data': {
             setThreadId(messageContent.threadId);
 
             // set id of last message:

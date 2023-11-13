@@ -1,4 +1,5 @@
 import { AssistantMessage } from '../shared/types';
+import { getStreamString } from '../shared/utils';
 
 export function experimental_AssistantResponse(
   { threadId, messageId }: { threadId: string; messageId: string },
@@ -14,23 +15,23 @@ export function experimental_AssistantResponse(
 
       const sendMessage = (message: AssistantMessage) => {
         controller.enqueue(
-          textEncoder.encode(`0: ${JSON.stringify(message)}\n\n`),
+          textEncoder.encode(getStreamString('text', message)),
         );
       };
 
       const sendError = (errorMessage: string) => {
         controller.enqueue(
-          textEncoder.encode(`3: ${JSON.stringify(errorMessage)}\n\n`),
+          textEncoder.encode(getStreamString('error', errorMessage)),
         );
       };
 
       // send the threadId and messageId as the first message:
       controller.enqueue(
         textEncoder.encode(
-          `4: ${JSON.stringify({
+          getStreamString('control_data', {
             threadId,
             messageId,
-          })}\n\n`,
+          }),
         ),
       );
 

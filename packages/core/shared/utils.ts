@@ -72,7 +72,8 @@ export const StreamStringPrefixes = {
   text: 0,
   function_call: 1,
   data: 2,
-  // user_err: 3?
+  error: 3,
+  control_data: 4,
 } as const;
 
 export const isStreamStringEqualToType = (
@@ -94,7 +95,7 @@ export type StreamString =
 
 export const getStreamStringTypeAndValue = (
   line: string,
-): { type: keyof typeof StreamStringPrefixes; value: string } => {
+): { type: keyof typeof StreamStringPrefixes; value: JSONValue } => {
   // const split = line.split(':', 2)
   const firstSeperatorIndex = line.indexOf(':');
   const prefix = line.slice(0, firstSeperatorIndex);
