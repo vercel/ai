@@ -12,7 +12,7 @@ export const runtime = 'edge';
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
-  const { messages, metadata } = await req.json();
+  const { messages, data } = await req.json();
 
   const initialMessages = messages.slice(0, -1);
   const currentMessage = messages[messages.length - 1];
@@ -21,6 +21,7 @@ export async function POST(req: Request) {
   const response = await openai.chat.completions.create({
     model: 'gpt-4-vision-preview',
     stream: true,
+    max_tokens: 150,
     messages: [
       ...initialMessages,
       {
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
           { type: 'text', text: currentMessage.content },
           {
             type: 'image_url',
-            image_url: metadata.imageUrl,
+            image_url: data.imageUrl,
           },
         ],
       },

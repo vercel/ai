@@ -20,7 +20,7 @@ export default function Chat() {
       <form
         onSubmit={e => {
           handleSubmit(e, {
-            metadata: {
+            data: {
               imageUrl:
                 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Field_sparrow_in_CP_%2841484%29_%28cropped%29.jpg/733px-Field_sparrow_in_CP_%2841484%29_%28cropped%29.jpg',
             },
@@ -30,7 +30,7 @@ export default function Chat() {
         <input
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           value={input}
-          placeholder="Say something..."
+          placeholder="What does the image show..."
           onChange={handleInputChange}
         />
       </form>

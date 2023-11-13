@@ -75,7 +75,7 @@ export type UseChatHelpers = {
 
 type StreamingReactResponseAction = (payload: {
   messages: Message[];
-  metadata?: Record<string, string>;
+  data?: Record<string, string>;
 }) => Promise<experimental_StreamingReactResponse>;
 
 const getStreamedResponse = async (
@@ -136,7 +136,7 @@ const getStreamedResponse = async (
     try {
       const promise = api({
         messages: constructedMessagesPayload as Message[],
-        metadata: chatRequest.metadata,
+        data: chatRequest.data,
       }) as Promise<ReactResponseRow>;
       await readRow(promise);
     } catch (e) {
@@ -156,7 +156,7 @@ const getStreamedResponse = async (
     method: 'POST',
     body: JSON.stringify({
       messages: constructedMessagesPayload,
-      metadata: chatRequest.metadata,
+      data: chatRequest.data,
       ...extraMetadataRef.current.body,
       ...chatRequest.options?.body,
       ...(chatRequest.functions !== undefined && {
@@ -481,7 +481,7 @@ export function useChat({
   const append = useCallback(
     async (
       message: Message | CreateMessage,
-      { options, functions, function_call, metadata }: ChatRequestOptions = {},
+      { options, functions, function_call, data }: ChatRequestOptions = {},
     ) => {
       if (!message.id) {
         message.id = nanoid();
@@ -490,7 +490,7 @@ export function useChat({
       const chatRequest: ChatRequest = {
         messages: messagesRef.current.concat(message as Message),
         options,
-        metadata,
+        data,
         ...(functions !== undefined && { functions }),
         ...(function_call !== undefined && { function_call }),
       };
