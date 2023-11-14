@@ -12,6 +12,7 @@ import type {
 } from '../shared/types';
 import { COMPLEX_HEADER, createChunkDecoder, nanoid } from '../shared/utils';
 import { parseComplexResponse } from '../react/parse-complex-response';
+import { callApi } from '../shared/call-api';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -132,62 +133,41 @@ export function useChat({
       };
 
       const getStreamedResponse = async () => {
-        const res = await fetch(api, {
-          method: 'POST',
-          body: JSON.stringify({
-            messages: sendExtraMessageFields
-              ? chatRequest.messages
-              : chatRequest.messages.map(
-                  ({ role, content, name, function_call }) => ({
-                    role,
-                    content,
-                    ...(name !== undefined && { name }),
-                    ...(function_call !== undefined && {
-                      function_call: function_call,
-                    }),
+        const { response: res, reader } = await callApi({
+          api,
+          messages: sendExtraMessageFields
+            ? chatRequest.messages
+            : chatRequest.messages.map(
+                ({ role, content, name, function_call }) => ({
+                  role,
+                  content,
+                  ...(name !== undefined && { name }),
+                  ...(function_call !== undefined && {
+                    function_call,
                   }),
-                ),
+                }),
+              ),
+          body: {
             ...body,
             ...options?.body,
-          }),
+          },
           headers: {
             ...headers,
             ...options?.headers,
           },
           signal: abortController?.signal,
           credentials,
-        }).catch(err => {
-          // Restore the previous messages if the request fails.
-          if (previousMessages.status === 'success') {
-            mutate(previousMessages.data);
-          }
-          throw err;
+          onResponse,
+          restoreMessagesOnFailure() {
+            // Restore the previous messages if the request fails.
+            if (previousMessages.status === 'success') {
+              mutate(previousMessages.data);
+            }
+          },
         });
-
-        if (onResponse) {
-          try {
-            await onResponse(res);
-          } catch (err) {
-            throw err;
-          }
-        }
-
-        if (!res.ok) {
-          // Restore the previous messages if the request fails.
-          if (previousMessages.status === 'success') {
-            mutate(previousMessages.data);
-          }
-          throw new Error(
-            (await res.text()) || 'Failed to fetch the chat response.',
-          );
-        }
-        if (!res.body) {
-          throw new Error('The response body is empty.');
-        }
 
         const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
         const existingData = streamData() ?? [];
-        const reader = res.body.getReader();
 
         if (isComplexMode) {
           const prefixMap = await parseComplexResponse({

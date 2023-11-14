@@ -16,6 +16,7 @@ import type {
   ReactResponseRow,
   experimental_StreamingReactResponse,
 } from '../streams/streaming-react-response';
+import { callApi } from '../shared/call-api';
 export type { Message, CreateMessage, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -152,10 +153,10 @@ const getStreamedResponse = async (
     return responseMessage;
   }
 
-  const res = await fetch(api, {
-    method: 'POST',
-    body: JSON.stringify({
-      messages: constructedMessagesPayload,
+  const { response: res, reader } = await callApi({
+    api,
+    messages: constructedMessagesPayload,
+    body: {
       data: chatRequest.data,
       ...extraMetadataRef.current.body,
       ...chatRequest.options?.body,
@@ -165,42 +166,21 @@ const getStreamedResponse = async (
       ...(chatRequest.function_call !== undefined && {
         function_call: chatRequest.function_call,
       }),
-    }),
+    },
     credentials: extraMetadataRef.current.credentials,
     headers: {
       ...extraMetadataRef.current.headers,
       ...chatRequest.options?.headers,
     },
-    ...(abortControllerRef.current !== null && {
-      signal: abortControllerRef.current.signal,
-    }),
-  }).catch(err => {
-    // Restore the previous messages if the request fails.
-    mutate(previousMessages, false);
-    throw err;
+    signal: abortControllerRef.current?.signal,
+    onResponse,
+    restoreMessagesOnFailure() {
+      mutate(previousMessages, false);
+    },
   });
-
-  if (onResponse) {
-    try {
-      await onResponse(res);
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  if (!res.ok) {
-    // Restore the previous messages if the request fails.
-    mutate(previousMessages, false);
-    throw new Error((await res.text()) || 'Failed to fetch the chat response.');
-  }
-
-  if (!res.body) {
-    throw new Error('The response body is empty.');
-  }
 
   const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
   let responseMessages: Message[] = [];
-  const reader = res.body.getReader();
 
   // END TODO-STREAMDATA
   let responseData: any = [];
