@@ -34,10 +34,7 @@ export const functionCallStreamPart: StreamPart<
 export const dataStreamPart: StreamPart<'2', 'data', JSONValue> = {
   code: '2',
   name: 'data',
-  parse: (value: JSONValue) => ({
-    type: 'data',
-    value: value as JSONValue,
-  }),
+  parse: (value: JSONValue) => ({ type: 'data', value }),
 };
 
 const streamParts = [
