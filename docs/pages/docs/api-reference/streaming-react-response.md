@@ -41,6 +41,10 @@ The method returns a `Promise<ReactResponseRow>`, which resolves to the next row
 
 ## Example
 
+### Server-Side Implementation
+
+This example demonstrates how to use `experimental_StreamingReactResponse` within a server context, particularly within a Next.js environment. The server-side script includes the handler function, which uses the OpenAI API to process and stream chat completions. The response is streamed using `OpenAIStream` and is then passed to `experimental_StreamingReactResponse` for rendering.
+
 Server:
 
 ```tsx
@@ -88,6 +92,10 @@ export async function handler({ messages }: { messages: Message[] }) {
   });
 }
 ```
+
+### Client-Side Setup
+
+On the client side, the useChat hook from ai/react is utilized to manage the chat interaction. The Chat component renders the chat interface, including input forms and message displays. It dynamically integrates the server-side stream, displaying messages and UI elements as they are received.
 
 ```tsx
 // app/stream-react-response/page.tsx
