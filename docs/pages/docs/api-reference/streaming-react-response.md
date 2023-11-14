@@ -43,7 +43,9 @@ The method returns a `Promise<ReactResponseRow>`, which resolves to the next row
 
 ### Server-Side Implementation
 
-This example demonstrates how to use `experimental_StreamingReactResponse` within a server context, particularly within a Next.js environment. The server-side script includes the handler function, which uses the OpenAI API to process and stream chat completions. The response is streamed using `OpenAIStream` and is then passed to `experimental_StreamingReactResponse` for rendering.
+This example highlights the usage of `experimental_StreamingReactResponse` specifically within a server action context in a Next.js environment. It is crucial to note that this functionality is only available when used in server actions. For more details on server actions, visit [Next.js Documentation on Server Actions](https://nextjs.org/docs/app/api-reference/functions/server-actions).
+
+In this server-side script, the `handler` function interacts with the OpenAI API to process and stream chat completions. The responses are streamed using `OpenAIStream` and subsequently managed by `experimental_StreamingReactResponse` for dynamic React component rendering.
 
 Server:
 
