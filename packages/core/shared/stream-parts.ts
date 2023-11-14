@@ -12,7 +12,7 @@ export const textStreamPart: StreamPart<'0', 'text', string> = {
   name: 'text',
   parse: (value: JSONValue) => {
     if (typeof value !== 'string') {
-      throw new Error('Expected string');
+      throw new Error('"text" parts expect a string value.');
     }
     return { type: 'text', value };
   },
