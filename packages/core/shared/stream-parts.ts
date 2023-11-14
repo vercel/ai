@@ -72,7 +72,14 @@ export const streamPartsByCode = {
 
 export const validCodes = streamParts.map(part => part.code);
 
-export const parseStreamPart = (line: string) => {
+/**
+ * Parses a stream part from a string.
+ *
+ * @param line The string to parse.
+ * @returns The parsed stream part.
+ * @throws An error if the string cannot be parsed.
+ */
+export const parseStreamPart = (line: string): StreamPartType => {
   const firstSeperatorIndex = line.indexOf(':');
 
   if (firstSeperatorIndex === -1) {
