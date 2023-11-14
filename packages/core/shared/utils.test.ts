@@ -24,12 +24,19 @@ describe('utils', () => {
 
       const encoder = new TextEncoder();
       const chunk = encoder.encode(
-        formatStreamPart('function_call', functionCall),
+        formatStreamPart('function_call', {
+          function_call: functionCall,
+        }),
       );
       const values = decoder(chunk);
 
       expect(values).toStrictEqual([
-        { type: 'function_call', value: functionCall },
+        {
+          type: 'function_call',
+          value: {
+            function_call: functionCall,
+          },
+        },
       ]);
     });
 

@@ -87,11 +87,11 @@ export async function parseComplexResponse({
         prefixMap['function_call'] = value as any; // TODO fix
 
         let functionCall = prefixMap['function_call'];
-        // Ensure it hasn't been parsed
-        if (functionCall && typeof functionCall === 'string') {
-          const parsedFunctionCall: FunctionCall = JSON.parse(
-            functionCall as string,
-          ).function_call;
+
+        if (functionCall != null) {
+          // TODO change type of functionCall to FunctionCall
+          const parsedFunctionCall: FunctionCall = (functionCall as any)
+            .function_call;
 
           functionCallMessage = {
             id: nanoid(),

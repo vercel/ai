@@ -81,7 +81,7 @@ describe('parseComplexResponse function', () => {
 
     const result = await parseComplexResponse({
       reader: createTestReader([
-        '1:"{\\"function_call\\": {\\"name\\": \\"get_current_weather\\", \\"arguments\\": \\"{\\\\n\\\\\\"location\\\\\\": \\\\\\"Charlottesville, Virginia\\\\\\",\\\\n\\\\\\"format\\\\\\": \\\\\\"celsius\\\\\\"\\\\n}\\"}}"\n',
+        '1:{"function_call":{"name":"get_current_weather","arguments":"{\\n\\"location\\": \\"Charlottesville, Virginia\\",\\n\\"format\\": \\"celsius\\"\\n}"}}\n',
       ]),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,

@@ -1,4 +1,4 @@
-import { JSONValue } from './types';
+import { FunctionCall, JSONValue } from './types';
 import { StreamString } from './utils';
 
 export interface StreamPart<CODE extends string, NAME extends string, TYPE> {
@@ -21,14 +21,39 @@ export const textStreamPart: StreamPart<'0', 'text', string> = {
 export const functionCallStreamPart: StreamPart<
   '1',
   'function_call',
-  JSONValue
+  { function_call: FunctionCall }
 > = {
   code: '1',
   name: 'function_call',
-  parse: (value: JSONValue) => ({
-    type: 'function_call',
-    value: value as JSONValue, // TODO should this be FunctionCall?
-  }),
+  parse: (value: JSONValue) => {
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('function_call' in value)
+    ) {
+      throw new Error(
+        '"function_call" parts expect an object with a "function_call" property.',
+      );
+    }
+
+    const functionCall = value.function_call;
+
+    if (
+      functionCall == null ||
+      typeof functionCall !== 'object' ||
+      !('name' in functionCall) ||
+      !('arguments' in functionCall)
+    ) {
+      throw new Error(
+        '"function_call" parts expect an object with a "name" and "arguments" property.',
+      );
+    }
+
+    return {
+      type: 'function_call',
+      value: value as unknown as { function_call: FunctionCall },
+    };
+  },
 };
 
 export const dataStreamPart: StreamPart<'2', 'data', JSONValue> = {

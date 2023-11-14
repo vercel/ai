@@ -547,7 +547,11 @@ function createFunctionCallTransformer(
             controller.enqueue(
               textEncoder.encode(
                 isComplexMode
-                  ? formatStreamPart('function_call', aggregatedResponse)
+                  ? formatStreamPart(
+                      'function_call',
+                      // parse to prevent double-encoding:
+                      JSON.parse(aggregatedResponse),
+                    )
                   : aggregatedResponse,
               ),
             );

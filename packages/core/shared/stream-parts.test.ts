@@ -27,14 +27,16 @@ describe('stream-parts', () => {
 
     it('should parse a function call line', () => {
       const input =
-        '1:{"name":"get_current_weather","arguments":"{\\"location\\": \\"Charlottesville, Virginia\\",\\"format\\": \\"celsius\\"}"}';
+        '1:{"function_call": {"name":"get_current_weather","arguments":"{\\"location\\": \\"Charlottesville, Virginia\\",\\"format\\": \\"celsius\\"}"}}';
 
       expect(parseStreamPart(input)).toEqual({
         type: 'function_call',
         value: {
-          name: 'get_current_weather',
-          arguments:
-            '{"location": "Charlottesville, Virginia","format": "celsius"}',
+          function_call: {
+            name: 'get_current_weather',
+            arguments:
+              '{"location": "Charlottesville, Virginia","format": "celsius"}',
+          },
         },
       });
     });
