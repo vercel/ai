@@ -133,7 +133,9 @@ export function useChat({
       };
 
       const getStreamedResponse = async () => {
-        const { response: res, reader } = await callApi({
+        const existingData = streamData() ?? [];
+
+        return await callApi({
           api,
           messages: sendExtraMessageFields
             ? chatRequest.messages
@@ -155,9 +157,17 @@ export function useChat({
             ...headers,
             ...options?.headers,
           },
-          signal: abortController?.signal,
+          abortController: () => abortController,
           credentials,
           onResponse,
+          onUpdate(merged, data) {
+            mutate([...chatRequest.messages, ...merged]);
+            setStreamData([...existingData, ...(data ?? [])]);
+          },
+          onFinish,
+          appendMessage(message) {
+            mutate([...chatRequest.messages, message]);
+          },
           restoreMessagesOnFailure() {
             // Restore the previous messages if the request fails.
             if (previousMessages.status === 'success') {
@@ -165,90 +175,6 @@ export function useChat({
             }
           },
         });
-
-        const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
-        const existingData = streamData() ?? [];
-
-        if (isComplexMode) {
-          const prefixMap = await parseComplexResponse({
-            reader,
-            abortControllerRef: {
-              current: abortController,
-            },
-            update(merged, data) {
-              mutate([...chatRequest.messages, ...merged]);
-              setStreamData([...existingData, ...(data ?? [])]);
-            },
-          });
-
-          const responseMessages: Message[] = [];
-          const responseData: any = [];
-          for (const [type, item] of Object.entries(prefixMap)) {
-            if (onFinish && type === 'text') {
-              onFinish(item as Message);
-            }
-            if (type === 'data') {
-              responseData.push(item);
-            } else {
-              responseMessages.push(item as Message);
-            }
-          }
-
-          return { messages: responseMessages, data: responseData };
-        } else {
-          const createdAt = new Date();
-          const decode = createChunkDecoder();
-
-          // TODO-STREAMDATA: Remove this once Strem Data is not experimental
-          let streamedResponse = '';
-          const replyId = nanoid();
-          let responseMessage: Message = {
-            id: replyId,
-            createdAt,
-            content: '',
-            role: 'assistant',
-          };
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              break;
-            }
-            // Update the chat state with the new message tokens.
-            streamedResponse += decode(value);
-
-            if (streamedResponse.startsWith('{"function_call":')) {
-              // While the function call is streaming, it will be a string.
-              responseMessage['function_call'] = streamedResponse;
-            } else {
-              responseMessage['content'] = streamedResponse;
-            }
-
-            mutate([...chatRequest.messages, { ...responseMessage }]);
-
-            // The request has been aborted, stop reading the stream.
-            if (abortController === null) {
-              reader.cancel();
-              break;
-            }
-          }
-
-          if (streamedResponse.startsWith('{"function_call":')) {
-            // Once the stream is complete, the function call is parsed into an object.
-            const parsedFunctionCall: FunctionCall =
-              JSON.parse(streamedResponse).function_call;
-
-            responseMessage['function_call'] = parsedFunctionCall;
-
-            mutate([...chatRequest.messages, { ...responseMessage }]);
-          }
-
-          if (onFinish) {
-            onFinish(responseMessage);
-          }
-
-          return responseMessage;
-        }
       };
 
       while (true) {
