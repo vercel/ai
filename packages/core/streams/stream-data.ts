@@ -33,7 +33,7 @@ export class experimental_StreamData {
         // add buffered data to the stream
         if (self.data.length > 0) {
           const encodedData = self.encoder.encode(
-            formatStreamPart('data', JSON.stringify(self.data)),
+            formatStreamPart('data', self.data),
           );
           self.data = [];
           controller.enqueue(encodedData);
@@ -60,7 +60,7 @@ export class experimental_StreamData {
 
         if (self.data.length) {
           const encodedData = self.encoder.encode(
-            formatStreamPart('data', JSON.stringify(self.data)),
+            formatStreamPart('data', self.data),
           );
           controller.enqueue(encodedData);
         }

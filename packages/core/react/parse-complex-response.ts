@@ -107,7 +107,7 @@ export async function parseComplexResponse({
       }
 
       if (type === 'data') {
-        const parsedValue = JSON.parse(value as any); // TODO fix double encoding
+        const parsedValue = value as any; // TODO data could also be string, number, etc
         if (prefixMap['data']) {
           prefixMap['data'] = [...prefixMap['data'], ...parsedValue];
         } else {

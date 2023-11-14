@@ -104,7 +104,7 @@ describe('ReplicateStream', () => {
       const response = new StreamingTextResponse(stream, {}, data);
 
       expect(await readAllChunks(response)).toEqual([
-        '2:"[{\\"t1\\":\\"v1\\"}]"\n',
+        '2:[{"t1":"v1"}]\n',
         '0:" Hello,"\n',
         '0:" world"\n',
         '0:"."\n',

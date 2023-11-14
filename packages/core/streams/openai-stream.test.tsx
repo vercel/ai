@@ -263,7 +263,7 @@ describe('OpenAIStream', () => {
       const chunks = await client.readAll();
 
       expect(chunks).toEqual([
-        '2:"[{\\"fn\\":\\"get_current_weather\\"}]"\n',
+        '2:[{"fn":"get_current_weather"}]\n',
         '1:"{\\"function_call\\": {\\"name\\": \\"get_current_weather\\", \\"arguments\\": \\"{\\\\n\\\\\\"location\\\\\\": \\\\\\"Charlottesville, Virginia\\\\\\",\\\\n\\\\\\"format\\\\\\": \\\\\\"celsius\\\\\\"\\\\n}\\"}}"\n',
       ]);
     });
@@ -327,7 +327,7 @@ describe('OpenAIStream', () => {
       const chunks = await client.readAll();
 
       expect(chunks).toEqual([
-        '2:"[{\\"fn\\":\\"get_current_weather\\"}]"\n',
+        '2:[{"fn":"get_current_weather"}]\n',
         '0:"experimental_onFunctionCall-return-value"\n',
       ]);
     });
@@ -358,7 +358,7 @@ describe('OpenAIStream', () => {
       const chunks = await client.readAll();
 
       expect(chunks).toEqual([
-        '2:"[{\\"t1\\":\\"v1\\"}]"\n',
+        '2:[{"t1":"v1"}]\n',
         '0:"Hello"\n',
         '0:","\n',
         '0:" world"\n',

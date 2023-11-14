@@ -127,7 +127,7 @@ describe('parseComplexResponse function', () => {
     // Execute the parser function
     const result = await parseComplexResponse({
       reader: createTestReader([
-        '2:"[{\\"t1\\":\\"v1\\"}]"\n',
+        '2:[{"t1":"v1"}]\n',
         '0:"Sample text message."\n',
       ]),
       abortControllerRef: { current: new AbortController() },
