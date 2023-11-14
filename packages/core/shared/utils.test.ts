@@ -1,4 +1,5 @@
 import { createChunkDecoder, getStreamString } from './utils';
+import { getStreamStringTypeAndValue } from './utils';
 
 describe('utils', () => {
   describe('createChunkDecoder', () => {
@@ -78,8 +79,7 @@ describe('utils', () => {
 
     it('should correctly decode streamed utf8 chunks in simple mode', () => {
       const decoder = createChunkDecoder(false);
-      const encoder = new TextEncoder();
-      // const prefixChunkUint8 = encoder.encode('0:')
+
       const chunk1 = new Uint8Array([226, 153]);
       const chunk2 = new Uint8Array([165]);
       const values = decoder(chunk1);
@@ -89,6 +89,42 @@ describe('utils', () => {
       }
 
       expect(values + secondValues).toBe('♥');
+    });
+  });
+
+  describe('getStreamStringTypeAndValue', () => {
+    it('should correctly parse a text stream string', () => {
+      const input = '0:Hello, world!';
+
+      expect(getStreamStringTypeAndValue(input)).toEqual({
+        type: 'text',
+        value: 'Hello, world!',
+      });
+    });
+
+    it('should correctly parse a function call stream string', () => {
+      const input =
+        '1:{"name":"get_current_weather","arguments":"{\\"location\\": \\"Charlottesville, Virginia\\",\\"format\\": \\"celsius\\"}"}';
+
+      expect(getStreamStringTypeAndValue(input)).toEqual({
+        type: 'function_call',
+        value: {
+          name: 'get_current_weather',
+          arguments:
+            '{"location": "Charlottesville, Virginia","format": "celsius"}',
+        },
+      });
+    });
+
+    it('should correctly parse a data stream string', () => {
+      const input = '2:{"test":"value"}';
+      const expectedOutput = { type: 'data', value: { test: 'value' } };
+      expect(getStreamStringTypeAndValue(input)).toEqual(expectedOutput);
+    });
+
+    it('should throw an error if the input is not a valid stream string', () => {
+      const input = 'invalid stream string';
+      expect(() => getStreamStringTypeAndValue(input)).toThrow();
     });
   });
 });

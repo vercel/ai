@@ -75,6 +75,7 @@ export type UseChatHelpers = {
 
 type StreamingReactResponseAction = (payload: {
   messages: Message[];
+  data?: Record<string, string>;
 }) => Promise<experimental_StreamingReactResponse>;
 
 const getStreamedResponse = async (
@@ -135,6 +136,7 @@ const getStreamedResponse = async (
     try {
       const promise = api({
         messages: constructedMessagesPayload as Message[],
+        data: chatRequest.data,
       }) as Promise<ReactResponseRow>;
       await readRow(promise);
     } catch (e) {
@@ -154,6 +156,7 @@ const getStreamedResponse = async (
     method: 'POST',
     body: JSON.stringify({
       messages: constructedMessagesPayload,
+      data: chatRequest.data,
       ...extraMetadataRef.current.body,
       ...chatRequest.options?.body,
       ...(chatRequest.functions !== undefined && {
@@ -478,7 +481,7 @@ export function useChat({
   const append = useCallback(
     async (
       message: Message | CreateMessage,
-      { options, functions, function_call }: ChatRequestOptions = {},
+      { options, functions, function_call, data }: ChatRequestOptions = {},
     ) => {
       if (!message.id) {
         message.id = nanoid();
@@ -487,6 +490,7 @@ export function useChat({
       const chatRequest: ChatRequest = {
         messages: messagesRef.current.concat(message as Message),
         options,
+        data,
         ...(functions !== undefined && { functions }),
         ...(function_call !== undefined && { function_call }),
       };
@@ -546,7 +550,7 @@ export function useChat({
   const handleSubmit = useCallback(
     (
       e: React.FormEvent<HTMLFormElement>,
-      { options, functions, function_call }: ChatRequestOptions = {},
+      options: ChatRequestOptions = {},
       metadata?: Object,
     ) => {
       if (metadata) {
@@ -565,7 +569,7 @@ export function useChat({
           role: 'user',
           createdAt: new Date(),
         },
-        { options, functions, function_call },
+        options,
       );
       setInput('');
     },
