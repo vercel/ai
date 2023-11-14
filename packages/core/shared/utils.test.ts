@@ -1,4 +1,5 @@
-import { createChunkDecoder, getStreamString } from './utils';
+import { formatStreamPart } from './stream-parts';
+import { createChunkDecoder } from './utils';
 
 describe('utils', () => {
   describe('createChunkDecoder', () => {
@@ -6,7 +7,7 @@ describe('utils', () => {
       const decoder = createChunkDecoder(true);
 
       const encoder = new TextEncoder();
-      const chunk = encoder.encode(getStreamString('text', 'Hello, world!'));
+      const chunk = encoder.encode(formatStreamPart('text', 'Hello, world!'));
       const values = decoder(chunk);
 
       expect(values).toStrictEqual([{ type: 'text', value: 'Hello, world!' }]);
@@ -23,7 +24,7 @@ describe('utils', () => {
 
       const encoder = new TextEncoder();
       const chunk = encoder.encode(
-        getStreamString('function_call', functionCall),
+        formatStreamPart('function_call', functionCall),
       );
       const values = decoder(chunk);
 
@@ -38,7 +39,7 @@ describe('utils', () => {
       const decoder = createChunkDecoder(true);
 
       const encoder = new TextEncoder();
-      const chunk = encoder.encode(getStreamString('data', data));
+      const chunk = encoder.encode(formatStreamPart('data', data));
       const values = decoder(chunk);
 
       expect(values).toStrictEqual([{ type: 'data', value: data }]);
@@ -56,10 +57,10 @@ describe('utils', () => {
 
       const enqueuedChunks = [];
       enqueuedChunks.push(
-        encoder.encode(getStreamString('text', normalDecode(chunk1))),
+        encoder.encode(formatStreamPart('text', normalDecode(chunk1))),
       );
       enqueuedChunks.push(
-        encoder.encode(getStreamString('text', normalDecode(chunk2))),
+        encoder.encode(formatStreamPart('text', normalDecode(chunk2))),
       );
 
       let fullDecodedString = '';

@@ -82,14 +82,6 @@ export const isStreamStringEqualToType = (
 ): value is StreamString =>
   value.startsWith(`${StreamStringPrefixes[type]}:`) && value.endsWith('\n');
 
-/**
- * Prepends a string with a prefix from the `StreamChunkPrefixes`, JSON-ifies it, and appends a new line.
- */
-export const getStreamString = (
-  type: keyof typeof StreamStringPrefixes,
-  value: JSONValue,
-): StreamString => `${StreamStringPrefixes[type]}:${JSON.stringify(value)}\n`;
-
 export type StreamString =
   `${(typeof StreamStringPrefixes)[keyof typeof StreamStringPrefixes]}:${string}\n`;
 

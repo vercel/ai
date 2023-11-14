@@ -1,10 +1,11 @@
+import { formatStreamPart } from '../shared/stream-parts';
 import {
   CreateMessage,
   FunctionCall,
   JSONValue,
   Message,
 } from '../shared/types';
-import { createChunkDecoder, getStreamString } from '../shared/utils';
+import { createChunkDecoder } from '../shared/utils';
 
 import {
   AIStream,
@@ -487,7 +488,7 @@ function createFunctionCallTransformer(
       if (!isFunctionStreamingIn) {
         controller.enqueue(
           isComplexMode
-            ? textEncoder.encode(getStreamString('text', message))
+            ? textEncoder.encode(formatStreamPart('text', message))
             : chunk,
         );
         return;
@@ -546,7 +547,7 @@ function createFunctionCallTransformer(
             controller.enqueue(
               textEncoder.encode(
                 isComplexMode
-                  ? getStreamString('function_call', aggregatedResponse)
+                  ? formatStreamPart('function_call', aggregatedResponse)
                   : aggregatedResponse,
               ),
             );
@@ -555,7 +556,7 @@ function createFunctionCallTransformer(
             // The user returned a string, so we just return it as a message
             controller.enqueue(
               isComplexMode
-                ? textEncoder.encode(getStreamString('text', functionResponse))
+                ? textEncoder.encode(formatStreamPart('text', functionResponse))
                 : textEncoder.encode(functionResponse),
             );
             return;

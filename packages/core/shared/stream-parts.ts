@@ -1,4 +1,5 @@
 import { JSONValue } from './types';
+import { StreamString } from './utils';
 
 export interface StreamPart<CODE extends string, NAME extends string, TYPE> {
   code: CODE;
@@ -56,6 +57,14 @@ export const streamPartsByCode = {
   [dataStreamPart.code]: dataStreamPart,
 } as const;
 
+type StreamPartValueType<T extends StreamPartType['type']> = T extends 'text'
+  ? string
+  : T extends 'function_call'
+  ? JSONValue
+  : T extends 'data'
+  ? JSONValue
+  : never;
+
 export const validCodes = streamParts.map(part => part.code);
 
 export const parseStreamPart = (line: string) => {
@@ -78,3 +87,19 @@ export const parseStreamPart = (line: string) => {
 
   return streamPartsByCode[code].parse(jsonValue);
 };
+
+/**
+ * Prepends a string with a prefix from the `StreamChunkPrefixes`, JSON-ifies it, and appends a new line.
+ */
+export function formatStreamPart<T extends StreamPartType['type']>(
+  type: T,
+  value: StreamPartValueType<T>,
+): StreamString {
+  const streamPart = streamParts.find(part => part.name === type);
+
+  if (!streamPart) {
+    throw new Error(`Invalid stream part type: ${type}`);
+  }
+
+  return `${streamPart.code}:${JSON.stringify(value)}\n`;
+}
