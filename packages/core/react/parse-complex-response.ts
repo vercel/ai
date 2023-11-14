@@ -84,7 +84,7 @@ export async function parseComplexResponse({
       let functionCallMessage: Message | null = null;
 
       if (type === 'function_call') {
-        prefixMap['function_call'] = value;
+        prefixMap['function_call'] = value as any; // TODO fix
 
         let functionCall = prefixMap['function_call'];
         // Ensure it hasn't been parsed
@@ -107,7 +107,7 @@ export async function parseComplexResponse({
       }
 
       if (type === 'data') {
-        const parsedValue = JSON.parse(value);
+        const parsedValue = JSON.parse(value as any); // TODO fix double encoding
         if (prefixMap['data']) {
           prefixMap['data'] = [...prefixMap['data'], ...parsedValue];
         } else {
