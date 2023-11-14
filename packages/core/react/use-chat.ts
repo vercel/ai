@@ -17,7 +17,7 @@ import type {
   experimental_StreamingReactResponse,
 } from '../streams/streaming-react-response';
 import { callApi } from '../shared/call-api';
-import { loopCalls } from '../shared/loop-calls';
+import { processChatStream } from '../shared/process-chat-stream';
 export type { Message, CreateMessage, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -265,7 +265,7 @@ export function useChat({
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
-        await loopCalls({
+        await processChatStream({
           getStreamedResponse: () =>
             getStreamedResponse(
               api,

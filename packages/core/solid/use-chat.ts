@@ -13,7 +13,7 @@ import type {
 import { COMPLEX_HEADER, createChunkDecoder, nanoid } from '../shared/utils';
 import { parseComplexResponse } from '../react/parse-complex-response';
 import { callApi } from '../shared/call-api';
-import { loopCalls } from '../shared/loop-calls';
+import { processChatStream } from '../shared/process-chat-stream';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -133,7 +133,7 @@ export function useChat({
         options,
       };
 
-      await loopCalls({
+      await processChatStream({
         getStreamedResponse: async () => {
           const existingData = streamData() ?? [];
 

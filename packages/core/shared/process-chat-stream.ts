@@ -1,6 +1,6 @@
 import { ChatRequest, FunctionCall, Message } from './types';
 
-export async function loopCalls({
+export async function processChatStream({
   getStreamedResponse,
   experimental_onFunctionCall,
   updateChatRequest,
