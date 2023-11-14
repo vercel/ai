@@ -1,6 +1,20 @@
-import { parseStreamPart } from './stream-parts';
+import { formatStreamPart, parseStreamPart } from './stream-parts';
 
 describe('stream-parts', () => {
+  describe('formatStreamPart', () => {
+    it('should escape newlines in text', () => {
+      expect(formatStreamPart('text', 'value\nvalue')).toEqual(
+        '0:"value\\nvalue"\n',
+      );
+    });
+
+    it('should escape newlines in data objects', () => {
+      expect(formatStreamPart('data', { test: 'value\nvalue' })).toEqual(
+        '2:{"test":"value\\nvalue"}\n',
+      );
+    });
+  });
+
   describe('parseStreamPart', () => {
     it('should parse a text line', () => {
       const input = '0:"Hello, world!"';
