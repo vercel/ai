@@ -95,7 +95,7 @@ export async function handler({ messages }: { messages: Message[] }) {
 
 ### Client-Side Setup
 
-On the client side, the useChat hook from ai/react is utilized to manage the chat interaction. The Chat component renders the chat interface, including input forms and message displays. It dynamically integrates the server-side stream, displaying messages and UI elements as they are received.
+On the client side, the useChat hook from ai/react is utilized to manage the chat interaction. The `Chat` component below renders the chat interface, including input forms and message displays. It dynamically integrates the server-side stream, displaying messages and UI elements as they are received.
 
 ```tsx
 // app/stream-react-response/page.tsx
