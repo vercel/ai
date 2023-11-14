@@ -46,6 +46,19 @@ const streamParts = [
   dataStreamPart,
 ] as const;
 
+// union type of all stream parts
+type StreamParts =
+  | typeof textStreamPart
+  | typeof functionCallStreamPart
+  | typeof dataStreamPart;
+
+/**
+ * Maps the type of a stream part to its value type.
+ */
+type StreamPartValueType = {
+  [P in StreamParts as P['name']]: ReturnType<P['parse']>['value'];
+};
+
 export type StreamPartType =
   | ReturnType<typeof textStreamPart.parse>
   | ReturnType<typeof functionCallStreamPart.parse>
@@ -56,14 +69,6 @@ export const streamPartsByCode = {
   [functionCallStreamPart.code]: functionCallStreamPart,
   [dataStreamPart.code]: dataStreamPart,
 } as const;
-
-type StreamPartValueType<T extends StreamPartType['type']> = T extends 'text'
-  ? string
-  : T extends 'function_call'
-  ? JSONValue
-  : T extends 'data'
-  ? JSONValue
-  : never;
 
 export const validCodes = streamParts.map(part => part.code);
 
@@ -89,11 +94,14 @@ export const parseStreamPart = (line: string) => {
 };
 
 /**
- * Prepends a string with a prefix from the `StreamChunkPrefixes`, JSON-ifies it, and appends a new line.
+ * Prepends a string with a prefix from the `StreamChunkPrefixes`, JSON-ifies it,
+ * and appends a new line.
+ *
+ * It ensures type-safety for the part type and value.
  */
-export function formatStreamPart<T extends StreamPartType['type']>(
+export function formatStreamPart<T extends keyof StreamPartValueType>(
   type: T,
-  value: StreamPartValueType<T>,
+  value: StreamPartValueType[T],
 ): StreamString {
   const streamPart = streamParts.find(part => part.name === type);
 
