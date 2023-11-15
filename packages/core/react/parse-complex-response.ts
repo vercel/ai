@@ -105,7 +105,7 @@ export async function parseComplexResponse({
       }
 
       if (type === 'data') {
-        prefixMap['data'].push(value);
+        prefixMap['data'].push(...value);
       }
 
       const responseMessage = prefixMap['text'];

@@ -547,15 +547,15 @@ describe('OpenAIStream', () => {
 
       expect(rows).toStrictEqual([
         {
-          ui: '<pre>[[{&quot;fn&quot;:&quot;get_current_weather&quot;}]]</pre>',
+          ui: '<pre>[{&quot;fn&quot;:&quot;get_current_weather&quot;}]</pre>',
           content: '',
         },
         {
-          ui: '<pre>[[{&quot;fn&quot;:&quot;get_current_weather&quot;}]]</pre>',
+          ui: '<pre>[{&quot;fn&quot;:&quot;get_current_weather&quot;}]</pre>',
           content: '',
         },
         {
-          ui: '<pre>[[{&quot;fn&quot;:&quot;get_current_weather&quot;}]]</pre>',
+          ui: '<pre>[{&quot;fn&quot;:&quot;get_current_weather&quot;}]</pre>',
           content: '',
         },
       ]);

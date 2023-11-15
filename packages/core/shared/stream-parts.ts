@@ -56,10 +56,16 @@ export const functionCallStreamPart: StreamPart<
   },
 };
 
-export const dataStreamPart: StreamPart<'2', 'data', JSONValue> = {
+export const dataStreamPart: StreamPart<'2', 'data', Array<JSONValue>> = {
   code: '2',
   name: 'data',
-  parse: (value: JSONValue) => ({ type: 'data', value }),
+  parse: (value: JSONValue) => {
+    if (!Array.isArray(value)) {
+      throw new Error('"data" parts expect an array value.');
+    }
+
+    return { type: 'data', value };
+  },
 };
 
 const streamParts = [

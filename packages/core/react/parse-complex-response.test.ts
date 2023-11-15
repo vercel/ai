@@ -163,18 +163,16 @@ describe('parseComplexResponse function', () => {
       getCurrentDate: () => new Date(0),
     });
 
-    const expectedData = [[{ t1: 'v1' }]];
-
     // check the mockUpdate call:
     expect(mockUpdate).toHaveBeenCalledTimes(2);
 
     expect(mockUpdate.mock.calls[0][0]).toEqual([]);
-    expect(mockUpdate.mock.calls[0][1]).toEqual(expectedData);
+    expect(mockUpdate.mock.calls[0][1]).toEqual([{ t1: 'v1' }]);
 
     expect(mockUpdate.mock.calls[1][0]).toEqual([
       assistantTextMessage('Sample text message.'),
     ]);
-    expect(mockUpdate.mock.calls[1][1]).toEqual(expectedData);
+    expect(mockUpdate.mock.calls[1][1]).toEqual([{ t1: 'v1' }]);
 
     // check the result
     expect(result).toEqual({
@@ -186,7 +184,7 @@ describe('parseComplexResponse function', () => {
           role: 'assistant',
         },
       ],
-      data: [[{ t1: 'v1' }]],
+      data: [{ t1: 'v1' }],
     });
   });
 
@@ -196,12 +194,8 @@ describe('parseComplexResponse function', () => {
     // Execute the parser function
     const result = await parseComplexResponse({
       reader: createTestReader([
-        '2:[{"t1":"v1"}]\n',
-        '2:3\n',
-        '2:null\n',
-        '2:false\n',
-        '2:"text"\n',
-        '2:{"a":"b"}\n',
+        '2:[{"t1":"v1"}, 3]\n',
+        '2:[null,false,"text"]\n',
       ]),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,
@@ -210,48 +204,24 @@ describe('parseComplexResponse function', () => {
     });
 
     // check the mockUpdate call:
-    expect(mockUpdate).toHaveBeenCalledTimes(6);
+    expect(mockUpdate).toHaveBeenCalledTimes(2);
 
     expect(mockUpdate.mock.calls[0][0]).toEqual([]);
-    expect(mockUpdate.mock.calls[0][1]).toEqual([[{ t1: 'v1' }]]);
+    expect(mockUpdate.mock.calls[0][1]).toEqual([{ t1: 'v1' }, 3]);
 
     expect(mockUpdate.mock.calls[1][0]).toEqual([]);
-    expect(mockUpdate.mock.calls[1][1]).toEqual([[{ t1: 'v1' }], 3]);
-
-    expect(mockUpdate.mock.calls[2][0]).toEqual([]);
-    expect(mockUpdate.mock.calls[2][1]).toEqual([[{ t1: 'v1' }], 3, null]);
-
-    expect(mockUpdate.mock.calls[3][0]).toEqual([]);
-    expect(mockUpdate.mock.calls[3][1]).toEqual([
-      [{ t1: 'v1' }],
-      3,
-      null,
-      false,
-    ]);
-
-    expect(mockUpdate.mock.calls[4][0]).toEqual([]);
-    expect(mockUpdate.mock.calls[4][1]).toEqual([
-      [{ t1: 'v1' }],
+    expect(mockUpdate.mock.calls[1][1]).toEqual([
+      { t1: 'v1' },
       3,
       null,
       false,
       'text',
-    ]);
-
-    expect(mockUpdate.mock.calls[5][0]).toEqual([]);
-    expect(mockUpdate.mock.calls[5][1]).toEqual([
-      [{ t1: 'v1' }],
-      3,
-      null,
-      false,
-      'text',
-      { a: 'b' },
     ]);
 
     // check the result
     expect(result).toEqual({
       messages: [],
-      data: [[{ t1: 'v1' }], 3, null, false, 'text', { a: 'b' }],
+      data: [{ t1: 'v1' }, 3, null, false, 'text'],
     });
   });
 });

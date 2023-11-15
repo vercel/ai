@@ -41,7 +41,7 @@ describe('utils', () => {
     });
 
     it('should correctly decode data chunk in complex mode', () => {
-      const data = { test: 'value' };
+      const data = [{ test: 'value' }];
 
       const decoder = createChunkDecoder(true);
 

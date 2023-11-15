@@ -9,8 +9,8 @@ describe('stream-parts', () => {
     });
 
     it('should escape newlines in data objects', () => {
-      expect(formatStreamPart('data', { test: 'value\nvalue' })).toEqual(
-        '2:{"test":"value\\nvalue"}\n',
+      expect(formatStreamPart('data', [{ test: 'value\nvalue' }])).toEqual(
+        '2:[{"test":"value\\nvalue"}]\n',
       );
     });
   });
@@ -42,8 +42,8 @@ describe('stream-parts', () => {
     });
 
     it('should parse a data line', () => {
-      const input = '2:{"test":"value"}';
-      const expectedOutput = { type: 'data', value: { test: 'value' } };
+      const input = '2:[{"test":"value"}]';
+      const expectedOutput = { type: 'data', value: [{ test: 'value' }] };
       expect(parseStreamPart(input)).toEqual(expectedOutput);
     });
 
