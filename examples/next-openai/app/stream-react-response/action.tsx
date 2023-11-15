@@ -109,7 +109,6 @@ export async function handler({ messages }: { messages: Message[] }) {
     data,
     ui({ content, data }) {
       if (data != null) {
-        console.log(data);
         const value = data[0] as any;
 
         switch (value.type) {
