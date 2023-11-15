@@ -295,11 +295,10 @@ export function useChat({
   credentials,
   headers,
   body,
-  generateId,
+  generateId = nanoid,
 }: Omit<UseChatOptions, 'api'> & {
   api?: string | StreamingReactResponseAction;
 } = {}): UseChatHelpers {
-  const genId = generateId ?? nanoid;
   // Generate a unique id for the chat if not provided.
   const hookId = useId();
   const chatId = id || hookId;
@@ -372,7 +371,7 @@ export function useChat({
             extraMetadataRef,
             messagesRef,
             abortControllerRef,
-            genId,
+            generateId,
             onFinish,
             onResponse,
             sendExtraMessageFields,
@@ -477,7 +476,7 @@ export function useChat({
       experimental_onFunctionCall,
       messagesRef.current,
       abortControllerRef.current,
-      genId,
+      generateId,
     ],
   );
 
@@ -487,7 +486,7 @@ export function useChat({
       { options, functions, function_call }: ChatRequestOptions = {},
     ) => {
       if (!message.id) {
-        message.id = genId();
+        message.id = generateId();
       }
 
       const chatRequest: ChatRequest = {
@@ -499,7 +498,7 @@ export function useChat({
 
       return triggerRequest(chatRequest);
     },
-    [triggerRequest, genId],
+    [triggerRequest, generateId],
   );
 
   const reload = useCallback(

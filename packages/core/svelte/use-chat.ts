@@ -208,11 +208,10 @@ export function useChat({
   credentials,
   headers,
   body,
-  generateId,
+  generateId = nanoid,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
-  const genId = generateId ?? nanoid;
 
   const key = `${api}|${chatId}`;
   const {
@@ -264,7 +263,7 @@ export function useChat({
           extraMetadata,
           get(messages),
           abortController,
-          genId,
+          generateId,
           onFinish,
           onResponse,
           sendExtraMessageFields,
@@ -322,7 +321,7 @@ export function useChat({
     { options, functions, function_call }: ChatRequestOptions = {},
   ) => {
     if (!message.id) {
-      message.id = genId();
+      message.id = generateId();
     }
 
     const chatRequest: ChatRequest = {
