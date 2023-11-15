@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.23
+
+### Patch Changes
+
+- 5a04321: add StreamData support to StreamingReactResponse, add client-side data API to react/use-chat
+
 ## 2.2.22
 
 ### Patch Changes
