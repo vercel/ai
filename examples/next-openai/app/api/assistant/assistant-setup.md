@@ -32,7 +32,7 @@ The system uses temperature in Celsius. If the user requests Fahrenheit, you sho
         "enum": ["bedroom", "home office", "living room", "kitchen", "bathroom"]
       }
     },
-    "required": ["location"]
+    "required": ["room"]
   }
 }
 ```
