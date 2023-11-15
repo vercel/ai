@@ -29,6 +29,8 @@ describe('parseComplexResponse function', () => {
       reader: createTestReader(['0:"Hello"\n']),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,
+      generateId: () => 'test-id',
+      getCurrentDate: () => new Date(0),
     });
 
     const expectedMessage = assistantTextMessage('Hello');
@@ -37,9 +39,18 @@ describe('parseComplexResponse function', () => {
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(mockUpdate.mock.calls[0][0]).toEqual([expectedMessage]);
 
-    // check the prefix map:
-    expect(result).toHaveProperty('text');
-    expect(result.text).toEqual(expectedMessage);
+    // check the result
+    expect(result).toEqual({
+      messages: [
+        {
+          content: 'Hello',
+          createdAt: new Date(0),
+          id: 'test-id',
+          role: 'assistant',
+        },
+      ],
+      data: [],
+    });
   });
 
   it('should parse a sequence of text messages', async () => {
@@ -54,6 +65,8 @@ describe('parseComplexResponse function', () => {
       ]),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,
+      generateId: () => 'test-id',
+      getCurrentDate: () => new Date(0),
     });
 
     // check the mockUpdate call:
@@ -71,9 +84,18 @@ describe('parseComplexResponse function', () => {
       assistantTextMessage('Hello, world.'),
     ]);
 
-    // check the prefix map:
-    expect(result).toHaveProperty('text');
-    expect(result.text).toEqual(assistantTextMessage('Hello, world.'));
+    // check the result
+    expect(result).toEqual({
+      messages: [
+        {
+          content: 'Hello, world.',
+          createdAt: new Date(0),
+          id: 'test-id',
+          role: 'assistant',
+        },
+      ],
+      data: [],
+    });
   });
 
   it('should parse a function call', async () => {
@@ -85,6 +107,8 @@ describe('parseComplexResponse function', () => {
       ]),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,
+      generateId: () => 'test-id',
+      getCurrentDate: () => new Date(0),
     });
 
     // check the mockUpdate call:
@@ -104,21 +128,24 @@ describe('parseComplexResponse function', () => {
       },
     ]);
 
-    // check the prefix map:
-    expect(result.function_call).toEqual({
-      id: expect.any(String),
-      role: 'assistant',
-      content: '',
-      name: 'get_current_weather',
-      function_call: {
-        name: 'get_current_weather',
-        arguments:
-          '{\n"location": "Charlottesville, Virginia",\n"format": "celsius"\n}',
-      },
-      createdAt: expect.any(Date),
+    // check the result
+    expect(result).toEqual({
+      messages: [
+        {
+          content: '',
+          createdAt: new Date(0),
+          id: 'test-id',
+          role: 'assistant',
+          function_call: {
+            name: 'get_current_weather',
+            arguments:
+              '{\n"location": "Charlottesville, Virginia",\n"format": "celsius"\n}',
+          },
+          name: 'get_current_weather',
+        },
+      ],
+      data: [],
     });
-    expect(result).not.toHaveProperty('text');
-    expect(result).not.toHaveProperty('data');
   });
 
   it('should parse a combination of a data and a text message', async () => {
@@ -132,6 +159,8 @@ describe('parseComplexResponse function', () => {
       ]),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,
+      generateId: () => 'test-id',
+      getCurrentDate: () => new Date(0),
     });
 
     const expectedData = [{ t1: 'v1' }];
@@ -147,11 +176,17 @@ describe('parseComplexResponse function', () => {
     ]);
     expect(mockUpdate.mock.calls[1][1]).toEqual(expectedData);
 
-    // check the prefix map:
-    expect(result).toHaveProperty('data');
-    expect(result.data).toEqual(expectedData);
-
-    expect(result).toHaveProperty('text');
-    expect(result.text).toEqual(assistantTextMessage('Sample text message.'));
+    // check the result
+    expect(result).toEqual({
+      messages: [
+        {
+          content: 'Sample text message.',
+          createdAt: new Date(0),
+          id: 'test-id',
+          role: 'assistant',
+        },
+      ],
+      data: [{ t1: 'v1' }],
+    });
   });
 });

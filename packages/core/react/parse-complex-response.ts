@@ -1,11 +1,12 @@
 import type { FunctionCall, JSONValue, Message } from '../shared/types';
-import { nanoid, createChunkDecoder } from '../shared/utils';
+import { createChunkDecoder, nanoid } from '../shared/utils';
 
 type PrefixMap = {
   text?: Message;
-  function_call?:
-    | string
-    | Pick<Message, 'function_call' | 'role' | 'content' | 'name'>;
+  function_call?: Message & {
+    role: 'assistant';
+    function_call: FunctionCall;
+  };
   data?: JSONValue[];
 };
 
@@ -14,6 +15,8 @@ export async function parseComplexResponse({
   abortControllerRef,
   update,
   onFinish,
+  generateId = nanoid,
+  getCurrentDate = () => new Date(),
 }: {
   reader: ReadableStreamDefaultReader<Uint8Array>;
   abortControllerRef?: {
@@ -21,12 +24,15 @@ export async function parseComplexResponse({
   };
   update: (merged: Message[], data: JSONValue[] | undefined) => void;
   onFinish?: (prefixMap: PrefixMap) => void;
+  generateId?: () => string;
+  getCurrentDate?: () => Date;
 }) {
+  const createdAt = getCurrentDate();
+
   const decode = createChunkDecoder(true);
-  const createdAt = new Date();
   const prefixMap: PrefixMap = {};
   const NEWLINE = '\n'.charCodeAt(0);
-  let chunks: Uint8Array[] = [];
+  const chunks: Uint8Array[] = [];
   let totalLength = 0;
 
   while (true) {
@@ -73,7 +79,7 @@ export async function parseComplexResponse({
           };
         } else {
           prefixMap['text'] = {
-            id: nanoid(),
+            id: generateId(),
             role: 'assistant',
             content: value,
             createdAt,
@@ -84,26 +90,16 @@ export async function parseComplexResponse({
       let functionCallMessage: Message | null = null;
 
       if (type === 'function_call') {
-        prefixMap['function_call'] = value as any; // TODO fix
+        prefixMap['function_call'] = {
+          id: generateId(),
+          role: 'assistant',
+          content: '',
+          function_call: value.function_call,
+          name: value.function_call.name,
+          createdAt,
+        };
 
-        let functionCall = prefixMap['function_call'];
-
-        if (functionCall != null) {
-          // TODO change type of functionCall to FunctionCall
-          const parsedFunctionCall: FunctionCall = (functionCall as any)
-            .function_call;
-
-          functionCallMessage = {
-            id: nanoid(),
-            role: 'assistant',
-            content: '',
-            function_call: parsedFunctionCall,
-            name: parsedFunctionCall.name,
-            createdAt,
-          };
-
-          prefixMap['function_call'] = functionCallMessage as any;
-        }
+        functionCallMessage = prefixMap['function_call'];
       }
 
       if (type === 'data') {
@@ -136,5 +132,10 @@ export async function parseComplexResponse({
 
   onFinish?.(prefixMap);
 
-  return prefixMap;
+  return {
+    messages: [prefixMap.text, prefixMap.function_call].filter(
+      Boolean,
+    ) as Message[],
+    data: prefixMap.data ?? [],
+  };
 }

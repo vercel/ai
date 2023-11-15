@@ -199,33 +199,22 @@ const getStreamedResponse = async (
   }
 
   const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
-  let responseMessages: Message[] = [];
   const reader = res.body.getReader();
 
-  // END TODO-STREAMDATA
-  let responseData: any = [];
-
   if (isComplexMode) {
-    const prefixMap = await parseComplexResponse({
+    return await parseComplexResponse({
       reader,
       abortControllerRef,
       update(merged, data) {
         mutate([...chatRequest.messages, ...merged], false);
         mutateStreamData([...(existingData || []), ...(data || [])], false);
       },
+      onFinish(prefixMap) {
+        if (onFinish && prefixMap.text != null) {
+          onFinish(prefixMap.text);
+        }
+      },
     });
-
-    for (const [type, item] of Object.entries(prefixMap)) {
-      if (onFinish && type === 'text') {
-        onFinish(item as Message);
-      }
-      if (type === 'data') {
-        responseData.push(item);
-      } else {
-        responseMessages.push(item as Message);
-      }
-    }
-    return { messages: responseMessages, data: responseData };
   } else {
     const createdAt = new Date();
     const decode = createChunkDecoder(false);
