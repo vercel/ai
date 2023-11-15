@@ -7,7 +7,7 @@ type PrefixMap = {
     role: 'assistant';
     function_call: FunctionCall;
   };
-  data?: JSONValue[];
+  data: JSONValue[];
 };
 
 export async function parseComplexResponse({
@@ -30,7 +30,9 @@ export async function parseComplexResponse({
   const createdAt = getCurrentDate();
 
   const decode = createChunkDecoder(true);
-  const prefixMap: PrefixMap = {};
+  const prefixMap: PrefixMap = {
+    data: [],
+  };
   const NEWLINE = '\n'.charCodeAt(0);
   const chunks: Uint8Array[] = [];
   let totalLength = 0;
@@ -103,15 +105,9 @@ export async function parseComplexResponse({
       }
 
       if (type === 'data') {
-        const parsedValue = value as any; // TODO data could also be string, number, etc
-        if (prefixMap['data']) {
-          prefixMap['data'] = [...prefixMap['data'], ...parsedValue];
-        } else {
-          prefixMap['data'] = parsedValue;
-        }
+        prefixMap['data'].push(value);
       }
 
-      const data = prefixMap['data'];
       const responseMessage = prefixMap['text'];
 
       // We add function calls and response messages to the messages[], but data is its own thing
@@ -119,7 +115,7 @@ export async function parseComplexResponse({
         Boolean,
       ) as Message[];
 
-      update(merged, data);
+      update(merged, prefixMap['data']);
 
       // The request has been aborted, stop reading the stream.
       // If abortControllerRef is undefined, this is intentionally not executed.
@@ -136,6 +132,6 @@ export async function parseComplexResponse({
     messages: [prefixMap.text, prefixMap.function_call].filter(
       Boolean,
     ) as Message[],
-    data: prefixMap.data ?? [],
+    data: prefixMap.data,
   };
 }

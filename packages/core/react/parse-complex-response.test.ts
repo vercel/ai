@@ -163,7 +163,7 @@ describe('parseComplexResponse function', () => {
       getCurrentDate: () => new Date(0),
     });
 
-    const expectedData = [{ t1: 'v1' }];
+    const expectedData = [[{ t1: 'v1' }]];
 
     // check the mockUpdate call:
     expect(mockUpdate).toHaveBeenCalledTimes(2);
@@ -186,7 +186,7 @@ describe('parseComplexResponse function', () => {
           role: 'assistant',
         },
       ],
-      data: [{ t1: 'v1' }],
+      data: [[{ t1: 'v1' }]],
     });
   });
 });
