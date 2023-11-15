@@ -115,7 +115,7 @@ export async function parseComplexResponse({
         Boolean,
       ) as Message[];
 
-      update(merged, prefixMap['data']);
+      update(merged, [...prefixMap['data']]); // make a copy of the data array
 
       // The request has been aborted, stop reading the stream.
       // If abortControllerRef is undefined, this is intentionally not executed.

@@ -189,4 +189,69 @@ describe('parseComplexResponse function', () => {
       data: [[{ t1: 'v1' }]],
     });
   });
+
+  it('should parse multiple data messages incl. primitive values', async () => {
+    const mockUpdate = jest.fn();
+
+    // Execute the parser function
+    const result = await parseComplexResponse({
+      reader: createTestReader([
+        '2:[{"t1":"v1"}]\n',
+        '2:3\n',
+        '2:null\n',
+        '2:false\n',
+        '2:"text"\n',
+        '2:{"a":"b"}\n',
+      ]),
+      abortControllerRef: { current: new AbortController() },
+      update: mockUpdate,
+      generateId: () => 'test-id',
+      getCurrentDate: () => new Date(0),
+    });
+
+    // check the mockUpdate call:
+    expect(mockUpdate).toHaveBeenCalledTimes(6);
+
+    expect(mockUpdate.mock.calls[0][0]).toEqual([]);
+    expect(mockUpdate.mock.calls[0][1]).toEqual([[{ t1: 'v1' }]]);
+
+    expect(mockUpdate.mock.calls[1][0]).toEqual([]);
+    expect(mockUpdate.mock.calls[1][1]).toEqual([[{ t1: 'v1' }], 3]);
+
+    expect(mockUpdate.mock.calls[2][0]).toEqual([]);
+    expect(mockUpdate.mock.calls[2][1]).toEqual([[{ t1: 'v1' }], 3, null]);
+
+    expect(mockUpdate.mock.calls[3][0]).toEqual([]);
+    expect(mockUpdate.mock.calls[3][1]).toEqual([
+      [{ t1: 'v1' }],
+      3,
+      null,
+      false,
+    ]);
+
+    expect(mockUpdate.mock.calls[4][0]).toEqual([]);
+    expect(mockUpdate.mock.calls[4][1]).toEqual([
+      [{ t1: 'v1' }],
+      3,
+      null,
+      false,
+      'text',
+    ]);
+
+    expect(mockUpdate.mock.calls[5][0]).toEqual([]);
+    expect(mockUpdate.mock.calls[5][1]).toEqual([
+      [{ t1: 'v1' }],
+      3,
+      null,
+      false,
+      'text',
+      { a: 'b' },
+    ]);
+
+    // check the result
+    expect(result).toEqual({
+      messages: [],
+      data: [[{ t1: 'v1' }], 3, null, false, 'text', { a: 'b' }],
+    });
+  });
 });
