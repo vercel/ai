@@ -52,7 +52,7 @@ The system uses temperature in Celsius. If the user requests Fahrenheit, you sho
       },
       "temperature": { "type": "number" }
     },
-    "required": ["location", "temperature"]
+    "required": ["room", "temperature"]
   }
 }
 ```
