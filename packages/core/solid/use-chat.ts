@@ -55,7 +55,7 @@ export type UseChatHelpers = {
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;
   /** Additional data added on the server via StreamData */
-  data: Accessor<JSONValue[]>;
+  data: Accessor<JSONValue[] | undefined>;
 };
 
 let uniqueId = 0;
@@ -100,7 +100,9 @@ export function useChat({
   };
 
   const [error, setError] = createSignal<undefined | Error>(undefined);
-  const [streamData, setStreamData] = createSignal<JSONValue[]>([]);
+  const [streamData, setStreamData] = createSignal<JSONValue[] | undefined>(
+    undefined,
+  );
   const [isLoading, setIsLoading] = createSignal(false);
 
   let abortController: AbortController | null = null;

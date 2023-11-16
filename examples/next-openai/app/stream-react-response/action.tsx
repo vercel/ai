@@ -1,7 +1,6 @@
 'use server';
 
 import {
-  JSONValue,
   Message,
   OpenAIStream,
   experimental_StreamData,
@@ -108,7 +107,7 @@ export async function handler({ messages }: { messages: Message[] }) {
   return new experimental_StreamingReactResponse(stream, {
     data,
     ui({ content, data }) {
-      if (data != null) {
+      if (data?.[0] != null) {
         const value = data[0] as any;
 
         switch (value.type) {

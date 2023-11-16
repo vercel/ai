@@ -71,7 +71,7 @@ export type UseChatHelpers = {
   /** Whether the API request is in progress */
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
-  data?: JSONValue[];
+  data?: JSONValue[] | undefined;
 };
 
 type StreamingReactResponseAction = (payload: {
@@ -83,8 +83,8 @@ const getStreamedResponse = async (
   api: string | StreamingReactResponseAction,
   chatRequest: ChatRequest,
   mutate: KeyedMutator<Message[]>,
-  mutateStreamData: KeyedMutator<JSONValue[]>,
-  existingData: JSONValue[],
+  mutateStreamData: KeyedMutator<JSONValue[] | undefined>,
+  existingData: JSONValue[] | undefined,
   extraMetadataRef: React.MutableRefObject<any>,
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
@@ -224,11 +224,9 @@ export function useChat({
     null,
   );
 
-  const { data: streamData, mutate: mutateStreamData } = useSWR<JSONValue[]>(
-    [chatId, 'streamData'],
-    null,
-    { fallbackData: [] },
-  );
+  const { data: streamData, mutate: mutateStreamData } = useSWR<
+    JSONValue[] | undefined
+  >([chatId, 'streamData'], null);
 
   // Keep the latest messages in a ref.
   const messagesRef = useRef<Message[]>(messages || []);
