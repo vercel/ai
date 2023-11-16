@@ -1,4 +1,4 @@
-import { ChatRequest, FunctionCall, Message } from './types';
+import { ChatRequest, FunctionCall, JSONValue, Message } from './types';
 
 export async function processChatStream({
   getStreamedResponse,
@@ -7,7 +7,7 @@ export async function processChatStream({
   getCurrentMessages,
 }: {
   getStreamedResponse: () => Promise<
-    Message | { messages: Message[]; data: any }
+    Message | { messages: Message[]; data: JSONValue[] }
   >;
   experimental_onFunctionCall?: (
     chatMessages: Message[],

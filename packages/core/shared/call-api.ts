@@ -80,7 +80,7 @@ export async function callApi({
     const createdAt = new Date();
     const decode = createChunkDecoder(false);
 
-    // TODO-STREAMDATA: Remove this once Strem Data is not experimental
+    // TODO-STREAMDATA: Remove this once Stream Data is not experimental
     let streamedResponse = '';
     const replyId = nanoid();
     let responseMessage: Message = {
@@ -90,7 +90,7 @@ export async function callApi({
       role: 'assistant',
     };
 
-    // TODO-STREAMDATA: Remove this once Strem Data is not experimental
+    // TODO-STREAMDATA: Remove this once Stream Data is not experimental
     while (true) {
       const { done, value } = await reader.read();
       if (done) {

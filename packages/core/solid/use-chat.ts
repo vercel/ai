@@ -1,19 +1,17 @@
 import { Accessor, Resource, Setter, createSignal } from 'solid-js';
 import { useSWRStore } from 'solid-swr-store';
 import { createSWRStore } from 'swr-store';
-
+import { callApi } from '../shared/call-api';
+import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
   CreateMessage,
-  FunctionCall,
+  JSONValue,
   Message,
   RequestOptions,
   UseChatOptions,
 } from '../shared/types';
-import { COMPLEX_HEADER, createChunkDecoder, nanoid } from '../shared/utils';
-import { parseComplexResponse } from '../react/parse-complex-response';
-import { callApi } from '../shared/call-api';
-import { processChatStream } from '../shared/process-chat-stream';
+import { nanoid } from '../shared/utils';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -57,7 +55,7 @@ export type UseChatHelpers = {
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;
   /** Additional data added on the server via StreamData */
-  data?: any;
+  data: Accessor<JSONValue[]>;
 };
 
 let uniqueId = 0;
@@ -102,9 +100,7 @@ export function useChat({
   };
 
   const [error, setError] = createSignal<undefined | Error>(undefined);
-  const [streamData, setStreamData] = createSignal<undefined | any[]>(
-    undefined,
-  );
+  const [streamData, setStreamData] = createSignal<JSONValue[]>([]);
   const [isLoading, setIsLoading] = createSignal(false);
 
   let abortController: AbortController | null = null;
