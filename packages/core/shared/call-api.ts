@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { parseComplexResponse } from '../react/parse-complex-response';
+import { parseComplexResponse } from './parse-complex-response';
 import { FunctionCall, JSONValue, Message } from './types';
 import { COMPLEX_HEADER, createChunkDecoder } from './utils';
 

@@ -8,7 +8,7 @@
  * between the rows, but flushing the full payload on each row.
  */
 
-import { parseComplexResponse } from '../react/parse-complex-response';
+import { parseComplexResponse } from '../shared/parse-complex-response';
 import { JSONValue } from '../shared/types';
 import { createChunkDecoder } from '../shared/utils';
 import { experimental_StreamData } from './stream-data';
