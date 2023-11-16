@@ -65,27 +65,17 @@ export async function callApi({
   const isComplexMode = response.headers.get(COMPLEX_HEADER) === 'true';
 
   if (isComplexMode) {
-    const prefixMap = await parseComplexResponse({
+    return await parseComplexResponse({
       reader,
       abortControllerRef:
         abortController != null ? { current: abortController() } : undefined,
       update: onUpdate,
+      onFinish(prefixMap) {
+        if (onFinish && prefixMap.text != null) {
+          onFinish(prefixMap.text);
+        }
+      },
     });
-
-    const responseMessages: Message[] = [];
-    const responseData: any = [];
-    for (const [type, item] of Object.entries(prefixMap)) {
-      if (onFinish && type === 'text') {
-        onFinish(item as Message);
-      }
-      if (type === 'data') {
-        responseData.push(item);
-      } else {
-        responseMessages.push(item as Message);
-      }
-    }
-
-    return { messages: responseMessages, data: responseData };
   } else {
     const createdAt = new Date();
     const decode = createChunkDecoder(false);
