@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid';
 import { parseComplexResponse } from './parse-complex-response';
 
 describe('parseComplexResponse function', () => {
@@ -30,7 +29,6 @@ describe('parseComplexResponse function', () => {
       reader: createTestReader(['0:"Hello"\n']),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,
-      generateId: nanoid,
     });
 
     const expectedMessage = assistantTextMessage('Hello');
@@ -56,7 +54,6 @@ describe('parseComplexResponse function', () => {
       ]),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,
-      generateId: nanoid,
     });
 
     // check the mockUpdate call:
@@ -88,7 +85,6 @@ describe('parseComplexResponse function', () => {
       ]),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,
-      generateId: nanoid,
     });
 
     // check the mockUpdate call:
@@ -136,7 +132,6 @@ describe('parseComplexResponse function', () => {
       ]),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,
-      generateId: nanoid,
     });
 
     const expectedData = [{ t1: 'v1' }];
