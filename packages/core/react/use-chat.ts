@@ -212,6 +212,7 @@ const getStreamedResponse = async (
         mutate([...chatRequest.messages, ...merged], false);
         mutateStreamData([...(existingData || []), ...(data || [])], false);
       },
+      generateId,
     });
 
     for (const [type, item] of Object.entries(prefixMap)) {
