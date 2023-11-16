@@ -187,6 +187,7 @@ const getStreamedResponse = async (
       mutateStreamData([...(existingData || []), ...(data || [])], false);
     },
     onFinish,
+    generateId,
   });
 };
 

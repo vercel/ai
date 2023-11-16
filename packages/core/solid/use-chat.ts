@@ -175,6 +175,7 @@ export function useChat({
                 mutate(previousMessages.data);
               }
             },
+            generateId,
           });
         },
         experimental_onFunctionCall,
