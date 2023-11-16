@@ -289,8 +289,11 @@ The `useChat` function returns an object containing several helper methods and v
     ],
     [
       'handleSubmit',
-      '(e: React.FormEvent<HTMLFormElement>) => void',
-      'Form submission handler that automatically resets the input field and appends a user message.',
+      '(e: React.FormEvent<HTMLFormElement>, options: ChatRequestOptions) => void',
+      'Form submission handler that automatically resets the input field and appends a user message.' +
+        'The chat request options can have a `data` property ' +
+        'that you can use to send an extra body object to the API endpoint in addition to the `messages` array.',
+      ,
     ],
     [
       'isLoading',
