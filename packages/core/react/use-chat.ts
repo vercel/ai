@@ -1,24 +1,22 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
-import { nanoid, createChunkDecoder, COMPLEX_HEADER } from '../shared/utils';
+import { nanoid } from '../shared/utils';
 
 import type {
   ChatRequest,
+  ChatRequestOptions,
   CreateMessage,
   Message,
   UseChatOptions,
-  ChatRequestOptions,
-  FunctionCall,
 } from '../shared/types';
-import { parseComplexResponse } from './parse-complex-response';
 
+import { callApi } from '../shared/call-api';
+import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ReactResponseRow,
   experimental_StreamingReactResponse,
 } from '../streams/streaming-react-response';
-import { callApi } from '../shared/call-api';
-import { processChatStream } from '../shared/process-chat-stream';
-export type { Message, CreateMessage, UseChatOptions };
+export type { CreateMessage, Message, UseChatOptions };
 
 export type UseChatHelpers = {
   /** Current messages in the chat */

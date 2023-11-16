@@ -1,5 +1,5 @@
-import { createChunkDecoder, getStreamString } from './utils';
-import { getStreamStringTypeAndValue } from './utils';
+import { formatStreamPart } from './stream-parts';
+import { createChunkDecoder } from './utils';
 
 describe('utils', () => {
   describe('createChunkDecoder', () => {
@@ -7,7 +7,7 @@ describe('utils', () => {
       const decoder = createChunkDecoder(true);
 
       const encoder = new TextEncoder();
-      const chunk = encoder.encode(getStreamString('text', 'Hello, world!'));
+      const chunk = encoder.encode(formatStreamPart('text', 'Hello, world!'));
       const values = decoder(chunk);
 
       expect(values).toStrictEqual([{ type: 'text', value: 'Hello, world!' }]);
@@ -24,22 +24,29 @@ describe('utils', () => {
 
       const encoder = new TextEncoder();
       const chunk = encoder.encode(
-        getStreamString('function_call', functionCall),
+        formatStreamPart('function_call', {
+          function_call: functionCall,
+        }),
       );
       const values = decoder(chunk);
 
       expect(values).toStrictEqual([
-        { type: 'function_call', value: functionCall },
+        {
+          type: 'function_call',
+          value: {
+            function_call: functionCall,
+          },
+        },
       ]);
     });
 
     it('should correctly decode data chunk in complex mode', () => {
-      const data = { test: 'value' };
+      const data = [{ test: 'value' }];
 
       const decoder = createChunkDecoder(true);
 
       const encoder = new TextEncoder();
-      const chunk = encoder.encode(getStreamString('data', data));
+      const chunk = encoder.encode(formatStreamPart('data', data));
       const values = decoder(chunk);
 
       expect(values).toStrictEqual([{ type: 'data', value: data }]);
@@ -57,10 +64,10 @@ describe('utils', () => {
 
       const enqueuedChunks = [];
       enqueuedChunks.push(
-        encoder.encode(getStreamString('text', normalDecode(chunk1))),
+        encoder.encode(formatStreamPart('text', normalDecode(chunk1))),
       );
       enqueuedChunks.push(
-        encoder.encode(getStreamString('text', normalDecode(chunk2))),
+        encoder.encode(formatStreamPart('text', normalDecode(chunk2))),
       );
 
       let fullDecodedString = '';
@@ -89,42 +96,6 @@ describe('utils', () => {
       }
 
       expect(values + secondValues).toBe('♥');
-    });
-  });
-
-  describe('getStreamStringTypeAndValue', () => {
-    it('should correctly parse a text stream string', () => {
-      const input = '0:Hello, world!';
-
-      expect(getStreamStringTypeAndValue(input)).toEqual({
-        type: 'text',
-        value: 'Hello, world!',
-      });
-    });
-
-    it('should correctly parse a function call stream string', () => {
-      const input =
-        '1:{"name":"get_current_weather","arguments":"{\\"location\\": \\"Charlottesville, Virginia\\",\\"format\\": \\"celsius\\"}"}';
-
-      expect(getStreamStringTypeAndValue(input)).toEqual({
-        type: 'function_call',
-        value: {
-          name: 'get_current_weather',
-          arguments:
-            '{"location": "Charlottesville, Virginia","format": "celsius"}',
-        },
-      });
-    });
-
-    it('should correctly parse a data stream string', () => {
-      const input = '2:{"test":"value"}';
-      const expectedOutput = { type: 'data', value: { test: 'value' } };
-      expect(getStreamStringTypeAndValue(input)).toEqual(expectedOutput);
-    });
-
-    it('should throw an error if the input is not a valid stream string', () => {
-      const input = 'invalid stream string';
-      expect(() => getStreamStringTypeAndValue(input)).toThrow();
     });
   });
 });
