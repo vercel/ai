@@ -1,6 +1,6 @@
 'use client';
 
-import { Message, useAssistant_experimental } from 'ai/react';
+import { Message, experimental_useAssistant as useAssistant } from 'ai/react';
 import { useEffect, useRef } from 'react';
 
 const roleToColorMap: Record<Message['role'], string> = {
@@ -12,7 +12,7 @@ const roleToColorMap: Record<Message['role'], string> = {
 
 export default function Chat() {
   const { status, messages, input, submitMessage, handleInputChange, error } =
-    useAssistant_experimental({
+    useAssistant({
       api: '/api/assistant',
     });
 

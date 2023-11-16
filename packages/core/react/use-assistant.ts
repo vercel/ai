@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/rules-of-hooks */
+
 import { useState } from 'react';
 import { processMessageStream } from '../shared/process-message-stream';
 import { Message } from '../shared/types';
@@ -5,7 +7,7 @@ import { parseStreamPart } from '../shared/stream-parts';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
-export function useAssistant_experimental({
+export function experimental_useAssistant({
   api,
   threadId: threadIdParam,
 }: {
