@@ -1,5 +1,19 @@
 # ai
 
+## 2.2.24
+
+### Patch Changes
+
+- 69ca8f5: ai/react: add experimental_useAssistant hook and experimental_AssistantResponse
+- 3e2299e: experimental_StreamData/StreamingReactResponse: optimize parsing, improve types
+- 70bd2ac: ai/solid: add experimental_StreamData support to useChat
+
+## 2.2.23
+
+### Patch Changes
+
+- 5a04321: add StreamData support to StreamingReactResponse, add client-side data API to react/use-chat
+
 ## 2.2.22
 
 ### Patch Changes

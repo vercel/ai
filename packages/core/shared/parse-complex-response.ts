@@ -1,30 +1,40 @@
-import type { FunctionCall, JSONValue, Message } from '../shared/types';
-import { nanoid, createChunkDecoder } from '../shared/utils';
+import type { FunctionCall, JSONValue, Message } from './types';
+import { createChunkDecoder, nanoid } from './utils';
 
 type PrefixMap = {
   text?: Message;
-  function_call?:
-    | string
-    | Pick<Message, 'function_call' | 'role' | 'content' | 'name'>;
-  data?: JSONValue[];
+  function_call?: Message & {
+    role: 'assistant';
+    function_call: FunctionCall;
+  };
+  data: JSONValue[];
 };
 
 export async function parseComplexResponse({
   reader,
   abortControllerRef,
   update,
+  onFinish,
+  generateId = nanoid,
+  getCurrentDate = () => new Date(),
 }: {
   reader: ReadableStreamDefaultReader<Uint8Array>;
-  abortControllerRef: {
+  abortControllerRef?: {
     current: AbortController | null;
   };
   update: (merged: Message[], data: JSONValue[] | undefined) => void;
+  onFinish?: (prefixMap: PrefixMap) => void;
+  generateId?: () => string;
+  getCurrentDate?: () => Date;
 }) {
+  const createdAt = getCurrentDate();
+
   const decode = createChunkDecoder(true);
-  const createdAt = new Date();
-  const prefixMap: PrefixMap = {};
+  const prefixMap: PrefixMap = {
+    data: [],
+  };
   const NEWLINE = '\n'.charCodeAt(0);
-  let chunks: Uint8Array[] = [];
+  const chunks: Uint8Array[] = [];
   let totalLength = 0;
 
   while (true) {
@@ -71,7 +81,7 @@ export async function parseComplexResponse({
           };
         } else {
           prefixMap['text'] = {
-            id: nanoid(),
+            id: generateId(),
             role: 'assistant',
             content: value,
             createdAt,
@@ -82,38 +92,22 @@ export async function parseComplexResponse({
       let functionCallMessage: Message | null = null;
 
       if (type === 'function_call') {
-        prefixMap['function_call'] = value;
+        prefixMap['function_call'] = {
+          id: generateId(),
+          role: 'assistant',
+          content: '',
+          function_call: value.function_call,
+          name: value.function_call.name,
+          createdAt,
+        };
 
-        let functionCall = prefixMap['function_call'];
-        // Ensure it hasn't been parsed
-        if (functionCall && typeof functionCall === 'string') {
-          const parsedFunctionCall: FunctionCall = JSON.parse(
-            functionCall as string,
-          ).function_call;
-
-          functionCallMessage = {
-            id: nanoid(),
-            role: 'assistant',
-            content: '',
-            function_call: parsedFunctionCall,
-            name: parsedFunctionCall.name,
-            createdAt,
-          };
-
-          prefixMap['function_call'] = functionCallMessage as any;
-        }
+        functionCallMessage = prefixMap['function_call'];
       }
 
       if (type === 'data') {
-        const parsedValue = JSON.parse(value);
-        if (prefixMap['data']) {
-          prefixMap['data'] = [...prefixMap['data'], ...parsedValue];
-        } else {
-          prefixMap['data'] = parsedValue;
-        }
+        prefixMap['data'].push(...value);
       }
 
-      const data = prefixMap['data'];
       const responseMessage = prefixMap['text'];
 
       // We add function calls and response messages to the messages[], but data is its own thing
@@ -121,15 +115,23 @@ export async function parseComplexResponse({
         Boolean,
       ) as Message[];
 
-      update(merged, data);
+      update(merged, [...prefixMap['data']]); // make a copy of the data array
 
       // The request has been aborted, stop reading the stream.
-      if (abortControllerRef.current === null) {
+      // If abortControllerRef is undefined, this is intentionally not executed.
+      if (abortControllerRef?.current === null) {
         reader.cancel();
         break;
       }
     }
   }
 
-  return prefixMap;
+  onFinish?.(prefixMap);
+
+  return {
+    messages: [prefixMap.text, prefixMap.function_call].filter(
+      Boolean,
+    ) as Message[],
+    data: prefixMap.data,
+  };
 }

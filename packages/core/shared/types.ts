@@ -73,6 +73,7 @@ export type ChatRequest = {
   options?: RequestOptions;
   functions?: Array<Function>;
   function_call?: FunctionCall;
+  data?: Record<string, string>;
 };
 
 export type FunctionCallHandler = (
@@ -89,6 +90,7 @@ export type ChatRequestOptions = {
   options?: RequestOptions;
   functions?: Array<Function>;
   function_call?: FunctionCall;
+  data?: Record<string, string>;
 };
 
 export type UseChatOptions = {
@@ -249,3 +251,14 @@ export type JSONValue =
   | boolean
   | { [x: string]: JSONValue }
   | Array<JSONValue>;
+
+export type AssistantMessage = {
+  id: string;
+  role: 'assistant';
+  content: Array<{
+    type: 'text';
+    text: {
+      value: string;
+    };
+  }>;
+};

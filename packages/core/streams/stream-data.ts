@@ -1,5 +1,5 @@
+import { formatStreamPart } from '../shared/stream-parts';
 import { JSONValue } from '../shared/types';
-import { getStreamString } from '../shared/utils';
 
 /**
  * A stream wrapper to send custom JSON-encoded data back to the client.
@@ -33,7 +33,7 @@ export class experimental_StreamData {
         // add buffered data to the stream
         if (self.data.length > 0) {
           const encodedData = self.encoder.encode(
-            getStreamString('data', JSON.stringify(self.data)),
+            formatStreamPart('data', self.data),
           );
           self.data = [];
           controller.enqueue(encodedData);
@@ -60,7 +60,7 @@ export class experimental_StreamData {
 
         if (self.data.length) {
           const encodedData = self.encoder.encode(
-            getStreamString('data', JSON.stringify(self.data)),
+            formatStreamPart('data', self.data),
           );
           controller.enqueue(encodedData);
         }
@@ -109,7 +109,7 @@ export function createStreamDataTransformer(
   return new TransformStream({
     transform: async (chunk, controller) => {
       const message = decoder.decode(chunk);
-      controller.enqueue(encoder.encode(getStreamString('text', message)));
+      controller.enqueue(encoder.encode(formatStreamPart('text', message)));
     },
   });
 }

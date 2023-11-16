@@ -311,3 +311,85 @@ const openai = new OpenAI({
   The OpenAI SDK now supports Edge Runtime out of the box, so we recommend using
   the official `openai` library instead.
 </Callout>
+
+## Guide: Using Images with GPT 4 Vision and useChat
+
+You can use the extra `data` property that is part of `handleSubmit` to send additional data
+such as an image URL or a base64 encoded image to the server
+
+```tsx filename="app/page.tsx" showLineNumbers
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.length > 0
+        ? messages.map(m => (
+            <div key={m.id} className="whitespace-pre-wrap">
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))
+        : null}
+
+      <form
+        onSubmit={e => {
+          handleSubmit(e, {
+            // data could contain the URL of an image that was uploaded to your service, or a base64 encoded image:
+            data: {
+              imageUrl:
+                'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Field_sparrow_in_CP_%2841484%29_%28cropped%29.jpg/733px-Field_sparrow_in_CP_%2841484%29_%28cropped%29.jpg',
+            },
+          });
+        }}
+      >
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="What does the image show..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+On the server, you can pass that information to GPT-4 Vision.
+
+```tsx filename="app/api/chat/route.ts" showLineNumbers
+export async function POST(req: Request) {
+  // 'data' contains the additional data that you have sent:
+  const { messages, data } = await req.json();
+
+  const initialMessages = messages.slice(0, -1);
+  const currentMessage = messages[messages.length - 1];
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4-vision-preview', // use a GPT-4 vision model
+    stream: true,
+    max_tokens: 150,
+    messages: [
+      ...initialMessages,
+      {
+        ...currentMessage,
+        content: [
+          { type: 'text', text: currentMessage.content },
+
+          // forward the image information to OpenAI:
+          {
+            type: 'image_url',
+            image_url: data.imageUrl,
+          },
+        ],
+      },
+    ],
+  });
+
+  const stream = OpenAIStream(response);
+  return new StreamingTextResponse(stream);
+}
+```

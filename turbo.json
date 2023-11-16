@@ -9,7 +9,8 @@
         "OPENAI_API_BASE",
         "HUGGINGFACE_API_KEY",
         "REPLICATE_API_KEY",
-        "NODE_ENV"
+        "NODE_ENV",
+        "ASSISTANT_ID"
       ],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },

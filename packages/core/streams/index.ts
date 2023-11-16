@@ -10,3 +10,4 @@ export * from '../shared/types';
 export * from '../shared/utils';
 export * from './stream-data';
 export * from './streaming-react-response';
+export * from './assistant-response';

@@ -1,4 +1,5 @@
-import { createChunkDecoder, getStreamString } from './utils';
+import { formatStreamPart } from './stream-parts';
+import { createChunkDecoder } from './utils';
 
 describe('utils', () => {
   describe('createChunkDecoder', () => {
@@ -6,7 +7,7 @@ describe('utils', () => {
       const decoder = createChunkDecoder(true);
 
       const encoder = new TextEncoder();
-      const chunk = encoder.encode(getStreamString('text', 'Hello, world!'));
+      const chunk = encoder.encode(formatStreamPart('text', 'Hello, world!'));
       const values = decoder(chunk);
 
       expect(values).toStrictEqual([{ type: 'text', value: 'Hello, world!' }]);
@@ -23,22 +24,29 @@ describe('utils', () => {
 
       const encoder = new TextEncoder();
       const chunk = encoder.encode(
-        getStreamString('function_call', functionCall),
+        formatStreamPart('function_call', {
+          function_call: functionCall,
+        }),
       );
       const values = decoder(chunk);
 
       expect(values).toStrictEqual([
-        { type: 'function_call', value: functionCall },
+        {
+          type: 'function_call',
+          value: {
+            function_call: functionCall,
+          },
+        },
       ]);
     });
 
     it('should correctly decode data chunk in complex mode', () => {
-      const data = { test: 'value' };
+      const data = [{ test: 'value' }];
 
       const decoder = createChunkDecoder(true);
 
       const encoder = new TextEncoder();
-      const chunk = encoder.encode(getStreamString('data', data));
+      const chunk = encoder.encode(formatStreamPart('data', data));
       const values = decoder(chunk);
 
       expect(values).toStrictEqual([{ type: 'data', value: data }]);
@@ -56,10 +64,10 @@ describe('utils', () => {
 
       const enqueuedChunks = [];
       enqueuedChunks.push(
-        encoder.encode(getStreamString('text', normalDecode(chunk1))),
+        encoder.encode(formatStreamPart('text', normalDecode(chunk1))),
       );
       enqueuedChunks.push(
-        encoder.encode(getStreamString('text', normalDecode(chunk2))),
+        encoder.encode(formatStreamPart('text', normalDecode(chunk2))),
       );
 
       let fullDecodedString = '';
@@ -78,8 +86,7 @@ describe('utils', () => {
 
     it('should correctly decode streamed utf8 chunks in simple mode', () => {
       const decoder = createChunkDecoder(false);
-      const encoder = new TextEncoder();
-      // const prefixChunkUint8 = encoder.encode('0:')
+
       const chunk1 = new Uint8Array([226, 153]);
       const chunk2 = new Uint8Array([165]);
       const values = decoder(chunk1);
