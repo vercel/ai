@@ -4,6 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { mockFetch } from '../tests/utils/mock-fetch';
 import { useChat } from './use-chat';
 
+// mock nanoid import
+jest.mock('nanoid', () => ({
+  nanoid: () => Math.random().toString(36).slice(2, 9),
+}));
+
 describe('useChat', () => {
   afterEach(() => {
     jest.restoreAllMocks();

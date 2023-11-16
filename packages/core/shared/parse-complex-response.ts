@@ -1,5 +1,5 @@
-import type { FunctionCall, JSONValue, Message } from '../shared/types';
-import { createChunkDecoder, nanoid } from '../shared/utils';
+import type { FunctionCall, JSONValue, Message } from './types';
+import { createChunkDecoder, nanoid } from './utils';
 
 type PrefixMap = {
   text?: Message;

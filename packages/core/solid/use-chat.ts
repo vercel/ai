@@ -1,14 +1,17 @@
 import { Accessor, Resource, Setter, createSignal } from 'solid-js';
 import { useSWRStore } from 'solid-swr-store';
 import { createSWRStore } from 'swr-store';
-
+import { callApi } from '../shared/call-api';
+import { processChatStream } from '../shared/process-chat-stream';
 import type {
+  ChatRequest,
   CreateMessage,
+  JSONValue,
   Message,
   RequestOptions,
   UseChatOptions,
 } from '../shared/types';
-import { createChunkDecoder, nanoid } from '../shared/utils';
+import { nanoid } from '../shared/utils';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -51,6 +54,8 @@ export type UseChatHelpers = {
   handleSubmit: (e: any) => void;
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;
+  /** Additional data added on the server via StreamData */
+  data: Accessor<JSONValue[] | undefined>;
 };
 
 let uniqueId = 0;
@@ -68,6 +73,7 @@ export function useChat({
   initialMessages = [],
   initialInput = '',
   sendExtraMessageFields,
+  experimental_onFunctionCall,
   onResponse,
   onFinish,
   onError,
@@ -79,9 +85,11 @@ export function useChat({
   const chatId = id || `chat-${uniqueId++}`;
 
   const key = `${api}|${chatId}`;
-  const data = useSWRStore(chatApiStore, () => [key], {
+
+  // Because of the `initialData` option, the `data` will never be `undefined`:
+  const messages = useSWRStore(chatApiStore, () => [key], {
     initialData: initialMessages,
-  });
+  }) as Resource<Message[]>;
 
   const mutate = (data: Message[]) => {
     store[key] = data;
@@ -91,10 +99,10 @@ export function useChat({
     });
   };
 
-  // Because of the `initialData` option, the `data` will never be `undefined`.
-  const messages = data as Resource<Message[]>;
-
   const [error, setError] = createSignal<undefined | Error>(undefined);
+  const [streamData, setStreamData] = createSignal<JSONValue[] | undefined>(
+    undefined,
+  );
   const [isLoading, setIsLoading] = createSignal(false);
 
   let abortController: AbortController | null = null;
@@ -108,107 +116,74 @@ export function useChat({
 
       abortController = new AbortController();
 
+      const getCurrentMessages = () =>
+        chatApiStore.get([key], {
+          shouldRevalidate: false,
+        });
+
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
-      const previousMessages = chatApiStore.get([key], {
-        shouldRevalidate: false,
-      });
+      const previousMessages = getCurrentMessages();
       mutate(messagesSnapshot);
 
-      const res = await fetch(api, {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: sendExtraMessageFields
-            ? messagesSnapshot
-            : messagesSnapshot.map(
-                ({ role, content, name, function_call }) => ({
-                  role,
-                  content,
-                  ...(name !== undefined && { name }),
-                  ...(function_call !== undefined && {
-                    function_call: function_call,
+      let chatRequest: ChatRequest = {
+        messages: messagesSnapshot,
+        options,
+      };
+
+      await processChatStream({
+        getStreamedResponse: async () => {
+          const existingData = streamData() ?? [];
+
+          return await callApi({
+            api,
+            messages: sendExtraMessageFields
+              ? chatRequest.messages
+              : chatRequest.messages.map(
+                  ({ role, content, name, function_call }) => ({
+                    role,
+                    content,
+                    ...(name !== undefined && { name }),
+                    ...(function_call !== undefined && {
+                      function_call,
+                    }),
                   }),
-                }),
-              ),
-          ...body,
-          ...options?.body,
-        }),
-        headers: {
-          ...headers,
-          ...options?.headers,
+                ),
+            body: {
+              ...body,
+              ...options?.body,
+            },
+            headers: {
+              ...headers,
+              ...options?.headers,
+            },
+            abortController: () => abortController,
+            credentials,
+            onResponse,
+            onUpdate(merged, data) {
+              mutate([...chatRequest.messages, ...merged]);
+              setStreamData([...existingData, ...(data ?? [])]);
+            },
+            onFinish,
+            appendMessage(message) {
+              mutate([...chatRequest.messages, message]);
+            },
+            restoreMessagesOnFailure() {
+              // Restore the previous messages if the request fails.
+              if (previousMessages.status === 'success') {
+                mutate(previousMessages.data);
+              }
+            },
+          });
         },
-        signal: abortController.signal,
-        credentials,
-      }).catch(err => {
-        // Restore the previous messages if the request fails.
-        if (previousMessages.status === 'success') {
-          mutate(previousMessages.data);
-        }
-        throw err;
+        experimental_onFunctionCall,
+        updateChatRequest(newChatRequest) {
+          chatRequest = newChatRequest;
+        },
+        getCurrentMessages: () => getCurrentMessages().data,
       });
 
-      if (onResponse) {
-        try {
-          await onResponse(res);
-        } catch (err) {
-          throw err;
-        }
-      }
-
-      if (!res.ok) {
-        // Restore the previous messages if the request fails.
-        if (previousMessages.status === 'success') {
-          mutate(previousMessages.data);
-        }
-        throw new Error(
-          (await res.text()) || 'Failed to fetch the chat response.',
-        );
-      }
-      if (!res.body) {
-        throw new Error('The response body is empty.');
-      }
-
-      let result = '';
-      const createdAt = new Date();
-      const replyId = nanoid();
-      const reader = res.body.getReader();
-      const decoder = createChunkDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-        // Update the chat state with the new message tokens.
-        result += decoder(value);
-        mutate([
-          ...messagesSnapshot,
-          {
-            id: replyId,
-            createdAt,
-            content: result,
-            role: 'assistant',
-          },
-        ]);
-
-        // The request has been aborted, stop reading the stream.
-        if (abortController === null) {
-          reader.cancel();
-          break;
-        }
-      }
-
-      if (onFinish) {
-        onFinish({
-          id: replyId,
-          createdAt,
-          content: result,
-          role: 'assistant',
-        });
-      }
-
       abortController = null;
-      return result;
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
@@ -283,5 +258,6 @@ export function useChat({
     setInput,
     handleSubmit,
     isLoading,
+    data: streamData,
   };
 }
