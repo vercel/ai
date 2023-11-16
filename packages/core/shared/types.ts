@@ -243,3 +243,14 @@ export type JSONValue =
   | boolean
   | { [x: string]: JSONValue }
   | Array<JSONValue>;
+
+export type AssistantMessage = {
+  id: string;
+  role: 'assistant';
+  content: Array<{
+    type: 'text';
+    text: {
+      value: string;
+    };
+  }>;
+};
