@@ -1,12 +1,8 @@
 import { customAlphabet } from 'nanoid/non-secure';
-import { JSONValue } from './types';
 import {
   StreamPartType,
-  dataStreamPart,
-  functionCallStreamPart,
+  StreamStringPrefixes,
   parseStreamPart,
-  streamPartsByCode,
-  textStreamPart,
 } from './stream-parts';
 
 // 7-character random string
@@ -49,32 +45,6 @@ function createChunkDecoder(complex?: boolean) {
 }
 
 export { createChunkDecoder };
-
-/**
- * The map of prefixes for data in the stream
- *
- * - 0: Text from the LLM response
- * - 1: (OpenAI) function_call responses
- * - 2: custom JSON added by the user using `Data`
- *
- * Example:
- * ```
- * 0:Vercel
- * 0:'s
- * 0: AI
- * 0: AI
- * 0: SDK
- * 0: is great
- * 0:!
- * 2: { "someJson": "value" }
- * 1: {"function_call": {"name": "get_current_weather", "arguments": "{\\n\\"location\\": \\"Charlottesville, Virginia\\",\\n\\"format\\": \\"celsius\\"\\n}"}}
- *```
- */
-export const StreamStringPrefixes = {
-  [textStreamPart.name]: textStreamPart.code,
-  [functionCallStreamPart.name]: functionCallStreamPart.code,
-  [dataStreamPart.name]: dataStreamPart.code,
-} as const;
 
 export const isStreamStringEqualToType = (
   type: keyof typeof StreamStringPrefixes,

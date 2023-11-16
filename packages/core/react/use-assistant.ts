@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { processMessageStream } from '../shared/process-message-stream';
 import { Message } from '../shared/types';
-import { getStreamStringTypeAndValue } from '../shared/utils';
+import { parseStreamPart } from '../shared/stream-parts';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
@@ -54,37 +54,37 @@ export function useAssistant_experimental({
 
     await processMessageStream(result.body.getReader(), (message: string) => {
       try {
-        const { type, value } = getStreamStringTypeAndValue(message);
-        const messageContent = value as any;
+        const { type, value } = parseStreamPart(message);
 
         switch (type) {
-          case 'text': {
+          case 'assistant_message': {
             // append message:
             setMessages(messages => [
               ...messages,
               {
-                id: messageContent.id,
-                role: messageContent.role,
-                content: messageContent.content[0].text.value,
+                id: value.id,
+                role: value.role,
+                content: value.content[0].text.value,
               },
             ]);
+            break;
+          }
 
-            break;
-          }
-          case 'error': {
-            setError(messageContent);
-            break;
-          }
-          case 'control_data': {
-            setThreadId(messageContent.threadId);
+          case 'assistant_control_data': {
+            setThreadId(value.threadId);
 
             // set id of last message:
             setMessages(messages => {
               const lastMessage = messages[messages.length - 1];
-              lastMessage.id = messageContent.messageId;
+              lastMessage.id = value.messageId;
               return [...messages.slice(0, messages.length - 1), lastMessage];
             });
 
+            break;
+          }
+
+          case 'error': {
+            setError(value);
             break;
           }
         }
