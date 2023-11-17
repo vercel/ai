@@ -19,19 +19,33 @@ const homeTemperatures = {
 };
 
 export async function POST(req: Request) {
-  // Parse the request body
-  const input: {
-    threadId: string | null;
-    message: string;
-  } = await req.json();
+  const formData = await req.formData();
 
-  // Create a thread if needed
-  const threadId = input.threadId ?? (await openai.beta.threads.create({})).id;
+  const threadId =
+    (formData.get('threadId') as string) ||
+    (await openai.beta.threads.create({})).id;
+  const message = formData.get('message') as string;
+  const file = formData.get('file') as File;
+
+  let fileToUpload;
+  if (file.size > 0) {
+    // do not forget to activate the retrieval function for the assistant
+    const filename = file.name;
+    fileToUpload = await openai.files.create({
+      file: new File([file as Blob], filename),
+      purpose: 'assistants',
+    });
+  }
 
   // Add a message to the thread
   const createdMessage = await openai.beta.threads.messages.create(threadId, {
     role: 'user',
-    content: input.message,
+    content: message,
+    ...(fileToUpload
+      ? {
+          file_ids: [fileToUpload.id],
+        }
+      : {}),
   });
 
   return experimental_AssistantResponse(

@@ -1,7 +1,7 @@
 'use client';
 
 import { Message, experimental_useAssistant as useAssistant } from 'ai/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const roleToColorMap: Record<Message['role'], string> = {
   system: 'red',
@@ -11,18 +11,22 @@ const roleToColorMap: Record<Message['role'], string> = {
 };
 
 export default function Chat() {
-  const { status, messages, input, submitMessage, handleInputChange, error } =
-    useAssistant({
-      api: '/api/assistant',
-    });
+  const [file, setFile] = useState<File | null>(null);
+  const [message, setMessage] = useState<string>();
 
-  // When status changes to accepting messages, focus the input:
-  const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (status === 'awaiting_message') {
-      inputRef.current?.focus();
-    }
-  }, [status]);
+  const { status, messages, submitMessage, error } = useAssistant({
+    api: '/api/assistant',
+  });
+
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (status === 'in_progress') return;
+
+    setMessage('');
+    setFile(null);
+
+    await submitMessage(event);
+  };
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -51,14 +55,33 @@ export default function Chat() {
         <div className="h-8 w-full max-w-md p-2 mb-8 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse" />
       )}
 
-      <form onSubmit={submitMessage}>
+      <form
+        onSubmit={onSubmit}
+        className="fixed flex bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+      >
+        <label htmlFor="file" className="hover:cursor-pointer">
+          <span>📎</span>
+          {file && (
+            <span className="rounded-full w-2 h-2 bg-red-500  absolute top-2 left-6" />
+          )}
+          <input
+            onChange={e => {
+              if (e.target.files != null && e.target.files.length > 0) {
+                setFile(e.target.files[0]);
+              }
+            }}
+            type="file"
+            id="file"
+            name="file"
+            className="sr-only"
+          />
+        </label>
         <input
-          ref={inputRef}
-          disabled={status !== 'awaiting_message'}
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
+          className="ml-4 w-full"
           placeholder="What is the temperature in the living room?"
-          onChange={handleInputChange}
+          onChange={e => setMessage(e.target.value)}
+          value={message}
+          name="message"
         />
       </form>
     </div>

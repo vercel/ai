@@ -15,39 +15,26 @@ export function experimental_useAssistant({
   threadId?: string | undefined;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<AssistantStatus>('awaiting_message');
   const [error, setError] = useState<unknown | undefined>(undefined);
 
-  const handleInputChange = (e: any) => {
-    setInput(e.target.value);
-  };
-
-  const submitMessage = async (e: any) => {
+  // from form submit:
+  const submitMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (input === '') {
-      return;
-    }
+    const formData = new FormData(e.currentTarget);
+    formData.append('threadId', threadIdParam || threadId || '');
+
+    const content = formData.get('message') as string;
 
     setStatus('in_progress');
 
-    setMessages(messages => [
-      ...messages,
-      { id: '', role: 'user', content: input },
-    ]);
-
-    setInput('');
+    setMessages(messages => [...messages, { id: '', role: 'user', content }]);
 
     const result = await fetch(api, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        // always use user-provided threadId when available:
-        threadId: threadIdParam ?? threadId ?? null,
-        message: input,
-      }),
+      body: formData,
     });
 
     if (result.body == null) {
@@ -100,8 +87,6 @@ export function experimental_useAssistant({
 
   return {
     messages,
-    input,
-    handleInputChange,
     submitMessage,
     status,
     error,
