@@ -5,6 +5,9 @@
       "dependsOn": ["^build"],
       "env": [
         "ANTHROPIC_API_KEY",
+        "AWS_REGION",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
         "OPENAI_API_KEY",
         "OPENAI_API_BASE",
         "HUGGINGFACE_API_KEY",
