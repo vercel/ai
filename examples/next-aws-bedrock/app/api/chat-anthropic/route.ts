@@ -4,14 +4,6 @@ import {
 } from '@aws-sdk/client-bedrock-runtime';
 import { AWSBedrockAnthropicStream, StreamingTextResponse } from 'ai';
 
-const bedrockClient = new BedrockRuntimeClient({
-  region: process.env.AWS_REGION ?? '',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
-  },
-});
-
 // IMPORTANT! Set the runtime to edge
 export const runtime = 'edge';
 
@@ -34,6 +26,14 @@ function buildPrompt(
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { messages } = await req.json();
+
+  const bedrockClient = new BedrockRuntimeClient({
+    region: process.env.AWS_REGION ?? '',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
+    },
+  });
 
   // Ask Claude for a streaming chat completion given the prompt
   const bedrockResponse = await bedrockClient.send(
