@@ -7,9 +7,7 @@ import { createStreamDataTransformer } from './stream-data';
 
 interface AWSBedrockResponse {
   body?: AsyncIterable<{
-    chunk?: {
-      bytes?: Uint8Array;
-    };
+    chunk?: { bytes?: Uint8Array };
   }>;
 }
 
@@ -44,6 +42,7 @@ export function AWSBedrockCohereStream(
   res: AWSBedrockResponse,
   cb?: AIStreamCallbacksAndOptions,
 ): ReadableStream {
+  // As of 2023-11-17, Bedrock does not support streaming for Cohere:
   return AWSBedrockStream(res, cb, chunk => chunk.generations?.[0]?.text);
 }
 

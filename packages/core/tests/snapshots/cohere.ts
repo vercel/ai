@@ -20,3 +20,15 @@ export const cohereChunks = [
     },
   },
 ];
+
+export const cohereBedrockChunks = [
+  {
+    generations: [
+      {
+        finish_reason: 'COMPLETE',
+        id: '0c72c609-c8ac-4601-a323-653db56c8d80',
+        text: ' Hi! How can I help you today?',
+      },
+    ],
+  },
+];

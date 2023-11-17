@@ -35,3 +35,7 @@ export const createClient = (response: Response) => {
     },
   };
 };
+
+export function readAllChunks(response: Response) {
+  return createClient(response).readAll();
+}
