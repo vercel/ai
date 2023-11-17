@@ -12,11 +12,11 @@ interface AWSBedrockResponse {
 }
 
 async function* asDeltaIterable(
-  res: AWSBedrockResponse,
+  response: AWSBedrockResponse,
   extractTextDeltaFromChunk: (chunk: any) => string,
 ) {
   const decoder = new TextDecoder();
-  for await (const chunk of res.body ?? []) {
+  for await (const chunk of response.body ?? []) {
     const bytes = chunk.chunk?.bytes;
 
     if (bytes != null) {
@@ -32,18 +32,23 @@ async function* asDeltaIterable(
 }
 
 export function AWSBedrockAnthropicStream(
-  res: AWSBedrockResponse,
-  cb?: AIStreamCallbacksAndOptions,
+  response: AWSBedrockResponse,
+  callback?: AIStreamCallbacksAndOptions,
 ): ReadableStream {
-  return AWSBedrockStream(res, cb, chunk => chunk.completion);
+  return AWSBedrockStream(response, callback, chunk => chunk.completion);
 }
 
 export function AWSBedrockCohereStream(
-  res: AWSBedrockResponse,
-  cb?: AIStreamCallbacksAndOptions,
+  response: AWSBedrockResponse,
+  callbacks?: AIStreamCallbacksAndOptions,
 ): ReadableStream {
-  // As of 2023-11-17, Bedrock does not support streaming for Cohere:
-  return AWSBedrockStream(res, cb, chunk => chunk.generations?.[0]?.text);
+  return AWSBedrockStream(
+    response,
+    callbacks,
+    // As of 2023-11-17, Bedrock does not support streaming for Cohere,
+    // so we take the full generation:
+    chunk => chunk.generations?.[0]?.text,
+  );
 }
 
 export function AWSBedrockStream(
