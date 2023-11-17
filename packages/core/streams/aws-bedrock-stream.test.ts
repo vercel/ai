@@ -1,8 +1,11 @@
 import { StreamingTextResponse, experimental_StreamData } from '.';
+import { anthropicBedrockChunks } from '../tests/snapshots/anthropic';
 import { cohereBedrockChunks } from '../tests/snapshots/cohere';
 import { readAllChunks } from '../tests/utils/mock-client';
-import { setup } from '../tests/utils/mock-service';
-import { AWSBedrockCohereStream } from './aws-bedrock-stream';
+import {
+  AWSBedrockAnthropicStream,
+  AWSBedrockCohereStream,
+} from './aws-bedrock-stream';
 
 function simulateBedrockResponse(chunks: any[]) {
   chunks = chunks.slice(); // make a copy
@@ -29,6 +32,68 @@ function simulateBedrockResponse(chunks: any[]) {
 }
 
 describe('AWS Bedrock', () => {
+  describe('Anthropic', () => {
+    it('should be able to parse SSE and receive the streamed response', async () => {
+      const bedrockResponse = simulateBedrockResponse(anthropicBedrockChunks);
+      const stream = AWSBedrockAnthropicStream(bedrockResponse);
+      const response = new StreamingTextResponse(stream);
+
+      expect(await readAllChunks(response)).toEqual([
+        ' Hello',
+        ',',
+        ' world',
+        '.',
+      ]);
+    });
+
+    describe('StreamData protocol', () => {
+      it('should send text', async () => {
+        const data = new experimental_StreamData();
+
+        const bedrockResponse = simulateBedrockResponse(anthropicBedrockChunks);
+        const stream = AWSBedrockAnthropicStream(bedrockResponse, {
+          onFinal() {
+            data.close();
+          },
+          experimental_streamData: true,
+        });
+
+        const response = new StreamingTextResponse(stream, {}, data);
+
+        expect(await readAllChunks(response)).toEqual([
+          '0:" Hello"\n',
+          '0:","\n',
+          '0:" world"\n',
+          '0:"."\n',
+        ]);
+      });
+
+      it('should send text and data', async () => {
+        const data = new experimental_StreamData();
+
+        data.append({ t1: 'v1' });
+
+        const bedrockResponse = simulateBedrockResponse(anthropicBedrockChunks);
+        const stream = AWSBedrockAnthropicStream(bedrockResponse, {
+          onFinal() {
+            data.close();
+          },
+          experimental_streamData: true,
+        });
+
+        const response = new StreamingTextResponse(stream, {}, data);
+
+        expect(await readAllChunks(response)).toEqual([
+          '2:[{"t1":"v1"}]\n',
+          '0:" Hello"\n',
+          '0:","\n',
+          '0:" world"\n',
+          '0:"."\n',
+        ]);
+      });
+    });
+  });
+
   describe('Cohere', () => {
     it('should be able to parse SSE and receive the streamed response', async () => {
       const bedrockResponse = simulateBedrockResponse(cohereBedrockChunks);
