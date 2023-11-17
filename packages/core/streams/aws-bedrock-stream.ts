@@ -13,14 +13,22 @@ interface AWSBedrockResponse {
   }>;
 }
 
-async function* extractTextDelta(res: AWSBedrockResponse) {
+async function* asDeltaIterable(
+  res: AWSBedrockResponse,
+  extractTextDeltaFromChunk: (chunk: any) => string,
+) {
   const decoder = new TextDecoder();
   for await (const chunk of res.body ?? []) {
     const bytes = chunk.chunk?.bytes;
-    if (bytes) {
+
+    if (bytes != null) {
       const chunkText = decoder.decode(bytes);
       const chunkJSON = JSON.parse(chunkText);
-      yield chunkJSON.completion;
+      const delta = extractTextDeltaFromChunk(chunkJSON);
+
+      if (delta != null) {
+        yield delta;
+      }
     }
   }
 }
@@ -29,7 +37,26 @@ export function AWSBedrockAnthropicStream(
   res: AWSBedrockResponse,
   cb?: AIStreamCallbacksAndOptions,
 ): ReadableStream {
-  return readableFromAsyncIterable(extractTextDelta(res))
-    .pipeThrough(createCallbacksTransformer(cb))
-    .pipeThrough(createStreamDataTransformer(cb?.experimental_streamData));
+  return AWSBedrockStream(res, cb, chunk => chunk.completion);
+}
+
+export function AWSBedrockCohereStream(
+  res: AWSBedrockResponse,
+  cb?: AIStreamCallbacksAndOptions,
+): ReadableStream {
+  return AWSBedrockStream(res, cb, chunk => chunk.generations?.[0]?.text);
+}
+
+export function AWSBedrockStream(
+  response: AWSBedrockResponse,
+  callbacks: AIStreamCallbacksAndOptions | undefined,
+  extractTextDeltaFromChunk: (chunk: any) => string,
+) {
+  return readableFromAsyncIterable(
+    asDeltaIterable(response, extractTextDeltaFromChunk),
+  )
+    .pipeThrough(createCallbacksTransformer(callbacks))
+    .pipeThrough(
+      createStreamDataTransformer(callbacks?.experimental_streamData),
+    );
 }
