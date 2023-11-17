@@ -29,12 +29,6 @@ function simulateBedrockResponse(chunks: any[]) {
 }
 
 describe('AWS Bedrock', () => {
-  let server: ReturnType<typeof setup>;
-  beforeAll(() => {
-    server = setup(3032);
-  });
-  afterAll(async () => server.teardown());
-
   describe('Cohere', () => {
     it('should be able to parse SSE and receive the streamed response', async () => {
       const bedrockResponse = simulateBedrockResponse(cohereBedrockChunks);
