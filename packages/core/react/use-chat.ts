@@ -307,8 +307,8 @@ export function useChat({
 
         setError(err as Error);
       } finally {
-        mutateLoading(false);
         mutatePending(false);
+        mutateLoading(false);
       }
     },
     [
