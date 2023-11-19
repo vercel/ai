@@ -224,6 +224,11 @@ export function useChat({
     null,
   );
 
+  const { data: isPending = false, mutate: mutatePending } = useSWR<boolean>(
+    [chatId, 'pending'],
+    null,
+  );
+
   const { data: streamData, mutate: mutateStreamData } = useSWR<
     JSONValue[] | undefined
   >([chatId, 'streamData'], null);
@@ -258,14 +263,16 @@ export function useChat({
     async (chatRequest: ChatRequest) => {
       try {
         mutateLoading(true);
+        mutatePending(true);
         setError(undefined);
 
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
         await processChatStream({
-          getStreamedResponse: () =>
-            getStreamedResponse(
+          getStreamedResponse: () => {
+            mutatePending(false);
+            return getStreamedResponse(
               api,
               chatRequest,
               mutate,
@@ -277,7 +284,8 @@ export function useChat({
               onFinish,
               onResponse,
               sendExtraMessageFields,
-            ),
+            )
+          },
           experimental_onFunctionCall,
           updateChatRequest: chatRequestParam => {
             chatRequest = chatRequestParam;
@@ -300,6 +308,7 @@ export function useChat({
         setError(err as Error);
       } finally {
         mutateLoading(false);
+        mutatePending(false);
       }
     },
     [
