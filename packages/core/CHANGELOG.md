@@ -1,5 +1,14 @@
 # ai
 
+## 2.2.25
+
+### Patch Changes
+
+- 1e61c69: chore: specify the minimum react version to 18
+- 6aec2d2: Expose threadId in useAssistant
+- c2369df: Add AWS Bedrock support
+- 223fde3: ai/svelte: Add complex response parsing and StreamData support to useChat
+
 ## 2.2.24
 
 ### Patch Changes
