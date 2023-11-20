@@ -18,6 +18,10 @@ To run the example locally you need to:
 4. Set the region of the models, your access key and your secret access key as shown in [the example env file](./.env.local.example) but in a new file called `.env.local`
 5. `pnpm install` to install the required dependencies.
 6. `pnpm dev` to launch the development server.
+7. Go to the browser and try out a chatbot example for one of the following models:
+   - [Anthropic Claude](http://localhost:3000/anthropic): `anthropic.claude-v2`
+   - [Cohere](http://localhost:3000/cohere): `cohere.command-light-text-v14`
+   - [Llama 2](http://localhost:3000/llama2): `meta.llama2-13b-chat-v1`
 
 ## Learn More
 
