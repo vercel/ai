@@ -1,5 +1,9 @@
 import OpenAI from 'openai';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import {
+  OpenAIStream,
+  StreamingTextResponse,
+  experimental_StreamData,
+} from 'ai';
 import { env } from '$env/dynamic/private';
 import type { ChatCompletionCreateParams } from 'openai/resources/chat';
 
@@ -29,15 +33,6 @@ const functions: ChatCompletionCreateParams.Function[] = [
     },
   },
   {
-    name: 'get_current_time',
-    description: 'Get the current time',
-    parameters: {
-      type: 'object',
-      properties: {},
-      required: [],
-    },
-  },
-  {
     name: 'eval_code_in_browser',
     description: 'Execute javascript code in the browser with eval().',
     parameters: {
@@ -56,16 +51,52 @@ const functions: ChatCompletionCreateParams.Function[] = [
 ];
 
 export async function POST({ request }) {
-  const { messages, function_call } = await request.json();
+  const { messages } = await request.json();
 
   const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo-0613',
     stream: true,
     messages,
     functions,
-    function_call,
   });
 
-  const stream = OpenAIStream(response);
-  return new StreamingTextResponse(stream);
+  const data = new experimental_StreamData();
+  const stream = OpenAIStream(response, {
+    experimental_onFunctionCall: async (
+      { name, arguments: args },
+      createFunctionCallMessages,
+    ) => {
+      if (name === 'get_current_weather') {
+        // Call a weather API here
+        const weatherData = {
+          temperature: 20,
+          unit: args.format === 'celsius' ? 'C' : 'F',
+        };
+
+        data.append({
+          text: 'Some custom data',
+        });
+
+        const newMessages = createFunctionCallMessages(weatherData);
+        return openai.chat.completions.create({
+          messages: [...messages, ...newMessages],
+          stream: true,
+          model: 'gpt-3.5-turbo-0613',
+        });
+      }
+    },
+    onCompletion(completion) {
+      console.log('completion', completion);
+    },
+    onFinal(completion) {
+      data.close();
+    },
+    experimental_streamData: true,
+  });
+
+  data.append({
+    text: 'Hello, how are you?',
+  });
+
+  return new StreamingTextResponse(stream, {}, data);
 }
