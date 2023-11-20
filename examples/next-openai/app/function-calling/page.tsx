@@ -1,8 +1,7 @@
 'use client';
 
-import { Message } from 'ai/react';
-import { useChat } from 'ai/react';
-import { ChatRequest, FunctionCallHandler, nanoid } from 'ai';
+import { FunctionCallHandler, nanoid } from 'ai';
+import { Message, useChat } from 'ai/react';
 
 export default function Chat() {
   const functionCallHandler: FunctionCallHandler = async (
@@ -33,7 +32,7 @@ export default function Chat() {
     }
   };
 
-  const { messages, input, handleInputChange, handleSubmit, data } = useChat({
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
     api: '/api/chat-with-functions',
     experimental_onFunctionCall: functionCallHandler,
   });
