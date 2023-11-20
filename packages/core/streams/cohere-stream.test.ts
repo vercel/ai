@@ -3,7 +3,7 @@ import {
   StreamingTextResponse,
   experimental_StreamData,
 } from '.';
-import { createClient } from '../tests/utils/mock-client';
+import { readAllChunks } from '../tests/utils/mock-client';
 import { setup } from '../tests/utils/mock-service';
 
 describe('CohereStream', () => {
@@ -12,10 +12,6 @@ describe('CohereStream', () => {
     server = setup(3032);
   });
   afterAll(async () => server.teardown());
-
-  function readAllChunks(response: Response) {
-    return createClient(response).readAll();
-  }
 
   it('should be able to parse SSE and receive the streamed response', async () => {
     const stream = CohereStream(
@@ -38,7 +34,7 @@ describe('CohereStream', () => {
     ]);
   });
 
-  describe('StreamData prototcol', () => {
+  describe('StreamData protocol', () => {
     it('should send text', async () => {
       const data = new experimental_StreamData();
 
