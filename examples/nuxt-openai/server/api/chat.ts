@@ -19,7 +19,7 @@ export default defineLazyEventHandler(async () => {
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       stream: true,
-      messages: messages,
+      messages,
     });
 
     // Convert the response into a friendly text-stream
