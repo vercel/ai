@@ -1,10 +1,14 @@
 import { StreamingTextResponse, experimental_StreamData } from '.';
-import { anthropicBedrockChunks } from '../tests/snapshots/anthropic';
-import { cohereBedrockChunks } from '../tests/snapshots/cohere';
+import {
+  bedrockAnthropicChunks,
+  bedrockCohereChunks,
+  bedrockLlama2Chunks,
+} from '../tests/snapshots/aws-bedrock';
 import { readAllChunks } from '../tests/utils/mock-client';
 import {
   AWSBedrockAnthropicStream,
   AWSBedrockCohereStream,
+  AWSBedrockLlama2Stream,
 } from './aws-bedrock-stream';
 
 function simulateBedrockResponse(chunks: any[]) {
@@ -34,7 +38,7 @@ function simulateBedrockResponse(chunks: any[]) {
 describe('AWS Bedrock', () => {
   describe('Anthropic', () => {
     it('should be able to parse SSE and receive the streamed response', async () => {
-      const bedrockResponse = simulateBedrockResponse(anthropicBedrockChunks);
+      const bedrockResponse = simulateBedrockResponse(bedrockAnthropicChunks);
       const stream = AWSBedrockAnthropicStream(bedrockResponse);
       const response = new StreamingTextResponse(stream);
 
@@ -50,7 +54,7 @@ describe('AWS Bedrock', () => {
       it('should send text', async () => {
         const data = new experimental_StreamData();
 
-        const bedrockResponse = simulateBedrockResponse(anthropicBedrockChunks);
+        const bedrockResponse = simulateBedrockResponse(bedrockAnthropicChunks);
         const stream = AWSBedrockAnthropicStream(bedrockResponse, {
           onFinal() {
             data.close();
@@ -73,7 +77,7 @@ describe('AWS Bedrock', () => {
 
         data.append({ t1: 'v1' });
 
-        const bedrockResponse = simulateBedrockResponse(anthropicBedrockChunks);
+        const bedrockResponse = simulateBedrockResponse(bedrockAnthropicChunks);
         const stream = AWSBedrockAnthropicStream(bedrockResponse, {
           onFinal() {
             data.close();
@@ -96,7 +100,7 @@ describe('AWS Bedrock', () => {
 
   describe('Cohere', () => {
     it('should be able to parse SSE and receive the streamed response', async () => {
-      const bedrockResponse = simulateBedrockResponse(cohereBedrockChunks);
+      const bedrockResponse = simulateBedrockResponse(bedrockCohereChunks);
       const stream = AWSBedrockCohereStream(bedrockResponse);
       const response = new StreamingTextResponse(stream);
 
@@ -109,7 +113,7 @@ describe('AWS Bedrock', () => {
       it('should send text', async () => {
         const data = new experimental_StreamData();
 
-        const bedrockResponse = simulateBedrockResponse(cohereBedrockChunks);
+        const bedrockResponse = simulateBedrockResponse(bedrockCohereChunks);
         const stream = AWSBedrockCohereStream(bedrockResponse, {
           onFinal() {
             data.close();
@@ -129,7 +133,7 @@ describe('AWS Bedrock', () => {
 
         data.append({ t1: 'v1' });
 
-        const bedrockResponse = simulateBedrockResponse(cohereBedrockChunks);
+        const bedrockResponse = simulateBedrockResponse(bedrockCohereChunks);
         const stream = AWSBedrockCohereStream(bedrockResponse, {
           onFinal() {
             data.close();
@@ -142,6 +146,74 @@ describe('AWS Bedrock', () => {
         expect(await readAllChunks(response)).toEqual([
           '2:[{"t1":"v1"}]\n',
           '0:" Hi! How can I help you today?"\n',
+        ]);
+      });
+    });
+  });
+
+  describe('Llama2', () => {
+    it('should be able to parse SSE and receive the streamed response', async () => {
+      const bedrockResponse = simulateBedrockResponse(bedrockLlama2Chunks);
+      const stream = AWSBedrockLlama2Stream(bedrockResponse);
+      const response = new StreamingTextResponse(stream);
+
+      expect(await readAllChunks(response)).toEqual([
+        '',
+        ' Hello',
+        ',',
+        ' world',
+        '.',
+        '',
+      ]);
+    });
+
+    describe('StreamData protocol', () => {
+      it('should send text', async () => {
+        const data = new experimental_StreamData();
+
+        const bedrockResponse = simulateBedrockResponse(bedrockLlama2Chunks);
+        const stream = AWSBedrockLlama2Stream(bedrockResponse, {
+          onFinal() {
+            data.close();
+          },
+          experimental_streamData: true,
+        });
+
+        const response = new StreamingTextResponse(stream, {}, data);
+
+        expect(await readAllChunks(response)).toEqual([
+          '0:""\n',
+          '0:" Hello"\n',
+          '0:","\n',
+          '0:" world"\n',
+          '0:"."\n',
+          '0:""\n',
+        ]);
+      });
+
+      it('should send text and data', async () => {
+        const data = new experimental_StreamData();
+
+        data.append({ t1: 'v1' });
+
+        const bedrockResponse = simulateBedrockResponse(bedrockLlama2Chunks);
+        const stream = AWSBedrockLlama2Stream(bedrockResponse, {
+          onFinal() {
+            data.close();
+          },
+          experimental_streamData: true,
+        });
+
+        const response = new StreamingTextResponse(stream, {}, data);
+
+        expect(await readAllChunks(response)).toEqual([
+          '2:[{"t1":"v1"}]\n',
+          '0:""\n',
+          '0:" Hello"\n',
+          '0:","\n',
+          '0:" world"\n',
+          '0:"."\n',
+          '0:""\n',
         ]);
       });
     });

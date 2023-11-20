@@ -33,9 +33,9 @@ async function* asDeltaIterable(
 
 export function AWSBedrockAnthropicStream(
   response: AWSBedrockResponse,
-  callback?: AIStreamCallbacksAndOptions,
+  callbacks?: AIStreamCallbacksAndOptions,
 ): ReadableStream {
-  return AWSBedrockStream(response, callback, chunk => chunk.completion);
+  return AWSBedrockStream(response, callbacks, chunk => chunk.completion);
 }
 
 export function AWSBedrockCohereStream(
@@ -49,6 +49,13 @@ export function AWSBedrockCohereStream(
     // so we take the full generation:
     chunk => chunk.generations?.[0]?.text,
   );
+}
+
+export function AWSBedrockLlama2Stream(
+  response: AWSBedrockResponse,
+  callbacks?: AIStreamCallbacksAndOptions,
+): ReadableStream {
+  return AWSBedrockStream(response, callbacks, chunk => chunk.generation);
 }
 
 export function AWSBedrockStream(
