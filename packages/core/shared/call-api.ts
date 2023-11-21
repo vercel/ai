@@ -36,7 +36,10 @@ export async function callApi({
       messages,
       ...body,
     }),
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
     signal: abortController?.()?.signal,
     credentials,
   }).catch(err => {

@@ -5,6 +5,6 @@
   "exports": "./dist/index.mjs",
   "private": true,
   "peerDependencies": {
-    "react": "*"
+    "react": ">=18"
   }
 }

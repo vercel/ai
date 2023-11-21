@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "2.2.24",
+  "version": "2.2.25",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -76,6 +76,7 @@
     "swrv": "1.0.4"
   },
   "devDependencies": {
+    "@aws-sdk/client-bedrock-runtime": "3.451.0",
     "@edge-runtime/jest-environment": "1.1.0-beta.31",
     "@huggingface/inference": "2.6.4",
     "@testing-library/jest-dom": "^6.1.4",

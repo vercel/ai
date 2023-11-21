@@ -1,16 +1,19 @@
 import swrv from 'swrv';
-import { ref, unref } from 'vue';
 import type { Ref } from 'vue';
-
+import { ref, unref } from 'vue';
+import { callApi } from '../shared/call-api';
+import { processChatStream } from '../shared/process-chat-stream';
 import type {
-  Message,
+  ChatRequest,
   CreateMessage,
-  UseChatOptions,
+  JSONValue,
+  Message,
   RequestOptions,
+  UseChatOptions,
 } from '../shared/types';
-import { createChunkDecoder, nanoid } from '../shared/utils';
+import { nanoid } from '../shared/utils';
 
-export type { Message, CreateMessage, UseChatOptions };
+export type { CreateMessage, Message, UseChatOptions };
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
@@ -47,6 +50,9 @@ export type UseChatHelpers = {
   handleSubmit: (e: any) => void;
   /** Whether the API request is in progress */
   isLoading: Ref<boolean | undefined>;
+
+  /** Additional data added on the server via StreamData */
+  data: Ref<JSONValue[] | undefined>;
 };
 
 let uniqueId = 0;
@@ -61,6 +67,7 @@ export function useChat({
   initialMessages = [],
   initialInput = '',
   sendExtraMessageFields,
+  experimental_onFunctionCall,
   onResponse,
   onFinish,
   onError,
@@ -73,7 +80,7 @@ export function useChat({
   const chatId = id || `chat-${uniqueId++}`;
 
   const key = `${api}|${chatId}`;
-  const { data, mutate: originalMutate } = useSWRV<Message[]>(
+  const { data: messagesData, mutate: originalMutate } = useSWRV<Message[]>(
     key,
     () => store[key] || initialMessages,
   );
@@ -86,7 +93,7 @@ export function useChat({
   isLoading.value ??= false;
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
-  data.value ||= initialMessages;
+  messagesData.value ??= initialMessages;
 
   const mutate = (data?: Message[]) => {
     store[key] = data;
@@ -94,9 +101,11 @@ export function useChat({
   };
 
   // Because of the `initialData` option, the `data` will never be `undefined`.
-  const messages = data as Ref<Message[]>;
+  const messages = messagesData as Ref<Message[]>;
 
   const error = ref<undefined | Error>(undefined);
+  // cannot use JSONValue[] in ref because of infinite Typescript recursion:
+  const streamData = ref<undefined | unknown[]>(undefined);
 
   let abortController: AbortController | null = null;
   async function triggerRequest(
@@ -106,103 +115,76 @@ export function useChat({
     try {
       error.value = undefined;
       mutateLoading(() => true);
+
       abortController = new AbortController();
 
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
-      const previousMessages = messages.value;
+      const previousMessages = messagesData.value;
       mutate(messagesSnapshot);
 
-      const res = await fetch(api, {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: sendExtraMessageFields
-            ? messagesSnapshot
-            : messagesSnapshot.map(
-                ({ role, content, name, function_call }) => ({
-                  role,
-                  content,
-                  ...(name !== undefined && { name }),
-                  ...(function_call !== undefined && {
-                    function_call: function_call,
+      let chatRequest: ChatRequest = {
+        messages: messagesSnapshot,
+        options,
+      };
+
+      await processChatStream({
+        getStreamedResponse: async () => {
+          const existingData = (streamData.value ?? []) as JSONValue[];
+
+          return await callApi({
+            api,
+            messages: sendExtraMessageFields
+              ? chatRequest.messages
+              : chatRequest.messages.map(
+                  ({ role, content, name, function_call }) => ({
+                    role,
+                    content,
+                    ...(name !== undefined && { name }),
+                    ...(function_call !== undefined && {
+                      function_call: function_call,
+                    }),
                   }),
-                }),
-              ),
-          ...unref(body), // Use unref to unwrap the ref value
-          ...options?.body,
-        }),
-        headers: {
-          ...headers,
-          ...options?.headers,
+                ),
+            body: {
+              ...unref(body), // Use unref to unwrap the ref value
+              ...options?.body,
+            },
+            headers: {
+              ...headers,
+              ...options?.headers,
+            },
+            abortController: () => abortController,
+            credentials,
+            onResponse,
+            onUpdate(merged, data) {
+              mutate([...chatRequest.messages, ...merged]);
+              streamData.value = [...existingData, ...(data ?? [])];
+            },
+            onFinish(message) {
+              // workaround: sometimes the last chunk is not shown in the UI.
+              // push it twice to make sure it's displayed.
+              mutate([...chatRequest.messages, message]);
+              onFinish?.(message);
+            },
+            appendMessage(message) {
+              mutate([...chatRequest.messages, message]);
+            },
+            restoreMessagesOnFailure() {
+              // Restore the previous messages if the request fails.
+              mutate(previousMessages);
+            },
+            generateId,
+          });
         },
-        signal: abortController.signal,
-        credentials,
-      }).catch(err => {
-        // Restore the previous messages if the request fails.
-        mutate(previousMessages);
-        throw err;
+        experimental_onFunctionCall,
+        updateChatRequest(newChatRequest) {
+          chatRequest = newChatRequest;
+        },
+        getCurrentMessages: () => messages.value,
       });
 
-      if (onResponse) {
-        try {
-          await onResponse(res);
-        } catch (err) {
-          throw err;
-        }
-      }
-
-      if (!res.ok) {
-        // Restore the previous messages if the request fails.
-        mutate(previousMessages);
-        throw new Error(
-          (await res.text()) || 'Failed to fetch the chat response.',
-        );
-      }
-      if (!res.body) {
-        throw new Error('The response body is empty.');
-      }
-
-      let result = '';
-      const createdAt = new Date();
-      const replyId = generateId();
-      const reader = res.body.getReader();
-      const decoder = createChunkDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-        // Update the chat state with the new message tokens.
-        result += decoder(value);
-        mutate([
-          ...messagesSnapshot,
-          {
-            id: replyId,
-            createdAt,
-            content: result,
-            role: 'assistant',
-          },
-        ]);
-
-        // The request has been aborted, stop reading the stream.
-        if (abortController === null) {
-          reader.cancel();
-          break;
-        }
-      }
-
-      if (onFinish) {
-        onFinish({
-          id: replyId,
-          createdAt,
-          content: result,
-          role: 'assistant',
-        });
-      }
-
       abortController = null;
-      return result;
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
@@ -272,5 +254,6 @@ export function useChat({
     input,
     handleSubmit,
     isLoading,
+    data: streamData as Ref<undefined | JSONValue[]>,
   };
 }

@@ -41,7 +41,7 @@ describe('ReplicateStream', () => {
     expect(await readAllChunks(response)).toEqual([' Hello,', ' world', '.']);
   });
 
-  describe('StreamData prototcol', () => {
+  describe('StreamData protocol', () => {
     it('should send text', async () => {
       const data = new experimental_StreamData();
 

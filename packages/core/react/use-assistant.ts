@@ -100,6 +100,7 @@ export function experimental_useAssistant({
 
   return {
     messages,
+    threadId,
     input,
     handleInputChange,
     submitMessage,
