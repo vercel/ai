@@ -205,6 +205,7 @@ export function useChat({
             extraMetadata,
             get(messages),
             abortController,
+            generateId,
             onFinish,
             onResponse,
             sendExtraMessageFields,
