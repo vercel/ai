@@ -9,8 +9,8 @@
  */
 
 import { parseComplexResponse } from '../shared/parse-complex-response';
-import { JSONValue } from '../shared/types';
-import { createChunkDecoder } from '../shared/utils';
+import { IdGenerator, JSONValue } from '../shared/types';
+import { createChunkDecoder, nanoid } from '../shared/utils';
 import { experimental_StreamData } from './stream-data';
 
 type UINode = string | JSX.Element | JSX.Element[] | null | undefined;
@@ -36,6 +36,7 @@ export class experimental_StreamingReactResponse {
         data?: JSONValue[] | undefined;
       }) => UINode | Promise<UINode>;
       data?: experimental_StreamData;
+      generateId?: IdGenerator;
     },
   ) {
     let resolveFunc: (row: ReactResponseRow) => void = () => {};
@@ -70,6 +71,7 @@ export class experimental_StreamingReactResponse {
 
           lastPayload = payload;
         },
+        generateId: options.generateId ?? nanoid,
         onFinish: () => {
           // The last payload is resolved twice. This is necessary because we immediately
           // push out a payload, but we also need to forward the finish event with a payload.

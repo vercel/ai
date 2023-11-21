@@ -9,6 +9,7 @@ import type {
   JSONValue,
   Message,
   UseChatOptions,
+  IdGenerator,
 } from '../shared/types';
 
 import { callApi } from '../shared/call-api';
@@ -88,6 +89,7 @@ const getStreamedResponse = async (
   extraMetadataRef: React.MutableRefObject<any>,
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
+  generateId: IdGenerator,
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean,
@@ -111,7 +113,7 @@ const getStreamedResponse = async (
   if (typeof api !== 'string') {
     // In this case, we are handling a Server Action. No complex mode handling needed.
 
-    const replyId = nanoid();
+    const replyId = generateId();
     const createdAt = new Date();
     let responseMessage: Message = {
       id: replyId,
@@ -185,6 +187,7 @@ const getStreamedResponse = async (
       mutateStreamData([...(existingData || []), ...(data || [])], false);
     },
     onFinish,
+    generateId,
   });
 };
 
@@ -201,6 +204,7 @@ export function useChat({
   credentials,
   headers,
   body,
+  generateId = nanoid,
 }: Omit<UseChatOptions, 'api'> & {
   api?: string | StreamingReactResponseAction;
 } = {}): UseChatHelpers {
@@ -274,6 +278,7 @@ export function useChat({
               extraMetadataRef,
               messagesRef,
               abortControllerRef,
+              generateId,
               onFinish,
               onResponse,
               sendExtraMessageFields,
@@ -317,6 +322,7 @@ export function useChat({
       experimental_onFunctionCall,
       messagesRef.current,
       abortControllerRef.current,
+      generateId,
     ],
   );
 
@@ -326,7 +332,7 @@ export function useChat({
       { options, functions, function_call, data }: ChatRequestOptions = {},
     ) => {
       if (!message.id) {
-        message.id = nanoid();
+        message.id = generateId();
       }
 
       const chatRequest: ChatRequest = {
@@ -339,7 +345,7 @@ export function useChat({
 
       return triggerRequest(chatRequest);
     },
-    [triggerRequest],
+    [triggerRequest, generateId],
   );
 
   const reload = useCallback(

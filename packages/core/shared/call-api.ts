@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { parseComplexResponse } from './parse-complex-response';
-import { FunctionCall, JSONValue, Message } from './types';
+import { FunctionCall, IdGenerator, JSONValue, Message } from './types';
 import { COMPLEX_HEADER, createChunkDecoder } from './utils';
 
 export async function callApi({
@@ -15,6 +15,7 @@ export async function callApi({
   onResponse,
   onUpdate,
   onFinish,
+  generateId,
 }: {
   api: string;
   messages: Omit<Message, 'id'>[];
@@ -27,6 +28,7 @@ export async function callApi({
   onResponse?: (response: Response) => void | Promise<void>;
   onUpdate: (merged: Message[], data: JSONValue[] | undefined) => void;
   onFinish?: (message: Message) => void;
+  generateId: IdGenerator;
 }) {
   const response = await fetch(api, {
     method: 'POST',
@@ -78,6 +80,7 @@ export async function callApi({
           onFinish(prefixMap.text);
         }
       },
+      generateId,
     });
   } else {
     const createdAt = new Date();
@@ -85,7 +88,7 @@ export async function callApi({
 
     // TODO-STREAMDATA: Remove this once Stream Data is not experimental
     let streamedResponse = '';
-    const replyId = nanoid();
+    const replyId = generateId();
     let responseMessage: Message = {
       id: replyId,
       createdAt,

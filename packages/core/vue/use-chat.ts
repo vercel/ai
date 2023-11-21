@@ -74,6 +74,7 @@ export function useChat({
   credentials,
   headers,
   body,
+  generateId = nanoid,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
@@ -173,6 +174,7 @@ export function useChat({
               // Restore the previous messages if the request fails.
               mutate(previousMessages);
             },
+            generateId,
           });
         },
         experimental_onFunctionCall,
@@ -202,7 +204,7 @@ export function useChat({
 
   const append: UseChatHelpers['append'] = async (message, options) => {
     if (!message.id) {
-      message.id = nanoid();
+      message.id = generateId();
     }
     return triggerRequest(messages.value.concat(message as Message), options);
   };
