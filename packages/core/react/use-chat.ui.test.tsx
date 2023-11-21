@@ -10,11 +10,12 @@ jest.mock('nanoid', () => ({
 }));
 
 const TestComponent = () => {
-  const { messages, append, error } = useChat();
+  const { messages, append, error, data } = useChat();
 
   return (
     <div>
       {error && <div data-testid="error">{error.toString()}</div>}
+      {data && <div data-testid="data">{JSON.stringify(data)}</div>}
       {messages.map((m, idx) => (
         <div data-testid={`message-${idx}`} key={m.id}>
           {m.role === 'user' ? 'User: ' : 'AI: '}
@@ -50,6 +51,20 @@ describe('useChat', () => {
     expect(screen.getByTestId('message-1')).toHaveTextContent(
       'AI: Hello, world.',
     );
+  });
+
+  test('Shows streamed complex text response with data', async () => {
+    render(<TestComponent />);
+
+    mockFetchDataStream(['2:[{"t1":"v1"}]\n', '0:"Hello"\n']);
+
+    await userEvent.click(screen.getByTestId('button'));
+
+    await screen.findByTestId('data');
+    expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"v1"}]');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
   });
 
   test('Shows error response', async () => {
