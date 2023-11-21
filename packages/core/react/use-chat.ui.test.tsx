@@ -28,12 +28,11 @@ describe('useChat', () => {
             ))
           : null}
         <button
+          data-testid="button"
           onClick={() => {
-            append({ role: 'user', content: 'hello ai' });
+            append({ role: 'user', content: 'hi' });
           }}
-        >
-          Start chat
-        </button>
+        />
       </div>
     );
   };
@@ -43,11 +42,13 @@ describe('useChat', () => {
 
     mockFetch(['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n']);
 
-    userEvent.click(screen.getByText('Start chat'));
+    userEvent.click(screen.getByTestId('button'));
 
     await screen.findByTestId('message-1');
 
-    expect(screen.getByTestId('message-0')).toHaveTextContent('hello ai');
-    expect(screen.getByTestId('message-1')).toHaveTextContent('Hello, world.');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
   });
 });
