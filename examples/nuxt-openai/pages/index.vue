@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { useChat } from 'ai/vue'
+import { useChat } from 'ai/vue';
 
-const { messages, input, handleSubmit } = useChat({
-  headers: { 'Content-Type': 'application/json' }
-})
+const { messages, input, handleSubmit } = useChat();
 </script>
 
 <template>
