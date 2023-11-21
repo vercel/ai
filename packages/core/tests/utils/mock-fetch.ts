@@ -32,3 +32,32 @@ export function mockFetchDataStream(chunks: string[]) {
     } as unknown as Response;
   });
 }
+
+export function mockFetchError({
+  statusCode,
+  errorMessage,
+}: {
+  statusCode: number;
+  errorMessage: string;
+}) {
+  jest.spyOn(global, 'fetch').mockImplementation(async () => {
+    return {
+      url: 'https://example.com/api/chat',
+      ok: false,
+      status: statusCode,
+      bodyUsed: false,
+      body: {
+        getReader() {
+          return {
+            read() {
+              return Promise.resolve(errorMessage);
+            },
+            releaseLock() {},
+            cancel() {},
+          };
+        },
+      },
+      text: () => Promise.resolve(errorMessage),
+    } as unknown as Response;
+  });
+}
