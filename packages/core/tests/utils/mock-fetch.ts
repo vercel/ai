@@ -1,6 +1,6 @@
 import { COMPLEX_HEADER } from '../../shared/utils';
 
-export function mockFetch(chunks: string[]) {
+export function mockFetchDataStream(chunks: string[]) {
   jest.spyOn(global, 'fetch').mockImplementation(async () => {
     function* generateChunks() {
       for (const chunk of chunks) {

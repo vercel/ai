@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { mockFetch } from '../tests/utils/mock-fetch';
+import { mockFetchDataStream } from '../tests/utils/mock-fetch';
 import { useChat } from './use-chat';
 
 // mock nanoid import
@@ -40,7 +40,7 @@ describe('useChat', () => {
   test('Shows streamed complex text response', async () => {
     render(<TestComponent />);
 
-    mockFetch(['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n']);
+    mockFetchDataStream(['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n']);
 
     userEvent.click(screen.getByTestId('button'));
 
