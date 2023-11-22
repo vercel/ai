@@ -155,12 +155,12 @@ export function useCompletion({
         const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
 
         if (isComplexMode) {
-          await processDataStream(reader, ({ type, value }) => {
+          for await (const { type, value } of processDataStream(reader)) {
             if (type === 'text') {
               result += value;
               mutate(result, false);
             }
-          });
+          }
         } else {
           const decoder = createChunkDecoder();
 

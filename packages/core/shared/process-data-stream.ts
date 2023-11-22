@@ -1,15 +1,14 @@
 import { StreamPartType, parseStreamPart } from './stream-parts';
 
-export async function processDataStream(
+export async function* processDataStream(
   reader: ReadableStreamDefaultReader<Uint8Array>,
-  processStreamPart: (part: StreamPartType) => void | Promise<void>,
-) {
+): AsyncGenerator<StreamPartType> {
   const decoder = new TextDecoder();
   let buffer = '';
 
-  function processLine(line: string) {
+  async function* processLine(line: string) {
     // TODO error handling
-    processStreamPart(parseStreamPart(line));
+    yield parseStreamPart(line);
   }
 
   while (true) {
@@ -17,7 +16,7 @@ export async function processDataStream(
 
     if (done) {
       if (buffer.length > 0) {
-        processLine(buffer);
+        yield* processLine(buffer);
       }
       break;
     }
@@ -26,7 +25,8 @@ export async function processDataStream(
 
     let endIndex: number;
     while ((endIndex = buffer.indexOf('\n')) !== -1) {
-      processLine(buffer.substring(0, endIndex).trim());
+      const line = buffer.substring(0, endIndex).trim();
+      yield* processLine(line);
       buffer = buffer.substring(endIndex + 1); // Remove the processed instruction + delimiter
     }
   }

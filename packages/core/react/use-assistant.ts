@@ -54,8 +54,10 @@ export function experimental_useAssistant({
       throw new Error('The response body is empty.');
     }
 
-    await processDataStream(result.body.getReader(), ({ type, value }) => {
-      try {
+    try {
+      for await (const { type, value } of processDataStream(
+        result.body.getReader(),
+      )) {
         switch (type) {
           case 'assistant_message': {
             // append message:
@@ -88,10 +90,10 @@ export function experimental_useAssistant({
             break;
           }
         }
-      } catch (error) {
-        setError(error);
       }
-    });
+    } catch (error) {
+      setError(error);
+    }
 
     setStatus('awaiting_message');
   };
