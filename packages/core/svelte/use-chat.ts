@@ -1,6 +1,6 @@
 import { useSWR } from 'sswr';
 import { Readable, Writable, derived, get, writable } from 'svelte/store';
-import { callApi } from '../shared/call-api';
+import { callChatApi } from '../shared/call-chat-api';
 import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
@@ -91,7 +91,7 @@ const getStreamedResponse = async (
         }),
       }));
 
-  return await callApi({
+  return await callChatApi({
     api,
     messages: constructedMessagesPayload,
     body: {

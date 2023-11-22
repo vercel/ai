@@ -1,7 +1,7 @@
 import { Accessor, Resource, Setter, createSignal } from 'solid-js';
 import { useSWRStore } from 'solid-swr-store';
 import { createSWRStore } from 'swr-store';
-import { callApi } from '../shared/call-api';
+import { callChatApi } from '../shared/call-chat-api';
 import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
@@ -136,7 +136,7 @@ export function useChat({
         getStreamedResponse: async () => {
           const existingData = streamData() ?? [];
 
-          return await callApi({
+          return await callChatApi({
             api,
             messages: sendExtraMessageFields
               ? chatRequest.messages
