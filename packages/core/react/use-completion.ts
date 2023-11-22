@@ -155,8 +155,7 @@ export function useCompletion({
         const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
 
         if (isComplexMode) {
-          await processDataStream(reader, message => {
-            const { type, value } = parseStreamPart(message);
+          await processDataStream(reader, ({ type, value }) => {
             if (type === 'text') {
               result += value;
               mutate(result, false);

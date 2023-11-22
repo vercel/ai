@@ -54,10 +54,8 @@ export function experimental_useAssistant({
       throw new Error('The response body is empty.');
     }
 
-    await processDataStream(result.body.getReader(), (message: string) => {
+    await processDataStream(result.body.getReader(), ({ type, value }) => {
       try {
-        const { type, value } = parseStreamPart(message);
-
         switch (type) {
           case 'assistant_message': {
             // append message:
