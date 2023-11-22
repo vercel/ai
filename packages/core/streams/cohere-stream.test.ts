@@ -24,11 +24,8 @@ const server = setupServer(
       },
     });
 
-    // Send the mocked response immediately.
     return new HttpResponse(stream, {
-      headers: {
-        'Content-Type': 'text/plain',
-      },
+      headers: { 'Content-Type': 'text/event-stream' },
     });
   }),
 );
