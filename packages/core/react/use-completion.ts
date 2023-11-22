@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
 
-import { createChunkDecoder } from '../shared/utils';
+import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
 import { UseCompletionOptions, RequestOptions } from '../shared/types';
+import { processMessageStream } from '../shared/process-message-stream';
+import { parseStreamPart } from '../shared/stream-parts';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -149,22 +151,35 @@ export function useCompletion({
 
         let result = '';
         const reader = res.body.getReader();
-        const decoder = createChunkDecoder();
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
+        const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
 
-          // Update the completion state with the new message tokens.
-          result += decoder(value);
-          mutate(result, false);
+        if (isComplexMode) {
+          await processMessageStream(reader, message => {
+            const { type, value } = parseStreamPart(message);
+            if (type === 'text') {
+              result += value;
+              mutate(result, false);
+            }
+          });
+        } else {
+          const decoder = createChunkDecoder();
 
-          // The request has been aborted, stop reading the stream.
-          if (abortController === null) {
-            reader.cancel();
-            break;
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              break;
+            }
+
+            // Update the completion state with the new message tokens.
+            result += decoder(value);
+            mutate(result, false);
+
+            // The request has been aborted, stop reading the stream.
+            if (abortController === null) {
+              reader.cancel();
+              break;
+            }
           }
         }
 
