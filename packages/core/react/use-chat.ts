@@ -12,7 +12,7 @@ import type {
   IdGenerator,
 } from '../shared/types';
 
-import { callChatApi } from '../shared/call-chat-api';
+import { callApi } from '../shared/call-api';
 import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ReactResponseRow,
@@ -155,7 +155,7 @@ const getStreamedResponse = async (
     return responseMessage;
   }
 
-  return await callChatApi({
+  return await callApi({
     api,
     messages: constructedMessagesPayload,
     body: {

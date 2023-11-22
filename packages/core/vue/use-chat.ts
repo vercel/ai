@@ -1,7 +1,7 @@
 import swrv from 'swrv';
 import type { Ref } from 'vue';
 import { ref, unref } from 'vue';
-import { callChatApi } from '../shared/call-chat-api';
+import { callApi } from '../shared/call-api';
 import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
@@ -132,7 +132,7 @@ export function useChat({
         getStreamedResponse: async () => {
           const existingData = (streamData.value ?? []) as JSONValue[];
 
-          return await callChatApi({
+          return await callApi({
             api,
             messages: sendExtraMessageFields
               ? chatRequest.messages
