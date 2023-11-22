@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
 import { useState } from 'react';
-import { processDataStream } from '../shared/process-data-stream';
+import { readDataStream } from '../shared/read-data-stream';
 import { Message } from '../shared/types';
 import { parseStreamPart } from '../shared/stream-parts';
 
@@ -55,7 +55,7 @@ export function experimental_useAssistant({
     }
 
     try {
-      for await (const { type, value } of processDataStream(
+      for await (const { type, value } of readDataStream(
         result.body.getReader(),
       )) {
         switch (type) {

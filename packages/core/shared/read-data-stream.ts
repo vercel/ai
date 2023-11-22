@@ -1,6 +1,6 @@
 import { StreamPartType, parseStreamPart } from './stream-parts';
 
-export async function* processDataStream(
+export async function* readDataStream(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   {
     isAborted,
