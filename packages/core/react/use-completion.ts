@@ -155,7 +155,9 @@ export function useCompletion({
         const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
 
         if (isComplexMode) {
-          for await (const { type, value } of processDataStream(reader)) {
+          for await (const { type, value } of processDataStream(reader, {
+            isAborted: () => abortController === null,
+          })) {
             if (type === 'text') {
               result += value;
               mutate(result, false);
