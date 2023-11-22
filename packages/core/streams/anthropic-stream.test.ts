@@ -10,7 +10,7 @@ import Anthropic from '@anthropic-ai/sdk';
 describe('AnthropicStream', () => {
   let server: ReturnType<typeof setup>;
   beforeAll(() => {
-    server = setup(3034);
+    server = setup(3035);
   });
   afterAll(async () => server.teardown());
 
