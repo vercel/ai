@@ -641,6 +641,9 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4
     devDependencies:
+      '@anthropic-ai/sdk':
+        specifier: 0.9.1
+        version: 0.9.1
       '@aws-sdk/client-bedrock-runtime':
         specifier: 3.451.0
         version: 3.451.0
@@ -773,6 +776,23 @@ packages:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  /@anthropic-ai/sdk@0.9.1:
+    resolution: {integrity: sha512-wa1meQ2WSfoY8Uor3EdrJq0jTiZJoKoSii2ZVWRY1oN4Tlr5s59pADg9T79FTbPe1/se5c3pBeZgJL63wmuoBA==}
+    dependencies:
+      '@types/node': 18.17.5
+      '@types/node-fetch': 2.6.4
+      abort-controller: 3.0.0
+      agentkeepalive: 4.3.0
+      digest-fetch: 1.3.0
+      form-data-encoder: 1.7.2
+      formdata-node: 4.4.1
+      node-fetch: 2.6.11
+      web-streams-polyfill: 3.2.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    dev: true
 
   /@aws-crypto/crc32@3.0.0:
     resolution: {integrity: sha512-IzSgsrxUcsrejQbPVilIKy16kAT52EwB6zSaI+M3xxIhKh5+aldEyvI+z6erM7TCLB2BJsFrtHjp6/4/sr+3dA==}

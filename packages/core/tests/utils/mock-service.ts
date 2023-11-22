@@ -8,6 +8,7 @@ import {
 import { cohereChunks } from '../snapshots/cohere';
 import { huggingfaceChunks } from '../snapshots/huggingface';
 import { replicateTextChunks } from '../snapshots/replicate';
+import { anthropicChunks } from '../snapshots/anthropic';
 
 async function flushDataToResponse(
   res: ServerResponse,
@@ -90,6 +91,36 @@ export const setup = (port = 3030) => {
         break;
       case 'chat':
         switch (service) {
+          case 'anthropic': {
+            res.writeHead(200, {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            });
+            res.flushHeaders();
+            recentFlushed = [];
+
+            flushDataToResponse(
+              res,
+              anthropicChunks.map(
+                value =>
+                  new Proxy(
+                    { value },
+                    {
+                      get(target) {
+                        recentFlushed.push(target.value);
+                        return target.value;
+                      },
+                    },
+                  ),
+              ),
+              value => `event: completion\ndata: ${JSON.stringify(value)}\n\n`,
+              undefined,
+              flushDelayInMs,
+            );
+            break;
+          }
+
           case 'cohere': {
             res.writeHead(200, {
               'Content-Type': 'text/event-stream',
