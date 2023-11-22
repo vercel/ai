@@ -3,7 +3,7 @@ import useSWR from 'swr';
 
 import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
 import { UseCompletionOptions, RequestOptions } from '../shared/types';
-import { processMessageStream } from '../shared/process-message-stream';
+import { processDataStream } from '../shared/process-data-stream';
 import { parseStreamPart } from '../shared/stream-parts';
 
 export type UseCompletionHelpers = {
@@ -155,7 +155,7 @@ export function useCompletion({
         const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
 
         if (isComplexMode) {
-          await processMessageStream(reader, message => {
+          await processDataStream(reader, message => {
             const { type, value } = parseStreamPart(message);
             if (type === 'text') {
               result += value;

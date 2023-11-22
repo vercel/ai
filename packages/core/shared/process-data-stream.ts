@@ -1,4 +1,4 @@
-export async function processMessageStream(
+export async function processDataStream(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   processMessage: (message: string) => void | Promise<void>,
 ) {

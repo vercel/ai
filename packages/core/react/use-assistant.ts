@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
 import { useState } from 'react';
-import { processMessageStream } from '../shared/process-message-stream';
+import { processDataStream } from '../shared/process-data-stream';
 import { Message } from '../shared/types';
 import { parseStreamPart } from '../shared/stream-parts';
 
@@ -54,7 +54,7 @@ export function experimental_useAssistant({
       throw new Error('The response body is empty.');
     }
 
-    await processMessageStream(result.body.getReader(), (message: string) => {
+    await processDataStream(result.body.getReader(), (message: string) => {
       try {
         const { type, value } = parseStreamPart(message);
 
