@@ -31,6 +31,8 @@ export const POST = (async ({ request }) => {
   // optional: use stream data
   const data = new experimental_StreamData();
 
+  data.append({ test: 'value' });
+
   // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response, {
     onFinal(completion) {

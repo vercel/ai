@@ -1,11 +1,12 @@
 import { useSWR } from 'sswr';
-import { Readable, derived, get, writable } from 'svelte/store';
-
-import { Writable } from 'svelte/store';
-
-import type { UseCompletionOptions, RequestOptions } from '../shared/types';
-import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
+import { Readable, Writable, derived, get, writable } from 'svelte/store';
 import { readDataStream } from '../shared/read-data-stream';
+import type {
+  JSONValue,
+  RequestOptions,
+  UseCompletionOptions,
+} from '../shared/types';
+import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -41,6 +42,9 @@ export type UseCompletionHelpers = {
   handleSubmit: (e: any) => void;
   /** Whether the API request is in progress */
   isLoading: Readable<boolean | undefined>;
+
+  /** Additional data added on the server via StreamData */
+  data: Readable<JSONValue[] | undefined>;
 };
 
 let uniqueId = 0;
@@ -71,6 +75,8 @@ export function useCompletion({
     fetcher: () => store[key] || initialCompletion,
     fallbackData: initialCompletion,
   });
+
+  const streamData = writable<JSONValue[] | undefined>(undefined);
 
   const loading = writable<boolean>(false);
 
@@ -134,6 +140,7 @@ export function useCompletion({
 
       let result = '';
       const reader = res.body.getReader();
+      const existingData = get(streamData);
 
       const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
 
@@ -141,9 +148,16 @@ export function useCompletion({
         for await (const { type, value } of readDataStream(reader, {
           isAborted: () => abortController === null,
         })) {
-          if (type === 'text') {
-            result += value;
-            mutate(result);
+          switch (type) {
+            case 'text': {
+              result += value;
+              mutate(result);
+              break;
+            }
+            case 'data': {
+              streamData.set([...(existingData || []), ...(value || [])]);
+              break;
+            }
           }
         }
       } else {
@@ -232,5 +246,6 @@ export function useCompletion({
     input,
     handleSubmit,
     isLoading,
+    data: streamData,
   };
 }

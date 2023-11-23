@@ -1,8 +1,7 @@
 <script>
 	import { useCompletion } from 'ai/svelte'
 
-	const { completion, input, handleSubmit } =
-    useCompletion();
+	const { completion, input, handleSubmit, data } = useCompletion();
 </script>
 
 <svelte:head>
@@ -15,6 +14,7 @@
 		<h4 class="text-xl font-bold text-gray-900 md:text-xl pb-4">
 		  useCompletion Example
 		</h4>
+		<pre>{$data != null ? JSON.stringify($data, null, 2) : ""}</pre>
 		{$completion}
 		<form on:submit={handleSubmit}>
 		  <input
@@ -33,9 +33,5 @@
 		justify-content: center;
 		align-items: center;
 		flex: 0.6;
-	}
-
-	h1 {
-		width: 100%;
 	}
 </style>
