@@ -1,5 +1,9 @@
 import OpenAI from 'openai';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import {
+  OpenAIStream,
+  StreamingTextResponse,
+  experimental_StreamData,
+} from 'ai';
 
 import { env } from '$env/dynamic/private';
 // You may want to replace the above with a static private env variable
@@ -24,8 +28,17 @@ export const POST = (async ({ request }) => {
     messages: [{ role: 'user', content: prompt }],
   });
 
+  // optional: use stream data
+  const data = new experimental_StreamData();
+
   // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response);
+  const stream = OpenAIStream(response, {
+    onFinal(completion) {
+      data.close();
+    },
+    experimental_streamData: true,
+  });
+
   // Respond with the stream
-  return new StreamingTextResponse(stream);
+  return new StreamingTextResponse(stream, {}, data);
 }) satisfies RequestHandler;

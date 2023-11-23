@@ -4,7 +4,8 @@ import { Readable, derived, get, writable } from 'svelte/store';
 import { Writable } from 'svelte/store';
 
 import type { UseCompletionOptions, RequestOptions } from '../shared/types';
-import { createChunkDecoder } from '../shared/utils';
+import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
+import { readDataStream } from '../shared/read-data-stream';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -133,21 +134,35 @@ export function useCompletion({
 
       let result = '';
       const reader = res.body.getReader();
-      const decoder = createChunkDecoder();
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
+      const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
+
+      if (isComplexMode) {
+        for await (const { type, value } of readDataStream(reader, {
+          isAborted: () => abortController === null,
+        })) {
+          if (type === 'text') {
+            result += value;
+            mutate(result);
+          }
         }
-        // Update the chat state with the new message tokens.
-        result += decoder(value);
-        mutate(result);
+      } else {
+        const decoder = createChunkDecoder();
 
-        // The request has been aborted, stop reading the stream.
-        if (abortController === null) {
-          reader.cancel();
-          break;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            break;
+          }
+          // Update the chat state with the new message tokens.
+          result += decoder(value);
+          mutate(result);
+
+          // The request has been aborted, stop reading the stream.
+          if (abortController === null) {
+            reader.cancel();
+            break;
+          }
         }
       }
 
