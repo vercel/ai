@@ -25,7 +25,7 @@ export function experimental_useAssistant({
   };
 
   const submitMessage = async (event?: any) => {
-    event?.preventDefault();
+    event?.preventDefault?.();
 
     if (input === '') {
       return;
