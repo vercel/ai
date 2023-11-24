@@ -70,6 +70,8 @@ export type UseChatHelpers = {
   metadata?: Object;
   /** Whether the API request is in progress */
   isLoading: boolean;
+  /** Whether the API request is waiting for a response */
+  isPending: boolean;
   /** Additional data added on the server via StreamData */
   data?: JSONValue[] | undefined;
 };
@@ -271,7 +273,6 @@ export function useChat({
 
         await processChatStream({
           getStreamedResponse: () => {
-            mutatePending(false);
             return getStreamedResponse(
               api,
               chatRequest,
@@ -282,7 +283,12 @@ export function useChat({
               messagesRef,
               abortControllerRef,
               onFinish,
-              onResponse,
+              (response) => {
+                mutatePending(false);
+                if (onResponse) {
+                  onResponse(response)
+                }
+              },
               sendExtraMessageFields,
             )
           },
@@ -443,6 +449,7 @@ export function useChat({
     handleInputChange,
     handleSubmit,
     isLoading,
+    isPending,
     data: streamData,
   };
 }
