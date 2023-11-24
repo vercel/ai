@@ -286,7 +286,7 @@ export function useChat({
               (response) => {
                 mutatePending(false);
                 if (onResponse) {
-                  onResponse(response)
+                  onResponse(response);
                 }
               },
               sendExtraMessageFields,
