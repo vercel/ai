@@ -106,6 +106,7 @@ export function useCompletion({
           ...options?.body,
         }),
         headers: {
+          'Content-Type': 'application/json',
           ...headers,
           ...options?.headers,
         },
