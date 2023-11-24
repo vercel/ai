@@ -159,6 +159,11 @@ The `useChat` hook returns an object containing several helper methods and varia
       'boolean',
       'Boolean flag indicating whether a request is currently in progress.',
     ],
+    [
+      'isPending',
+      'boolean',
+      'Boolean flag indicating whether a request is waiting for a response.',
+    ],
     ['data', 'JSONValue[]', 'Data returned from experimental_StreamData'],
   ]}
 />
@@ -300,13 +305,18 @@ The `useChat` function returns an object containing several helper methods and v
       'boolean',
       'Boolean flag indicating whether a request is currently in progress.',
     ],
+    [
+      'isPending',
+      'boolean',
+      'Boolean flag indicating whether a request is waiting for a response.',
+    ],
   ]}
 />
 
   </Tab>
   <Tab>
 To use `useChat` in Vue.js projects, you can import it from the `ai/vue` subpath. Below is a usage example demonstrating a basic chat interface:
-  
+
 ```vue filename="app.vue"
 <script setup>
 import { useChat } from 'ai/vue'
@@ -320,7 +330,7 @@ const { messages, input, handleInputChange, handleSubmit } = useChat()
     <ul v-for="m in messages" key="m.id">
       <li>{{ m.role }}: {{ m.content }} </li>
     </ul>
-  
+
     <form @submit="handleSubmit">
       <input
         v-model="input"
@@ -436,6 +446,11 @@ The `useChat` function returns an object containing several helper methods and v
       'isLoading',
       'boolean',
       'Boolean flag indicating whether a request is currently in progress.',
+    ],
+    [
+      'isPending',
+      'boolean',
+      'Boolean flag indicating whether a request is waiting for a response.',
     ],
   ]}
 />

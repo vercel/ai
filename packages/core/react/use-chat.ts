@@ -272,8 +272,8 @@ export function useChat({
         abortControllerRef.current = abortController;
 
         await processChatStream({
-          getStreamedResponse: () => {
-            return getStreamedResponse(
+          getStreamedResponse: () =>
+            getStreamedResponse(
               api,
               chatRequest,
               mutate,
@@ -290,8 +290,7 @@ export function useChat({
                 }
               },
               sendExtraMessageFields,
-            )
-          },
+            ),
           experimental_onFunctionCall,
           updateChatRequest: chatRequestParam => {
             chatRequest = chatRequestParam;
