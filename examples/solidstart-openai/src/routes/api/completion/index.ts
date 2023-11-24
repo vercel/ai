@@ -24,18 +24,18 @@ export const POST = async (event: APIEvent) => {
   });
 
   // optional: use stream data
-  // const data = new experimental_StreamData();
+  const data = new experimental_StreamData();
 
-  // data.append({ test: 'value' });
+  data.append({ test: 'value' });
 
   // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response, {
     onFinal(completion) {
-      // data.close();
+      data.close();
     },
-    // experimental_streamData: true,
+    experimental_streamData: true,
   });
 
   // Respond with the stream
-  return new StreamingTextResponse(stream); // TODO
+  return new StreamingTextResponse(stream, {}, data);
 };

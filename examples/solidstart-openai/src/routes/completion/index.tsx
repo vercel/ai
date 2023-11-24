@@ -2,7 +2,8 @@ import { useCompletion } from 'ai/solid';
 import { JSX } from 'solid-js';
 
 export default function Chat() {
-  const { completion, input, setInput, handleSubmit, error } = useCompletion();
+  const { completion, input, setInput, handleSubmit, error, data } =
+    useCompletion();
 
   const handleInputChange: JSX.ChangeEventHandlerUnion<
     HTMLInputElement,
@@ -13,11 +14,11 @@ export default function Chat() {
 
   return (
     <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {/* {data() && (
+      {data() && (
         <pre class="p-4 text-sm bg-gray-100">
           {JSON.stringify(data(), null, 2)}
         </pre>
-      )} */}
+      )}
 
       {error() && (
         <div class="fixed top-0 left-0 w-full p-4 text-center bg-red-500 text-white">
