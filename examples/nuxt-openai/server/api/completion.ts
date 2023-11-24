@@ -1,4 +1,8 @@
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import {
+  OpenAIStream,
+  StreamingTextResponse,
+  experimental_StreamData,
+} from 'ai';
 import OpenAI from 'openai';
 
 export default defineLazyEventHandler(async () => {
@@ -23,10 +27,20 @@ export default defineLazyEventHandler(async () => {
       messages: [{ role: 'user', content: prompt }],
     });
 
+    // optional: use stream data
+    const data = new experimental_StreamData();
+
+    data.append({ test: 'value' });
+
     // Convert the response into a friendly text-stream
-    const stream = OpenAIStream(response);
+    const stream = OpenAIStream(response, {
+      onFinal(completion) {
+        data.close();
+      },
+      experimental_streamData: true,
+    });
 
     // Respond with the stream
-    return new StreamingTextResponse(stream);
+    return new StreamingTextResponse(stream, {}, data);
   });
 });

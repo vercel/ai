@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useCompletion } from 'ai/vue';
 
-const { completion, input, handleSubmit } = useCompletion();
+const { completion, input, handleSubmit, data } = useCompletion();
 </script>
 
 <template>
@@ -9,6 +9,7 @@ const { completion, input, handleSubmit } = useCompletion();
     <h4 class="text-xl font-bold text-gray-900 md:text-xl pb-4">
       useCompletion Example
     </h4>
+    <pre>{{ data != null ? JSON.stringify(data, null, 2) : '' }}</pre>
     {{ completion }}
     <form @submit="handleSubmit">
       <input
