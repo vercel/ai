@@ -24,8 +24,8 @@ export function experimental_useAssistant({
     setInput(e.target.value);
   };
 
-  const submitMessage = async (e: any) => {
-    e.preventDefault();
+  const submitMessage = async (event?: any) => {
+    event?.preventDefault?.();
 
     if (input === '') {
       return;
