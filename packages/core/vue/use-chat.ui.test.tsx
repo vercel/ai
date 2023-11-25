@@ -17,7 +17,10 @@ describe('useChat', () => {
   test('Shows streamed complex text response', async () => {
     render(TestComponent);
 
-    mockFetchDataStream(['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n']);
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+    });
 
     await userEvent.click(screen.getByTestId('button'));
 
@@ -33,7 +36,10 @@ describe('useChat', () => {
   test('Shows streamed complex text response with data', async () => {
     render(TestComponent);
 
-    mockFetchDataStream(['2:[{"t1":"v1"}]\n', '0:"Hello"\n']);
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
+    });
 
     await userEvent.click(screen.getByTestId('button'));
 
