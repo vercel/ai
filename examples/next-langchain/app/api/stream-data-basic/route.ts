@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   // important: use LangChainStream from the AI SDK:
   const { stream, handlers } = LangChainStream({
     onFinal: () => {
-      data.append(JSON.stringify({ key: 'value' }));
+      data.append(JSON.stringify({ key: 'value' })); // example
       data.close();
     },
     experimental_streamData: true,
