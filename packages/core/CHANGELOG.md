@@ -1,5 +1,14 @@
 # ai
 
+## 2.2.26
+
+### Patch Changes
+
+- df1ad33: ai/vue: Add complex response parsing and StreamData support to useChat
+- 3ff8a56: Add `generateId` to use-chat params to allow overriding message ID generation
+- 6c2a49c: ai/react experimental_useAssistant() submit can be called without an event
+- 8b4f7d1: ai/react: Add complex response parsing and StreamData support to useCompletion
+
 ## 2.2.25
 
 ### Patch Changes
