@@ -25,7 +25,12 @@ export type UseAssistantHelpers = {
   ) => void;
 
   /** Form submission handler to automatically reset input and append a user message  */
-  submitMessage: (event?: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  submitMessage: (
+    event?: React.FormEvent<HTMLFormElement>,
+    requestOptions?: {
+      data?: Record<string, string>;
+    },
+  ) => Promise<void>;
 
   /** Current status of the assistant */
   status: AssistantStatus;
@@ -55,7 +60,12 @@ export function experimental_useAssistant({
     setInput(event.target.value);
   };
 
-  const submitMessage = async (event?: React.FormEvent<HTMLFormElement>) => {
+  const submitMessage = async (
+    event?: React.FormEvent<HTMLFormElement>,
+    requestOptions?: {
+      data?: Record<string, string>;
+    },
+  ) => {
     event?.preventDefault?.();
 
     if (input === '') {
@@ -78,6 +88,9 @@ export function experimental_useAssistant({
         // always use user-provided threadId when available:
         threadId: threadIdParam ?? threadId ?? null,
         message: input,
+
+        // optional request data:
+        data: requestOptions?.data,
       }),
     });
 
