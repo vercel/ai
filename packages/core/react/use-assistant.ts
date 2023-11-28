@@ -51,8 +51,8 @@ export function experimental_useAssistant({
   api,
   threadId: threadIdParam,
   credentials,
-  headers = {},
-  body = {},
+  headers,
+  body,
 }: UseAssistantOptions): UseAssistantHelpers {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
