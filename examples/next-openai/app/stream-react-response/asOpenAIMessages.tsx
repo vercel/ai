@@ -39,7 +39,6 @@ export function asOpenAIMessages(
                 },
         } satisfies ChatCompletionMessageParam;
       }
-
       case 'function': {
         if (message.name === undefined) {
           throw new Error('Invalid function call in message. Expected a name');
@@ -50,6 +49,9 @@ export function asOpenAIMessages(
           content: message.content,
           name: message.name,
         } satisfies ChatCompletionMessageParam;
+      }
+      case 'data': {
+        throw "unsupported message role 'data'";
       }
     }
   });
