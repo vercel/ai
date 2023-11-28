@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
 import { useState } from 'react';
-import { processMessageStream } from '../shared/process-message-stream';
+import { readDataStream } from '../shared/read-data-stream';
 import { Message } from '../shared/types';
 import { parseStreamPart } from '../shared/stream-parts';
 
@@ -108,10 +108,10 @@ export function experimental_useAssistant({
       throw new Error('The response body is empty.');
     }
 
-    await processMessageStream(result.body.getReader(), (message: string) => {
-      try {
-        const { type, value } = parseStreamPart(message);
-
+    try {
+      for await (const { type, value } of readDataStream(
+        result.body.getReader(),
+      )) {
         switch (type) {
           case 'assistant_message': {
             // append message:
@@ -144,10 +144,10 @@ export function experimental_useAssistant({
             break;
           }
         }
-      } catch (error) {
-        setError(error);
       }
-    });
+    } catch (error) {
+      setError(error);
+    }
 
     setStatus('awaiting_message');
   };
