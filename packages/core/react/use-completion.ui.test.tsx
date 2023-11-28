@@ -1,6 +1,7 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { describe, expect, vi, test, afterEach } from 'vitest';
 import {
   mockFetchDataStream,
   mockFetchTextStream,
@@ -8,7 +9,7 @@ import {
 import { useCompletion } from './use-completion';
 
 // mock nanoid import
-jest.mock('nanoid', () => ({
+vi.mock('nanoid', () => ({
   nanoid: () => Math.random().toString(36).slice(2, 9),
 }));
 
@@ -34,7 +35,7 @@ const TestComponent = () => {
 
 describe('useCompletion', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   test('Shows streamed complex normal response', async () => {

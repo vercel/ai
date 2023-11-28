@@ -24,7 +24,9 @@
     "test": "pnpm test:node && pnpm test:edge && pnpm test:ui",
     "test:edge": "jest --forceExit --config jest.node.config.js --env @edge-runtime/jest-environment .test.ts ",
     "test:node": "jest --forceExit --config jest.node.config.js --env node .test.ts",
-    "test:ui": "jest --forceExit --config jest.ui.config.js .ui.test.ts"
+    "test:ui": "jest --forceExit --config jest.ui.config.js .ui.test.ts",
+    "vitest": "pnpm vitest:node",
+    "vitest:node": "vitest --run .test.ts"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -89,6 +91,7 @@
     "@types/react": "^18.2.8",
     "@types/react-dom": "^18.2.0",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vitejs/plugin-react": "4.2.0",
     "@vue/vue3-jest": "28",
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
@@ -97,6 +100,7 @@
     "jsdom": "^22.1.0",
     "langchain": "0.0.172",
     "openai": "4.16.1",
+    "react-dom": "^18.2.0",
     "ts-jest": "29.0.3",
     "tsup": "^6.7.0",
     "typescript": "5.1.3"
