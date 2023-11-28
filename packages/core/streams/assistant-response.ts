@@ -1,5 +1,5 @@
 import { formatStreamPart } from '../shared/stream-parts';
-import { AssistantMessage } from '../shared/types';
+import { AssistantMessage, DataMessage } from '../shared/types';
 
 export function experimental_AssistantResponse(
   { threadId, messageId }: { threadId: string; messageId: string },
@@ -7,6 +7,7 @@ export function experimental_AssistantResponse(
     threadId: string;
     messageId: string;
     sendMessage: (message: AssistantMessage) => void;
+    sendDataMessage: (message: DataMessage) => void;
   }) => Promise<void>,
 ): Response {
   const stream = new ReadableStream({
@@ -16,6 +17,12 @@ export function experimental_AssistantResponse(
       const sendMessage = (message: AssistantMessage) => {
         controller.enqueue(
           textEncoder.encode(formatStreamPart('assistant_message', message)),
+        );
+      };
+
+      const sendDataMessage = (message: DataMessage) => {
+        controller.enqueue(
+          textEncoder.encode(formatStreamPart('data_message', message)),
         );
       };
 
@@ -40,6 +47,7 @@ export function experimental_AssistantResponse(
           threadId,
           messageId,
           sendMessage,
+          sendDataMessage,
         });
       } catch (error) {
         sendError((error as any).message ?? `${error}`);

@@ -104,13 +104,25 @@ export function experimental_useAssistant({
 
         switch (type) {
           case 'assistant_message': {
-            // append message:
             setMessages(messages => [
               ...messages,
               {
                 id: value.id,
                 role: value.role,
                 content: value.content[0].text.value,
+              },
+            ]);
+            break;
+          }
+
+          case 'data_message': {
+            setMessages(messages => [
+              ...messages,
+              {
+                id: value.id ?? '',
+                role: 'data',
+                content: value.text ?? '',
+                data: value.data,
               },
             ]);
             break;
