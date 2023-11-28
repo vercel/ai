@@ -1,30 +1,79 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
 import { useState } from 'react';
-import { processMessageStream } from '../shared/process-message-stream';
+import { readDataStream } from '../shared/read-data-stream';
 import { Message } from '../shared/types';
 import { parseStreamPart } from '../shared/stream-parts';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
+export type UseAssistantHelpers = {
+  /** Current messages in the chat */
+  messages: Message[];
+
+  /** Current thread ID */
+  threadId: string | undefined;
+
+  /** The current value of the input */
+  input: string;
+
+  /** An input/textarea-ready onChange handler to control the value of the input */
+  handleInputChange: (
+    event:
+      | React.ChangeEvent<HTMLInputElement>
+      | React.ChangeEvent<HTMLTextAreaElement>,
+  ) => void;
+
+  /** Form submission handler to automatically reset input and append a user message  */
+  submitMessage: (
+    event?: React.FormEvent<HTMLFormElement>,
+    requestOptions?: {
+      data?: Record<string, string>;
+    },
+  ) => Promise<void>;
+
+  /** Current status of the assistant */
+  status: AssistantStatus;
+
+  /** Current error, if any */
+  error: undefined | unknown;
+};
+
+export type UseAssistantOptions = {
+  api: string;
+  threadId?: string | undefined;
+  credentials?: RequestCredentials;
+  headers?: Record<string, string> | Headers;
+  body?: object;
+};
+
 export function experimental_useAssistant({
   api,
   threadId: threadIdParam,
-}: {
-  api: string;
-  threadId?: string | undefined;
-}) {
+  credentials,
+  headers,
+  body,
+}: UseAssistantOptions): UseAssistantHelpers {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<AssistantStatus>('awaiting_message');
   const [error, setError] = useState<unknown | undefined>(undefined);
 
-  const handleInputChange = (e: any) => {
-    setInput(e.target.value);
+  const handleInputChange = (
+    event:
+      | React.ChangeEvent<HTMLInputElement>
+      | React.ChangeEvent<HTMLTextAreaElement>,
+  ) => {
+    setInput(event.target.value);
   };
 
-  const submitMessage = async (event?: any) => {
+  const submitMessage = async (
+    event?: React.FormEvent<HTMLFormElement>,
+    requestOptions?: {
+      data?: Record<string, string>;
+    },
+  ) => {
     event?.preventDefault?.();
 
     if (input === '') {
@@ -42,11 +91,16 @@ export function experimental_useAssistant({
 
     const result = await fetch(api, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      credentials,
+      headers: { 'Content-Type': 'application/json', ...headers },
       body: JSON.stringify({
+        ...body,
         // always use user-provided threadId when available:
         threadId: threadIdParam ?? threadId ?? null,
         message: input,
+
+        // optional request data:
+        data: requestOptions?.data,
       }),
     });
 
@@ -54,10 +108,10 @@ export function experimental_useAssistant({
       throw new Error('The response body is empty.');
     }
 
-    await processMessageStream(result.body.getReader(), (message: string) => {
-      try {
-        const { type, value } = parseStreamPart(message);
-
+    try {
+      for await (const { type, value } of readDataStream(
+        result.body.getReader(),
+      )) {
         switch (type) {
           case 'assistant_message': {
             // append message:
@@ -90,10 +144,10 @@ export function experimental_useAssistant({
             break;
           }
         }
-      } catch (error) {
-        setError(error);
       }
-    });
+    } catch (error) {
+      setError(error);
+    }
 
     setStatus('awaiting_message');
   };

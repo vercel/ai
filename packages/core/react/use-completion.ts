@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
-
+import { readDataStream } from '../shared/read-data-stream';
+import { RequestOptions, UseCompletionOptions } from '../shared/types';
 import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
-import { UseCompletionOptions, RequestOptions } from '../shared/types';
-import { processMessageStream } from '../shared/process-message-stream';
-import { parseStreamPart } from '../shared/stream-parts';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -155,13 +153,14 @@ export function useCompletion({
         const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
 
         if (isComplexMode) {
-          await processMessageStream(reader, message => {
-            const { type, value } = parseStreamPart(message);
+          for await (const { type, value } of readDataStream(reader, {
+            isAborted: () => abortController === null,
+          })) {
             if (type === 'text') {
               result += value;
               mutate(result, false);
             }
-          });
+          }
         } else {
           const decoder = createChunkDecoder();
 
