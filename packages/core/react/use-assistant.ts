@@ -39,13 +39,21 @@ export type UseAssistantHelpers = {
   error: undefined | unknown;
 };
 
+export type UseAssistantOptions = {
+  api: string;
+  threadId?: string | undefined;
+  credentials?: RequestCredentials;
+  headers?: Record<string, string> | Headers;
+  body?: object;
+};
+
 export function experimental_useAssistant({
   api,
   threadId: threadIdParam,
-}: {
-  api: string;
-  threadId?: string | undefined;
-}): UseAssistantHelpers {
+  credentials,
+  headers = {},
+  body = {},
+}: UseAssistantOptions): UseAssistantHelpers {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
@@ -83,8 +91,10 @@ export function experimental_useAssistant({
 
     const result = await fetch(api, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      credentials,
+      headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        ...body,
         // always use user-provided threadId when available:
         threadId: threadIdParam ?? threadId ?? null,
         message: input,
