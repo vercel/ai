@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
-
-import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
-import { UseCompletionOptions, RequestOptions } from '../shared/types';
 import { readDataStream } from '../shared/read-data-stream';
-import { parseStreamPart } from '../shared/stream-parts';
+import { RequestOptions, UseCompletionOptions } from '../shared/types';
+import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
