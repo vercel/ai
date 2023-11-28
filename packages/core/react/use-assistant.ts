@@ -92,7 +92,7 @@ export function experimental_useAssistant({
     const result = await fetch(api, {
       method: 'POST',
       credentials,
-      headers: { ...headers, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...headers },
       body: JSON.stringify({
         ...body,
         // always use user-provided threadId when available:
