@@ -1,28 +1,28 @@
 import { describe, expect, it, vi } from 'vitest';
 import { parseComplexResponse } from './parse-complex-response';
 
+function createTestReader(chunks: string[]) {
+  const readableStream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      for (const chunk of chunks) {
+        controller.enqueue(Buffer.from(chunk, 'utf-8'));
+      }
+      controller.close();
+    },
+  });
+  return readableStream.getReader();
+}
+
+function assistantTextMessage(text: string) {
+  return {
+    id: expect.any(String),
+    role: 'assistant',
+    content: text,
+    createdAt: expect.any(Date),
+  };
+}
+
 describe('parseComplexResponse function', () => {
-  function createTestReader(chunks: string[]) {
-    const readableStream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        for (const chunk of chunks) {
-          controller.enqueue(Buffer.from(chunk, 'utf-8'));
-        }
-        controller.close();
-      },
-    });
-    return readableStream.getReader();
-  }
-
-  function assistantTextMessage(text: string) {
-    return {
-      id: expect.any(String),
-      role: 'assistant',
-      content: text,
-      createdAt: expect.any(Date),
-    };
-  }
-
   it('should parse a single text message', async () => {
     const mockUpdate = vi.fn();
 

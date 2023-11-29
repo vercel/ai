@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
-
+import { readDataStream } from '../shared/read-data-stream';
+import {
+  JSONValue,
+  RequestOptions,
+  UseCompletionOptions,
+} from '../shared/types';
 import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
-import { UseCompletionOptions, RequestOptions } from '../shared/types';
-import { processMessageStream } from '../shared/process-message-stream';
-import { parseStreamPart } from '../shared/stream-parts';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -54,6 +56,8 @@ export type UseCompletionHelpers = {
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   /** Whether the API request is in progress */
   isLoading: boolean;
+  /** Additional data added on the server via StreamData */
+  data?: JSONValue[] | undefined;
 };
 
 export function useCompletion({
@@ -81,6 +85,10 @@ export function useCompletion({
     [completionId, 'loading'],
     null,
   );
+
+  const { data: streamData, mutate: mutateStreamData } = useSWR<
+    JSONValue[] | undefined
+  >([completionId, 'streamData'], null);
 
   const [error, setError] = useState<undefined | Error>(undefined);
   const completion = data!;
@@ -155,13 +163,24 @@ export function useCompletion({
         const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
 
         if (isComplexMode) {
-          await processMessageStream(reader, message => {
-            const { type, value } = parseStreamPart(message);
-            if (type === 'text') {
-              result += value;
-              mutate(result, false);
+          for await (const { type, value } of readDataStream(reader, {
+            isAborted: () => abortController === null,
+          })) {
+            switch (type) {
+              case 'text': {
+                result += value;
+                mutate(result, false);
+                break;
+              }
+              case 'data': {
+                mutateStreamData(
+                  [...(streamData || []), ...(value || [])],
+                  false,
+                );
+                break;
+              }
             }
-          });
+          }
         } else {
           const decoder = createChunkDecoder();
 
@@ -267,5 +286,6 @@ export function useCompletion({
     handleInputChange,
     handleSubmit,
     isLoading,
+    data: streamData,
   };
 }
