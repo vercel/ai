@@ -320,8 +320,8 @@ export function useChat({
       streamData,
       sendExtraMessageFields,
       experimental_onFunctionCall,
-      messagesRef.current,
-      abortControllerRef.current,
+      messagesRef,
+      abortControllerRef,
       generateId,
     ],
   );
