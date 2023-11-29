@@ -236,6 +236,8 @@ export function useCompletion({
       onFinish,
       onError,
       setError,
+      streamData,
+      mutateStreamData,
     ],
   );
 
