@@ -1,5 +1,9 @@
 import OpenAI from 'openai';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import {
+  OpenAIStream,
+  StreamingTextResponse,
+  experimental_StreamData,
+} from 'ai';
 
 // Create an OpenAI API client (that's edge friendly!)
 const openai = new OpenAI({
@@ -21,9 +25,19 @@ export async function POST(req: Request) {
     prompt,
   });
 
+  // optional: use stream data
+  const data = new experimental_StreamData();
+
+  data.append({ test: 'value' });
+
   // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response);
+  const stream = OpenAIStream(response, {
+    onFinal(completion) {
+      data.close();
+    },
+    experimental_streamData: true,
+  });
 
   // Respond with the stream
-  return new StreamingTextResponse(stream);
+  return new StreamingTextResponse(stream, {}, data);
 }
