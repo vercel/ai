@@ -6,16 +6,16 @@ import { Suspense } from 'react';
 // See https://vercel.com/docs/concepts/functions/edge-functions
 export const runtime = 'edge';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
-
 export default async function Page({
   searchParams,
 }: {
   // note that using searchParams opts your page into dynamic rendering. See https://nextjs.org/docs/app/api-reference/file-conventions/page#searchparams-optional
   searchParams: Record<string, string>;
 }) {
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  });
+
   // Request the OpenAI API for the response based on the prompt
   const response = await openai.chat.completions.create({
     model: 'gpt-4',
