@@ -94,6 +94,7 @@
     "@types/react-dom": "^18.2.0",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vitejs/plugin-react": "4.2.0",
+    "@vitejs/plugin-vue": "4.5.0",
     "@vue/vue3-jest": "28",
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
