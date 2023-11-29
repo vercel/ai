@@ -557,6 +557,13 @@ function createFunctionCallTransformer(
             );
             return;
           } else if (typeof functionResponse === 'string') {
+            // replace aggregatedFinalCompletionResponse with the functionResponse that user returned
+            // it will then be passed to the onFinal callback
+            aggregatedFinalCompletionResponse = functionResponse;
+
+            // call the onCompletion callback with the string user returned
+            await callbacks?.onCompletion?.(functionResponse);
+
             // The user returned a string, so we just return it as a message
             controller.enqueue(
               isComplexMode
