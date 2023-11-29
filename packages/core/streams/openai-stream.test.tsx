@@ -1,4 +1,7 @@
 import React from 'react';
+import OpenAI from 'openai';
+import ReactDOMServer from 'react-dom/server';
+import { afterAll, beforeAll, describe, expect, it, test } from 'vitest';
 import {
   OpenAIStream,
   ReactResponseRow,
@@ -6,10 +9,8 @@ import {
   experimental_StreamData,
   experimental_StreamingReactResponse,
 } from '.';
-import OpenAI from 'openai';
 import { createClient } from '../tests/utils/mock-client';
 import { setup } from '../tests/utils/mock-service';
-import ReactDOMServer from 'react-dom/server';
 
 describe('OpenAIStream', () => {
   let server: ReturnType<typeof setup>;
@@ -19,7 +20,7 @@ describe('OpenAIStream', () => {
   afterAll(async () => server.teardown());
 
   // deactivated to only test types
-  xit('should not throw type errors', async () => {
+  test.skip('should not throw type errors', async () => {
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
@@ -50,17 +51,14 @@ describe('OpenAIStream', () => {
     const client = createClient(response);
     const chunks = await client.readAll();
     expect(JSON.stringify(chunks)).toMatchInlineSnapshot(
-      `"["Hello",","," world","."]"`,
+      `"[\\"Hello\\",\\",\\",\\" world\\",\\".\\"]"`,
     );
     expect(JSON.stringify(server.getRecentFlushed())).toMatchInlineSnapshot(
-      `"[{"id":"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC","object":"chat.completion.chunk","created":1686901302,"model":"gpt-3.5-turbo-0301","choices":[{"delta":{"role":"assistant"},"index":0,"finish_reason":null}]},{"id":"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC","object":"chat.completion.chunk","created":1686901302,"model":"gpt-3.5-turbo-0301","choices":[{"delta":{"content":"Hello"},"index":0,"finish_reason":null}]},{"id":"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC","object":"chat.completion.chunk","created":1686901302,"model":"gpt-3.5-turbo-0301","choices":[{"delta":{"content":","},"index":0,"finish_reason":null}]},{"id":"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC","object":"chat.completion.chunk","created":1686901302,"model":"gpt-3.5-turbo-0301","choices":[{"delta":{"content":" world"},"index":0,"finish_reason":null}]},{"id":"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC","object":"chat.completion.chunk","created":1686901302,"model":"gpt-3.5-turbo-0301","choices":[{"delta":{"content":"."},"index":0,"finish_reason":null}]},{"id":"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC","object":"chat.completion.chunk","created":1686901302,"model":"gpt-3.5-turbo-0301","choices":[{"delta":{},"index":0,"finish_reason":"stop"}]}]"`,
+      `"[{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"role\\":\\"assistant\\"},\\"index\\":0,\\"finish_reason\\":null}]},{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"content\\":\\"Hello\\"},\\"index\\":0,\\"finish_reason\\":null}]},{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"content\\":\\",\\"},\\"index\\":0,\\"finish_reason\\":null}]},{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"content\\":\\" world\\"},\\"index\\":0,\\"finish_reason\\":null}]},{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"content\\":\\".\\"},\\"index\\":0,\\"finish_reason\\":null}]},{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{},\\"index\\":0,\\"finish_reason\\":\\"stop\\"}]}]"`,
     );
   });
 
   it('should correctly parse and escape function call JSON chunks', async () => {
-    const { OpenAIStream, StreamingTextResponse } =
-      require('.') as typeof import('.');
-
     const stream = OpenAIStream(
       await fetch(server.api + '/mock-func-call', {
         headers: {
@@ -117,9 +115,9 @@ describe('OpenAIStream', () => {
     const response = new StreamingTextResponse(stream);
     const client = createClient(response);
     const chunks = await client.readAndAbort(controller);
-    expect(JSON.stringify(chunks)).toMatchInlineSnapshot(`"["Hello"]"`);
+    expect(JSON.stringify(chunks)).toMatchInlineSnapshot(`"[\\"Hello\\"]"`);
     expect(JSON.stringify(server.getRecentFlushed())).toMatchInlineSnapshot(
-      `"[{"id":"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC","object":"chat.completion.chunk","created":1686901302,"model":"gpt-3.5-turbo-0301","choices":[{"delta":{"role":"assistant"},"index":0,"finish_reason":null}]},{"id":"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC","object":"chat.completion.chunk","created":1686901302,"model":"gpt-3.5-turbo-0301","choices":[{"delta":{"content":"Hello"},"index":0,"finish_reason":null}]}]"`,
+      `"[{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"role\\":\\"assistant\\"},\\"index\\":0,\\"finish_reason\\":null}]},{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"content\\":\\"Hello\\"},\\"index\\":0,\\"finish_reason\\":null}]}]"`,
     );
   });
 
