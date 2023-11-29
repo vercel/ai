@@ -1,17 +1,16 @@
-// ./app/api/chat/route.ts
 import OpenAI from 'openai';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 
 // Create an OpenAI API client (that's edge friendly!)
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 // IMPORTANT! Set the runtime to edge
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
-  // Extract the `prompt` from the body of the request
+  // 'data' contains the additional data that you have sent:
   const { messages, data } = await req.json();
 
   const initialMessages = messages.slice(0, -1);
@@ -28,6 +27,8 @@ export async function POST(req: Request) {
         ...currentMessage,
         content: [
           { type: 'text', text: currentMessage.content },
+
+          // forward the image information to OpenAI:
           {
             type: 'image_url',
             image_url: data.imageUrl,
