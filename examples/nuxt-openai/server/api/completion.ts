@@ -14,11 +14,7 @@ export default defineLazyEventHandler(async () => {
 
   return defineEventHandler(async (event: any) => {
     // Extract the `prompt` from the body of the request
-    const newVariable = await readBody(event);
-    console.log('nw', newVariable);
-    const { prompt } = newVariable as {
-      prompt: string;
-    };
+    const { prompt } = await readBody(event);
 
     // Ask OpenAI for a streaming chat completion given the prompt
     const response = await openai.chat.completions.create({
