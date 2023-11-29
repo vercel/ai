@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest';
 import { parseComplexResponse } from './parse-complex-response';
 
 function createTestReader(chunks: string[]) {
@@ -23,7 +24,7 @@ function assistantTextMessage(text: string) {
 
 describe('parseComplexResponse function', () => {
   it('should parse a single text message', async () => {
-    const mockUpdate = jest.fn();
+    const mockUpdate = vi.fn();
 
     const result = await parseComplexResponse({
       reader: createTestReader(['0:"Hello"\n']),
@@ -54,7 +55,7 @@ describe('parseComplexResponse function', () => {
   });
 
   it('should parse a sequence of text messages', async () => {
-    const mockUpdate = jest.fn();
+    const mockUpdate = vi.fn();
 
     const result = await parseComplexResponse({
       reader: createTestReader([
@@ -99,7 +100,7 @@ describe('parseComplexResponse function', () => {
   });
 
   it('should parse a function call', async () => {
-    const mockUpdate = jest.fn();
+    const mockUpdate = vi.fn();
 
     const result = await parseComplexResponse({
       reader: createTestReader([
@@ -149,7 +150,7 @@ describe('parseComplexResponse function', () => {
   });
 
   it('should parse a combination of a data and a text message', async () => {
-    const mockUpdate = jest.fn();
+    const mockUpdate = vi.fn();
 
     // Execute the parser function
     const result = await parseComplexResponse({
@@ -189,7 +190,7 @@ describe('parseComplexResponse function', () => {
   });
 
   it('should parse multiple data messages incl. primitive values', async () => {
-    const mockUpdate = jest.fn();
+    const mockUpdate = vi.fn();
 
     // Execute the parser function
     const result = await parseComplexResponse({

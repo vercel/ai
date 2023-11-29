@@ -1,3 +1,5 @@
+import Anthropic from '@anthropic-ai/sdk';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   AnthropicStream,
   StreamingTextResponse,
@@ -5,7 +7,6 @@ import {
 } from '.';
 import { readAllChunks } from '../tests/utils/mock-client';
 import { setup } from '../tests/utils/mock-service';
-import Anthropic from '@anthropic-ai/sdk';
 
 describe('AnthropicStream', () => {
   let server: ReturnType<typeof setup>;
