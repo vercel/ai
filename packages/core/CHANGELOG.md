@@ -1,5 +1,15 @@
 # ai
 
+## 2.2.27
+
+### Patch Changes
+
+- 0fd1205: ai/vue: Add complex response parsing and StreamData support to useCompletion
+- a7dc746: experimental_useAssistant: Expose extra fetch options
+- 3dcf01e: ai/react Add data support to useCompletion
+- 0c3b338: ai/svelte: Add complex response parsing and StreamData support to useCompletion
+- 8284777: ai/solid: Add complex response parsing and StreamData support to useCompletion
+
 ## 2.2.26
 
 ### Patch Changes
