@@ -25,12 +25,11 @@
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
     "husky": "^8.0.0",
-    "jest": "29.2.1",
     "lint-staged": "^13.2.2",
     "prettier": "2.8.8",
     "publint": "0.1.11",
-    "ts-jest": "29.0.3",
-    "turbo": "^1.10.13"
+    "turbo": "^1.10.13",
+    "vitest": "^0.34.6"
   },
   "homepage": "https://sdk.vercel.ai/docs",
   "repository": {

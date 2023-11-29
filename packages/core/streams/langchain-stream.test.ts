@@ -1,3 +1,4 @@
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   LangChainStream,
   StreamingTextResponse,
@@ -8,7 +9,7 @@ import { createClient } from '../tests/utils/mock-client';
 import { setup } from '../tests/utils/mock-service';
 
 // need to mock uuid before importing LangChain
-jest.mock('uuid', () => {
+vi.mock('uuid', () => {
   let count = 0;
   return {
     v4: () => `uuid-${count++}`,
@@ -16,9 +17,9 @@ jest.mock('uuid', () => {
 });
 
 import { ChatOpenAI } from 'langchain/chat_models/openai';
-import { BytesOutputParser } from 'langchain/schema/output_parser';
-import { HumanMessage } from 'langchain/schema';
 import { PromptTemplate } from 'langchain/prompts';
+import { HumanMessage } from 'langchain/schema';
+import { BytesOutputParser } from 'langchain/schema/output_parser';
 
 describe('LangchainStream', () => {
   let server: ReturnType<typeof setup>;
