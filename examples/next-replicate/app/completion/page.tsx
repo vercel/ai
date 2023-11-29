@@ -1,19 +1,22 @@
 'use client';
 
-import { useChat } from 'ai/react';
+import { useCompletion } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const { completion, input, handleInputChange, handleSubmit, error } =
+    useCompletion();
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
+      <h4 className="text-xl font-bold text-gray-900 md:text-xl pb-4">
+        useCompletion Example
+      </h4>
+      {error && (
+        <div className="fixed top-0 left-0 w-full p-4 text-center bg-red-500 text-white">
+          {error.message}
         </div>
-      ))}
-
+      )}
+      {completion}
       <form onSubmit={handleSubmit}>
         <input
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
