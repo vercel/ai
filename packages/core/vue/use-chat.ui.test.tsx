@@ -1,6 +1,7 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from '@testing-library/vue';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { mockFetchDataStream, mockFetchError } from '../tests/utils/mock-fetch';
 import TestComponent from './TestComponent.vue';
 

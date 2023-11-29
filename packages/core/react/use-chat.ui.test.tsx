@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { mockFetchDataStream, mockFetchError } from '../tests/utils/mock-fetch';
@@ -35,7 +35,8 @@ const TestComponent = () => {
 
 describe('useChat', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
+    cleanup();
   });
 
   test('Shows streamed complex text response', async () => {

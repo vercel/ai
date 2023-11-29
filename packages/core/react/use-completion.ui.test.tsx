@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, vi, test, afterEach } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
   mockFetchDataStream,
   mockFetchTextStream,
@@ -36,6 +36,7 @@ const TestComponent = () => {
 describe('useCompletion', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    cleanup();
   });
 
   test('Shows streamed complex normal response', async () => {
