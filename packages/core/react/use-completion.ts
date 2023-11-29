@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
-
-import { createChunkDecoder } from '../shared/utils';
-import { UseCompletionOptions, RequestOptions } from '../shared/types';
+import { readDataStream } from '../shared/read-data-stream';
+import {
+  JSONValue,
+  RequestOptions,
+  UseCompletionOptions,
+} from '../shared/types';
+import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -52,6 +56,8 @@ export type UseCompletionHelpers = {
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   /** Whether the API request is in progress */
   isLoading: boolean;
+  /** Additional data added on the server via StreamData */
+  data?: JSONValue[] | undefined;
 };
 
 export function useCompletion({
@@ -79,6 +85,10 @@ export function useCompletion({
     [completionId, 'loading'],
     null,
   );
+
+  const { data: streamData, mutate: mutateStreamData } = useSWR<
+    JSONValue[] | undefined
+  >([completionId, 'streamData'], null);
 
   const [error, setError] = useState<undefined | Error>(undefined);
   const completion = data!;
@@ -149,22 +159,46 @@ export function useCompletion({
 
         let result = '';
         const reader = res.body.getReader();
-        const decoder = createChunkDecoder();
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
+        const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
+
+        if (isComplexMode) {
+          for await (const { type, value } of readDataStream(reader, {
+            isAborted: () => abortController === null,
+          })) {
+            switch (type) {
+              case 'text': {
+                result += value;
+                mutate(result, false);
+                break;
+              }
+              case 'data': {
+                mutateStreamData(
+                  [...(streamData || []), ...(value || [])],
+                  false,
+                );
+                break;
+              }
+            }
           }
+        } else {
+          const decoder = createChunkDecoder();
 
-          // Update the completion state with the new message tokens.
-          result += decoder(value);
-          mutate(result, false);
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              break;
+            }
 
-          // The request has been aborted, stop reading the stream.
-          if (abortController === null) {
-            reader.cancel();
-            break;
+            // Update the completion state with the new message tokens.
+            result += decoder(value);
+            mutate(result, false);
+
+            // The request has been aborted, stop reading the stream.
+            if (abortController === null) {
+              reader.cancel();
+              break;
+            }
           }
         }
 
@@ -252,5 +286,6 @@ export function useCompletion({
     handleInputChange,
     handleSubmit,
     isLoading,
+    data: streamData,
   };
 }

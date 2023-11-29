@@ -1,9 +1,10 @@
+import { describe, expect, it } from 'vitest';
+import type { Message } from '../shared/types';
 import {
+  experimental_buildLlama2Prompt,
   experimental_buildOpenAssistantPrompt,
   experimental_buildStarChatBetaPrompt,
-  experimental_buildLlama2Prompt,
 } from './huggingface';
-import type { Message } from '../shared/types';
 
 describe('buildStarChatBetaPrompt', () => {
   it('should return a string with user, assistant, and system messages', () => {

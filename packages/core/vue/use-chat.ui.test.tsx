@@ -1,37 +1,14 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { cleanup, render, screen } from '@testing-library/vue';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { mockFetchDataStream, mockFetchError } from '../tests/utils/mock-fetch';
-import { useChat } from './use-chat';
+import TestComponent from './TestComponent.vue';
 
 // mock nanoid import
 vi.mock('nanoid', () => ({
   nanoid: () => Math.random().toString(36).slice(2, 9),
 }));
-
-const TestComponent = () => {
-  const { messages, append, error, data } = useChat();
-
-  return (
-    <div>
-      {error && <div data-testid="error">{error.toString()}</div>}
-      {data && <div data-testid="data">{JSON.stringify(data)}</div>}
-      {messages.map((m, idx) => (
-        <div data-testid={`message-${idx}`} key={m.id}>
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
-        </div>
-      ))}
-      <button
-        data-testid="button"
-        onClick={() => {
-          append({ role: 'user', content: 'hi' });
-        }}
-      />
-    </div>
-  );
-};
 
 describe('useChat', () => {
   afterEach(() => {
@@ -40,7 +17,7 @@ describe('useChat', () => {
   });
 
   test('Shows streamed complex text response', async () => {
-    render(<TestComponent />);
+    render(TestComponent);
 
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
@@ -59,7 +36,7 @@ describe('useChat', () => {
   });
 
   test('Shows streamed complex text response with data', async () => {
-    render(<TestComponent />);
+    render(TestComponent);
 
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
@@ -76,7 +53,7 @@ describe('useChat', () => {
   });
 
   test('Shows error response', async () => {
-    render(<TestComponent />);
+    render(TestComponent);
 
     mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
 

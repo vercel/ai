@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { StreamingTextResponse, experimental_StreamData } from '.';
 import {
   bedrockAnthropicChunks,

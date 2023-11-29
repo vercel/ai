@@ -1,7 +1,14 @@
 import { COMPLEX_HEADER } from '../../shared/utils';
+import { describe, expect, vi, test, afterEach } from 'vitest';
 
-export function mockFetchDataStream(chunks: string[]) {
-  jest.spyOn(global, 'fetch').mockImplementation(async () => {
+export function mockFetchTextStream({
+  url,
+  chunks,
+}: {
+  url: string;
+  chunks: string[];
+}) {
+  vi.spyOn(global, 'fetch').mockImplementation(async () => {
     function* generateChunks() {
       for (const chunk of chunks) {
         yield new TextEncoder().encode(chunk);
@@ -11,7 +18,44 @@ export function mockFetchDataStream(chunks: string[]) {
     const chunkGenerator = generateChunks();
 
     return {
-      url: 'https://example.com/api/chat',
+      url,
+      ok: true,
+      status: 200,
+      bodyUsed: false,
+      headers: new Map() as any as Headers,
+      body: {
+        getReader() {
+          return {
+            read() {
+              return Promise.resolve(chunkGenerator.next());
+            },
+            releaseLock() {},
+            cancel() {},
+          };
+        },
+      },
+    } as unknown as Response;
+  });
+}
+
+export function mockFetchDataStream({
+  url,
+  chunks,
+}: {
+  url: string;
+  chunks: string[];
+}) {
+  vi.spyOn(global, 'fetch').mockImplementation(async () => {
+    function* generateChunks() {
+      for (const chunk of chunks) {
+        yield new TextEncoder().encode(chunk);
+      }
+    }
+
+    const chunkGenerator = generateChunks();
+
+    return {
+      url,
       ok: true,
       status: 200,
       headers: new Map<string, string>([
@@ -40,7 +84,7 @@ export function mockFetchError({
   statusCode: number;
   errorMessage: string;
 }) {
-  jest.spyOn(global, 'fetch').mockImplementation(async () => {
+  vi.spyOn(global, 'fetch').mockImplementation(async () => {
     return {
       url: 'https://example.com/api/chat',
       ok: false,
