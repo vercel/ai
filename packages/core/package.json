@@ -95,6 +95,7 @@
     "eslint-config-vercel-ai": "workspace:*",
     "jsdom": "^23.0.0",
     "langchain": "0.0.196",
+    "msw": "2.0.9",
     "openai": "4.16.1",
     "react-dom": "^18.2.0",
     "tsup": "^6.7.0",

@@ -1,14 +1,12 @@
 import { ServerResponse, createServer } from 'node:http';
-
+import { anthropicChunks } from '../snapshots/anthropic';
+import { huggingfaceChunks } from '../snapshots/huggingface';
 import {
   chatCompletionChunks,
   chatCompletionChunksWithFunctionCall,
   chatCompletionChunksWithSpecifiedFunctionCall,
 } from '../snapshots/openai-chat';
-import { cohereChunks } from '../snapshots/cohere';
-import { huggingfaceChunks } from '../snapshots/huggingface';
 import { replicateTextChunks } from '../snapshots/replicate';
-import { anthropicChunks } from '../snapshots/anthropic';
 
 async function flushDataToResponse(
   res: ServerResponse,
@@ -121,35 +119,6 @@ export const setup = (port = 3030) => {
             break;
           }
 
-          case 'cohere': {
-            res.writeHead(200, {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-              Connection: 'keep-alive',
-            });
-            res.flushHeaders();
-            recentFlushed = [];
-
-            flushDataToResponse(
-              res,
-              cohereChunks.map(
-                value =>
-                  new Proxy(
-                    { value },
-                    {
-                      get(target) {
-                        recentFlushed.push(target.value);
-                        return target.value;
-                      },
-                    },
-                  ),
-              ),
-              value => `${JSON.stringify(value)}\n`,
-              undefined,
-              flushDelayInMs,
-            );
-            break;
-          }
           case 'huggingface': {
             res.writeHead(200, {
               'Content-Type': 'text/event-stream',
