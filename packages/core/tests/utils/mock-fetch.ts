@@ -1,4 +1,5 @@
 import { COMPLEX_HEADER } from '../../shared/utils';
+import { describe, expect, vi, test, afterEach } from 'vitest';
 
 export function mockFetchTextStream({
   url,
@@ -7,7 +8,7 @@ export function mockFetchTextStream({
   url: string;
   chunks: string[];
 }) {
-  jest.spyOn(global, 'fetch').mockImplementation(async () => {
+  vi.spyOn(global, 'fetch').mockImplementation(async () => {
     function* generateChunks() {
       for (const chunk of chunks) {
         yield new TextEncoder().encode(chunk);
@@ -44,7 +45,7 @@ export function mockFetchDataStream({
   url: string;
   chunks: string[];
 }) {
-  jest.spyOn(global, 'fetch').mockImplementation(async () => {
+  vi.spyOn(global, 'fetch').mockImplementation(async () => {
     function* generateChunks() {
       for (const chunk of chunks) {
         yield new TextEncoder().encode(chunk);
@@ -83,7 +84,7 @@ export function mockFetchError({
   statusCode: number;
   errorMessage: string;
 }) {
-  jest.spyOn(global, 'fetch').mockImplementation(async () => {
+  vi.spyOn(global, 'fetch').mockImplementation(async () => {
     return {
       url: 'https://example.com/api/chat',
       ok: false,

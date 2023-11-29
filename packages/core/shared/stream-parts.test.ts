@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { formatStreamPart, parseStreamPart } from './stream-parts';
 
 describe('stream-parts', () => {

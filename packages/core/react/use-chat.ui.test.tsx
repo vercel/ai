@@ -1,11 +1,12 @@
-import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { mockFetchDataStream, mockFetchError } from '../tests/utils/mock-fetch';
 import { useChat } from './use-chat';
 
 // mock nanoid import
-jest.mock('nanoid', () => ({
+vi.mock('nanoid', () => ({
   nanoid: () => Math.random().toString(36).slice(2, 9),
 }));
 
@@ -34,7 +35,8 @@ const TestComponent = () => {
 
 describe('useChat', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
+    cleanup();
   });
 
   test('Shows streamed complex text response', async () => {
