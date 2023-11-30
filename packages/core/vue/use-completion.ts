@@ -126,7 +126,7 @@ export function useCompletion({
       onFinish,
       onError,
       onData: data => {
-        streamData.value = [...existingData, ...(data ?? [])];
+        mutateStreamData(() => [...existingData, ...(data ?? [])]);
       },
     });
   }
