@@ -1,9 +1,8 @@
-import { nanoid } from 'nanoid';
 import { parseComplexResponse } from './parse-complex-response';
 import { FunctionCall, IdGenerator, JSONValue, Message } from './types';
 import { COMPLEX_HEADER, createChunkDecoder } from './utils';
 
-export async function callApi({
+export async function callChatApi({
   api,
   messages,
   body,
