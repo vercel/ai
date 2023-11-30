@@ -1,13 +1,12 @@
 import swrv from 'swrv';
 import type { Ref } from 'vue';
 import { ref, unref } from 'vue';
+import { callCompletionApi } from '../shared/call-completion-api';
 import type {
   JSONValue,
   RequestOptions,
   UseCompletionOptions,
 } from '../shared/types';
-import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
-import { readDataStream } from '../shared/read-data-stream';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -100,115 +99,36 @@ export function useCompletion({
   const error = ref<undefined | Error>(undefined);
 
   let abortController: AbortController | null = null;
+
   async function triggerRequest(prompt: string, options?: RequestOptions) {
-    try {
-      error.value = undefined;
-      mutateLoading(() => true);
-      abortController = new AbortController();
-
-      // Empty the completion immediately.
-      mutate('');
-
-      const res = await fetch(api, {
-        method: 'POST',
-        body: JSON.stringify({
-          prompt,
-          ...unref(body),
-          ...options?.body,
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers,
-          ...options?.headers,
-        },
-        signal: abortController.signal,
-        credentials,
-      }).catch(err => {
-        throw err;
-      });
-
-      if (onResponse) {
-        try {
-          await onResponse(res);
-        } catch (err) {
-          throw err;
-        }
-      }
-
-      if (!res.ok) {
-        throw new Error(
-          (await res.text()) || 'Failed to fetch the chat response.',
-        );
-      }
-
-      if (!res.body) {
-        throw new Error('The response body is empty.');
-      }
-
-      let result = '';
-      const reader = res.body.getReader();
-
-      const existingData = (streamData.value ?? []) as JSONValue[];
-
-      const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
-
-      if (isComplexMode) {
-        for await (const { type, value } of readDataStream(reader, {
-          isAborted: () => abortController === null,
-        })) {
-          switch (type) {
-            case 'text': {
-              result += value;
-              mutate(result);
-              break;
-            }
-            case 'data': {
-              streamData.value = [...existingData, ...(value ?? [])];
-              break;
-            }
-          }
-        }
-      } else {
-        const decoder = createChunkDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-          // Update the chat state with the new message tokens.
-          result += decoder(value);
-          mutate(result);
-
-          // The request has been aborted, stop reading the stream.
-          if (abortController === null) {
-            reader.cancel();
-            break;
-          }
-        }
-      }
-
-      if (onFinish) {
-        onFinish(prompt, result);
-      }
-
-      abortController = null;
-      return result;
-    } catch (err) {
-      // Ignore abort errors as they are expected.
-      if ((err as any).name === 'AbortError') {
-        abortController = null;
-        return null;
-      }
-
-      if (onError && error instanceof Error) {
-        onError(error);
-      }
-
-      error.value = err as Error;
-    } finally {
-      mutateLoading(() => false);
-    }
+    const existingData = (streamData.value ?? []) as JSONValue[];
+    return callCompletionApi({
+      api,
+      prompt,
+      credentials,
+      headers: {
+        ...headers,
+        ...options?.headers,
+      },
+      body: {
+        ...unref(body),
+        ...options?.body,
+      },
+      setCompletion: mutate,
+      setLoading: loading => mutateLoading(() => loading),
+      setError: err => {
+        error.value = err;
+      },
+      setAbortController: controller => {
+        abortController = controller;
+      },
+      onResponse,
+      onFinish,
+      onError,
+      onData: data => {
+        mutateStreamData(() => [...existingData, ...(data ?? [])]);
+      },
+    });
   }
 
   const complete: UseCompletionHelpers['complete'] = async (
