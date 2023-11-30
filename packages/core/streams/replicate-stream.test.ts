@@ -1,5 +1,3 @@
-import { HttpResponse, http } from 'msw';
-import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   ReplicateStream,
@@ -7,29 +5,14 @@ import {
   experimental_StreamData,
 } from '.';
 import { replicateTextChunks } from '../tests/snapshots/replicate';
-import { createClient } from '../tests/utils/mock-client';
+import { readAllChunks } from '../tests/utils/mock-client';
+import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 
-const url = 'http://localhost/';
-
-const encoder = new TextEncoder();
-
-const server = setupServer(
-  http.get(url, () => {
-    const stream = new ReadableStream({
-      start(controller) {
-        for (const chunk of replicateTextChunks) {
-          controller.enqueue(encoder.encode(chunk));
-        }
-
-        controller.close();
-      },
-    });
-
-    return new HttpResponse(stream, {
-      headers: { 'Content-Type': 'text/event-stream' },
-    });
-  }),
-);
+const server = createMockServer({
+  chunks: replicateTextChunks,
+  formatChunk: chunk => chunk,
+  url: DEFAULT_TEST_URL,
+});
 
 describe('ReplicateStream', () => {
   beforeAll(() => {
@@ -44,10 +27,6 @@ describe('ReplicateStream', () => {
     server.close();
   });
 
-  function readAllChunks(response: Response) {
-    return createClient(response).readAll();
-  }
-
   it('should be able to parse SSE and receive the streamed response', async () => {
     // Note: this only tests the streaming response from Replicate, not the framework invocation.
 
@@ -59,7 +38,7 @@ describe('ReplicateStream', () => {
         input: {},
         source: 'api',
         created_at: 'fake',
-        urls: { get: '', cancel: '', stream: url },
+        urls: { get: '', cancel: '', stream: DEFAULT_TEST_URL },
       },
       undefined,
     );
@@ -81,7 +60,7 @@ describe('ReplicateStream', () => {
           input: {},
           source: 'api',
           created_at: 'fake',
-          urls: { get: '', cancel: '', stream: url },
+          urls: { get: '', cancel: '', stream: DEFAULT_TEST_URL },
         },
         {
           onFinal() {
@@ -113,7 +92,7 @@ describe('ReplicateStream', () => {
           input: {},
           source: 'api',
           created_at: 'fake',
-          urls: { get: '', cancel: '', stream: url },
+          urls: { get: '', cancel: '', stream: DEFAULT_TEST_URL },
         },
         {
           onFinal() {
