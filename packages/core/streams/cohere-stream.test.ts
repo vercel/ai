@@ -1,5 +1,3 @@
-import { HttpResponse, http } from 'msw';
-import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   CohereStream,
@@ -8,28 +6,13 @@ import {
 } from '.';
 import { cohereChunks } from '../tests/snapshots/cohere';
 import { readAllChunks } from '../tests/utils/mock-client';
+import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 
-const encoder = new TextEncoder();
-
-const url = 'http://localhost/';
-
-const server = setupServer(
-  http.get(url, () => {
-    const stream = new ReadableStream({
-      start(controller) {
-        for (const chunk of cohereChunks) {
-          controller.enqueue(encoder.encode(`${JSON.stringify(chunk)}\n`));
-        }
-
-        controller.close();
-      },
-    });
-
-    return new HttpResponse(stream, {
-      headers: { 'Content-Type': 'text/event-stream' },
-    });
-  }),
-);
+const server = createMockServer({
+  chunks: cohereChunks,
+  formatChunk: chunk => `${JSON.stringify(chunk)}\n`,
+  url: DEFAULT_TEST_URL,
+});
 
 describe('CohereStream', () => {
   beforeAll(() => {
@@ -45,7 +28,7 @@ describe('CohereStream', () => {
   });
 
   it('should be able to parse SSE and receive the streamed response', async () => {
-    const stream = CohereStream(await fetch(url));
+    const stream = CohereStream(await fetch(DEFAULT_TEST_URL));
 
     const response = new StreamingTextResponse(stream);
 
@@ -62,7 +45,7 @@ describe('CohereStream', () => {
     it('should send text', async () => {
       const data = new experimental_StreamData();
 
-      const stream = CohereStream(await fetch(url), {
+      const stream = CohereStream(await fetch(DEFAULT_TEST_URL), {
         onFinal() {
           data.close();
         },
@@ -85,7 +68,7 @@ describe('CohereStream', () => {
 
       data.append({ t1: 'v1' });
 
-      const stream = CohereStream(await fetch(url), {
+      const stream = CohereStream(await fetch(DEFAULT_TEST_URL), {
         onFinal() {
           data.close();
         },
