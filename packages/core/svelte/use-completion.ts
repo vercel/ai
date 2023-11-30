@@ -1,13 +1,11 @@
 import { useSWR } from 'sswr';
 import { Readable, Writable, derived, get, writable } from 'svelte/store';
-import { readDataStream } from '../shared/read-data-stream';
+import { callCompletionApi } from '../shared/call-completion-api';
 import type {
   JSONValue,
   RequestOptions,
   UseCompletionOptions,
 } from '../shared/types';
-import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
-import { callCompletionApi } from '../shared/call-completion-api';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
