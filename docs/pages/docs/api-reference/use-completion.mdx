@@ -53,47 +53,6 @@ export default function Completion() {
 }
 ```
 
-Depending on your code setup, you might want more granular control over the way the completion is executed. To achieve that, you can use the `complete` helper in the `useCompletion` hook, as well as the `onResponse` and `onFinish` options:
-
-```tsx filename="app/completion.tsx"
-'use client';
-
-import { useCompletion } from 'ai/react';
-import { useDebouncedCallback } from 'use-debounce';
-
-export default function Completion() {
-  const { complete, completion, isLoading } = useCompletion({
-    api: '/api/completion',
-    onResponse: res => {
-      // trigger something when the response starts streaming in
-      // e.g. if the user is rate limited, you can show a toast
-      if (res.status === 429) {
-        toast.error('You are being rate limited. Please try again later.');
-      }
-    },
-    onFinish: () => {
-      // do something with the completion result
-      toast.success('Successfully generated completion!');
-    },
-  });
-
-  const handleInputChange = useDebouncedCallback(e => {
-    complete(e.target.value);
-  }, 500);
-
-  return (
-    <div>
-      <p>Current state: {isLoading ? 'Generating...' : 'Idle'}</p>
-      <textarea
-        placeholder="Enter your prompt..."
-        onChange={handleInputChange}
-      />
-      <p>{completion}</p>
-    </div>
-  );
-}
-```
-
 ### `UseCompletionOptions`
 
 <OptionTable
@@ -208,7 +167,7 @@ The `useCompletion` hook returns an object with several helper methods and varia
 
 To use `useCompletion` in Svelte projects, you can import it from the `ai/svelte` subpath. Here's an example demonstrating the use of `useCompletion` in a simple text completion interface:
 
-```tsx filename="routes/+page.svelte" {4}
+```svelte filename="routes/+page.svelte" {4}
 <script>
   import { useCompletion } from 'ai/svelte'
 
@@ -330,20 +289,18 @@ The `useCompletion` function returns an object with several helper methods and v
 <Tab>
 To use `useCompletion` in Vue projects, you can import it from the `ai/vue` subpath. Here's an example demonstrating the use of `useCompletion` in a simple text completion interface:
 
-```tsx filename="pages/app.vue"
-<script setup>
-  import { useCompletion } from 'ai/vue'
+```vue filename="pages/app.vue"
+<script setup lang="ts">
+import { useCompletion } from 'ai/vue';
 
-  const { input, handleSubmit, completion } = useCompletion()
+const { completion, input, handleSubmit } = useCompletion();
 </script>
 
 <template>
   <div>
-    <p>Completion result: {{ completion }}</p>
-    <form @submit.prevent={handleSubmit}>
-      <label for="input">Prompt</label>
-      <input v-model={input} id="input" />
-      <button type="submit">Send</button>
+    {{ completion }}
+    <form @submit="handleSubmit">
+      <input v-model="input" placeholder="Say something..." />
     </form>
   </div>
 </template>
@@ -452,8 +409,7 @@ The `useCompletion` function returns an object with several helper methods and v
 
 Here is an example of how to use `useCompletion` to build a simple blog post spell checker that reports typos via the requested structured output.
 
-```tsx
-// app/page.tsx
+```tsx filename="app/page.tsx"
 'use client';
 
 import { useCompletion } from 'ai/react';
@@ -493,9 +449,7 @@ a custom prompt and the [`complete`](docs/api-reference/use-completion#usecomple
 
 The server API formats the prompt for the AI model, and then it uses the [OpenAIStream](/docs/api-reference/openai-stream) and [StreamingTextResponse](/docs/api-reference/streaming-text-response) utilities to stream the response back to the client.
 
-```tsx
-// app/api/completion/route.ts
-
+```tsx filename="app/api/completion/route.ts"
 import OpenAI from 'openai';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 
