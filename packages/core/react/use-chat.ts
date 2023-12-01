@@ -1,19 +1,17 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
-import { nanoid } from '../shared/utils';
-
+import { callChatApi } from '../shared/call-chat-api';
+import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
+  IdGenerator,
   JSONValue,
   Message,
   UseChatOptions,
-  IdGenerator,
 } from '../shared/types';
-
-import { callApi } from '../shared/call-api';
-import { processChatStream } from '../shared/process-chat-stream';
+import { nanoid } from '../shared/utils';
 import type {
   ReactResponseRow,
   experimental_StreamingReactResponse,
@@ -155,7 +153,7 @@ const getStreamedResponse = async (
     return responseMessage;
   }
 
-  return await callApi({
+  return await callChatApi({
     api,
     messages: constructedMessagesPayload,
     body: {
@@ -320,8 +318,8 @@ export function useChat({
       streamData,
       sendExtraMessageFields,
       experimental_onFunctionCall,
-      messagesRef.current,
-      abortControllerRef.current,
+      messagesRef,
+      abortControllerRef,
       generateId,
     ],
   );

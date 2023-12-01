@@ -1,22 +1,31 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   ReplicateStream,
   StreamingTextResponse,
   experimental_StreamData,
 } from '.';
-import { createClient } from '../tests/utils/mock-client';
-import { setup } from '../tests/utils/mock-service';
+import { replicateTextChunks } from '../tests/snapshots/replicate';
+import { readAllChunks } from '../tests/utils/mock-client';
+import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
+
+const server = createMockServer({
+  chunks: replicateTextChunks,
+  formatChunk: chunk => chunk,
+  url: DEFAULT_TEST_URL,
+});
 
 describe('ReplicateStream', () => {
-  let server: ReturnType<typeof setup>;
   beforeAll(() => {
-    server = setup(3034);
+    server.listen();
   });
-  afterAll(async () => server.teardown());
 
-  function readAllChunks(response: Response) {
-    return createClient(response).readAll();
-  }
+  afterEach(() => {
+    server.resetHandlers();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
 
   it('should be able to parse SSE and receive the streamed response', async () => {
     // Note: this only tests the streaming response from Replicate, not the framework invocation.
@@ -29,12 +38,9 @@ describe('ReplicateStream', () => {
         input: {},
         source: 'api',
         created_at: 'fake',
-        urls: { get: '', cancel: '', stream: server.api },
+        urls: { get: '', cancel: '', stream: DEFAULT_TEST_URL },
       },
       undefined,
-      {
-        headers: { 'x-mock-service': 'replicate', 'x-mock-type': 'chat' },
-      },
     );
 
     const response = new StreamingTextResponse(stream);
@@ -54,16 +60,13 @@ describe('ReplicateStream', () => {
           input: {},
           source: 'api',
           created_at: 'fake',
-          urls: { get: '', cancel: '', stream: server.api },
+          urls: { get: '', cancel: '', stream: DEFAULT_TEST_URL },
         },
         {
           onFinal() {
             data.close();
           },
           experimental_streamData: true,
-        },
-        {
-          headers: { 'x-mock-service': 'replicate', 'x-mock-type': 'chat' },
         },
       );
 
@@ -89,16 +92,13 @@ describe('ReplicateStream', () => {
           input: {},
           source: 'api',
           created_at: 'fake',
-          urls: { get: '', cancel: '', stream: server.api },
+          urls: { get: '', cancel: '', stream: DEFAULT_TEST_URL },
         },
         {
           onFinal() {
             data.close();
           },
           experimental_streamData: true,
-        },
-        {
-          headers: { 'x-mock-service': 'replicate', 'x-mock-type': 'chat' },
         },
       );
 

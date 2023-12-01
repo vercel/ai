@@ -6,7 +6,6 @@ import {
   chatCompletionChunksWithFunctionCall,
   chatCompletionChunksWithSpecifiedFunctionCall,
 } from '../snapshots/openai-chat';
-import { replicateTextChunks } from '../snapshots/replicate';
 
 async function flushDataToResponse(
   res: ServerResponse,
@@ -202,35 +201,6 @@ export const setup = (port = 3030) => {
               flushDelayInMs,
             );
             break;
-
-          case 'replicate': {
-            res.writeHead(200, {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-              Connection: 'keep-alive',
-            });
-            res.flushHeaders();
-            recentFlushed = [];
-            flushDataToResponse(
-              res,
-              replicateTextChunks.map(
-                value =>
-                  new Proxy(
-                    { value },
-                    {
-                      get(target) {
-                        recentFlushed.push(target.value);
-                        return target.value;
-                      },
-                    },
-                  ),
-              ),
-              value => value.toString(),
-              undefined,
-              flushDelayInMs,
-            );
-            break;
-          }
 
           default:
             throw new Error(`Unknown service: ${service}`);
