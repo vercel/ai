@@ -1,5 +1,5 @@
-import "./globals.css";
-import type { AppProps } from "next/app";
+import './globals.css';
+import type { AppProps } from 'next/app';
 
 export default function ExampleApp({
   Component,
