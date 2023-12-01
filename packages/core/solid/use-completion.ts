@@ -1,13 +1,12 @@
 import { Accessor, Resource, Setter, createSignal } from 'solid-js';
 import { useSWRStore } from 'solid-swr-store';
 import { createSWRStore } from 'swr-store';
+import { callCompletionApi } from '../shared/call-completion-api';
 import type {
   JSONValue,
   RequestOptions,
   UseCompletionOptions,
 } from '../shared/types';
-import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
-import { readDataStream } from '../shared/read-data-stream';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -96,122 +95,37 @@ export function useCompletion({
   const [isLoading, setIsLoading] = createSignal(false);
 
   let abortController: AbortController | null = null;
-  async function triggerRequest(prompt: string, options?: RequestOptions) {
-    try {
-      setError(undefined);
-      setIsLoading(true);
-
-      abortController = new AbortController();
-
-      // Empty the completion immediately.
-      mutate('');
-
-      const res = await fetch(api, {
-        method: 'POST',
-        body: JSON.stringify({
-          prompt,
-          ...body,
-          ...options?.body,
-        }),
-        headers: {
-          ...headers,
-          ...options?.headers,
-        },
-        signal: abortController.signal,
-        credentials,
-      }).catch(err => {
-        throw err;
-      });
-
-      if (onResponse) {
-        try {
-          await onResponse(res);
-        } catch (err) {
-          throw err;
-        }
-      }
-
-      if (!res.ok) {
-        throw new Error(
-          (await res.text()) || 'Failed to fetch the chat response.',
-        );
-      }
-
-      if (!res.body) {
-        throw new Error('The response body is empty.');
-      }
-
-      let result = '';
-      const reader = res.body.getReader();
-
-      const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
-
-      if (isComplexMode) {
-        const existingData = streamData() ?? [];
-
-        for await (const { type, value } of readDataStream(reader, {
-          isAborted: () => abortController === null,
-        })) {
-          switch (type) {
-            case 'text': {
-              result += value;
-              mutate(result);
-              break;
-            }
-            case 'data': {
-              setStreamData([...existingData, ...(value ?? [])]);
-              break;
-            }
-          }
-        }
-      } else {
-        const decoder = createChunkDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-          // Update the chat state with the new message tokens.
-          result += decoder(value);
-          mutate(result);
-
-          // The request has been aborted, stop reading the stream.
-          if (abortController === null) {
-            reader.cancel();
-            break;
-          }
-        }
-      }
-
-      if (onFinish) {
-        onFinish(prompt, result);
-      }
-
-      abortController = null;
-      return result;
-    } catch (err) {
-      // Ignore abort errors as they are expected.
-      if ((err as any).name === 'AbortError') {
-        abortController = null;
-        return null;
-      }
-
-      if (onError && error instanceof Error) {
-        onError(error);
-      }
-
-      setError(err as Error);
-    } finally {
-      setIsLoading(false);
-    }
-  }
 
   const complete: UseCompletionHelpers['complete'] = async (
     prompt: string,
     options?: RequestOptions,
   ) => {
-    return triggerRequest(prompt, options);
+    const existingData = streamData() ?? [];
+    return callCompletionApi({
+      api,
+      prompt,
+      credentials,
+      headers: {
+        ...headers,
+        ...options?.headers,
+      },
+      body: {
+        ...body,
+        ...options?.body,
+      },
+      setCompletion: mutate,
+      setLoading: setIsLoading,
+      setError,
+      setAbortController: controller => {
+        abortController = controller;
+      },
+      onResponse,
+      onFinish,
+      onError,
+      onData: data => {
+        setStreamData([...existingData, ...(data ?? [])]);
+      },
+    });
   };
 
   const stop = () => {
