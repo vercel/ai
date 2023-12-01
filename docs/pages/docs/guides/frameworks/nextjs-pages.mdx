@@ -25,19 +25,27 @@ The Edge Runtime supports the same Response types as in the App Router, so the c
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 import OpenAI from 'openai';
 
-export const runtime = 'edge';
-
+// Create an OpenAI API client (that's edge friendly!)
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
+  apiKey: process.env.OPENAI_API_KEY || '',
 });
 
+// IMPORTANT! Set the runtime to edge
+export const runtime = 'edge';
+
 export default async function handler(req: Request, res: Response) {
+  const { messages } = await req.json();
+
+  // Ask OpenAI for a streaming chat completion given the prompt
   const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo',
     stream: true,
-    messages: [{ role: 'user', content: 'What is love?' }],
+    messages,
   });
+
+  // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response);
+  // Respond with the stream
   return new StreamingTextResponse(stream);
 }
 ```
@@ -48,28 +56,34 @@ Node.js offers different Request and Response types compared to the Edge Runtime
 in place of `StreamingTextResponse`.
 
 ```typescript
-import { OpenAIStream, streamToResponse } from 'ai';
+import { OpenAIStream, StreamingTextResponse, streamToResponse } from 'ai';
 import { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 
+// Create an OpenAI API client (that's edge friendly!)
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || '',
 });
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  const aiResponse = await openai.chat.completions.create({
+  const { messages } = await req.body;
+
+  // Ask OpenAI for a streaming chat completion given the prompt
+  const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo',
     stream: true,
-    messages: [{ role: 'user', content: 'What is love?' }],
+    messages,
   });
 
-  const stream = OpenAIStream(aiResponse);
+  // Convert the response into a friendly text-stream
+  const stream = OpenAIStream(response);
 
   /**
-   * Converts the stream to a Node.js Response-like object
+   * Converts the stream to a Node.js Response-like object.
+   * Please note that this sends the response as one message once it's done.
    */
   return streamToResponse(stream, res);
 }
