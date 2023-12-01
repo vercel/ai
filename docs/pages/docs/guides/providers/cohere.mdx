@@ -37,9 +37,6 @@ For this example, we'll create a route handler at `app/api/completion/route.ts` 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
 import { StreamingTextResponse, CohereStream } from 'ai';
 
-// IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
-
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
