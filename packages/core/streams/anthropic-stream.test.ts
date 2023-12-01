@@ -1,29 +1,36 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   AnthropicStream,
   StreamingTextResponse,
   experimental_StreamData,
 } from '.';
+import { anthropicChunks } from '../tests/snapshots/anthropic';
 import { readAllChunks } from '../tests/utils/mock-client';
-import { setup } from '../tests/utils/mock-service';
+import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
+
+const server = createMockServer({
+  chunks: anthropicChunks,
+  formatChunk: chunk => `event: completion\ndata: ${JSON.stringify(chunk)}\n\n`,
+  url: DEFAULT_TEST_URL,
+});
 
 describe('AnthropicStream', () => {
-  let server: ReturnType<typeof setup>;
   beforeAll(() => {
-    server = setup(3035);
+    server.listen();
   });
-  afterAll(async () => server.teardown());
+
+  afterEach(() => {
+    server.resetHandlers();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
 
   it('should be able to parse SSE and receive the streamed response', async () => {
     const anthropic = new Anthropic({
-      fetch: () =>
-        fetch(server.api, {
-          headers: {
-            'x-mock-service': 'anthropic',
-            'x-mock-type': 'chat',
-          },
-        }),
+      fetch: () => fetch(DEFAULT_TEST_URL),
       apiKey: 'sk-doesnt-matter',
     });
 
@@ -49,13 +56,7 @@ describe('AnthropicStream', () => {
   describe('StreamData protocol', () => {
     it('should send text', async () => {
       const anthropic = new Anthropic({
-        fetch: () =>
-          fetch(server.api, {
-            headers: {
-              'x-mock-service': 'anthropic',
-              'x-mock-type': 'chat',
-            },
-          }),
+        fetch: () => fetch(DEFAULT_TEST_URL),
         apiKey: 'sk-doesnt-matter',
       });
 
@@ -87,13 +88,7 @@ describe('AnthropicStream', () => {
 
     it('should send text and data', async () => {
       const anthropic = new Anthropic({
-        fetch: () =>
-          fetch(server.api, {
-            headers: {
-              'x-mock-service': 'anthropic',
-              'x-mock-type': 'chat',
-            },
-          }),
+        fetch: () => fetch(DEFAULT_TEST_URL),
         apiKey: 'sk-doesnt-matter',
       });
 
