@@ -1,5 +1,5 @@
+import { vi } from 'vitest';
 import { COMPLEX_HEADER } from '../../shared/utils';
-import { describe, expect, vi, test, afterEach } from 'vitest';
 
 export function mockFetchTextStream({
   url,

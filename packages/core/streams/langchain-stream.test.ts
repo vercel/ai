@@ -1,12 +1,21 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import {
   LangChainStream,
   StreamingTextResponse,
   createStreamDataTransformer,
   experimental_StreamData,
 } from '.';
-import { createClient } from '../tests/utils/mock-client';
-import { setup } from '../tests/utils/mock-service';
+import { openaiChatCompletionChunks } from '../tests/snapshots/openai-chat';
+import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
+import { readAllChunks } from '../tests/utils/mock-client';
 
 // need to mock uuid before importing LangChain
 vi.mock('uuid', () => {
@@ -21,29 +30,34 @@ import { PromptTemplate } from 'langchain/prompts';
 import { HumanMessage } from 'langchain/schema';
 import { BytesOutputParser } from 'langchain/schema/output_parser';
 
-describe('LangchainStream', () => {
-  let server: ReturnType<typeof setup>;
-  beforeAll(() => {
-    server = setup(3031);
-  });
-  afterAll(async () => server.teardown());
+const server = createMockServer([
+  {
+    url: DEFAULT_TEST_URL + 'chat/completions',
+    chunks: openaiChatCompletionChunks,
+    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+    suffix: 'data: [DONE]',
+  },
+]);
 
-  function readAllChunks(response: Response) {
-    return createClient(response).readAll();
-  }
+describe('LangchainStream', () => {
+  beforeAll(() => {
+    server.listen();
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
 
   describe('LangChain Expression Language call', () => {
     it('should be able to parse SSE and receive the streamed response', async () => {
       const model = new ChatOpenAI({
         streaming: true,
         openAIApiKey: 'fake',
-        configuration: {
-          baseURL: server.api,
-          defaultHeaders: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'chat',
-          },
-        },
+        configuration: { baseURL: DEFAULT_TEST_URL },
       });
 
       const stream = await PromptTemplate.fromTemplate('{input}')
@@ -70,13 +84,7 @@ describe('LangchainStream', () => {
         const model = new ChatOpenAI({
           streaming: true,
           openAIApiKey: 'fake',
-          configuration: {
-            baseURL: server.api,
-            defaultHeaders: {
-              'x-mock-service': 'openai',
-              'x-mock-type': 'chat',
-            },
-          },
+          configuration: { baseURL: DEFAULT_TEST_URL },
         });
 
         const stream = await PromptTemplate.fromTemplate('{input}')
@@ -122,13 +130,7 @@ describe('LangchainStream', () => {
         const model = new ChatOpenAI({
           streaming: true,
           openAIApiKey: 'fake',
-          configuration: {
-            baseURL: server.api,
-            defaultHeaders: {
-              'x-mock-service': 'openai',
-              'x-mock-type': 'chat',
-            },
-          },
+          configuration: { baseURL: DEFAULT_TEST_URL },
         });
 
         const stream = await PromptTemplate.fromTemplate('{input}')
@@ -176,13 +178,7 @@ describe('LangchainStream', () => {
       const llm = new ChatOpenAI({
         streaming: true,
         openAIApiKey: 'fake',
-        configuration: {
-          baseURL: server.api,
-          defaultHeaders: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'chat',
-          },
-        },
+        configuration: { baseURL: DEFAULT_TEST_URL },
       });
 
       llm
@@ -215,13 +211,7 @@ describe('LangchainStream', () => {
         const llm = new ChatOpenAI({
           streaming: true,
           openAIApiKey: 'fake',
-          configuration: {
-            baseURL: server.api,
-            defaultHeaders: {
-              'x-mock-service': 'openai',
-              'x-mock-type': 'chat',
-            },
-          },
+          configuration: { baseURL: DEFAULT_TEST_URL },
         });
 
         llm
@@ -255,13 +245,7 @@ describe('LangchainStream', () => {
         const llm = new ChatOpenAI({
           streaming: true,
           openAIApiKey: 'fake',
-          configuration: {
-            baseURL: server.api,
-            defaultHeaders: {
-              'x-mock-service': 'openai',
-              'x-mock-type': 'chat',
-            },
-          },
+          configuration: { baseURL: DEFAULT_TEST_URL },
         });
 
         llm
