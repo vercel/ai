@@ -1,5 +1,4 @@
 import { ServerResponse, createServer } from 'node:http';
-import { huggingfaceChunks } from '../snapshots/huggingface';
 import {
   chatCompletionChunks,
   chatCompletionChunksWithFunctionCall,
@@ -87,62 +86,6 @@ export const setup = (port = 3030) => {
         break;
       case 'chat':
         switch (service) {
-          case 'huggingface': {
-            res.writeHead(200, {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-              Connection: 'keep-alive',
-            });
-            res.flushHeaders();
-            recentFlushed = [];
-            flushDataToResponse(
-              res,
-              huggingfaceChunks.map(
-                value =>
-                  new Proxy(
-                    { value },
-                    {
-                      get(target) {
-                        recentFlushed.push(target.value);
-                        return target.value;
-                      },
-                    },
-                  ),
-              ),
-              value => `data: ${JSON.stringify(value)}\n\n`,
-              undefined,
-              flushDelayInMs,
-            );
-            break;
-          }
-          case 'huggingface': {
-            res.writeHead(200, {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-              Connection: 'keep-alive',
-            });
-            res.flushHeaders();
-            recentFlushed = [];
-            flushDataToResponse(
-              res,
-              huggingfaceChunks.map(
-                value =>
-                  new Proxy(
-                    { value },
-                    {
-                      get(target) {
-                        recentFlushed.push(target.value);
-                        return target.value;
-                      },
-                    },
-                  ),
-              ),
-              value => `data: ${value}\n\n`,
-              undefined,
-              flushDelayInMs,
-            );
-            break;
-          }
           case 'openai':
             res.writeHead(200, {
               'Content-Type': 'text/event-stream',
