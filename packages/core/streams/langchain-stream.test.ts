@@ -16,28 +16,23 @@ import {
 import { openaiChatCompletionChunks } from '../tests/snapshots/openai-chat';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 import { readAllChunks } from '../tests/utils/mock-client';
-
-// need to mock uuid before importing LangChain
-vi.mock('uuid', () => {
-  let count = 0;
-  return {
-    v4: () => `uuid-${count++}`,
-  };
-});
-
 import { ChatOpenAI } from 'langchain/chat_models/openai';
 import { PromptTemplate } from 'langchain/prompts';
 import { HumanMessage } from 'langchain/schema';
 import { BytesOutputParser } from 'langchain/schema/output_parser';
 
-const server = createMockServer([
-  {
-    url: DEFAULT_TEST_URL + 'chat/completions',
-    chunks: openaiChatCompletionChunks,
-    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
-    suffix: 'data: [DONE]',
-  },
-]);
+const server = createMockServer(
+  [
+    {
+      url: DEFAULT_TEST_URL + 'chat/completions',
+      chunks: openaiChatCompletionChunks,
+      formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+      suffix: 'data: [DONE]',
+    },
+  ],
+  // passthrough urls:
+  ['https://tiktoken.pages.dev/js/cl100k_base.json'],
+);
 
 describe('LangchainStream', () => {
   beforeAll(() => {
@@ -77,7 +72,7 @@ describe('LangchainStream', () => {
       ]);
     });
 
-    describe('StreamData prototcol', () => {
+    describe('StreamData protocol', () => {
       it('should send text', async () => {
         const data = new experimental_StreamData();
 
