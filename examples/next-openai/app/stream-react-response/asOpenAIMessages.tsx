@@ -51,6 +51,18 @@ export function asOpenAIMessages(
           name: message.name,
         } satisfies ChatCompletionMessageParam;
       }
+
+      case 'tool': {
+        if (message.tool_call_id === undefined) {
+          throw new Error('Invalid tool in message. Expected a tool_call_id');
+        }
+
+        return {
+          role: message.role,
+          content: message.content,
+          tool_call_id: message.tool_call_id,
+        } satisfies ChatCompletionMessageParam;
+      }
     }
   });
 }

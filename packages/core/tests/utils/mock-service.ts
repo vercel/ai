@@ -3,6 +3,7 @@ import {
   chatCompletionChunks,
   chatCompletionChunksWithFunctionCall,
   chatCompletionChunksWithSpecifiedFunctionCall,
+  chatCompletionChunksWithToolCall,
 } from '../snapshots/openai-chat';
 
 async function flushDataToResponse(
@@ -40,7 +41,8 @@ export const setup = (port = 3030) => {
 
   const server = createServer((req, res) => {
     const service = req.headers['x-mock-service'] || 'openai';
-    const type = req.headers['x-mock-type'] || 'chat' || 'func_call';
+    const type =
+      req.headers['x-mock-type'] || 'chat' || 'func_call' || 'tool_call';
     const flushDelayHeader = req.headers['x-flush-delay'];
     const flushDelayInMs =
       flushDelayHeader === undefined ? undefined : +flushDelayHeader;
@@ -48,6 +50,7 @@ export const setup = (port = 3030) => {
     switch (type) {
       case 'func_call':
       case 'func_call_with_specified_function':
+      case 'tool_call':
         switch (service) {
           case 'openai':
             res.writeHead(200, {
@@ -57,10 +60,15 @@ export const setup = (port = 3030) => {
             });
             res.flushHeaders();
             recentFlushed = [];
-            const mock =
-              type === 'func_call_with_specified_function'
-                ? chatCompletionChunksWithSpecifiedFunctionCall
-                : chatCompletionChunksWithFunctionCall;
+            const map = {
+              func_call: chatCompletionChunksWithFunctionCall,
+              func_call_with_specified_function:
+                chatCompletionChunksWithSpecifiedFunctionCall,
+              tool_call: chatCompletionChunksWithToolCall,
+            };
+
+            const mock = map[type];
+
             flushDataToResponse(
               res,
               mock.map(

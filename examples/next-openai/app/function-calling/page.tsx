@@ -42,6 +42,7 @@ export default function Chat() {
     system: 'red',
     user: 'black',
     function: 'blue',
+    tool: 'purple',
     assistant: 'green',
   };
 
