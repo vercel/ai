@@ -45,6 +45,7 @@ export type UseAssistantOptions = {
   credentials?: RequestCredentials;
   headers?: Record<string, string> | Headers;
   body?: object;
+  onError?: (error: Error) => void;
 };
 
 export function experimental_useAssistant({
@@ -53,12 +54,13 @@ export function experimental_useAssistant({
   credentials,
   headers,
   body,
+  onError,
 }: UseAssistantOptions): UseAssistantHelpers {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<AssistantStatus>('awaiting_message');
-  const [error, setError] = useState<unknown | undefined>(undefined);
+  const [error, setError] = useState<unknown | Error>(undefined);
 
   const handleInputChange = (
     event:
@@ -146,7 +148,11 @@ export function experimental_useAssistant({
         }
       }
     } catch (error) {
-      setError(error);
+      if (onError && error instanceof Error) {
+        onError(error);
+      }
+
+      setError(error as Error);
     }
 
     setStatus('awaiting_message');
