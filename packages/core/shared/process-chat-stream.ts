@@ -12,6 +12,7 @@ export async function processChatStream({
   experimental_onToolCall,
   updateChatRequest,
   getCurrentMessages,
+  maxIterations = 1000,
 }: {
   getStreamedResponse: () => Promise<
     Message | { messages: Message[]; data: JSONValue[] }
@@ -26,95 +27,99 @@ export async function processChatStream({
   ) => Promise<void | ChatRequest>;
   updateChatRequest: (chatRequest: ChatRequest) => void;
   getCurrentMessages: () => Message[];
+  /**
+   * The maximum number of times we expect the the API to loop on its own.
+   */
+  maxIterations?: number;
 }) {
-  while (true) {
+  let count = 0;
+  while (count < maxIterations) {
+    count++;
     // TODO-STREAMDATA: This should be {  const { messages: streamedResponseMessages, data } =
     // await getStreamedResponse(} once Stream Data is not experimental
     const messagesAndDataOrJustMessage = await getStreamedResponse();
 
     // Using experimental stream data
     if ('messages' in messagesAndDataOrJustMessage) {
-      // no sense parsing messages if there are no callbacks to call
-      if (experimental_onFunctionCall || experimental_onToolCall) {
-        let hasFollowingResponse = false;
-        for (const message of messagesAndDataOrJustMessage.messages) {
-          // if no ready function call or tool call, continue to next message
-          if (
-            (message.function_call === undefined ||
-              typeof message.function_call === 'string') &&
-            (message.tool_calls === undefined ||
-              typeof message.tool_calls === 'string')
-          ) {
+      let hasFollowingResponse = false;
+      for (const message of messagesAndDataOrJustMessage.messages) {
+        // See if the message has a complete function call or tool call
+        if (
+          (message.function_call === undefined ||
+            typeof message.function_call === 'string') &&
+          (message.tool_calls === undefined ||
+            typeof message.tool_calls === 'string')
+        ) {
+          continue;
+        }
+
+        hasFollowingResponse = true;
+        // Try to handle function call
+        if (experimental_onFunctionCall) {
+          const functionCall = message.function_call;
+          // Make sure functionCall is an object
+          // If not, we got tool calls instead of function calls
+          if (typeof functionCall !== 'object') {
+            console.warn(
+              'experimental_onFunctionCall should not be defined when using tools',
+            );
             continue;
           }
 
-          hasFollowingResponse = true;
+          // User handles the function call in their own functionCallHandler.
+          // The "arguments" key of the function call object will still be a string which will have to be parsed in the function handler.
+          // If the "arguments" JSON is malformed due to model error the user will have to handle that themselves.
 
-          // If we get here and are expecting a funtion call, the message should have one, if not warn and continue
-          if (experimental_onFunctionCall) {
-            const functionCall = message.function_call;
-            if (!(typeof functionCall === 'object')) {
-              console.warn(
-                'experimental_onFunctionCall should not be defined when using tools',
-              );
-              continue;
-            }
+          const functionCallResponse: ChatRequest | void =
+            await experimental_onFunctionCall(
+              getCurrentMessages(),
+              functionCall,
+            );
 
-            // User handles the function call in their own functionCallHandler.
-            // The "arguments" key of the function call object will still be a string which will have to be parsed in the function handler.
-            // If the "arguments" JSON is malformed due to model error the user will have to handle that themselves.
-
-            const functionCallResponse: ChatRequest | void =
-              await experimental_onFunctionCall(
-                getCurrentMessages(),
-                functionCall,
-              );
-
-            // If the user does not return anything as a result of the function call, the loop will break.
-            if (functionCallResponse === undefined) {
-              hasFollowingResponse = false;
-              break;
-            }
-
-            // A function call response was returned.
-            // The updated chat with function call response will be sent to the API in the next iteration of the loop.
-            updateChatRequest(functionCallResponse);
+          // If the user does not return anything as a result of the function call, the loop will break.
+          if (functionCallResponse === undefined) {
+            hasFollowingResponse = false;
+            break;
           }
 
-          // If we get here and are expecting a tool call, the message should have one, if not warn and continue
-          if (experimental_onToolCall) {
-            const toolCalls = message.tool_calls;
-            if (
-              !Array.isArray(toolCalls) ||
-              toolCalls.some(toolCall => typeof toolCall !== 'object')
-            ) {
-              console.warn(
-                'experimental_onToolCall should not be defined when using tools',
-              );
-              continue;
-            }
-
-            // User handles the function call in their own functionCallHandler.
-            // The "arguments" key of the function call object will still be a string which will have to be parsed in the function handler.
-            // If the "arguments" JSON is malformed due to model error the user will have to handle that themselves.
-
-            const toolCallResponse: ChatRequest | void =
-              await experimental_onToolCall(getCurrentMessages(), toolCalls);
-
-            // If the user does not return anything as a result of the function call, the loop will break.
-            if (toolCallResponse === undefined) {
-              hasFollowingResponse = false;
-              break;
-            }
-
-            // A function call response was returned.
-            // The updated chat with function call response will be sent to the API in the next iteration of the loop.
-            updateChatRequest(toolCallResponse);
+          // A function call response was returned.
+          // The updated chat with function call response will be sent to the API in the next iteration of the loop.
+          updateChatRequest(functionCallResponse);
+        }
+        // Try to handle tool call
+        if (experimental_onToolCall) {
+          const toolCalls = message.tool_calls;
+          // Make sure toolCalls is an array of objects
+          // If not, we got function calls instead of tool calls
+          if (
+            !Array.isArray(toolCalls) ||
+            toolCalls.some(toolCall => typeof toolCall !== 'object')
+          ) {
+            console.warn(
+              'experimental_onToolCall should not be defined when using tools',
+            );
+            continue;
           }
+
+          // User handles the function call in their own functionCallHandler.
+          // The "arguments" key of the function call object will still be a string which will have to be parsed in the function handler.
+          // If the "arguments" JSON is malformed due to model error the user will have to handle that themselves.
+          const toolCallResponse: ChatRequest | void =
+            await experimental_onToolCall(getCurrentMessages(), toolCalls);
+
+          // If the user does not return anything as a result of the function call, the loop will break.
+          if (toolCallResponse === undefined) {
+            hasFollowingResponse = false;
+            break;
+          }
+
+          // A function call response was returned.
+          // The updated chat with function call response will be sent to the API in the next iteration of the loop.
+          updateChatRequest(toolCallResponse);
         }
-        if (!hasFollowingResponse) {
-          break;
-        }
+      }
+      if (!hasFollowingResponse) {
+        break;
       }
     } else {
       const streamedResponseMessage = messagesAndDataOrJustMessage;
@@ -153,7 +158,7 @@ export async function processChatStream({
         const toolCalls = streamedResponseMessage.tool_calls;
         if (!(typeof toolCalls === 'object')) {
           console.warn(
-            'experimental_onToolCall should not be defined when using tools',
+            'experimental_onToolCall should not be defined when using functions',
           );
           continue;
         }
@@ -200,5 +205,8 @@ export async function processChatStream({
         }
       }
     }
+  }
+  if (count >= maxIterations) {
+    console.error('Max iterations reached for processChatStream probably an infinite ly an infinite loop.')
   }
 }

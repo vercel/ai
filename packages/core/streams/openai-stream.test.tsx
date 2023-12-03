@@ -365,7 +365,7 @@ describe('OpenAIStream', () => {
       ]);
     });
 
-    it('should return the tool calls to teh client if the server doesnt provide a response', async () => {
+    it('should return the tool calls to the client if the server doesnt provide a response', async () => {
       const dateTimeCallback = vi.fn();
       const openWebpageCallback = vi.fn();
 
