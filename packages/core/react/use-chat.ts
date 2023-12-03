@@ -100,13 +100,13 @@ const getStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(({ role, content, name, function_call }) => ({
-      role,
-      content,
-      ...(name !== undefined && { name }),
-      ...(function_call !== undefined && {
-        function_call: function_call,
-      }),
-    }));
+        role,
+        content,
+        ...(name !== undefined && { name }),
+        ...(function_call !== undefined && {
+          function_call: function_call,
+        }),
+      }));
 
   if (typeof api !== 'string') {
     // In this case, we are handling a Server Action. No complex mode handling needed.
