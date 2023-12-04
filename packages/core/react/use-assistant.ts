@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
 import { useState } from 'react';
-import { processMessageStream } from '../shared/process-message-stream';
+import { readDataStream } from '../shared/read-data-stream';
 import { Message } from '../shared/types';
 import { parseStreamPart } from '../shared/stream-parts';
 
@@ -39,13 +39,21 @@ export type UseAssistantHelpers = {
   error: undefined | unknown;
 };
 
+export type UseAssistantOptions = {
+  api: string;
+  threadId?: string | undefined;
+  credentials?: RequestCredentials;
+  headers?: Record<string, string> | Headers;
+  body?: object;
+};
+
 export function experimental_useAssistant({
   api,
   threadId: threadIdParam,
-}: {
-  api: string;
-  threadId?: string | undefined;
-}): UseAssistantHelpers {
+  credentials,
+  headers,
+  body,
+}: UseAssistantOptions): UseAssistantHelpers {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
@@ -83,8 +91,10 @@ export function experimental_useAssistant({
 
     const result = await fetch(api, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      credentials,
+      headers: { 'Content-Type': 'application/json', ...headers },
       body: JSON.stringify({
+        ...body,
         // always use user-provided threadId when available:
         threadId: threadIdParam ?? threadId ?? null,
         message: input,
@@ -98,10 +108,10 @@ export function experimental_useAssistant({
       throw new Error('The response body is empty.');
     }
 
-    await processMessageStream(result.body.getReader(), (message: string) => {
-      try {
-        const { type, value } = parseStreamPart(message);
-
+    try {
+      for await (const { type, value } of readDataStream(
+        result.body.getReader(),
+      )) {
         switch (type) {
           case 'assistant_message': {
             setMessages(messages => [
@@ -146,10 +156,10 @@ export function experimental_useAssistant({
             break;
           }
         }
-      } catch (error) {
-        setError(error);
       }
-    });
+    } catch (error) {
+      setError(error);
+    }
 
     setStatus('awaiting_message');
   };

@@ -1,14 +1,9 @@
 import { ServerResponse, createServer } from 'node:http';
-
 import {
   chatCompletionChunks,
   chatCompletionChunksWithFunctionCall,
   chatCompletionChunksWithSpecifiedFunctionCall,
 } from '../snapshots/openai-chat';
-import { cohereChunks } from '../snapshots/cohere';
-import { huggingfaceChunks } from '../snapshots/huggingface';
-import { replicateTextChunks } from '../snapshots/replicate';
-import { anthropicChunks } from '../snapshots/anthropic';
 
 async function flushDataToResponse(
   res: ServerResponse,
@@ -91,121 +86,6 @@ export const setup = (port = 3030) => {
         break;
       case 'chat':
         switch (service) {
-          case 'anthropic': {
-            res.writeHead(200, {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-              Connection: 'keep-alive',
-            });
-            res.flushHeaders();
-            recentFlushed = [];
-
-            flushDataToResponse(
-              res,
-              anthropicChunks.map(
-                value =>
-                  new Proxy(
-                    { value },
-                    {
-                      get(target) {
-                        recentFlushed.push(target.value);
-                        return target.value;
-                      },
-                    },
-                  ),
-              ),
-              value => `event: completion\ndata: ${JSON.stringify(value)}\n\n`,
-              undefined,
-              flushDelayInMs,
-            );
-            break;
-          }
-
-          case 'cohere': {
-            res.writeHead(200, {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-              Connection: 'keep-alive',
-            });
-            res.flushHeaders();
-            recentFlushed = [];
-
-            flushDataToResponse(
-              res,
-              cohereChunks.map(
-                value =>
-                  new Proxy(
-                    { value },
-                    {
-                      get(target) {
-                        recentFlushed.push(target.value);
-                        return target.value;
-                      },
-                    },
-                  ),
-              ),
-              value => `${JSON.stringify(value)}\n`,
-              undefined,
-              flushDelayInMs,
-            );
-            break;
-          }
-          case 'huggingface': {
-            res.writeHead(200, {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-              Connection: 'keep-alive',
-            });
-            res.flushHeaders();
-            recentFlushed = [];
-            flushDataToResponse(
-              res,
-              huggingfaceChunks.map(
-                value =>
-                  new Proxy(
-                    { value },
-                    {
-                      get(target) {
-                        recentFlushed.push(target.value);
-                        return target.value;
-                      },
-                    },
-                  ),
-              ),
-              value => `data: ${JSON.stringify(value)}\n\n`,
-              undefined,
-              flushDelayInMs,
-            );
-            break;
-          }
-          case 'huggingface': {
-            res.writeHead(200, {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-              Connection: 'keep-alive',
-            });
-            res.flushHeaders();
-            recentFlushed = [];
-            flushDataToResponse(
-              res,
-              huggingfaceChunks.map(
-                value =>
-                  new Proxy(
-                    { value },
-                    {
-                      get(target) {
-                        recentFlushed.push(target.value);
-                        return target.value;
-                      },
-                    },
-                  ),
-              ),
-              value => `data: ${value}\n\n`,
-              undefined,
-              flushDelayInMs,
-            );
-            break;
-          }
           case 'openai':
             res.writeHead(200, {
               'Content-Type': 'text/event-stream',
@@ -233,35 +113,6 @@ export const setup = (port = 3030) => {
               flushDelayInMs,
             );
             break;
-
-          case 'replicate': {
-            res.writeHead(200, {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-              Connection: 'keep-alive',
-            });
-            res.flushHeaders();
-            recentFlushed = [];
-            flushDataToResponse(
-              res,
-              replicateTextChunks.map(
-                value =>
-                  new Proxy(
-                    { value },
-                    {
-                      get(target) {
-                        recentFlushed.push(target.value);
-                        return target.value;
-                      },
-                    },
-                  ),
-              ),
-              value => value.toString(),
-              undefined,
-              flushDelayInMs,
-            );
-            break;
-          }
 
           default:
             throw new Error(`Unknown service: ${service}`);

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
-
-import { COMPLEX_HEADER, createChunkDecoder } from '../shared/utils';
-import { UseCompletionOptions, RequestOptions } from '../shared/types';
-import { processMessageStream } from '../shared/process-message-stream';
-import { parseStreamPart } from '../shared/stream-parts';
+import { callCompletionApi } from '../shared/call-completion-api';
+import {
+  JSONValue,
+  RequestOptions,
+  UseCompletionOptions,
+} from '../shared/types';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -54,6 +55,8 @@ export type UseCompletionHelpers = {
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   /** Whether the API request is in progress */
   isLoading: boolean;
+  /** Additional data added on the server via StreamData */
+  data?: JSONValue[] | undefined;
 };
 
 export function useCompletion({
@@ -82,6 +85,10 @@ export function useCompletion({
     null,
   );
 
+  const { data: streamData, mutate: mutateStreamData } = useSWR<
+    JSONValue[] | undefined
+  >([completionId, 'streamData'], null);
+
   const [error, setError] = useState<undefined | Error>(undefined);
   const completion = data!;
 
@@ -103,110 +110,27 @@ export function useCompletion({
   }, [credentials, headers, body]);
 
   const triggerRequest = useCallback(
-    async (prompt: string, options?: RequestOptions) => {
-      try {
-        mutateLoading(true);
-        setError(undefined);
-
-        const abortController = new AbortController();
-        setAbortController(abortController);
-
-        // Empty the completion immediately.
-        mutate('', false);
-
-        const res = await fetch(api, {
-          method: 'POST',
-          body: JSON.stringify({
-            prompt,
-            ...extraMetadataRef.current.body,
-            ...options?.body,
-          }),
-          credentials: extraMetadataRef.current.credentials,
-          headers: {
-            ...extraMetadataRef.current.headers,
-            ...options?.headers,
-          },
-          signal: abortController.signal,
-        }).catch(err => {
-          throw err;
-        });
-
-        if (onResponse) {
-          try {
-            await onResponse(res);
-          } catch (err) {
-            throw err;
-          }
-        }
-
-        if (!res.ok) {
-          throw new Error(
-            (await res.text()) || 'Failed to fetch the chat response.',
-          );
-        }
-
-        if (!res.body) {
-          throw new Error('The response body is empty.');
-        }
-
-        let result = '';
-        const reader = res.body.getReader();
-
-        const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
-
-        if (isComplexMode) {
-          await processMessageStream(reader, message => {
-            const { type, value } = parseStreamPart(message);
-            if (type === 'text') {
-              result += value;
-              mutate(result, false);
-            }
-          });
-        } else {
-          const decoder = createChunkDecoder();
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              break;
-            }
-
-            // Update the completion state with the new message tokens.
-            result += decoder(value);
-            mutate(result, false);
-
-            // The request has been aborted, stop reading the stream.
-            if (abortController === null) {
-              reader.cancel();
-              break;
-            }
-          }
-        }
-
-        if (onFinish) {
-          onFinish(prompt, result);
-        }
-
-        setAbortController(null);
-        return result;
-      } catch (err) {
-        // Ignore abort errors as they are expected.
-        if ((err as any).name === 'AbortError') {
-          setAbortController(null);
-          return null;
-        }
-
-        if (err instanceof Error) {
-          if (onError) {
-            onError(err);
-          }
-        }
-
-        setError(err as Error);
-      } finally {
-        mutateLoading(false);
-      }
-    },
+    async (prompt: string, options?: RequestOptions) =>
+      callCompletionApi({
+        api,
+        prompt,
+        credentials: extraMetadataRef.current.credentials,
+        headers: { ...extraMetadataRef.current.headers, ...options?.headers },
+        body: {
+          ...extraMetadataRef.current.body,
+          ...options?.body,
+        },
+        setCompletion: completion => mutate(completion, false),
+        setLoading: mutateLoading,
+        setError,
+        setAbortController,
+        onResponse,
+        onFinish,
+        onError,
+        onData: data => {
+          mutateStreamData([...(streamData || []), ...(data || [])], false);
+        },
+      }),
     [
       mutate,
       mutateLoading,
@@ -217,6 +141,8 @@ export function useCompletion({
       onFinish,
       onError,
       setError,
+      streamData,
+      mutateStreamData,
     ],
   );
 
@@ -267,5 +193,6 @@ export function useCompletion({
     handleInputChange,
     handleSubmit,
     isLoading,
+    data: streamData,
   };
 }

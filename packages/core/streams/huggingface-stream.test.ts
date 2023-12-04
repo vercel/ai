@@ -1,20 +1,34 @@
 import { HfInference } from '@huggingface/inference';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   HuggingFaceStream,
   StreamingTextResponse,
   experimental_StreamData,
 } from '.';
+import { huggingfaceChunks } from '../tests/snapshots/huggingface';
 import { createClient } from '../tests/utils/mock-client';
-import { setup } from '../tests/utils/mock-service';
+import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
+
+const server = createMockServer({
+  chunks: huggingfaceChunks,
+  formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+  url: DEFAULT_TEST_URL,
+});
 
 describe('HuggingFace stream', () => {
   const Hf = new HfInference();
 
-  let server: ReturnType<typeof setup>;
   beforeAll(() => {
-    server = setup(3033);
+    server.listen();
   });
-  afterAll(async () => server.teardown());
+
+  afterEach(() => {
+    server.resetHandlers();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
 
   function readAllChunks(response: Response) {
     return createClient(response).readAll();
@@ -24,16 +38,7 @@ describe('HuggingFace stream', () => {
     const stream = HuggingFaceStream(
       Hf.textGenerationStream(
         { model: 'model', inputs: '' },
-        {
-          fetch() {
-            return fetch(server.api, {
-              headers: {
-                'x-mock-service': 'huggingface',
-                'x-mock-type': 'chat',
-              },
-            });
-          },
-        },
+        { fetch: () => fetch(DEFAULT_TEST_URL) },
       ),
     );
 
@@ -54,16 +59,7 @@ describe('HuggingFace stream', () => {
       const stream = HuggingFaceStream(
         Hf.textGenerationStream(
           { model: 'model', inputs: '' },
-          {
-            fetch() {
-              return fetch(server.api, {
-                headers: {
-                  'x-mock-service': 'huggingface',
-                  'x-mock-type': 'chat',
-                },
-              });
-            },
-          },
+          { fetch: () => fetch(DEFAULT_TEST_URL) },
         ),
         {
           onFinal() {
@@ -91,16 +87,7 @@ describe('HuggingFace stream', () => {
       const stream = HuggingFaceStream(
         Hf.textGenerationStream(
           { model: 'model', inputs: '' },
-          {
-            fetch() {
-              return fetch(server.api, {
-                headers: {
-                  'x-mock-service': 'huggingface',
-                  'x-mock-type': 'chat',
-                },
-              });
-            },
-          },
+          { fetch: () => fetch(DEFAULT_TEST_URL) },
         ),
         {
           onFinal() {

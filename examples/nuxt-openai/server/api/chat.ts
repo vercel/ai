@@ -1,5 +1,5 @@
+import { OpenAIStream, StreamingTextResponse } from 'ai';
 import OpenAI from 'openai';
-import { OpenAIStream } from 'ai';
 import { ChatCompletionMessageParam } from 'openai/resources/chat';
 
 export default defineLazyEventHandler(async () => {
@@ -23,6 +23,9 @@ export default defineLazyEventHandler(async () => {
     });
 
     // Convert the response into a friendly text-stream
-    return OpenAIStream(response);
+    const stream = OpenAIStream(response);
+
+    // Respond with the stream
+    return new StreamingTextResponse(stream);
   });
 });
