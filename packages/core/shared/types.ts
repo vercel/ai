@@ -275,6 +275,6 @@ export type AssistantMessage = {
 export type DataMessage = {
   id?: string; // optional id, implement if needed (e.g. for persistance)
   role: 'data';
-  text?: string; // optional text to display in the UI
+  description?: string; // optional text to display in the UI
   data: JSONValue; // application-specific data
 };

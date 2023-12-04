@@ -131,7 +131,7 @@ export function experimental_useAssistant({
               {
                 id: value.id ?? '',
                 role: 'data',
-                content: value.text ?? '',
+                content: value.description ?? '',
                 data: value.data,
               },
             ]);

@@ -97,7 +97,7 @@ export async function POST(req: Request) {
 
                       sendDataMessage({
                         role: 'data',
-                        text: `Temperature in ${parameters.room} changed from ${oldTemperature} to ${parameters.temperature}`,
+                        description: `Temperature in ${parameters.room} changed from ${oldTemperature} to ${parameters.temperature}`,
                         data: {
                           oldTemperature,
                           newTemperature: parameters.temperature,
