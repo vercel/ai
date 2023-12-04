@@ -1,44 +1,17 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, findByText, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, findByText, render, screen } from '@testing-library/vue';
+import { afterEach, beforeEach, expect, it, describe, vi } from 'vitest';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
   mockFetchTextStream,
 } from '../tests/utils/mock-fetch';
-import { useCompletion } from './use-completion';
-
-const TestComponent = () => {
-  const {
-    completion,
-    handleSubmit,
-    error,
-    handleInputChange,
-    input,
-    isLoading,
-  } = useCompletion();
-
-  return (
-    <div>
-      <div data-testid="loading">{isLoading.toString()}</div>
-      <div data-testid="error">{error?.toString()}</div>
-      <div data-testid="completion">{completion}</div>
-      <form onSubmit={handleSubmit}>
-        <input
-          data-testid="input"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-      </form>
-    </div>
-  );
-};
+import TestCompletionComponent from './TestCompletionComponent.vue';
 
 beforeEach(() => {
-  render(<TestComponent />);
+  render(TestCompletionComponent);
 });
 
 afterEach(() => {
@@ -54,7 +27,8 @@ it('should render normal streamed stream', async () => {
 
   await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
 
-  await screen.findByTestId('completion');
+  findByText(await screen.findByTestId('completion'), 'Hello, world.');
+
   expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
 });
 
