@@ -208,7 +208,7 @@ export async function processChatStream({
   }
   if (count >= maxIterations) {
     console.error(
-      'Max iterations reached for processChatStream probably an infinite ly an infinite loop.',
+      'Max iterations reached for processChatStream probably an infinite loop.',
     );
   }
 }
