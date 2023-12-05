@@ -191,6 +191,7 @@ const getStreamedResponse = async (
 
 export function useChat({
   api = '/api/chat',
+  key = typeof api === 'string' ? api : undefined,
   id,
   initialMessages,
   initialInput = '',
@@ -205,10 +206,11 @@ export function useChat({
   generateId = nanoid,
 }: Omit<UseChatOptions, 'api'> & {
   api?: string | StreamingReactResponseAction;
+  key?: string;
 } = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
   const hookId = useId();
-  const chatId = id || hookId;
+  const chatKey = [key, id ?? hookId];
 
   // Store a empty array as the initial messages
   // (instead of using a default parameter value that gets re-created each time)
@@ -216,19 +218,25 @@ export function useChat({
   const [initialMessagesFallback] = useState([]);
 
   // Store the chat state in SWR, using the chatId as the key to share states.
-  const { data: messages, mutate } = useSWR<Message[]>([api, chatId], null, {
-    fallbackData: initialMessages ?? initialMessagesFallback,
-  });
+  const { data: messages, mutate } = useSWR<Message[]>(
+    [...chatKey, 'messages'],
+    null,
+    { fallbackData: initialMessages ?? initialMessagesFallback },
+  );
 
   // We store loading state in another hook to sync loading states across hook invocations
   const { data: isLoading = false, mutate: mutateLoading } = useSWR<boolean>(
-    [chatId, 'loading'],
+    [...chatKey, 'loading'],
     null,
   );
 
   const { data: streamData, mutate: mutateStreamData } = useSWR<
     JSONValue[] | undefined
-  >([chatId, 'streamData'], null);
+  >([...chatKey, 'streamData'], null);
+
+  const { data: error = undefined, mutate: setError } = useSWR<
+    undefined | Error
+  >([...chatKey, 'error'], null);
 
   // Keep the latest messages in a ref.
   const messagesRef = useRef<Message[]>(messages || []);
@@ -244,6 +252,7 @@ export function useChat({
     headers,
     body,
   });
+
   useEffect(() => {
     extraMetadataRef.current = {
       credentials,
@@ -251,10 +260,6 @@ export function useChat({
       body,
     };
   }, [credentials, headers, body]);
-
-  // Actual mutation hook to send messages to the API endpoint and update the
-  // chat state.
-  const [error, setError] = useState<undefined | Error>();
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {

@@ -1,16 +1,18 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { it, afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
 } from '../tests/utils/mock-fetch';
 import { useChat } from './use-chat';
+import React from 'react';
 
 const TestComponent = () => {
-  const { messages, append, error, data, isLoading } = useChat();
+  const [key, setKey] = React.useState<string | undefined>(undefined);
+  const { messages, append, error, data, isLoading } = useChat({ key });
 
   return (
     <div>
@@ -23,10 +25,17 @@ const TestComponent = () => {
           {m.content}
         </div>
       ))}
+
       <button
-        data-testid="button"
+        data-testid="do-append"
         onClick={() => {
           append({ role: 'user', content: 'hi' });
+        }}
+      />
+      <button
+        data-testid="do-change-key"
+        onClick={() => {
+          setKey('new-key');
         }}
       />
     </div>
@@ -48,7 +57,7 @@ test('Shows streamed complex text response', async () => {
     chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
   });
 
-  await userEvent.click(screen.getByTestId('button'));
+  await userEvent.click(screen.getByTestId('do-append'));
 
   await screen.findByTestId('message-0');
   expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
@@ -65,7 +74,7 @@ test('Shows streamed complex text response with data', async () => {
     chunks: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
   });
 
-  await userEvent.click(screen.getByTestId('button'));
+  await userEvent.click(screen.getByTestId('do-append'));
 
   await screen.findByTestId('data');
   expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"v1"}]');
@@ -77,7 +86,7 @@ test('Shows streamed complex text response with data', async () => {
 test('Shows error response', async () => {
   mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
 
-  await userEvent.click(screen.getByTestId('button'));
+  await userEvent.click(screen.getByTestId('do-append'));
 
   // TODO bug? the user message does not show up
   // await screen.findByTestId('message-0');
@@ -103,7 +112,7 @@ describe('loading state', () => {
       })(),
     });
 
-    await userEvent.click(screen.getByTestId('button'));
+    await userEvent.click(screen.getByTestId('do-append'));
 
     await screen.findByTestId('loading');
     expect(screen.getByTestId('loading')).toHaveTextContent('true');
@@ -117,9 +126,29 @@ describe('loading state', () => {
   test('should reset loading state on error', async () => {
     mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
 
-    await userEvent.click(screen.getByTestId('button'));
+    await userEvent.click(screen.getByTestId('do-append'));
 
     await screen.findByTestId('loading');
     expect(screen.getByTestId('loading')).toHaveTextContent('false');
+  });
+});
+
+describe('key', () => {
+  it('should clear out messages when the key changes', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+    });
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    await userEvent.click(screen.getByTestId('do-change-key'));
+
+    expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
   });
 });
