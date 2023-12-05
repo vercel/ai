@@ -1,14 +1,14 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, findByText, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { it, afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
 } from '../tests/utils/mock-fetch';
 import { useChat } from './use-chat';
-import React from 'react';
 
 const TestComponent = () => {
   const [key, setKey] = React.useState<string | undefined>(undefined);
