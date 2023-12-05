@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, findByText, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
@@ -110,7 +110,7 @@ describe('loading state', () => {
 
     finishGeneration?.();
 
-    await screen.findByTestId('loading');
+    await findByText(await screen.findByTestId('loading'), 'false');
     expect(screen.getByTestId('loading')).toHaveTextContent('false');
   });
 
