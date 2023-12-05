@@ -7,7 +7,7 @@ export default defineConfig([
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue'],
     dts: true,
-    sourcemap: true, // Add this line
+    sourcemap: true,
   },
   {
     entry: ['prompts/index.ts'],
@@ -15,7 +15,7 @@ export default defineConfig([
     external: ['react', 'svelte', 'vue'],
     outDir: 'prompts/dist',
     dts: true,
-    sourcemap: true, // Add this line
+    sourcemap: true,
   },
   // React APIs
   {
@@ -27,7 +27,7 @@ export default defineConfig([
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue', 'solid-js'],
     dts: true,
-    sourcemap: true, // Add this line
+    sourcemap: true,
   },
   {
     entry: ['react/index.server.ts'],
@@ -35,7 +35,7 @@ export default defineConfig([
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue', 'solid-js'],
     dts: true,
-    sourcemap: true, // Add this line
+    sourcemap: true,
   },
   // Svelte APIs
   {
@@ -45,7 +45,7 @@ export default defineConfig([
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue', 'solid-js'],
     dts: true,
-    sourcemap: true, // Add this line
+    sourcemap: true,
     // `sswr` has some issue with `.es.js` that can't be resolved correctly by
     // vite so we have to bundle it here.
     noExternal: ['sswr'],
@@ -58,7 +58,7 @@ export default defineConfig([
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue', 'solid-js'],
     dts: true,
-    sourcemap: true, // Add this line
+    sourcemap: true,
   },
   // Solid APIs
   {
@@ -68,6 +68,6 @@ export default defineConfig([
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue', 'solid-js'],
     dts: true,
-    sourcemap: true, // Add this line
+    sourcemap: true,
   },
 ]);
