@@ -7,10 +7,10 @@ import {
   mockFetchDataStreamWithGenerator,
   mockFetchError,
 } from '../tests/utils/mock-fetch';
-import TestComponent from './TestComponent.vue';
+import TestChatComponent from './TestChatComponent.vue';
 
 beforeEach(() => {
-  render(TestComponent);
+  render(TestChatComponent);
 });
 
 afterEach(() => {
