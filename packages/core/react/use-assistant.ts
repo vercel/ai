@@ -60,7 +60,7 @@ export function experimental_useAssistant({
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<AssistantStatus>('awaiting_message');
-  const [error, setError] = useState<unknown | Error>(undefined);
+  const [error, setError] = useState<undefined | Error>(undefined);
 
   const handleInputChange = (
     event:
