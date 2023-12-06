@@ -9,11 +9,14 @@ import { anthropicChunks } from '../tests/snapshots/anthropic';
 import { readAllChunks } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 
-const server = createMockServer({
-  chunks: anthropicChunks,
-  formatChunk: chunk => `event: completion\ndata: ${JSON.stringify(chunk)}\n\n`,
-  url: DEFAULT_TEST_URL,
-});
+const server = createMockServer([
+  {
+    url: DEFAULT_TEST_URL,
+    chunks: anthropicChunks,
+    formatChunk: chunk =>
+      `event: completion\ndata: ${JSON.stringify(chunk)}\n\n`,
+  },
+]);
 
 describe('AnthropicStream', () => {
   beforeAll(() => {

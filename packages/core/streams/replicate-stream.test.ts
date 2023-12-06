@@ -8,11 +8,13 @@ import { replicateTextChunks } from '../tests/snapshots/replicate';
 import { readAllChunks } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 
-const server = createMockServer({
-  chunks: replicateTextChunks,
-  formatChunk: chunk => chunk,
-  url: DEFAULT_TEST_URL,
-});
+const server = createMockServer([
+  {
+    url: DEFAULT_TEST_URL,
+    chunks: replicateTextChunks,
+    formatChunk: chunk => chunk,
+  },
+]);
 
 describe('ReplicateStream', () => {
   beforeAll(() => {
