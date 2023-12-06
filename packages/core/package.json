@@ -24,7 +24,10 @@
     "test": "pnpm test:node && pnpm test:edge && pnpm test:ui",
     "test:edge": "vitest --config vitest.edge.config.js --run --threads=false",
     "test:node": "vitest --config vitest.node.config.js --run --threads=false",
-    "test:ui": "vitest --config vitest.ui.config.js --run"
+    "test:ui": "vitest --config vitest.ui.config.js --run",
+    "test:edge:watch": "vitest --config vitest.edge.config.js --threads=false",
+    "test:node:watch": "vitest --config vitest.node.config.js --threads=false",
+    "test:ui:watch": "vitest --config vitest.ui.config.js"
   },
   "exports": {
     "./package.json": "./package.json",
