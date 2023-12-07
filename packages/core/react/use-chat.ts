@@ -219,24 +219,24 @@ export function useChat({
 
   // Store the chat state in SWR, using the chatId as the key to share states.
   const { data: messages, mutate } = useSWR<Message[]>(
-    [...chatKey, 'messages'],
+    [chatKey, 'messages'],
     null,
     { fallbackData: initialMessages ?? initialMessagesFallback },
   );
 
   // We store loading state in another hook to sync loading states across hook invocations
   const { data: isLoading = false, mutate: mutateLoading } = useSWR<boolean>(
-    [...chatKey, 'loading'],
+    [chatKey, 'loading'],
     null,
   );
 
   const { data: streamData, mutate: mutateStreamData } = useSWR<
     JSONValue[] | undefined
-  >([...chatKey, 'streamData'], null);
+  >([chatKey, 'streamData'], null);
 
   const { data: error = undefined, mutate: setError } = useSWR<
     undefined | Error
-  >([...chatKey, 'error'], null);
+  >([chatKey, 'error'], null);
 
   // Keep the latest messages in a ref.
   const messagesRef = useRef<Message[]>(messages || []);
