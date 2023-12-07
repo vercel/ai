@@ -1,7 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { cleanup, findByText, render, screen } from '@testing-library/vue';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
