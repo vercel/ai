@@ -11,8 +11,8 @@ import {
 import { useChat } from './use-chat';
 
 const TestComponent = () => {
-  const [key, setKey] = React.useState<string | undefined>(undefined);
-  const { messages, append, error, data, isLoading } = useChat({ key });
+  const [id, setId] = React.useState<string>('first-id');
+  const { messages, append, error, data, isLoading } = useChat({ id });
 
   return (
     <div>
@@ -33,9 +33,9 @@ const TestComponent = () => {
         }}
       />
       <button
-        data-testid="do-change-key"
+        data-testid="do-change-id"
         onClick={() => {
-          setKey('new-key');
+          setId('second-id');
         }}
       />
     </div>
@@ -133,8 +133,8 @@ describe('loading state', () => {
   });
 });
 
-describe('key', () => {
-  it('should clear out messages when the key changes', async () => {
+describe('id', () => {
+  it('should clear out messages when the id changes', async () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
@@ -147,7 +147,7 @@ describe('key', () => {
       'AI: Hello, world.',
     );
 
-    await userEvent.click(screen.getByTestId('do-change-key'));
+    await userEvent.click(screen.getByTestId('do-change-id'));
 
     expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
   });
