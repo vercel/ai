@@ -42,6 +42,7 @@ export default function Chat() {
     user: 'black',
     function: 'blue',
     assistant: 'green',
+    data: 'orange',
   };
 
   const handleInputChange: JSX.ChangeEventHandlerUnion<
