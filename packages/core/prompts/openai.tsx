@@ -1,6 +1,6 @@
 import { Message } from '../shared/types';
 
-export function buildOpenAIMessages(
+export function experimental_buildOpenAIMessages(
   messages: Message[],
 ): ChatCompletionMessageParam[] {
   return messages.map(message => {

@@ -6,7 +6,7 @@ import {
   experimental_StreamData,
   experimental_StreamingReactResponse,
 } from 'ai';
-import { buildOpenAIMessages } from 'ai/prompts';
+import { experimental_buildOpenAIMessages } from 'ai/prompts';
 import OpenAI from 'openai';
 import { ChatCompletionCreateParams } from 'openai/resources/chat';
 
@@ -58,7 +58,7 @@ export async function handler({ messages }: { messages: Message[] }) {
   const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo',
     stream: true,
-    messages: buildOpenAIMessages(messages),
+    messages: experimental_buildOpenAIMessages(messages),
     functions,
   });
 
