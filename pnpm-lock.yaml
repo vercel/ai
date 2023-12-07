@@ -132,7 +132,7 @@ importers:
     dependencies:
       ai:
         specifier: 2.2.26
-        version: 2.2.26(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4)
+        version: 2.2.26(react@18.2.0)(solid-js@1.8.7)(svelte@4.0.1)(vue@3.3.4)
       next:
         specifier: 14.0.3
         version: 14.0.3(react-dom@18.2.0)(react@18.2.0)
@@ -704,10 +704,10 @@ importers:
         version: 18.2.0
       solid-js:
         specifier: ^1.7.7
-        version: 1.7.7
+        version: 1.8.7
       solid-swr-store:
         specifier: 0.10.7
-        version: 0.10.7(solid-js@1.7.7)(swr-store@0.10.6)
+        version: 0.10.7(solid-js@1.8.7)(swr-store@0.10.6)
       sswr:
         specifier: 2.0.0
         version: 2.0.0(svelte@4.0.1)
@@ -1394,7 +1394,6 @@ packages:
       '@jridgewell/gen-mapping': 0.3.3
       '@jridgewell/trace-mapping': 0.3.18
       jsesc: 2.5.2
-    dev: true
 
   /@babel/helper-annotate-as-pure@7.22.5:
     resolution: {integrity: sha512-LvBTxu8bQSQkcyKOU+a1btnNFQ1dMAd0R6PyW3arXes06F6QLWLIrd681bxRPIXlrMGR3XYnW9JyML7dP3qgxg==}
@@ -1523,7 +1522,6 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/types': 7.23.4
-    dev: true
 
   /@babel/helper-module-imports@7.22.5:
     resolution: {integrity: sha512-8Dl6+HD/cKifutF5qGd/8ZJi84QeAKh+CEe1sBzz8UayBBGg1dAIJrdHOcOM5b2MpzWL2yuotJTtGjETq0qjXg==}
@@ -4645,7 +4643,7 @@ packages:
     resolution: {integrity: sha512-fB0R+fa3AUqbLHWyxXa2kGVtf1Fe1ZZFr0Zp6AIbIAzXb2mKbEXl+PCQNUOaq5lbTab5tfctfXRNsWXxa2f7Aw==}
     engines: {node: '>=14'}
     dependencies:
-      '@babel/code-frame': 7.23.4
+      '@babel/code-frame': 7.22.5
       '@babel/runtime': 7.23.4
       '@types/aria-query': 5.0.4
       aria-query: 5.1.3
@@ -4762,8 +4760,8 @@ packages:
   /@types/babel__core@7.20.5:
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
     dependencies:
-      '@babel/parser': 7.22.10
-      '@babel/types': 7.22.5
+      '@babel/parser': 7.23.4
+      '@babel/types': 7.23.4
       '@types/babel__generator': 7.6.4
       '@types/babel__template': 7.4.1
       '@types/babel__traverse': 7.20.1
@@ -5538,7 +5536,7 @@ packages:
       indent-string: 4.0.0
     dev: true
 
-  /ai@2.2.26(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4):
+  /ai@2.2.26(react@18.2.0)(solid-js@1.8.7)(svelte@4.0.1)(vue@3.3.4):
     resolution: {integrity: sha512-ANvG9sTT/pwOykEj1Huos8BuiYD4azUVoMXxDV3uhWO1KdZP5iN1GnSnnh08+ZDXKhedZnXZqvVTG2rSEgCWPQ==}
     engines: {node: '>=14.6'}
     peerDependencies:
@@ -5559,8 +5557,8 @@ packages:
       eventsource-parser: 1.0.0
       nanoid: 3.3.6
       react: 18.2.0
-      solid-js: 1.7.7
-      solid-swr-store: 0.10.7(solid-js@1.7.7)(swr-store@0.10.6)
+      solid-js: 1.8.7
+      solid-swr-store: 0.10.7(solid-js@1.8.7)(swr-store@0.10.6)
       sswr: 2.0.0(svelte@4.0.1)
       svelte: 4.0.1
       swr: 2.2.0(react@18.2.0)
@@ -11627,7 +11625,7 @@ packages:
     resolution: {integrity: sha512-ayCKvm/phCGxOkYRSCM82iDwct8/EonSEgCSxWxD7ve6jHggsFl4fZVQBPRNgQoKiuV/odhFrGzQXZwbifC8Rg==}
     engines: {node: '>=8'}
     dependencies:
-      '@babel/code-frame': 7.23.4
+      '@babel/code-frame': 7.22.5
       error-ex: 1.3.2
       json-parse-even-better-errors: 2.3.1
       lines-and-columns: 1.2.4
@@ -12954,6 +12952,11 @@ packages:
       randombytes: 2.1.0
     dev: true
 
+  /seroval@0.15.1:
+    resolution: {integrity: sha512-OPVtf0qmeC7RW+ScVX+7aOS+xoIM7pWcZ0jOWg2aTZigCydgRB04adfteBRbecZnnrO1WuGQ+C3tLeBBzX2zSQ==}
+    engines: {node: '>=10'}
+    dev: false
+
   /seroval@0.5.1:
     resolution: {integrity: sha512-ZfhQVB59hmIauJG5Ydynupy8KHyr5imGNtdDhbZG68Ufh1Ynkv9KOYOAABf71oVbQxJ8VkWnMHAjEHE7fWkH5g==}
     engines: {node: '>=10'}
@@ -13159,11 +13162,11 @@ packages:
       csstype: 3.1.2
       seroval: 0.5.1
 
-  /solid-js@1.7.7:
-    resolution: {integrity: sha512-SPdYVke/Z6Za24PBTbULyQYPrhGO1ZbPany76atO2zF2dmYn2pCotbsw1JtlgWnr9dK2JbwPGnA3ODTGPLhZNw==}
+  /solid-js@1.8.7:
+    resolution: {integrity: sha512-9dzrSVieh2zj3SnJ02II6xZkonR6c+j/91b7XZUNcC6xSaldlqjjGh98F1fk5cRJ8ZTkzqF5fPIWDxEOs6QZXA==}
     dependencies:
       csstype: 3.1.2
-      seroval: 0.5.1
+      seroval: 0.15.1
     dev: false
 
   /solid-refresh@0.5.3(solid-js@1.7.2):
@@ -13171,9 +13174,9 @@ packages:
     peerDependencies:
       solid-js: ^1.3
     dependencies:
-      '@babel/generator': 7.22.5
-      '@babel/helper-module-imports': 7.22.5
-      '@babel/types': 7.22.5
+      '@babel/generator': 7.23.4
+      '@babel/helper-module-imports': 7.22.15
+      '@babel/types': 7.23.4
       solid-js: 1.7.2
 
   /solid-start-node@0.2.19(solid-start@0.2.26)(undici@5.22.1)(vite@4.3.9):
@@ -13271,14 +13274,14 @@ packages:
       - '@nuxt/kit'
       - supports-color
 
-  /solid-swr-store@0.10.7(solid-js@1.7.7)(swr-store@0.10.6):
+  /solid-swr-store@0.10.7(solid-js@1.8.7)(swr-store@0.10.6):
     resolution: {integrity: sha512-A6d68aJmRP471aWqKKPE2tpgOiR5fH4qXQNfKIec+Vap+MGQm3tvXlT8n0I8UgJSlNAsSAUuw2VTviH2h3Vv5g==}
     engines: {node: '>=10'}
     peerDependencies:
       solid-js: ^1.2
       swr-store: ^0.10
     dependencies:
-      solid-js: 1.7.7
+      solid-js: 1.8.7
       swr-store: 0.10.6
     dev: false
 
