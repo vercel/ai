@@ -1,5 +1,5 @@
+import { vi } from 'vitest';
 import { COMPLEX_HEADER } from '../../shared/utils';
-import { describe, expect, vi, test, afterEach } from 'vitest';
 
 export function mockFetchTextStream({
   url,
@@ -45,15 +45,27 @@ export function mockFetchDataStream({
   url: string;
   chunks: string[];
 }) {
-  vi.spyOn(global, 'fetch').mockImplementation(async () => {
-    function* generateChunks() {
-      for (const chunk of chunks) {
-        yield new TextEncoder().encode(chunk);
-      }
+  async function* generateChunks() {
+    const encoder = new TextEncoder();
+    for (const chunk of chunks) {
+      yield encoder.encode(chunk);
     }
+  }
 
-    const chunkGenerator = generateChunks();
+  mockFetchDataStreamWithGenerator({
+    url,
+    chunkGenerator: generateChunks(),
+  });
+}
 
+export function mockFetchDataStreamWithGenerator({
+  url,
+  chunkGenerator,
+}: {
+  url: string;
+  chunkGenerator: AsyncGenerator<Uint8Array, void, unknown>;
+}) {
+  vi.spyOn(global, 'fetch').mockImplementation(async () => {
     return {
       url,
       ok: true,

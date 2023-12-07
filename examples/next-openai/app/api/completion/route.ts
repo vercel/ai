@@ -17,11 +17,12 @@ export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
 
-  // Ask OpenAI for a streaming chat completion given the prompt
-  const response = await openai.chat.completions.create({
-    model: 'gpt-3.5-turbo',
+  // Ask OpenAI for a streaming completion given the prompt
+  const response = await openai.completions.create({
+    model: 'gpt-3.5-turbo-instruct',
+    max_tokens: 2000,
     stream: true,
-    messages: [{ role: 'user', content: prompt }],
+    prompt,
   });
 
   // optional: use stream data

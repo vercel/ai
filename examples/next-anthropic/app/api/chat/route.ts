@@ -1,4 +1,3 @@
-// ./app/api/chat/route.ts
 import Anthropic from '@anthropic-ai/sdk';
 import { AnthropicStream, StreamingTextResponse } from 'ai';
 import { experimental_buildAnthropicPrompt } from 'ai/prompts';
