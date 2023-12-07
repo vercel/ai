@@ -390,8 +390,8 @@ export function useChat({
         messages = messages(messagesRef.current);
       }
 
-      messagesRef.current = messages;
       mutate(messages, false);
+      messagesRef.current = messages;
     },
     [mutate],
   );
