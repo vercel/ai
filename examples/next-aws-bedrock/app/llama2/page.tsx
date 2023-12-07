@@ -14,6 +14,7 @@ export default function Chat() {
     user: 'black',
     function: 'blue',
     assistant: 'green',
+    data: 'orange',
   };
 
   return (
