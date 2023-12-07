@@ -2,7 +2,6 @@
 import { cleanup, findByText, render, screen } from '@solidjs/testing-library';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,

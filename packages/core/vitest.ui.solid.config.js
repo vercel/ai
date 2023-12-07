@@ -8,8 +8,8 @@ export default defineConfig({
   build: { target: 'esnext' },
   test: {
     environment: 'jsdom',
-    include: ['solid/**/*.ui.test.ts', 'solid/**/*.ui.test.tsx'],
     globals: true,
+    include: ['solid/**/*.ui.test.ts', 'solid/**/*.ui.test.tsx'],
     deps: {
       registerNodeLoader: true,
       inline: [/solid-js/],

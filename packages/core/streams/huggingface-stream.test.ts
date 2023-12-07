@@ -1,5 +1,4 @@
 import { HfInference } from '@huggingface/inference';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   HuggingFaceStream,
   StreamingTextResponse,
