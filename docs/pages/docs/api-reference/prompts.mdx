@@ -55,3 +55,20 @@ const response = Hf.textGenerationStream({
   inputs: experimental_buildLlama2Prompt(messages),
 });
 ```
+
+## `experimental_buildAnthropicPrompt`
+
+Constructs a prompt in the format required by Anthropic.
+
+```ts filename="route.ts" {7}
+import { experimental_buildAnthropicPrompt } from 'ai/prompts';
+
+const { messages } = await req.json();
+
+const response = await anthropic.completions.create({
+  model: 'claude-2',
+  prompt: experimental_buildAnthropicPrompt(messages),
+  stream: true,
+  max_tokens_to_sample: 300,
+});
+```

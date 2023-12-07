@@ -1,26 +1,30 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, findByText, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   mockFetchDataStream,
+  mockFetchDataStreamWithGenerator,
+  mockFetchError,
   mockFetchTextStream,
 } from '../tests/utils/mock-fetch';
 import { useCompletion } from './use-completion';
 
-// mock nanoid import
-vi.mock('nanoid', () => ({
-  nanoid: () => Math.random().toString(36).slice(2, 9),
-}));
-
 const TestComponent = () => {
-  const { completion, handleSubmit, error, handleInputChange, input } =
-    useCompletion();
+  const {
+    completion,
+    handleSubmit,
+    error,
+    handleInputChange,
+    input,
+    isLoading,
+  } = useCompletion();
 
   return (
     <div>
-      {error && <div data-testid="error">{error.toString()}</div>}
-      {completion && <div data-testid="completion">{completion}</div>}
+      <div data-testid="loading">{isLoading.toString()}</div>
+      <div data-testid="error">{error?.toString()}</div>
+      <div data-testid="completion">{completion}</div>
       <form onSubmit={handleSubmit}>
         <input
           data-testid="input"
@@ -33,37 +37,72 @@ const TestComponent = () => {
   );
 };
 
-describe('useCompletion', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
+beforeEach(() => {
+  render(<TestComponent />);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  cleanup();
+});
+
+it('should render normal streamed stream', async () => {
+  mockFetchTextStream({
+    url: 'https://example.com/api/completion',
+    chunks: ['Hello', ',', ' world', '.'],
   });
 
-  test('Shows streamed complex normal response', async () => {
-    render(<TestComponent />);
+  await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
 
-    mockFetchTextStream({
-      url: 'https://example.com/api/completion',
-      chunks: ['Hello', ',', ' world', '.'],
+  await screen.findByTestId('completion');
+  expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
+});
+
+it('should render complex text stream', async () => {
+  mockFetchDataStream({
+    url: 'https://example.com/api/completion',
+    chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+  });
+
+  await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
+
+  await screen.findByTestId('completion');
+  expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
+});
+
+describe('loading state', () => {
+  it('should show loading state', async () => {
+    let finishGeneration: ((value?: unknown) => void) | undefined;
+    const finishGenerationPromise = new Promise(resolve => {
+      finishGeneration = resolve;
+    });
+
+    mockFetchDataStreamWithGenerator({
+      url: 'https://example.com/api/chat',
+      chunkGenerator: (async function* generate() {
+        const encoder = new TextEncoder();
+        yield encoder.encode('0:"Hello"\n');
+        await finishGenerationPromise;
+      })(),
     });
 
     await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
 
-    await screen.findByTestId('completion');
-    expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
+    await screen.findByTestId('loading');
+    expect(screen.getByTestId('loading')).toHaveTextContent('true');
+
+    finishGeneration?.();
+
+    await findByText(await screen.findByTestId('loading'), 'false');
+    expect(screen.getByTestId('loading')).toHaveTextContent('false');
   });
 
-  test('Shows streamed complex text response', async () => {
-    render(<TestComponent />);
-
-    mockFetchDataStream({
-      url: 'https://example.com/api/completion',
-      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
-    });
+  it('should reset loading state on error', async () => {
+    mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
 
     await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
 
-    await screen.findByTestId('completion');
-    expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
+    await screen.findByTestId('loading');
+    expect(screen.getByTestId('loading')).toHaveTextContent('false');
   });
 });

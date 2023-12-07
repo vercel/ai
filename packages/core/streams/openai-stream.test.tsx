@@ -1,7 +1,14 @@
-import React from 'react';
 import OpenAI from 'openai';
 import ReactDOMServer from 'react-dom/server';
-import { afterAll, beforeAll, describe, expect, it, test } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  test,
+} from 'vitest';
 import {
   OpenAIStream,
   ReactResponseRow,
@@ -9,15 +16,45 @@ import {
   experimental_StreamData,
   experimental_StreamingReactResponse,
 } from '.';
-import { createClient } from '../tests/utils/mock-client';
-import { setup } from '../tests/utils/mock-service';
+import {
+  openaiChatCompletionChunks,
+  openaiFunctionCallChunks,
+} from '../tests/snapshots/openai-chat';
+import { createClient, readAllChunks } from '../tests/utils/mock-client';
+import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
+
+import React from 'react'; // important for test stability, don't remove
+React;
+
+const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
+
+const server = createMockServer([
+  {
+    url: DEFAULT_TEST_URL,
+    chunks: openaiChatCompletionChunks,
+    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+    suffix: 'data: [DONE]',
+  },
+  {
+    url: FUNCTION_CALL_TEST_URL,
+    chunks: openaiFunctionCallChunks,
+    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+    suffix: 'data: [DONE]',
+  },
+]);
 
 describe('OpenAIStream', () => {
-  let server: ReturnType<typeof setup>;
   beforeAll(() => {
-    server = setup();
+    server.listen();
   });
-  afterAll(async () => server.teardown());
+
+  afterEach(() => {
+    server.resetHandlers();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
 
   // deactivated to only test types
   test.skip('should not throw type errors', async () => {
@@ -39,34 +76,18 @@ describe('OpenAIStream', () => {
   });
 
   it('should be able to parse SSE and receive the streamed response', async () => {
-    const stream = OpenAIStream(
-      await fetch(server.api, {
-        headers: {
-          'x-mock-service': 'openai',
-          'x-mock-type': 'chat',
-        },
-      }),
-    );
+    const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL));
     const response = new StreamingTextResponse(stream);
-    const client = createClient(response);
-    const chunks = await client.readAll();
+
+    const chunks = await readAllChunks(response);
+
     expect(JSON.stringify(chunks)).toMatchInlineSnapshot(
       `"[\\"Hello\\",\\",\\",\\" world\\",\\".\\"]"`,
-    );
-    expect(JSON.stringify(server.getRecentFlushed())).toMatchInlineSnapshot(
-      `"[{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"role\\":\\"assistant\\"},\\"index\\":0,\\"finish_reason\\":null}]},{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"content\\":\\"Hello\\"},\\"index\\":0,\\"finish_reason\\":null}]},{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"content\\":\\",\\"},\\"index\\":0,\\"finish_reason\\":null}]},{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"content\\":\\" world\\"},\\"index\\":0,\\"finish_reason\\":null}]},{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"content\\":\\".\\"},\\"index\\":0,\\"finish_reason\\":null}]},{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{},\\"index\\":0,\\"finish_reason\\":\\"stop\\"}]}]"`,
     );
   });
 
   it('should correctly parse and escape function call JSON chunks', async () => {
-    const stream = OpenAIStream(
-      await fetch(server.api + '/mock-func-call', {
-        headers: {
-          'x-mock-service': 'openai',
-          'x-mock-type': 'func_call',
-        },
-      }),
-    );
+    const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL));
     const response = new StreamingTextResponse(stream);
     const client = createClient(response);
     const chunks = await client.readAll();
@@ -104,41 +125,27 @@ describe('OpenAIStream', () => {
   it('should handle backpressure on the server', async () => {
     const controller = new AbortController();
     const stream = OpenAIStream(
-      await fetch(server.api, {
-        headers: {
-          'x-mock-service': 'openai',
-          'x-mock-type': 'chat',
-        },
+      await fetch(DEFAULT_TEST_URL, {
         signal: controller.signal,
       }),
     );
     const response = new StreamingTextResponse(stream);
     const client = createClient(response);
     const chunks = await client.readAndAbort(controller);
+
     expect(JSON.stringify(chunks)).toMatchInlineSnapshot(`"[\\"Hello\\"]"`);
-    expect(JSON.stringify(server.getRecentFlushed())).toMatchInlineSnapshot(
-      `"[{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"role\\":\\"assistant\\"},\\"index\\":0,\\"finish_reason\\":null}]},{\\"id\\":\\"chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC\\",\\"object\\":\\"chat.completion.chunk\\",\\"created\\":1686901302,\\"model\\":\\"gpt-3.5-turbo-0301\\",\\"choices\\":[{\\"delta\\":{\\"content\\":\\"Hello\\"},\\"index\\":0,\\"finish_reason\\":null}]}]"`,
-    );
   });
 
   describe('StreamData prototcol', () => {
     it('should send text', async () => {
       const data = new experimental_StreamData();
 
-      const stream = OpenAIStream(
-        await fetch(server.api, {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'chat',
-          },
-        }),
-        {
-          onFinal() {
-            data.close();
-          },
-          experimental_streamData: true,
+      const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL), {
+        onFinal() {
+          data.close();
         },
-      );
+        experimental_streamData: true,
+      });
 
       const response = new StreamingTextResponse(stream, {}, data);
 
@@ -156,20 +163,12 @@ describe('OpenAIStream', () => {
     it('should send function response as text stream when onFunctionCall is not defined', async () => {
       const data = new experimental_StreamData();
 
-      const stream = OpenAIStream(
-        await fetch(server.api + '/mock-func-call', {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'func_call',
-          },
-        }),
-        {
-          onFinal() {
-            data.close();
-          },
-          experimental_streamData: true,
+      const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
+        onFinal() {
+          data.close();
         },
-      );
+        experimental_streamData: true,
+      });
 
       const response = new StreamingTextResponse(stream, {}, data);
 
@@ -204,23 +203,15 @@ describe('OpenAIStream', () => {
     it('should send function response when onFunctionCall is defined and returns undefined', async () => {
       const data = new experimental_StreamData();
 
-      const stream = OpenAIStream(
-        await fetch(server.api + '/mock-func-call', {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'func_call',
-          },
-        }),
-        {
-          onFinal() {
-            data.close();
-          },
-          async experimental_onFunctionCall({ name }) {
-            // no response
-          },
-          experimental_streamData: true,
+      const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
+        onFinal() {
+          data.close();
         },
-      );
+        async experimental_onFunctionCall({ name }) {
+          // no response
+        },
+        experimental_streamData: true,
+      });
 
       const response = new StreamingTextResponse(stream, {}, data);
 
@@ -235,25 +226,17 @@ describe('OpenAIStream', () => {
     it('should send function response and data when onFunctionCall is defined, returns undefined, and data is added', async () => {
       const data = new experimental_StreamData();
 
-      const stream = OpenAIStream(
-        await fetch(server.api + '/mock-func-call', {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'func_call',
-          },
-        }),
-        {
-          onFinal() {
-            data.close();
-          },
-          async experimental_onFunctionCall({ name }) {
-            data.append({ fn: name });
-
-            // no response
-          },
-          experimental_streamData: true,
+      const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
+        onFinal() {
+          data.close();
         },
-      );
+        async experimental_onFunctionCall({ name }) {
+          data.append({ fn: name });
+
+          // no response
+        },
+        experimental_streamData: true,
+      });
 
       const response = new StreamingTextResponse(stream, {}, data);
 
@@ -269,23 +252,15 @@ describe('OpenAIStream', () => {
     it('should send return value when onFunctionCall is defined and returns value', async () => {
       const data = new experimental_StreamData();
 
-      const stream = OpenAIStream(
-        await fetch(server.api + '/mock-func-call', {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'func_call',
-          },
-        }),
-        {
-          onFinal() {
-            data.close();
-          },
-          async experimental_onFunctionCall({ name }) {
-            return 'experimental_onFunctionCall-return-value';
-          },
-          experimental_streamData: true,
+      const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
+        onFinal() {
+          data.close();
         },
-      );
+        async experimental_onFunctionCall({ name }) {
+          return 'experimental_onFunctionCall-return-value';
+        },
+        experimental_streamData: true,
+      });
 
       const response = new StreamingTextResponse(stream, {}, data);
 
@@ -300,24 +275,16 @@ describe('OpenAIStream', () => {
     it('should send return value and data when onFunctionCall is defined, returns value and data is added', async () => {
       const data = new experimental_StreamData();
 
-      const stream = OpenAIStream(
-        await fetch(server.api + '/mock-func-call', {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'func_call',
-          },
-        }),
-        {
-          onFinal() {
-            data.close();
-          },
-          async experimental_onFunctionCall({ name }) {
-            data.append({ fn: name });
-            return 'experimental_onFunctionCall-return-value';
-          },
-          experimental_streamData: true,
+      const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
+        onFinal() {
+          data.close();
         },
-      );
+        async experimental_onFunctionCall({ name }) {
+          data.append({ fn: name });
+          return 'experimental_onFunctionCall-return-value';
+        },
+        experimental_streamData: true,
+      });
 
       const response = new StreamingTextResponse(stream, {}, data);
 
@@ -335,20 +302,12 @@ describe('OpenAIStream', () => {
 
       data.append({ t1: 'v1' });
 
-      const stream = OpenAIStream(
-        await fetch(server.api, {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'chat',
-          },
-        }),
-        {
-          onFinal() {
-            data.close();
-          },
-          experimental_streamData: true,
+      const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL), {
+        onFinal() {
+          data.close();
         },
-      );
+        experimental_streamData: true,
+      });
 
       const response = new StreamingTextResponse(stream, {}, data);
 
@@ -393,14 +352,7 @@ describe('OpenAIStream', () => {
     }
 
     it('should stream text response as React rows', async () => {
-      const stream = OpenAIStream(
-        await fetch(server.api, {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'chat',
-          },
-        }),
-      );
+      const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL));
       const response = new experimental_StreamingReactResponse(
         stream,
         {},
@@ -418,14 +370,7 @@ describe('OpenAIStream', () => {
     });
 
     it('should stream React response as React rows', async () => {
-      const stream = OpenAIStream(
-        await fetch(server.api, {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'chat',
-          },
-        }),
-      );
+      const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL));
       const response = new experimental_StreamingReactResponse(stream, {
         ui: ({ content }) => <span>{content}</span>,
       }) as Promise<ReactResponseRow>;
@@ -444,20 +389,12 @@ describe('OpenAIStream', () => {
     it('should stream text response as React rows from data stream', async () => {
       const data = new experimental_StreamData();
 
-      const stream = OpenAIStream(
-        await fetch(server.api, {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'chat',
-          },
-        }),
-        {
-          onFinal() {
-            data.close();
-          },
-          experimental_streamData: true,
+      const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL), {
+        onFinal() {
+          data.close();
         },
-      );
+        experimental_streamData: true,
+      });
 
       const response = new experimental_StreamingReactResponse(stream, {
         data,
@@ -477,20 +414,12 @@ describe('OpenAIStream', () => {
     it('should stream React response as React rows from data stream', async () => {
       const data = new experimental_StreamData();
 
-      const stream = OpenAIStream(
-        await fetch(server.api, {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'chat',
-          },
-        }),
-        {
-          onFinal() {
-            data.close();
-          },
-          experimental_streamData: true,
+      const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL), {
+        onFinal() {
+          data.close();
         },
-      );
+        experimental_streamData: true,
+      });
 
       const response = new experimental_StreamingReactResponse(stream, {
         data,
@@ -511,24 +440,16 @@ describe('OpenAIStream', () => {
     it('should stream React response as React rows from data stream when data is appended', async () => {
       const data = new experimental_StreamData();
 
-      const stream = OpenAIStream(
-        await fetch(server.api + '/mock-func-call', {
-          headers: {
-            'x-mock-service': 'openai',
-            'x-mock-type': 'func_call',
-          },
-        }),
-        {
-          onFinal() {
-            data.close();
-          },
-          async experimental_onFunctionCall({ name }) {
-            data.append({ fn: name });
-            return undefined;
-          },
-          experimental_streamData: true,
+      const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
+        onFinal() {
+          data.close();
         },
-      );
+        async experimental_onFunctionCall({ name }) {
+          data.append({ fn: name });
+          return undefined;
+        },
+        experimental_streamData: true,
+      });
 
       const response = new experimental_StreamingReactResponse(stream, {
         data,

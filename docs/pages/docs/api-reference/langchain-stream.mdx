@@ -29,7 +29,7 @@ The `LangChainCallbacks` object has properties which are compatible with [LangCh
 ## Example
 
 ```tsx filename="app/api/chat/route.ts"
-import { StreamingTextResponse, LangChainStream } from 'ai';
+import { StreamingTextResponse, LangChainStream, Message } from 'ai';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
 import { AIMessage, HumanMessage } from 'langchain/schema';
 
@@ -37,7 +37,8 @@ export const runtime = 'edge';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const { stream, handlers, writer } = LangChainStream();
+
+  const { stream, handlers } = LangChainStream();
 
   const llm = new ChatOpenAI({
     streaming: true,
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
 
   llm
     .call(
-      messages.map(m =>
+      (messages as Message[]).map(m =>
         m.role == 'user'
           ? new HumanMessage(m.content)
           : new AIMessage(m.content),
