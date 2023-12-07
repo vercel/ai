@@ -50,6 +50,10 @@ export function buildOpenAIMessages(
           name: message.name,
         } satisfies ChatCompletionMessageParam;
       }
+
+      case 'data': {
+        throw "unsupported message role 'data'";
+      }
     }
   });
 }
