@@ -1,7 +1,9 @@
-import '@testing-library/jest-dom/vitest';
-import { cleanup, findByText, render, screen } from '@testing-library/react';
+/** @jsxImportSource solid-js */
+import { cleanup, findByText, render, screen } from '@solidjs/testing-library';
+import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { For } from 'solid-js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
@@ -14,15 +16,19 @@ const TestComponent = () => {
 
   return (
     <div>
-      <div data-testid="loading">{isLoading.toString()}</div>
-      {error && <div data-testid="error">{error.toString()}</div>}
-      {data && <div data-testid="data">{JSON.stringify(data)}</div>}
-      {messages.map((m, idx) => (
-        <div data-testid={`message-${idx}`} key={m.id}>
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
-        </div>
-      ))}
+      <div data-testid="loading">{isLoading().toString()}</div>
+      <div data-testid="error">{error()?.toString()}</div>
+      <div data-testid="data">{JSON.stringify(data())}</div>
+
+      <For each={messages()}>
+        {(m, idx) => (
+          <div data-testid={`message-${idx()}`} class="whitespace-pre-wrap">
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+          </div>
+        )}
+      </For>
+
       <button
         data-testid="button"
         onClick={() => {
@@ -34,7 +40,7 @@ const TestComponent = () => {
 };
 
 beforeEach(() => {
-  render(<TestComponent />);
+  render(() => <TestComponent />);
 });
 
 afterEach(() => {
@@ -42,7 +48,7 @@ afterEach(() => {
   cleanup();
 });
 
-test('Shows streamed complex text response', async () => {
+it('should return messages', async () => {
   mockFetchDataStream({
     url: 'https://example.com/api/chat',
     chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
@@ -59,7 +65,7 @@ test('Shows streamed complex text response', async () => {
   );
 });
 
-test('Shows streamed complex text response with data', async () => {
+it('should return messages and data', async () => {
   mockFetchDataStream({
     url: 'https://example.com/api/chat',
     chunks: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
@@ -74,21 +80,17 @@ test('Shows streamed complex text response with data', async () => {
   expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
 });
 
-test('Shows error response', async () => {
+it('should return error', async () => {
   mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
 
   await userEvent.click(screen.getByTestId('button'));
-
-  // TODO bug? the user message does not show up
-  // await screen.findByTestId('message-0');
-  // expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
   await screen.findByTestId('error');
   expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
 });
 
 describe('loading state', () => {
-  test('should show loading state', async () => {
+  it('should show loading state', async () => {
     let finishGeneration: ((value?: unknown) => void) | undefined;
     const finishGenerationPromise = new Promise(resolve => {
       finishGeneration = resolve;
@@ -114,7 +116,7 @@ describe('loading state', () => {
     expect(screen.getByTestId('loading')).toHaveTextContent('false');
   });
 
-  test('should reset loading state on error', async () => {
+  it('should reset loading state on error', async () => {
     mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
 
     await userEvent.click(screen.getByTestId('button'));

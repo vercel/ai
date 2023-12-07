@@ -1,5 +1,6 @@
-import '@testing-library/jest-dom/vitest';
-import { cleanup, findByText, render, screen } from '@testing-library/react';
+/** @jsxImportSource solid-js */
+import { cleanup, findByText, render, screen } from '@solidjs/testing-library';
+import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -11,34 +12,27 @@ import {
 import { useCompletion } from './use-completion';
 
 const TestComponent = () => {
-  const {
-    completion,
-    handleSubmit,
-    error,
-    handleInputChange,
-    input,
-    isLoading,
-  } = useCompletion();
+  const { completion, complete, error, isLoading } = useCompletion();
 
   return (
     <div>
-      <div data-testid="loading">{isLoading.toString()}</div>
-      <div data-testid="error">{error?.toString()}</div>
-      <div data-testid="completion">{completion}</div>
-      <form onSubmit={handleSubmit}>
-        <input
-          data-testid="input"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-      </form>
+      <div data-testid="loading">{isLoading().toString()}</div>
+      <div data-testid="error">{error()?.toString()}</div>
+
+      <div data-testid="completion">{completion()}</div>
+
+      <button
+        data-testid="button"
+        onClick={() => {
+          complete('hi');
+        }}
+      />
     </div>
   );
 };
 
 beforeEach(() => {
-  render(<TestComponent />);
+  render(() => <TestComponent />);
 });
 
 afterEach(() => {
@@ -52,7 +46,7 @@ it('should render normal streamed stream', async () => {
     chunks: ['Hello', ',', ' world', '.'],
   });
 
-  await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
+  await userEvent.click(screen.getByTestId('button'));
 
   await screen.findByTestId('completion');
   expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
@@ -64,7 +58,7 @@ it('should render complex text stream', async () => {
     chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
   });
 
-  await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
+  await userEvent.click(screen.getByTestId('button'));
 
   await screen.findByTestId('completion');
   expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
@@ -86,7 +80,7 @@ describe('loading state', () => {
       })(),
     });
 
-    await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
+    await userEvent.click(screen.getByTestId('button'));
 
     await screen.findByTestId('loading');
     expect(screen.getByTestId('loading')).toHaveTextContent('true');
@@ -100,7 +94,7 @@ describe('loading state', () => {
   it('should reset loading state on error', async () => {
     mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
 
-    await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
+    await userEvent.click(screen.getByTestId('button'));
 
     await screen.findByTestId('loading');
     expect(screen.getByTestId('loading')).toHaveTextContent('false');

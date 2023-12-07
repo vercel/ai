@@ -8,11 +8,13 @@ import { cohereChunks } from '../tests/snapshots/cohere';
 import { readAllChunks } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 
-const server = createMockServer({
-  chunks: cohereChunks,
-  formatChunk: chunk => `${JSON.stringify(chunk)}\n`,
-  url: DEFAULT_TEST_URL,
-});
+const server = createMockServer([
+  {
+    url: DEFAULT_TEST_URL,
+    chunks: cohereChunks,
+    formatChunk: chunk => `${JSON.stringify(chunk)}\n`,
+  },
+]);
 
 describe('CohereStream', () => {
   beforeAll(() => {
