@@ -154,6 +154,51 @@ describe('with ui: sync jsx for content', () => {
   });
 });
 
+describe('with ui: async sync jsx for content', () => {
+  it('should stream React response as React rows', async () => {
+    const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL));
+    const response = new experimental_StreamingReactResponse(stream, {
+      ui: async ({ content }) => Promise.resolve(<span>{content}</span>),
+    }) as Promise<ReactResponseRow>;
+
+    const rows = await extractReactRowContents(response);
+
+    expect(rows).toEqual([
+      { ui: '<span>Hello</span>', content: 'Hello' },
+      { ui: '<span>Hello,</span>', content: 'Hello,' },
+      { ui: '<span>Hello, world</span>', content: 'Hello, world' },
+      { ui: '<span>Hello, world.</span>', content: 'Hello, world.' },
+      { ui: '<span>Hello, world.</span>', content: 'Hello, world.' },
+    ]);
+  });
+
+  it('should stream React response as React rows from data stream', async () => {
+    const data = new experimental_StreamData();
+
+    const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL), {
+      onFinal() {
+        data.close();
+      },
+      experimental_streamData: true,
+    });
+
+    const response = new experimental_StreamingReactResponse(stream, {
+      data,
+      ui: async ({ content }) => Promise.resolve(<span>{content}</span>),
+    }) as Promise<ReactResponseRow>;
+
+    const rows = await extractReactRowContents(response);
+
+    expect(rows).toEqual([
+      { ui: '<span>Hello</span>', content: 'Hello' },
+      { ui: '<span>Hello,</span>', content: 'Hello,' },
+      { ui: '<span>Hello, world</span>', content: 'Hello, world' },
+      { ui: '<span>Hello, world.</span>', content: 'Hello, world.' },
+      { ui: '<span>Hello, world.</span>', content: 'Hello, world.' },
+    ]);
+  });
+});
+
 describe('with ui: sync jsx for content and data', () => {
   it('should stream React response as React rows from data stream when data is appended', async () => {
     const data = new experimental_StreamData();
@@ -177,6 +222,51 @@ describe('with ui: sync jsx for content and data', () => {
         }
 
         return <span>{content}</span>;
+      },
+    }) as Promise<ReactResponseRow>;
+
+    const rows = await extractReactRowContents(response);
+
+    expect(rows).toStrictEqual([
+      {
+        ui: '<pre>[{&quot;fn&quot;:&quot;get_current_weather&quot;}]</pre>',
+        content: '',
+      },
+      {
+        ui: '<pre>[{&quot;fn&quot;:&quot;get_current_weather&quot;}]</pre>',
+        content: '',
+      },
+      {
+        ui: '<pre>[{&quot;fn&quot;:&quot;get_current_weather&quot;}]</pre>',
+        content: '',
+      },
+    ]);
+  });
+});
+
+describe('with ui: async jsx for content and data', () => {
+  it('should stream React response as React rows from data stream when data is appended', async () => {
+    const data = new experimental_StreamData();
+
+    const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
+      onFinal() {
+        data.close();
+      },
+      async experimental_onFunctionCall({ name }) {
+        data.append({ fn: name });
+        return undefined;
+      },
+      experimental_streamData: true,
+    });
+
+    const response = new experimental_StreamingReactResponse(stream, {
+      data,
+      ui: async ({ content, data }) => {
+        if (data != null) {
+          return Promise.resolve(<pre>{JSON.stringify(data)}</pre>);
+        }
+
+        return Promise.resolve(<span>{content}</span>);
       },
     }) as Promise<ReactResponseRow>;
 
