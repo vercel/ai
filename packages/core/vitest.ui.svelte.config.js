@@ -7,8 +7,9 @@ export default defineConfig(async ({ command, mode }) => {
   const { svelte } = await import('@sveltejs/vite-plugin-svelte');
 
   return {
-    plugins: [svelte()],
+    plugins: [svelte({ hot: !process.env.VITEST })],
     test: {
+      globals: true,
       environment: 'jsdom',
       include: ['svelte/**/*.ui.test.ts', 'svelte/**/*.ui.test.tsx'],
       exclude: ['node_modules/**'],
