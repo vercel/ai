@@ -13,9 +13,7 @@ for your API requests is the recommended way to use the Vercel AI SDK with Next.
 
 Below is a minimal route handler for using the OpenAI Chat API with the `openai` API client and the Vercel AI SDK. Consult our [guides](/docs/guides) for examples of using other providers.
 
-```typescript
-// app/api/chat/route.ts
-
+```typescript filename="app/api/chat/route.ts" showLineNumbers
 import OpenAI from 'openai';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 
@@ -52,8 +50,7 @@ Note that using the Edge Runtime is optional but highly recommended due to [long
 
 The Route Handler code can be adapted to work with [Server Components](https://nextjs.org/docs/getting-started/react-essentials#server-components), but additional work needs to be done to render the stream as it comes in. The provided example is a proof-of-concept.
 
-```typescript
-// app/page.tsx
+```typescript filename="app/page.tsx" showLineNumbers
 import OpenAI from 'openai';
 import { OpenAIStream } from 'ai';
 import { Suspense } from 'react';
@@ -127,9 +124,7 @@ async function Reader({
 You can use the SDK's [`useChat`](/docs/api-reference/use-chat) and [`useCompletion`](/docs/api-reference/use-completion) hooks inside of Client Components.
 However, you cannot set a routes runtime from them, so if you want to opt-in to the Edge runtime you should create a wrapper React Server Component like so:
 
-```typescript
-// app/page.tsx -- server component
-
+```typescript filename="app/page.tsx" showLineNumbers
 import Chat from './chat';
 
 export const runtime = 'edge';
@@ -139,16 +134,13 @@ export default function Page() {
 }
 ```
 
-```typescript
-// app/chat.tsx -- client component
+```typescript filename="app/chat.tsx" showLineNumbers
 'use client';
 
 import { useChat } from 'ai/react';
 
 export default function MyComponent() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: '/api/chat',
-  });
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
 
   return (
     <div>

@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "2.2.27",
+  "version": "2.2.28",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -22,9 +22,17 @@
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge && pnpm test:ui",
-    "test:edge": "vitest --config vitest.edge.config.js --run",
-    "test:node": "vitest --config vitest.node.config.js --run",
-    "test:ui": "vitest --config vitest.ui.config.js --run"
+    "test:edge": "vitest --config vitest.edge.config.js --run --threads=false",
+    "test:node": "vitest --config vitest.node.config.js --run --threads=false",
+    "test:ui": "pnpm test:ui:react && pnpm test:ui:vue && pnpm test:ui:solid",
+    "test:ui:react": "vitest --config vitest.ui.react.config.js --run",
+    "test:ui:solid": "vitest --config vitest.ui.solid.config.js --run",
+    "test:ui:vue": "vitest --config vitest.ui.vue.config.js --run",
+    "test:edge:watch": "vitest --config vitest.edge.config.js --threads=false",
+    "test:node:watch": "vitest --config vitest.node.config.js --threads=false",
+    "test:ui:react:watch": "vitest --config vitest.ui.react.config.js",
+    "test:ui:solid:watch": "vitest --config vitest.ui.solid.config.js",
+    "test:ui:vue:watch": "vitest --config vitest.ui.vue.config.js"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -78,15 +86,15 @@
   "devDependencies": {
     "@anthropic-ai/sdk": "0.10.0",
     "@aws-sdk/client-bedrock-runtime": "3.451.0",
-    "@edge-runtime/jest-environment": "1.1.0-beta.31",
+    "@edge-runtime/vm": "^3.1.7",
     "@huggingface/inference": "2.6.4",
+    "@solidjs/testing-library": "0.8.4",
     "@sveltejs/vite-plugin-svelte": "3.0.1",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.0.0",
     "@testing-library/svelte": "4.0.5",
     "@testing-library/user-event": "^14.5.1",
     "@testing-library/vue": "^8.0.1",
-    "@types/jest": "29.2.0",
     "@types/node": "^17.0.12",
     "@types/react": "^18.2.8",
     "@types/react-dom": "^18.2.0",
@@ -100,8 +108,10 @@
     "msw": "2.0.9",
     "openai": "4.16.1",
     "react-dom": "^18.2.0",
+    "solid-js": "1.8.7",
     "tsup": "^6.7.0",
-    "typescript": "5.1.3"
+    "typescript": "5.1.3",
+    "vite-plugin-solid": "2.7.2"
   },
   "peerDependencies": {
     "react": "^18.2.0",

@@ -4,6 +4,8 @@ layout:
   toc: false
 ---
 
+import { Callout } from 'nextra-theme-docs';
+
 # `experimental_StreamingReactResponse`
 
 The `experimental_StreamingReactResponse` class allows you to stream React component responses.
@@ -49,13 +51,11 @@ In this server-side script, the `handler` function interacts with the OpenAI API
 
 Server:
 
-```tsx
-// app/stream-react-response/action.tsx
+```tsx filename="app/stream-react-response/action.tsx"
 'use server';
 
 import OpenAI from 'openai';
 import { OpenAIStream, experimental_StreamingReactResponse, Message } from 'ai';
-import { Counter } from './counter';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -66,10 +66,7 @@ export async function handler({ messages }: { messages: Message[] }) {
   const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo',
     stream: true,
-    messages: messages.map(m => ({
-      role: m.role,
-      content: m.content,
-    })),
+    messages: messages as any,
   });
 
   // Convert the response into a friendly text-stream
@@ -80,7 +77,7 @@ export async function handler({ messages }: { messages: Message[] }) {
     ui({ content }) {
       return (
         <div className="italic text-red-800">
-          Visit Next.js docs at{' '}
+          {content} Visit Next.js docs at{' '}
           <a
             href="https://nextjs.org/docs"
             target="_blank"
@@ -99,9 +96,7 @@ export async function handler({ messages }: { messages: Message[] }) {
 
 On the client side, the useChat hook from ai/react is utilized to manage the chat interaction. The `Chat` component below renders the chat interface, including input forms and message displays. It dynamically integrates the server-side stream, displaying messages and UI elements as they are received.
 
-```tsx
-// app/stream-react-response/page.tsx
-
+```tsx filename="app/stream-react-response/page.tsx"
 import { handler } from './action';
 import { Chat } from './chat';
 
@@ -112,9 +107,7 @@ export default function Page() {
 }
 ```
 
-```tsx
-// app/stream-react-response/chat.tsx
-
+```tsx filename="app/stream-react-response/chat.tsx"
 'use client';
 
 import { useChat } from 'ai/react';
@@ -125,7 +118,7 @@ export function Chat({ handler }: { handler: any }) {
   });
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       <ul>
         {messages.map((m, index) => (
           <li key={index}>
@@ -135,20 +128,14 @@ export function Chat({ handler }: { handler: any }) {
         ))}
       </ul>
 
-      <form
-        className="flex gap-2 fixed bottom-0 left-0 w-full p-4 border-t"
-        onSubmit={handleSubmit}
-      >
+      <form onSubmit={handleSubmit}>
         <input
-          className="border border-gray-500 rounded p-2 w-full"
-          placeholder="what is Next.js..."
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          placeholder="What is the weather in New York?"
           value={input}
           onChange={handleInputChange}
           autoFocus
         />
-        <button type="submit" className="bg-black text-white rounded px-4">
-          Send
-        </button>
       </form>
     </div>
   );

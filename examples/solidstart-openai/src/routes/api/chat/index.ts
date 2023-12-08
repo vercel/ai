@@ -1,6 +1,5 @@
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 import OpenAI from 'openai';
-
 import { APIEvent } from 'solid-start/api';
 
 // Create an OpenAI API client
@@ -16,10 +15,7 @@ export const POST = async (event: APIEvent) => {
   const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo',
     stream: true,
-    messages: messages.map((message: any) => ({
-      content: message.content,
-      role: message.role,
-    })),
+    messages,
   });
 
   // Convert the response into a friendly text-stream
