@@ -91,7 +91,7 @@ export interface Message {
   createdAt?: Date;
   content: string;
   ui?: string | JSX.Element | JSX.Element[] | null | undefined;
-  role: 'system' | 'user' | 'assistant' | 'function' | 'tool';
+  role: 'system' | 'user' | 'assistant' | 'function' | 'data' | 'tool';
   /**
    * If the message has a role of `function`, the `name` field is the name of the function.
    * Otherwise, the name field should not be set.
@@ -103,6 +103,8 @@ export interface Message {
    * not be set. (Deprecated and replaced by tool_calls.)
    */
   function_call?: string | FunctionCall;
+
+  data?: JSONValue;
   /**
    * If the assistant role makes a tool call, the `tool_calls` field contains
    * the tool call name and arguments. Otherwise, the field should not be set.
@@ -327,4 +329,17 @@ export type AssistantMessage = {
       value: string;
     };
   }>;
+};
+
+/*
+ * A data message is an application-specific message from the assistant
+ * that should be shown in order with the other messages.
+ *
+ * It can trigger other operations on the frontend, such as annotating
+ * a map.
+ */
+export type DataMessage = {
+  id?: string; // optional id, implement if needed (e.g. for persistance)
+  role: 'data';
+  data: JSONValue; // application-specific data
 };

@@ -43,6 +43,7 @@ const roleToColorMap: Record<Message['role'], string> = {
   function: 'blue',
   tool: 'purple',
   assistant: 'green',
+  data: 'orange',
 };
 </script>
 

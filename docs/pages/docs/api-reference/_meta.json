@@ -3,6 +3,8 @@
   "use-completion": "useCompletion",
   "ai-stream": "AIStream",
   "anthropic-stream": "AnthropicStream",
+  "aws-bedrock-stream": "AWSBedrock*Stream",
+  "cohere-stream": "CohereStream",
   "huggingface-stream": "HuggingFaceStream",
   "langchain-stream": "LangChainStream",
   "openai-stream": "OpenAIStream",

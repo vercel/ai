@@ -1,4 +1,4 @@
-export const chatCompletionChunks = [
+export const openaiChatCompletionChunks = [
   {
     id: 'chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC',
     object: 'chat.completion.chunk',
@@ -335,7 +335,7 @@ export const chatCompletionChunksWithFunctionCall = [
   },
 ];
 
-export const chatCompletionChunksWithSpecifiedFunctionCall = [
+export const openaiFunctionCallChunks = [
   ...chatCompletionChunksWithFunctionCall,
   {
     id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',

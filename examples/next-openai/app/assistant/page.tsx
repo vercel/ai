@@ -9,6 +9,7 @@ const roleToColorMap: Record<Message['role'], string> = {
   function: 'blue',
   tool: 'purple',
   assistant: 'green',
+  data: 'orange',
 };
 
 export default function Chat() {
@@ -42,7 +43,16 @@ export default function Chat() {
           style={{ color: roleToColorMap[m.role] }}
         >
           <strong>{`${m.role}: `}</strong>
-          {m.content}
+          {m.role !== 'data' && m.content}
+          {m.role === 'data' && (
+            <>
+              {(m.data as any).description}
+              <br />
+              <pre className={'bg-gray-200'}>
+                {JSON.stringify(m.data, null, 2)}
+              </pre>
+            </>
+          )}
           <br />
           <br />
         </div>

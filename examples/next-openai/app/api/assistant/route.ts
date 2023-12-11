@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
   return experimental_AssistantResponse(
     { threadId, messageId: createdMessage.id },
-    async ({ threadId, sendMessage }) => {
+    async ({ threadId, sendMessage, sendDataMessage }) => {
       // Run the assistant on the thread
       const run = await openai.beta.threads.runs.create(threadId, {
         assistant_id:
@@ -86,9 +86,23 @@ export async function POST(req: Request) {
                     }
 
                     case 'setRoomTemperature': {
+                      const oldTemperature =
+                        homeTemperatures[
+                          parameters.room as keyof typeof homeTemperatures
+                        ];
+
                       homeTemperatures[
                         parameters.room as keyof typeof homeTemperatures
                       ] = parameters.temperature;
+
+                      sendDataMessage({
+                        role: 'data',
+                        data: {
+                          oldTemperature,
+                          newTemperature: parameters.temperature,
+                          description: `Temperature in ${parameters.room} changed from ${oldTemperature} to ${parameters.temperature}`,
+                        },
+                      });
 
                       return {
                         tool_call_id: toolCall.id,

@@ -15,6 +15,7 @@ export default function Chat() {
     function: 'blue',
     tool: 'purple',
     assistant: 'green',
+    data: 'orange',
   };
 
   return (
