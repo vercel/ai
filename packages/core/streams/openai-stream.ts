@@ -3,7 +3,7 @@ import {
   CreateMessage,
   FunctionCall,
   JSONValue,
-  Message,
+  ToolCall,
 } from '../shared/types';
 import { createChunkDecoder } from '../shared/utils';
 
@@ -14,6 +14,7 @@ import {
   FunctionCallPayload,
   readableFromAsyncIterable,
   createCallbacksTransformer,
+  ToolCallPayload,
 } from './ai-stream';
 import { createStreamDataTransformer } from './stream-data';
 
@@ -50,6 +51,51 @@ export type OpenAIStreamCallbacks = AIStreamCallbacksAndOptions & {
     createFunctionCallMessages: (
       functionCallResult: JSONValue,
     ) => CreateMessage[],
+  ) => Promise<
+    Response | undefined | void | string | AsyncIterableOpenAIStreamReturnTypes
+  >;
+  /**
+   * @example
+   * ```js
+   * const response = await openai.chat.completions.create({
+   *   model: 'gpt-3.5-turbo-1106', // or gpt-4-1106-preview
+   *   stream: true,
+   *   messages,
+   *   tools,
+   *   tool_choice: "auto", // auto is default, but we'll be explicit
+   * })
+   *
+   * const stream = OpenAIStream(response, {
+   *   experimental_onToolCall: async (toolCallPayload, appendToolCallMessages) => {
+   *    let messages: CreateMessage[] = []
+   *    //   There might be multiple tool calls, so we need to iterate through them
+   *    for (const tool of toolCallPayload.tools) {
+   *     // ... run your custom logic here
+   *     const result = await myFunction(tool.function)
+   *    // Append the relevant "assistant" and "tool" call messages
+   *     appendToolCallMessage({tool_call_id:tool.id, function_name:tool.function.name, tool_call_result:result})
+   *    }
+   *     // Ask for another completion, or return a string to send to the client as an assistant message.
+   *     return await openai.chat.completions.create({
+   *       model: 'gpt-3.5-turbo-1106', // or gpt-4-1106-preview
+   *       stream: true,
+   *       // Append the results messages, calling appendToolCallMessage without
+   *       // any arguments will jsut return the accumulated messages
+   *       messages: [...messages, ...appendToolCallMessage()],
+   *       tools,
+   *        tool_choice: "auto", // auto is default, but we'll be explicit
+   *     })
+   *   }
+   * })
+   * ```
+   */
+  experimental_onToolCall?: (
+    toolCallPayload: ToolCallPayload,
+    appendToolCallMessage: (result?: {
+      tool_call_id: string;
+      function_name: string;
+      tool_call_result: JSONValue;
+    }) => CreateMessage[],
   ) => Promise<
     Response | undefined | void | string | AsyncIterableOpenAIStreamReturnTypes
   >;
@@ -111,6 +157,9 @@ interface DeltaToolCall {
    */
   id?: string;
 
+  /**
+   * The function that the model called.
+   */
   function?: ToolCallFunction;
 
   /**
@@ -236,126 +285,42 @@ async function* streamable(stream: AsyncIterableOpenAIStreamReturnTypes) {
   }
 }
 
+/** @see stream-sample.md for explaination of parsing*/
 function chunkToText(): (chunk: OpenAIStreamReturnTypes) => string | void {
   const trimStartOfStream = trimStartOfStreamHelper();
   let isFunctionStreamingIn: boolean;
   return json => {
-    /*
-       If the response is a function call, the first streaming chunk from OpenAI returns the name of the function like so
-
-          {
-            ...
-            "choices": [{
-              "index": 0,
-              "delta": {
-                "role": "assistant",
-                "content": null,
-                "function_call": {
-                  "name": "get_current_weather",
-                  "arguments": ""
-                }
-              },
-              "finish_reason": null
-            }]
-          }
-
-       Then, it begins streaming the arguments for the function call.
-       The second chunk looks like:
-
-          {
-            ...
-            "choices": [{
-              "index": 0,
-              "delta": {
-                "function_call": {
-                  "arguments": "{\n"
-                }
-              },
-              "finish_reason": null
-            }]
-          }
-
-        Third chunk:
-
-          {
-            ...
-            "choices": [{
-              "index": 0,
-              "delta": {
-                "function_call": {
-                  "arguments": "\"location"
-                }
-              },
-              "finish_reason": null
-            }]
-          }
-
-        ...
-
-        Finally, the last chunk has a `finish_reason` of either `function_call`:
-
-          {
-            ...
-            "choices": [{
-              "index": 0,
-              "delta": {},
-              "finish_reason": "function_call"
-            }]
-          }
-
-        or `stop`, when the `function_call` request parameter 
-        is specified with a particular function via `{\"name\": \"my_function\"}` 
-
-          {
-            ...
-            "choices": [{
-              "index": 0,
-              "delta": {},
-              "finish_reason": "stop"
-            }]
-          }
-
-        With the implementation below, the client will end up getting a
-        response like the one below streamed to them whenever a function call
-        response is returned:
-
-          {
-            "function_call": {
-              "name": "get_current_weather",
-              "arguments": "{\"location\": \"San Francisco, CA\", \"format\": \"celsius\"}
-            }
-          }
-     */
-    if (
-      isChatCompletionChunk(json) &&
-      json.choices[0]?.delta?.function_call?.name
-    ) {
-      isFunctionStreamingIn = true;
-      return `{"function_call": {"name": "${json.choices[0]?.delta?.function_call.name}", "arguments": "`;
-    } else if (
-      isChatCompletionChunk(json) &&
-      json.choices[0]?.delta?.function_call?.arguments
-    ) {
-      const argumentChunk: string =
-        json.choices[0].delta.function_call.arguments;
-
-      let escapedPartialJson = argumentChunk
-        .replace(/\\/g, '\\\\') // Replace backslashes first to prevent double escaping
-        .replace(/\//g, '\\/') // Escape slashes
-        .replace(/"/g, '\\"') // Escape double quotes
-        .replace(/\n/g, '\\n') // Escape new lines
-        .replace(/\r/g, '\\r') // Escape carriage returns
-        .replace(/\t/g, '\\t') // Escape tabs
-        .replace(/\f/g, '\\f'); // Escape form feeds
-
-      return `${escapedPartialJson}`;
-    } else if (
-      isFunctionStreamingIn &&
-      (json.choices[0]?.finish_reason === 'function_call' ||
-        json.choices[0]?.finish_reason === 'stop')
-    ) {
-      isFunctionStreamingIn = false; // Reset the flag
-      return '"}}';
+    if (isChatCompletionChunk(json)) {
+      const delta = json.choices[0]?.delta;
+      if (delta.function_call?.name) {
+        isFunctionStreamingIn = true;
+        return `{"function_call": {"name": "${delta.function_call.name}", "arguments": "`;
+      } else if (delta.tool_calls?.[0]?.function?.name) {
+        isFunctionStreamingIn = true;
+        const toolCall = delta.tool_calls[0];
+        if (toolCall.index === 0) {
+          return `{"tool_calls":[ {"id": "${toolCall.id}", "type": "function", "function": {"name": "${toolCall.function?.name}", "arguments":`;
+        } else {
+          return `}}, {"id": "${toolCall.id}", "type": "function", "function": {"name": "${toolCall.function?.name}", "arguments":`;
+        }
+      } else if (delta.function_call?.arguments) {
+        return cleanupArguments(delta.function_call?.arguments);
+      } else if (delta.tool_calls?.[0].function?.arguments) {
+        return delta.tool_calls?.[0]?.function?.arguments;
+      } else if (
+        isFunctionStreamingIn &&
+        (json.choices[0]?.finish_reason === 'function_call' ||
+          json.choices[0]?.finish_reason === 'stop')
+      ) {
+        isFunctionStreamingIn = false; // Reset the flag
+        return '"}}';
+      } else if (
+        isFunctionStreamingIn &&
+        json.choices[0]?.finish_reason === 'tool_calls'
+      ) {
+        isFunctionStreamingIn = false; // Reset the flag
+        return '}}]}';
+      }
     }
 
     const text = trimStartOfStream(
@@ -367,6 +332,19 @@ function chunkToText(): (chunk: OpenAIStreamReturnTypes) => string | void {
     );
     return text;
   };
+
+  function cleanupArguments(argumentChunk: string) {
+    let escapedPartialJson = argumentChunk
+      .replace(/\\/g, '\\\\') // Replace backslashes first to prevent double escaping
+      .replace(/\//g, '\\/') // Escape slashes
+      .replace(/"/g, '\\"') // Escape double quotes
+      .replace(/\n/g, '\\n') // Escape new lines
+      .replace(/\r/g, '\\r') // Escape carriage returns
+      .replace(/\t/g, '\\t') // Escape tabs
+      .replace(/\f/g, '\\f'); // Escape form feeds
+
+    return `${escapedPartialJson}`;
+  }
 }
 
 const __internal__OpenAIFnMessagesSymbol = Symbol(
@@ -417,7 +395,7 @@ export function OpenAIStream(
   if (Symbol.asyncIterator in res) {
     stream = readableFromAsyncIterable(streamable(res)).pipeThrough(
       createCallbacksTransformer(
-        cb?.experimental_onFunctionCall
+        cb?.experimental_onFunctionCall || cb?.experimental_onToolCall
           ? {
               ...cb,
               onFinal: undefined,
@@ -431,7 +409,7 @@ export function OpenAIStream(
     stream = AIStream(
       res,
       parseOpenAIStream(),
-      cb?.experimental_onFunctionCall
+      cb?.experimental_onFunctionCall || cb?.experimental_onToolCall
         ? {
             ...cb,
             onFinal: undefined,
@@ -442,7 +420,7 @@ export function OpenAIStream(
     );
   }
 
-  if (cb && cb.experimental_onFunctionCall) {
+  if (cb && (cb.experimental_onFunctionCall || cb.experimental_onToolCall)) {
     const functionCallTransformer = createFunctionCallTransformer(cb);
     return stream.pipeThrough(functionCallTransformer);
   } else {
@@ -475,7 +453,9 @@ function createFunctionCallTransformer(
       aggregatedFinalCompletionResponse += message;
 
       const shouldHandleAsFunction =
-        isFirstChunk && message.startsWith('{"function_call":');
+        isFirstChunk &&
+        (message.startsWith('{"function_call":') ||
+          message.startsWith('{"tool_calls":'));
 
       if (shouldHandleAsFunction) {
         isFunctionStreamingIn = true;
@@ -498,47 +478,133 @@ function createFunctionCallTransformer(
     },
     async flush(controller): Promise<void> {
       try {
-        const isEndOfFunction =
+        if (
           !isFirstChunk &&
-          callbacks.experimental_onFunctionCall &&
-          isFunctionStreamingIn;
-
-        // This callbacks.experimental_onFunctionCall check should not be necessary but TS complains
-        if (isEndOfFunction && callbacks.experimental_onFunctionCall) {
+          isFunctionStreamingIn &&
+          (callbacks.experimental_onFunctionCall ||
+            callbacks.experimental_onToolCall)
+        ) {
           isFunctionStreamingIn = false;
           const payload = JSON.parse(aggregatedResponse);
-          const argumentsPayload = JSON.parse(payload.function_call.arguments);
-
           // Append the function call message to the list
           let newFunctionCallMessages: CreateMessage[] = [
             ...functionCallMessages,
           ];
 
-          const functionResponse = await callbacks.experimental_onFunctionCall(
-            {
-              name: payload.function_call.name,
-              arguments: argumentsPayload,
-            },
-            result => {
-              // Append the function call request and result messages to the list
-              newFunctionCallMessages = [
-                ...functionCallMessages,
-                {
-                  role: 'assistant',
-                  content: '',
-                  function_call: payload.function_call,
-                },
-                {
-                  role: 'function',
-                  name: payload.function_call.name,
-                  content: JSON.stringify(result),
-                },
-              ];
+          let functionResponse:
+            | Response
+            | undefined
+            | void
+            | string
+            | AsyncIterableOpenAIStreamReturnTypes
+            | undefined = undefined;
+          // This callbacks.experimental_onFunctionCall check should not be necessary but TS complains
+          if (callbacks.experimental_onFunctionCall) {
+            // If the user is using the experimental_onFunctionCall callback, they should not be using tools
+            // if payload.function_call is not defined by time we get here we must have gotten a tool response
+            // and the user had defined experimental_onToolCall
+            if (payload.function_call === undefined) {
+              console.warn(
+                'experimental_onFunctionCall should not be defined when using tools',
+              );
+            }
 
-              // Return it to the user
-              return newFunctionCallMessages;
-            },
-          );
+            const argumentsPayload = JSON.parse(
+              payload.function_call.arguments,
+            );
+
+            functionResponse = await callbacks.experimental_onFunctionCall(
+              {
+                name: payload.function_call.name,
+                arguments: argumentsPayload,
+              },
+              result => {
+                // Append the function call request and result messages to the list
+                newFunctionCallMessages = [
+                  ...functionCallMessages,
+                  {
+                    role: 'assistant',
+                    content: '',
+                    function_call: payload.function_call,
+                  },
+                  {
+                    role: 'function',
+                    name: payload.function_call.name,
+                    content: JSON.stringify(result),
+                  },
+                ];
+                // Return it to the user
+                return newFunctionCallMessages;
+              },
+            );
+          }
+          if (callbacks.experimental_onToolCall) {
+            const toolCalls: ToolCallPayload = {
+              tools: [],
+            };
+            for (const tool of payload.tool_calls) {
+              toolCalls.tools.push({
+                id: tool.id,
+                type: 'function',
+                func: {
+                  name: tool.function.name,
+                  arguments: tool.function.arguments,
+                },
+              });
+            }
+            let responseIndex = 0;
+            try {
+              functionResponse = await callbacks.experimental_onToolCall(
+                toolCalls,
+                result => {
+                  if (result) {
+                    const { tool_call_id, function_name, tool_call_result } =
+                      result;
+                    // Append the function call request and result messages to the list
+                    newFunctionCallMessages = [
+                      ...newFunctionCallMessages,
+                      // Only append the assitant message if it's the first response
+                      ...(responseIndex === 0
+                        ? [
+                            {
+                              role: 'assistant' as const,
+                              content: '',
+                              tool_calls: payload.tool_calls.map(
+                                (tc: ToolCall) => {
+                                  return {
+                                    id: tc.id,
+                                    type: 'function',
+                                    function: {
+                                      name: tc.function.name,
+                                      // we send the arguments an object to the user, but as the API expects a string, we need to stringify it
+                                      arguments: JSON.stringify(
+                                        tc.function.arguments,
+                                      ),
+                                    },
+                                  };
+                                },
+                              ),
+                            },
+                          ]
+                        : []),
+                      // Append the function call result message
+                      {
+                        role: 'tool',
+                        tool_call_id,
+                        name: function_name,
+                        content: JSON.stringify(tool_call_result),
+                      },
+                    ];
+                    responseIndex++;
+                  }
+                  // Return it to the user
+                  return newFunctionCallMessages;
+                },
+              );
+            } catch (e) {
+              console.error('Error calling experimental_onToolCall:', e);
+            }
+          }
 
           if (!functionResponse) {
             // The user didn't do anything with the function call on the server and wants
@@ -548,7 +614,7 @@ function createFunctionCallTransformer(
               textEncoder.encode(
                 isComplexMode
                   ? formatStreamPart(
-                      'function_call',
+                      payload.function_call ? 'function_call' : 'tool_call',
                       // parse to prevent double-encoding:
                       JSON.parse(aggregatedResponse),
                     )
