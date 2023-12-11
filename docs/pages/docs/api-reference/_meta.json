@@ -1,4 +1,5 @@
 {
+  "use-assistant": "experimental_useAssistant",
   "use-chat": "useChat",
   "use-completion": "useCompletion",
   "ai-stream": "AIStream",
