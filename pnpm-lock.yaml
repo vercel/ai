@@ -270,7 +270,7 @@ importers:
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.196
-        version: 0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(jsdom@23.0.0)
+        version: 0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(axios@1.6.2)(jsdom@23.0.0)
       next:
         specifier: 14.0.3
         version: 14.0.3(react-dom@18.2.0)(react@18.2.0)
@@ -736,6 +736,9 @@ importers:
       '@huggingface/inference':
         specifier: 2.6.4
         version: 2.6.4
+      '@mistralai/mistralai':
+        specifier: 0.0.7
+        version: 0.0.7
       '@solidjs/testing-library':
         specifier: 0.8.4
         version: 0.8.4(@solidjs/router@0.8.2)(solid-js@1.8.7)
@@ -780,7 +783,7 @@ importers:
         version: 23.0.0
       langchain:
         specifier: 0.0.196
-        version: 0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(jsdom@23.0.0)
+        version: 0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(axios@1.6.2)(jsdom@23.0.0)
       msw:
         specifier: 2.0.9
         version: 2.0.9(typescript@5.1.3)
@@ -3633,6 +3636,15 @@ packages:
       - supports-color
     dev: true
 
+  /@mistralai/mistralai@0.0.7:
+    resolution: {integrity: sha512-47FiV/GBnt6gug99ZfDBcBofYuYvqT5AyhUDdtktUbCN+gq52tmiAbtwc88k7hlyUWHzJ28VpHRDfNTRfaWKxA==}
+    dependencies:
+      axios: 1.6.2
+      axios-retry: 4.0.0(axios@1.6.2)
+    transitivePeerDependencies:
+      - debug
+    dev: true
+
   /@mozilla/readability@0.4.4:
     resolution: {integrity: sha512-MCgZyANpJ6msfvVMi6+A0UAsvZj//4OHREYUB9f2087uXHVoU+H+SWhuihvb1beKpM323bReQPRio0WNk2+V6g==}
     engines: {node: '>=14.0.0'}
@@ -6079,6 +6091,15 @@ packages:
     resolution: {integrity: sha512-zIURGIS1E1Q4pcrMjp+nnEh+16G56eG/MUllJH8yEvw7asDo7Ac9uhC9KIH5jzpITueEZolfYglnCGIuSBz39g==}
     engines: {node: '>=4'}
 
+  /axios-retry@4.0.0(axios@1.6.2):
+    resolution: {integrity: sha512-F6P4HVGITD/v4z9Lw2mIA24IabTajvpDZmKa6zq/gGwn57wN5j1P3uWrAV0+diqnW6kTM2fTqmWNfgYWGmMuiA==}
+    peerDependencies:
+      axios: 0.x || 1.x
+    dependencies:
+      axios: 1.6.2
+      is-retry-allowed: 2.2.0
+    dev: true
+
   /axios@0.25.0(debug@4.3.4):
     resolution: {integrity: sha512-cD8FOb0tRH3uuEe6+evtAbgJtfxr7ly3fQjYcMcuPlgkwVS9xboaVIpcDV+cYQe+yGykgwZCs1pzjntcGa6l5g==}
     dependencies:
@@ -6102,6 +6123,15 @@ packages:
     transitivePeerDependencies:
       - debug
     dev: true
+
+  /axios@1.6.2:
+    resolution: {integrity: sha512-7i24Ri4pmDRfJTR7LDBhsOTtcm+9kjX5WiY1X3wIisx6G9So3pfMkEiU7emUBe46oceVImccTEM3k6C5dbVW8A==}
+    dependencies:
+      follow-redirects: 1.15.2(debug@4.3.4)
+      form-data: 4.0.0
+      proxy-from-env: 1.1.0
+    transitivePeerDependencies:
+      - debug
 
   /axobject-query@3.2.1:
     resolution: {integrity: sha512-jsyHu61e6N4Vbz/v18DHwWYKK0bSWLqn47eeDSKPB7m8tqMHF9YJ+mhIk2lVteyZrY8tnSj/jHOv4YiTCuCJgg==}
@@ -9298,6 +9328,11 @@ packages:
       call-bind: 1.0.5
       has-tostringtag: 1.0.0
 
+  /is-retry-allowed@2.2.0:
+    resolution: {integrity: sha512-XVm7LOeLpTW4jV19QSH38vkswxoLud8sQ57YwJVTPWdiaI9I8keEhGFpBlslyVsgdQy4Opg8QOLb8YRgsyZiQg==}
+    engines: {node: '>=10'}
+    dev: true
+
   /is-set@2.0.2:
     resolution: {integrity: sha512-+2cnTEZeY5z/iXGbLhPrOAaK/Mau5k5eXq9j14CpRTftq0pAJu2MwVRSZhyZWBzx3o6X795Lz6Bpb6R0GKf37g==}
     dev: true
@@ -9956,7 +9991,7 @@ packages:
       - supports-color
     dev: false
 
-  /langchain@0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(jsdom@23.0.0):
+  /langchain@0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(axios@1.6.2)(jsdom@23.0.0):
     resolution: {integrity: sha512-kt17GGTDFWHNv3jJOIXymsQxfa+h9UQ6hrHbhur+V2pV6RBKO5E+RRCvnCqBzbnOPtrlkENF6Wl3Ezmsfo21dg==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -10259,6 +10294,7 @@ packages:
       '@anthropic-ai/sdk': 0.9.1
       '@aws-sdk/client-bedrock-runtime': 3.451.0
       '@huggingface/inference': 2.6.4
+      axios: 1.6.2
       binary-extensions: 2.2.0
       expr-eval: 2.0.2
       flat: 5.0.2
@@ -12628,6 +12664,9 @@ packages:
   /protocols@2.0.1:
     resolution: {integrity: sha512-/XJ368cyBJ7fzLMwLKv1e4vLxOju2MNAIokcr7meSaNcVbWz/CPcW22cP04mwxOErdA5mwjA8Q6w/cdAQxVn7Q==}
     dev: true
+
+  /proxy-from-env@1.1.0:
+    resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
 
   /prr@1.0.1:
     resolution: {integrity: sha512-yPw4Sng1gWghHQWj0B3ZggWUm4qVbPwPFcRG8KyxiU7J2OHFSoEHKS+EZ3fv5l1t9CyCiop6l/ZYeWbrgoQejw==}
