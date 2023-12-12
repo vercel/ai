@@ -181,11 +181,11 @@ const dataMessageStreamPart: StreamPart<'6', 'data_message', DataMessage> = {
 
 const toolCallStreamPart: StreamPart<
   '7',
-  'tool_call',
-  { tool_call: ToolCall[] }
+  'tool_calls',
+  { tool_calls: ToolCall[] }
 > = {
   code: '7',
-  name: 'tool_call',
+  name: 'tool_calls',
   parse: (value: JSONValue) => {
     if (
       value == null ||
@@ -210,13 +210,13 @@ const toolCallStreamPart: StreamPart<
       })
     ) {
       throw new Error(
-        '"tool_call" parts expect an object with a ToolCallPayload.',
+        '"tool_calls" parts expect an object with a ToolCallPayload.',
       );
     }
 
     return {
-      type: 'tool_call',
-      value: value as unknown as { tool_call: ToolCall[] },
+      type: 'tool_calls',
+      value: value as unknown as { tool_calls: ToolCall[] },
     };
   },
 };

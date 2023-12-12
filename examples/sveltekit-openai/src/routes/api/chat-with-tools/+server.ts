@@ -71,41 +71,36 @@ export async function POST({ request }) {
   });
 
   const data = new experimental_StreamData();
+
   const stream = OpenAIStream(response, {
     experimental_onToolCall: async (
       call: ToolCallPayload,
       appendToolCallMessage,
     ) => {
-      let handledTools = false;
-      for (const tool of call.tools) {
-        if (tool.func.name === 'get_current_weather') {
+      for (const toolCall of call.tools) {
+        // Note: this is a very simple example of a tool call handler
+        // that only supports a single tool call function.
+        if (toolCall.func.name === 'get_current_weather') {
           // Call a weather API here
           const weatherData = {
             temperature: 20,
-            unit: tool.func.arguments.format === 'celsius' ? 'C' : 'F',
+            unit: toolCall.func.arguments.format === 'celsius' ? 'C' : 'F',
           };
 
-          data.append({
-            text: 'Some custom data',
-          });
-
-          handledTools = true;
-          appendToolCallMessage({
-            tool_call_id: tool.id,
-            function_name: tool.func.name,
+          const newMessages = appendToolCallMessage({
+            tool_call_id: toolCall.id,
+            function_name: 'get_current_weather',
             tool_call_result: weatherData,
           });
+
+          return openai.chat.completions.create({
+            messages: [...messages, ...newMessages],
+            model,
+            stream: true,
+            tools,
+            tool_choice: 'auto',
+          });
         }
-      }
-      if (handledTools) {
-        const newMessages = appendToolCallMessage();
-        return openai.chat.completions.create({
-          messages: [...messages, ...newMessages],
-          model,
-          stream: true,
-          tools,
-          tool_choice: 'auto',
-        });
       }
     },
     onCompletion(completion) {
