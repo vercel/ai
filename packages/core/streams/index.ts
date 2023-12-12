@@ -5,6 +5,7 @@ export * from './streaming-text-response';
 export * from './huggingface-stream';
 export * from './cohere-stream';
 export * from './anthropic-stream';
+export * from './inkeep-stream';
 export * from './langchain-stream';
 export * from './replicate-stream';
 export * from '../shared/types';

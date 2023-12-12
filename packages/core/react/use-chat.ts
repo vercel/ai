@@ -263,6 +263,7 @@ export function useChat({
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
+      console.log("LOGGING TRIGGER CHAT REQUEST", chatRequest)
       try {
         mutateLoading(true);
         setError(undefined);
@@ -346,6 +347,7 @@ export function useChat({
         ...(function_call !== undefined && { function_call }),
       };
 
+      console.log("--CHAT REQUEST IN APPEND", chatRequest);
       return triggerRequest(chatRequest);
     },
     [triggerRequest, generateId],
