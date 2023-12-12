@@ -1,5 +1,14 @@
-import { ParsedEvent, ReconnectInterval, createParser } from 'eventsource-parser';
-import { AIStreamParser, InkeepStream, StreamingTextResponse, createEventStreamTransformer } from '../../../../../packages/core/streams';
+import {
+  ParsedEvent,
+  ReconnectInterval,
+  createParser,
+} from 'eventsource-parser';
+import {
+  AIStreamParser,
+  InkeepStream,
+  StreamingTextResponse,
+  createEventStreamTransformer,
+} from '../../../../../packages/core/streams';
 
 // Define the type for the request body
 interface InkeepApiRequestBody {
@@ -40,7 +49,7 @@ export async function POST(req: Request) {
   console.log('Request body:', useChatRequestBody); // Log the request body
 
   const response = await fetch(
-    'https://api.inkeep.com/v1/chat_sessions/chat_results',
+    'https://api.inkeep.com/v0/chat_sessions/chat_results',
     {
       method: 'POST',
       headers: {
