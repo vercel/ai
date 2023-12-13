@@ -13,5 +13,6 @@
   "stream-data": "experimental_StreamData",
   "streaming-text-response": "StreamingTextResponse",
   "stream-to-response": "streamToResponse",
+  "assistant-response": "experimental_AssistantResponse",
   "tokens": "<Tokens />"
 }
