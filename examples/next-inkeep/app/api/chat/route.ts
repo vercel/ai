@@ -38,7 +38,6 @@ export async function POST(req: Request) {
     // new chat session
     response = await createChatSession({
       input: {
-        chat_mode: 'turbo',
         integration_id: inkeepIntegrationId!,
         chat_session: {
           messages: chatRequestBody.messages,
