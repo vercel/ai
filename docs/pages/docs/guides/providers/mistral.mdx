@@ -45,11 +45,11 @@ import { OpenAIStream, StreamingTextResponse } from 'ai';
 // @ts-ignore
 import MistralClient from '@mistralai/mistralai';
 
+const client = new MistralClient(process.env.MISTRAL_API_KEY || '');
+
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
   const { messages } = await req.json();
-
-  const client = new MistralClient(process.env.MISTRAL_API_KEY || '');
 
   const response = await client.chatStream({
     model: 'mistral-tiny',
@@ -159,7 +159,9 @@ We can use the [`useCompletion`](/docs/api-reference/use-completion) hook to mak
 
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client';
+
 import { useCompletion } from 'ai/react';
+
 export default function Completion() {
   const {
     completion,
