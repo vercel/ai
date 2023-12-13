@@ -130,11 +130,11 @@ import { OpenAIStream, StreamingTextResponse } from 'ai';
 // @ts-ignore
 import MistralClient from '@mistralai/mistralai';
 
+const client = new MistralClient(process.env.MISTRAL_API_KEY || '');
+
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
-
-  const client = new MistralClient(process.env.MISTRAL_API_KEY || '');
 
   const response = await client.chatStream({
     model: 'mistral-tiny',
