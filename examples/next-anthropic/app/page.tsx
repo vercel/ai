@@ -3,9 +3,6 @@
 import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const extraBodyParams = {
-    integration_id: process.env.NEXT_PUBLIC_INKEEP_INTEGRATION_ID,
-  };
   const { messages, input, handleInputChange, handleSubmit } = useChat();
 
   return (

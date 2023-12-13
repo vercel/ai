@@ -280,6 +280,9 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
+      zod:
+        specifier: ^3.22.4
+        version: 3.22.4
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
@@ -695,7 +698,7 @@ importers:
         version: 4.9.5
       vite:
         specifier: ^4.1.4
-        version: 4.5.0(@types/node@17.0.45)
+        version: 4.5.0(@types/node@20.9.0)
 
   examples/sveltekit-openai:
     dependencies:
@@ -735,7 +738,7 @@ importers:
         version: 5.1.3
       vite:
         specifier: ^4.3.9
-        version: 4.5.0(@types/node@17.0.45)
+        version: 4.5.0(@types/node@20.9.0)
 
   packages/core:
     dependencies:
@@ -769,6 +772,9 @@ importers:
       vue:
         specifier: ^3.3.4
         version: 3.3.8(typescript@5.1.3)
+      zod:
+        specifier: ^3.22.4
+        version: 3.22.4
     devDependencies:
       '@anthropic-ai/sdk':
         specifier: 0.10.0
@@ -4974,7 +4980,7 @@ packages:
       svelte: 4.2.3
       tiny-glob: 0.2.9
       undici: 5.26.5
-      vite: 4.5.0(@types/node@17.0.45)
+      vite: 4.5.0(@types/node@20.9.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -4990,7 +4996,7 @@ packages:
       '@sveltejs/vite-plugin-svelte': 2.5.2(svelte@4.2.3)(vite@4.5.0)
       debug: 4.3.4
       svelte: 4.2.3
-      vite: 4.5.0(@types/node@17.0.45)
+      vite: 4.5.0(@types/node@20.9.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -5009,7 +5015,7 @@ packages:
       magic-string: 0.30.5
       svelte: 4.2.3
       svelte-hmr: 0.15.3(svelte@4.2.3)
-      vite: 4.5.0(@types/node@17.0.45)
+      vite: 4.5.0(@types/node@20.9.0)
       vitefu: 0.2.5(vite@4.5.0)
     transitivePeerDependencies:
       - supports-color
@@ -13899,7 +13905,7 @@ packages:
       solid-start: 0.2.32(@solidjs/meta@0.28.7)(@solidjs/router@0.8.4)(solid-js@1.8.5)(solid-start-node@0.2.32)(vite@4.5.0)
       terser: 5.24.0
       undici: 5.27.2
-      vite: 4.5.0(@types/node@17.0.45)
+      vite: 4.5.0(@types/node@20.9.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -13970,7 +13976,7 @@ packages:
       solid-start-node: 0.2.32(solid-start@0.2.32)(undici@5.27.2)(vite@4.5.0)
       terser: 5.24.0
       undici: 5.27.2
-      vite: 4.5.0(@types/node@17.0.45)
+      vite: 4.5.0(@types/node@20.9.0)
       vite-plugin-inspect: 0.7.42(rollup@3.29.4)(vite@4.5.0)
       vite-plugin-solid: 2.7.2(solid-js@1.8.5)(vite@4.5.0)
       wait-on: 6.0.1(debug@4.3.4)
@@ -15504,7 +15510,7 @@ packages:
       open: 9.1.0
       picocolors: 1.0.0
       sirv: 2.0.3
-      vite: 4.5.0(@types/node@17.0.45)
+      vite: 4.5.0(@types/node@20.9.0)
     transitivePeerDependencies:
       - rollup
       - supports-color
@@ -15522,7 +15528,7 @@ packages:
       merge-anything: 5.1.7
       solid-js: 1.8.5
       solid-refresh: 0.5.3(solid-js@1.8.5)
-      vite: 4.5.0(@types/node@17.0.45)
+      vite: 4.5.0(@types/node@20.9.0)
       vitefu: 0.2.5(vite@4.5.0)
     transitivePeerDependencies:
       - supports-color
@@ -15653,7 +15659,6 @@ packages:
       rollup: 3.29.4
     optionalDependencies:
       fsevents: 2.3.3
-    dev: true
 
   /vitefu@0.2.5(vite@4.5.0):
     resolution: {integrity: sha512-SgHtMLoqaeeGnd2evZ849ZbACbnwQCIwRH57t18FxcXoZop0uQu0uzlIhJBlF/eWVzuce0sHeqPcDo+evVcg8Q==}

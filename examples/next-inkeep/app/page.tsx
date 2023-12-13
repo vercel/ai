@@ -1,30 +1,26 @@
 'use client';
 
 import { useChat } from 'ai/react';
-import { useState } from 'react';
+import { InkeepChatResultCustomData } from './api/chat/route';
+import { useEffect } from 'react';
 
 export default function Chat() {
-  const [inkeepChatSessionId, setInkeepChatSessionId] = useState<
-    string | undefined
-  >(undefined);
-  const inkeepIntegrationId = process.env.NEXT_PUBLIC_INKEEP_INTEGRATION_ID;
-
-  if (!inkeepIntegrationId) {
-    throw new Error(
-      'NEXT_PUBLIC_INKEEP_INTEGRATION_ID is not defined in the environment variables.',
-    );
-  }
-
-  const extraOptions = {
-    data: {
-      ...(inkeepChatSessionId ? { chat_session_id: inkeepChatSessionId } : {}),
-      integration_id: inkeepIntegrationId,
-    },
-  };
   const { messages, input, handleInputChange, handleSubmit, data } = useChat();
 
-  console.log(data);
-  console.log(messages);
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (data && data.length > 0) {
+      const chatData = data[0] as InkeepChatResultCustomData;
+      const options = {
+        data: {
+          ...(chatData && chatData.chat_session_id
+            ? { chat_session_id: chatData.chat_session_id }
+            : {}),
+        },
+      };
+      handleSubmit(e, options);
+    }
+  };
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -35,11 +31,7 @@ export default function Chat() {
         </div>
       ))}
 
-      <form
-        onSubmit={e => {
-          handleSubmit(e, extraOptions);
-        }}
-      >
+      <form onSubmit={handleFormSubmit}>
         <input
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           value={input}
