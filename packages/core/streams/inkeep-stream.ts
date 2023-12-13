@@ -66,24 +66,28 @@ export function InkeepStream(
     return inkeepContentChunk.content_chunk;
   };
 
+  // split callbacks between core ones supported for all AI providers and Inkeep specific ones
+
   let onCompleteMessage;
-  let userCoreCallbacks: AIStreamCallbacksAndOptions | undefined;
+  let coreCallbacks: AIStreamCallbacksAndOptions | undefined;
 
   if (callbacks) {
-    ({ onCompleteMessage, ...userCoreCallbacks } = callbacks);
+    ({ onCompleteMessage, ...coreCallbacks } = callbacks);
   }
 
   const inkeepCallbacks: InkeepChatResultCallbacks = {
     onCompleteMessage,
   };
 
-  let callbacksCore = { ...userCoreCallbacks };
+  let finalCallbacks = { ...coreCallbacks };
 
-  callbacksCore = {
-    ...callbacksCore,
+  // add Inkeep specific callbacks using onEvent
+
+  finalCallbacks = {
+    ...finalCallbacks,
     onEvent: e => {
-      if (userCoreCallbacks?.onEvent) {
-        userCoreCallbacks.onEvent(e);
+      if (coreCallbacks?.onEvent) {
+        coreCallbacks.onEvent(e);
       }
       if (e.type === 'event') {
         if (e.event === 'message_chunk') {
@@ -104,7 +108,7 @@ export function InkeepStream(
     },
   };
 
-  return AIStream(res, inkeepEventParser, callbacksCore).pipeThrough(
-    createStreamDataTransformer(callbacksCore?.experimental_streamData),
+  return AIStream(res, inkeepEventParser, finalCallbacks).pipeThrough(
+    createStreamDataTransformer(finalCallbacks?.experimental_streamData),
   );
 }
