@@ -337,6 +337,7 @@ export function useChat({
       streamData,
       sendExtraMessageFields,
       experimental_onFunctionCall,
+      experimental_onToolCall,
       messagesRef,
       abortControllerRef,
       generateId,
