@@ -41,6 +41,28 @@ describe('stream-parts', () => {
       });
     });
 
+    it('should parse a tool call line', () => {
+      const input =
+        '7:{"tool_calls": [{"type": "function", "id": "tool_0", "function": {"name":"get_current_weather","arguments":"{\\"location\\": \\"Charlottesville, Virginia\\",\\"format\\": \\"celsius\\"}"}}]}';
+
+      expect(parseStreamPart(input)).toEqual({
+        type: 'tool_calls',
+        value: {
+          tool_calls: [
+            {
+              type: 'function',
+              id: 'tool_0',
+              function: {
+                name: 'get_current_weather',
+                arguments:
+                  '{"location": "Charlottesville, Virginia","format": "celsius"}',
+              },
+            },
+          ],
+        },
+      });
+    });
+
     it('should parse a data line', () => {
       const input = '2:[{"test":"value"}]';
       const expectedOutput = { type: 'data', value: [{ test: 'value' }] };

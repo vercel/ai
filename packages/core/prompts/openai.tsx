@@ -54,6 +54,23 @@ export function experimental_buildOpenAIMessages(
       case 'data': {
         throw "unsupported message role 'data'";
       }
+
+      case 'tool': {
+        if (message.name === undefined) {
+          throw new Error('Invalid tool message. Expected a name');
+        }
+
+        if (message.tool_call_id === undefined) {
+          throw new Error('Invalid tool message. Expected a tool_call_id');
+        }
+
+        return {
+          role: message.role,
+          content: message.content,
+          name: message.name,
+          tool_call_id: message.tool_call_id,
+        } satisfies ChatCompletionMessageParam;
+      }
     }
   });
 }
@@ -221,6 +238,11 @@ export interface ChatCompletionToolMessageParam {
    */
   role: 'tool';
 
+  /**
+   * The name of the function that this message is responding to.
+   */
+
+  name: string;
   /**
    * Tool call that this message is responding to.
    */

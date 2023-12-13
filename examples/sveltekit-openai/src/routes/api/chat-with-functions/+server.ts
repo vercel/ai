@@ -73,11 +73,8 @@ export async function POST({ request }) {
           unit: args.format === 'celsius' ? 'C' : 'F',
         };
 
-        data.append({
-          text: 'Some custom data',
-        });
-
         const newMessages = createFunctionCallMessages(weatherData);
+
         return openai.chat.completions.create({
           messages: [...messages, ...newMessages],
           stream: true,
