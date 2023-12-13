@@ -52,19 +52,10 @@ export async function POST(req: Request) {
   const client = new MistralClient(process.env.MISTRAL_API_KEY || '');
 
   const response = await client.chatStream({
-    model: 'mistral-small',
+    model: 'mistral-tiny',
     stream: true,
     max_tokens: 1000,
-    messages: messages
-      .filter(
-        // only user and assistant roles are supported:
-        message => message.role === 'user' || message.role === 'assistant',
-      )
-      .map(message => ({
-        // map "assistant" to "agent" for Mistral:
-        role: message.role === 'assistant' ? 'agent' : 'user',
-        content: message.content,
-      })),
+    messages,
   });
 
   // Convert the response into a friendly text-stream. The Mistral client responses are
@@ -146,7 +137,7 @@ export async function POST(req: Request) {
   const client = new MistralClient(process.env.MISTRAL_API_KEY || '');
 
   const response = await client.chatStream({
-    model: 'mistral-small',
+    model: 'mistral-tiny',
     stream: true,
     max_tokens: 1000,
     // use the chat completion API but only send a single prompt:
