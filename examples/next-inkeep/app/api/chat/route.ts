@@ -4,7 +4,6 @@ import {
   StreamingTextResponse,
   experimental_StreamData,
 } from 'ai';
-import { z } from 'zod';
 import { InkeepApiClient, continueChat, createChatSession } from './inkeepApi';
 
 interface ChatRequestBody {
@@ -12,9 +11,7 @@ interface ChatRequestBody {
     role: 'user' | 'assistant';
     content: string;
   }>;
-  data?: {
-    chat_session_id?: string;
-  };
+  chat_session_id?: string;
 }
 
 const inkeepApiKey = process.env.INKEEP_API_KEY;
@@ -34,11 +31,14 @@ const client = new InkeepApiClient(inkeepApiKey);
 export async function POST(req: Request) {
   const chatRequestBody: ChatRequestBody = await req.json();
 
+  const chatId = chatRequestBody.chat_session_id;
+
   let response;
-  if (!chatRequestBody.data?.chat_session_id) {
+  if (!chatId) {
     // new chat session
     response = await createChatSession({
       input: {
+        chat_mode: 'turbo',
         integration_id: inkeepIntegrationId!,
         chat_session: {
           messages: chatRequestBody.messages,
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     response = await continueChat({
       input: {
         integration_id: inkeepIntegrationId!,
-        chat_session_id: chatRequestBody.data.chat_session_id,
+        chat_session_id: chatId,
         message: chatRequestBody.messages[chatRequestBody.messages.length - 1],
       },
       client,
@@ -66,9 +66,6 @@ export async function POST(req: Request) {
   }
 
   const stream = InkeepStream(response, {
-    onFinal: (completion: string) => {
-      data.close();
-    },
     onCompleteMessage: (finalMessageContent: InkeepCompleteMessage) => {
       const chat_session_id = finalMessageContent.chat_session_id;
       if (chat_session_id) {
@@ -79,6 +76,7 @@ export async function POST(req: Request) {
       } else {
         throw new Error('Chat session id is undefined');
       }
+      data.close();
     },
     experimental_streamData: true,
   });

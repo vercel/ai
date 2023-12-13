@@ -4,6 +4,7 @@ import { InkeepApiClient } from './inkeepClient';
 // Define the type for the request body
 export interface CreateChatSessionInput {
   integration_id: string;
+  chat_mode?: 'turbo' | 'auto'; // default: 'auto'
   chat_session: {
     messages: Array<InkeepMessage>;
   };

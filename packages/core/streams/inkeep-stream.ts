@@ -12,11 +12,13 @@ export type AIStreamCallbacksAndOptionsWithInkeep =
     Pick<InkeepChatResultCallbacks, 'onCompleteMessage'>;
 
 // Schema for an Inkeep Message Chunk
-const InkeepMessageChunkDataSchema = z.object({
-  chat_session_id: z.string(),
-  content_chunk: z.string(),
-  finish_reason: z.union([z.string(), z.null()]).optional(),
-});
+const InkeepMessageChunkDataSchema = z
+  .object({
+    chat_session_id: z.string(),
+    content_chunk: z.string(),
+    finish_reason: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
 
 export type InkeepMessageChunkData = z.infer<
   typeof InkeepMessageChunkDataSchema
@@ -25,6 +27,7 @@ export type InkeepMessageChunkData = z.infer<
 export type InkeepMessage = {
   role: 'user' | 'assistant';
   content: string;
+  [key: string]: any;
 };
 
 export type InkeepCompleteMessage = {
@@ -84,18 +87,17 @@ export function InkeepStream(
       }
       if (e.type === 'event') {
         if (e.event === 'message_chunk') {
-          const data = InkeepMessageChunkDataSchema.parse(
+          const chunk = InkeepMessageChunkDataSchema.parse(
             JSON.parse(e.data),
           ) as InkeepMessageChunkData;
-          if (data.finish_reason === 'stop') {
+          if (chunk.finish_reason === 'stop') {
             inkeepCallbacks.onCompleteMessage?.({
-              chat_session_id: data.chat_session_id,
+              chat_session_id: chunk.chat_session_id,
               message: {
                 role: 'assistant',
                 content: completeContent,
               },
             });
-            completeContent = '';
           }
         }
       }
