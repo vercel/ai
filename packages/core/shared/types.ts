@@ -145,9 +145,7 @@ export type RequestOptions = {
 
 export type ChatRequestOptions = {
   options?: RequestOptions;
-  // @deprecated
   functions?: Array<Function>;
-  // @deprecated
   function_call?: FunctionCall;
   tools?: Array<Tool>;
   tool_choice?: ToolChoice;

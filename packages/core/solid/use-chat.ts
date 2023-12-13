@@ -5,10 +5,10 @@ import { callChatApi } from '../shared/call-chat-api';
 import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
+  ChatRequestOptions,
   CreateMessage,
   JSONValue,
   Message,
-  RequestOptions,
   UseChatOptions,
 } from '../shared/types';
 import { nanoid } from '../shared/utils';
@@ -28,14 +28,16 @@ export type UseChatHelpers = {
    */
   append: (
     message: Message | CreateMessage,
-    options?: RequestOptions,
+    chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   /**
    * Reload the last AI chat response for the given chat history. If the last
    * message isn't from the assistant, it will request the API to generate a
    * new response.
    */
-  reload: (options?: RequestOptions) => Promise<string | null | undefined>;
+  reload: (
+    chatRequestOptions?: ChatRequestOptions,
+  ) => Promise<string | null | undefined>;
   /**
    * Abort the current request immediately, keep the generated tokens if any.
    */
@@ -51,7 +53,7 @@ export type UseChatHelpers = {
   /** Signal setter to update the input value */
   setInput: Setter<string>;
   /** Form submission handler to automatically reset input and append a user message  */
-  handleSubmit: (e: any) => void;
+  handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void;
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;
   /** Additional data added on the server via StreamData */
@@ -109,7 +111,7 @@ export function useChat({
   let abortController: AbortController | null = null;
   async function triggerRequest(
     messagesSnapshot: Message[],
-    options?: RequestOptions,
+    { options, data }: ChatRequestOptions = {},
   ) {
     try {
       setError(undefined);
@@ -130,6 +132,7 @@ export function useChat({
       let chatRequest: ChatRequest = {
         messages: messagesSnapshot,
         options,
+        data,
       };
 
       await processChatStream({
@@ -237,15 +240,20 @@ export function useChat({
 
   const [input, setInput] = createSignal(initialInput);
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = (e: any, options: ChatRequestOptions = {}) => {
     e.preventDefault();
     const inputValue = input();
     if (!inputValue) return;
-    append({
-      content: inputValue,
-      role: 'user',
-      createdAt: new Date(),
-    });
+
+    append(
+      {
+        content: inputValue,
+        role: 'user',
+        createdAt: new Date(),
+      },
+      options,
+    );
+
     setInput('');
   };
 
