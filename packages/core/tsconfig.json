@@ -3,6 +3,6 @@
   "compilerOptions": {
     "target": "ES2018"
   },
-  "include": ["."],
+  "include": [".", "../../examples/next-inkeep/app/api/chat/inkeepApi"],
   "exclude": ["dist", "build", "node_modules"]
 }
