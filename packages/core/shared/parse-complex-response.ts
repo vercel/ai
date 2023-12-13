@@ -1,5 +1,5 @@
 import { readDataStream } from './read-data-stream';
-import type { FunctionCall, JSONValue, Message } from './types';
+import type { FunctionCall, JSONValue, Message, ToolCall } from './types';
 import { nanoid } from './utils';
 
 type PrefixMap = {
@@ -7,6 +7,10 @@ type PrefixMap = {
   function_call?: Message & {
     role: 'assistant';
     function_call: FunctionCall;
+  };
+  tool_calls?: Message & {
+    role: 'assistant';
+    tool_calls: ToolCall[];
   };
   data: JSONValue[];
 };
@@ -68,16 +72,32 @@ export async function parseComplexResponse({
       functionCallMessage = prefixMap['function_call'];
     }
 
+    let toolCallMessage: Message | null = null;
+
+    if (type === 'tool_calls') {
+      prefixMap['tool_calls'] = {
+        id: generateId(),
+        role: 'assistant',
+        content: '',
+        tool_calls: value.tool_calls,
+        createdAt,
+      };
+
+      toolCallMessage = prefixMap['tool_calls'];
+    }
+
     if (type === 'data') {
       prefixMap['data'].push(...value);
     }
 
     const responseMessage = prefixMap['text'];
 
-    // We add function calls and response messages to the messages[], but data is its own thing
-    const merged = [functionCallMessage, responseMessage].filter(
-      Boolean,
-    ) as Message[];
+    // We add function & tool calls and response messages to the messages[], but data is its own thing
+    const merged = [
+      functionCallMessage,
+      toolCallMessage,
+      responseMessage,
+    ].filter(Boolean) as Message[];
 
     update(merged, [...prefixMap['data']]); // make a copy of the data array
   }
@@ -85,9 +105,11 @@ export async function parseComplexResponse({
   onFinish?.(prefixMap);
 
   return {
-    messages: [prefixMap.text, prefixMap.function_call].filter(
-      Boolean,
-    ) as Message[],
+    messages: [
+      prefixMap.text,
+      prefixMap.function_call,
+      prefixMap.tool_calls,
+    ].filter(Boolean) as Message[],
     data: prefixMap.data,
   };
 }
