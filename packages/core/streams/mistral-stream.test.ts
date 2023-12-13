@@ -50,7 +50,7 @@ describe('MistralStream', () => {
     );
   });
 
-  describe('StreamData prototcol', () => {
+  describe('StreamData protocol', () => {
     it('should send text', async () => {
       const data = new experimental_StreamData();
 
