@@ -29,7 +29,6 @@ export async function createChatSession({
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
-    return;
   }
 
   return response;

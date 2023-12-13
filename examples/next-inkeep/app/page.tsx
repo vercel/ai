@@ -2,24 +2,25 @@
 
 import { useChat } from 'ai/react';
 import { InkeepChatResultCustomData } from './api/chat/route';
-import { useEffect } from 'react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, data } = useChat();
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+    let options = {};
     if (data && data.length > 0) {
       const chatData = data[0] as InkeepChatResultCustomData;
-      const options = {
+      options = {
         data: {
           ...(chatData && chatData.chat_session_id
             ? { chat_session_id: chatData.chat_session_id }
             : {}),
         },
       };
-      handleSubmit(e, options);
     }
+    handleSubmit(e, options);
+
+    e.preventDefault();
   };
 
   return (

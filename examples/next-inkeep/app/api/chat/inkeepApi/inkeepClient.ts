@@ -2,7 +2,7 @@ export class InkeepApiClient {
   private basePath: string;
   private apiKey: string;
 
-  constructor(apiKey: string, basePath = "https://api.inkeep.com/v0") {
+  constructor(apiKey: string, basePath = 'https://api.inkeep.com/v0') {
     this.apiKey = apiKey;
     this.basePath = basePath;
   }
@@ -18,7 +18,7 @@ export class InkeepApiClient {
   }) {
     const url = `${this.basePath}${path}`;
     const headers = {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${this.apiKey}`,
       ...(options.headers || {}),
     };

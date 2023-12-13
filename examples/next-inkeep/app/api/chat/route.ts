@@ -1,35 +1,11 @@
 import {
-  ParsedEvent,
-  ReconnectInterval,
-  createParser,
-} from 'eventsource-parser';
-import {
-  AIStreamParser,
   InkeepCompleteMessage,
   InkeepStream,
   StreamingTextResponse,
-  createEventStreamTransformer,
   experimental_StreamData,
-} from '../../../../../packages/core/streams';
+} from 'ai';
 import { z } from 'zod';
-import {
-  ContinueChatInput,
-  CreateChatSessionInput,
-  InkeepApiClient,
-  continueChat,
-  createChatSession,
-} from './inkeepApi';
-
-// Define the type for the request body
-interface InkeepApiRequestBody {
-  integration_id: string;
-  chat_session: {
-    messages: Array<{
-      role: string;
-      content: string[];
-    }>;
-  };
-}
+import { InkeepApiClient, continueChat, createChatSession } from './inkeepApi';
 
 interface ChatRequestBody {
   messages: Array<{
@@ -48,16 +24,9 @@ if (!inkeepApiKey || !inkeepIntegrationId) {
   throw new Error('Inkeep identifiers undefined');
 }
 
-export const InkeepChatResultCustomDataSchema = z
-  .object({
-    chat_session_id: z.string().optional(),
-    // include other properties as needed
-  })
-  .optional();
-
-export type InkeepChatResultCustomData = z.infer<
-  typeof InkeepChatResultCustomDataSchema
->;
+export type InkeepChatResultCustomData = {
+  chat_session_id?: string;
+};
 
 const client = new InkeepApiClient(inkeepApiKey);
 
