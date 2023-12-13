@@ -12,7 +12,6 @@ export async function processChatStream({
   experimental_onToolCall,
   updateChatRequest,
   getCurrentMessages,
-  maxIterations = 1000,
 }: {
   getStreamedResponse: () => Promise<
     Message | { messages: Message[]; data: JSONValue[] }
@@ -27,14 +26,8 @@ export async function processChatStream({
   ) => Promise<void | ChatRequest>;
   updateChatRequest: (chatRequest: ChatRequest) => void;
   getCurrentMessages: () => Message[];
-  /**
-   * The maximum number of times we expect the the API to loop on its own.
-   */
-  maxIterations?: number;
 }) {
-  let count = 0;
-  while (count < maxIterations) {
-    count++;
+  while (true) {
     // TODO-STREAMDATA: This should be {  const { messages: streamedResponseMessages, data } =
     // await getStreamedResponse(} once Stream Data is not experimental
     const messagesAndDataOrJustMessage = await getStreamedResponse();
@@ -42,6 +35,7 @@ export async function processChatStream({
     // Using experimental stream data
     if ('messages' in messagesAndDataOrJustMessage) {
       let hasFollowingResponse = false;
+
       for (const message of messagesAndDataOrJustMessage.messages) {
         // See if the message has a complete function call or tool call
         if (
@@ -173,7 +167,7 @@ export async function processChatStream({
         updateChatRequest(toolCallResponse);
       }
 
-      // Make sure funtion call arguments are sent back to the API as a string
+      // Make sure function call arguments are sent back to the API as a string
       function fixFunctionCallArguments(response: ChatRequest) {
         for (const message of response.messages) {
           if (message.tool_calls !== undefined) {
@@ -205,10 +199,5 @@ export async function processChatStream({
         }
       }
     }
-  }
-  if (count >= maxIterations) {
-    console.error(
-      'Max iterations reached for processChatStream probably an infinite loop.',
-    );
   }
 }
