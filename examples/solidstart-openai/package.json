@@ -20,7 +20,7 @@
     "@solidjs/router": "^0.8.2",
     "ai": "2.2.29",
     "openai": "4.16.1",
-    "solid-js": "^1.7.2",
+    "solid-js": "^1.8.7",
     "solid-start": "^0.2.26",
     "undici": "^5.15.1"
   },
