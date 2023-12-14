@@ -10,18 +10,18 @@
   "devDependencies": {
     "autoprefixer": "^10.4.13",
     "postcss": "^8.4.21",
-    "solid-start-node": "^0.2.19",
+    "solid-start-node": "0.3.10",
     "tailwindcss": "^3.2.4",
     "typescript": "^4.9.4",
     "vite": "^4.1.4"
   },
   "dependencies": {
-    "@solidjs/meta": "^0.28.2",
-    "@solidjs/router": "^0.8.2",
+    "@solidjs/meta": "0.29.3",
+    "@solidjs/router": "0.8.2",
     "ai": "2.2.29",
     "openai": "4.16.1",
-    "solid-js": "^1.7.2",
-    "solid-start": "^0.2.26",
+    "solid-js": "1.8.7",
+    "solid-start": "0.3.10",
     "undici": "^5.15.1"
   },
   "engines": {
