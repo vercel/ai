@@ -52,7 +52,7 @@ export type UseChatHelpers = {
   input: Accessor<string>;
   /** Signal setter to update the input value */
   setInput: Setter<string>;
-  /** Form submission handler to automatically reset input and append a user message  */
+  /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void;
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;
@@ -154,6 +154,7 @@ export function useChat({
                   }),
                 ),
             body: {
+              data: chatRequest.data,
               ...body,
               ...options?.body,
             },
