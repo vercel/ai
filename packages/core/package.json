@@ -81,13 +81,15 @@
     "sswr": "2.0.0",
     "swr": "2.2.0",
     "swr-store": "0.10.6",
-    "swrv": "1.0.4"
+    "swrv": "1.0.4",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.10.0",
     "@aws-sdk/client-bedrock-runtime": "3.451.0",
     "@edge-runtime/vm": "^3.1.7",
     "@huggingface/inference": "2.6.4",
+    "@mistralai/mistralai": "0.0.7",
     "@solidjs/testing-library": "0.8.4",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.0.0",

@@ -1,14 +1,21 @@
 import { formatStreamPart } from '../shared/stream-parts';
 import { AssistantMessage, DataMessage } from '../shared/types';
 
+type AssistantResponseSettings = {
+  threadId: string;
+  messageId: string;
+};
+
+type AssistantResponseCallback = (stream: {
+  threadId: string;
+  messageId: string;
+  sendMessage: (message: AssistantMessage) => void;
+  sendDataMessage: (message: DataMessage) => void;
+}) => Promise<void>;
+
 export function experimental_AssistantResponse(
-  { threadId, messageId }: { threadId: string; messageId: string },
-  process: (stream: {
-    threadId: string;
-    messageId: string;
-    sendMessage: (message: AssistantMessage) => void;
-    sendDataMessage: (message: DataMessage) => void;
-  }) => Promise<void>,
+  { threadId, messageId }: AssistantResponseSettings,
+  process: AssistantResponseCallback,
 ): Response {
   const stream = new ReadableStream({
     async start(controller) {
