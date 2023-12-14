@@ -7,7 +7,7 @@ const vertex_ai = new VertexAI({
   location: 'us-central1',
 });
 
-// NOTE: The Vertex AI is not compatible with the Edge runtime.
+// NOTE: The Vertex AI client is not compatible with the Edge runtime.
 // IMPORTANT! Set the runtime to edge
 // export const runtime = 'edge';
 
