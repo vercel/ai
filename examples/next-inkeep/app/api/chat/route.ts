@@ -1,5 +1,5 @@
 import {
-  InkeepCompleteMessage,
+  OnFinalPayloadInkeep,
   InkeepStream,
   StreamingTextResponse,
   experimental_StreamData,
@@ -65,16 +65,8 @@ export async function POST(req: Request) {
   }
 
   const stream = InkeepStream(response, {
-    onCompleteMessage: (finalMessageContent: InkeepCompleteMessage) => {
-      const chat_session_id = finalMessageContent.chat_session_id;
-      if (chat_session_id) {
-        const chatData: InkeepChatResultCustomData = {
-          chat_session_id,
-        };
-        data.append(chatData);
-      } else {
-        throw new Error('Chat session id is undefined');
-      }
+    onFinalPayload: (payload: OnFinalPayloadInkeep) => {
+      data.append({ onFinalPayload: payload });
       data.close();
     },
     experimental_streamData: true,

@@ -1,12 +1,20 @@
 'use client';
 
+import { OnFinalPayloadInkeep } from 'ai';
 import { useChat } from 'ai/react';
-import { InkeepChatResultCustomData } from './api/chat/route';
 import { useEffect, useState } from 'react';
+
+export function isOnFinalPayloadInkeep(
+  value: any,
+): value is { onFinalPayload: OnFinalPayloadInkeep } {
+  return (
+    typeof value === 'object' && value !== null && 'onFinalPayload' in value
+  );
+}
 
 export default function Chat() {
   /**
-   * put in query params e.g. ?chat_session_id=123
+   * you can also put the chat session id in search params e.g. ?chat_session_id=123
    * or path params like /chat/123 depending on your use case
    */
   const [chatSessionId, setChatSessionId] = useState<string | undefined>(
@@ -19,13 +27,12 @@ export default function Chat() {
     },
   });
 
-  // when data with chat_session_id is received, update the chatSessionId
+  // when data representing the final payload is received, update the chat session id
   useEffect(() => {
     if (data && data.length > 0) {
-      const chatData = data[data.length - 1] as { [key: string]: unknown };
-      if (chatData && 'chat_session_id' in chatData) {
-        const newChatSessionId = chatData['chat_session_id'] as string;
-        setChatSessionId(newChatSessionId);
+      const lastData = data[data.length - 1];
+      if (isOnFinalPayloadInkeep(lastData)) {
+        setChatSessionId(lastData.onFinalPayload.chat_session_id);
       }
     }
   }, [data?.length]);

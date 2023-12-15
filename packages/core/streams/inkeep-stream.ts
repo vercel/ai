@@ -7,10 +7,6 @@ import {
 import { z } from 'zod';
 import { createStreamDataTransformer } from './stream-data';
 
-export type AIStreamCallbacksAndOptionsWithInkeep =
-  AIStreamCallbacksAndOptions &
-    Pick<InkeepChatResultCallbacks, 'onCompleteMessage'>;
-
 // Schema for an Inkeep Message Chunk
 const InkeepMessageChunkDataSchema = z
   .object({
@@ -30,14 +26,18 @@ export type InkeepMessage = {
   [key: string]: any;
 };
 
-export type InkeepCompleteMessage = {
+export type OnFinalPayloadInkeep = {
   chat_session_id: string;
   message: InkeepMessage;
 };
 
 export type InkeepChatResultCallbacks = {
-  onCompleteMessage?: (completeMessage: InkeepCompleteMessage) => void;
+  onFinalPayload?: (payload: OnFinalPayloadInkeep) => void;
 };
+
+export type AIStreamCallbacksAndOptionsWithInkeep =
+  AIStreamCallbacksAndOptions &
+    Pick<InkeepChatResultCallbacks, 'onFinalPayload'>;
 
 export function InkeepStream(
   res: Response,
@@ -68,21 +68,20 @@ export function InkeepStream(
 
   // split callbacks between core ones supported for all AI providers and Inkeep specific ones
 
-  let onCompleteMessage;
+  let onFinalPayload;
   let coreCallbacks: AIStreamCallbacksAndOptions | undefined;
 
   if (callbacks) {
-    ({ onCompleteMessage, ...coreCallbacks } = callbacks);
+    ({ onFinalPayload, ...coreCallbacks } = callbacks);
   }
 
   const inkeepCallbacks: InkeepChatResultCallbacks = {
-    onCompleteMessage,
+    onFinalPayload,
   };
 
   let finalCallbacks = { ...coreCallbacks };
 
   // add Inkeep specific callbacks using onEvent
-
   finalCallbacks = {
     ...finalCallbacks,
     onEvent: e => {
@@ -95,7 +94,7 @@ export function InkeepStream(
             JSON.parse(e.data),
           ) as InkeepMessageChunkData;
           if (chunk.finish_reason === 'stop') {
-            inkeepCallbacks.onCompleteMessage?.({
+            inkeepCallbacks.onFinalPayload?.({
               chat_session_id: chunk.chat_session_id,
               message: {
                 role: 'assistant',
