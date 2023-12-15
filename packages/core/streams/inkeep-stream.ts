@@ -26,28 +26,25 @@ export type InkeepMessage = {
   [key: string]: any;
 };
 
-export type OnFinalPayloadInkeep = {
+export type OnFinalInkeepMetadata = {
   chat_session_id: string;
-  message: InkeepMessage;
 };
 
-export type InkeepChatResultCallbacks = {
-  onFinalPayload?: (payload: OnFinalPayloadInkeep) => void;
+export type InkeepAIStreamCallbacksAndOptions = AIStreamCallbacksAndOptions & {
+  onFinal?: (
+    completion: string,
+    metadata?: OnFinalInkeepMetadata,
+  ) => Promise<void> | void;
 };
-
-export type AIStreamCallbacksAndOptionsWithInkeep =
-  AIStreamCallbacksAndOptions &
-    Pick<InkeepChatResultCallbacks, 'onFinalPayload'>;
 
 export function InkeepStream(
   res: Response,
-  callbacks?: AIStreamCallbacksAndOptionsWithInkeep,
+  callbacks?: InkeepAIStreamCallbacksAndOptions,
 ): ReadableStream {
   if (!res.body) {
     throw new Error('Response body is null');
   }
 
-  let completeContent = '';
   let chat_session_id = '';
 
   const inkeepEventParser: AIStreamParser = (data: string) => {
@@ -61,53 +58,22 @@ export function InkeepStream(
     }
 
     chat_session_id = inkeepContentChunk.chat_session_id;
-    completeContent += inkeepContentChunk.content_chunk;
 
     return inkeepContentChunk.content_chunk;
   };
 
-  // split callbacks between core ones supported for all AI providers and Inkeep specific ones
-
-  let onFinalPayload;
-  let coreCallbacks: AIStreamCallbacksAndOptions | undefined;
-
-  if (callbacks) {
-    ({ onFinalPayload, ...coreCallbacks } = callbacks);
-  }
-
-  const inkeepCallbacks: InkeepChatResultCallbacks = {
-    onFinalPayload,
-  };
-
-  let finalCallbacks = { ...coreCallbacks };
-
-  // add Inkeep specific callbacks using onEvent
-  finalCallbacks = {
-    ...finalCallbacks,
-    onEvent: e => {
-      if (coreCallbacks?.onEvent) {
-        coreCallbacks.onEvent(e);
-      }
-      if (e.type === 'event') {
-        if (e.event === 'message_chunk') {
-          const chunk = InkeepMessageChunkDataSchema.parse(
-            JSON.parse(e.data),
-          ) as InkeepMessageChunkData;
-          if (chunk.finish_reason === 'stop') {
-            inkeepCallbacks.onFinalPayload?.({
-              chat_session_id: chunk.chat_session_id,
-              message: {
-                role: 'assistant',
-                content: completeContent,
-              },
-            });
-          }
-        }
-      }
+  // extend onFinal callback with Inkeep specific metadata
+  const passThroughCallbacks = {
+    ...callbacks,
+    onFinal: (completion: string) => {
+      const onFinalInkeepMetadata: OnFinalInkeepMetadata = {
+        chat_session_id,
+      };
+      callbacks?.onFinal?.(completion, onFinalInkeepMetadata);
     },
   };
 
-  return AIStream(res, inkeepEventParser, finalCallbacks).pipeThrough(
-    createStreamDataTransformer(finalCallbacks?.experimental_streamData),
+  return AIStream(res, inkeepEventParser, passThroughCallbacks).pipeThrough(
+    createStreamDataTransformer(passThroughCallbacks?.experimental_streamData),
   );
 }

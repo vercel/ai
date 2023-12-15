@@ -1,6 +1,6 @@
 import {
-  OnFinalPayloadInkeep,
   InkeepStream,
+  OnFinalInkeepMetadata,
   StreamingTextResponse,
   experimental_StreamData,
 } from 'ai';
@@ -65,8 +65,10 @@ export async function POST(req: Request) {
   }
 
   const stream = InkeepStream(response, {
-    onFinalPayload: (payload: OnFinalPayloadInkeep) => {
-      data.append({ onFinalPayload: payload });
+    onFinal: async (complete: string, metadata?: OnFinalInkeepMetadata) => {
+      if (metadata) {
+        data.append({ onFinalMetadata: metadata });
+      }
       data.close();
     },
     experimental_streamData: true,

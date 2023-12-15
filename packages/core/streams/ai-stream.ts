@@ -35,11 +35,6 @@ export interface AIStreamCallbacksAndOptions {
   /** `onToken`: Called for each tokenized message. */
   onToken?: (token: string) => Promise<void> | void;
   /**
-   * `onEvent`: Called whenever a server-side event is received.
-   * Useful so clients or streamers can create custom callbacks based on events.
-   */
-  onEvent?: (event: ParsedEvent | ReconnectInterval) => Promise<void> | void;
-  /**
    * A flag for enabling the experimental_StreamData class and the new protocol.
    * @see https://github.com/vercel-labs/ai/pull/425
    *
@@ -65,7 +60,6 @@ export interface AIStreamParser {
  */
 export function createEventStreamTransformer(
   customParser?: AIStreamParser,
-  onEventCb?: AIStreamCallbacksAndOptions['onEvent'],
 ): TransformStream<Uint8Array, string> {
   const textDecoder = new TextDecoder();
   let eventSourceParser: EventSourceParser;
@@ -91,11 +85,6 @@ export function createEventStreamTransformer(
               ? customParser(event.data)
               : event.data;
             if (parsedMessage) controller.enqueue(parsedMessage);
-          }
-
-          // Invoke the onEvent custom event callback handler
-          if (onEventCb) {
-            onEventCb(event);
           }
         },
       );
@@ -242,7 +231,7 @@ export function AIStream(
   const responseBodyStream = response.body || createEmptyReadableStream();
 
   return responseBodyStream
-    .pipeThrough(createEventStreamTransformer(customParser, callbacks?.onEvent))
+    .pipeThrough(createEventStreamTransformer(customParser))
     .pipeThrough(createCallbacksTransformer(callbacks));
 }
 

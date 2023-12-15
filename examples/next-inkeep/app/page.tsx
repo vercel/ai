@@ -1,14 +1,14 @@
 'use client';
 
-import { OnFinalPayloadInkeep } from 'ai';
+import { OnFinalInkeepMetadata } from 'ai';
 import { useChat } from 'ai/react';
 import { useEffect, useState } from 'react';
 
-export function isOnFinalPayloadInkeep(
+export function isOnFinalMetadata(
   value: any,
-): value is { onFinalPayload: OnFinalPayloadInkeep } {
+): value is { onFinalMetadata: OnFinalInkeepMetadata } {
   return (
-    typeof value === 'object' && value !== null && 'onFinalPayload' in value
+    typeof value === 'object' && value !== null && 'onFinalMetadata' in value
   );
 }
 
@@ -31,8 +31,8 @@ export default function Chat() {
   useEffect(() => {
     if (data && data.length > 0) {
       const lastData = data[data.length - 1];
-      if (isOnFinalPayloadInkeep(lastData)) {
-        setChatSessionId(lastData.onFinalPayload.chat_session_id);
+      if (isOnFinalMetadata(lastData)) {
+        setChatSessionId(lastData.onFinalMetadata.chat_session_id);
       }
     }
   }, [data?.length]);
