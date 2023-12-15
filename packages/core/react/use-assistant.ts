@@ -3,28 +3,37 @@
 import { useState } from 'react';
 import { readDataStream } from '../shared/read-data-stream';
 import { Message } from '../shared/types';
-import { parseStreamPart } from '../shared/stream-parts';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
 export type UseAssistantHelpers = {
-  /** Current messages in the chat */
+  /**
+   * The current array of chat messages.
+   */
   messages: Message[];
 
-  /** Current thread ID */
+  /**
+   * The current thread ID.
+   */
   threadId: string | undefined;
 
-  /** The current value of the input */
+  /**
+   * The current value of the input field.
+   */
   input: string;
 
-  /** An input/textarea-ready onChange handler to control the value of the input */
+  /**
+   * Handler for the `onChange` event of the input field to control the input's value.
+   */
   handleInputChange: (
     event:
       | React.ChangeEvent<HTMLInputElement>
       | React.ChangeEvent<HTMLTextAreaElement>,
   ) => void;
 
-  /** Form submission handler to automatically reset input and append a user message  */
+  /**
+   * Form submission handler that automatically resets the input field and appends a user message.
+   */
   submitMessage: (
     event?: React.FormEvent<HTMLFormElement>,
     requestOptions?: {
@@ -32,18 +41,45 @@ export type UseAssistantHelpers = {
     },
   ) => Promise<void>;
 
-  /** Current status of the assistant */
+  /**
+   * The current status of the assistant. This can be used to show a loading indicator.
+   */
   status: AssistantStatus;
 
-  /** Current error, if any */
+  /**
+   * The error thrown during the assistant message processing, if any.
+   */
   error: undefined | unknown;
 };
 
 export type UseAssistantOptions = {
+  /**
+   * The API endpoint that accepts a `{ threadId: string | null; message: string; }` object and returns an `AssistantResponse` stream.
+   * The threadId refers to an existing thread with messages (or is `null` to create a new thread).
+   * The message is the next message that should be appended to the thread and sent to the assistant.
+   */
   api: string;
+
+  /**
+   * An optional string that represents the ID of an existing thread.
+   * If not provided, a new thread will be created.
+   */
   threadId?: string | undefined;
+
+  /**
+   * An optional literal that sets the mode of credentials to be used on the request.
+   * Defaults to "same-origin".
+   */
   credentials?: RequestCredentials;
+
+  /**
+   * An optional object of headers to be passed to the API endpoint.
+   */
   headers?: Record<string, string> | Headers;
+
+  /**
+   * An optional, additional body object to be passed to the API endpoint.
+   */
   body?: object;
 };
 
