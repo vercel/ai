@@ -69,7 +69,7 @@ export async function POST(req: Request) {
 
 <Callout>
   Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
-  pass the streaming `response` we receive from OpenAI to
+  pass the streaming `response` we receive from Mistral to the Mistral-compatible 
   [`OpenAIStream`](/docs/api-reference/openai-stream). This method
   decodes/extracts the text tokens in the response and then re-encodes them
   properly for simple consumption. We can then pass that new stream directly to
@@ -121,7 +121,7 @@ export default function Chat() {
 
 ### Use the Completion API
 
-Similar to the Chatbot example above, we'll create a Next.js Route Handler that generates a text completion via OpenAI that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
+Similar to the Chatbot example above, we'll create a Next.js Route Handler that generates a text completion via the Mistral api that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
 import { OpenAIStream, StreamingTextResponse } from 'ai';
