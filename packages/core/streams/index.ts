@@ -5,7 +5,7 @@ export * from './anthropic-stream';
 export * from './assistant-response';
 export * from './aws-bedrock-stream';
 export * from './cohere-stream';
-export * from './google-gemini-stream';
+export * from './google-genai-stream';
 export * from './huggingface-stream';
 export * from './langchain-stream';
 export * from './openai-stream';

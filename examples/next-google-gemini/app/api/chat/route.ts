@@ -1,11 +1,7 @@
-import { VertexAI } from '@google-cloud/vertexai';
-import { GoogleGeminiStream, Message, StreamingTextResponse } from 'ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAIStream, Message, StreamingTextResponse } from 'ai';
 
-// Initialize Vertex with your Cloud project and location
-const vertex_ai = new VertexAI({
-  project: process.env.GCP_PROJECT || '',
-  location: 'us-central1',
-});
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 // NOTE: The Vertex AI client is not compatible with the Edge runtime.
 // IMPORTANT! Set the runtime to edge
@@ -28,23 +24,15 @@ export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { messages } = await req.json();
 
-  // Instantiate the models
-  const generativeModel = vertex_ai.preview.getGenerativeModel({
-    model: 'gemini-pro',
-    generation_config: {
-      max_output_tokens: 2048,
-      temperature: 0.4,
-      top_p: 1,
-      top_k: 32,
-    },
-  });
+  // Instantiate the model
+  const generativeModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
   const geminiStream = await generativeModel.generateContentStream(
     experimental_buildGeminiPrompt(messages),
   );
 
   // Convert the response into a friendly text-stream
-  const stream = GoogleGeminiStream(geminiStream);
+  const stream = GoogleGenAIStream(geminiStream);
 
   // Respond with the stream
   return new StreamingTextResponse(stream);

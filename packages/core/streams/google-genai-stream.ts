@@ -6,50 +6,40 @@ import {
 import { createStreamDataTransformer } from './stream-data';
 
 interface GenerateContentResponse {
-  candidates: GenerateContentCandidate[];
+  candidates?: GenerateContentCandidate[];
 }
 
 interface GenerateContentCandidate {
+  index: number;
   content: Content;
-  index?: number;
 }
 
 interface Content {
+  role: string;
   parts: Part[];
 }
 
-type Part = TextPart | InlineDataPart | FileDataPart;
-
-interface TextPart {
-  text: string;
-  inline_data?: never;
-}
+type Part = TextPart | InlineDataPart;
 
 interface InlineDataPart {
   text?: never;
-  inline_data: GenerativeContentBlob;
 }
 
-interface GenerativeContentBlob {
-  mime_type: string;
-  data: string;
-}
-
-interface FileDataPart {
-  text?: never;
-  file_data: FileData;
-}
-
-interface FileData {
-  mime_type: string;
-  file_uri: string;
+interface TextPart {
+  text: string;
+  inlineData?: never;
 }
 
 async function* streamable(response: {
   stream: AsyncGenerator<GenerateContentResponse>;
 }) {
   for await (const chunk of response.stream) {
-    const parts = chunk.candidates[0].content.parts;
+    const parts = chunk.candidates?.[0].content.parts;
+
+    if (parts === undefined) {
+      continue;
+    }
+
     const firstPart = parts[0];
 
     if (typeof firstPart.text === 'string') {
@@ -58,7 +48,7 @@ async function* streamable(response: {
   }
 }
 
-export function GoogleGeminiStream(
+export function GoogleGenAIStream(
   response: {
     stream: AsyncGenerator<GenerateContentResponse>;
   },
