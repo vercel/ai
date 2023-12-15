@@ -58,7 +58,7 @@ async function* streamable(response: {
   }
 }
 
-export function GoogleGeminiStream(
+export function GoogleVertexAIStream(
   response: {
     stream: AsyncGenerator<GenerateContentResponse>;
   },

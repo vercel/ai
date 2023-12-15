@@ -1,5 +1,5 @@
 import { VertexAI } from '@google-cloud/vertexai';
-import { GoogleGeminiStream, Message, StreamingTextResponse } from 'ai';
+import { GoogleVertexAIStream, Message, StreamingTextResponse } from 'ai';
 
 // Initialize Vertex with your Cloud project and location
 const vertex_ai = new VertexAI({
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   );
 
   // Convert the response into a friendly text-stream
-  const stream = GoogleGeminiStream(geminiStream);
+  const stream = GoogleVertexAIStream(geminiStream);
 
   // Respond with the stream
   return new StreamingTextResponse(stream);
