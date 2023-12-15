@@ -5,7 +5,7 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 // NOTE: The Vertex AI client is not compatible with the Edge runtime.
 // IMPORTANT! Set the runtime to edge
-// export const runtime = 'edge';
+export const runtime = 'edge';
 
 const experimental_buildGeminiPrompt = (messages: Message[]) => {
   return {
