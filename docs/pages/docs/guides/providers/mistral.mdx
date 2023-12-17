@@ -166,26 +166,45 @@ export default function Completion() {
     isLoading,
     handleInputChange,
     handleSubmit,
+    error,
   } = useCompletion({
     api: '/api/completion',
   });
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
-      <form onSubmit={handleSubmit}>
-        <label>
-          Say something...
-          <input
-            className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
-            value={input}
-            onChange={handleInputChange}
-          />
-        </label>
-        <output>Completion result: {completion}</output>
-        <button type="button" onClick={stop}>
-          Stop
-        </button>
-        <button disabled={isLoading} type="submit">
+      <h4 className="text-xl font-bold text-gray-900 md:text-xl pb-4">
+        useCompletion Example
+      </h4>
+      {error && (
+        <div className="fixed top-0 left-0 w-full p-4 text-center bg-red-500 text-white">
+          {error.message}
+        </div>
+      )}
+      <output>{completion}</output>
+      <form
+        onSubmit={handleSubmit}
+        className="fixed w-full max-w-xl bottom-0 mb-8 items-stretch flex"
+      >
+        <input
+          className="border border-gray-300 rounded m-2 shadow-xl p-2 flex-grow"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+        <button
+          disabled={isLoading}
+          type="submit"
+          className="inline-block bg-gray-100 hover:bg-gray-300 text-gray-700 font-semibold hover:text-white py-2 px-4 border border-gray-300 hover:border-transparent rounded m-2 disabled:opacity-50"
+        >
           Send
+        </button>
+        <button
+          disabled={!isLoading}
+          type="button"
+          onClick={stop}
+          className="inline-block bg-gray-100 hover:bg-gray-300 text-gray-700 font-semibold hover:text-white py-2 px-4 border border-gray-300 hover:border-transparent rounded m-2 disabled:opacity-50"
+        >
+          Stop
         </button>
       </form>
     </div>
