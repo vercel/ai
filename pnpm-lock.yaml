@@ -217,7 +217,7 @@ importers:
         specifier: 5.1.3
         version: 5.1.3
 
-  examples/next-google-gemini:
+  examples/next-google-genai:
     dependencies:
       '@google/generative-ai':
         specifier: 0.1.1
