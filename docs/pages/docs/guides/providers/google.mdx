@@ -40,7 +40,6 @@ import { GoogleGenerativeAIStream, Message, StreamingTextResponse } from 'ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
-// NOTE: The Vertex AI client is not compatible with the Edge runtime.
 // IMPORTANT! Set the runtime to edge
 export const runtime = 'edge';
 
@@ -126,17 +125,14 @@ export default function Chat() {
 
 ### Use the Completion API
 
-Similar to the Chat Bot example above, we'll create a Next.js Route Handler that generates a text completion via the same Anthropic SDK that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
+Similar to the Chat Bot example above, we'll create a Next.js Route Handler that generates a text completion via the same
+Google Generative AI SDK that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
-import Anthropic from '@anthropic-ai/sdk';
-import { AnthropicStream, StreamingTextResponse } from 'ai';
-import { experimental_buildAnthropicPrompt } from 'ai/prompts';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAIStream, StreamingTextResponse } from 'ai';
 
-// Create an Anthropic API client (that's edge friendly??)
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 // IMPORTANT! Set the runtime to edge
 export const runtime = 'edge';
@@ -145,15 +141,16 @@ export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
 
-  // Ask Claude for a streaming chat completion given the prompt
-  const response = await anthropic.completions.create({
-    prompt: `Human: ${prompt}\n\nAssistant:`,
-    model: 'claude-2',
-    stream: true,
-    max_tokens_to_sample: 300,
-  });
+  // Ask Google Generative AI for a streaming completion given the prompt
+  const response = await genAI
+    .getGenerativeModel({ model: 'gemini-pro' })
+    .generateContentStream({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    });
+
   // Convert the response into a friendly text-stream
-  const stream = AnthropicStream(response);
+  const stream = GoogleGenerativeAIStream(response);
+
   // Respond with the stream
   return new StreamingTextResponse(stream);
 }
@@ -206,14 +203,14 @@ export default function Completion() {
 
 ## Guide: Save to Database After Completion
 
-It’s common to want to save the result of a completion to a database after streaming it back to the user. The `AnthropicStream` adapter accepts a couple of optional callbacks that can be used to do this.
+It’s common to want to save the result of a completion to a database after streaming it back to the user. The `GoogleGenerativeAIStream` adapter accepts a couple of optional callbacks that can be used to do this.
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
 export async function POST(req: Request) {
   // ...
 
   // Convert the response into a friendly text-stream
-  const stream = AnthropicStream(response, {
+  const stream = GoogleGenerativeAIStream(response, {
     onStart: async () => {
       // This callback is called when the stream starts
       // You can use this to save the prompt to your database
