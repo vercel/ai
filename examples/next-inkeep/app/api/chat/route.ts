@@ -3,6 +3,7 @@ import {
   OnFinalInkeepMetadata,
   StreamingTextResponse,
   experimental_StreamData,
+  InkeepAIStreamCallbacksAndOptions,
 } from 'ai';
 import { InkeepApiClient, continueChat, createChatSession } from './inkeepApi';
 
@@ -65,6 +66,9 @@ export async function POST(req: Request) {
   }
 
   const stream = InkeepStream(response, {
+    onRecordsCited: async recordsCited => {
+      data.append({ onRecordsCited: JSON.parse(JSON.stringify(recordsCited)) });
+    },
     onFinal: async (complete: string, metadata?: OnFinalInkeepMetadata) => {
       if (metadata) {
         data.append({ onFinalMetadata: metadata });

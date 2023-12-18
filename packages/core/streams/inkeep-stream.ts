@@ -7,6 +7,12 @@ import {
 import { z } from 'zod';
 import { createStreamDataTransformer } from './stream-data';
 
+export type InkeepMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  [key: string]: any;
+};
+
 // Schema for an Inkeep Message Chunk
 const InkeepMessageChunkDataSchema = z
   .object({
@@ -20,22 +26,46 @@ export type InkeepMessageChunkData = z.infer<
   typeof InkeepMessageChunkDataSchema
 >;
 
-export type InkeepMessage = {
-  role: 'user' | 'assistant';
-  content: string;
-  [key: string]: any;
-};
-
 export type OnFinalInkeepMetadata = {
   chat_session_id: string;
 };
 
-export type InkeepAIStreamCallbacksAndOptions = AIStreamCallbacksAndOptions & {
+const RecordSchema = z
+  .object({
+    type: z.string(),
+    url: z.string().optional(),
+    title: z.string().optional(),
+    breadcrumbs: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+const CitationSchema = z
+  .object({
+    number: z.number(),
+    record: RecordSchema,
+  })
+  .passthrough();
+
+const InkeepRecordsCitedDataSchema = z
+  .object({
+    citations: z.array(CitationSchema),
+  })
+  .passthrough();
+
+export type InkeepRecordsCitedData = z.infer<
+  typeof InkeepRecordsCitedDataSchema
+>;
+
+export type InkeepChatResultCallbacks = {
   onFinal?: (
     completion: string,
     metadata?: OnFinalInkeepMetadata,
   ) => Promise<void> | void;
+  onRecordsCited?: (recordsCited: InkeepRecordsCitedData) => void;
 };
+
+export type InkeepAIStreamCallbacksAndOptions = AIStreamCallbacksAndOptions &
+  InkeepChatResultCallbacks;
 
 export function InkeepStream(
   res: Response,
@@ -62,14 +92,30 @@ export function InkeepStream(
     return inkeepContentChunk.content_chunk;
   };
 
+  let { onRecordsCited, ...passThroughCallbacks } = callbacks || {};
+
   // extend onFinal callback with Inkeep specific metadata
-  const passThroughCallbacks = {
-    ...callbacks,
-    onFinal: (completion: string) => {
+  passThroughCallbacks = {
+    ...passThroughCallbacks,
+    onFinal: completion => {
       const onFinalInkeepMetadata: OnFinalInkeepMetadata = {
         chat_session_id,
       };
       callbacks?.onFinal?.(completion, onFinalInkeepMetadata);
+    },
+    onEvent: e => {
+      if (callbacks?.onEvent) {
+        callbacks.onEvent(e);
+      }
+      if (callbacks?.onRecordsCited) {
+        if (e.type === 'event') {
+          if (e.event === 'records_cited') {
+            callbacks.onRecordsCited(
+              InkeepRecordsCitedDataSchema.parse(JSON.parse(e.data)),
+            );
+          }
+        }
+      }
     },
   };
 

@@ -1,16 +1,9 @@
 'use client';
 
-import { OnFinalInkeepMetadata } from 'ai';
 import { useChat } from 'ai/react';
-import { useEffect, useState } from 'react';
-
-export function isOnFinalMetadata(
-  value: any,
-): value is { onFinalMetadata: OnFinalInkeepMetadata } {
-  return (
-    typeof value === 'object' && value !== null && 'onFinalMetadata' in value
-  );
-}
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import useHandleEvents from './utils/useHandleEvents';
+import { InkeepRecordsCitedData, OnFinalInkeepMetadata } from 'ai';
 
 export default function Chat() {
   /**
@@ -27,15 +20,19 @@ export default function Chat() {
     },
   });
 
-  // when data representing the final payload is received, update the chat session id
-  useEffect(() => {
-    if (data && data.length > 0) {
-      const lastData = data[data.length - 1];
-      if (isOnFinalMetadata(lastData)) {
-        setChatSessionId(lastData.onFinalMetadata.chat_session_id);
-      }
-    }
-  }, [data?.length]);
+  const handlers = useMemo(
+    () => ({
+      onFinalMetadata: (metadata: OnFinalInkeepMetadata) => {
+        setChatSessionId(metadata.chat_session_id);
+      },
+      onRecordsCited: (records: InkeepRecordsCitedData) => {
+        // console.log(records); // records of sources used in the conversation
+      },
+    }),
+    [setChatSessionId],
+  );
+
+  useHandleEvents(data, handlers);
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
