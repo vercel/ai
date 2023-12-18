@@ -31,7 +31,7 @@ interface TextPart {
 }
 
 async function* streamable(response: {
-  stream: AsyncGenerator<GenerateContentResponse>;
+  stream: AsyncIterable<GenerateContentResponse>;
 }) {
   for await (const chunk of response.stream) {
     const parts = chunk.candidates?.[0].content.parts;
@@ -50,7 +50,7 @@ async function* streamable(response: {
 
 export function GoogleGenerativeAIStream(
   response: {
-    stream: AsyncGenerator<GenerateContentResponse>;
+    stream: AsyncIterable<GenerateContentResponse>;
   },
   cb?: AIStreamCallbacksAndOptions,
 ): ReadableStream {
