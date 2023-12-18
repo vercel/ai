@@ -48,7 +48,7 @@ async function* streamable(response: {
   }
 }
 
-export function GoogleGenAIStream(
+export function GoogleGenerativeAIStream(
   response: {
     stream: AsyncGenerator<GenerateContentResponse>;
   },
