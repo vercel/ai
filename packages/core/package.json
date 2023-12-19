@@ -88,6 +88,7 @@
     "@anthropic-ai/sdk": "0.10.0",
     "@aws-sdk/client-bedrock-runtime": "3.451.0",
     "@edge-runtime/vm": "^3.1.7",
+    "@google/generative-ai": "0.1.1",
     "@huggingface/inference": "2.6.4",
     "@mistralai/mistralai": "0.0.7",
     "@solidjs/testing-library": "0.8.4",

@@ -16,13 +16,11 @@ Vercel AI SDK provides a set of utilities to make it easy to use [Mistral](https
 
 Create a Next.js application and install `ai` and `@mistralai/mistralai`, the Vercel AI SDK and Mistral API client respectively.
 
-````sh
-
 ```sh
 pnpm dlx create-next-app my-ai-app
 cd my-ai-app
 pnpm install ai @mistralai/mistralai
-````
+```
 
 ### Add your Mistral API Key to `.env`
 
@@ -69,10 +67,11 @@ export async function POST(req: Request) {
 
 <Callout>
   Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
-  pass the streaming `response` we receive from OpenAI to
-  [`OpenAIStream`](/docs/api-reference/openai-stream). This method
-  decodes/extracts the text tokens in the response and then re-encodes them
-  properly for simple consumption. We can then pass that new stream directly to
+  pass the streaming `response` we receive from Mistral to the
+  Mistral-compatible [`OpenAIStream`](/docs/api-reference/openai-stream). This
+  method decodes/extracts the text tokens in the response and then re-encodes
+  them properly for simple consumption. We can then pass that new stream
+  directly to
   [`StreamingTextResponse`](/docs/api-reference/streaming-text-response). This
   is another utility class that extends the normal Node/Edge Runtime `Response`
   class with the default headers you probably want (hint: `'Content-Type':
@@ -92,21 +91,18 @@ export default function Chat() {
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
       {messages.map(m => (
-        <div key={m.id}>
+        <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
           {m.content}
         </div>
       ))}
       <form onSubmit={handleSubmit}>
-        <label>
-          Say something...
-          <input
-            className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
-            value={input}
-            onChange={handleInputChange}
-          />
-        </label>
-        <button type="submit">Send</button>
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
       </form>
     </div>
   );
@@ -121,7 +117,7 @@ export default function Chat() {
 
 ### Use the Completion API
 
-Similar to the Chatbot example above, we'll create a Next.js Route Handler that generates a text completion via OpenAI that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
+Similar to the Chatbot example above, we'll create a Next.js Route Handler that generates a text completion via the Mistral api that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
 import { OpenAIStream, StreamingTextResponse } from 'ai';
@@ -141,7 +137,7 @@ export async function POST(req: Request) {
     stream: true,
     max_tokens: 1000,
     // use the chat completion API but only send a single prompt:
-    prompt: [{ role: 'user', content: prompt }],
+    messages: [{ role: 'user', content: prompt }],
   });
 
   // Convert the response into a friendly text-stream. The Mistral client responses are
@@ -170,26 +166,45 @@ export default function Completion() {
     isLoading,
     handleInputChange,
     handleSubmit,
+    error,
   } = useCompletion({
     api: '/api/completion',
   });
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
-      <form onSubmit={handleSubmit}>
-        <label>
-          Say something...
-          <input
-            className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
-            value={input}
-            onChange={handleInputChange}
-          />
-        </label>
-        <output>Completion result: {completion}</output>
-        <button type="button" onClick={stop}>
-          Stop
-        </button>
-        <button disabled={isLoading} type="submit">
+      <h4 className="text-xl font-bold text-gray-900 md:text-xl pb-4">
+        useCompletion Example
+      </h4>
+      {error && (
+        <div className="fixed top-0 left-0 w-full p-4 text-center bg-red-500 text-white">
+          {error.message}
+        </div>
+      )}
+      <output>{completion}</output>
+      <form
+        onSubmit={handleSubmit}
+        className="fixed w-full max-w-xl bottom-0 mb-8 items-stretch flex"
+      >
+        <input
+          className="border border-gray-300 rounded m-2 shadow-xl p-2 flex-grow"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+        <button
+          disabled={isLoading}
+          type="submit"
+          className="inline-block bg-gray-100 hover:bg-gray-300 text-gray-700 font-semibold hover:text-white py-2 px-4 border border-gray-300 hover:border-transparent rounded m-2 disabled:opacity-50"
+        >
           Send
+        </button>
+        <button
+          disabled={!isLoading}
+          type="button"
+          onClick={stop}
+          className="inline-block bg-gray-100 hover:bg-gray-300 text-gray-700 font-semibold hover:text-white py-2 px-4 border border-gray-300 hover:border-transparent rounded m-2 disabled:opacity-50"
+        >
+          Stop
         </button>
       </form>
     </div>
