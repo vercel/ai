@@ -10,6 +10,7 @@
         "AWS_SECRET_ACCESS_KEY",
         "COHERE_API_KEY",
         "GCP_PROJECT",
+        "GOOGLE_API_KEY",
         "MISTRAL_API_KEY",
         "OPENAI_API_KEY",
         "OPENAI_API_BASE",
