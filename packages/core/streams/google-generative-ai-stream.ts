@@ -34,7 +34,7 @@ async function* streamable(response: {
   stream: AsyncIterable<GenerateContentResponse>;
 }) {
   for await (const chunk of response.stream) {
-    const parts = chunk.candidates?.[0].content.parts;
+    const parts = chunk.candidates?.[0]?.content?.parts;
 
     if (parts === undefined) {
       continue;
