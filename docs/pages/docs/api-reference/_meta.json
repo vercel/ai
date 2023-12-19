@@ -6,6 +6,7 @@
   "anthropic-stream": "AnthropicStream",
   "aws-bedrock-stream": "AWSBedrock*Stream",
   "cohere-stream": "CohereStream",
+  "google-generative-ai-stream": "GoogleGenerativeAIStream",
   "huggingface-stream": "HuggingFaceStream",
   "langchain-stream": "LangChainStream",
   "openai-stream": "OpenAIStream",
