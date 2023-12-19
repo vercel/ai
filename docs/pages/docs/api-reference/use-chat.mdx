@@ -151,8 +151,9 @@ The `useChat` hook returns an object containing several helper methods and varia
     ],
     [
       'handleSubmit',
-      '(e: React.FormEvent<HTMLFormElement>) => void',
-      'Form submission handler that automatically resets the input field and appends a user message.',
+      '(e: React.FormEvent<HTMLFormElement>, chatRequestOptions?: ChatRequestOptions) => void',
+      'Form submission handler that automatically resets the input field and appends a user message. ' +
+        'You can use the `options` parameter to send additional data, headers and more to the server.',
     ],
     [
       'isLoading',
@@ -444,4 +445,3 @@ The `useChat` function returns an object containing several helper methods and v
 
 </Tab>
 </FrameworkTabs>
-```

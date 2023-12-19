@@ -5,10 +5,10 @@ import { callChatApi } from '../shared/call-chat-api';
 import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
+  ChatRequestOptions,
   CreateMessage,
   JSONValue,
   Message,
-  RequestOptions,
   UseChatOptions,
 } from '../shared/types';
 import { nanoid } from '../shared/utils';
@@ -26,14 +26,16 @@ export type UseChatHelpers = {
    */
   append: (
     message: Message | CreateMessage,
-    options?: RequestOptions,
+    chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   /**
    * Reload the last AI chat response for the given chat history. If the last
    * message isn't from the assistant, it will request the API to generate a
    * new response.
    */
-  reload: (options?: RequestOptions) => Promise<string | null | undefined>;
+  reload: (
+    chatRequestOptions?: ChatRequestOptions,
+  ) => Promise<string | null | undefined>;
   /**
    * Abort the current request immediately, keep the generated tokens if any.
    */
@@ -47,7 +49,7 @@ export type UseChatHelpers = {
   /** The current value of the input */
   input: Ref<string>;
   /** Form submission handler to automatically reset input and append a user message  */
-  handleSubmit: (e: any) => void;
+  handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void;
   /** Whether the API request is in progress */
   isLoading: Ref<boolean | undefined>;
 
@@ -110,7 +112,7 @@ export function useChat({
   let abortController: AbortController | null = null;
   async function triggerRequest(
     messagesSnapshot: Message[],
-    options?: RequestOptions,
+    { options, data }: ChatRequestOptions = {},
   ) {
     try {
       error.value = undefined;
@@ -126,6 +128,7 @@ export function useChat({
       let chatRequest: ChatRequest = {
         messages: messagesSnapshot,
         options,
+        data,
       };
 
       await processChatStream({
@@ -147,6 +150,7 @@ export function useChat({
                   }),
                 ),
             body: {
+              data: chatRequest.data,
               ...unref(body), // Use unref to unwrap the ref value
               ...options?.body,
             },
@@ -233,14 +237,17 @@ export function useChat({
 
   const input = ref(initialInput);
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = (e: any, options: ChatRequestOptions = {}) => {
     e.preventDefault();
     const inputValue = input.value;
     if (!inputValue) return;
-    append({
-      content: inputValue,
-      role: 'user',
-    });
+    append(
+      {
+        content: inputValue,
+        role: 'user',
+      },
+      options,
+    );
     input.value = '';
   };
 
