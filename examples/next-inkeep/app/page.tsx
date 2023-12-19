@@ -20,19 +20,19 @@ export default function Chat() {
     },
   });
 
-  const handlers = useMemo(
+  const inkeepEventHandlers = useMemo(
     () => ({
       onFinalMetadata: (metadata: OnFinalInkeepMetadata) => {
         setChatSessionId(metadata.chat_session_id);
       },
       onRecordsCited: (records: InkeepRecordsCitedData) => {
-        // console.log(records); // records of sources used in the conversation
+        // console.log(records); // list of records used in the conversation
       },
     }),
     [setChatSessionId],
   );
 
-  useHandleEvents(data, handlers);
+  useHandleEvents(data, inkeepEventHandlers);
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">

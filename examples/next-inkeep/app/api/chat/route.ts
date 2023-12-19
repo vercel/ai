@@ -31,7 +31,6 @@ const client = new InkeepApiClient(inkeepApiKey);
 // examples/next-inkeep/app/api/chat/route.ts
 export async function POST(req: Request) {
   const chatRequestBody: ChatRequestBody = await req.json();
-
   const chatId = chatRequestBody.chat_session_id;
 
   let response;

@@ -18,7 +18,7 @@ const InkeepMessageChunkDataSchema = z
   .object({
     chat_session_id: z.string(),
     content_chunk: z.string(),
-    finish_reason: z.union([z.string(), z.null()]).optional(),
+    finish_reason: z.union([z.string(), z.null()]).optional().nullable(),
   })
   .passthrough();
 
@@ -33,9 +33,9 @@ export type OnFinalInkeepMetadata = {
 const RecordSchema = z
   .object({
     type: z.string(),
-    url: z.string().optional(),
-    title: z.string().optional(),
-    breadcrumbs: z.array(z.string()).optional(),
+    url: z.string().optional().nullable(),
+    title: z.string().optional().nullable(),
+    breadcrumbs: z.array(z.string()).optional().nullable(),
   })
   .passthrough();
 
