@@ -5,6 +5,7 @@ import {
   experimental_StreamData,
 } from '.';
 import {
+  chatCompletionChunksWithToolCall,
   openaiChatCompletionChunks,
   openaiFunctionCallChunks,
 } from '../tests/snapshots/openai-chat';
@@ -12,6 +13,7 @@ import { createClient, readAllChunks } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
+const TOOL_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-tool-call';
 
 const server = createMockServer([
   {
@@ -23,6 +25,12 @@ const server = createMockServer([
   {
     url: FUNCTION_CALL_TEST_URL,
     chunks: openaiFunctionCallChunks,
+    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+    suffix: 'data: [DONE]',
+  },
+  {
+    url: TOOL_CALL_TEST_URL,
+    chunks: chatCompletionChunksWithToolCall,
     formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
     suffix: 'data: [DONE]',
   },
@@ -306,6 +314,43 @@ describe('OpenAIStream', () => {
         '0:" world"\n',
         '0:"."\n',
       ]);
+    });
+  });
+
+  describe('tool calls', () => {
+    it('should call onToolCall handler with the tools', async () => {
+      let toolCalls: any = undefined;
+
+      const stream = OpenAIStream(await fetch(TOOL_CALL_TEST_URL), {
+        async experimental_onToolCall(payload, appendToolCallMessage) {
+          toolCalls = payload;
+        },
+      });
+
+      const response = new StreamingTextResponse(stream);
+      const client = createClient(response);
+      const chunks = await client.readAll();
+
+      expect(toolCalls).toEqual({
+        tools: [
+          {
+            func: {
+              arguments: '{}',
+              name: 'get_date_time',
+            },
+            id: 'call_NPkY32jNUOb3Kkm7v9cOgmVg',
+            type: 'function',
+          },
+          {
+            func: {
+              arguments: '{"url": "https://www.linkedin.com/in/jessepascoe"}',
+              name: 'open_webpage',
+            },
+            id: 'call_pOyOtXFQltSjUGsF7gnLAEcD',
+            type: 'function',
+          },
+        ],
+      });
     });
   });
 });
