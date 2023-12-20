@@ -1,4 +1,4 @@
-export const anthropicChunks = [
+export const anthropicCompletionChunks = [
   {
     completion: ' Hello',
     stop_reason: null,
