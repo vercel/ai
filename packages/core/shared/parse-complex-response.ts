@@ -37,6 +37,24 @@ export async function parseComplexResponse({
     data: [],
   };
 
+  function initializeMessage({
+    generateId,
+    content,
+    createdAt,
+  }: {
+    generateId: () => string;
+    content: string;
+    createdAt: Date;
+    data?: JSONValue;
+  }): Message {
+    return {
+      id: generateId(),
+      role: 'assistant',
+      content,
+      createdAt,
+    };
+  }
+
   // we create a map of each prefix, and for each prefixed message we push to the map
   for await (const { type, value } of readDataStream(reader, {
     isAborted: () => abortControllerRef?.current === null,
@@ -48,12 +66,27 @@ export async function parseComplexResponse({
           content: (prefixMap['text'].content || '') + value,
         };
       } else {
-        prefixMap['text'] = {
-          id: generateId(),
-          role: 'assistant',
+        prefixMap['text'] = initializeMessage({
+          generateId,
           content: value,
           createdAt,
+        });
+      }
+    }
+
+    if (type == 'message_data') {
+      if (prefixMap['text']) {
+        prefixMap['text'] = {
+          ...prefixMap['text'],
+          data: value,
         };
+      } else {
+        prefixMap['text'] = initializeMessage({
+          generateId,
+          content: '',
+          createdAt,
+          data: value,
+        });
       }
     }
 
@@ -90,7 +123,7 @@ export async function parseComplexResponse({
       prefixMap['data'].push(...value);
     }
 
-    const responseMessage = prefixMap['text'];
+    let responseMessage = prefixMap['text'];
 
     // We add function & tool calls and response messages to the messages[], but data is its own thing
     const merged = [

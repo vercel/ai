@@ -221,6 +221,22 @@ const toolCallStreamPart: StreamPart<
   },
 };
 
+const messageDataStreamPart: StreamPart<
+  '8',
+  'message_data',
+  Array<JSONValue>
+> = {
+  code: '8',
+  name: 'message_data',
+  parse: (value: JSONValue) => {
+    if (!Array.isArray(value)) {
+      throw new Error('"data" parts expect an array value.');
+    }
+
+    return { type: 'message_data', value };
+  },
+};
+
 const streamParts = [
   textStreamPart,
   functionCallStreamPart,
@@ -230,6 +246,7 @@ const streamParts = [
   assistantControlDataStreamPart,
   dataMessageStreamPart,
   toolCallStreamPart,
+  messageDataStreamPart,
 ] as const;
 
 // union type of all stream parts
@@ -241,7 +258,8 @@ type StreamParts =
   | typeof assistantMessageStreamPart
   | typeof assistantControlDataStreamPart
   | typeof dataMessageStreamPart
-  | typeof toolCallStreamPart;
+  | typeof toolCallStreamPart
+  | typeof messageDataStreamPart;
 
 /**
  * Maps the type of a stream part to its value type.
@@ -258,7 +276,8 @@ export type StreamPartType =
   | ReturnType<typeof assistantMessageStreamPart.parse>
   | ReturnType<typeof assistantControlDataStreamPart.parse>
   | ReturnType<typeof dataMessageStreamPart.parse>
-  | ReturnType<typeof toolCallStreamPart.parse>;
+  | ReturnType<typeof toolCallStreamPart.parse>
+  | ReturnType<typeof messageDataStreamPart.parse>;
 
 export const streamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
@@ -269,6 +288,7 @@ export const streamPartsByCode = {
   [assistantControlDataStreamPart.code]: assistantControlDataStreamPart,
   [dataMessageStreamPart.code]: dataMessageStreamPart,
   [toolCallStreamPart.code]: toolCallStreamPart,
+  [messageDataStreamPart.code]: messageDataStreamPart,
 } as const;
 
 /**
@@ -302,6 +322,7 @@ export const StreamStringPrefixes = {
   [assistantControlDataStreamPart.name]: assistantControlDataStreamPart.code,
   [dataMessageStreamPart.name]: dataMessageStreamPart.code,
   [toolCallStreamPart.name]: toolCallStreamPart.code,
+  [messageDataStreamPart.name]: messageDataStreamPart.code,
 } as const;
 
 export const validCodes = streamParts.map(part => part.code);

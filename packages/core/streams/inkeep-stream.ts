@@ -110,6 +110,7 @@ export function InkeepStream(
       if (callbacks?.onRecordsCited) {
         if (e.type === 'event') {
           if (e.event === 'records_cited') {
+            console.log('records_cited inkeep stream', e.data);
             callbacks.onRecordsCited(
               InkeepRecordsCitedDataSchema.parse(JSON.parse(e.data)),
             );

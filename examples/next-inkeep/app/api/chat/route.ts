@@ -42,6 +42,8 @@ export async function POST(req: Request) {
         chat_session: {
           messages: chatRequestBody.messages,
         },
+        stream: true,
+        chat_mode: 'turbo',
       },
       client,
     });
@@ -66,7 +68,10 @@ export async function POST(req: Request) {
 
   const stream = InkeepStream(response, {
     onRecordsCited: async recordsCited => {
-      data.append({ onRecordsCited: JSON.parse(JSON.stringify(recordsCited)) });
+      console.log('recordsCited api route', recordsCited);
+      data.appendToMessage({
+        recordsCited: JSON.parse(JSON.stringify(recordsCited)),
+      });
     },
     onFinal: async (complete: string, metadata?: OnFinalInkeepMetadata) => {
       if (metadata) {

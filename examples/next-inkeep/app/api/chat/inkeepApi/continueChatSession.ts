@@ -6,6 +6,7 @@ export interface ContinueChatInput {
   integration_id: string;
   chat_session_id: string;
   message: InkeepMessage;
+  stream?: boolean;
 }
 
 interface ContinueChatArgs {

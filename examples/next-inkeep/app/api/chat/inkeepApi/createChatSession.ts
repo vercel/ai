@@ -8,6 +8,7 @@ export interface CreateChatSessionInput {
   chat_session: {
     messages: Array<InkeepMessage>;
   };
+  stream?: boolean;
 }
 
 interface CreateChatSessionArgs {

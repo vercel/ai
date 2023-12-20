@@ -25,9 +25,9 @@ export default function Chat() {
       onFinalMetadata: (metadata: OnFinalInkeepMetadata) => {
         setChatSessionId(metadata.chat_session_id);
       },
-      onRecordsCited: (records: InkeepRecordsCitedData) => {
-        // console.log(records); // list of records used in the conversation
-      },
+      // onRecordsCited: (records: InkeepRecordsCitedData) => {
+      //   // console.log(records); // list of records used in the conversation
+      // },
     }),
     [setChatSessionId],
   );
@@ -40,6 +40,7 @@ export default function Chat() {
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
           {m.content}
+          {m.data?.toString()}
         </div>
       ))}
 

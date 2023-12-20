@@ -3,7 +3,7 @@ import { InkeepRecordsCitedData, OnFinalInkeepMetadata } from 'ai';
 
 export interface EventHandlers {
   onFinalMetadata?: (data: OnFinalInkeepMetadata) => void;
-  onRecordsCited?: (data: InkeepRecordsCitedData) => void;
+  // onRecordsCited?: (data: InkeepRecordsCitedData) => void;
 }
 
 export function useHandleEvents(
@@ -19,9 +19,9 @@ export function useHandleEvents(
         if (item.onFinalMetadata && handlers.onFinalMetadata) {
           handlers.onFinalMetadata(item.onFinalMetadata);
         }
-        if (item.onRecordsCited && handlers.onRecordsCited) {
-          handlers.onRecordsCited(item.onRecordsCited);
-        }
+        // if (item.onRecordsCited && handlers.onRecordsCited) {
+        //   handlers.onRecordsCited(item.onRecordsCited);
+        // }
       }
       setPrevDataLength(data.length);
     }
