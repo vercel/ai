@@ -230,4 +230,3 @@ describe('Anthropic message', () => {
     });
   });
 });
-
