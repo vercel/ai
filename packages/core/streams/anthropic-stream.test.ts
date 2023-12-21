@@ -144,7 +144,7 @@ describe('Anthropic message', () => {
 
     const anthropicResponse = await anthropic.beta.messages.create({
       messages: [{ role: 'user', content: 'Hello' }],
-      model: 'claude-2',
+      model: 'claude-2.1',
       stream: true,
       max_tokens: 300,
     });
@@ -172,7 +172,7 @@ describe('Anthropic message', () => {
 
       const anthropicResponse = await anthropic.beta.messages.create({
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-2',
+        model: 'claude-2.1',
         stream: true,
         max_tokens: 300,
       });
@@ -206,7 +206,7 @@ describe('Anthropic message', () => {
 
       const anthropicResponse = await anthropic.beta.messages.create({
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-2',
+        model: 'claude-2.1',
         stream: true,
         max_tokens: 300,
       });
