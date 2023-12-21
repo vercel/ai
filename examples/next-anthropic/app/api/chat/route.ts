@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { AnthropicStream, StreamingTextResponse } from 'ai';
 
-// Create an Anthropic API client (that's edge friendly??)
+// Create an Anthropic API client (that's edge friendly)
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
