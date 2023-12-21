@@ -84,7 +84,7 @@
     "swrv": "1.0.4"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "0.11.0",
+    "@anthropic-ai/sdk": "0.12.0",
     "@aws-sdk/client-bedrock-runtime": "3.451.0",
     "@edge-runtime/vm": "^3.1.7",
     "@google/generative-ai": "0.1.1",

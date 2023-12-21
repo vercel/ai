@@ -36,7 +36,7 @@ export const anthropicCompletionChunks = [
   },
 ];
 
-export const anthopicMessageChunks = [
+export const anthropicMessageChunks = [
   'event: message_start\n' +
     `data: {"type":"message_start","message":{"id":"msg_014dMY5QPLaAa31KcjEnwDJg",` +
     `"type":"message","role":"assistant","content":[],"model":"claude-2.1",` +
@@ -47,7 +47,11 @@ export const anthopicMessageChunks = [
   'event: content_block_delta\n' +
     `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
   'event: content_block_delta\n' +
-    `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}}\n\n`,
+    `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":","}}\n\n`,
+  'event: content_block_delta\n' +
+    `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":" world"}}\n\n`,
+  'event: content_block_delta\n' +
+    `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"."}}\n\n`,
   'event: content_block_stop\n' +
     `data: {"type":"content_block_stop","index":0}\n\n`,
   'event: message_delta\n' +
