@@ -39,8 +39,8 @@ importers:
   examples/next-anthropic:
     dependencies:
       '@anthropic-ai/sdk':
-        specifier: 0.10.0
-        version: 0.10.0
+        specifier: 0.12.0
+        version: 0.12.0
       ai:
         specifier: 2.2.29
         version: link:../../packages/core
@@ -817,8 +817,8 @@ importers:
         version: 3.3.8(typescript@5.1.3)
     devDependencies:
       '@anthropic-ai/sdk':
-        specifier: 0.10.0
-        version: 0.10.0
+        specifier: 0.12.0
+        version: 0.12.0
       '@aws-sdk/client-bedrock-runtime':
         specifier: 3.451.0
         version: 3.451.0
@@ -943,8 +943,8 @@ packages:
   /@antfu/utils@0.7.6:
     resolution: {integrity: sha512-pvFiLP2BeOKA/ZOS6jxx4XhKzdVLHDhGlFEaZ2flWWYf2xOqVniqpk38I04DFRyz+L0ASggl7SkItTc+ZLju4w==}
 
-  /@anthropic-ai/sdk@0.10.0:
-    resolution: {integrity: sha512-OqTbjjZzDjkCSe0RcNTNeVrHLrC3RUzUvTJB/qt6seVaETnLkKt6b4hkOnkhkXnBHH8+w20zmB4Ekcwir2B/sw==}
+  /@anthropic-ai/sdk@0.12.0:
+    resolution: {integrity: sha512-yL4/NdbdjuqRW5SMLngbO7PWQMcFIBK5lT725TmZ+8bJ9BMvR2e0+ChtAEWUid/N19MWpYg/mbcxUaTQDdMj1A==}
     dependencies:
       '@types/node': 18.18.9
       '@types/node-fetch': 2.6.9

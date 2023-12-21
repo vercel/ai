@@ -41,6 +41,70 @@ interface StreamPing {}
 
 type StreamData = CompletionChunk | StreamError | StreamPing;
 
+interface Message {
+  id: string;
+  content: Array<ContentBlock>;
+  model: string;
+  role: 'assistant';
+  stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | null;
+  stop_sequence: string | null;
+  type: 'message';
+}
+
+interface ContentBlock {
+  text: string;
+  type: 'text';
+}
+
+interface TextDelta {
+  text: string;
+  type: 'text_delta';
+}
+
+interface ContentBlockDeltaEvent {
+  delta: TextDelta;
+  index: number;
+  type: 'content_block_delta';
+}
+
+interface ContentBlockStartEvent {
+  content_block: ContentBlock;
+  index: number;
+  type: 'content_block_start';
+}
+
+interface ContentBlockStopEvent {
+  index: number;
+  type: 'content_block_stop';
+}
+
+interface MessageDeltaEventDelta {
+  stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | null;
+  stop_sequence: string | null;
+}
+
+interface MessageDeltaEvent {
+  delta: MessageDeltaEventDelta;
+  type: 'message_delta';
+}
+
+type MessageStreamEvent =
+  | MessageStartEvent
+  | MessageDeltaEvent
+  | MessageStopEvent
+  | ContentBlockStartEvent
+  | ContentBlockDeltaEvent
+  | ContentBlockStopEvent;
+
+interface MessageStartEvent {
+  message: Message;
+  type: 'message_start';
+}
+
+interface MessageStopEvent {
+  type: 'message_stop';
+}
+
 function parseAnthropicStream(): (data: string) => string | void {
   let previous = '';
 
@@ -76,10 +140,22 @@ function parseAnthropicStream(): (data: string) => string | void {
   };
 }
 
-async function* streamable(stream: AsyncIterable<CompletionChunk>) {
+async function* streamable(
+  stream: AsyncIterable<CompletionChunk> | AsyncIterable<MessageStreamEvent>,
+) {
   for await (const chunk of stream) {
-    const text = chunk.completion;
-    if (text) yield text;
+    if ('completion' in chunk) {
+      // completion stream
+      const text = chunk.completion;
+      if (text) yield text;
+    } else if ('delta' in chunk) {
+      // messge stream
+      const { delta } = chunk;
+      if ('text' in delta) {
+        const text = delta.text;
+        if (text) yield text;
+      }
+    }
   }
 }
 
@@ -89,7 +165,10 @@ async function* streamable(stream: AsyncIterable<CompletionChunk>) {
  * from the `@anthropic-ai/sdk` package.
  */
 export function AnthropicStream(
-  res: Response | AsyncIterable<CompletionChunk>,
+  res:
+    | Response
+    | AsyncIterable<CompletionChunk>
+    | AsyncIterable<MessageStreamEvent>,
   cb?: AIStreamCallbacksAndOptions,
 ): ReadableStream {
   if (Symbol.asyncIterator in res) {
