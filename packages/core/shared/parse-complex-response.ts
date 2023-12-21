@@ -15,6 +15,24 @@ type PrefixMap = {
   data: JSONValue[];
 };
 
+function initializeMessage({
+  generateId,
+  content,
+  createdAt,
+}: {
+  generateId: () => string;
+  content: string;
+  createdAt: Date;
+  data?: JSONValue;
+}): Message {
+  return {
+    id: generateId(),
+    role: 'assistant',
+    content,
+    createdAt,
+  };
+}
+
 export async function parseComplexResponse({
   reader,
   abortControllerRef,
@@ -48,12 +66,27 @@ export async function parseComplexResponse({
           content: (prefixMap['text'].content || '') + value,
         };
       } else {
-        prefixMap['text'] = {
-          id: generateId(),
-          role: 'assistant',
+        prefixMap['text'] = initializeMessage({
+          generateId,
           content: value,
           createdAt,
+        });
+      }
+    }
+
+    if (type == 'message_data') {
+      if (prefixMap['text']) {
+        prefixMap['text'] = {
+          ...prefixMap['text'],
+          data: value,
         };
+      } else {
+        prefixMap['text'] = initializeMessage({
+          generateId,
+          content: '',
+          createdAt,
+          data: value,
+        });
       }
     }
 

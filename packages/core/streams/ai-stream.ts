@@ -50,7 +50,7 @@ export interface AIStreamCallbacksAndOptions {
  * @interface
  */
 export interface AIStreamParser {
-  (data: string): string | void;
+  (data: string, event?: string): string | void;
 }
 
 /**
@@ -82,7 +82,7 @@ export function createEventStreamTransformer(
 
           if ('data' in event) {
             const parsedMessage = customParser
-              ? customParser(event.data)
+              ? customParser(event.data, event.event)
               : event.data;
             if (parsedMessage) controller.enqueue(parsedMessage);
           }

@@ -69,6 +69,15 @@ describe('stream-parts', () => {
       expect(parseStreamPart(input)).toEqual(expectedOutput);
     });
 
+    it('should parse a message data line', () => {
+      const input = '8:[{"test":"value"}]';
+      const expectedOutput = {
+        type: 'message_data',
+        value: [{ test: 'value' }],
+      };
+      expect(parseStreamPart(input)).toEqual(expectedOutput);
+    });
+
     it('should throw an error if the input does not contain a colon separator', () => {
       const input = 'invalid stream string';
       expect(() => parseStreamPart(input)).toThrow();
