@@ -14,8 +14,10 @@ export default function Chat() {
         const parsedFunctionCallArguments: { code: string } = JSON.parse(
           functionCall.arguments,
         );
+
         // WARNING: Do NOT do this in real-world applications!
         eval(parsedFunctionCallArguments.code);
+
         const functionResponse = {
           messages: [
             ...chatMessages,
@@ -27,6 +29,7 @@ export default function Chat() {
             },
           ],
         };
+
         return functionResponse;
       }
     }
