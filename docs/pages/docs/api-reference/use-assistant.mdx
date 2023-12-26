@@ -127,6 +127,11 @@ The `experimental_useAssistant` hook returns an object with several helper metho
     ['threadId', 'string | undefined', 'The current thread ID.'],
     ['input', 'string', 'The current value of the input field.'],
     [
+      'setInput',
+      'React.Dispatch<React.SetStateAction<string>>',
+      'Function to update the `input` value.',
+    ],
+    [
       'handleInputChange',
       '(e: any) => void',
       "Handler for the `onChange` event of the input field to control the input's value.",
