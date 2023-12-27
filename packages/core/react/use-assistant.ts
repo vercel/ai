@@ -154,7 +154,8 @@ export function experimental_useAssistant({
           }
 
           case 'error': {
-            setError(value);
+            const errorObj = new Error(value)
+            setError(errorObj);
             break;
           }
         }
