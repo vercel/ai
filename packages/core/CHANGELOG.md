@@ -1,5 +1,18 @@
 # ai
 
+## 2.2.29
+
+### Patch Changes
+
+- 5a9ae2e: ai/prompt: add `experimental_buildOpenAIMessages` to validate and cast AI SDK messages to OpenAI messages
+
+## 2.2.28
+
+### Patch Changes
+
+- 07a679c: Add data message support to useAssistant & assistantResponse.
+- fbae595: ai/react: `api` functions are no longer used as a cache key in `useChat`
+
 ## 2.2.27
 
 ### Patch Changes

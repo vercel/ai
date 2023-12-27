@@ -1,3 +1,6 @@
+import { Callout } from 'nextra-theme-docs';
+import { OptionTable } from '@/components/table';
+
 # streamToResponse
 
 <Callout>
@@ -10,9 +13,6 @@
 This method will pipe a `ReadableStream` to a Node.js `ServerResponse` object. It can be helpful to combine this with other AI stream utilities, such as [`OpenAIStream`](/docs/api-reference/openai-stream#openaistream), in Node.js environments.
 
 Similar to [`StreamingTextResponse`](/docs/api-reference/streaming-text-response#streamingtextresponse), it automatically sets the status code to `200` and the `Content-Type` header to `'text/plain; charset=utf-8'`.
-
-import { Callout } from 'nextra-theme-docs';
-import { OptionTable } from '@/components/table';
 
 ## Parameters
 

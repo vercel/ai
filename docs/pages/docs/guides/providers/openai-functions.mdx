@@ -18,9 +18,20 @@ To use functions with the OpenAI API, you need to pass a `functions` object to t
 The `functions` object is an array containing the schema for each function you want to define.
 Here is an example:
 
-```ts {3, 34}
+```ts {14, 45}
+import { OpenAIStream, StreamingTextResponse } from 'ai';
+import OpenAI from 'openai';
 import type { ChatCompletionCreateParams } from 'openai/resources/chat';
 
+// Create an OpenAI API client (that's edge friendly!)
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
+});
+
+// Set the runtime to edge
+export const runtime = 'edge';
+
+// Function definition:
 const functions: ChatCompletionCreateParams.Function[] = [
   {
     name: 'get_current_weather',

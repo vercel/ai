@@ -82,14 +82,20 @@ const getStreamedResponse = async (
 
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
-    : chatRequest.messages.map(({ role, content, name, function_call }) => ({
-        role,
-        content,
-        ...(name !== undefined && { name }),
-        ...(function_call !== undefined && {
-          function_call: function_call,
+    : chatRequest.messages.map(
+        ({ role, content, name, function_call, tool_calls, tool_call_id }) => ({
+          role,
+          content,
+          tool_call_id,
+          ...(name !== undefined && { name }),
+          ...(function_call !== undefined && {
+            function_call: function_call,
+          }),
+          ...(tool_calls !== undefined && {
+            tool_calls: tool_calls,
+          }),
         }),
-      }));
+      );
 
   return await callChatApi({
     api,
@@ -102,6 +108,12 @@ const getStreamedResponse = async (
       }),
       ...(chatRequest.function_call !== undefined && {
         function_call: chatRequest.function_call,
+      }),
+      ...(chatRequest.tools !== undefined && {
+        tools: chatRequest.tools,
+      }),
+      ...(chatRequest.tool_choice !== undefined && {
+        tool_choice: chatRequest.tool_choice,
       }),
     },
     credentials: extraMetadata.credentials,
@@ -137,6 +149,7 @@ export function useChat({
   initialInput = '',
   sendExtraMessageFields,
   experimental_onFunctionCall,
+  experimental_onToolCall,
   onResponse,
   onFinish,
   onError,
@@ -211,6 +224,7 @@ export function useChat({
             sendExtraMessageFields,
           ),
         experimental_onFunctionCall,
+        experimental_onToolCall,
         updateChatRequest: chatRequestParam => {
           chatRequest = chatRequestParam;
         },
@@ -239,7 +253,13 @@ export function useChat({
 
   const append: UseChatHelpers['append'] = async (
     message: Message | CreateMessage,
-    { options, functions, function_call }: ChatRequestOptions = {},
+    {
+      options,
+      functions,
+      function_call,
+      tools,
+      tool_choice,
+    }: ChatRequestOptions = {},
   ) => {
     if (!message.id) {
       message.id = generateId();
@@ -250,6 +270,8 @@ export function useChat({
       options,
       ...(functions !== undefined && { functions }),
       ...(function_call !== undefined && { function_call }),
+      ...(tools !== undefined && { tools }),
+      ...(tool_choice !== undefined && { tool_choice }),
     };
     return triggerRequest(chatRequest);
   };
@@ -258,6 +280,8 @@ export function useChat({
     options,
     functions,
     function_call,
+    tools,
+    tool_choice,
   }: ChatRequestOptions = {}) => {
     const messagesSnapshot = get(messages);
     if (messagesSnapshot.length === 0) return null;
@@ -270,6 +294,8 @@ export function useChat({
         options,
         ...(functions !== undefined && { functions }),
         ...(function_call !== undefined && { function_call }),
+        ...(tools !== undefined && { tools }),
+        ...(tool_choice !== undefined && { tool_choice }),
       };
 
       return triggerRequest(chatRequest);
@@ -279,6 +305,8 @@ export function useChat({
       options,
       ...(functions !== undefined && { functions }),
       ...(function_call !== undefined && { function_call }),
+      ...(tools !== undefined && { tools }),
+      ...(tool_choice !== undefined && { tool_choice }),
     };
 
     return triggerRequest(chatRequest);

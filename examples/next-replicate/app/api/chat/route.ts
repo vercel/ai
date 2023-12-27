@@ -1,6 +1,6 @@
-// ./app/api/chat/route.ts
+import { ReplicateStream, StreamingTextResponse } from 'ai';
 import Replicate from 'replicate';
-import { type Message, ReplicateStream, StreamingTextResponse } from 'ai';
+import { experimental_buildLlama2Prompt } from 'ai/prompts';
 
 // Create a Replicate API client (that's edge friendly!)
 const replicate = new Replicate({
@@ -11,19 +11,23 @@ const replicate = new Replicate({
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
-  // Extract the `prompt` from the body of the request
   const { messages } = await req.json();
 
-  // Ask Replicate for a streaming chat completion given the prompt
-  const prediction = await replicate.predictions.create({
-    // Llama-70b-chat
-    version: '2c1608e18606fad2812020dc541930f2d0495ce32eee50074220b87300bc16e1',
-    input: { prompt: messages.map((m: Message) => m.content).join('\n') },
+  const response = await replicate.predictions.create({
+    // You must enable streaming.
     stream: true,
+    // The model must support streaming. See https://replicate.com/docs/streaming
+    // This is the model ID for Llama 2 70b Chat
+    version: '2c1608e18606fad2812020dc541930f2d0495ce32eee50074220b87300bc16e1',
+    // Format the message list into the format expected by Llama 2
+    // @see https://github.com/vercel/ai/blob/99cf16edf0a09405d15d3867f997c96a8da869c6/packages/core/prompts/huggingface.ts#L53C1-L78C2
+    input: {
+      prompt: experimental_buildLlama2Prompt(messages),
+    },
   });
 
   // Convert the response into a friendly text-stream
-  const stream = await ReplicateStream(prediction);
+  const stream = await ReplicateStream(response);
   // Respond with the stream
   return new StreamingTextResponse(stream);
 }

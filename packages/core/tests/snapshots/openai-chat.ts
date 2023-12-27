@@ -1,4 +1,4 @@
-export const chatCompletionChunks = [
+export const openaiChatCompletionChunks = [
   {
     id: 'chatcmpl-7RyNSW2BXkOQQh7NlBc65j5kX8AjC',
     object: 'chat.completion.chunk',
@@ -335,7 +335,7 @@ export const chatCompletionChunksWithFunctionCall = [
   },
 ];
 
-export const chatCompletionChunksWithSpecifiedFunctionCall = [
+export const openaiFunctionCallChunks = [
   ...chatCompletionChunksWithFunctionCall,
   {
     id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
@@ -343,5 +343,351 @@ export const chatCompletionChunksWithSpecifiedFunctionCall = [
     created: 1687906853,
     model: 'gpt-3.5-turbo-0613',
     choices: [{ index: 0, delta: {}, finish_reason: 'stop' }], // finish_reason is 'stop' whenever you provide a function to function_call parameter
+  },
+];
+
+export const chatCompletionChunksWithToolCall = [
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          role: 'assistant',
+          content: null,
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 0,
+              id: 'call_NPkY32jNUOb3Kkm7v9cOgmVg',
+              type: 'function',
+              function: {
+                name: 'get_date_time',
+                arguments: '',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 0,
+              function: {
+                arguments: '{}',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              id: 'call_pOyOtXFQltSjUGsF7gnLAEcD',
+              type: 'function',
+              function: {
+                name: 'open_webpage',
+                arguments: '',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              function: {
+                arguments: '{"ur',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              function: {
+                arguments: 'l": "',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              function: {
+                arguments: 'https:',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              function: {
+                arguments: '//ww',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              function: {
+                arguments: 'w.lin',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              function: {
+                arguments: 'kedin.',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              function: {
+                arguments: 'com/',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              function: {
+                arguments: 'in/je',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              function: {
+                arguments: 'ssepas',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              function: {
+                arguments: 'coe"',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              function: {
+                arguments: '}',
+              },
+            },
+          ],
+        },
+        finish_reason: null,
+      },
+    ],
+  },
+  {
+    id: 'chatcmpl-7WBy19k4tnzMa0svAIAqkqeIaKZh8',
+    object: 'chat.completion.chunk',
+    created: 1687906853,
+    model: 'gpt-3.5-turbo-1106',
+    choices: [
+      {
+        index: 0,
+        delta: {},
+        finish_reason: 'tool_calls',
+      },
+    ],
   },
 ];

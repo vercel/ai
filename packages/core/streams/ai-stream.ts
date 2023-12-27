@@ -10,6 +10,16 @@ export interface FunctionCallPayload {
   name: string;
   arguments: Record<string, unknown>;
 }
+export interface ToolCallPayload {
+  tools: {
+    id: string;
+    type: 'function';
+    func: {
+      name: string;
+      arguments: Record<string, unknown>;
+    };
+  }[];
+}
 
 /**
  * Configuration options and helper callback methods for AIStream stream lifecycle events.

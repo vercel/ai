@@ -1,5 +1,4 @@
 import { HfInference } from '@huggingface/inference';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   HuggingFaceStream,
   StreamingTextResponse,
@@ -9,11 +8,13 @@ import { huggingfaceChunks } from '../tests/snapshots/huggingface';
 import { createClient } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 
-const server = createMockServer({
-  chunks: huggingfaceChunks,
-  formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
-  url: DEFAULT_TEST_URL,
-});
+const server = createMockServer([
+  {
+    url: DEFAULT_TEST_URL,
+    chunks: huggingfaceChunks,
+    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+  },
+]);
 
 describe('HuggingFace stream', () => {
   const Hf = new HfInference();
