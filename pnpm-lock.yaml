@@ -270,7 +270,53 @@ importers:
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.196
-        version: 0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(jsdom@23.0.0)
+        version: 0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(axios@1.6.2)(jsdom@23.0.0)
+      next:
+        specifier: 14.0.3
+        version: 14.0.3(react-dom@18.2.0)(react@18.2.0)
+      react:
+        specifier: 18.2.0
+        version: 18.2.0
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.2.0(react@18.2.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^17.0.12
+        version: 17.0.45
+      '@types/react':
+        specifier: 18.2.8
+        version: 18.2.8
+      '@types/react-dom':
+        specifier: 18.2.4
+        version: 18.2.4
+      autoprefixer:
+        specifier: ^10.4.14
+        version: 10.4.16(postcss@8.4.31)
+      eslint:
+        specifier: ^7.32.0
+        version: 7.32.0
+      eslint-config-next:
+        specifier: 13.4.12
+        version: 13.4.12(eslint@7.32.0)(typescript@5.1.3)
+      postcss:
+        specifier: ^8.4.23
+        version: 8.4.31
+      tailwindcss:
+        specifier: ^3.3.2
+        version: 3.3.5
+      typescript:
+        specifier: 5.1.3
+        version: 5.1.3
+
+  examples/next-mistral:
+    dependencies:
+      '@mistralai/mistralai':
+        specifier: 0.0.7
+        version: 0.0.7
+      ai:
+        specifier: 2.2.29
+        version: link:../../packages/core
       next:
         specifier: 14.0.3
         version: 14.0.3(react-dom@18.2.0)(react@18.2.0)
@@ -611,11 +657,11 @@ importers:
   examples/solidstart-openai:
     dependencies:
       '@solidjs/meta':
-        specifier: ^0.28.2
-        version: 0.28.7(solid-js@1.8.5)
+        specifier: 0.29.3
+        version: 0.29.3(solid-js@1.8.7)
       '@solidjs/router':
-        specifier: ^0.8.2
-        version: 0.8.4(solid-js@1.8.5)
+        specifier: 0.8.2
+        version: 0.8.2(solid-js@1.8.7)
       ai:
         specifier: 2.2.29
         version: link:../../packages/core
@@ -623,11 +669,11 @@ importers:
         specifier: 4.16.1
         version: 4.16.1
       solid-js:
-        specifier: ^1.7.2
-        version: 1.8.5
+        specifier: 1.8.7
+        version: 1.8.7
       solid-start:
-        specifier: ^0.2.26
-        version: 0.2.32(@solidjs/meta@0.28.7)(@solidjs/router@0.8.4)(solid-js@1.8.5)(solid-start-node@0.2.32)(vite@4.5.0)
+        specifier: 0.3.10
+        version: 0.3.10(@solidjs/meta@0.29.3)(@solidjs/router@0.8.2)(solid-js@1.8.7)(solid-start-node@0.3.10)(vite@4.5.0)
       undici:
         specifier: ^5.15.1
         version: 5.27.2
@@ -639,8 +685,8 @@ importers:
         specifier: ^8.4.21
         version: 8.4.31
       solid-start-node:
-        specifier: ^0.2.19
-        version: 0.2.32(solid-start@0.2.32)(undici@5.27.2)(vite@4.5.0)
+        specifier: 0.3.10
+        version: 0.3.10(solid-start@0.3.10)(vite@4.5.0)
       tailwindcss:
         specifier: ^3.2.4
         version: 3.3.5
@@ -736,9 +782,12 @@ importers:
       '@huggingface/inference':
         specifier: 2.6.4
         version: 2.6.4
+      '@mistralai/mistralai':
+        specifier: 0.0.7
+        version: 0.0.7
       '@solidjs/testing-library':
         specifier: 0.8.4
-        version: 0.8.4(@solidjs/router@0.8.4)(solid-js@1.8.7)
+        version: 0.8.4(@solidjs/router@0.8.2)(solid-js@1.8.7)
       '@testing-library/jest-dom':
         specifier: ^6.1.4
         version: 6.1.4(vitest@0.34.6)
@@ -780,7 +829,7 @@ importers:
         version: 23.0.0
       langchain:
         specifier: 0.0.196
-        version: 0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(jsdom@23.0.0)
+        version: 0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(axios@1.6.2)(jsdom@23.0.0)
       msw:
         specifier: 2.0.9
         version: 2.0.9(typescript@5.1.3)
@@ -791,7 +840,7 @@ importers:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
       solid-js:
-        specifier: 1.8.7
+        specifier: ^1.8.7
         version: 1.8.7
       tsup:
         specifier: ^6.7.0
@@ -3463,6 +3512,14 @@ packages:
       - supports-color
     dev: true
 
+  /@mistralai/mistralai@0.0.7:
+    resolution: {integrity: sha512-47FiV/GBnt6gug99ZfDBcBofYuYvqT5AyhUDdtktUbCN+gq52tmiAbtwc88k7hlyUWHzJ28VpHRDfNTRfaWKxA==}
+    dependencies:
+      axios: 1.6.2
+      axios-retry: 4.0.0(axios@1.6.2)
+    transitivePeerDependencies:
+      - debug
+
   /@mozilla/readability@0.4.4:
     resolution: {integrity: sha512-MCgZyANpJ6msfvVMi6+A0UAsvZj//4OHREYUB9f2087uXHVoU+H+SWhuihvb1beKpM323bReQPRio0WNk2+V6g==}
     engines: {node: '>=14.0.0'}
@@ -4862,36 +4919,28 @@ packages:
       '@smithy/util-buffer-from': 2.0.0
       tslib: 2.6.2
 
-  /@solidjs/meta@0.28.7(solid-js@1.8.5):
-    resolution: {integrity: sha512-4desKFvITOV9sc0KE47NxDhMikAVZTU9i5WH4wNvmN6ta50+KKDUr2pPBCvvxSuH+Z4x8TmN+iYW81I3ZTyXGw==}
+  /@solidjs/meta@0.29.3(solid-js@1.8.7):
+    resolution: {integrity: sha512-R2uirgjgyh3FPFh+rb840plF701N6GvM5w81/QeI61QwjXb4QzLkyI/uzXfC5UW8favpUn9KK9ILQeoTl6pX0A==}
     peerDependencies:
-      solid-js: '>=1.4.0'
+      solid-js: '>=1.8.4'
     dependencies:
-      solid-js: 1.8.5
+      solid-js: 1.8.7
 
-  /@solidjs/router@0.8.4(solid-js@1.8.5):
-    resolution: {integrity: sha512-Gi/WVoVseGMKS1DBdT3pNAMgOzEOp6Q3dpgNd2mW9GUEnVocPmtyBjDvXwN6m7tjSGsqqfqJFXk7bm1hxabSRw==}
-    peerDependencies:
-      solid-js: ^1.5.3
-    dependencies:
-      solid-js: 1.8.5
-
-  /@solidjs/router@0.8.4(solid-js@1.8.7):
-    resolution: {integrity: sha512-Gi/WVoVseGMKS1DBdT3pNAMgOzEOp6Q3dpgNd2mW9GUEnVocPmtyBjDvXwN6m7tjSGsqqfqJFXk7bm1hxabSRw==}
+  /@solidjs/router@0.8.2(solid-js@1.8.7):
+    resolution: {integrity: sha512-gUKW+LZqxtX6y/Aw6JKyy4gQ9E7dLqp513oB9pSYJR1HM5c56Pf7eijzyXX+b3WuXig18Cxqah4tMtF0YGu80w==}
     peerDependencies:
       solid-js: ^1.5.3
     dependencies:
       solid-js: 1.8.7
-    dev: true
 
-  /@solidjs/testing-library@0.8.4(@solidjs/router@0.8.4)(solid-js@1.8.7):
+  /@solidjs/testing-library@0.8.4(@solidjs/router@0.8.2)(solid-js@1.8.7):
     resolution: {integrity: sha512-HHCAlBd4P4TY03tXmoBwTO6FFM7w33LeT8Skab941eLO9l5RN7OxKEBw2fiMYvSFL2h2U7L4+W5N03iC8GbB6Q==}
     engines: {node: '>= 14'}
     peerDependencies:
       '@solidjs/router': '>=0.6.0'
       solid-js: '>=1.0.0'
     dependencies:
-      '@solidjs/router': 0.8.4(solid-js@1.8.7)
+      '@solidjs/router': 0.8.2(solid-js@1.8.7)
       '@testing-library/dom': 9.3.3
       solid-js: 1.8.7
     dev: true
@@ -6244,6 +6293,14 @@ packages:
     resolution: {integrity: sha512-M0JtH+hlOL5pLQwHOLNYZaXuhqmvS8oExsqB1SBYgA4Dk7u/xx+YdGHXaK5pyUfed5mYXdlYiphWq3G8cRi5JQ==}
     engines: {node: '>=4'}
 
+  /axios-retry@4.0.0(axios@1.6.2):
+    resolution: {integrity: sha512-F6P4HVGITD/v4z9Lw2mIA24IabTajvpDZmKa6zq/gGwn57wN5j1P3uWrAV0+diqnW6kTM2fTqmWNfgYWGmMuiA==}
+    peerDependencies:
+      axios: 0.x || 1.x
+    dependencies:
+      axios: 1.6.2
+      is-retry-allowed: 2.2.0
+
   /axios@0.25.0(debug@4.3.4):
     resolution: {integrity: sha512-cD8FOb0tRH3uuEe6+evtAbgJtfxr7ly3fQjYcMcuPlgkwVS9xboaVIpcDV+cYQe+yGykgwZCs1pzjntcGa6l5g==}
     dependencies:
@@ -6267,6 +6324,15 @@ packages:
     transitivePeerDependencies:
       - debug
     dev: true
+
+  /axios@1.6.2:
+    resolution: {integrity: sha512-7i24Ri4pmDRfJTR7LDBhsOTtcm+9kjX5WiY1X3wIisx6G9So3pfMkEiU7emUBe46oceVImccTEM3k6C5dbVW8A==}
+    dependencies:
+      follow-redirects: 1.15.3(debug@4.3.4)
+      form-data: 4.0.0
+      proxy-from-env: 1.1.0
+    transitivePeerDependencies:
+      - debug
 
   /axobject-query@3.2.1:
     resolution: {integrity: sha512-jsyHu61e6N4Vbz/v18DHwWYKK0bSWLqn47eeDSKPB7m8tqMHF9YJ+mhIk2lVteyZrY8tnSj/jHOv4YiTCuCJgg==}
@@ -7782,7 +7848,7 @@ packages:
     resolution: {integrity: sha512-SOp9Phqvqn7jtEUxPWdWfWoLmyt2VaJ6MpvP9Comy1MceMXqE6bxvaTu4iaxpYYPzhny28Lc+M87/c2cPK6lDg==}
     dev: true
 
-  /esbuild-plugin-solid@0.5.0(esbuild@0.17.19)(solid-js@1.8.5):
+  /esbuild-plugin-solid@0.5.0(esbuild@0.17.19)(solid-js@1.8.7):
     resolution: {integrity: sha512-ITK6n+0ayGFeDVUZWNMxX+vLsasEN1ILrg4pISsNOQ+mq4ljlJJiuXotInd+HE0MzwTcA9wExT1yzDE2hsqPsg==}
     peerDependencies:
       esbuild: '>=0.12'
@@ -7792,7 +7858,7 @@ packages:
       '@babel/preset-typescript': 7.23.3(@babel/core@7.23.3)
       babel-preset-solid: 1.8.4(@babel/core@7.23.3)
       esbuild: 0.17.19
-      solid-js: 1.8.5
+      solid-js: 1.8.7
     transitivePeerDependencies:
       - supports-color
 
@@ -9531,6 +9597,10 @@ packages:
       call-bind: 1.0.5
       has-tostringtag: 1.0.0
 
+  /is-retry-allowed@2.2.0:
+    resolution: {integrity: sha512-XVm7LOeLpTW4jV19QSH38vkswxoLud8sQ57YwJVTPWdiaI9I8keEhGFpBlslyVsgdQy4Opg8QOLb8YRgsyZiQg==}
+    engines: {node: '>=10'}
+
   /is-set@2.0.2:
     resolution: {integrity: sha512-+2cnTEZeY5z/iXGbLhPrOAaK/Mau5k5eXq9j14CpRTftq0pAJu2MwVRSZhyZWBzx3o6X795Lz6Bpb6R0GKf37g==}
 
@@ -10181,7 +10251,7 @@ packages:
       - encoding
     dev: false
 
-  /langchain@0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(jsdom@23.0.0):
+  /langchain@0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(axios@1.6.2)(jsdom@23.0.0):
     resolution: {integrity: sha512-kt17GGTDFWHNv3jJOIXymsQxfa+h9UQ6hrHbhur+V2pV6RBKO5E+RRCvnCqBzbnOPtrlkENF6Wl3Ezmsfo21dg==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -10484,6 +10554,7 @@ packages:
       '@anthropic-ai/sdk': 0.9.1
       '@aws-sdk/client-bedrock-runtime': 3.451.0
       '@huggingface/inference': 2.6.4
+      axios: 1.6.2
       binary-extensions: 2.2.0
       expr-eval: 2.0.2
       flat: 5.0.2
@@ -10967,6 +11038,9 @@ packages:
     dependencies:
       braces: 3.0.2
       picomatch: 2.3.1
+
+  /micromorph@0.3.1:
+    resolution: {integrity: sha512-dbX4sz405e/QQtbHFMJj0SaVP+xuBBpSpR44AQYTjsrPek8oKyeRXkbtYN1XyFVdV7WjHp5DZMwxJOJiBfH1Jw==}
 
   /mime-db@1.52.0:
     resolution: {integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==}
@@ -13008,6 +13082,9 @@ packages:
     resolution: {integrity: sha512-/XJ368cyBJ7fzLMwLKv1e4vLxOju2MNAIokcr7meSaNcVbWz/CPcW22cP04mwxOErdA5mwjA8Q6w/cdAQxVn7Q==}
     dev: true
 
+  /proxy-from-env@1.1.0:
+    resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
+
   /pseudomap@1.0.2:
     resolution: {integrity: sha512-b/YwNhb8lk1Zz2+bXXpS/LK9OisiZZ1SNsSLxN1x2OXVEhW2Ckr/7mWE5vrC1ZTiJlD9g19jWszTmJsB+oEpFQ==}
     dev: true
@@ -13571,10 +13648,6 @@ packages:
       randombytes: 2.1.0
     dev: true
 
-  /seroval@0.12.3:
-    resolution: {integrity: sha512-5WDeMpv7rmEylsypRj1iwRVHE/QLsMLiZ+9savlNNQEVdgGia1iRMb7qyaAagY0wu/7+QTe6d2wldk/lgaLb6g==}
-    engines: {node: '>=10'}
-
   /seroval@0.15.1:
     resolution: {integrity: sha512-OPVtf0qmeC7RW+ScVX+7aOS+xoIM7pWcZ0jOWg2aTZigCydgRB04adfteBRbecZnnrO1WuGQ+C3tLeBBzX2zSQ==}
     engines: {node: '>=10'}
@@ -13798,27 +13871,11 @@ packages:
       smart-buffer: 4.2.0
     dev: true
 
-  /solid-js@1.8.5:
-    resolution: {integrity: sha512-xvtJvzJzWbsn35oKFhW9kNwaxG1Z/YLMsDp4tLVcYZTMPzvzQ8vEZuyDQ6nt7xDArVgZJ7TUFrJUwrui/oq53A==}
-    dependencies:
-      csstype: 3.1.2
-      seroval: 0.12.3
-
   /solid-js@1.8.7:
     resolution: {integrity: sha512-9dzrSVieh2zj3SnJ02II6xZkonR6c+j/91b7XZUNcC6xSaldlqjjGh98F1fk5cRJ8ZTkzqF5fPIWDxEOs6QZXA==}
     dependencies:
       csstype: 3.1.2
       seroval: 0.15.1
-
-  /solid-refresh@0.5.3(solid-js@1.8.5):
-    resolution: {integrity: sha512-Otg5it5sjOdZbQZJnvo99TEBAr6J7PQ5AubZLNU6szZzg3RQQ5MX04oteBIIGDs0y2Qv8aXKm9e44V8z+UnFdw==}
-    peerDependencies:
-      solid-js: ^1.3
-    dependencies:
-      '@babel/generator': 7.23.3
-      '@babel/helper-module-imports': 7.22.15
-      '@babel/types': 7.23.3
-      solid-js: 1.8.5
 
   /solid-refresh@0.5.3(solid-js@1.8.7):
     resolution: {integrity: sha512-Otg5it5sjOdZbQZJnvo99TEBAr6J7PQ5AubZLNU6szZzg3RQQ5MX04oteBIIGDs0y2Qv8aXKm9e44V8z+UnFdw==}
@@ -13829,13 +13886,11 @@ packages:
       '@babel/helper-module-imports': 7.22.15
       '@babel/types': 7.23.3
       solid-js: 1.8.7
-    dev: true
 
-  /solid-start-node@0.2.32(solid-start@0.2.32)(undici@5.27.2)(vite@4.5.0):
-    resolution: {integrity: sha512-IG7V5O7rdesVPQQ15eDpdJ9wg1XXFT7zpd+o0M7ShW9TvxPxs0g5RJzZFNjSxwx8nmxVj58mO5lGw2Jr/HgLCQ==}
+  /solid-start-node@0.3.10(solid-start@0.3.10)(vite@4.5.0):
+    resolution: {integrity: sha512-MuQXw+hLaGI4YlcVFKJxLvDG6/6/DhX5vifBICGmc0kGvUtOYMFXkSVhk6J83hIOK+ZVEwVu0/Mz18Jc7kRVjg==}
     peerDependencies:
       solid-start: '*'
-      undici: ^5.8.0
       vite: '*'
     dependencies:
       '@rollup/plugin-commonjs': 24.1.0(rollup@3.29.4)
@@ -13845,20 +13900,19 @@ packages:
       polka: 1.0.0-next.22
       rollup: 3.29.4
       sirv: 2.0.3
-      solid-start: 0.2.32(@solidjs/meta@0.28.7)(@solidjs/router@0.8.4)(solid-js@1.8.5)(solid-start-node@0.2.32)(vite@4.5.0)
+      solid-start: 0.3.10(@solidjs/meta@0.29.3)(@solidjs/router@0.8.2)(solid-js@1.8.7)(solid-start-node@0.3.10)(vite@4.5.0)
       terser: 5.24.0
-      undici: 5.27.2
       vite: 4.5.0(@types/node@17.0.45)
     transitivePeerDependencies:
       - supports-color
 
-  /solid-start@0.2.32(@solidjs/meta@0.28.7)(@solidjs/router@0.8.4)(solid-js@1.8.5)(solid-start-node@0.2.32)(vite@4.5.0):
-    resolution: {integrity: sha512-5z8s7l2PiCbbqSuz+MAVSVIJ4/rnifesM9g0G/VldBVKdfwWet7noQdso0HC2xXkidFYKdD/mJG2M05o2bYiqw==}
+  /solid-start@0.3.10(@solidjs/meta@0.29.3)(@solidjs/router@0.8.2)(solid-js@1.8.7)(solid-start-node@0.3.10)(vite@4.5.0):
+    resolution: {integrity: sha512-4z+BybZMOyw6Px6FgPvjzW6/UOLCyDNxoKRg19kGGWmcgyWf8YZv+/eIhXdt+09H/LQapZr4ZRY2iFpe7+7PbA==}
     hasBin: true
     peerDependencies:
-      '@solidjs/meta': ^0.28.0
+      '@solidjs/meta': ^0.29.1
       '@solidjs/router': ^0.8.2
-      solid-js: ^1.6.2
+      solid-js: ^1.8.4
       solid-start-aws: '*'
       solid-start-cloudflare-pages: '*'
       solid-start-cloudflare-workers: '*'
@@ -13892,8 +13946,8 @@ packages:
       '@babel/preset-env': 7.23.3(@babel/core@7.23.3)
       '@babel/preset-typescript': 7.23.3(@babel/core@7.23.3)
       '@babel/template': 7.22.15
-      '@solidjs/meta': 0.28.7(solid-js@1.8.5)
-      '@solidjs/router': 0.8.4(solid-js@1.8.5)
+      '@solidjs/meta': 0.29.3(solid-js@1.8.7)
+      '@solidjs/router': 0.8.2(solid-js@1.8.7)
       '@types/cookie': 0.5.4
       '@types/debug': 4.1.12
       chokidar: 3.5.3
@@ -13904,9 +13958,10 @@ packages:
       dotenv: 16.3.1
       es-module-lexer: 1.4.1
       esbuild: 0.17.19
-      esbuild-plugin-solid: 0.5.0(esbuild@0.17.19)(solid-js@1.8.5)
+      esbuild-plugin-solid: 0.5.0(esbuild@0.17.19)(solid-js@1.8.7)
       fast-glob: 3.3.2
       get-port: 6.1.2
+      micromorph: 0.3.1
       parse-multipart-data: 1.5.0
       picocolors: 1.0.0
       rollup: 3.29.4
@@ -13915,13 +13970,13 @@ packages:
       sade: 1.8.1
       set-cookie-parser: 2.6.0
       sirv: 2.0.3
-      solid-js: 1.8.5
-      solid-start-node: 0.2.32(solid-start@0.2.32)(undici@5.27.2)(vite@4.5.0)
+      solid-js: 1.8.7
+      solid-start-node: 0.3.10(solid-start@0.3.10)(vite@4.5.0)
       terser: 5.24.0
       undici: 5.27.2
       vite: 4.5.0(@types/node@17.0.45)
       vite-plugin-inspect: 0.7.42(rollup@3.29.4)(vite@4.5.0)
-      vite-plugin-solid: 2.7.2(solid-js@1.8.5)(vite@4.5.0)
+      vite-plugin-solid: 2.7.2(solid-js@1.8.7)(vite@4.5.0)
       wait-on: 6.0.1(debug@4.3.4)
     transitivePeerDependencies:
       - '@nuxt/kit'
@@ -15458,24 +15513,6 @@ packages:
       - rollup
       - supports-color
 
-  /vite-plugin-solid@2.7.2(solid-js@1.8.5)(vite@4.5.0):
-    resolution: {integrity: sha512-GV2SMLAibOoXe76i02AsjAg7sbm/0lngBlERvJKVN67HOrJsHcWgkt0R6sfGLDJuFkv2aBe14Zm4vJcNME+7zw==}
-    peerDependencies:
-      solid-js: ^1.7.2
-      vite: ^3.0.0 || ^4.0.0
-    dependencies:
-      '@babel/core': 7.23.3
-      '@babel/preset-typescript': 7.23.3(@babel/core@7.23.3)
-      '@types/babel__core': 7.20.4
-      babel-preset-solid: 1.8.4(@babel/core@7.23.3)
-      merge-anything: 5.1.7
-      solid-js: 1.8.5
-      solid-refresh: 0.5.3(solid-js@1.8.5)
-      vite: 4.5.0(@types/node@17.0.45)
-      vitefu: 0.2.5(vite@4.5.0)
-    transitivePeerDependencies:
-      - supports-color
-
   /vite-plugin-solid@2.7.2(solid-js@1.8.7)(vite@4.5.0):
     resolution: {integrity: sha512-GV2SMLAibOoXe76i02AsjAg7sbm/0lngBlERvJKVN67HOrJsHcWgkt0R6sfGLDJuFkv2aBe14Zm4vJcNME+7zw==}
     peerDependencies:
@@ -15493,7 +15530,6 @@ packages:
       vitefu: 0.2.5(vite@4.5.0)
     transitivePeerDependencies:
       - supports-color
-    dev: true
 
   /vite-plugin-vue-inspector@3.7.2(vite@4.5.0):
     resolution: {integrity: sha512-PSe/t2RoVzB64Ofuec7W/Z0FuKHzmU7esLrMOGwX+BNyXt8dAMtYbz4wL/TqoH1zVPDdjQecQpM5+K9VnBYpAg==}

@@ -267,9 +267,7 @@ export interface CompletionUsage {
  */
 function parseOpenAIStream(): (data: string) => string | void {
   const extract = chunkToText();
-  return data => {
-    return extract(JSON.parse(data) as OpenAIStreamReturnTypes);
-  };
+  return data => extract(JSON.parse(data) as OpenAIStreamReturnTypes);
 }
 
 /**
@@ -285,7 +283,6 @@ async function* streamable(stream: AsyncIterableOpenAIStreamReturnTypes) {
   }
 }
 
-/** @see stream-sample.md for explaination of parsing*/
 function chunkToText(): (chunk: OpenAIStreamReturnTypes) => string | void {
   const trimStartOfStream = trimStartOfStreamHelper();
   let isFunctionStreamingIn: boolean;
@@ -299,14 +296,14 @@ function chunkToText(): (chunk: OpenAIStreamReturnTypes) => string | void {
         isFunctionStreamingIn = true;
         const toolCall = delta.tool_calls[0];
         if (toolCall.index === 0) {
-          return `{"tool_calls":[ {"id": "${toolCall.id}", "type": "function", "function": {"name": "${toolCall.function?.name}", "arguments":`;
+          return `{"tool_calls":[ {"id": "${toolCall.id}", "type": "function", "function": {"name": "${toolCall.function?.name}", "arguments": "`;
         } else {
-          return `}}, {"id": "${toolCall.id}", "type": "function", "function": {"name": "${toolCall.function?.name}", "arguments":`;
+          return `"}}, {"id": "${toolCall.id}", "type": "function", "function": {"name": "${toolCall.function?.name}", "arguments": "`;
         }
       } else if (delta.function_call?.arguments) {
         return cleanupArguments(delta.function_call?.arguments);
       } else if (delta.tool_calls?.[0].function?.arguments) {
-        return delta.tool_calls?.[0]?.function?.arguments;
+        return cleanupArguments(delta.tool_calls?.[0]?.function?.arguments);
       } else if (
         isFunctionStreamingIn &&
         (json.choices[0]?.finish_reason === 'function_call' ||
@@ -319,7 +316,7 @@ function chunkToText(): (chunk: OpenAIStreamReturnTypes) => string | void {
         json.choices[0]?.finish_reason === 'tool_calls'
       ) {
         isFunctionStreamingIn = false; // Reset the flag
-        return '}}]}';
+        return '"}}]}';
       }
     }
 
@@ -563,26 +560,24 @@ function createFunctionCallTransformer(
                     // Append the function call request and result messages to the list
                     newFunctionCallMessages = [
                       ...newFunctionCallMessages,
-                      // Only append the assitant message if it's the first response
+                      // Only append the assistant message if it's the first response
                       ...(responseIndex === 0
                         ? [
                             {
                               role: 'assistant' as const,
                               content: '',
                               tool_calls: payload.tool_calls.map(
-                                (tc: ToolCall) => {
-                                  return {
-                                    id: tc.id,
-                                    type: 'function',
-                                    function: {
-                                      name: tc.function.name,
-                                      // we send the arguments an object to the user, but as the API expects a string, we need to stringify it
-                                      arguments: JSON.stringify(
-                                        tc.function.arguments,
-                                      ),
-                                    },
-                                  };
-                                },
+                                (tc: ToolCall) => ({
+                                  id: tc.id,
+                                  type: 'function',
+                                  function: {
+                                    name: tc.function.name,
+                                    // we send the arguments an object to the user, but as the API expects a string, we need to stringify it
+                                    arguments: JSON.stringify(
+                                      tc.function.arguments,
+                                    ),
+                                  },
+                                }),
                               ),
                             },
                           ]
@@ -614,7 +609,7 @@ function createFunctionCallTransformer(
               textEncoder.encode(
                 isComplexMode
                   ? formatStreamPart(
-                      payload.function_call ? 'function_call' : 'tool_call',
+                      payload.function_call ? 'function_call' : 'tool_calls',
                       // parse to prevent double-encoding:
                       JSON.parse(aggregatedResponse),
                     )
