@@ -99,7 +99,6 @@ const getStreamedResponse = async (
       }),
     );
   }
-
   if (!sendHistory) {
     sendMessages = sendMessages.slice(-1);
   }
@@ -353,6 +352,7 @@ export function useChat({
   onError,
   credentials,
   headers,
+  sendHistory,
   body,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
@@ -425,6 +425,7 @@ export function useChat({
             onFinish,
             onResponse,
             sendExtraMessageFields,
+            sendHistory,
           );
 
           // Using experimental stream data
