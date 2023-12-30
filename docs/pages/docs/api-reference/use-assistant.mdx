@@ -7,7 +7,7 @@ import { FrameworkTabs, Tab } from '@/components/framework-tabs';
 
 # experimental_useAssistant
 
-## `experimental_useAssistant(options: UseAssistantOptions): UseAssistantHelpers` [#useassistant]
+## `experimental_useAssistant(options: UseAssistantOptions): UseAssistantHelpers` [#experimental_useAssistant]
 
 `useAssistant` is a utility designed to handle the UI state of interacting with an OpenAI-compatible assistant API.
 This tool is useful when you need to integrate assistant capabilities into your application,
@@ -126,6 +126,11 @@ The `experimental_useAssistant` hook returns an object with several helper metho
     ['messages', 'Message[]', 'The current array of chat messages.'],
     ['threadId', 'string | undefined', 'The current thread ID.'],
     ['input', 'string', 'The current value of the input field.'],
+    [
+      'setInput',
+      'React.Dispatch<React.SetStateAction<string>>',
+      'Function to update the `input` value.',
+    ],
     [
       'handleInputChange',
       '(e: any) => void',
