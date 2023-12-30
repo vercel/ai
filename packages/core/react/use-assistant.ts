@@ -22,11 +22,11 @@ export type UseAssistantHelpers = {
    */
   input: string;
 
-  /** 
+  /**
    * setState-powered method to update the input value.
    */
   setInput: React.Dispatch<React.SetStateAction<string>>;
-  
+
   /**
    * Handler for the `onChange` event of the input field to control the input's value.
    */
