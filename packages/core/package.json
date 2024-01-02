@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "2.2.30",
+  "version": "2.2.31",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
