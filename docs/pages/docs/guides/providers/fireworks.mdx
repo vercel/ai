@@ -34,12 +34,12 @@ pnpm install ai openai
 Create a `.env` file in your project root and add your Fireworks API Key:
 
 ```env filename=".env"
-OPENAI_API_KEY=xxxxxxxxx
+FIREWORKS_API_KEY=xxxxxxxxx
 ```
 
 ### Create a Route Handler
 
-Create a Next.js Route Handler that uses the Edge Runtime that we'll use to generate a chat completion via OpenAI that we'll then stream back to our Next.js.
+Create a Next.js Route Handler that uses the Edge Runtime that we'll use to generate a chat completion via Fireworks that we'll then stream back to our Next.js.
 
 For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
 
@@ -50,7 +50,7 @@ import { OpenAIStream, StreamingTextResponse } from 'ai';
 // Create an OpenAI API client (that's edge friendly!)
 // but configure it to point to fireworks.ai
 const fireworks = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+  apiKey: process.env.FIREWORKS_API_KEY || '',
   baseURL: 'https://api.fireworks.ai/inference/v1',
 });
 // IMPORTANT! Set the runtime to edge
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
 
 <Callout>
   Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
-  pass the streaming `response` we receive from OpenAI to
+  pass the streaming `response` we receive from Fireworks to
   [`OpenAIStream`](/docs/api-reference/openai-stream). This method
   decodes/extracts the text tokens in the response and then re-encodes them
   properly for simple consumption. We can then pass that new stream directly to
@@ -132,7 +132,7 @@ export default function Chat() {
 
 ### Use the Completion API
 
-Similar to the Chatbot example above, we'll create a Next.js Route Handler that generates a text completion via OpenAI that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
+Similar to the Chatbot example above, we'll create a Next.js Route Handler that generates a text completion via Fireworks that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
 import OpenAI from 'openai';
@@ -141,7 +141,7 @@ import { OpenAIStream, StreamingTextResponse } from 'ai';
 // Create an OpenAI API client (that's edge friendly!)
 // but configure it to point to fireworks.ai
 const fireworks = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+  apiKey: process.env.FIREWORKS_API_KEY || '',
   baseURL: 'https://api.fireworks.ai/inference/v1',
 });
 // IMPORTANT! Set the runtime to edge
