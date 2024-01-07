@@ -149,6 +149,7 @@ const getStreamedResponse = async (
   }
 
   const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
+  const providedReplyId = res.headers.get('AI-Response-Id');
   const createdAt = new Date();
   const reader = res.body.getReader();
   const decode = createChunkDecoder(isComplexMode);
@@ -214,7 +215,7 @@ const getStreamedResponse = async (
             };
           } else {
             prefixMap['text'] = {
-              id: nanoid(),
+              id: providedReplyId || nanoid(),
               role: 'assistant',
               content: value,
               createdAt,
@@ -235,7 +236,7 @@ const getStreamedResponse = async (
             ).function_call;
 
             functionCallMessage = {
-              id: nanoid(),
+              id: providedReplyId || nanoid(),
               role: 'assistant',
               content: '',
               function_call: parsedFunctionCall,
@@ -289,7 +290,7 @@ const getStreamedResponse = async (
   } else {
     // TODO-STREAMDATA: Remove this once Strem Data is not experimental
     let streamedResponse = '';
-    const replyId = nanoid();
+    const replyId = providedReplyId || nanoid();
     let responseMessage: Message = {
       id: replyId,
       createdAt,
