@@ -1,3 +1,4 @@
+import { CohereClient } from 'cohere-ai';
 import {
   CohereStream,
   StreamingTextResponse,
@@ -9,7 +10,7 @@ import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 
 const server = createMockServer([
   {
-    url: DEFAULT_TEST_URL,
+    url: '/v1/chat',
     chunks: cohereChunks,
     formatChunk: chunk => `${JSON.stringify(chunk)}\n`,
   },
@@ -29,7 +30,15 @@ describe('CohereStream', () => {
   });
 
   it('should be able to parse SSE and receive the streamed response', async () => {
-    const stream = CohereStream(await fetch(DEFAULT_TEST_URL));
+    const co = new CohereClient({
+      token: 'cohere-token',
+    });
+
+    const cohereResponse = await co.chatStream({
+      message: '',
+    });
+
+    const stream = CohereStream(cohereResponse);
 
     const response = new StreamingTextResponse(stream);
 
