@@ -110,7 +110,7 @@ We've written some code to get you started — follow the instructions below to 
 
       // Ask OpenAI for a streaming completion given the prompt
       const response = await openai.completions.create({
-        model: 'text-davinci-003',
+        model: 'gpt-3.5-turbo-instruct',
         stream: true,
         temperature: 0.6,
         max_tokens: 300,
@@ -156,7 +156,7 @@ We've written some code to get you started — follow the instructions below to 
 
       // Ask OpenAI for a streaming completion given the prompt
       const response = await openai.completions.create({
-        model: 'text-davinci-003',
+        model: 'gpt-3.5-turbo-instruct',
         stream: true,
         temperature: 0.6,
         max_tokens: 300,
