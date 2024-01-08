@@ -4,13 +4,18 @@ import {
   StreamingTextResponse,
   experimental_StreamData,
 } from '.';
-import { cohereChunks } from '../tests/snapshots/cohere';
+import { cohereChatChunks, cohereChunks } from '../tests/snapshots/cohere';
 import { readAllChunks } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 
 const server = createMockServer([
   {
-    url: '/v1/chat',
+    url: 'https://api.cohere.ai/v1/chat',
+    chunks: cohereChatChunks,
+    formatChunk: chunk => `${JSON.stringify(chunk)}\n`,
+  },
+  {
+    url: DEFAULT_TEST_URL,
     chunks: cohereChunks,
     formatChunk: chunk => `${JSON.stringify(chunk)}\n`,
   },
@@ -29,17 +34,27 @@ describe('CohereStream', () => {
     server.close();
   });
 
-  it('should be able to parse SSE and receive the streamed response', async () => {
+  it('should be able to parse Chat Streaming API and receive the streamed response', async () => {
     const co = new CohereClient({
       token: 'cohere-token',
     });
-
     const cohereResponse = await co.chatStream({
-      message: '',
+      message: 'hi there!',
     });
 
     const stream = CohereStream(cohereResponse);
+    const response = new StreamingTextResponse(stream);
+    expect(await readAllChunks(response)).toEqual([
+      ' Hello',
+      ',',
+      ' world',
+      '.',
+      ' ',
+    ]);
+  });
 
+  it('should be able to parse SSE and receive the streamed response', async () => {
+    const stream = CohereStream(await fetch(DEFAULT_TEST_URL));
     const response = new StreamingTextResponse(stream);
 
     expect(await readAllChunks(response)).toEqual([
