@@ -9,9 +9,9 @@ import { Steps, Callout } from 'nextra-theme-docs';
 Vercel AI SDK provides a set of utilities to make it easy to use [Perplexity](https://perplexity.ai)'s APIs and models. In this guide, we'll walk through how to use the utilities to create a chat bot.
 
 <Callout>
-  Perplexity's REST APIs are compatible with OpenAI
-  so we will use OpenAI's JavaScript SDK to make the requests. This makes it
-  very easy to migrate and try out Perplexity.ai's models.
+  Perplexity's REST APIs are compatible with OpenAI so we will use OpenAI's
+  JavaScript SDK to make the requests. This makes it very easy to migrate and
+  try out Perplexity.ai's models.
 </Callout>
 
 ## Guide: PPLX 70B Online Chatbot
@@ -163,7 +163,7 @@ export async function POST(req: Request) {
     max_tokens: 1000,
     messages,
   });
-  
+
   // Convert the response into a friendly text-stream.
   const stream = OpenAIStream(response);
 
