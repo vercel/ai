@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
   const { messages } = await req.json();
 
-  // Ask Perplexity for a streaming chat completion using PPLX 7B online model
+  // Ask Perplexity for a streaming chat completion using PPLX 70B online model
   // @see https://blog.perplexity.ai/blog/introducing-pplx-online-llms
   const response = await perplexity.chat.completions.create({
     model: 'pplx-70b-online',
