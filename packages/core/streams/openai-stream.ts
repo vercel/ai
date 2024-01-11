@@ -151,7 +151,7 @@ interface ChoiceDelta {
 // From https://github.com/openai/openai-node/blob/master/src/resources/chat/completions.ts
 // Updated to https://github.com/openai/openai-node/commit/84b43280089eacdf18f171723591856811beddce
 interface DeltaToolCall {
-  index?: number; // optional to support Azure OpenAI
+  index: number;
 
   /**
    * The ID of the tool call.
