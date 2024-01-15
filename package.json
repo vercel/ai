@@ -7,7 +7,7 @@
     "dev": "turbo dev --no-cache  --concurrency 16 --continue",
     "lint": "turbo lint",
     "prepare": "husky install",
-    "prettier-check": "prettier --debug-check \"**/*.{js,ts,tsx,md,mdx}\"",
+    "prettier-check": "prettier --check \"**/*.{js,ts,tsx,md,mdx}\"",
     "type-check": "turbo type-check",
     "prettier-fix": "prettier --write \"**/*.{js,ts,tsx,md,mdx}\"",
     "publint": "turbo publint",
