@@ -221,6 +221,17 @@ const toolCallStreamPart: StreamPart<
   },
 };
 
+const audioPart: StreamPart<'8', 'audio', string> = {
+  code: '8',
+  name: 'audio',
+  parse: (value: JSONValue) => {
+    if (typeof value !== 'string') {
+      throw new Error('"audio" parts expect a string value.');
+    }
+    return { type: 'audio', value };
+  },
+};
+
 const streamParts = [
   textStreamPart,
   functionCallStreamPart,
@@ -230,6 +241,7 @@ const streamParts = [
   assistantControlDataStreamPart,
   dataMessageStreamPart,
   toolCallStreamPart,
+  audioPart,
 ] as const;
 
 // union type of all stream parts
@@ -241,7 +253,8 @@ type StreamParts =
   | typeof assistantMessageStreamPart
   | typeof assistantControlDataStreamPart
   | typeof dataMessageStreamPart
-  | typeof toolCallStreamPart;
+  | typeof toolCallStreamPart
+  | typeof audioPart;
 
 /**
  * Maps the type of a stream part to its value type.
@@ -258,7 +271,8 @@ export type StreamPartType =
   | ReturnType<typeof assistantMessageStreamPart.parse>
   | ReturnType<typeof assistantControlDataStreamPart.parse>
   | ReturnType<typeof dataMessageStreamPart.parse>
-  | ReturnType<typeof toolCallStreamPart.parse>;
+  | ReturnType<typeof toolCallStreamPart.parse>
+  | ReturnType<typeof audioPart.parse>;
 
 export const streamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
@@ -269,6 +283,7 @@ export const streamPartsByCode = {
   [assistantControlDataStreamPart.code]: assistantControlDataStreamPart,
   [dataMessageStreamPart.code]: dataMessageStreamPart,
   [toolCallStreamPart.code]: toolCallStreamPart,
+  [audioPart.code]: audioPart,
 } as const;
 
 /**
@@ -302,6 +317,7 @@ export const StreamStringPrefixes = {
   [assistantControlDataStreamPart.name]: assistantControlDataStreamPart.code,
   [dataMessageStreamPart.name]: dataMessageStreamPart.code,
   [toolCallStreamPart.name]: toolCallStreamPart.code,
+  [audioPart.name]: audioPart.code,
 } as const;
 
 export const validCodes = streamParts.map(part => part.code);

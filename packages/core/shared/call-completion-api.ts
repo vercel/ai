@@ -16,6 +16,7 @@ export async function callCompletionApi({
   onFinish,
   onError,
   onData,
+  onSpeechPart,
 }: {
   api: string;
   prompt: string;
@@ -30,6 +31,7 @@ export async function callCompletionApi({
   onFinish?: (prompt: string, completion: string) => void;
   onError?: (error: Error) => void;
   onData?: (data: JSONValue[]) => void;
+  onSpeechPart?: (data: ArrayBufferLike) => void;
 }) {
   try {
     setLoading(true);
@@ -93,6 +95,16 @@ export async function callCompletionApi({
           case 'data': {
             onData?.(value);
             break;
+          }
+          case 'audio': {
+            console.log('decode audio');
+
+            //  convert base64 to Uint8Array:
+            const bytes = Uint8Array.from(atob(value), char =>
+              char.charCodeAt(0),
+            ).buffer;
+
+            onSpeechPart?.(bytes);
           }
         }
       }

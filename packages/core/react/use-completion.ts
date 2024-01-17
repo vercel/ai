@@ -57,6 +57,8 @@ export type UseCompletionHelpers = {
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
   data?: JSONValue[] | undefined;
+
+  speechUrl: string | null;
 };
 
 export function useCompletion({
@@ -96,6 +98,61 @@ export function useCompletion({
   const [abortController, setAbortController] =
     useState<AbortController | null>(null);
 
+  // speech setup
+  // TODO reset on completionId change
+  const mediaSourceRef = useRef<MediaSource | undefined>(undefined);
+  const sourceBufferRef = useRef<SourceBuffer | undefined>(undefined);
+  const audioChunks = useRef<ArrayBufferLike[]>([]);
+  const [speechUrl, setSpeechUrl] = useState<string | null>(null);
+
+  const tryAppendNextChunk = () => {
+    const sourceBuffer = sourceBufferRef.current;
+    const chunks = audioChunks.current;
+
+    console.log('tryAppendNextChunk', {
+      sourceBuffer: sourceBuffer != null,
+      updating: sourceBuffer?.updating,
+      audioChunks: chunks.length,
+    });
+
+    if (sourceBuffer != null && !sourceBuffer.updating && chunks.length > 0) {
+      console.log('appendBuffer');
+      // get first audio chunk and append it to the source buffer
+      sourceBuffer.appendBuffer(chunks.shift()!);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && mediaSourceRef.current == null) {
+      console.log('create media source');
+      mediaSourceRef.current = new MediaSource();
+
+      const sourceOpen = () => {
+        console.log('sourceopen');
+
+        sourceBufferRef.current =
+          mediaSourceRef.current?.addSourceBuffer('audio/mpeg'); // TODO configurable
+
+        sourceBufferRef.current?.addEventListener('updateend', () => {
+          console.log('updateend');
+          tryAppendNextChunk();
+        });
+      };
+
+      mediaSourceRef.current.addEventListener('sourceopen', sourceOpen, {
+        once: true,
+      });
+
+      console.log('setSpeechUrl');
+      setSpeechUrl(URL.createObjectURL(mediaSourceRef.current));
+
+      return () => {
+        console.log('removeEventListener');
+        //  mediaSourceRef.current?.removeEventListener('sourceopen', sourceOpen);
+      };
+    }
+  }, []);
+
   const extraMetadataRef = useRef({
     credentials,
     headers,
@@ -125,10 +182,19 @@ export function useCompletion({
         setError,
         setAbortController,
         onResponse,
-        onFinish,
+        onFinish: (prompt, completion) => {
+          if (mediaSourceRef.current?.readyState === 'open') {
+            mediaSourceRef.current?.endOfStream();
+          }
+          onFinish?.(prompt, completion);
+        },
         onError,
         onData: data => {
           mutateStreamData([...(streamData || []), ...(data || [])], false);
+        },
+        onSpeechPart: data => {
+          audioChunks.current.push(data);
+          tryAppendNextChunk();
         },
       }),
     [
@@ -194,5 +260,6 @@ export function useCompletion({
     handleSubmit,
     isLoading,
     data: streamData,
+    speechUrl,
   };
 }
