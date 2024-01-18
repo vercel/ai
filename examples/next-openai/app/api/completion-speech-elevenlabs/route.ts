@@ -13,7 +13,7 @@ const openai = new OpenAI({
 });
 
 const elevenLabsSpeech = elevenlabs.SpeechGenerator({
-  voice: 'pNInz6obpgDQGcFmaJgB', // Adam
+  voice: '21m00Tcm4TlvDq8ikWAM', // Rachel
   optimizeStreamingLatency: 1,
   voiceSettings: {
     stability: 1,
