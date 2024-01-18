@@ -3,6 +3,7 @@ import {
   OpenAIStream,
   StreamingTextResponse,
   experimental_StreamData,
+  forwardLmntSpeechStream,
 } from 'ai';
 import Speech from 'lmnt-node';
 
@@ -28,55 +29,28 @@ export async function POST(req: Request) {
     prompt,
   });
 
-  const speechStreamingConnection = speech.synthesizeStreaming(
+  const speechStream = speech.synthesizeStreaming(
     '034b632b-df71-46c8-b440-86a42ffc3cf3', // Henry
     {},
   );
 
   const data = new experimental_StreamData();
 
-  // create a promise to wait for the speech stream to finish
-  let resolveSpeech: (value: unknown) => void = () => {};
-  const speechFinishedPromise = new Promise(resolve => {
-    resolveSpeech = resolve;
+  // note: no await here, we want to run this in parallel:
+  forwardLmntSpeechStream(speechStream, data, {
+    onFinal() {
+      data.close();
+    },
   });
-
-  // run in parallel:
-  (async () => {
-    let i = 0;
-    for await (const chunk of speechStreamingConnection) {
-      try {
-        const chunkAny = chunk as any;
-        const audioBuffer: Buffer = chunkAny.audio;
-
-        // base64 encode the audio buffer
-        const base64Audio = audioBuffer.toString('base64');
-
-        console.log('streaming speech chunk #' + i++);
-
-        data.appendSpeech(base64Audio);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    console.log('done streaming speech');
-
-    resolveSpeech?.(undefined);
-  })();
 
   // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response, {
     onToken(token) {
-      speechStreamingConnection.appendText(token);
-      speechStreamingConnection.flush();
+      speechStream.appendText(token);
+      speechStream.flush();
     },
-    async onFinal(completion) {
-      speechStreamingConnection.finish();
-
-      await speechFinishedPromise;
-      data.close();
-
-      console.log('done streaming text');
+    onFinal(completion) {
+      speechStream.finish();
     },
     experimental_streamData: true,
   });
