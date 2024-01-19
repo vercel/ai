@@ -6,6 +6,7 @@ import {
   RequestOptions,
   UseCompletionOptions,
 } from '../shared/types';
+import { useMediaSource } from './use-media-source';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -99,50 +100,13 @@ export function useCompletion({
     useState<AbortController | null>(null);
 
   // speech setup
-  const sourceBufferRef = useRef<SourceBuffer | undefined>(undefined);
-  const audioChunks = useRef<ArrayBufferLike[]>([]);
-  const { data: mediaSourceData } = useSWR<
-    | {
-        mediaSource: MediaSource;
-        speechUrl: string;
-      }
-    | undefined
-  >([completionId, 'mediaSource'], async () => {
-    // MediaSource is not available on the server:
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-
-    const mediaSource = new MediaSource();
-
-    mediaSource.addEventListener(
-      'sourceopen',
-      () => {
-        // TODO choose correct type based on browser / OS settings
-        sourceBufferRef.current = mediaSource.addSourceBuffer('audio/mpeg');
-
-        sourceBufferRef.current.addEventListener('updateend', () => {
-          tryAppendNextChunk();
-        });
-      },
-      { once: true },
-    );
-
-    return {
-      mediaSource,
-      speechUrl: URL.createObjectURL(mediaSource),
-    };
+  const {
+    mediaSourceUrl: speechUrl,
+    finishAudioStream,
+    appendAudioChunk,
+  } = useMediaSource({
+    id: completionId,
   });
-
-  const tryAppendNextChunk = () => {
-    const sourceBuffer = sourceBufferRef.current;
-    const chunks = audioChunks.current;
-
-    if (sourceBuffer != null && !sourceBuffer.updating && chunks.length > 0) {
-      // get first audio chunk and append it to the source buffer
-      sourceBuffer.appendBuffer(chunks.shift()!);
-    }
-  };
 
   const extraMetadataRef = useRef({
     credentials,
@@ -174,19 +138,14 @@ export function useCompletion({
         setAbortController,
         onResponse,
         onFinish: (prompt, completion) => {
-          if (mediaSourceData?.mediaSource?.readyState === 'open') {
-            mediaSourceData?.mediaSource?.endOfStream();
-          }
+          finishAudioStream();
           onFinish?.(prompt, completion);
         },
         onError,
         onData: data => {
           mutateStreamData([...(streamData || []), ...(data || [])], false);
         },
-        onSpeechPart: data => {
-          audioChunks.current.push(data);
-          tryAppendNextChunk();
-        },
+        onAudioChunk: appendAudioChunk,
       }),
     [
       mutate,
@@ -251,6 +210,6 @@ export function useCompletion({
     handleSubmit,
     isLoading,
     data: streamData,
-    speechUrl: mediaSourceData?.speechUrl ?? null,
+    speechUrl,
   };
 }

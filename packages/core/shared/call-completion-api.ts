@@ -16,7 +16,7 @@ export async function callCompletionApi({
   onFinish,
   onError,
   onData,
-  onSpeechPart,
+  onAudioChunk,
 }: {
   api: string;
   prompt: string;
@@ -31,7 +31,7 @@ export async function callCompletionApi({
   onFinish?: (prompt: string, completion: string) => void;
   onError?: (error: Error) => void;
   onData?: (data: JSONValue[]) => void;
-  onSpeechPart?: (data: ArrayBufferLike) => void;
+  onAudioChunk?: (base64Chunk: string) => void;
 }) {
   try {
     setLoading(true);
@@ -97,14 +97,8 @@ export async function callCompletionApi({
             break;
           }
           case 'audio': {
-            console.log('decode audio');
-
-            //  convert base64 to Uint8Array:
-            const bytes = Uint8Array.from(atob(value), char =>
-              char.charCodeAt(0),
-            ).buffer;
-
-            onSpeechPart?.(bytes);
+            onAudioChunk?.(value);
+            break;
           }
         }
       }
