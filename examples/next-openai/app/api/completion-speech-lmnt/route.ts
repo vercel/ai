@@ -12,7 +12,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
 
-const speech = new Speech(process.env.LMNT_API_KEY || '');
+const speech = new Speech(process.env.LMNT_API_KEY || 'no key');
 
 // IMPORTANT! Set the runtime to edge
 // export const runtime = 'edge';
