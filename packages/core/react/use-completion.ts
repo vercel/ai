@@ -99,10 +99,8 @@ export function useCompletion({
     useState<AbortController | null>(null);
 
   // speech setup
-  // TODO reset / stop when a new completion is requested
   const sourceBufferRef = useRef<SourceBuffer | undefined>(undefined);
   const audioChunks = useRef<ArrayBufferLike[]>([]);
-
   const { data: mediaSourceData } = useSWR<
     | {
         mediaSource: MediaSource;
@@ -115,14 +113,13 @@ export function useCompletion({
       return undefined;
     }
 
-    console.log('create media source');
-
     const mediaSource = new MediaSource();
 
     mediaSource.addEventListener(
       'sourceopen',
       () => {
-        sourceBufferRef.current = mediaSource.addSourceBuffer('audio/mpeg'); // TODO configurable
+        // TODO choose correct type based on browser / OS settings
+        sourceBufferRef.current = mediaSource.addSourceBuffer('audio/mpeg');
 
         sourceBufferRef.current.addEventListener('updateend', () => {
           tryAppendNextChunk();
@@ -140,12 +137,6 @@ export function useCompletion({
   const tryAppendNextChunk = () => {
     const sourceBuffer = sourceBufferRef.current;
     const chunks = audioChunks.current;
-
-    console.log('tryAppendNextChunk', {
-      sourceBuffer: sourceBuffer != null,
-      updating: sourceBuffer?.updating,
-      audioChunks: chunks.length,
-    });
 
     if (sourceBuffer != null && !sourceBuffer.updating && chunks.length > 0) {
       // get first audio chunk and append it to the source buffer
