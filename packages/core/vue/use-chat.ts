@@ -55,6 +55,11 @@ export type UseChatHelpers = {
 
   /** Additional data added on the server via StreamData */
   data: Ref<JSONValue[] | undefined>;
+
+  /**
+   * Clears the error state. This is useful when you want to clear the error manually after it has been returned from the server.
+   */
+  clearError: () => void;
 };
 
 let uniqueId = 0;
@@ -231,6 +236,10 @@ export function useChat({
     }
   };
 
+  const clearError = () => {
+    error.value = undefined;
+  };
+
   const setMessages = (messages: Message[]) => {
     mutate(messages);
   };
@@ -262,5 +271,6 @@ export function useChat({
     handleSubmit,
     isLoading,
     data: streamData as Ref<undefined | JSONValue[]>,
+    clearError,
   };
 }
