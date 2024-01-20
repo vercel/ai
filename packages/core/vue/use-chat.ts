@@ -12,6 +12,7 @@ import type {
   UseChatOptions,
 } from '../shared/types';
 import { nanoid } from '../shared/utils';
+import { c } from 'vitest/dist/reporters-5f784f42';
 
 export type { CreateMessage, Message, UseChatOptions };
 
