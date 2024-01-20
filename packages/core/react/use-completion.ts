@@ -57,6 +57,10 @@ export type UseCompletionHelpers = {
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
   data?: JSONValue[] | undefined;
+  /**
+   * Clears the error state. This is useful when you want to clear the error manually after it has been returned from the server.
+   */
+  clearError: () => void;
 };
 
 export function useCompletion({
@@ -153,6 +157,10 @@ export function useCompletion({
     }
   }, [abortController]);
 
+  const clearError = useCallback(() => {
+    setError(undefined);
+  }, [setError]);
+
   const setCompletion = useCallback(
     (completion: string) => {
       mutate(completion, false);
@@ -194,5 +202,6 @@ export function useCompletion({
     handleSubmit,
     isLoading,
     data: streamData,
+    clearError,
   };
 }

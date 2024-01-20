@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { readDataStream } from '../shared/read-data-stream';
 import { Message } from '../shared/types';
 
@@ -55,6 +55,11 @@ export type UseAssistantHelpers = {
    * The error thrown during the assistant message processing, if any.
    */
   error: undefined | unknown;
+
+  /**
+   * Clears the error state. This is useful when you want to clear the error manually after it has been returned from the server.
+   */
+  clearError: () => void;
 };
 
 export type UseAssistantOptions = {
@@ -205,6 +210,10 @@ export function experimental_useAssistant({
     setStatus('awaiting_message');
   };
 
+  const clearError = useCallback(() => {
+    setError(undefined);
+  }, [setError]);
+
   return {
     messages,
     threadId,
@@ -214,5 +223,6 @@ export function experimental_useAssistant({
     submitMessage,
     status,
     error,
+    clearError,
   };
 }

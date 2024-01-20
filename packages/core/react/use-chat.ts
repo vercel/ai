@@ -71,6 +71,10 @@ export type UseChatHelpers = {
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
   data?: JSONValue[] | undefined;
+  /**
+   * Clears the error state. This is useful when you want to clear the error manually after it has been returned from the server.
+   */
+  clearError: ()=>void
 };
 
 type StreamingReactResponseAction = (payload: {
@@ -421,6 +425,12 @@ export function useChat({
     }
   }, []);
 
+  const clearError = useCallback(() => { 
+    setError(undefined);
+  }
+  , [setError]);
+
+
   const setMessages = useCallback(
     (messages: Message[]) => {
       mutate(messages, false);
@@ -478,5 +488,6 @@ export function useChat({
     handleSubmit,
     isLoading,
     data: streamData,
+    clearError,
   };
 }
