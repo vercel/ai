@@ -21,6 +21,8 @@ export async function callChatApi({
   onUpdate,
   onFinish,
   generateId,
+  finishAudioStream,
+  appendAudioChunk,
 }: {
   api: string;
   messages: Omit<Message, 'id'>[];
@@ -34,6 +36,8 @@ export async function callChatApi({
   onUpdate: (merged: Message[], data: JSONValue[] | undefined) => void;
   onFinish?: (message: Message) => void;
   generateId: IdGenerator;
+  finishAudioStream?: () => void;
+  appendAudioChunk?: (base64Chunk: string) => void;
 }) {
   const response = await fetch(api, {
     method: 'POST',
@@ -86,6 +90,8 @@ export async function callChatApi({
         }
       },
       generateId,
+      finishAudioStream,
+      appendAudioChunk,
     });
   } else {
     const createdAt = new Date();

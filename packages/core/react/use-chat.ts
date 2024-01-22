@@ -16,6 +16,8 @@ import type {
   ReactResponseRow,
   experimental_StreamingReactResponse,
 } from '../streams/streaming-react-response';
+import { useMediaSource } from './use-media-source';
+
 export type { CreateMessage, Message, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -71,6 +73,8 @@ export type UseChatHelpers = {
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
   data?: JSONValue[] | undefined;
+
+  speechUrl: string | null;
 };
 
 type StreamingReactResponseAction = (payload: {
@@ -91,6 +95,8 @@ const getStreamedResponse = async (
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean,
+  finishAudioStream?: () => void,
+  appendAudioChunk?: (base64Chunk: string) => void,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -197,6 +203,8 @@ const getStreamedResponse = async (
       mutateStreamData([...(existingData || []), ...(data || [])], false);
     },
     onFinish,
+    appendAudioChunk,
+    finishAudioStream,
     generateId,
   });
 };
@@ -260,6 +268,15 @@ export function useChat({
   // Abort controller to cancel the current API call.
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // speech setup
+  const {
+    mediaSourceUrl: speechUrl,
+    finishAudioStream,
+    appendAudioChunk,
+  } = useMediaSource({
+    id: idKey,
+  });
+
   const extraMetadataRef = useRef({
     credentials,
     headers,
@@ -298,6 +315,8 @@ export function useChat({
               onFinish,
               onResponse,
               sendExtraMessageFields,
+              finishAudioStream,
+              appendAudioChunk,
             ),
           experimental_onFunctionCall,
           experimental_onToolCall,
@@ -478,5 +497,6 @@ export function useChat({
     handleSubmit,
     isLoading,
     data: streamData,
+    speechUrl,
   };
 }

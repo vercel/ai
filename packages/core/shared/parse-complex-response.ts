@@ -22,6 +22,8 @@ export async function parseComplexResponse({
   onFinish,
   generateId = nanoid,
   getCurrentDate = () => new Date(),
+  finishAudioStream,
+  appendAudioChunk,
 }: {
   reader: ReadableStreamDefaultReader<Uint8Array>;
   abortControllerRef?: {
@@ -31,6 +33,8 @@ export async function parseComplexResponse({
   onFinish?: (prefixMap: PrefixMap) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;
+  finishAudioStream?: () => void;
+  appendAudioChunk?: (base64Chunk: string) => void;
 }) {
   const createdAt = getCurrentDate();
   const prefixMap: PrefixMap = {
@@ -41,53 +45,61 @@ export async function parseComplexResponse({
   for await (const { type, value } of readDataStream(reader, {
     isAborted: () => abortControllerRef?.current === null,
   })) {
-    if (type === 'text') {
-      if (prefixMap['text']) {
-        prefixMap['text'] = {
-          ...prefixMap['text'],
-          content: (prefixMap['text'].content || '') + value,
-        };
-      } else {
-        prefixMap['text'] = {
-          id: generateId(),
-          role: 'assistant',
-          content: value,
-          createdAt,
-        };
-      }
-    }
-
     let functionCallMessage: Message | null = null;
-
-    if (type === 'function_call') {
-      prefixMap['function_call'] = {
-        id: generateId(),
-        role: 'assistant',
-        content: '',
-        function_call: value.function_call,
-        name: value.function_call.name,
-        createdAt,
-      };
-
-      functionCallMessage = prefixMap['function_call'];
-    }
-
     let toolCallMessage: Message | null = null;
 
-    if (type === 'tool_calls') {
-      prefixMap['tool_calls'] = {
-        id: generateId(),
-        role: 'assistant',
-        content: '',
-        tool_calls: value.tool_calls,
-        createdAt,
-      };
+    switch (type) {
+      case 'text': {
+        prefixMap['text'] =
+          prefixMap['text'] != null
+            ? {
+                ...prefixMap['text'],
+                content: (prefixMap['text'].content || '') + value,
+              }
+            : {
+                id: generateId(),
+                role: 'assistant',
+                content: value,
+                createdAt,
+              };
 
-      toolCallMessage = prefixMap['tool_calls'];
-    }
+        break;
+      }
 
-    if (type === 'data') {
-      prefixMap['data'].push(...value);
+      case 'function_call': {
+        functionCallMessage = prefixMap['function_call'] = {
+          id: generateId(),
+          role: 'assistant',
+          content: '',
+          function_call: value.function_call,
+          name: value.function_call.name,
+          createdAt,
+        };
+
+        break;
+      }
+
+      case 'tool_calls': {
+        toolCallMessage = prefixMap['tool_calls'] = {
+          id: generateId(),
+          role: 'assistant',
+          content: '',
+          tool_calls: value.tool_calls,
+          createdAt,
+        };
+
+        break;
+      }
+
+      case 'data': {
+        prefixMap['data'].push(value);
+        break;
+      }
+
+      case 'audio': {
+        appendAudioChunk?.(value);
+        break;
+      }
     }
 
     const responseMessage = prefixMap['text'];
@@ -102,6 +114,7 @@ export async function parseComplexResponse({
     update(merged, [...prefixMap['data']]); // make a copy of the data array
   }
 
+  finishAudioStream?.();
   onFinish?.(prefixMap);
 
   return {
