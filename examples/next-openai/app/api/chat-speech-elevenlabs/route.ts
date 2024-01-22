@@ -22,7 +22,7 @@ const elevenLabsSpeech = elevenlabs.SpeechGenerator({
 });
 
 // IMPORTANT! Set the runtime to edge
-// export const runtime = 'edge';
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();

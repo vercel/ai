@@ -413,8 +413,8 @@ importers:
         specifier: 1.0.0
         version: 1.0.0(bufferutil@4.0.8)
       modelfusion:
-        specifier: 0.127.0
-        version: 0.127.0(bufferutil@4.0.8)
+        specifier: 0.130.1
+        version: 0.130.1(bufferutil@4.0.8)
       next:
         specifier: 14.0.3
         version: 14.0.3(react-dom@18.2.0)(react@18.2.0)
@@ -11406,8 +11406,8 @@ packages:
       pkg-types: 1.0.3
       ufo: 1.3.1
 
-  /modelfusion@0.127.0(bufferutil@4.0.8):
-    resolution: {integrity: sha512-qS/i9NpEyUK9oeAjOwkcRh/j1phe3Z+ndRj2wp3+qR15DcCrMQzHF2ExiNT8JvZ+7pWqk1bZ06U6ZkWsix/mZA==}
+  /modelfusion@0.130.1(bufferutil@4.0.8):
+    resolution: {integrity: sha512-L54INZlQXNQbMem41LaBREcP+99q6EPLoACSln51+Pb2kPqGI9a7mzdKj6rUs4oZbYm5LbD/HKjAdl4+IZ+VPQ==}
     engines: {node: '>=18'}
     dependencies:
       eventsource-parser: 1.1.1
