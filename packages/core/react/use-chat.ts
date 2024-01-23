@@ -360,6 +360,8 @@ export function useChat({
       messagesRef,
       abortControllerRef,
       generateId,
+      finishAudioStream,
+      appendAudioChunk,
     ],
   );
 

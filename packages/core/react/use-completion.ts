@@ -159,6 +159,8 @@ export function useCompletion({
       setError,
       streamData,
       mutateStreamData,
+      finishAudioStream,
+      appendAudioChunk,
     ],
   );
 
