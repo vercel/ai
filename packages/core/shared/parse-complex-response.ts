@@ -92,7 +92,7 @@ export async function parseComplexResponse({
       }
 
       case 'data': {
-        prefixMap['data'].push(value);
+        prefixMap['data'].push(...value);
         break;
       }
 
