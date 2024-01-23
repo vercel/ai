@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import useSWR from 'swr';
 
 // internal hook
@@ -22,7 +22,7 @@ export function useMediaSource({ id }: { id: string }) {
     mediaSource.addEventListener(
       'sourceopen',
       () => {
-        // TODO choose correct type based on browser / OS settings
+        // audio/mpeg is returned by the supported speech stream providers
         sourceBufferRef.current = mediaSource.addSourceBuffer('audio/mpeg');
 
         sourceBufferRef.current.addEventListener('updateend', () => {
@@ -38,7 +38,7 @@ export function useMediaSource({ id }: { id: string }) {
     };
   });
 
-  const tryAppendNextChunk = () => {
+  const tryAppendNextChunk = useCallback(() => {
     const sourceBuffer = sourceBufferRef.current;
     const chunks = audioChunks.current;
 
@@ -46,7 +46,7 @@ export function useMediaSource({ id }: { id: string }) {
       // get first audio chunk and append it to the source buffer
       sourceBuffer.appendBuffer(chunks.shift()!);
     }
-  };
+  }, []);
 
   return {
     mediaSourceUrl: mediaSourceData?.url ?? null,
