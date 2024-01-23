@@ -94,8 +94,6 @@ export class experimental_StreamData {
       throw new Error('Data Stream has already been closed.');
     }
 
-    console.log('appendSpeech', speechBase64.length, this.controller != null);
-
     this.controller?.enqueue(
       this.encoder.encode(formatStreamPart('audio', speechBase64)),
     );
