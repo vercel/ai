@@ -47,7 +47,11 @@ export async function POST(req: Request) {
   const stream = OpenAIStream(response, {
     onToken(token) {
       speechStream.appendText(token);
-      speechStream.flush();
+
+      // only flush after each sentence to make it sound more natural:
+      if (token.includes('.')) {
+        speechStream.flush();
+      }
     },
     onFinal(completion) {
       speechStream.finish();
