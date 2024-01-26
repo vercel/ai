@@ -41,11 +41,11 @@ export class experimental_StreamData {
           controller.enqueue(encodedData);
         }
 
-        if (self.messageData.length) {
-          const encodedMessageData = self.encoder.encode(
-            formatStreamPart('message_annotations', self.messageData),
+        if (self.messageAnnotations.length) {
+          const encodedmessageAnnotations = self.encoder.encode(
+            formatStreamPart('message_annotations', self.messageAnnotations),
           );
-          controller.enqueue(encodedMessageData);
+          controller.enqueue(encodedmessageAnnotations);
         }
 
         controller.enqueue(chunk);
