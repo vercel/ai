@@ -74,7 +74,7 @@ export async function parseComplexResponse({
       }
     }
 
-    if (type == 'message_data') {
+    if (type == 'message_annotations') {
       if (prefixMap['text']) {
         prefixMap['text'] = {
           ...prefixMap['text'],

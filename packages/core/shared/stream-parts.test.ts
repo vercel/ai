@@ -72,7 +72,7 @@ describe('stream-parts', () => {
     it('should parse a message data line', () => {
       const input = '8:[{"test":"value"}]';
       const expectedOutput = {
-        type: 'message_data',
+        type: 'message_annotations',
         value: [{ test: 'value' }],
       };
       expect(parseStreamPart(input)).toEqual(expectedOutput);

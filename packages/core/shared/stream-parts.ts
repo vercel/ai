@@ -223,17 +223,17 @@ const toolCallStreamPart: StreamPart<
 
 const messageDataStreamPart: StreamPart<
   '8',
-  'message_data',
+  'message_annotations',
   Array<JSONValue>
 > = {
   code: '8',
-  name: 'message_data',
+  name: 'message_annotations',
   parse: (value: JSONValue) => {
     if (!Array.isArray(value)) {
       throw new Error('"data" parts expect an array value.');
     }
 
-    return { type: 'message_data', value };
+    return { type: 'message_annotations', value };
   },
 };
 
