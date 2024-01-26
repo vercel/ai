@@ -105,7 +105,7 @@ export class experimental_StreamData {
     this.data.push(value);
   }
 
-  appendMessageAnnotation(value: JSONValue): void {
+  appendMessageAnnotations(value: JSONValue): void {
     if (this.isClosed) {
       throw new Error('Data Stream has already been closed.');
     }

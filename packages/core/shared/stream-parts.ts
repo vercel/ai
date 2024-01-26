@@ -230,7 +230,7 @@ const messageAnnotationsStreamPart: StreamPart<
   name: 'message_annotations',
   parse: (value: JSONValue) => {
     if (!Array.isArray(value)) {
-      throw new Error('"data" parts expect an array value.');
+      throw new Error('"message_annotations" parts expect an array value.');
     }
 
     return { type: 'message_annotations', value };
