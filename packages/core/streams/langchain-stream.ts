@@ -3,12 +3,23 @@ import {
   createCallbacksTransformer,
 } from './ai-stream';
 import { createStreamDataTransformer } from './stream-data';
+import { BaseCallbackHandler } from 'langchain/callbacks';
 
-export function LangChainStream(callbacks?: AIStreamCallbacksAndOptions) {
+const FUNCTION_NAME_PREFIX = '{"function_call":{"name": "';
+const FUNCTION_NAME_SUFFIX = '"';
+const FUNCTION_ARGUMENTS_PREFIX = ', "arguments": ';
+const FUNCTION_ARGUMENTS_SUFFIX = '}}';
+
+export function LangChainStream(callbacks?: AIStreamCallbacksAndOptions): {
+  stream: ReadableStream;
+  writer: WritableStreamDefaultWriter;
+  handlers: BaseCallbackHandler;
+} {
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
   const runs = new Set();
+  const runState = new Map<string, 'function' | 'arguments' | 'text'>();
 
   const handleError = async (e: Error, runId: string) => {
     runs.delete(runId);
@@ -36,10 +47,63 @@ export function LangChainStream(callbacks?: AIStreamCallbacksAndOptions) {
         createStreamDataTransformer(callbacks?.experimental_streamData),
       ),
     writer,
-    handlers: {
-      handleLLMNewToken: async (token: string) => {
-        await writer.ready;
-        await writer.write(token);
+    handlers: BaseCallbackHandler.fromMethods({
+      handleLLMNewToken: async (
+        token,
+        _idx,
+        runId,
+        _parentRunId,
+        _tags,
+        fields,
+      ) => {
+        let text = '';
+
+        const chunk = fields?.chunk;
+        if (!!chunk) {
+          if (chunk.text) {
+            text += chunk.text;
+            runState.set(runId, 'text');
+          }
+
+          if ('message' in chunk) {
+            const fn = chunk.message.additional_kwargs.function_call;
+            if (fn?.name) {
+              if (runState.get(runId) !== 'function') {
+                text += FUNCTION_NAME_PREFIX;
+                runState.set(runId, 'function');
+              }
+
+              text += fn.name;
+            } else if (runState.get(runId) === 'function') {
+              text += FUNCTION_NAME_SUFFIX;
+            }
+
+            if (fn?.arguments) {
+              if (runState.get(runId) !== 'arguments') {
+                text += FUNCTION_ARGUMENTS_PREFIX;
+                runState.set(runId, 'arguments');
+              }
+
+              text += fn.arguments;
+            } else {
+              if (runState.get(runId) === 'arguments') {
+                text += FUNCTION_ARGUMENTS_SUFFIX;
+              }
+            }
+          }
+
+          if (text) {
+            await writer.ready;
+            await writer.write(text);
+          }
+        } else {
+          text = token;
+        }
+
+        if (!!text) {
+          await writer.ready;
+          await writer.write(text);
+        }
       },
       handleLLMStart: async (_llm: any, _prompts: string[], runId: string) => {
         handleStart(runId);
@@ -68,6 +132,6 @@ export function LangChainStream(callbacks?: AIStreamCallbacksAndOptions) {
       handleToolError: async (e: Error, runId: string) => {
         await handleError(e, runId);
       },
-    },
+    }),
   };
 }
