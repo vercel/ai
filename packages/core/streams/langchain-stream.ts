@@ -91,11 +91,6 @@ export function LangChainStream(callbacks?: AIStreamCallbacksAndOptions): {
               }
             }
           }
-
-          if (text) {
-            await writer.ready;
-            await writer.write(text);
-          }
         } else {
           text = token;
         }
