@@ -43,14 +43,24 @@ export interface AIStreamCallbacksAndOptions {
   experimental_streamData?: boolean;
 }
 
-// new TokenData()
-// data: TokenData,
+/**
+ * Options for the AIStreamParser.
+ * @interface
+ * @property {string} event - The event (type) from the server side event stream.
+ */
+export interface AIStreamParserOptions {
+  event?: string;
+}
+
 /**
  * Custom parser for AIStream data.
  * @interface
+ * @param {string} data - The data to be parsed.
+ * @param {AIStreamParserOptions} options - The options for the parser.
+ * @returns {string | void} The parsed data or void.
  */
 export interface AIStreamParser {
-  (data: string): string | void;
+  (data: string, options: AIStreamParserOptions): string | void;
 }
 
 /**
@@ -82,7 +92,9 @@ export function createEventStreamTransformer(
 
           if ('data' in event) {
             const parsedMessage = customParser
-              ? customParser(event.data)
+              ? customParser(event.data, {
+                  event: event.event,
+                })
               : event.data;
             if (parsedMessage) controller.enqueue(parsedMessage);
           }
