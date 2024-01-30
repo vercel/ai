@@ -112,7 +112,7 @@ export interface Message {
   tool_calls?: string | ToolCall[];
 
   /**
-   * Additional message-specific information added on the server via StreamData 
+   * Additional message-specific information added on the server via StreamData
    */
   annotations?: JSONValue[] | undefined;
 }

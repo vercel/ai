@@ -22,12 +22,12 @@ function initializeMessage({
   generateId: () => string;
   content: string;
   createdAt: Date;
-    annotations?: JSONValue[];
+  annotations?: JSONValue[];
 }): Message {
   return {
     id: generateId(),
     role: 'assistant',
-    ...rest
+    ...rest,
   };
 }
 
@@ -68,7 +68,7 @@ export async function parseComplexResponse({
           id: generateId(),
           role: 'assistant',
           content: value,
-          createdAt
+          createdAt,
         };
       }
     }
@@ -77,7 +77,7 @@ export async function parseComplexResponse({
       if (prefixMap['text']) {
         prefixMap['text'] = {
           ...prefixMap['text'],
-          annotations: [...prefixMap['text'].annotations || [], ...value],
+          annotations: [...(prefixMap['text'].annotations || []), ...value],
         };
       } else {
         prefixMap['text'] = {
@@ -85,7 +85,7 @@ export async function parseComplexResponse({
           role: 'assistant',
           content: '',
           annotations: [...value],
-          createdAt
+          createdAt,
         };
       }
     }
