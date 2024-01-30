@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.32
+
+### Patch Changes
+
+- 7851fa0: StreamData: add `annotations` and `appendMessageAnnotation` support
+
 ## 2.2.31
 
 ### Patch Changes
