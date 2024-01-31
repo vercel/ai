@@ -66,7 +66,8 @@ interface CitationsProps {
 const Citations = ({ annotations }: CitationsProps) => {
   // get the records_cited annotation of the message
   const recordsCitedAnnotation = annotations?.find(
-    item => typeof item === 'object' && item !== null && 'records_cited' in item,
+    item =>
+      typeof item === 'object' && item !== null && 'records_cited' in item,
   ) as { records_cited: InkeepRecordsCitedData } | undefined;
 
   // get the citations from the records_cited annotation

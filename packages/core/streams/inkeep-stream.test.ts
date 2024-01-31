@@ -45,7 +45,8 @@ describe('InkeepStream', () => {
     ]);
   });
 
-  const recordsCitedSerialized = '"records_cited":{"citations":[{"number":1,"record":{"url":"https://inkeep.com","title":"Inkeep","breadcrumbs":["Home","About"]}}]}'
+  const recordsCitedSerialized =
+    '"records_cited":{"citations":[{"number":1,"record":{"url":"https://inkeep.com","title":"Inkeep","breadcrumbs":["Home","About"]}}]}';
 
   describe('StreamData protocol', () => {
     it('should receive and send Inkeep onFinal metadata with chat_session_id', async () => {
@@ -71,7 +72,7 @@ describe('InkeepStream', () => {
         '0:","\n',
         '0:" world"\n',
         '0:"."\n',
-        `2:[{"onFinalMetadata":{"chat_session_id":"12345",${recordsCitedSerialized}}}]\n`
+        `2:[{"onFinalMetadata":{"chat_session_id":"12345",${recordsCitedSerialized}}}]\n`,
       ]);
     });
 
@@ -105,7 +106,7 @@ describe('InkeepStream', () => {
         '0:" world"\n',
         '0:"."\n',
         `2:[{"onFinalMetadata":{"chat_session_id":"12345",${recordsCitedSerialized}}}]\n`,
-        `8:[{${recordsCitedSerialized}}]\n`
+        `8:[{${recordsCitedSerialized}}]\n`,
       ]);
     });
   });

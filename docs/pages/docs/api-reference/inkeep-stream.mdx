@@ -237,7 +237,8 @@ const recordsCitedAnnotation =
   messages &&
   messages.length > 0 &&
   (messages[0].annotations?.find(
-    item => typeof item === 'object' && item !== null && 'records_cited' in item,
+    item =>
+      typeof item === 'object' && item !== null && 'records_cited' in item,
   ) as { records_cited: InkeepRecordsCitedData } | undefined);
 
 // get the citations from the records_cited annotation

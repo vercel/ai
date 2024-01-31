@@ -49,8 +49,8 @@ export const InkeepEventStream = [
             url: 'https://inkeep.com',
             title: 'Inkeep',
             breadcrumbs: ['Home', 'About'],
-          }
-        }
+          },
+        },
       ],
     },
   },
