@@ -20,7 +20,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "ai/*": ["../../packages/core/*"], // needed so that it builds, will remove in a small follow-up PR once new version is released
+      "ai": ["../../packages/core"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
