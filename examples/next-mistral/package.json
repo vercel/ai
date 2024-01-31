@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "ai": "2.2.31",
+    "ai": "2.2.32",
     "next": "14.0.3",
     "@mistralai/mistralai": "0.0.7",
     "react": "18.2.0",
