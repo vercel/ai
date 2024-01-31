@@ -81,6 +81,10 @@ export type UseAssistantOptions = {
    * An optional, additional body object to be passed to the API endpoint.
    */
   body?: object;
+  
+  /**
+   * An optional callback that will be called when the assistant encounters an error.
+   */
   onError?: (error: Error) => void;
 };
 
