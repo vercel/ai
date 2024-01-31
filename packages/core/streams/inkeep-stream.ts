@@ -43,7 +43,7 @@ export type InkeepChatResultCallbacks = {
     completion: string,
     metadata?: InkeepOnFinalMetadata,
   ) => Promise<void> | void;
-  onRecordsCited?: (recordsCited: InkeepRecordsCitedData) => void;
+  onRecordsCited?: (records_cited: InkeepRecordsCitedData) => void;
 };
 
 export type InkeepAIStreamCallbacksAndOptions = AIStreamCallbacksAndOptions &
@@ -66,9 +66,8 @@ export function InkeepStream(
     let inkeepContentChunk: InkeepMessageChunkData;
 
     if (event === 'records_cited') {
-      const recordsCited = JSON.parse(data) as InkeepRecordsCitedData;
       records_cited = JSON.parse(data) as InkeepRecordsCitedData;
-      callbacks?.onRecordsCited?.(recordsCited);
+      callbacks?.onRecordsCited?.(records_cited);
     }
 
     if (event === 'message_chunk') {

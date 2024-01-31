@@ -23,7 +23,7 @@ The `InkeepAIStreamCallbacksAndOptions` extends the standard (AIStreamCallbacks)
     // ... rest of `AIStreamCallbacks`
     [
       'onRecordsCited',
-      '(recordsCited: InkeepRecordsCitedData) => void',
+      '(records_cited: InkeepRecordsCitedData) => void',
       'An optional function that is called once for every request, after the main content of a message has completed. It includes the information about the records (sources) cited in the AI chat response.',
     ],
     [
@@ -191,10 +191,10 @@ export async function POST(req: Request) {
   }
 
   const stream = InkeepStream(response, {
-    onRecordsCited: async recordsCited => {
+    onRecordsCited: async records_cited => {
       // append the citations as a message annotation
       data.appendMessageAnnotation({
-        recordsCited,
+        records_cited,
       });
     },
     onFinal: async (complete: string, metadata?: InkeepOnFinalMetadata) => {
@@ -237,9 +237,9 @@ const recordsCitedAnnotation =
   messages &&
   messages.length > 0 &&
   (messages[0].annotations?.find(
-    item => typeof item === 'object' && item !== null && 'recordsCited' in item,
-  ) as { recordsCited: InkeepRecordsCitedData } | undefined);
+    item => typeof item === 'object' && item !== null && 'records_cited' in item,
+  ) as { records_cited: InkeepRecordsCitedData } | undefined);
 
-// get the citations from the recordsCited annotation
-const citations = recordsCitedAnnotation?.recordsCited?.citations;
+// get the citations from the records_cited annotation
+const citations = recordsCitedAnnotation?.records_cited?.citations;
 ```

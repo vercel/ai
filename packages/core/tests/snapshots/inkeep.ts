@@ -1,27 +1,57 @@
-export const InkeepContentChunks = [
+export const InkeepEventStream = [
   {
-    chat_session_id: 'bd5d957d-1a4d-47f2-adb4-2472d828d597',
-    content_chunk: ' Hello',
-    final_response: null,
+    event: 'message_chunk',
+    data: {
+      chat_session_id: '12345',
+      content_chunk: ' Hello',
+      finish_reason: null,
+    },
   },
   {
-    chat_session_id: 'bd5d957d-1a4d-47f2-adb4-2472d828d597',
-    content_chunk: ',',
-    final_response: null,
+    event: 'message_chunk',
+    data: {
+      chat_session_id: '12345',
+      content_chunk: ',',
+      finish_reason: null,
+    },
   },
   {
-    chat_session_id: 'bd5d957d-1a4d-47f2-adb4-2472d828d597',
-    content_chunk: ' world',
-    final_response: null,
+    event: 'message_chunk',
+    data: {
+      chat_session_id: '12345',
+      content_chunk: ' world',
+      finish_reason: null,
+    },
   },
   {
-    chat_session_id: 'bd5d957d-1a4d-47f2-adb4-2472d828d597',
-    content_chunk: '.',
-    final_response: null,
+    event: 'message_chunk',
+    data: {
+      chat_session_id: '12345',
+      content_chunk: '.',
+      finish_reason: null,
+    },
   },
   {
-    chat_session_id: 'bd5d957d-1a4d-47f2-adb4-2472d828d597',
-    content_chunk: '',
-    final_response: 'stop',
+    event: 'message_chunk',
+    data: {
+      chat_session_id: '12345',
+      content_chunk: '',
+      finish_reason: 'stop',
+    },
+  },
+  {
+    event: 'records_cited',
+    data: {
+      citations: [
+        {
+          number: 1,
+          record: {
+            url: 'https://inkeep.com',
+            title: 'Inkeep',
+            breadcrumbs: ['Home', 'About'],
+          }
+        }
+      ],
+    },
   },
 ];

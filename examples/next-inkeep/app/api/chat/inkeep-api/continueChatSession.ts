@@ -1,4 +1,4 @@
-import { InkeepMessage } from 'ai/streams';
+import { InkeepMessage } from 'ai';
 
 // The type for the request body
 export interface ContinueChatInput {

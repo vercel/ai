@@ -198,10 +198,10 @@ export async function POST(req: Request) {
   }
 
   const stream = InkeepStream(response, {
-    onRecordsCited: async recordsCited => {
+    onRecordsCited: async records_cited => {
       // append the citations to the message annotations
       data.appendMessageAnnotation({
-        recordsCited,
+        records_cited,
       });
     },
     onFinal: async (complete: string, metadata?: InkeepOnFinalMetadata) => {
@@ -235,7 +235,7 @@ This example leverages a few utilities provided by the Vercel AI SDK:
    class with the default headers you probably want (hint: `'Content-Type':
 'text/plain; charset=utf-8'` is already set for you). This will provide the streamed content to the client.
 
-3. Lastly, we use the [experimental_StreamData](/docs/api-reference/stream-data) and callback methods of the `InkeepStream` to attach metadata to the response like `onFinalMetadata.chat_session_id` and `recordsCited.citations` for use by the client.
+3. Lastly, we use the [experimental_StreamData](/docs/api-reference/stream-data) and callback methods of the `InkeepStream` to attach metadata to the response like `onFinalMetadata.chat_session_id` and `records_cited.citations` for use by the client.
 
 ### Wire up the UI
 
@@ -310,7 +310,7 @@ export default function Chat() {
 
 #### Show Citations (optional)
 
-The Inkeep API provides information about the sources (documentation, web pages, forums, etc.) used to answer a question in a `recordsCited` message annotation.
+The Inkeep API provides information about the sources (documentation, web pages, forums, etc.) used to answer a question in a `records_cited` message annotation.
 
 We can use this to display a list of "Citations" at the end of the main chat message content.
 
@@ -323,13 +323,13 @@ interface CitationsProps {
 }
 
 export const Citations = ({ annotations }: CitationsProps) => {
-  // get the recordsCited annotation of the message
+  // get the records_cited annotation of the message
   const recordsCitedAnnotation = annotations?.find(
-    item => typeof item === 'object' && item !== null && 'recordsCited' in item,
-  ) as { recordsCited: InkeepRecordsCitedData } | undefined;
+    item => typeof item === 'object' && item !== null && 'records_cited' in item,
+  ) as { records_cited: InkeepRecordsCitedData } | undefined;
 
-  // get the citations from the recordsCited annotation
-  const citations = recordsCitedAnnotation?.recordsCited?.citations;
+  // get the citations from the records_cited annotation
+  const citations = recordsCitedAnnotation?.records_cited?.citations;
 
   return (
     citations && (

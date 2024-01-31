@@ -49,10 +49,10 @@ export async function POST(req: Request) {
   }
 
   const stream = InkeepStream(response, {
-    onRecordsCited: async recordsCited => {
+    onRecordsCited: async records_cited => {
       // append the citations to the message annotations
       data.appendMessageAnnotation({
-        recordsCited,
+        records_cited,
       });
     },
     onFinal: async (complete: string, metadata?: InkeepOnFinalMetadata) => {

@@ -64,13 +64,13 @@ interface CitationsProps {
 }
 
 const Citations = ({ annotations }: CitationsProps) => {
-  // get the recordsCited annotation of the message
+  // get the records_cited annotation of the message
   const recordsCitedAnnotation = annotations?.find(
-    item => typeof item === 'object' && item !== null && 'recordsCited' in item,
-  ) as { recordsCited: InkeepRecordsCitedData } | undefined;
+    item => typeof item === 'object' && item !== null && 'records_cited' in item,
+  ) as { records_cited: InkeepRecordsCitedData } | undefined;
 
-  // get the citations from the recordsCited annotation
-  const citations = recordsCitedAnnotation?.recordsCited?.citations;
+  // get the citations from the records_cited annotation
+  const citations = recordsCitedAnnotation?.records_cited?.citations;
 
   return (
     citations && (

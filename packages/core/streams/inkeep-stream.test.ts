@@ -1,18 +1,19 @@
 import {
+  InkeepOnFinalMetadata,
   InkeepStream,
   StreamingTextResponse,
   experimental_StreamData,
 } from '.';
-import { InkeepContentChunks } from '../tests/snapshots/inkeep';
+import { InkeepEventStream } from '../tests/snapshots/inkeep';
 import { readAllChunks } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 
 const server = createMockServer([
   {
     url: DEFAULT_TEST_URL,
-    chunks: InkeepContentChunks,
-    formatChunk: chunk =>
-      `event: chat_result\ndata: ${JSON.stringify(chunk)}\n\n`,
+    chunks: InkeepEventStream,
+    formatChunk: ({ event, data }) =>
+      `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
   },
 ]);
 
@@ -44,14 +45,20 @@ describe('InkeepStream', () => {
     ]);
   });
 
+  const recordsCitedSerialized = '"records_cited":{"citations":[{"number":1,"record":{"url":"https://inkeep.com","title":"Inkeep","breadcrumbs":["Home","About"]}}]}'
+
   describe('StreamData protocol', () => {
-    it('should send text', async () => {
+    it('should receive and send Inkeep onFinal metadata with chat_session_id', async () => {
       const data = new experimental_StreamData();
 
       const response = await fetch(DEFAULT_TEST_URL);
 
       const stream = InkeepStream(response, {
-        onFinal() {
+        onFinal: async (complete: string, metadata?: InkeepOnFinalMetadata) => {
+          // return the chat_session_id to the client
+          if (metadata) {
+            data.append({ onFinalMetadata: metadata });
+          }
           data.close();
         },
         experimental_streamData: true,
@@ -64,18 +71,27 @@ describe('InkeepStream', () => {
         '0:","\n',
         '0:" world"\n',
         '0:"."\n',
+        `2:[{"onFinalMetadata":{"chat_session_id":"12345",${recordsCitedSerialized}}}]\n`
       ]);
     });
 
-    it('should send text and data', async () => {
+    it('should receive and send Inkeep records_cited data as message annotation', async () => {
       const data = new experimental_StreamData();
-
-      data.append({ t1: 'v1' });
 
       const response = await fetch(DEFAULT_TEST_URL);
 
       const stream = InkeepStream(response, {
-        onFinal() {
+        onRecordsCited: async records_cited => {
+          // append the citations to the message annotations
+          data.appendMessageAnnotation({
+            records_cited,
+          });
+        },
+        onFinal: async (complete: string, metadata?: InkeepOnFinalMetadata) => {
+          // return the chat_session_id to the client
+          if (metadata) {
+            data.append({ onFinalMetadata: metadata });
+          }
           data.close();
         },
         experimental_streamData: true,
@@ -84,11 +100,12 @@ describe('InkeepStream', () => {
       const responseStream = new StreamingTextResponse(stream, {}, data);
 
       expect(await readAllChunks(responseStream)).toEqual([
-        '2:[{"t1":"v1"}]\n',
         '0:" Hello"\n',
         '0:","\n',
         '0:" world"\n',
         '0:"."\n',
+        `2:[{"onFinalMetadata":{"chat_session_id":"12345",${recordsCitedSerialized}}}]\n`,
+        `8:[{${recordsCitedSerialized}}]\n`
       ]);
     });
   });
