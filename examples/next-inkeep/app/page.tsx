@@ -37,8 +37,6 @@ export default function Chat() {
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(m => {
-        console.log(m);
-
         return (
           <div key={m.id} className="whitespace-pre-wrap">
             <br />
