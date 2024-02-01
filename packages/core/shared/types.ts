@@ -110,6 +110,11 @@ export interface Message {
    * the tool call name and arguments. Otherwise, the field should not be set.
    */
   tool_calls?: string | ToolCall[];
+
+  /**
+   * Additional message-specific information added on the server via StreamData
+   */
+  annotations?: JSONValue[] | undefined;
 }
 
 export type CreateMessage = Omit<Message, 'id'> & {

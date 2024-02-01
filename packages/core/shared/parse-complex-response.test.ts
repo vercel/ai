@@ -224,4 +224,45 @@ describe('parseComplexResponse function', () => {
       data: [{ t1: 'v1' }, 3, null, false, 'text'],
     });
   });
+
+  it('should parse a combination of a text message and message annotations', async () => {
+    const mockUpdate = vi.fn();
+
+    // Execute the parser function
+    const result = await parseComplexResponse({
+      reader: createTestReader([
+        '0:"Sample text message."\n',
+        '8:[{"key":"value"}, 2]\n',
+      ]),
+      abortControllerRef: { current: new AbortController() },
+      update: mockUpdate,
+      generateId: () => 'test-id',
+      getCurrentDate: () => new Date(0),
+    });
+
+    // check the mockUpdate call:
+    expect(mockUpdate).toHaveBeenCalledTimes(2);
+
+    expect(mockUpdate.mock.calls[0][0]).toEqual([
+      assistantTextMessage('Sample text message.'),
+    ]);
+
+    expect(mockUpdate.mock.calls[1][0]).toEqual([
+      {
+        ...assistantTextMessage('Sample text message.'),
+        annotations: [{ key: 'value' }, 2],
+      },
+    ]);
+
+    // check the result
+    expect(result).toEqual({
+      messages: [
+        {
+          ...assistantTextMessage('Sample text message.'),
+          annotations: [{ key: 'value' }, 2],
+        },
+      ],
+      data: [],
+    });
+  });
 });
