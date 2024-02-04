@@ -58,6 +58,11 @@ export default function Chat() {
             >
               <strong>{`${m.role}: `}</strong>
               {m.content || JSON.stringify(m.function_call)}
+            {m.annotations ? (
+              <div>
+                <br />
+                <em>Annotations:</em> {JSON.stringify(m.annotations)}
+              </div>) : null}
               <br />
               <br />
             </div>

@@ -75,6 +75,8 @@ export async function POST(req: Request) {
           text: 'Some custom data',
         });
 
+        data.appendMessageAnnotation({ "current_weather": weatherData });
+
         const newMessages = createFunctionCallMessages(weatherData);
         return openai.chat.completions.create({
           messages: [...messages, ...newMessages],
