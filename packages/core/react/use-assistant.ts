@@ -23,6 +23,11 @@ export type UseAssistantHelpers = {
   input: string;
 
   /**
+   * setState-powered method to update the input value.
+   */
+  setInput: React.Dispatch<React.SetStateAction<string>>;
+
+  /**
    * Handler for the `onChange` event of the input field to control the input's value.
    */
   handleInputChange: (
@@ -81,6 +86,11 @@ export type UseAssistantOptions = {
    * An optional, additional body object to be passed to the API endpoint.
    */
   body?: object;
+
+  /**
+   * An optional callback that will be called when the assistant encounters an error.
+   */
+  onError?: (error: Error) => void;
 };
 
 export function experimental_useAssistant({
@@ -89,12 +99,13 @@ export function experimental_useAssistant({
   credentials,
   headers,
   body,
+  onError,
 }: UseAssistantOptions): UseAssistantHelpers {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<AssistantStatus>('awaiting_message');
-  const [error, setError] = useState<unknown | undefined>(undefined);
+  const [error, setError] = useState<undefined | Error>(undefined);
 
   const handleInputChange = (
     event:
@@ -188,13 +199,18 @@ export function experimental_useAssistant({
           }
 
           case 'error': {
-            setError(value);
+            const errorObj = new Error(value);
+            setError(errorObj);
             break;
           }
         }
       }
     } catch (error) {
-      setError(error);
+      if (onError && error instanceof Error) {
+        onError(error);
+      }
+
+      setError(error as Error);
     }
 
     setStatus('awaiting_message');
@@ -204,6 +220,7 @@ export function experimental_useAssistant({
     messages,
     threadId,
     input,
+    setInput,
     handleInputChange,
     submitMessage,
     status,

@@ -1,43 +1,49 @@
 'use client';
 
-import { FunctionCallHandler, nanoid } from 'ai';
+import { ChatRequest, ToolCallHandler, nanoid } from 'ai';
 import { Message, useChat } from 'ai/react';
 
 export default function Chat() {
-  const functionCallHandler: FunctionCallHandler = async (
-    chatMessages,
-    functionCall,
-  ) => {
-    if (functionCall.name === 'eval_code_in_browser') {
-      if (functionCall.arguments) {
-        // Parsing here does not always work since it seems that some characters in generated code aren't escaped properly.
-        const parsedFunctionCallArguments: { code: string } = JSON.parse(
-          functionCall.arguments,
-        );
+  const toolCallHandler: ToolCallHandler = async (chatMessages, toolCalls) => {
+    let handledFunction = false;
+    for (const tool of toolCalls) {
+      if (tool.type === 'function') {
+        const { name, arguments: args } = tool.function;
 
-        // WARNING: Do NOT do this in real-world applications!
-        eval(parsedFunctionCallArguments.code);
+        if (name === 'eval_code_in_browser') {
+          // Parsing here does not always work since it seems that some characters in generated code aren't escaped properly.
+          const parsedFunctionCallArguments: { code: string } =
+            JSON.parse(args);
 
-        const functionResponse = {
-          messages: [
-            ...chatMessages,
-            {
+          // WARNING: Do NOT do this in real-world applications!
+          eval(parsedFunctionCallArguments.code);
+
+          const result = parsedFunctionCallArguments.code;
+
+          if (result) {
+            handledFunction = true;
+
+            chatMessages.push({
               id: nanoid(),
-              name: 'eval_code_in_browser',
-              role: 'function' as const,
-              content: parsedFunctionCallArguments.code,
-            },
-          ],
-        };
-
-        return functionResponse;
+              tool_call_id: tool.id,
+              name: tool.function.name,
+              role: 'tool' as const,
+              content: result,
+            });
+          }
+        }
       }
+    }
+
+    if (handledFunction) {
+      const toolResponse: ChatRequest = { messages: chatMessages };
+      return toolResponse;
     }
   };
 
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: '/api/chat-with-functions',
-    experimental_onFunctionCall: functionCallHandler,
+    api: '/api/chat-with-tools',
+    experimental_onToolCall: toolCallHandler,
   });
 
   // Generate a map of message role to text color
@@ -61,11 +67,6 @@ export default function Chat() {
             >
               <strong>{`${m.role}: `}</strong>
               {m.content || JSON.stringify(m.function_call)}
-            {m.annotations ? (
-              <div>
-                <br />
-                <em>Annotations:</em> {JSON.stringify(m.annotations)}
-              </div>) : null}
               <br />
               <br />
             </div>

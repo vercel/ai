@@ -6,7 +6,7 @@ title: Solid.js
 
 ## On the client
 
-The Vercel AI SDKs [`useChat`](./api-reference/use-chat) and [`useCompletion`](./api-reference/use-completion) hooks are available from the
+The Vercel AI SDKs [`useChat`](/docs/api-reference/use-chat) and [`useCompletion`](/docs/api-reference/use-completion) hooks are available from the
 `ai/solid` subpackage. You can use them in your Solid.js application like this:
 
 ```tsx filename="src/routes/index.tsx" showLineNumbers
@@ -50,11 +50,11 @@ export default function Chat() {
 ## On the server
 
 If you're using a server like the one provided by Node.js' `http` module or Express
-that doesn't support returning a stream, you can use the [`streamToResponse`](./api-reference/stream-to-response)
-function to convert the stream into a Response object. See an example on the [`streamToResponse`](./api-reference/stream-to-response#example-nodejs-http-server) page.
+that doesn't support returning a stream, you can use the [`streamToResponse`](/docs/api-reference/stream-to-response)
+function to convert the stream into a Response object. See an example on the [`streamToResponse`](/docs/api-reference/stream-to-response#example-nodejs-http-server) page.
 
 Alternatively, if you're using a meta-framework like [SolidStart](https://start.solidjs.com), you can use the
-AI SDK's [`StreamingTextResponse`](./api-reference/streaming-text-response):
+AI SDK's [`StreamingTextResponse`](/docs/api-reference/streaming-text-response):
 
 ```ts filename="api/chat/index.ts"
 import { OpenAIStream, StreamingTextResponse } from 'ai';

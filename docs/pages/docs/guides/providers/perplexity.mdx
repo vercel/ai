@@ -1,27 +1,26 @@
 ---
-title: Fireworks.ai
+title: Perplexity
 ---
 
 import { Steps, Callout } from 'nextra-theme-docs';
 
-# Fireworks.ai
+# Perplexity
 
-Vercel AI SDK provides a set of utilities to make it easy to use [Fireworks.ai](https://app.fireworks.ai)'s APIs and models. In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
+Vercel AI SDK provides a set of utilities to make it easy to use [Perplexity](https://perplexity.ai)'s APIs and models. In this guide, we'll walk through how to use the utilities to create a chat bot.
 
 <Callout>
-  Fireworks.ai's REST APIs [are compatible with
-  OpenAI](https://readme.fireworks.ai/docs/getting-started-with-your-api#openai-python-client-library)'s
-  so we will use OpenAI's JavaScript SDK to make the requests. This makes it
-  very easy to migrate and try out Fireworks.ai's models.
+  Perplexity's REST APIs are compatible with OpenAI so we will use OpenAI's
+  JavaScript SDK to make the requests. This makes it very easy to migrate and
+  try out Perplexity.ai's models.
 </Callout>
 
-## Guide: Llama 2 Chatbot
+## Guide: PPLX 70B Online Chatbot
 
 <Steps>
 
 ### Create a Next.js app
 
-Create a Next.js application and install `ai` and `openai`, the Vercel AI SDK and OpenAI API client respectively. Fireworks' REST APIs [are compatible with OpenAI](https://readme.fireworks.ai/docs/getting-started-with-your-api#openai-python-client-library)'s so we will use OpenAI's JavaScript SDK to make the requests.
+Create a Next.js application and install `ai` and `openai`, the Vercel AI SDK and OpenAI API client respectively. Perplexity's REST APIs are compatible with OpenAI's so we will use OpenAI's JavaScript SDK to make the requests.
 
 ```sh
 pnpm dlx create-next-app my-ai-app
@@ -29,17 +28,17 @@ cd my-ai-app
 pnpm install ai openai
 ```
 
-### Add your Fireworks API Key to `.env`
+### Add your Perplexity API Key to `.env`
 
-Create a `.env` file in your project root and add your Fireworks API Key:
+Create a `.env` file in your project root and add your Perplexity API Key:
 
 ```env filename=".env"
-FIREWORKS_API_KEY=xxxxxxxxx
+PERPLEXITY_API_KEY=xxxxxxxxx
 ```
 
 ### Create a Route Handler
 
-Create a Next.js Route Handler that uses the Edge Runtime that we'll use to generate a chat completion via Fireworks that we'll then stream back to our Next.js.
+Create a Next.js Route Handler that uses the Edge Runtime that we'll use to generate a chat completion via Perplexity that we'll then stream back to our Next.js.
 
 For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
 
@@ -48,27 +47,31 @@ import OpenAI from 'openai';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 
 // Create an OpenAI API client (that's edge friendly!)
-// but configure it to point to fireworks.ai
-const fireworks = new OpenAI({
-  apiKey: process.env.FIREWORKS_API_KEY || '',
-  baseURL: 'https://api.fireworks.ai/inference/v1',
+// but configure it to point to perplexity.ai
+const perplexity = new OpenAI({
+  apiKey: process.env.PERPLEXITY_API_KEY || '',
+  baseURL: 'https://api.perplexity.ai/',
 });
+
 // IMPORTANT! Set the runtime to edge
 export const runtime = 'edge';
+
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
   const { messages } = await req.json();
 
-  // Ask Fireworks for a streaming chat completion using Llama 2 70b model
-  // @see https://app.fireworks.ai/models/fireworks/llama-v2-70b-chat
-  const response = await fireworks.chat.completions.create({
-    model: 'accounts/fireworks/models/llama-v2-70b-chat',
+  // Ask Perplexity for a streaming chat completion using PPLX 70B online model
+  // @see https://blog.perplexity.ai/blog/introducing-pplx-online-llms
+  const response = await perplexity.chat.completions.create({
+    model: 'pplx-70b-online',
     stream: true,
     max_tokens: 1000,
     messages,
   });
+
   // Convert the response into a friendly text-stream.
   const stream = OpenAIStream(response);
+
   // Respond with the stream
   return new StreamingTextResponse(stream);
 }
@@ -76,7 +79,7 @@ export async function POST(req: Request) {
 
 <Callout>
   Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
-  pass the streaming `response` we receive from Fireworks to
+  pass the streaming `response` we receive from Perplexity to
   [`OpenAIStream`](/docs/api-reference/openai-stream). This method
   decodes/extracts the text tokens in the response and then re-encodes them
   properly for simple consumption. We can then pass that new stream directly to
@@ -132,18 +135,19 @@ export default function Chat() {
 
 ### Use the Completion API
 
-Similar to the Chatbot example above, we'll create a Next.js Route Handler that generates a text completion via Fireworks that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
+Similar to the Chatbot example above, we'll create a Next.js Route Handler that generates a text completion via Perplexity that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
 import OpenAI from 'openai';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 
 // Create an OpenAI API client (that's edge friendly!)
-// but configure it to point to fireworks.ai
-const fireworks = new OpenAI({
-  apiKey: process.env.FIREWORKS_API_KEY || '',
-  baseURL: 'https://api.fireworks.ai/inference/v1',
+// but configure it to point to perplexity.ai
+const perplexity = new OpenAI({
+  apiKey: process.env.PERPLEXITY_API_KEY || '',
+  baseURL: 'https://api.perplexity.ai/',
 });
+
 // IMPORTANT! Set the runtime to edge
 export const runtime = 'edge';
 
@@ -151,16 +155,18 @@ export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
 
-  // Ask Fireworks for a streaming chat completion using Llama 2 70b model
-  // @see https://app.fireworks.ai/models/fireworks/llama-v2-70b-chat
-  const response = await fireworks.completions.create({
-    model: 'accounts/fireworks/models/llama-v2-70b-chat',
+  // Ask Perplexity for a streaming chat completion using PPLX 70B online model
+  // @see https://blog.perplexity.ai/blog/introducing-pplx-online-llms
+  const response = await perplexity.chat.completions.create({
+    model: 'pplx-70b-online',
     stream: true,
     max_tokens: 1000,
-    prompt,
+    messages,
   });
+
   // Convert the response into a friendly text-stream.
   const stream = OpenAIStream(response);
+
   // Respond with the stream
   return new StreamingTextResponse(stream);
 }

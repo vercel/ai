@@ -5,13 +5,16 @@ import {
   experimental_StreamData,
 } from '.';
 import {
+  chatCompletionChunksWithToolCall,
   openaiChatCompletionChunks,
   openaiFunctionCallChunks,
 } from '../tests/snapshots/openai-chat';
 import { createClient, readAllChunks } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
+import { azureOpenaiChatCompletionChunks } from '../tests/snapshots/azure-openai';
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
+const TOOL_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-tool-call';
 
 const server = createMockServer([
   {
@@ -23,6 +26,12 @@ const server = createMockServer([
   {
     url: FUNCTION_CALL_TEST_URL,
     chunks: openaiFunctionCallChunks,
+    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+    suffix: 'data: [DONE]',
+  },
+  {
+    url: TOOL_CALL_TEST_URL,
+    chunks: chatCompletionChunksWithToolCall,
     formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
     suffix: 'data: [DONE]',
   },
@@ -306,6 +315,85 @@ describe('OpenAIStream', () => {
         '0:" world"\n',
         '0:"."\n',
       ]);
+    });
+  });
+
+  describe('tool calls', () => {
+    it('should call onToolCall handler with the tools', async () => {
+      let toolCalls: any = undefined;
+
+      const stream = OpenAIStream(await fetch(TOOL_CALL_TEST_URL), {
+        async experimental_onToolCall(payload, appendToolCallMessage) {
+          toolCalls = payload;
+        },
+      });
+
+      const response = new StreamingTextResponse(stream);
+      const client = createClient(response);
+      const chunks = await client.readAll();
+
+      expect(toolCalls).toEqual({
+        tools: [
+          {
+            func: {
+              arguments: '{}',
+              name: 'get_date_time',
+            },
+            id: 'call_NPkY32jNUOb3Kkm7v9cOgmVg',
+            type: 'function',
+          },
+          {
+            func: {
+              arguments: '{"url": "https://www.linkedin.com/in/jessepascoe"}',
+              name: 'open_webpage',
+            },
+            id: 'call_pOyOtXFQltSjUGsF7gnLAEcD',
+            type: 'function',
+          },
+        ],
+      });
+    });
+  });
+
+  describe('Azure SDK', () => {
+    async function* asyncIterableFromArray(array: any[]) {
+      for (const item of array) {
+        // You can also perform any asynchronous operations here if needed
+        yield item;
+      }
+    }
+
+    describe('StreamData prototcol', () => {
+      it('should send text', async () => {
+        const data = new experimental_StreamData();
+
+        const stream = OpenAIStream(
+          asyncIterableFromArray(azureOpenaiChatCompletionChunks),
+          {
+            onFinal() {
+              data.close();
+            },
+            experimental_streamData: true,
+          },
+        );
+
+        const response = new StreamingTextResponse(stream, {}, data);
+
+        const client = createClient(response);
+        const chunks = await client.readAll();
+
+        expect(chunks).toEqual([
+          '0:"Hello"\n',
+          '0:"!"\n',
+          '0:" How"\n',
+          '0:" can"\n',
+          '0:" I"\n',
+          '0:" assist"\n',
+          '0:" you"\n',
+          '0:" today"\n',
+          '0:"?"\n',
+        ]);
+      });
     });
   });
 });

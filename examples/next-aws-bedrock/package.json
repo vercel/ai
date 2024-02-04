@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "3.451.0",
-    "ai": "2.2.30",
+    "ai": "2.2.33",
     "next": "14.0.3",
     "react": "18.2.0",
     "react-dom": "^18.2.0"

@@ -1,5 +1,25 @@
 # ai
 
+## 2.2.33
+
+### Patch Changes
+
+- 8542ae7: react/use-assistant: add onError handler
+- 97039ff: OpenAIStream: Add support for the Azure OpenAI client library
+
+## 2.2.32
+
+### Patch Changes
+
+- 7851fa0: StreamData: add `annotations` and `appendMessageAnnotation` support
+
+## 2.2.31
+
+### Patch Changes
+
+- 9b89c4d: react/use-assistant: Expose setInput
+- 75751c9: ai/react: Add experimental_onToolCall to useChat.
+
 ## 2.2.30
 
 ### Patch Changes

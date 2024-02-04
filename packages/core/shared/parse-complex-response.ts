@@ -76,6 +76,23 @@ export async function parseComplexResponse({
       }
     }
 
+    if (type == 'message_annotations') {
+      if (prefixMap['text']) {
+        prefixMap['text'] = {
+          ...prefixMap['text'],
+          annotations: [...(prefixMap['text'].annotations || []), ...value],
+        };
+      } else {
+        prefixMap['text'] = {
+          id: generateId(),
+          role: 'assistant',
+          content: '',
+          annotations: [...value],
+          createdAt,
+        };
+      }
+    }
+
     let functionCallMessage: Message | null = null;
 
     if (type === 'function_call') {
