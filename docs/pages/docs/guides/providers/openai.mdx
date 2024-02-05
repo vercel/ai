@@ -265,38 +265,6 @@ export async function POST(req: Request) {
 }
 ```
 
-## Guide: Use with Azure OpenAI Service
-
-You can pass custom options to the `Configuration` from the OpenAI package to connect to the an Azure instance.
-See the [OpenAI client repository](https://github.com/openai/openai-node/blob/v4/examples/azure.ts) for a more complete example.
-
-```tsx filename="app/api/completion/route.ts"
-import OpenAI from 'openai';
-
-const resource = '<your resource name>';
-const model = '<your model>';
-
-const apiKey = process.env.AZURE_OPENAI_API_KEY;
-if (!apiKey) {
-  throw new Error('AZURE_OPENAI_API_KEY is missing from the environment.');
-}
-
-// Azure OpenAI requires a custom baseURL, api-version query param, and api-key header.
-const openai = new OpenAI({
-  apiKey,
-  baseURL: `https://${resource}.openai.azure.com/openai/deployments/${model}`,
-  defaultQuery: { 'api-version': '2023-06-01-preview' },
-  defaultHeaders: { 'api-key': apiKey },
-});
-```
-
-<Callout>
-  Note: Before the release of `openai@4`, we previously recommended using the
-  `openai-edge` library because of it's compatibility with Vercel Edge Runtime.
-  The OpenAI SDK now supports Edge Runtime out of the box, so we recommend using
-  the official `openai` library instead.
-</Callout>
-
 ## Guide: Using Images with GPT 4 Vision and useChat
 
 You can use the extra `data` property that is part of `handleSubmit` to send additional data

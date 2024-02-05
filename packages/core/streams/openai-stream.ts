@@ -16,6 +16,7 @@ import {
   createCallbacksTransformer,
   ToolCallPayload,
 } from './ai-stream';
+import { AzureChatCompletions } from './azure-openai-types';
 import { createStreamDataTransformer } from './stream-data';
 
 export type OpenAIStreamCallbacks = AIStreamCallbacksAndOptions & {
@@ -277,8 +278,38 @@ function parseOpenAIStream(): (data: string) => string | void {
  */
 async function* streamable(stream: AsyncIterableOpenAIStreamReturnTypes) {
   const extract = chunkToText();
-  for await (const chunk of stream) {
+
+  for await (let chunk of stream) {
+    // convert chunk if it is an Azure chat completion. Azure does not expose all
+    // properties in the interfaces, and also uses camelCase instead of snake_case
+    if ('promptFilterResults' in chunk) {
+      chunk = {
+        id: chunk.id,
+        created: chunk.created.getDate(),
+        object: (chunk as any).object, // not exposed by Azure API
+        model: (chunk as any).model, // not exposed by Azure API
+        choices: chunk.choices.map(choice => ({
+          delta: {
+            content: choice.delta?.content,
+            function_call: choice.delta?.functionCall,
+            role: choice.delta?.role as any,
+            tool_calls: choice.delta?.toolCalls?.length
+              ? choice.delta?.toolCalls?.map((toolCall, index) => ({
+                  index,
+                  id: toolCall.id,
+                  function: toolCall.function,
+                  type: toolCall.type,
+                }))
+              : undefined,
+          },
+          finish_reason: choice.finishReason as any,
+          index: choice.index,
+        })),
+      } satisfies ChatCompletionChunk;
+    }
+
     const text = extract(chunk);
+
     if (text) yield text;
   }
 }
@@ -350,7 +381,8 @@ const __internal__OpenAIFnMessagesSymbol = Symbol(
 
 type AsyncIterableOpenAIStreamReturnTypes =
   | AsyncIterable<ChatCompletionChunk>
-  | AsyncIterable<Completion>;
+  | AsyncIterable<Completion>
+  | AsyncIterable<AzureChatCompletions>;
 
 type ExtractType<T> = T extends AsyncIterable<infer U> ? U : never;
 

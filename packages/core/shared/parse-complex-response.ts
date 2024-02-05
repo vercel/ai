@@ -53,6 +53,9 @@ export async function parseComplexResponse({
     data: [],
   };
 
+  // keep list of current message annotations for message
+  let message_annotations: JSONValue[] | undefined = undefined;
+
   // we create a map of each prefix, and for each prefixed message we push to the map
   for await (const { type, value } of readDataStream(reader, {
     isAborted: () => abortControllerRef?.current === null,
@@ -68,23 +71,6 @@ export async function parseComplexResponse({
           id: generateId(),
           role: 'assistant',
           content: value,
-          createdAt,
-        };
-      }
-    }
-
-    if (type == 'message_annotations') {
-      if (prefixMap['text']) {
-        prefixMap['text'] = {
-          ...prefixMap['text'],
-          annotations: [...(prefixMap['text'].annotations || []), ...value],
-        };
-      } else {
-        prefixMap['text'] = {
-          id: generateId(),
-          role: 'assistant',
-          content: '',
-          annotations: [...value],
           createdAt,
         };
       }
@@ -125,12 +111,34 @@ export async function parseComplexResponse({
 
     const responseMessage = prefixMap['text'];
 
+    if (type == 'message_annotations') {
+      if (!message_annotations) {
+        message_annotations = [value]
+      } else {
+        message_annotations.push(value);
+      }
+    }
+
+    // override the message annotations for any valid message with the current value
+    if (message_annotations?.length) {
+      const keys: (keyof PrefixMap)[] = ['text', 'function_call', 'tool_calls'];
+
+      keys.forEach((key) => {
+        if (prefixMap[key]) {
+          (prefixMap[key] as Message).annotations = [...message_annotations!];
+        }
+      });
+    }
+
     // We add function & tool calls and response messages to the messages[], but data is its own thing
     const merged = [
       functionCallMessage,
       toolCallMessage,
       responseMessage,
-    ].filter(Boolean) as Message[];
+    ].filter(Boolean).map((message) => ({
+      ...message,
+      annotations: message_annotations,
+    })) as Message[];
 
     update(merged, [...prefixMap['data']]); // make a copy of the data array
   }
