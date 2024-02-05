@@ -231,8 +231,8 @@ describe('parseComplexResponse function', () => {
     // Execute the parser function
     const result = await parseComplexResponse({
       reader: createTestReader([
-        '0:"Sample text message."\n',
         '8:[{"key":"value"}, 2]\n',
+        '0:"Sample text message."\n',
       ]),
       abortControllerRef: { current: new AbortController() },
       update: mockUpdate,
@@ -243,9 +243,7 @@ describe('parseComplexResponse function', () => {
     // check the mockUpdate call:
     expect(mockUpdate).toHaveBeenCalledTimes(2);
 
-    expect(mockUpdate.mock.calls[0][0]).toEqual([
-      assistantTextMessage('Sample text message.'),
-    ]);
+    expect(mockUpdate.mock.calls[0][0]).toEqual([]);
 
     expect(mockUpdate.mock.calls[1][0]).toEqual([
       {
@@ -260,6 +258,93 @@ describe('parseComplexResponse function', () => {
         {
           ...assistantTextMessage('Sample text message.'),
           annotations: [{ key: 'value' }, 2],
+        },
+      ],
+      data: [],
+    });
+  });
+
+  it('should parse a combination of a function_call and message annotations', async () => {
+    const mockUpdate = vi.fn();
+
+    // Execute the parser function
+    const result = await parseComplexResponse({
+      reader: createTestReader([
+        '1:{"function_call":{"name":"get_current_weather","arguments":"{\\n\\"location\\": \\"Charlottesville, Virginia\\",\\n\\"format\\": \\"celsius\\"\\n}"}}\n',
+        '8:[{"key":"value"}, 2]\n',
+        '8:[null,false,"text"]\n',
+      ]),
+      abortControllerRef: { current: new AbortController() },
+      update: mockUpdate,
+      generateId: () => 'test-id',
+      getCurrentDate: () => new Date(0),
+    });
+
+    // check the mockUpdate call:
+    expect(mockUpdate).toHaveBeenCalledTimes(3);
+
+    expect(mockUpdate.mock.calls[0][0]).toEqual([
+      {
+        content: '',
+        createdAt: new Date(0),
+        id: 'test-id',
+        role: 'assistant',
+        function_call: {
+          name: 'get_current_weather',
+          arguments:
+            '{\n"location": "Charlottesville, Virginia",\n"format": "celsius"\n}',
+        },
+        name: 'get_current_weather',
+      },
+    ]);
+
+    expect(mockUpdate.mock.calls[1][0]).toEqual([
+      {
+        content: '',
+        createdAt: new Date(0),
+        id: 'test-id',
+        role: 'assistant',
+        function_call: {
+          name: 'get_current_weather',
+          arguments:
+            '{\n"location": "Charlottesville, Virginia",\n"format": "celsius"\n}',
+        },
+        name: 'get_current_weather',
+        annotations: [{ key: 'value' }, 2],
+      },
+    ]);
+
+    expect(mockUpdate.mock.calls[2][0]).toEqual([
+      {
+        content: '',
+        createdAt: new Date(0),
+        id: 'test-id',
+        role: 'assistant',
+        function_call: {
+          name: 'get_current_weather',
+          arguments:
+            '{\n"location": "Charlottesville, Virginia",\n"format": "celsius"\n}',
+        },
+        name: 'get_current_weather',
+        annotations: [{ key: 'value' }, 2, null, false, 'text'],
+      },
+    ]);
+
+    // check the result
+    expect(result).toEqual({
+      messages: [
+        {
+          content: '',
+          createdAt: new Date(0),
+          id: 'test-id',
+          role: 'assistant',
+          function_call: {
+            name: 'get_current_weather',
+            arguments:
+              '{\n"location": "Charlottesville, Virginia",\n"format": "celsius"\n}',
+          },
+          name: 'get_current_weather',
+          annotations: [{ key: 'value' }, 2, null, false, 'text'],
         },
       ],
       data: [],
