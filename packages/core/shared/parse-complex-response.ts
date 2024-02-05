@@ -15,20 +15,12 @@ type PrefixMap = {
   data: JSONValue[];
 };
 
-function initializeMessage({
-  generateId,
-  ...rest
-}: {
-  generateId: () => string;
-  content: string;
-  createdAt: Date;
-  annotations?: JSONValue[];
-}): Message {
-  return {
-    id: generateId(),
-    role: 'assistant',
-    ...rest,
-  };
+function assignAnnotationsToMessage<T extends Message | null | undefined>(
+  message: T,
+  annotations: JSONValue[] | undefined
+): T {
+  if (!(message && annotations && annotations.length)) return message;
+  return { ...message, annotations: [...annotations] } as T;
 }
 
 export async function parseComplexResponse({
@@ -110,14 +102,6 @@ export async function parseComplexResponse({
     }
 
     let responseMessage = prefixMap['text'];
-
-    function assignAnnotationsToMessage<T extends Message | null | undefined>(
-      message: T,
-      annotations: JSONValue[] | undefined
-    ): T {
-      if (!(message && annotations && annotations.length)) return message;
-      return { ...message, annotations: [...annotations] } as T;
-    }
 
     if (type === 'message_annotations') {
       if (!message_annotations) {
