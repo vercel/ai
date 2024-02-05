@@ -17,7 +17,7 @@ type PrefixMap = {
 
 function assignAnnotationsToMessage<T extends Message | null | undefined>(
   message: T,
-  annotations: JSONValue[] | undefined
+  annotations: JSONValue[] | undefined,
 ): T {
   if (!(message && annotations && annotations.length)) return message;
   return { ...message, annotations: [...annotations] } as T;
@@ -105,21 +105,34 @@ export async function parseComplexResponse({
 
     if (type === 'message_annotations') {
       if (!message_annotations) {
-        message_annotations = [...value]
+        message_annotations = [...value];
       } else {
         message_annotations.push(...value);
       }
 
       // Update any existing message with the latest annotations
-      functionCallMessage = assignAnnotationsToMessage(prefixMap['function_call'], message_annotations);
-      toolCallMessage = assignAnnotationsToMessage(prefixMap['tool_calls'], message_annotations);
-      responseMessage = assignAnnotationsToMessage(prefixMap['text'], message_annotations);
+      functionCallMessage = assignAnnotationsToMessage(
+        prefixMap['function_call'],
+        message_annotations,
+      );
+      toolCallMessage = assignAnnotationsToMessage(
+        prefixMap['tool_calls'],
+        message_annotations,
+      );
+      responseMessage = assignAnnotationsToMessage(
+        prefixMap['text'],
+        message_annotations,
+      );
     }
 
     // keeps the prefixMap up to date with the latest annotations, even if annotations preceded the message
     if (message_annotations?.length) {
-      const messagePrefixKeys: (keyof PrefixMap)[] = ['text', 'function_call', 'tool_calls'];
-      messagePrefixKeys.forEach((key) => {
+      const messagePrefixKeys: (keyof PrefixMap)[] = [
+        'text',
+        'function_call',
+        'tool_calls',
+      ];
+      messagePrefixKeys.forEach(key => {
         if (prefixMap[key]) {
           (prefixMap[key] as Message).annotations = [...message_annotations!];
         }
@@ -127,11 +140,11 @@ export async function parseComplexResponse({
     }
 
     // We add function & tool calls and response messages to the messages[], but data is its own thing
-    const merged = [
-      functionCallMessage,
-      toolCallMessage,
-      responseMessage,
-    ].filter(Boolean).map((message) => ({ ...assignAnnotationsToMessage(message, message_annotations) })) as Message[];
+    const merged = [functionCallMessage, toolCallMessage, responseMessage]
+      .filter(Boolean)
+      .map(message => ({
+        ...assignAnnotationsToMessage(message, message_annotations),
+      })) as Message[];
 
     update(merged, [...prefixMap['data']]); // make a copy of the data array
   }
