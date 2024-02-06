@@ -2,12 +2,12 @@
 
 import { useChat } from 'ai/react';
 import { useEffect, useState } from 'react';
-import { InkeepRecordsCitedData, Message } from 'ai';
-import { InkeepOnFinalMetadata } from 'ai/streams';
+import { Message } from 'ai';
+import { InkeepOnFinalMetadata, InkeepRecordsCited } from 'ai/streams';
 
 export default function Chat() {
   /**
-   * you can also put the chat session id in search params e.g. ?chat_session_id=123
+   * you can also put the chat session id in search params e.g. ?chatSessionId=123
    * or path params like /chat/123 depending on your use case
    */
   const [chatSessionId, setChatSessionId] = useState<string | undefined>(
@@ -28,7 +28,7 @@ export default function Chat() {
         typeof item === 'object' && item !== null && 'onFinalMetadata' in item,
     ) as { onFinalMetadata: InkeepOnFinalMetadata } | undefined;
 
-    // get the chat_session_id from the onFinalMetadata item
+    // get the chatSessionId from the onFinalMetadata item
     const chatSessionId = onFinalMetadataItem?.onFinalMetadata?.chat_session_id;
 
     setChatSessionId(chatSessionId);
@@ -68,7 +68,7 @@ const Citations = ({ annotations }: CitationsProps) => {
   const recordsCitedAnnotation = annotations?.find(
     item =>
       typeof item === 'object' && item !== null && 'records_cited' in item,
-  ) as { records_cited: InkeepRecordsCitedData } | undefined;
+  ) as { records_cited: InkeepRecordsCited } | undefined;
 
   // get the citations from the records_cited annotation
   const citations = recordsCitedAnnotation?.records_cited?.citations;

@@ -6,13 +6,13 @@ import { Steps, Callout } from 'nextra-theme-docs';
 
 # Inkeep
 
-Vercel AI SDK provides a set of utilities to make it easy to use [Inkeep](https://inkeep.com/)'s RAG and AI chat service to create chat experiences powered by your own content.
+Vercel AI SDK provides a set of utilities to make it easy to use [Inkeep](https://inkeep.com/)'s question-answer APIs to create chat experiences **powered by your own content**.
 
 In this guide, we'll walk through how to create a Q&A support bot powered by Inkeep.
 
 <Callout>
-  You can also use Inkeep for retrieval augmented generation (RAG) components of
-  more complex LLM applications or agents.
+  You can also use Inkeep as a retrieval augmented generation (RAG) or neural
+  search component of a larger LLM application or workflow.
 </Callout>
 
 ## Guide: Inkeep Chatbot
@@ -21,11 +21,15 @@ In this guide, we'll walk through how to create a Q&A support bot powered by Ink
 
 ### Create a Next.js app
 
-Create a Next.js application and install `ai`, the Vercel AI SDK.
+Create a Next.js application, install `ai`, the Vercel AI SDK, as well as `@inkeep/ai-api`, the Inkeep API SDK.
 
 ```sh
 pnpm dlx create-next-app my-rag-app
 cd my-rag-app
+```
+
+```
+pnpm add ai @inkeep/ai-api
 ```
 
 ### Add your Inkeep API Key to `.env`
@@ -37,114 +41,16 @@ INKEEP_API_KEY=xxxxxx
 INKEEP_INTEGRATION_ID=xxxxxx
 ```
 
-### Create Inkeep API utils
+### Create a Route Handler
 
 In order to provide analytics and correlate multiple message exchanges into a single "chat session", the Inkeep API provides two endpoints:
 
 1. `POST chat_sessions/chat_results` - To **create** a chat session
 2. `POST chat_sessions/${chat_session_id}/chat_results` - To **continue** a chat session
 
-First, lets create two helper functions for calling these endpoints.
+In this example, we'll use [@inkeep/ai-api](https://github.com/inkeep/chat-api-ts) package to call these endpoints, the `ai` Vercel SDK to create a streamed text response, and `useChat` to render the messages in the UI.
 
-### Create `createChatSession.ts`
-
-```ts filename="app/api/chat/createChatSession.ts" showLineNumbers
-import { InkeepMessage } from 'ai/streams';
-
-// The type for the request body
-export interface CreateChatSessionArgs {
-  integration_id: string;
-  chat_mode?: 'turbo' | 'auto'; // default: 'auto'
-  chat_session: {
-    messages: Array<InkeepMessage>;
-  };
-  stream?: boolean;
-}
-
-export async function createChatSession({
-  integration_id,
-  chat_mode,
-  chat_session,
-  stream,
-}: CreateChatSessionArgs) {
-  const body = JSON.stringify({
-    integration_id,
-    chat_mode,
-    chat_session,
-    stream,
-  });
-
-  const response = await fetch(
-    'https://api.inkeep.com/v0/chat_sessions/chat_results',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.INKEEP_API_KEY}`,
-      },
-      body,
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  return response;
-}
-```
-
-#### Create `continueChatSession.ts` helper
-
-```ts filename="app/api/chat/continueChatSession.ts" showLineNumbers
-import { InkeepMessage } from 'ai/streams';
-
-// The type for the request body
-export interface ContinueChatInput {
-  integration_id: string;
-  chat_session_id: string;
-  message: InkeepMessage;
-  stream?: boolean;
-}
-
-export async function continueChatSession({
-  integration_id,
-  chat_session_id,
-  message,
-  stream,
-}: ContinueChatInput) {
-  const body = JSON.stringify({
-    integration_id,
-    chat_session_id,
-    message,
-    stream,
-  });
-
-  const response = await fetch(
-    `https://api.inkeep.com/v0/chat_sessions/${chat_session_id}/chat_results`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.INKEEP_API_KEY}`,
-      },
-      body,
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  return response;
-}
-```
-
-### Create a Route Handler
-
-Create a Next.js Route Handler that we'll use to call the Inkeep API for creating or continuing a chat.
-
-For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings and an optional `chat_session_id`, which we'll use to decide whether to create or continue a chat.
+First, lets create a create a Next.js route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings and an optional `chat_session_id`. We'll use `chat_session_id` to decide whether to create or continue a chat.
 
 ```tsx filename="app/api/chat/route.ts" showLineNumbers
 import {
@@ -153,8 +59,7 @@ import {
   StreamingTextResponse,
   experimental_StreamData,
 } from 'ai';
-import { continueChatSession } from './inkeep/continueChatSession';
-import { createChatSession } from './inkeep/createChatSession';
+import { InkeepAI } from '@inkeep/ai-api';
 
 interface ChatRequestBody {
   messages: Array<{
@@ -168,26 +73,32 @@ const inkeepIntegrationId = process.env.INKEEP_INTEGRATION_ID;
 
 export async function POST(req: Request) {
   const chatRequestBody: ChatRequestBody = await req.json();
-  const chatSessionId = chatRequestBody.chat_session_id;
+  const chat_session_id = chatRequestBody.chat_session_id;
+
+  const ikpClient = new InkeepAI({
+    apiKey: process.env.INKEEP_API_KEY,
+  });
 
   let response;
-  if (!chatSessionId) {
-    // new chat session
-    response = await createChatSession({
-      integration_id: inkeepIntegrationId!,
-      chat_session: {
+
+  if (!chat_session_id) {
+    const createRes = await ikpClient.chatSession.create({
+      integrationId: inkeepIntegrationId,
+      chatSession: {
         messages: chatRequestBody.messages,
       },
       stream: true,
     });
+
+    response = createRes.rawResponse;
   } else {
-    // continue chat session
-    response = await continueChatSession({
-      integration_id: inkeepIntegrationId!,
-      chat_session_id: chatSessionId,
+    const continueRes = await ikpClient.chatSession.continue(chat_session_id, {
+      integrationId: inkeepIntegrationId,
       message: chatRequestBody.messages[chatRequestBody.messages.length - 1],
       stream: true,
     });
+
+    response = continueRes.rawResponse;
   }
 
   // used to pass custom metadata to the client
@@ -218,32 +129,32 @@ export async function POST(req: Request) {
 }
 ```
 
-<Callout>
-  It's common to save a chat to a database. To do so, you can leverage the
-  `onFinal` callback to add your own saving logic. For example, add `await
-  saveCompletionToDatabase(complete, metadata);` prior to `data.close();`.
-</Callout>
-
 This example leverages a few utilities provided by the Vercel AI SDK:
 
 1. First, we pass the streaming `response` we receive from the Inkeep API to the
    [`InkeepStream`](/docs/api-reference/inkeep-stream). This
-   method decodes/extracts the content of the message from Inkeep's server-side events response and then re-encodes them into a standard (ReadableStream)[https://developer.mozilla.org/docs/Web/API/ReadableStream].
+   method decodes/extracts the content of the message from Inkeep's server-side events response and then re-encodes them into a standard [ReadableStream](https://developer.mozilla.org/docs/Web/API/ReadableStream).
 
-2. We can then pass that stream directly to the Vercel AI SDK's [`StreamingTextResponse`](/docs/api-reference/streaming-text-response).
+2. We then pass that stream directly to the Vercel AI SDK's [`StreamingTextResponse`](/docs/api-reference/streaming-text-response).
    This is another utility class that extends the normal Node/Edge Runtime `Response`
    class with the default headers you probably want (hint: `'Content-Type':
 'text/plain; charset=utf-8'` is already set for you). This will provide the streamed content to the client.
 
 3. Lastly, we use the [experimental_StreamData](/docs/api-reference/stream-data) and callback methods of the `InkeepStream` to attach metadata to the response like `onFinalMetadata.chat_session_id` and `records_cited.citations` for use by the client.
 
+<Callout>
+  It's common to save a chat to a database. To do so, you can leverage the
+  `onFinal` callback to add your own saving logic. For example, add `await
+  saveCompletionToDatabase(complete, metadata);` prior to `data.close();`.
+</Callout>
+
 ### Wire up the UI
 
-Next, lets create a client component with a form that we'll use to gather the prompt from the user and then stream back the chat completion from.
+Next, lets create a client component with a form that we'll use to gather the prompt from the user and then stream back the chat response from.
 
 By default, the [`useChat`](/docs/api-reference/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`).
 
-We will use the `data` prop to get the Inkeep `chat_session_id`, which we will include in the request body in any subsequent messages.
+We will use the `data` field to get the Inkeep `chat_session_id`, which we will include in the request body in any subsequent messages.
 
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client';

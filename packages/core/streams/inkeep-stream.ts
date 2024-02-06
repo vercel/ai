@@ -5,37 +5,16 @@ import {
   AIStreamParser,
 } from './ai-stream';
 import { createStreamDataTransformer } from './stream-data';
+import type {
+  MessageChunk$,
+  RecordsCited$,
+} from '@inkeep/ai-api/models/components';
 
-export type InkeepMessage = {
-  role: 'user' | 'assistant';
-  content: string;
-  [key: string]: any;
-};
-
-export type InkeepMessageChunkData = {
-  chat_session_id: string;
-  content_chunk: string;
-  finish_reason?: string | null;
-};
+export type InkeepRecordsCited = RecordsCited$.Inbound;
 
 export type InkeepOnFinalMetadata = {
   chat_session_id: string;
-  records_cited: InkeepRecordsCitedData;
-};
-
-export type InkeepRecord = {
-  url?: string | null;
-  title?: string | null;
-  breadcrumbs?: string[] | null;
-};
-
-export type InkeepCitation = {
-  number: number;
-  record: InkeepRecord;
-};
-
-export type InkeepRecordsCitedData = {
-  citations: InkeepCitation[];
+  records_cited: InkeepRecordsCited;
 };
 
 export type InkeepChatResultCallbacks = {
@@ -43,7 +22,9 @@ export type InkeepChatResultCallbacks = {
     completion: string,
     metadata?: InkeepOnFinalMetadata,
   ) => Promise<void> | void;
-  onRecordsCited?: (records_cited: InkeepRecordsCitedData) => void;
+  onRecordsCited?: (
+    records_cited: InkeepOnFinalMetadata['records_cited'],
+  ) => void;
 };
 
 export type InkeepAIStreamCallbacksAndOptions = AIStreamCallbacksAndOptions &
@@ -58,22 +39,20 @@ export function InkeepStream(
   }
 
   let chat_session_id = '';
-  let records_cited: InkeepRecordsCitedData;
+  let records_cited: InkeepRecordsCited;
 
   const inkeepEventParser: AIStreamParser = (data: string, options) => {
     const { event } = options;
 
-    let inkeepContentChunk: InkeepMessageChunkData;
-
     if (event === 'records_cited') {
-      records_cited = JSON.parse(data) as InkeepRecordsCitedData;
+      records_cited = JSON.parse(data) as InkeepRecordsCited;
       callbacks?.onRecordsCited?.(records_cited);
     }
 
     if (event === 'message_chunk') {
-      inkeepContentChunk = JSON.parse(data) as InkeepMessageChunkData;
-      chat_session_id = inkeepContentChunk.chat_session_id;
-      return inkeepContentChunk.content_chunk;
+      const inkeepMessageChunk = JSON.parse(data) as MessageChunk$.Inbound;
+      chat_session_id = inkeepMessageChunk.chat_session_id ?? chat_session_id;
+      return inkeepMessageChunk.content_chunk;
     }
     return;
   };

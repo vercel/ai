@@ -2,7 +2,7 @@
 
 ## `InkeepStream(res: Response, cb?: AIStreamCallbacks): ReadableStream` [#InkeepStream]
 
-The `InkeepStream` function is a utility that transforms the output from [Inkeep's](https://www.inkeep.com) API into a (ReadableStream)[(ReadableStream)[https://developer.mozilla.org/docs/Web/API/ReadableStream]]. It uses [AIStream](/docs/api-reference/ai-stream) under the hood, applying a specific parser for the Inkeep's response data structure.
+The `InkeepStream` function is a utility that transforms the output from [Inkeep's](https://www.inkeep.com) API into a [ReadableStream](https://developer.mozilla.org/docs/Web/API/ReadableStream). It uses [AIStream](/docs/api-reference/ai-stream) under the hood, applying a specific parser for the Inkeep's response data structure.
 
 This works with the official Inkeep API, and it's supported in both Node.js, the [Edge Runtime](https://edge-runtime.vercel.app), and browser environments.
 
@@ -16,14 +16,13 @@ The `Response` object returned by the request to the Inkeep API.
 
 This optional parameter can be an object containing the callback functions to handle the start, each token, completion, and other events of the AI response. In the absence of this parameter, default behavior is implemented.
 
-The `InkeepAIStreamCallbacksAndOptions` extends the standard (AIStreamCallbacks)[/docs/api-reference/ai-stream#AIStreamCallbacks] by including additional `metadata` in `onFinal` and adding an `onRecordsCited` callback.
+The `InkeepAIStreamCallbacksAndOptions` extends the standard [AIStreamCallbacks](/docs/api-reference/ai-stream#AIStreamCallbacks) by (1) including additional `metadata` in `onFinal` and (2)adding an `onRecordsCited` callback.
 
 <OptionTable
   options={[
-    // ... rest of `AIStreamCallbacks`
     [
       'onRecordsCited',
-      '(records_cited: InkeepRecordsCitedData) => void',
+      '(records_cited: InkeepRecordsCited) => void',
       'An optional function that is called once for every request, after the main content of a message has completed. It includes the information about the records (sources) cited in the AI chat response.',
     ],
     [
@@ -46,64 +45,23 @@ Information included in `metadata` of InkeepStream's `onFinal` callback.
       'The Inkeep chat_session_id. This is should be included in follow-up chat requests that are part of a chat session. Used for analytics and threading chat conversations.',
     ],
     [
-      'records_cited.citations',
-      'InkeepCitation[]',
+      'records_cited',
+      'InkeepRecordsCited',
       'Contains information about the citations used in the chat response body.',
     ],
   ]}
 />
 
-#### InkeepCitation
-
-Citations in the message content are formatted as, for example:
-
-```
-To get started with Inkeep, first create an account [1](https://inkeep.com).
-```
-
-The `citations` array in the `onFinal` and `onRecordsCited` callbacks contain additional information about the citations used.
-
-<OptionTable
-  options={[
-    [
-      'number',
-      'number',
-      'The number of the citation as included in the message content.',
-    ],
-    [
-      'record',
-      'InkeepRecord',
-      'Information abou the record that is referenced in the citation.',
-    ],
-  ]}
-/>
-
-#### InkeepRecord
-
-The `InkeepRecord` object contains information about the citation used in the message.
-
-<OptionTable
-  options={[
-    ['url', 'string | null', 'The URL of the citation, if available.'],
-    ['title', 'string | null', 'The title of the citation, if available.'],
-    [
-      'breadcrumbs',
-      'string[] | null',
-      'The breadcrumbs of the location of the record (e.g. `["Home", "About"]`)',
-    ],
-  ]}
-/>
+For the full type definitions and documentation of the Inkeep API, see the [Inkeep Chat SDK](https://github.com/inkeep/chat-api-ts).
 
 ## Example
 
-The `InkeepStream` function can be coupled with a `fetch` call to either of the Inkeep API chat endpoints:
+The Inkeep API provides two routes:
 
 1. `POST chat_sessions/chat_results` - To **create** a chat session
 2. `POST chat_sessions/${chat_session_id}/chat_results` - To **continue** a chat session
 
-This stream can then facilitate the real-time consumption of AI outputs as they're being generated.
-
-Here's a step-by-step example of how to implement a combined endpoint that automatically handles both `create` and `continue` API endpoints:
+The example below shows how to create a `chat` API endpoint compatible with Vercel AI SDK client-side utilities like `useChat`:
 
 ```tsx filename="app/api/chat/route.ts" showLineNumbers
 import {
@@ -111,10 +69,9 @@ import {
   InkeepOnFinalMetadata,
   StreamingTextResponse,
   experimental_StreamData,
-  InkeepMessage,
 } from 'ai';
+import { InkeepAI } from '@inkeep/ai-api';
 
-// The type for the request body
 interface ChatRequestBody {
   messages: Array<{
     role: 'user' | 'assistant';
@@ -123,64 +80,36 @@ interface ChatRequestBody {
   chat_session_id?: string;
 }
 
-interface ChatSessionArgs {
-  integration_id: string;
-  chat_mode?: 'turbo' | 'auto'; // default: 'auto'
-  chat_session: {
-    messages: Array<InkeepMessage>;
-  };
-  stream?: boolean;
-}
-
-interface ContinueChatInput {
-  integration_id: string;
-  chat_session_id: string;
-  message: InkeepMessage;
-  stream?: boolean;
-}
+const inkeepIntegrationId = process.env.INKEEP_INTEGRATION_ID;
 
 export async function POST(req: Request) {
   const chatRequestBody: ChatRequestBody = await req.json();
-  const chatSessionId = chatRequestBody.chat_session_id;
+  const chat_session_id = chatRequestBody.chat_session_id;
+
+  const ikpClient = new InkeepAI({
+    apiKey: process.env.INKEEP_API_KEY,
+  });
 
   let response;
-  let body;
-  let url;
 
-  if (!chatSessionId) {
-    // new chat session
-    const args: ChatSessionArgs = {
-      integration_id: process.env.INKEEP_INTEGRATION_ID!,
-      chat_session: {
+  if (!chat_session_id) {
+    const createRes = await ikpClient.chatSession.create({
+      integrationId: inkeepIntegrationId,
+      chatSession: {
         messages: chatRequestBody.messages,
       },
       stream: true,
-    };
-    body = JSON.stringify(args);
-    url = 'https://api.inkeep.com/v0/chat_sessions/chat_results';
+    });
+
+    response = createRes.rawResponse;
   } else {
-    // continue chat session
-    const args: ContinueChatInput = {
-      integration_id: process.env.INKEEP_INTEGRATION_ID!,
-      chat_session_id: chatSessionId,
+    const continueRes = await ikpClient.chatSession.continue(chat_session_id, {
+      integrationId: inkeepIntegrationId,
       message: chatRequestBody.messages[chatRequestBody.messages.length - 1],
       stream: true,
-    };
-    body = JSON.stringify(args);
-    url = `https://api.inkeep.com/v0/chat_sessions/${chatSessionId}/chat_results`;
-  }
+    });
 
-  response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.INKEEP_API_KEY}`,
-    },
-    body,
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    response = continueRes.rawResponse;
   }
 
   // used to pass custom metadata to the client
@@ -192,7 +121,7 @@ export async function POST(req: Request) {
 
   const stream = InkeepStream(response, {
     onRecordsCited: async records_cited => {
-      // append the citations as a message annotation
+      // append the citations to the message annotations
       data.appendMessageAnnotation({
         records_cited,
       });
@@ -213,15 +142,18 @@ export async function POST(req: Request) {
 
 This example uses the [experimental_StreamData](/docs/api-reference/stream-data) and the callback methods of `InkeepStream` to attach metadata to the response.
 
+### Client
+
 From [`useChat`](/docs/api-reference/use-chat), this is available as:
 
 ```tsx filename="app/chat/page.tsx" showLineNumbers
+import { InkeepOnFinalMetadata, InkeepRecordsCited } from 'ai/streams';
+
 // ... your chat component
 
 const { messages, data } = useChat();
 
-/* For chat_session_id */
-
+/* ==For chat_session_id== */
 // get the onFinalMetadata item from the global chat data
 const onFinalMetadataItem = data?.find(
   item =>
@@ -239,7 +171,7 @@ const recordsCitedAnnotation =
   (messages[0].annotations?.find(
     item =>
       typeof item === 'object' && item !== null && 'records_cited' in item,
-  ) as { records_cited: InkeepRecordsCitedData } | undefined);
+  ) as { records_cited: InkeepRecordsCited } | undefined);
 
 // get the citations from the records_cited annotation
 const citations = recordsCitedAnnotation?.records_cited?.citations;

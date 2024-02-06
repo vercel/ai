@@ -4,8 +4,7 @@ import {
   StreamingTextResponse,
   experimental_StreamData,
 } from 'ai';
-import { continueChatSession } from './inkeep-api/continueChatSession';
-import { createChatSession } from './inkeep-api/createChatSession';
+import { InkeepAI } from '@inkeep/ai-api';
 
 interface ChatRequestBody {
   messages: Array<{
@@ -15,30 +14,36 @@ interface ChatRequestBody {
   chat_session_id?: string;
 }
 
-const inkeepIntegrationId = process.env.INKEEP_INTEGRATION_ID;
+const inkeepIntegrationId = process.env.INKEEP_INTEGRATION_ID!;
 
 export async function POST(req: Request) {
   const chatRequestBody: ChatRequestBody = await req.json();
-  const chatSessionId = chatRequestBody.chat_session_id;
+  const chat_session_id = chatRequestBody.chat_session_id;
+
+  const ikpClient = new InkeepAI({
+    apiKey: process.env.INKEEP_API_KEY,
+  });
 
   let response;
-  if (!chatSessionId) {
-    // new chat session
-    response = await createChatSession({
-      integration_id: inkeepIntegrationId!,
-      chat_session: {
+
+  if (!chat_session_id) {
+    const createRes = await ikpClient.chatSession.create({
+      integrationId: inkeepIntegrationId,
+      chatSession: {
         messages: chatRequestBody.messages,
       },
       stream: true,
     });
+
+    response = createRes.rawResponse;
   } else {
-    // continue chat session
-    response = await continueChatSession({
-      integration_id: inkeepIntegrationId!,
-      chat_session_id: chatSessionId,
+    const continueRes = await ikpClient.chatSession.continue(chat_session_id, {
+      integrationId: inkeepIntegrationId,
       message: chatRequestBody.messages[chatRequestBody.messages.length - 1],
       stream: true,
     });
+
+    response = continueRes.rawResponse;
   }
 
   // used to pass custom metadata to the client
