@@ -15,4 +15,4 @@ title = "pull_request_title"
 body = "pull_request_body"
 include_pr_number = true
 body_type = "markdown"
-strip_html_comments = true
+strip_html_comments = false
