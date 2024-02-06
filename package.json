@@ -4,7 +4,7 @@
     "build": "turbo build",
     "changeset": "changeset",
     "clean": "turbo clean",
-    "dev": "turbo dev --no-cache  --concurrency 1000 --continue",
+    "dev": "turbo dev --no-cache  --concurrency 16 --continue",
     "lint": "turbo lint",
     "prepare": "husky install",
     "prettier-check": "prettier --check \"**/*.{js,ts,tsx,md,mdx}\"",
