@@ -312,8 +312,8 @@ importers:
   examples/next-inkeep:
     dependencies:
       '@inkeep/ai-api':
-        specifier: ^0.0.1
-        version: 0.0.1(zod@3.22.4)
+        specifier: ^0.1.1
+        version: 0.1.1(zod@3.22.4)
       ai:
         specifier: 2.2.33
         version: link:../../packages/core
@@ -930,8 +930,8 @@ importers:
         specifier: 2.6.4
         version: 2.6.4
       '@inkeep/ai-api':
-        specifier: ^0.0.1
-        version: 0.0.1(zod@3.22.4)
+        specifier: ^0.1.1
+        version: 0.1.1(zod@3.22.4)
       '@mistralai/mistralai':
         specifier: 0.0.7
         version: 0.0.7
@@ -3549,8 +3549,8 @@ packages:
       vue: 3.3.8(typescript@5.1.6)
     dev: false
 
-  /@inkeep/ai-api@0.0.1(zod@3.22.4):
-    resolution: {integrity: sha512-Ex1LQc+6jliVWhblJWr0USflpKjT66xlRibiPpdXKBokFCI+Tzn2b3xGFshK6GqzoVyDvwvgQSGmg6Fyk0kogA==}
+  /@inkeep/ai-api@0.1.1(zod@3.22.4):
+    resolution: {integrity: sha512-FULcNWydJtJ/9kcv7HxswsW1Kxnh2W+LAznyUPHvvK5Y5buYFsHQs1Oed2AXLx9UI7OPnJDe549kEQSTjVWRqA==}
     peerDependencies:
       zod: '>= 3'
     dependencies:
