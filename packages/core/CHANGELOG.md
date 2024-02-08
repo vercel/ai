@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.18
+
+### Patch Changes
+
+- use published flowise fork
+
 ## 2.2.17
 
 ### Patch Changes
