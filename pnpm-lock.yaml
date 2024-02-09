@@ -39,10 +39,10 @@ importers:
   examples/next-anthropic:
     dependencies:
       '@anthropic-ai/sdk':
-        specifier: 0.10.0
-        version: 0.10.0
+        specifier: 0.12.0
+        version: 0.12.0
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -88,7 +88,7 @@ importers:
         specifier: 3.451.0
         version: 3.451.0
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -177,7 +177,7 @@ importers:
   examples/next-fireworks:
     dependencies:
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -226,7 +226,7 @@ importers:
         specifier: 0.1.1
         version: 0.1.1
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -272,7 +272,7 @@ importers:
         specifier: ^2.5.1
         version: 2.6.4
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -315,7 +315,7 @@ importers:
   examples/next-langchain:
     dependencies:
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.196
@@ -364,7 +364,7 @@ importers:
         specifier: 0.0.7
         version: 0.0.7
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -407,7 +407,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -453,7 +453,7 @@ importers:
   examples/next-openai-pages:
     dependencies:
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -505,7 +505,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -522,6 +522,52 @@ importers:
       sonner:
         specifier: ^0.6.2
         version: 0.6.2(react-dom@18.2.0)(react@18.2.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^17.0.12
+        version: 17.0.45
+      '@types/react':
+        specifier: 18.2.8
+        version: 18.2.8
+      '@types/react-dom':
+        specifier: 18.2.4
+        version: 18.2.4
+      autoprefixer:
+        specifier: ^10.4.14
+        version: 10.4.16(postcss@8.4.31)
+      eslint:
+        specifier: ^7.32.0
+        version: 7.32.0
+      eslint-config-next:
+        specifier: 13.4.12
+        version: 13.4.12(eslint@7.32.0)(typescript@5.1.3)
+      postcss:
+        specifier: ^8.4.23
+        version: 8.4.31
+      tailwindcss:
+        specifier: ^3.3.2
+        version: 3.3.5
+      typescript:
+        specifier: 5.1.3
+        version: 5.1.3
+
+  examples/next-perplexity:
+    dependencies:
+      ai:
+        specifier: 2.2.32
+        version: link:../../packages/core
+      next:
+        specifier: 14.0.3
+        version: 14.0.3(react-dom@18.2.0)(react@18.2.0)
+      openai:
+        specifier: 4.16.1
+        version: 4.16.1
+      react:
+        specifier: 18.2.0
+        version: 18.2.0
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.2.0(react@18.2.0)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
@@ -679,7 +725,7 @@ importers:
         specifier: ^3.3.4
         version: 3.3.8
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       nuxt:
         specifier: ^3.6.5
@@ -712,7 +758,7 @@ importers:
         specifier: 0.8.2
         version: 0.8.2(solid-js@1.8.7)
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       openai:
         specifier: 4.16.1
@@ -749,7 +795,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       ai:
-        specifier: 2.2.29
+        specifier: 2.2.32
         version: link:../../packages/core
       openai:
         specifier: 4.16.1
@@ -820,8 +866,8 @@ importers:
         version: 3.3.8(typescript@5.1.3)
     devDependencies:
       '@anthropic-ai/sdk':
-        specifier: 0.10.0
-        version: 0.10.0
+        specifier: 0.12.0
+        version: 0.12.0
       '@aws-sdk/client-bedrock-runtime':
         specifier: 3.451.0
         version: 3.451.0
@@ -946,8 +992,8 @@ packages:
   /@antfu/utils@0.7.6:
     resolution: {integrity: sha512-pvFiLP2BeOKA/ZOS6jxx4XhKzdVLHDhGlFEaZ2flWWYf2xOqVniqpk38I04DFRyz+L0ASggl7SkItTc+ZLju4w==}
 
-  /@anthropic-ai/sdk@0.10.0:
-    resolution: {integrity: sha512-OqTbjjZzDjkCSe0RcNTNeVrHLrC3RUzUvTJB/qt6seVaETnLkKt6b4hkOnkhkXnBHH8+w20zmB4Ekcwir2B/sw==}
+  /@anthropic-ai/sdk@0.12.0:
+    resolution: {integrity: sha512-yL4/NdbdjuqRW5SMLngbO7PWQMcFIBK5lT725TmZ+8bJ9BMvR2e0+ChtAEWUid/N19MWpYg/mbcxUaTQDdMj1A==}
     dependencies:
       '@types/node': 18.18.9
       '@types/node-fetch': 2.6.9
