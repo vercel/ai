@@ -1,5 +1,4 @@
 ---
-'next-openai': patch
 'ai': patch
 ---
 
