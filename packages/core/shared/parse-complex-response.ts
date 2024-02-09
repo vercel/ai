@@ -19,7 +19,7 @@ function assignAnnotationsToMessage<T extends Message | null | undefined>(
   message: T,
   annotations: JSONValue[] | undefined,
 ): T {
-  if (!(message && annotations && annotations.length)) return message;
+  if (!message || !annotations || !annotations.length) return message;
   return { ...message, annotations: [...annotations] } as T;
 }
 
