@@ -15,20 +15,12 @@ type PrefixMap = {
   data: JSONValue[];
 };
 
-function initializeMessage({
-  generateId,
-  ...rest
-}: {
-  generateId: () => string;
-  content: string;
-  createdAt: Date;
-  annotations?: JSONValue[];
-}): Message {
-  return {
-    id: generateId(),
-    role: 'assistant',
-    ...rest,
-  };
+function assignAnnotationsToMessage<T extends Message | null | undefined>(
+  message: T,
+  annotations: JSONValue[] | undefined,
+): T {
+  if (!message || !annotations || !annotations.length) return message;
+  return { ...message, annotations: [...annotations] } as T;
 }
 
 export async function parseComplexResponse({
@@ -53,6 +45,9 @@ export async function parseComplexResponse({
     data: [],
   };
 
+  // keep list of current message annotations for message
+  let message_annotations: JSONValue[] | undefined = undefined;
+
   // we create a map of each prefix, and for each prefixed message we push to the map
   for await (const { type, value } of readDataStream(reader, {
     isAborted: () => abortControllerRef?.current === null,
@@ -73,24 +68,7 @@ export async function parseComplexResponse({
       }
     }
 
-    if (type == 'message_annotations') {
-      if (prefixMap['text']) {
-        prefixMap['text'] = {
-          ...prefixMap['text'],
-          annotations: [...(prefixMap['text'].annotations || []), ...value],
-        };
-      } else {
-        prefixMap['text'] = {
-          id: generateId(),
-          role: 'assistant',
-          content: '',
-          annotations: [...value],
-          createdAt,
-        };
-      }
-    }
-
-    let functionCallMessage: Message | null = null;
+    let functionCallMessage: Message | null | undefined = null;
 
     if (type === 'function_call') {
       prefixMap['function_call'] = {
@@ -105,7 +83,7 @@ export async function parseComplexResponse({
       functionCallMessage = prefixMap['function_call'];
     }
 
-    let toolCallMessage: Message | null = null;
+    let toolCallMessage: Message | null | undefined = null;
 
     if (type === 'tool_calls') {
       prefixMap['tool_calls'] = {
@@ -123,14 +101,50 @@ export async function parseComplexResponse({
       prefixMap['data'].push(...value);
     }
 
-    const responseMessage = prefixMap['text'];
+    let responseMessage = prefixMap['text'];
+
+    if (type === 'message_annotations') {
+      if (!message_annotations) {
+        message_annotations = [...value];
+      } else {
+        message_annotations.push(...value);
+      }
+
+      // Update any existing message with the latest annotations
+      functionCallMessage = assignAnnotationsToMessage(
+        prefixMap['function_call'],
+        message_annotations,
+      );
+      toolCallMessage = assignAnnotationsToMessage(
+        prefixMap['tool_calls'],
+        message_annotations,
+      );
+      responseMessage = assignAnnotationsToMessage(
+        prefixMap['text'],
+        message_annotations,
+      );
+    }
+
+    // keeps the prefixMap up to date with the latest annotations, even if annotations preceded the message
+    if (message_annotations?.length) {
+      const messagePrefixKeys: (keyof PrefixMap)[] = [
+        'text',
+        'function_call',
+        'tool_calls',
+      ];
+      messagePrefixKeys.forEach(key => {
+        if (prefixMap[key]) {
+          (prefixMap[key] as Message).annotations = [...message_annotations!];
+        }
+      });
+    }
 
     // We add function & tool calls and response messages to the messages[], but data is its own thing
-    const merged = [
-      functionCallMessage,
-      toolCallMessage,
-      responseMessage,
-    ].filter(Boolean) as Message[];
+    const merged = [functionCallMessage, toolCallMessage, responseMessage]
+      .filter(Boolean)
+      .map(message => ({
+        ...assignAnnotationsToMessage(message, message_annotations),
+      })) as Message[];
 
     update(merged, [...prefixMap['data']]); // make a copy of the data array
   }
