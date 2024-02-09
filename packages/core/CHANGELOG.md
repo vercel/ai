@@ -1,5 +1,12 @@
 # ai
 
+## 2.2.33
+
+### Patch Changes
+
+- 8542ae7: react/use-assistant: add onError handler
+- 97039ff: OpenAIStream: Add support for the Azure OpenAI client library
+
 ## 2.2.32
 
 ### Patch Changes
