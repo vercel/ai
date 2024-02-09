@@ -46,7 +46,7 @@ importers:
         version: 0.6.2
       ai:
         specifier: 2.2.17
-        version: link:../../packages/core
+        version: 2.2.17(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4)
       next:
         specifier: 13.4.12
         version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
@@ -89,7 +89,7 @@ importers:
     dependencies:
       ai:
         specifier: 2.2.17
-        version: link:../../packages/core
+        version: 2.2.17(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4)
       next:
         specifier: 13.4.12
         version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
@@ -138,7 +138,7 @@ importers:
         version: 2.5.1
       ai:
         specifier: 2.2.17
-        version: link:../../packages/core
+        version: 2.2.17(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4)
       next:
         specifier: 13.4.12
         version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
@@ -181,7 +181,7 @@ importers:
     dependencies:
       ai:
         specifier: 2.2.17
-        version: link:../../packages/core
+        version: 2.2.17(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4)
       langchain:
         specifier: ^0.0.129
         version: 0.0.129(@mozilla/readability@0.4.4)(jsdom@22.1.0)
@@ -227,7 +227,7 @@ importers:
     dependencies:
       ai:
         specifier: 2.2.17
-        version: link:../../packages/core
+        version: 2.2.17(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4)
       next:
         specifier: 13.4.12
         version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
@@ -279,7 +279,7 @@ importers:
         version: 0.2.2
       ai:
         specifier: 2.2.17
-        version: link:../../packages/core
+        version: 2.2.17(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4)
       next:
         specifier: 13.4.12
         version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
@@ -328,7 +328,7 @@ importers:
     dependencies:
       ai:
         specifier: ^2.2.4
-        version: link:../../packages/core
+        version: 2.2.17(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4)
       next:
         specifier: 13.4.12
         version: 13.4.12(@babel/core@7.22.5)(react-dom@18.2.0)(react@18.2.0)
@@ -374,7 +374,7 @@ importers:
     dependencies:
       ai:
         specifier: ^2.2.4
-        version: link:../../packages/core
+        version: 2.2.17(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4)
       langchain:
         specifier: ^0.0.129
         version: 0.0.129(@mozilla/readability@0.4.4)(jsdom@22.1.0)
@@ -453,7 +453,7 @@ importers:
         version: 3.3.4
       ai:
         specifier: 2.2.17
-        version: link:../../packages/core
+        version: 2.2.17(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4)
       nuxt:
         specifier: ^3.6.5
         version: 3.6.5(@types/node@20.5.0)(eslint@7.32.0)(typescript@4.9.4)
@@ -483,7 +483,7 @@ importers:
         version: 0.8.2(solid-js@1.7.2)
       ai:
         specifier: 2.2.17
-        version: link:../../packages/core
+        version: 2.2.17(react@18.2.0)(solid-js@1.7.2)(svelte@4.0.1)(vue@3.3.4)
       openai:
         specifier: 4.11.0
         version: 4.11.0
@@ -520,7 +520,7 @@ importers:
     dependencies:
       ai:
         specifier: 2.2.17
-        version: link:../../packages/core
+        version: 2.2.17(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4)
       openai:
         specifier: 4.11.0
         version: 4.11.0
@@ -4483,6 +4483,7 @@ packages:
 
   /abab@2.0.6:
     resolution: {integrity: sha512-j2afSsaIENvHZN2B8GOpF566vZ5WVk5opAiMTvWgaQT8DkbOqsTfvNAvHoRGU2zzP8cPoqys+xHTRDWW8L+/BA==}
+    deprecated: Use your platform's native atob() and btoa() methods instead
     dev: false
 
   /abbrev@1.1.1:
@@ -4561,6 +4562,67 @@ packages:
       clean-stack: 2.2.0
       indent-string: 4.0.0
     dev: true
+
+  /ai@2.2.17(react@18.2.0)(solid-js@1.7.2)(svelte@4.0.1)(vue@3.3.4):
+    resolution: {integrity: sha512-A84UTv5/qSyuDcTfrtnCvKRxIHYunCOMyRLEvVGaJJLw3slnUpPf/tD9WfxNEO8Gh3thmI3xDWkEmqt1vYXEaw==}
+    engines: {node: '>=14.6'}
+    peerDependencies:
+      react: ^18.2.0
+      solid-js: ^1.7.7
+      svelte: ^3.0.0 || ^4.0.0
+      vue: ^3.3.4
+    peerDependenciesMeta:
+      react:
+        optional: true
+      solid-js:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+    dependencies:
+      eventsource-parser: 1.0.0
+      nanoid: 3.3.6
+      react: 18.2.0
+      solid-js: 1.7.2
+      solid-swr-store: 0.10.7(solid-js@1.7.2)(swr-store@0.10.6)
+      sswr: 2.0.0(svelte@4.0.1)
+      svelte: 4.0.1
+      swr: 2.2.0(react@18.2.0)
+      swr-store: 0.10.6
+      swrv: 1.0.4(vue@3.3.4)
+      vue: 3.3.4
+    dev: false
+
+  /ai@2.2.17(react@18.2.0)(solid-js@1.7.7)(svelte@4.0.1)(vue@3.3.4):
+    resolution: {integrity: sha512-A84UTv5/qSyuDcTfrtnCvKRxIHYunCOMyRLEvVGaJJLw3slnUpPf/tD9WfxNEO8Gh3thmI3xDWkEmqt1vYXEaw==}
+    engines: {node: '>=14.6'}
+    peerDependencies:
+      react: ^18.2.0
+      solid-js: ^1.7.7
+      svelte: ^3.0.0 || ^4.0.0
+      vue: ^3.3.4
+    peerDependenciesMeta:
+      react:
+        optional: true
+      solid-js:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+    dependencies:
+      eventsource-parser: 1.0.0
+      nanoid: 3.3.6
+      react: 18.2.0
+      solid-js: 1.7.7
+      solid-swr-store: 0.10.7(solid-js@1.7.7)(swr-store@0.10.6)
+      sswr: 2.0.0(svelte@4.0.1)
+      svelte: 4.0.1
+      swr: 2.2.0(react@18.2.0)
+      swr-store: 0.10.6
+      swrv: 1.0.4(vue@3.3.4)
+      vue: 3.3.4
 
   /ajv-keywords@3.5.2(ajv@6.12.6):
     resolution: {integrity: sha512-5p6WTN0DdTGVQk6VjcEju19IgaHudalcfabD7yhDGeA6bcQnmL+CpveLJq/3hvfwd1aof6L386Ougkx6RfyMIQ==}
@@ -6157,6 +6219,7 @@ packages:
   /domexception@4.0.0:
     resolution: {integrity: sha512-A2is4PLG+eeSfoTMA95/s4pvAoSo2mKtiM5jlHkAVewmiO8ISFTFKZjH7UAM1Atli/OT/7JHOrJRJiMKUZKYBw==}
     engines: {node: '>=12'}
+    deprecated: Use your platform's native DOMException instead
     dependencies:
       webidl-conversions: 7.0.0
     dev: false
@@ -6851,7 +6914,6 @@ packages:
   /eventsource-parser@1.0.0:
     resolution: {integrity: sha512-9jgfSCa3dmEme2ES3mPByGXfgZ87VbP97tng1G2nWwWx6bV2nYxm2AWCrbQjXToSe+yYlqaZNtxffR9IeQr95g==}
     engines: {node: '>=14.18'}
-    dev: false
 
   /execa@5.1.1:
     resolution: {integrity: sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg==}
@@ -11554,7 +11616,6 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       loose-envify: 1.4.0
-    dev: false
 
   /read-cache@1.0.0:
     resolution: {integrity: sha512-Owdv/Ft7IjOgm/i0xvNDZ1LrRANRfew4b2prF3OWMQLxLfu3bS8FVhCsrSCMK4lR56Y9ya+AThoTpDCTxCmpRA==}
@@ -12189,7 +12250,6 @@ packages:
     dependencies:
       csstype: 3.1.2
       seroval: 0.5.1
-    dev: false
 
   /solid-refresh@0.5.3(solid-js@1.7.2):
     resolution: {integrity: sha512-Otg5it5sjOdZbQZJnvo99TEBAr6J7PQ5AubZLNU6szZzg3RQQ5MX04oteBIIGDs0y2Qv8aXKm9e44V8z+UnFdw==}
@@ -12296,6 +12356,17 @@ packages:
       - '@nuxt/kit'
       - supports-color
 
+  /solid-swr-store@0.10.7(solid-js@1.7.2)(swr-store@0.10.6):
+    resolution: {integrity: sha512-A6d68aJmRP471aWqKKPE2tpgOiR5fH4qXQNfKIec+Vap+MGQm3tvXlT8n0I8UgJSlNAsSAUuw2VTviH2h3Vv5g==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      solid-js: ^1.2
+      swr-store: ^0.10
+    dependencies:
+      solid-js: 1.7.2
+      swr-store: 0.10.6
+    dev: false
+
   /solid-swr-store@0.10.7(solid-js@1.7.7)(swr-store@0.10.6):
     resolution: {integrity: sha512-A6d68aJmRP471aWqKKPE2tpgOiR5fH4qXQNfKIec+Vap+MGQm3tvXlT8n0I8UgJSlNAsSAUuw2VTviH2h3Vv5g==}
     engines: {node: '>=10'}
@@ -12305,7 +12376,6 @@ packages:
     dependencies:
       solid-js: 1.7.7
       swr-store: 0.10.6
-    dev: false
 
   /sonner@0.6.2(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-bh4FWhYoNN481ZIW94W4e0kSLBTMGislYg2YXvDS1px1AJJz4erQe9jHV8s5pS1VMVDgfh3CslNSFLaU6Ldrnw==}
@@ -12405,7 +12475,6 @@ packages:
     dependencies:
       svelte: 4.0.1
       swrev: 4.0.0
-    dev: false
 
   /stack-utils@2.0.6:
     resolution: {integrity: sha512-XlkWvfIm6RmsWtNJx+uqtKLS8eqFbxUg0ZzLXqY0caEy9l7hruX8IpiDnjsLavoBgqCCR71TqWO8MaXYheJ3RQ==}
@@ -12762,7 +12831,6 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       dequal: 2.0.3
-    dev: false
 
   /swr@2.2.0(react@18.2.0):
     resolution: {integrity: sha512-AjqHOv2lAhkuUdIiBu9xbuettzAzWXmCEcLONNKJRba87WAefz8Ca9d6ds/SzrPc235n1IxWYdhJ2zF3MNUaoQ==}
@@ -12771,11 +12839,9 @@ packages:
     dependencies:
       react: 18.2.0
       use-sync-external-store: 1.2.0(react@18.2.0)
-    dev: false
 
   /swrev@4.0.0:
     resolution: {integrity: sha512-LqVcOHSB4cPGgitD1riJ1Hh4vdmITOp+BkmfmXRh4hSF/t7EnS4iD+SOTmq7w5pPm/SiPeto4ADbKS6dHUDWFA==}
-    dev: false
 
   /swrv@1.0.4(vue@3.3.4):
     resolution: {integrity: sha512-zjEkcP8Ywmj+xOJW3lIT65ciY/4AL4e/Or7Gj0MzU3zBJNMdJiT8geVZhINavnlHRMMCcJLHhraLTAiDOTmQ9g==}
@@ -12783,7 +12849,6 @@ packages:
       vue: '>=3.2.26 < 4'
     dependencies:
       vue: 3.3.4
-    dev: false
 
   /symbol-tree@3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
@@ -13620,7 +13685,6 @@ packages:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
     dependencies:
       react: 18.2.0
-    dev: false
 
   /util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
