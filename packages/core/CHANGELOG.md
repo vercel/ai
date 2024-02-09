@@ -1,5 +1,12 @@
 # ai
 
+## 2.2.34
+
+### Patch Changes
+
+- 2c8ffdb: cohere-stream: support AsyncIterable
+- ed1e278: Message annotations handling for all Message types
+
 ## 2.2.33
 
 ### Patch Changes
