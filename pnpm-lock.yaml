@@ -10,7 +10,7 @@ importers:
     devDependencies:
       '@changesets/cli':
         specifier: ^2.22.0
-        version: 2.26.2
+        version: 2.26.3
       eslint:
         specifier: ^7.33.0
         version: 7.33.0
