@@ -8,7 +8,6 @@ import { Steps, Callout } from 'nextra-theme-docs';
 
 Vercel AI SDK provides a set of utilities to make it easy to use Cohere's API. In this guide, we'll walk through how to use the utilities to create a text completion app.
 
-
 ## Guide: Chat Bot
 
 <Steps>
@@ -93,9 +92,7 @@ export async function POST(req: Request) {
   'text/plain; charset=utf-8'` is already set for you).
 </Callout>
 
-
 ### Wire up the UI
-
 
 Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
 By default, the [`useChat`](/docs/api-reference#usechat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
