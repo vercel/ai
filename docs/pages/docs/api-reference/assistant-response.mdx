@@ -18,7 +18,7 @@ The `experimental_AssistantResponse` class allows you to send a stream of assist
 ## `experimental_AssistantResponse(settings: AssistantResponseSettings, process: AssistantResponseCallback): Response` [#assistantresponse]
 
 The `experimental_AssistantResponse` class is designed to facilitate streaming assistant responses to the `useAssistant` hook.
-It receives an assistnat thread and a current message, and can send messages and data messages to the client.
+It receives an assistant thread and a current message, and can send messages and data messages to the client.
 
 ## Parameters
 
@@ -33,7 +33,7 @@ You can pass the thread and the latest message into the `experimental_AssistantR
 
 The process parameter is a callback in which you can run the assistant on threads, and send messages and data messages to the client.
 
-It gets invoked with the following funcctions that you can use to send messages and data messages to the client:
+It gets invoked with the following functions that you can use to send messages and data messages to the client:
 
 - `sendMessage: (message: AssistantMessage) => void`: Sends an assistant message to the client.
 - `sendDataMessage: (message: DataMessage) => void`: Send a data message to the client. You can use this to provide information for rendering custom UIs while the assistant is processing the thread.

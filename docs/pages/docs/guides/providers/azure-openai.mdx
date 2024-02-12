@@ -56,7 +56,7 @@ export async function POST(req: Request) {
   const response = await client.streamChatCompletions(
     'YOUR_DEPLOYED_INSTANCE_NAME',
     messages,
-  });
+  );
 
   // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response);

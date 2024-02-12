@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "2.2.33",
+  "version": "2.2.34",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -102,6 +102,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "@vitejs/plugin-react": "4.2.0",
     "@vitejs/plugin-vue": "4.5.0",
+    "cohere-ai": "^7.6.2",
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
     "jsdom": "^23.0.0",
