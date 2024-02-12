@@ -6,13 +6,13 @@ import { Steps, Callout } from 'nextra-theme-docs';
 
 # Inkeep
 
-Vercel AI SDK provides a set of utilities to make it easy to use [Inkeep](https://inkeep.com/)'s question-answer APIs to create chat experiences **powered by your own content**.
+Vercel AI SDK provides a set of utilities to make it easy to use [Inkeep](https://inkeep.com/)'s AI chat APIs to create chat experiences **powered by your own content**.
 
 In this guide, we'll walk through how to create a Q&A support bot powered by Inkeep.
 
 <Callout>
-  You can also use Inkeep as a retrieval augmented generation (RAG) or neural
-  search component of a larger LLM application or workflow.
+  You can also use Inkeep as a retrieval-augmented generation (RAG) component or neural
+  search component of a complex LLM application, agent, or workflow.
 </Callout>
 
 ## Guide: Inkeep Chatbot
@@ -21,7 +21,7 @@ In this guide, we'll walk through how to create a Q&A support bot powered by Ink
 
 ### Create a Next.js app
 
-Create a Next.js application, install `ai`, the Vercel AI SDK, as well as `@inkeep/ai-api`, the Inkeep API SDK.
+Create a Next.js application, install `ai`, the Vercel AI SDK, as well as [`@inkeep/ai-api`](https://github.com/inkeep/ai-api-ts), the Inkeep API SDK.
 
 ```sh
 pnpm dlx create-next-app my-rag-app
@@ -50,7 +50,7 @@ In order to provide analytics and correlate multiple message exchanges into a si
 
 In this example, we'll use [@inkeep/ai-api](https://github.com/inkeep/chat-api-ts) package to call these endpoints, the `ai` Vercel SDK to create a streamed text response, and `useChat` to render the messages in the UI.
 
-First, lets create a create a Next.js route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings and an optional `chat_session_id`. We'll use `chat_session_id` to decide whether to create or continue a chat.
+First, let's create a Next.js route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings and an optional `chat_session_id`. We'll use `chat_session_id` to decide whether to create or continue a chat.
 
 ```tsx filename="app/api/chat/route.ts" showLineNumbers
 import {
@@ -60,6 +60,7 @@ import {
   experimental_StreamData,
 } from 'ai';
 import { InkeepAI } from '@inkeep/ai-api';
+import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
 
 interface ChatRequestBody {
   messages: Array<{
@@ -109,7 +110,7 @@ export async function POST(req: Request) {
   }
 
   const stream = InkeepStream(response, {
-    onRecordsCited: async records_cited => {
+    onRecordsCited: async (records_cited: RecordsCited$.Inbound) => {
       // append the citations to the message annotations
       data.appendMessageAnnotation({
         records_cited,
@@ -150,7 +151,7 @@ This example leverages a few utilities provided by the Vercel AI SDK:
 
 ### Wire up the UI
 
-Next, lets create a client component with a form that we'll use to gather the prompt from the user and then stream back the chat response from.
+Next, let's create a client component with a form that we'll use to gather the prompt from the user and then stream back the chat response from.
 
 By default, the [`useChat`](/docs/api-reference/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`).
 

@@ -16,14 +16,14 @@ The `Response` object returned by the request to the Inkeep API.
 
 This optional parameter can be an object containing the callback functions to handle the start, each token, completion, and other events of the AI response. In the absence of this parameter, default behavior is implemented.
 
-The `InkeepAIStreamCallbacksAndOptions` extends the standard [AIStreamCallbacks](/docs/api-reference/ai-stream#AIStreamCallbacks) by (1) including additional `metadata` in `onFinal` and (2)adding an `onRecordsCited` callback.
+The `InkeepAIStreamCallbacksAndOptions` extends the standard [AIStreamCallbacks](/docs/api-reference/ai-stream#AIStreamCallbacks) by (1) including additional `metadata` in `onFinal` and (2) adding an `onRecordsCited` callback.
 
 <OptionTable
   options={[
     [
       'onRecordsCited',
-      '(records_cited: InkeepRecordsCited) => void',
-      'An optional function that is called once for every request, after the main content of a message has completed. It includes the information about the records (sources) cited in the AI chat response.',
+      '(records_cited: any) => void',
+      'An optional function that is called once for every request, after the main content of a message has completed. It includes the information about the records (sources) cited in the AI chat response. It's the payload of the `records_cited` event from the Inkeep API.',
     ],
     [
       'onFinal',
@@ -32,6 +32,13 @@ The `InkeepAIStreamCallbacksAndOptions` extends the standard [AIStreamCallbacks]
     ],
   ]}
 />
+
+Check the [@inkeep/ai-api-ts](https://github.com/inkeep/ai-api-ts) SDK for the latest typings of the Inkeep APIs. For example, the `records_cited` data payload can be obtained as:
+```
+import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
+
+// RecordsCited$.Inbound
+```
 
 #### InkeepOnFinalMetadata
 
@@ -42,17 +49,15 @@ Information included in `metadata` of InkeepStream's `onFinal` callback.
     [
       'chat_session_id',
       'string',
-      'The Inkeep chat_session_id. This is should be included in follow-up chat requests that are part of a chat session. Used for analytics and threading chat conversations.',
+      'The Inkeep chat_session_id. This should be included in follow-up chat requests that are part of a chat session. Used for analytics and threading chat conversations.',
     ],
     [
       'records_cited',
-      'InkeepRecordsCited',
+      'any',
       'Contains information about the citations used in the chat response body.',
     ],
   ]}
 />
-
-For the full type definitions and documentation of the Inkeep API, see the [Inkeep Chat SDK](https://github.com/inkeep/chat-api-ts).
 
 ## Example
 
@@ -71,6 +76,7 @@ import {
   experimental_StreamData,
 } from 'ai';
 import { InkeepAI } from '@inkeep/ai-api';
+import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
 
 interface ChatRequestBody {
   messages: Array<{
@@ -120,7 +126,7 @@ export async function POST(req: Request) {
   }
 
   const stream = InkeepStream(response, {
-    onRecordsCited: async records_cited => {
+    onRecordsCited: async (records_cited: RecordsCited$.Inbound) => {
       // append the citations to the message annotations
       data.appendMessageAnnotation({
         records_cited,
@@ -147,7 +153,8 @@ This example uses the [experimental_StreamData](/docs/api-reference/stream-data)
 From [`useChat`](/docs/api-reference/use-chat), this is available as:
 
 ```tsx filename="app/chat/page.tsx" showLineNumbers
-import { InkeepOnFinalMetadata, InkeepRecordsCited } from 'ai/streams';
+import { InkeepOnFinalMetadata } from 'ai/streams';
+import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
 
 // ... your chat component
 
@@ -171,7 +178,7 @@ const recordsCitedAnnotation =
   (messages[0].annotations?.find(
     item =>
       typeof item === 'object' && item !== null && 'records_cited' in item,
-  ) as { records_cited: InkeepRecordsCited } | undefined);
+  ) as { records_cited: RecordsCited$.Inbound } | undefined);
 
 // get the citations from the records_cited annotation
 const citations = recordsCitedAnnotation?.records_cited?.citations;

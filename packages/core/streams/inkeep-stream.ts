@@ -5,16 +5,10 @@ import {
   AIStreamParser,
 } from './ai-stream';
 import { createStreamDataTransformer } from './stream-data';
-import type {
-  MessageChunk$,
-  RecordsCited$,
-} from '@inkeep/ai-api/models/components';
-
-export type InkeepRecordsCited = RecordsCited$.Inbound;
 
 export type InkeepOnFinalMetadata = {
   chat_session_id: string;
-  records_cited: InkeepRecordsCited;
+  records_cited: any;
 };
 
 export type InkeepChatResultCallbacks = {
@@ -39,18 +33,18 @@ export function InkeepStream(
   }
 
   let chat_session_id = '';
-  let records_cited: InkeepRecordsCited;
+  let records_cited: any;
 
   const inkeepEventParser: AIStreamParser = (data: string, options) => {
     const { event } = options;
 
     if (event === 'records_cited') {
-      records_cited = JSON.parse(data) as InkeepRecordsCited;
+      records_cited = JSON.parse(data) as any;
       callbacks?.onRecordsCited?.(records_cited);
     }
 
     if (event === 'message_chunk') {
-      const inkeepMessageChunk = JSON.parse(data) as MessageChunk$.Inbound;
+      const inkeepMessageChunk = JSON.parse(data);
       chat_session_id = inkeepMessageChunk.chat_session_id ?? chat_session_id;
       return inkeepMessageChunk.content_chunk;
     }

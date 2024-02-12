@@ -89,7 +89,6 @@
     "@edge-runtime/vm": "^3.1.7",
     "@google/generative-ai": "0.1.1",
     "@huggingface/inference": "2.6.4",
-    "@inkeep/ai-api": "^0.1.1",
     "@mistralai/mistralai": "0.0.7",
     "@solidjs/testing-library": "0.8.4",
     "@testing-library/jest-dom": "^6.1.4",

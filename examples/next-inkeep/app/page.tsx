@@ -3,7 +3,8 @@
 import { useChat } from 'ai/react';
 import { useEffect, useState } from 'react';
 import { Message } from 'ai';
-import { InkeepOnFinalMetadata, InkeepRecordsCited } from 'ai/streams';
+import { InkeepOnFinalMetadata } from 'ai/streams';
+import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
 
 export default function Chat() {
   /**
@@ -68,7 +69,7 @@ const Citations = ({ annotations }: CitationsProps) => {
   const recordsCitedAnnotation = annotations?.find(
     item =>
       typeof item === 'object' && item !== null && 'records_cited' in item,
-  ) as { records_cited: InkeepRecordsCited } | undefined;
+  ) as { records_cited: RecordsCited$.Inbound; } | undefined;
 
   // get the citations from the records_cited annotation
   const citations = recordsCitedAnnotation?.records_cited?.citations;

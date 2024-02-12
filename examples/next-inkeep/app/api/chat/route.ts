@@ -5,6 +5,7 @@ import {
   experimental_StreamData,
 } from 'ai';
 import { InkeepAI } from '@inkeep/ai-api';
+import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
 
 interface ChatRequestBody {
   messages: Array<{
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
   }
 
   const stream = InkeepStream(response, {
-    onRecordsCited: async records_cited => {
+    onRecordsCited: async (records_cited: RecordsCited$.Inbound) => {
       // append the citations to the message annotations
       data.appendMessageAnnotation({
         records_cited,
