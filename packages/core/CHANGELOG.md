@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.35
+
+### Patch Changes
+
+- b717dad: Adding Inkeep as a stream provider
+
 ## 2.2.34
 
 ### Patch Changes
