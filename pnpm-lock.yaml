@@ -42,7 +42,7 @@ importers:
         specifier: 0.12.0
         version: 0.12.0
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -88,7 +88,7 @@ importers:
         specifier: 3.451.0
         version: 3.451.0
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -177,7 +177,7 @@ importers:
   examples/next-fireworks:
     dependencies:
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -226,7 +226,7 @@ importers:
         specifier: 0.1.1
         version: 0.1.1
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -272,7 +272,7 @@ importers:
         specifier: ^2.5.1
         version: 2.6.4
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -315,7 +315,7 @@ importers:
   examples/next-langchain:
     dependencies:
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.196
@@ -364,7 +364,7 @@ importers:
         specifier: 0.0.7
         version: 0.0.7
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -407,7 +407,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -453,7 +453,7 @@ importers:
   examples/next-openai-pages:
     dependencies:
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -505,7 +505,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -554,7 +554,7 @@ importers:
   examples/next-perplexity:
     dependencies:
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -725,7 +725,7 @@ importers:
         specifier: ^3.3.4
         version: 3.3.8
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       nuxt:
         specifier: ^3.6.5
@@ -758,7 +758,7 @@ importers:
         specifier: 0.8.2
         version: 0.8.2(solid-js@1.8.7)
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       openai:
         specifier: 4.16.1
@@ -795,7 +795,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       ai:
-        specifier: 2.2.33
+        specifier: 2.2.34
         version: link:../../packages/core
       openai:
         specifier: 4.16.1
