@@ -1,3 +1,5 @@
+import { OptionTable } from '@/components/table';
+
 # InkeepStream
 
 ## `InkeepStream(res: Response, cb?: AIStreamCallbacks): ReadableStream` [#InkeepStream]
@@ -23,7 +25,7 @@ The `InkeepAIStreamCallbacksAndOptions` extends the standard [AIStreamCallbacks]
     [
       'onRecordsCited',
       '(records_cited: any) => void',
-      'An optional function that is called once for every request, after the main content of a message has completed. It includes the information about the records (sources) cited in the AI chat response. It\'s the payload of the `records_cited` event from the Inkeep API.',
+      "An optional function that is called once for every request, after the main content of a message has completed. It includes the information about the records (sources) cited in the AI chat response. It's the payload of the `records_cited` event from the Inkeep API.",
     ],
     [
       'onFinal',
