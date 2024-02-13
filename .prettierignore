@@ -1,6 +1,6 @@
 .next
 .nuxt
 node_modules
-dist
+dist/
 .svelte-kit
 .solid
