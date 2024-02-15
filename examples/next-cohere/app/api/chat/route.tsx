@@ -43,6 +43,7 @@ export async function POST(req: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       for await (const event of response) {
+        // Stream Events: https://docs.cohere.com/docs/streaming#stream-events
         if (event.eventType === 'text-generation') {
           controller.enqueue(event.text);
         }
