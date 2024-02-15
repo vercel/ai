@@ -8,6 +8,7 @@ import { CohereClient, Cohere } from 'cohere-ai';
 export const runtime = 'edge';
 
 // IMPORTANT! Set the dynamic to force-dynamic
+// Prevent nextjs to cache this route
 export const dynamic = 'force-dynamic';
 
 if (!process.env.COHERE_API_KEY) {
