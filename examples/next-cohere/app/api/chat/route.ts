@@ -1,8 +1,3 @@
-import {
-  CohereStream,
-  StreamingTextResponse,
-  createStreamDataTransformer,
-} from 'ai';
 import { CohereClient, Cohere } from 'cohere-ai';
 
 export const runtime = 'edge';
@@ -11,12 +6,8 @@ export const runtime = 'edge';
 // Prevent nextjs to cache this route
 export const dynamic = 'force-dynamic';
 
-if (!process.env.COHERE_API_KEY) {
-  throw new Error('Missing COHERE_API_KEY environment variable');
-}
-
 const cohere = new CohereClient({
-  token: process.env.COHERE_API_KEY,
+  token: process.env.COHERE_API_KEY || '',
 });
 
 const toCohereRole = (role: string): Cohere.ChatMessageRole => {
