@@ -1,0 +1,273 @@
+---
+title: Inkeep
+---
+
+import { Steps, Callout } from 'nextra-theme-docs';
+
+# Inkeep
+
+Vercel AI SDK provides a set of utilities to make it easy to use [Inkeep](https://inkeep.com/)'s AI chat APIs to create chat experiences **powered by your own content**.
+
+In this guide, we'll walk through how to create a Q&A support bot powered by Inkeep.
+
+<Callout>
+  You can also use Inkeep as a retrieval-augmented generation (RAG) component or
+  neural search component of a complex LLM application, agent, or workflow.
+</Callout>
+
+## Guide: Inkeep Chatbot
+
+<Steps>
+
+### Create a Next.js app
+
+Create a Next.js application, install `ai`, the Vercel AI SDK, as well as [`@inkeep/ai-api`](https://github.com/inkeep/ai-api-ts), the Inkeep API SDK.
+
+```sh
+pnpm dlx create-next-app my-rag-app
+cd my-rag-app
+```
+
+```
+pnpm add ai @inkeep/ai-api
+```
+
+### Add your Inkeep API Key to `.env`
+
+Create a `.env` file in your project root and add your Inkeep API Key:
+
+```env filename=".env"
+INKEEP_API_KEY=xxxxxx
+INKEEP_INTEGRATION_ID=xxxxxx
+```
+
+### Create a Route Handler
+
+In order to provide analytics and correlate multiple message exchanges into a single "chat session", the Inkeep API provides two endpoints:
+
+1. `POST chat_sessions/chat_results` - To **create** a chat session
+2. `POST chat_sessions/${chat_session_id}/chat_results` - To **continue** a chat session
+
+In this example, we'll use [@inkeep/ai-api](https://github.com/inkeep/chat-api-ts) package to call these endpoints, the `ai` Vercel SDK to create a streamed text response, and `useChat` to render the messages in the UI.
+
+First, let's create a Next.js route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings and an optional `chat_session_id`. We'll use `chat_session_id` to decide whether to create or continue a chat.
+
+```tsx filename="app/api/chat/route.ts" showLineNumbers
+import {
+  InkeepStream,
+  InkeepOnFinalMetadata,
+  StreamingTextResponse,
+  experimental_StreamData,
+} from 'ai';
+import { InkeepAI } from '@inkeep/ai-api';
+import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
+
+interface ChatRequestBody {
+  messages: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+  }>;
+  chat_session_id?: string;
+}
+
+const inkeepIntegrationId = process.env.INKEEP_INTEGRATION_ID;
+
+export async function POST(req: Request) {
+  const chatRequestBody: ChatRequestBody = await req.json();
+  const chat_session_id = chatRequestBody.chat_session_id;
+
+  const ikpClient = new InkeepAI({
+    apiKey: process.env.INKEEP_API_KEY,
+  });
+
+  let response;
+
+  if (!chat_session_id) {
+    const createRes = await ikpClient.chatSession.create({
+      integrationId: inkeepIntegrationId,
+      chatSession: {
+        messages: chatRequestBody.messages,
+      },
+      stream: true,
+    });
+
+    response = createRes.rawResponse;
+  } else {
+    const continueRes = await ikpClient.chatSession.continue(chat_session_id, {
+      integrationId: inkeepIntegrationId,
+      message: chatRequestBody.messages[chatRequestBody.messages.length - 1],
+      stream: true,
+    });
+
+    response = continueRes.rawResponse;
+  }
+
+  // used to pass custom metadata to the client
+  const data = new experimental_StreamData();
+
+  if (!response?.body) {
+    throw new Error('Response body is null');
+  }
+
+  const stream = InkeepStream(response, {
+    onRecordsCited: async (records_cited: RecordsCited$.Inbound) => {
+      // append the citations to the message annotations
+      data.appendMessageAnnotation({
+        records_cited,
+      });
+    },
+    onFinal: async (complete: string, metadata?: InkeepOnFinalMetadata) => {
+      // return the chat_session_id to the client
+      if (metadata) {
+        data.append({ onFinalMetadata: metadata });
+      }
+      data.close();
+    },
+    experimental_streamData: true,
+  });
+
+  return new StreamingTextResponse(stream, {}, data);
+}
+```
+
+This example leverages a few utilities provided by the Vercel AI SDK:
+
+1. First, we pass the streaming `response` we receive from the Inkeep API to the
+   [`InkeepStream`](/docs/api-reference/inkeep-stream). This
+   method decodes/extracts the content of the message from Inkeep's server-side events response and then re-encodes them into a standard [ReadableStream](https://developer.mozilla.org/docs/Web/API/ReadableStream).
+
+2. We then pass that stream directly to the Vercel AI SDK's [`StreamingTextResponse`](/docs/api-reference/streaming-text-response).
+   This is another utility class that extends the normal Node/Edge Runtime `Response`
+   class with the default headers you probably want (hint: `'Content-Type':
+'text/plain; charset=utf-8'` is already set for you). This will provide the streamed content to the client.
+
+3. Lastly, we use the [experimental_StreamData](/docs/api-reference/stream-data) and callback methods of the `InkeepStream` to attach metadata to the response like `onFinalMetadata.chat_session_id` and `records_cited.citations` for use by the client.
+
+<Callout>
+  It's common to save a chat to a database. To do so, you can leverage the
+  `onFinal` callback to add your own saving logic. For example, add `await
+  saveCompletionToDatabase(complete, metadata);` prior to `data.close();`.
+</Callout>
+
+### Wire up the UI
+
+Next, let's create a client component with a form that we'll use to gather the prompt from the user and then stream back the chat response from.
+
+By default, the [`useChat`](/docs/api-reference/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`).
+
+We will use the `data` field to get the Inkeep `chat_session_id`, which we will include in the request body in any subsequent messages.
+
+```tsx filename="app/page.tsx" showLineNumbers
+'use client';
+
+import { useChat } from 'ai/react';
+import { useEffect, useState } from 'react';
+import { Message } from 'ai';
+import { type InkeepOnFinalMetadata } from 'ai/streams';
+import { Citations } from './Citations';
+
+export default function Chat() {
+  /**
+   * You can alternatively put the chat_session_id in search params e.g. ?chat_session_id=123 or path params like /chat/123 depending on your use case
+   */
+  const [chatSessionId, setChatSessionId] = useState<string | undefined>(
+    undefined,
+  );
+
+  const { messages, input, handleInputChange, handleSubmit, data } = useChat({
+    body: {
+      chat_session_id: chatSessionId,
+    },
+  });
+
+  // SET THE INKEEP CHAT SESSION ID FROM THE CHAT DATA
+  useEffect(() => {
+    // get the onFinalMetadata item from the global data
+    const onFinalMetadataItem = data?.find(
+      item =>
+        typeof item === 'object' && item !== null && 'onFinalMetadata' in item,
+    ) as { onFinalMetadata: InkeepOnFinalMetadata } | undefined;
+
+    // get the chat_session_id from the onFinalMetadata item
+    const chatSessionId = onFinalMetadataItem?.onFinalMetadata?.chat_session_id;
+
+    setChatSessionId(chatSessionId);
+  }, [data]);
+
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(m => {
+        return (
+          <div key={m.id} className="whitespace-pre-wrap">
+            <br />
+            <strong>{m.role === 'user' ? 'User: ' : 'AI: '}</strong>
+            {m.content}
+            <Citations annotations={m.annotations} />
+          </div>
+        );
+      })}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+#### Show Citations (optional)
+
+The Inkeep API provides information about the sources (documentation, web pages, forums, etc.) used to answer a question in a `records_cited` message annotation.
+
+We can use this to display a list of "Citations" at the end of the main chat message content.
+
+```tsx filename="app/Citations.tsx" showLineNumbers
+import { Message } from 'ai';
+import { InkeepRecordsCitedData } from 'ai/streams';
+
+interface CitationsProps {
+  annotations: Message['annotations'];
+}
+
+export const Citations = ({ annotations }: CitationsProps) => {
+  // get the records_cited annotation of the message
+  const recordsCitedAnnotation = annotations?.find(
+    item =>
+      typeof item === 'object' && item !== null && 'records_cited' in item,
+  ) as { records_cited: InkeepRecordsCitedData } | undefined;
+
+  // get the citations from the records_cited annotation
+  const citations = recordsCitedAnnotation?.records_cited?.citations;
+
+  return (
+    citations && (
+      <>
+        {annotations && annotations.length > 0 && (
+          <div>
+            <br />
+            {'---SOURCES USED---'}
+            <br />
+            <div>
+              {citations.map((citation, citationIndex) => (
+                <p key={citationIndex}>
+                  {citationIndex + 1}.{' '}
+                  <a target="_blank" href={citation.record.url || ''}>
+                    {citation.record.title}
+                  </a>
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+      </>
+    )
+  );
+};
+```
+
+</Steps>

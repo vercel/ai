@@ -17,7 +17,9 @@
         "PERPLEXITY_API_KEY",
         "REPLICATE_API_KEY",
         "NODE_ENV",
-        "ASSISTANT_ID"
+        "ASSISTANT_ID",
+        "INKEEP_API_KEY",
+        "INKEEP_INTEGRATION_ID"
       ],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
