@@ -4,6 +4,7 @@ import { useChat } from 'ai/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, data } = useChat();
+  console.log({ messages });
 
   return (
     <div className="p-4">

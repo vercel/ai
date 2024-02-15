@@ -72,11 +72,18 @@ export async function POST(req: Request) {
     chatHistory,
   });
 
-  // Extract the text response from the Cohere stream
-  const stream = CohereStream(response);
+  const stream = new ReadableStream({
+    async start(controller) {
+      for await (const event of response) {
+        if (event.eventType === 'text-generation') {
+          controller.enqueue(event.text);
+        }
+      }
+      controller.close();
+    },
+  });
 
-  // Respond with the stream
-  return new StreamingTextResponse(stream);
+  return new Response(stream);
 }
 ```
 

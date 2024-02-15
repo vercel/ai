@@ -1,8 +1,14 @@
-import { CohereStream, StreamingTextResponse } from 'ai';
+import {
+  CohereStream,
+  StreamingTextResponse,
+  createStreamDataTransformer,
+} from 'ai';
 import { CohereClient, Cohere } from 'cohere-ai';
 
-// IMPORTANT! Set the runtime to edge
 export const runtime = 'edge';
+
+// IMPORTANT! Set the dynamic to force-dynamic
+export const dynamic = 'force-dynamic';
 
 if (!process.env.COHERE_API_KEY) {
   throw new Error('Missing COHERE_API_KEY environment variable');
@@ -33,8 +39,16 @@ export async function POST(req: Request) {
     chatHistory,
   });
 
-  const stream = CohereStream(response);
+  const stream = new ReadableStream({
+    async start(controller) {
+      for await (const event of response) {
+        if (event.eventType === 'text-generation') {
+          controller.enqueue(event.text);
+        }
+      }
+      controller.close();
+    },
+  });
 
-  // Respond with the stream
-  return new StreamingTextResponse(stream);
+  return new Response(stream);
 }
