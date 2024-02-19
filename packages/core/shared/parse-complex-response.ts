@@ -89,58 +89,24 @@ export async function parseComplexResponse({
 
     let toolCallMessage: Message | null | undefined = null;
 
-    switch (type) {
-      case 'text': {
-        prefixMap['text'] =
-          prefixMap['text'] != null
-            ? {
-                ...prefixMap['text'],
-                content: (prefixMap['text'].content || '') + value,
-              }
-            : {
-                id: generateId(),
-                role: 'assistant',
-                content: value,
-                createdAt,
-              };
+    if (type === 'tool_calls') {
+      prefixMap['tool_calls'] = {
+        id: generateId(),
+        role: 'assistant',
+        content: '',
+        tool_calls: value.tool_calls,
+        createdAt,
+      };
 
-        break;
-      }
+      toolCallMessage = prefixMap['tool_calls'];
+    }
 
-      case 'function_call': {
-        functionCallMessage = prefixMap['function_call'] = {
-          id: generateId(),
-          role: 'assistant',
-          content: '',
-          function_call: value.function_call,
-          name: value.function_call.name,
-          createdAt,
-        };
+    if (type === 'data') {
+      prefixMap['data'].push(...value);
+    }
 
-        break;
-      }
-
-      case 'tool_calls': {
-        toolCallMessage = prefixMap['tool_calls'] = {
-          id: generateId(),
-          role: 'assistant',
-          content: '',
-          tool_calls: value.tool_calls,
-          createdAt,
-        };
-
-        break;
-      }
-
-      case 'data': {
-        prefixMap['data'].push(...value);
-        break;
-      }
-
-      case 'audio': {
-        appendAudioChunk?.(value);
-        break;
-      }
+    if (type === 'audio') {
+      appendAudioChunk?.(value);
     }
 
     let responseMessage = prefixMap['text'];
