@@ -15,9 +15,7 @@ const roleToColorMap: Record<Message['role'], string> = {
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, speechUrl } =
-    useChat({
-      api: '/api/chat-speech-elevenlabs',
-    });
+    useChat();
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">

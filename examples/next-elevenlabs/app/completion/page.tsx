@@ -10,9 +10,7 @@ export default function Chat() {
     handleSubmit,
     error,
     speechUrl,
-  } = useCompletion({
-    api: '/api/completion-speech-elevenlabs',
-  });
+  } = useCompletion();
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">

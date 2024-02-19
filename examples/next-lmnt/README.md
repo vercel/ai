@@ -30,7 +30,7 @@ To run the example locally you need to:
 2. Go to your [LMNT account](https://app.lmnt.com/account) and create an API KEY (`LMNT_API_KEY`).
 3. Sign up at [OpenAI's Developer Platform](https://platform.openai.com/signup).
 4. Go to [OpenAI's dashboard](https://platform.openai.com/account/api-keys) and create an API KEY (`OPENAI_API_KEY`).
-5. Set the required keys environment variable as the token value as shown [the example env file](./.env.local.example) but in a new file called `.env.local`
+5. Set the required API keys as environment variables using the token value as shown [the example env file](./.env.local.example) but in a new file called `.env.local`
 6. `pnpm install` to install the required dependencies.
 7. `pnpm dev` to launch the development server.
 
