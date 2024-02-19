@@ -12,7 +12,7 @@
     "ai": "2.2.35",
     "bufferutil": "4.0.8",
     "next": "14.0.3",
-    "lmnt-node": "1.0.0",
+    "lmnt-node": "1.1.2",
     "openai": "4.16.1",
     "modelfusion": "0.130.1",
     "react": "18.2.0",

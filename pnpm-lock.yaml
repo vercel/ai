@@ -462,8 +462,8 @@ importers:
         specifier: 4.0.8
         version: 4.0.8
       lmnt-node:
-        specifier: 1.0.0
-        version: 1.0.0(bufferutil@4.0.8)
+        specifier: 1.1.2
+        version: 1.1.2(bufferutil@4.0.8)
       modelfusion:
         specifier: 0.130.1
         version: 0.130.1(bufferutil@4.0.8)
@@ -10940,8 +10940,8 @@ packages:
       wrap-ansi: 8.1.0
     dev: true
 
-  /lmnt-node@1.0.0(bufferutil@4.0.8):
-    resolution: {integrity: sha512-60XPqi8AVxStpmuiE2+cgPj2vubHykVGpkBvHCTfLmCsZTh6EvMRihdBendz4FEHoEiPqwQW4nw5tx6XbC8nIA==}
+  /lmnt-node@1.1.2(bufferutil@4.0.8):
+    resolution: {integrity: sha512-84u4seDGUSa/XT2z0xlRxojlsBw14E6VPp2wQqLj7J5pdNKjpTI4TBAeps0QanBb87cR5Ck9BtySTa2wTyf1xQ==}
     dependencies:
       form-data: 4.0.0
       isomorphic-fetch: 3.0.0

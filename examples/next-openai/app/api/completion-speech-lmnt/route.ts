@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       }
     },
     onFinal(completion) {
-      speechStream.finish();
+      speechStream.finish(); // flush any remaining tokens and close the stream
     },
     experimental_streamData: true,
   });
