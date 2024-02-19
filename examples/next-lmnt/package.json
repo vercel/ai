@@ -14,7 +14,6 @@
     "next": "14.0.3",
     "lmnt-node": "1.1.2",
     "openai": "4.16.1",
-    "modelfusion": "0.130.1",
     "react": "18.2.0",
     "react-dom": "^18.2.0"
   },
