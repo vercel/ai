@@ -30,10 +30,7 @@ export async function POST(req: Request) {
     prompt,
   });
 
-  const speechStream = speech.synthesizeStreaming(
-    '034b632b-df71-46c8-b440-86a42ffc3cf3', // Henry
-    {},
-  );
+  const speechStream = speech.synthesizeStreaming('lily', {});
 
   const data = new experimental_StreamData();
 
