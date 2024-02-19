@@ -10,9 +10,7 @@ export default function Chat() {
     handleSubmit,
     error,
     speechUrl,
-  } = useCompletion({
-    api: '/api/completion-speech-lmnt',
-  });
+  } = useCompletion();
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -29,14 +27,12 @@ export default function Chat() {
 
       <div className="flex justify-center mt-4">
         {speechUrl != null && (
-          <>
-            <audio
-              controls
-              controlsList="nodownload nofullscreen noremoteplayback"
-              autoPlay={true}
-              src={speechUrl}
-            />
-          </>
+          <audio
+            controls
+            controlsList="nodownload nofullscreen noremoteplayback"
+            autoPlay={true}
+            src={speechUrl}
+          />
         )}
       </div>
 

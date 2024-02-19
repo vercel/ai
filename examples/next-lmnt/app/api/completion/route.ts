@@ -7,14 +7,15 @@ import {
 } from 'ai';
 import Speech from 'lmnt-node';
 
-// Create an OpenAI API client (that's edge friendly!)
+// Create an OpenAI API client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+  apiKey: process.env.OPENAI_API_KEY || 'no key',
 });
 
+// Create an LMNT API client
 const speech = new Speech(process.env.LMNT_API_KEY || 'no key');
 
-// IMPORTANT! Set the runtime to edge
+// Note: The LMNT SDK does not work on edge (v1.1.2)
 // export const runtime = 'edge';
 
 export async function POST(req: Request) {
