@@ -1,11 +1,11 @@
-import OpenAI from 'openai';
 import {
   OpenAIStream,
   StreamingTextResponse,
   experimental_StreamData,
-  forwardLmntSpeechStream,
+  experimental_forwardLmntSpeechStream,
 } from 'ai';
 import Speech from 'lmnt-node';
+import OpenAI from 'openai';
 
 // Create an OpenAI API client
 const openai = new OpenAI({
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   const data = new experimental_StreamData();
 
   // note: no await here, we want to run this in parallel:
-  forwardLmntSpeechStream(speechStream, data, {
+  experimental_forwardLmntSpeechStream(speechStream, data, {
     onFinal() {
       data.close();
     },

@@ -1,6 +1,6 @@
 import { experimental_StreamData } from './stream-data';
 
-export async function forwardLmntSpeechStream(
+export async function experimental_forwardLmntSpeechStream(
   speechStream: AsyncIterable<any>,
   data: experimental_StreamData,
   options: {

@@ -2,7 +2,7 @@ import {
   OpenAIStream,
   StreamingTextResponse,
   experimental_StreamData,
-  forwardModelFusionSpeechStream,
+  experimental_forwardModelFusionSpeechStream,
 } from 'ai';
 import { AsyncQueue, elevenlabs, streamSpeech } from 'modelfusion';
 import OpenAI from 'openai';
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
   const data = new experimental_StreamData();
 
   // note: no await here, we want to run this in parallel:
-  forwardModelFusionSpeechStream(speechStream, data, {
+  experimental_forwardModelFusionSpeechStream(speechStream, data, {
     onFinal() {
       data.close();
     },

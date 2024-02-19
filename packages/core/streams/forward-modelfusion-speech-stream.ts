@@ -1,6 +1,6 @@
 import { experimental_StreamData } from './stream-data';
 
-export async function forwardModelFusionSpeechStream(
+export async function experimental_forwardModelFusionSpeechStream(
   speechStream: AsyncIterable<Uint8Array>,
   data: experimental_StreamData,
   options: {
