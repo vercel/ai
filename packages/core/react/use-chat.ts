@@ -74,7 +74,7 @@ export type UseChatHelpers = {
   /** Additional data added on the server via StreamData */
   data?: JSONValue[] | undefined;
 
-  speechUrl: string | null;
+  experimental_speechUrl: string | null;
 };
 
 type StreamingReactResponseAction = (payload: {
@@ -499,6 +499,6 @@ export function useChat({
     handleSubmit,
     isLoading,
     data: streamData,
-    speechUrl,
+    experimental_speechUrl: speechUrl,
   };
 }

@@ -59,7 +59,7 @@ export type UseCompletionHelpers = {
   /** Additional data added on the server via StreamData */
   data?: JSONValue[] | undefined;
 
-  speechUrl: string | null;
+  experimental_speechUrl: string | null;
 };
 
 export function useCompletion({
@@ -212,6 +212,6 @@ export function useCompletion({
     handleSubmit,
     isLoading,
     data: streamData,
-    speechUrl,
+    experimental_speechUrl: speechUrl,
   };
 }

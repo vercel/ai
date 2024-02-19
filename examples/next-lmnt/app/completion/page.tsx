@@ -9,7 +9,7 @@ export default function Chat() {
     handleInputChange,
     handleSubmit,
     error,
-    speechUrl,
+    experimental_speechUrl: speechUrl,
   } = useCompletion();
 
   return (
