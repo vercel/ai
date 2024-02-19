@@ -39,6 +39,7 @@ export default function Chat() {
             controlsList="nodownload nofullscreen noremoteplayback"
             autoPlay={true}
             src={speechUrl}
+            hidden
           />
         )}
       </div>
