@@ -161,6 +161,13 @@ The `useChat` hook returns an object containing several helper methods and varia
       'Boolean flag indicating whether a request is currently in progress.',
     ],
     ['data', 'JSONValue[]', 'Data returned from experimental_StreamData'],
+    [
+      'experimental_speechUrl',
+      'string | null',
+      'The URL of the speech audio stream. This is only available when the route forwards ' +
+        'audio data to the client. You can use this URL in HTML5 audio elements to play the ' +
+        'audio stream.',
+    ],
   ]}
 />
 

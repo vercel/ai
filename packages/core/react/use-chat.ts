@@ -74,6 +74,11 @@ export type UseChatHelpers = {
   /** Additional data added on the server via StreamData */
   data?: JSONValue[] | undefined;
 
+  /**
+   * The URL of the speech audio stream. This is only available when the route forwards
+   * audio data to the client. You can use this URL in HTML5 audio elements to play the
+   * audio stream.
+   */
   experimental_speechUrl: string | null;
 };
 
