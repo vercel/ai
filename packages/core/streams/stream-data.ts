@@ -111,7 +111,9 @@ export class experimental_StreamData {
       throw new Error('Data Stream has already been closed.');
     }
 
-    this.encoder.encode(formatStreamPart('audio', speechBase64));
+    this.controller?.enqueue(
+      this.encoder.encode(formatStreamPart('audio', speechBase64)),
+    );
   }
 
   appendMessageAnnotation(value: JSONValue): void {
