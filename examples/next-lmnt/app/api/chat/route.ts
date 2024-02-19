@@ -7,7 +7,7 @@ import {
 import Speech from 'lmnt-node';
 import OpenAI from 'openai';
 
-// Create an OpenAI API client (that's edge friendly!)
+// Create an OpenAI API client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
@@ -15,7 +15,7 @@ const openai = new OpenAI({
 // Create an LMNT API client
 const speech = new Speech(process.env.LMNT_API_KEY || 'no key');
 
-// Note: The LMNT SDK does not work on edge (v1.1.2)
+// Note: The LMNT SDK does not work on edge yet (as of v1.1.2)
 // export const runtime = 'edge';
 
 export async function POST(req: Request) {
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     onToken(token) {
       speechStream.appendText(token);
 
-      // only flush after each sentence to make it sound more natural:
+      // only flush after each sentence to make the response sound more natural:
       if (token.includes('.')) {
         speechStream.flush();
       }

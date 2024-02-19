@@ -1,0 +1,131 @@
+---
+title: LMNT
+---
+
+# LMNT
+
+[LMNT](https://lmnt.com/) is text-to-speech provider. It lets you stream text to speech in real-time, enabling you to add voice responses to your applications.
+
+## Chatbot Example
+
+Here is an example implementation of a chat application that uses the Vercel AI SDK, OpenAI, and LMNT together with the [Next.js](https://nextjs.org/docs) App Router.
+
+First, we create a new API route that uses the Vercel AI SDK to stream the chat and audio response from OpenAI and LMNT.
+The chat stream response from OpenAI is passed into LMNT, and the audio is streamed back to the client as part of the stream data response.
+
+```tsx filename="app/api/chat/route.ts"
+import {
+  OpenAIStream,
+  StreamingTextResponse,
+  experimental_StreamData,
+  experimental_forwardLmntSpeechStream,
+} from 'ai';
+import Speech from 'lmnt-node';
+import OpenAI from 'openai';
+
+// Create an OpenAI API client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
+});
+
+// Create an LMNT API client
+const speech = new Speech(process.env.LMNT_API_KEY || 'no key');
+
+// Note: The LMNT SDK does not work on edge yet (as of v1.1.2)
+// export const runtime = 'edge';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  // Ask OpenAI for a streaming chat completion given the prompt
+  const response = await openai.chat.completions.create({
+    model: 'gpt-3.5-turbo',
+    stream: true,
+    messages,
+  });
+
+  const speechStream = speech.synthesizeStreaming('lily', {});
+
+  const data = new experimental_StreamData();
+
+  // note: no await here, we want to run this in parallel:
+  experimental_forwardLmntSpeechStream(speechStream, data, {
+    onFinal() {
+      data.close();
+    },
+  });
+
+  // Convert the response into a friendly text-stream
+  const stream = OpenAIStream(response, {
+    onToken(token) {
+      speechStream.appendText(token);
+
+      // only flush after each sentence to make the response sound more natural:
+      if (token.includes('.')) {
+        speechStream.flush();
+      }
+    },
+    onFinal(completion) {
+      speechStream.finish(); // flush any remaining tokens and close the stream
+    },
+    experimental_streamData: true,
+  });
+
+  // Respond with the stream
+  return new StreamingTextResponse(stream, {}, data);
+}
+```
+
+Then, we use the Vercel AI SDK's [`useChat`](/docs/api-reference/use-chat) hook.
+It exposes an experimental speech url that can be used to play the audio response from LMNT in an audio element.
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    experimental_speechUrl: speechUrl,
+  } = useChat();
+
+  return (
+    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
+
+      <div className="flex justify-center mt-4">
+        {speechUrl != null && (
+          <audio
+            controls
+            controlsList="nodownload nofullscreen noremoteplayback"
+            autoPlay={true}
+            src={speechUrl}
+            hidden
+          />
+        )}
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <label>
+          Say something...
+          <input
+            className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+            value={input}
+            onChange={handleInputChange}
+          />
+        </label>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  );
+}
+```
