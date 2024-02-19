@@ -11,6 +11,7 @@ import {
 } from '../tests/snapshots/openai-chat';
 import { createClient, readAllChunks } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
+import { azureOpenaiChatCompletionChunks } from '../tests/snapshots/azure-openai';
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
 const TOOL_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-tool-call';
@@ -350,6 +351,48 @@ describe('OpenAIStream', () => {
             type: 'function',
           },
         ],
+      });
+    });
+  });
+
+  describe('Azure SDK', () => {
+    async function* asyncIterableFromArray(array: any[]) {
+      for (const item of array) {
+        // You can also perform any asynchronous operations here if needed
+        yield item;
+      }
+    }
+
+    describe('StreamData prototcol', () => {
+      it('should send text', async () => {
+        const data = new experimental_StreamData();
+
+        const stream = OpenAIStream(
+          asyncIterableFromArray(azureOpenaiChatCompletionChunks),
+          {
+            onFinal() {
+              data.close();
+            },
+            experimental_streamData: true,
+          },
+        );
+
+        const response = new StreamingTextResponse(stream, {}, data);
+
+        const client = createClient(response);
+        const chunks = await client.readAll();
+
+        expect(chunks).toEqual([
+          '0:"Hello"\n',
+          '0:"!"\n',
+          '0:" How"\n',
+          '0:" can"\n',
+          '0:" I"\n',
+          '0:" assist"\n',
+          '0:" you"\n',
+          '0:" today"\n',
+          '0:"?"\n',
+        ]);
       });
     });
   });

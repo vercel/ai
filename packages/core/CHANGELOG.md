@@ -1,5 +1,31 @@
 # ai
 
+## 2.2.35
+
+### Patch Changes
+
+- b717dad: Adding Inkeep as a stream provider
+
+## 2.2.34
+
+### Patch Changes
+
+- 2c8ffdb: cohere-stream: support AsyncIterable
+- ed1e278: Message annotations handling for all Message types
+
+## 2.2.33
+
+### Patch Changes
+
+- 8542ae7: react/use-assistant: add onError handler
+- 97039ff: OpenAIStream: Add support for the Azure OpenAI client library
+
+## 2.2.32
+
+### Patch Changes
+
+- 7851fa0: StreamData: add `annotations` and `appendMessageAnnotation` support
+
 ## 2.2.31
 
 ### Patch Changes

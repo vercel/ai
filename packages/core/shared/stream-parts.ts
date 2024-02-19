@@ -221,8 +221,24 @@ const toolCallStreamPart: StreamPart<
   },
 };
 
-const audioPart: StreamPart<'8', 'audio', string> = {
+const messageAnnotationsStreamPart: StreamPart<
+  '8',
+  'message_annotations',
+  Array<JSONValue>
+> = {
   code: '8',
+  name: 'message_annotations',
+  parse: (value: JSONValue) => {
+    if (!Array.isArray(value)) {
+      throw new Error('"message_annotations" parts expect an array value.');
+    }
+
+    return { type: 'message_annotations', value };
+  },
+};
+
+const audioPart: StreamPart<'9', 'audio', string> = {
+  code: '9',
   name: 'audio',
   parse: (value: JSONValue) => {
     if (typeof value !== 'string') {
@@ -241,6 +257,7 @@ const streamParts = [
   assistantControlDataStreamPart,
   dataMessageStreamPart,
   toolCallStreamPart,
+  messageAnnotationsStreamPart,
   audioPart,
 ] as const;
 
@@ -254,6 +271,7 @@ type StreamParts =
   | typeof assistantControlDataStreamPart
   | typeof dataMessageStreamPart
   | typeof toolCallStreamPart
+  | typeof messageAnnotationsStreamPart
   | typeof audioPart;
 
 /**
@@ -272,6 +290,7 @@ export type StreamPartType =
   | ReturnType<typeof assistantControlDataStreamPart.parse>
   | ReturnType<typeof dataMessageStreamPart.parse>
   | ReturnType<typeof toolCallStreamPart.parse>
+  | ReturnType<typeof messageAnnotationsStreamPart.parse>
   | ReturnType<typeof audioPart.parse>;
 
 export const streamPartsByCode = {
@@ -283,6 +302,7 @@ export const streamPartsByCode = {
   [assistantControlDataStreamPart.code]: assistantControlDataStreamPart,
   [dataMessageStreamPart.code]: dataMessageStreamPart,
   [toolCallStreamPart.code]: toolCallStreamPart,
+  [messageAnnotationsStreamPart.code]: messageAnnotationsStreamPart,
   [audioPart.code]: audioPart,
 } as const;
 
@@ -317,6 +337,7 @@ export const StreamStringPrefixes = {
   [assistantControlDataStreamPart.name]: assistantControlDataStreamPart.code,
   [dataMessageStreamPart.name]: dataMessageStreamPart.code,
   [toolCallStreamPart.name]: toolCallStreamPart.code,
+  [messageAnnotationsStreamPart.name]: messageAnnotationsStreamPart.code,
   [audioPart.name]: audioPart.code,
 } as const;
 

@@ -1,10 +1,24 @@
 import {
   type AIStreamCallbacksAndOptions,
   createCallbacksTransformer,
+  readableFromAsyncIterable,
 } from './ai-stream';
 import { createStreamDataTransformer } from './stream-data';
 
 const utf8Decoder = new TextDecoder('utf-8');
+
+// Full types
+// @see: https://github.com/cohere-ai/cohere-typescript/blob/c2eceb4a845098240ba0bc44e3787ccf75e268e8/src/api/types/StreamedChatResponse.ts
+interface StreamChunk {
+  text?: string;
+  eventType:
+    | 'stream-start'
+    | 'search-queries-generation'
+    | 'search-results'
+    | 'text-generation'
+    | 'citation-generation'
+    | 'stream-end';
+}
 
 async function processLines(
   lines: string[],
@@ -63,13 +77,30 @@ function createParser(res: Response) {
   });
 }
 
+async function* streamable(stream: AsyncIterable<StreamChunk>) {
+  for await (const chunk of stream) {
+    if (chunk.eventType === 'text-generation') {
+      const text = chunk.text;
+      if (text) yield text;
+    }
+  }
+}
+
 export function CohereStream(
-  reader: Response,
+  reader: Response | AsyncIterable<StreamChunk>,
   callbacks?: AIStreamCallbacksAndOptions,
 ): ReadableStream {
-  return createParser(reader)
-    .pipeThrough(createCallbacksTransformer(callbacks))
-    .pipeThrough(
-      createStreamDataTransformer(callbacks?.experimental_streamData),
-    );
+  if (Symbol.asyncIterator in reader) {
+    return readableFromAsyncIterable(streamable(reader))
+      .pipeThrough(createCallbacksTransformer(callbacks))
+      .pipeThrough(
+        createStreamDataTransformer(callbacks?.experimental_streamData),
+      );
+  } else {
+    return createParser(reader)
+      .pipeThrough(createCallbacksTransformer(callbacks))
+      .pipeThrough(
+        createStreamDataTransformer(callbacks?.experimental_streamData),
+      );
+  }
 }
