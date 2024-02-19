@@ -106,7 +106,7 @@ export class experimental_StreamData {
     this.data.push(value);
   }
 
-  appendSpeech(speechBase64: string) {
+  experimental_appendSpeech(speechBase64: string) {
     if (this.isClosed) {
       throw new Error('Data Stream has already been closed.');
     }

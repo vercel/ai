@@ -8,7 +8,7 @@ export async function experimental_forwardLmntSpeechStream(
   },
 ) {
   for await (const chunk of speechStream) {
-    data.appendSpeech((chunk as any).audio.toString('base64'));
+    data.experimental_appendSpeech((chunk as any).audio.toString('base64'));
   }
   options.onFinal();
 }
