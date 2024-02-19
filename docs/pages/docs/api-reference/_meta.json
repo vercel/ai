@@ -9,6 +9,7 @@
   "google-generative-ai-stream": "GoogleGenerativeAIStream",
   "huggingface-stream": "HuggingFaceStream",
   "langchain-stream": "LangChainStream",
+  "forward-lmnt-speech-stream": "experimental_forwardLmntSpeechStream",
   "openai-stream": "OpenAIStream",
   "replicate-stream": "ReplicateStream",
   "stream-data": "experimental_StreamData",

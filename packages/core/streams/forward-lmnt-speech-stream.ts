@@ -1,5 +1,8 @@
 import { experimental_StreamData } from './stream-data';
 
+/**
+ * Forwards an LMNT speech stream as stream data.
+ */
 export async function experimental_forwardLmntSpeechStream(
   speechStream: AsyncIterable<any>,
   data: experimental_StreamData,
