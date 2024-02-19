@@ -8,7 +8,9 @@ export async function forwardModelFusionSpeechStream(
   },
 ) {
   for await (const chunk of speechStream) {
-    data.appendSpeech(btoa(String.fromCharCode(...chunk)));
+    const chunkArray = Array.from(chunk); // Convert Uint8Array to regular array
+    data.appendSpeech(btoa(String.fromCharCode(...chunkArray)));
   }
+
   options.onFinal();
 }
