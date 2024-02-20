@@ -8,10 +8,10 @@ export async function POST(req: Request) {
 
   const stream = await streamMessage({
     model: openai.chat({
-      modelId: 'gpt-3.5-turbo',
+      id: 'gpt-3.5-turbo',
     }),
     prompt,
   });
 
-  return stream.toStreamingTextResponse();
+  return stream.toTextResponse();
 }

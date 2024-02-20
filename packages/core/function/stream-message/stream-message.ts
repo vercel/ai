@@ -18,7 +18,7 @@ export async function streamMessage({
   const modelStream = await model.doStreamText(prompt);
 
   return {
-    toStreamingTextResponse() {
+    toTextResponse() {
       return new StreamingTextResponse(modelStream);
     },
   };
@@ -28,5 +28,5 @@ export async function streamMessage({
 export interface StreamMessageResponse {
   // TODO abort(): void;
 
-  toStreamingTextResponse(): Response;
+  toTextResponse(): Response;
 }

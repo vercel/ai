@@ -14,5 +14,5 @@ export async function POST(req: Request) {
     prompt: { messages },
   });
 
-  return stream.toStreamingTextResponse();
+  return stream.toTextResponse();
 }
