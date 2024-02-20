@@ -1,5 +1,8 @@
+import OpenAI from 'openai';
 import { ChatPrompt, Delta } from '../../function';
 import { MessageGenerator } from '../../function/stream-message/message-generator';
+import { OpenAIStream } from '../../streams';
+import { convertChatPromptToOpenAI } from './openai-chat-prompt';
 
 export interface OpenAIChatMessageGeneratorSettings {
   modelId: string;
@@ -12,11 +15,18 @@ export class OpenAIChatMessageGenerator implements MessageGenerator {
     this.modelId = modelId;
   }
 
-  doStreamText(
+  async doStreamText(
     prompt: ChatPrompt,
-  ): PromiseLike<ReadableStream<Delta<unknown>>> {
-    // convert prompt to `openai chat (or completion) format --> happens in provider
-    throw new Error('Method not implemented.');
+  ): Promise<ReadableStream<Delta<unknown>>> {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      stream: true,
+      messages: convertChatPromptToOpenAI(prompt),
+    });
+
+    return OpenAIStream(response);
   }
 
   extractTextDelta(delta: unknown): string | undefined {
