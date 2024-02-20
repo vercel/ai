@@ -11,6 +11,7 @@
   "langchain-stream": "LangChainStream",
   "openai-stream": "OpenAIStream",
   "replicate-stream": "ReplicateStream",
+  "inkeep-stream": "InkeepStream",
   "stream-data": "experimental_StreamData",
   "streaming-text-response": "StreamingTextResponse",
   "stream-to-response": "streamToResponse",
