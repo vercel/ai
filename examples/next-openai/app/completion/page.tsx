@@ -4,7 +4,9 @@ import { useCompletion } from 'ai/react';
 
 export default function Chat() {
   const { completion, input, handleInputChange, handleSubmit, error, data } =
-    useCompletion();
+    useCompletion({
+      api: '/api/new-completion',
+    });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">

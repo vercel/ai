@@ -1,5 +1,6 @@
 import { StreamingTextResponse } from '../../streams';
 import { ChatPrompt } from '../prompt/chat-prompt';
+import { InstructionPrompt } from '../prompt/instruction-prompt';
 import { MessageGenerator } from './message-generator';
 
 /**
@@ -12,7 +13,7 @@ export async function streamMessage({
   prompt,
 }: {
   model: MessageGenerator;
-  prompt: ChatPrompt;
+  prompt: string | InstructionPrompt | ChatPrompt;
 }): Promise<StreamMessageResponse> {
   const modelStream = await model.doStreamText(prompt);
 
