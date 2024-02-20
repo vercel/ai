@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.36
+
+### Patch Changes
+
+- 141f0ce: Fix: onFinal callback is invoked with text from onToolCall when onToolCall returns string
+
 ## 2.2.35
 
 ### Patch Changes
