@@ -228,7 +228,7 @@ We can use this to display a list of "Citations" at the end of the main chat mes
 
 ```tsx filename="app/Citations.tsx" showLineNumbers
 import { Message } from 'ai';
-import { InkeepRecordsCitedData } from 'ai/streams';
+import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
 
 interface CitationsProps {
   annotations: Message['annotations'];
@@ -239,7 +239,7 @@ export const Citations = ({ annotations }: CitationsProps) => {
   const recordsCitedAnnotation = annotations?.find(
     item =>
       typeof item === 'object' && item !== null && 'records_cited' in item,
-  ) as { records_cited: InkeepRecordsCitedData } | undefined;
+  ) as { records_cited: RecordsCited$.Inbound } | undefined;
 
   // get the citations from the records_cited annotation
   const citations = recordsCitedAnnotation?.records_cited?.citations;
