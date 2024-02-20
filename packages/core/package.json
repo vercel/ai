@@ -42,11 +42,17 @@
       "module": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
-    "./functions": {
-      "types": "./functions/dist/index.d.ts",
-      "import": "./functions/dist/index.mjs",
-      "module": "./functions/dist/index.mjs",
-      "require": "./functions/dist/index.js"
+    "./function": {
+      "types": "./function/dist/index.d.ts",
+      "import": "./function/dist/index.mjs",
+      "module": "./function/dist/index.mjs",
+      "require": "./function/dist/index.js"
+    },
+    "./provider": {
+      "types": "./provider/dist/index.d.ts",
+      "import": "./provider/dist/index.mjs",
+      "module": "./provider/dist/index.mjs",
+      "require": "./provider/dist/index.js"
     },
     "./prompts": {
       "types": "./prompts/dist/index.d.ts",
