@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import './globals.css';
 import { Inter } from 'next/font/google';
 
@@ -14,8 +15,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" className="w-full h-screen">
+      <body className={inter.className}>
+        <nav className="p-4 flex gap-x-4 w-full">
+          <Link href="/" className="text-blue-500 underline hover:no-underline">
+            Chat
+          </Link>
+          <Link
+            href="/completion"
+            className="text-blue-500 underline hover:no-underline"
+          >
+            Completion
+          </Link>
+        </nav>
+        <main>{children}</main>
+      </body>
     </html>
   );
 }
