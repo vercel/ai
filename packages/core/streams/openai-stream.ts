@@ -656,6 +656,7 @@ function createFunctionCallTransformer(
                 ? textEncoder.encode(formatStreamPart('text', functionResponse))
                 : textEncoder.encode(functionResponse),
             );
+            aggregatedFinalCompletionResponse = functionResponse;
             return;
           }
 
