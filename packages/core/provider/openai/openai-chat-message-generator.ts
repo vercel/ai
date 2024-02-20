@@ -6,23 +6,33 @@ import { OpenAIStream } from '../../streams';
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
 
 export interface OpenAIChatMessageGeneratorSettings {
-  modelId: string;
+  id: string;
+  maxTokens?: number;
+  client?: OpenAI;
 }
 
 export class OpenAIChatMessageGenerator implements MessageGenerator {
-  readonly modelId: string;
+  readonly settings: OpenAIChatMessageGeneratorSettings;
 
-  constructor({ modelId }: OpenAIChatMessageGeneratorSettings) {
-    this.modelId = modelId;
+  constructor(settings: OpenAIChatMessageGeneratorSettings) {
+    this.settings = settings;
+  }
+
+  get client() {
+    return (
+      this.settings.client ||
+      new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      })
+    );
   }
 
   async doStreamText(
     prompt: string | InstructionPrompt | ChatPrompt,
   ): Promise<ReadableStream<Delta<unknown>>> {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+    const response = await this.client.chat.completions.create({
+      model: this.settings.id,
+      max_tokens: this.settings.maxTokens,
       stream: true,
       messages: convertToOpenAIChatPrompt(prompt),
     });
