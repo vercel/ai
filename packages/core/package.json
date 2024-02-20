@@ -42,6 +42,12 @@
       "module": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
+    "./functions": {
+      "types": "./functions/dist/index.d.ts",
+      "import": "./functions/dist/index.mjs",
+      "module": "./functions/dist/index.mjs",
+      "require": "./functions/dist/index.js"
+    },
     "./prompts": {
       "types": "./prompts/dist/index.d.ts",
       "import": "./prompts/dist/index.mjs",
