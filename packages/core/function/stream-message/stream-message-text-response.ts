@@ -20,6 +20,25 @@ export class StreamMessageTextResponse extends Response {
                 break;
               }
 
+              case 'tool-call': {
+                // TODO need a way to send single tool calls to the client
+                controller.enqueue(
+                  formatStreamPart('tool_calls', {
+                    tool_calls: [
+                      {
+                        type: 'function',
+                        id: chunk.id ?? '', // TODO client need to support null id
+                        function: {
+                          name: chunk.name,
+                          arguments: JSON.stringify(chunk.args),
+                        },
+                      },
+                    ],
+                  }),
+                );
+                break;
+              }
+
               default: {
                 const exhaustiveCheck: never = chunk;
                 throw new Error(

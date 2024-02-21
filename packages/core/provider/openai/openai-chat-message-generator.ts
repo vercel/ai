@@ -4,6 +4,7 @@ import { InstructionPrompt } from '../../function/prompt/instruction-prompt';
 import { MessageGenerator } from '../../function/stream-message/message-generator';
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
 import { readableFromAsyncIterable } from '../../streams';
+import { tryParseJSON } from '../../function/util/try-json-parse';
 
 export interface OpenAIChatMessageGeneratorSettings {
   id: string;
@@ -43,13 +44,39 @@ export class OpenAIChatMessageGenerator implements MessageGenerator {
         MessageStreamPart
       >({
         transform(chunk, controller) {
-          if (chunk.choices != null) {
-            const contentDelta = chunk.choices[0].delta.content;
+          if (chunk.choices?.[0].delta == null) {
+            return;
+          }
 
-            if (contentDelta != null) {
+          const delta = chunk.choices[0].delta;
+
+          if (delta.content != null) {
+            controller.enqueue({
+              type: 'text-delta',
+              textDelta: delta.content,
+            });
+          }
+
+          if (delta.tool_calls != null) {
+            for (const toolCall of delta.tool_calls) {
+              if (
+                toolCall.function?.name == null ||
+                toolCall.function?.arguments == null
+              ) {
+                continue;
+              }
+
+              const args = tryParseJSON(toolCall.function.arguments);
+
+              if (args == null) {
+                continue;
+              }
+
               controller.enqueue({
-                type: 'text-delta',
-                textDelta: contentDelta,
+                type: 'tool-call',
+                id: toolCall.id ?? null,
+                name: toolCall.function.name,
+                args,
               });
             }
           }

@@ -4,6 +4,12 @@ export type MessageStreamPart =
       textDelta: string;
     }
   | {
+      type: 'tool-call';
+      id: string | null;
+      name: string;
+      args: unknown;
+    }
+  | {
       type: 'error';
       error: unknown;
     };
