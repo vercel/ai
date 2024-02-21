@@ -97,7 +97,7 @@ You can use the client `useChat` and `useCompletion` hooks the same between the 
 import { useChat } from 'ai/react';
 
 // Optional but recommended: use the Edge Runtime. This can only be done at the page level, not inside nested components.
-export const runtime = 'experimental-edge';
+export const runtime = 'edge';
 
 export default function IndexPage() {
   const { messages, handleSubmit, input, handleInputChange } = useChat();
