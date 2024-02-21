@@ -1,7 +1,7 @@
-import { StreamingTextResponse } from '../../streams';
 import { ChatPrompt } from '../prompt/chat-prompt';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
 import { MessageGenerator } from './message-generator';
+import { StreamMessageTextResponse } from './stream-message-text-response';
 
 /**
  * Streams a complex message object. Beyond just text streaming, it can stream tool calls, data, annotations, etc.
@@ -19,7 +19,7 @@ export async function streamMessage({
 
   return {
     toTextResponse() {
-      return new StreamingTextResponse(modelStream);
+      return new StreamMessageTextResponse(modelStream);
     },
   };
 }

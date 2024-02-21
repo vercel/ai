@@ -1,9 +1,9 @@
 import { ChatPrompt } from '../prompt/chat-prompt';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
-import { Delta } from './delta';
+import { MessageStreamPart } from './message-stream-part';
 
 export interface MessageGenerator {
   doStreamText(
     prompt: string | InstructionPrompt | ChatPrompt,
-  ): PromiseLike<ReadableStream<Delta<unknown>>>;
+  ): PromiseLike<ReadableStream<MessageStreamPart>>;
 }

@@ -1,9 +1,9 @@
 import OpenAI from 'openai';
-import { ChatPrompt, Delta } from '../../function';
+import { ChatPrompt, MessageStreamPart } from '../../function';
 import { InstructionPrompt } from '../../function/prompt/instruction-prompt';
 import { MessageGenerator } from '../../function/stream-message/message-generator';
-import { OpenAIStream } from '../../streams';
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
+import { readableFromAsyncIterable } from '../../streams';
 
 export interface OpenAIChatMessageGeneratorSettings {
   id: string;
@@ -29,18 +29,32 @@ export class OpenAIChatMessageGenerator implements MessageGenerator {
 
   async doStreamText(
     prompt: string | InstructionPrompt | ChatPrompt,
-  ): Promise<ReadableStream<Delta<unknown>>> {
-    const response = await this.client.chat.completions.create({
+  ): Promise<ReadableStream<MessageStreamPart>> {
+    const openaiResponse = await this.client.chat.completions.create({
       model: this.settings.id,
       max_tokens: this.settings.maxTokens,
       stream: true,
       messages: convertToOpenAIChatPrompt(prompt),
     });
 
-    return OpenAIStream(response);
-  }
+    return readableFromAsyncIterable(openaiResponse).pipeThrough(
+      new TransformStream<
+        OpenAI.Chat.Completions.ChatCompletionChunk,
+        MessageStreamPart
+      >({
+        transform(chunk, controller) {
+          if (chunk.choices != null) {
+            const contentDelta = chunk.choices[0].delta.content;
 
-  extractTextDelta(delta: unknown): string | undefined {
-    throw new Error('Method not implemented.');
+            if (contentDelta != null) {
+              controller.enqueue({
+                type: 'text-delta',
+                textDelta: contentDelta,
+              });
+            }
+          }
+        },
+      }),
+    );
   }
 }
