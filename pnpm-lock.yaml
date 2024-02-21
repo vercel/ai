@@ -467,6 +467,12 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
+      zod:
+        specifier: 3.22.4
+        version: 3.22.4
+      zod-to-json-schema:
+        specifier: 3.22.4
+        version: 3.22.4(zod@3.22.4)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12

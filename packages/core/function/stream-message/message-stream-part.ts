@@ -1,15 +1,4 @@
-export type MessageStreamPart =
-  | {
-      type: 'text-delta';
-      textDelta: string;
-    }
-  | {
-      type: 'tool-call';
-      id: string | null;
-      name: string;
-      args: unknown;
-    }
-  | {
-      type: 'error';
-      error: unknown;
-    };
+import { MessageGeneratorStreamPart } from './message-generator';
+
+// TODO extend with tool call results and errors
+export type MessageStreamPart = MessageGeneratorStreamPart;

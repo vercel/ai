@@ -7,3 +7,4 @@ export * from './schema/index';
 export * from './stream-message/message-generator';
 export * from './stream-message/message-stream-part';
 export * from './stream-message/stream-message';
+export * from './tool/index';

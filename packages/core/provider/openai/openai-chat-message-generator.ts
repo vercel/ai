@@ -5,6 +5,7 @@ import { MessageGenerator } from '../../function/stream-message/message-generato
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
 import { readableFromAsyncIterable } from '../../streams';
 import { tryParseJSON } from '../../function/util/try-json-parse';
+import { ToolDefinition } from '../../function/tool/ToolDefinition';
 
 export interface OpenAIChatMessageGeneratorSettings {
   id: string;
@@ -28,15 +29,44 @@ export class OpenAIChatMessageGenerator implements MessageGenerator {
     );
   }
 
-  async doStreamText(
-    prompt: string | InstructionPrompt | ChatPrompt,
-  ): Promise<ReadableStream<MessageStreamPart>> {
+  async doStreamText({
+    prompt,
+    tools,
+  }: {
+    prompt: string | InstructionPrompt | ChatPrompt;
+    tools?: Array<ToolDefinition<string, unknown>>;
+  }): Promise<ReadableStream<MessageStreamPart>> {
     const openaiResponse = await this.client.chat.completions.create({
+      stream: true,
       model: this.settings.id,
       max_tokens: this.settings.maxTokens,
-      stream: true,
       messages: convertToOpenAIChatPrompt(prompt),
+      tools: tools?.map(tool => {
+        console.log({
+          type: 'function',
+          function: {
+            name: tool.name,
+            arguments: JSON.stringify(tool.parameters.getJsonSchema()),
+          },
+        });
+        return {
+          type: 'function',
+          function: {
+            name: tool.name,
+            arguments: JSON.stringify(tool.parameters.getJsonSchema()),
+          },
+        };
+      }),
     });
+
+    const toolCalls: Array<{
+      id?: string;
+      type?: 'function';
+      function?: {
+        name?: string;
+        arguments?: string;
+      };
+    }> = [];
 
     return readableFromAsyncIterable(openaiResponse).pipeThrough(
       new TransformStream<
@@ -58,7 +88,24 @@ export class OpenAIChatMessageGenerator implements MessageGenerator {
           }
 
           if (delta.tool_calls != null) {
-            for (const toolCall of delta.tool_calls) {
+            for (const toolCallDelta of delta.tool_calls) {
+              const index = toolCallDelta.index;
+
+              // new tool call, add to list
+              if (toolCalls[index] == null) {
+                toolCalls[index] = toolCallDelta;
+                continue;
+              }
+
+              // existing tool call, merge
+              const toolCall = toolCalls[index];
+
+              if (toolCallDelta.function?.arguments != null) {
+                toolCall.function!.arguments +=
+                  toolCallDelta.function?.arguments ?? '';
+              }
+
+              // check if tool call is complete
               if (
                 toolCall.function?.name == null ||
                 toolCall.function?.arguments == null

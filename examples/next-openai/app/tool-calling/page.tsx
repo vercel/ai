@@ -42,7 +42,7 @@ export default function Chat() {
   };
 
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: '/api/chat-with-tools',
+    api: '/api/chat-new-with-tools',
     experimental_onToolCall: toolCallHandler,
   });
 
