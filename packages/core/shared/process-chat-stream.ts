@@ -55,18 +55,20 @@ export async function processChatStream({
         }
 
         hasFollowingResponse = true;
+        // Log warnings for misused handlers (message has function_call and experimental_onToolCall should not be defined at the same time)
+        if (experimental_onFunctionCall && message.tool_calls !== undefined) {
+          console.warn(
+            'experimental_onFunctionCall should not be defined when using tools',
+          );
+        }
+        if (experimental_onToolCall && message.function_call !== undefined) {
+          console.warn(
+            'experimental_onToolCall should not be defined when using functions',
+          );
+        }
         // Try to handle function call
-        if (experimental_onFunctionCall) {
+        if (experimental_onFunctionCall && typeof message.function_call === 'object') {
           const functionCall = message.function_call;
-          // Make sure functionCall is an object
-          // If not, we got tool calls instead of function calls
-          if (typeof functionCall !== 'object') {
-            console.warn(
-              'experimental_onFunctionCall should not be defined when using tools',
-            );
-            continue;
-          }
-
           // User handles the function call in their own functionCallHandler.
           // The "arguments" key of the function call object will still be a string which will have to be parsed in the function handler.
           // If the "arguments" JSON is malformed due to model error the user will have to handle that themselves.
@@ -88,20 +90,12 @@ export async function processChatStream({
           updateChatRequest(functionCallResponse);
         }
         // Try to handle tool call
-        if (experimental_onToolCall) {
+        // Check if the tool_calls is an array of objects
+        if (experimental_onToolCall && (
+          Array.isArray(message.tool_calls) &&
+          message.tool_calls.every(toolCall => typeof toolCall === 'object')
+        )) {
           const toolCalls = message.tool_calls;
-          // Make sure toolCalls is an array of objects
-          // If not, we got function calls instead of tool calls
-          if (
-            !Array.isArray(toolCalls) ||
-            toolCalls.some(toolCall => typeof toolCall !== 'object')
-          ) {
-            console.warn(
-              'experimental_onToolCall should not be defined when using tools',
-            );
-            continue;
-          }
-
           // User handles the function call in their own functionCallHandler.
           // The "arguments" key of the function call object will still be a string which will have to be parsed in the function handler.
           // If the "arguments" JSON is malformed due to model error the user will have to handle that themselves.
@@ -118,11 +112,9 @@ export async function processChatStream({
           // The updated chat with function call response will be sent to the API in the next iteration of the loop.
           updateChatRequest(toolCallResponse);
         }
+
         // try to handle tool execution
-        if (experimental_onToolExecution) {
-          if (message.role !== 'tool' || !message.content || !message.tool_call_id || !message.name) {
-            continue;
-          }
+        if (experimental_onToolExecution && message.role === 'tool' && typeof message.content === 'string' && message.tool_call_id !== undefined && message.name !== undefined) {
           // The message is a tool execution message.
           const toolExecutionMessage: ToolExecutionMessage = {
             id: message.id,
