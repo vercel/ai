@@ -143,6 +143,11 @@ export type ToolCallHandler = (
   toolCalls: ToolCall[],
 ) => Promise<ChatRequest | void>;
 
+export type ToolExecutionMessageHandler = (
+  chatMessages: Message[],
+  toolExecutionMessage: ToolExecutionMessage,
+) => Promise<ChatRequest | void>;
+
 export type RequestOptions = {
   headers?: Record<string, string> | Headers;
   body?: object;
@@ -194,6 +199,14 @@ export type UseChatOptions = {
    * automatically to the API and will be used to update the chat.
    */
   experimental_onToolCall?: ToolCallHandler;
+
+  /**
+   * Callback function to be called when the API response is received that
+   * contains an executed tool call.
+   * If the function returns a `ChatRequest` object, the request will be sent
+   * automatically to the API and will be used to update the chat.
+   */
+  experimental_onToolExecution?: ToolExecutionMessageHandler;
 
   /**
    * Callback function to be called when the API response is received.

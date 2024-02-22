@@ -10,6 +10,7 @@ export async function processChatStream({
   getStreamedResponse,
   experimental_onFunctionCall,
   experimental_onToolCall,
+  experimental_onToolExecution,
   updateChatRequest,
   getCurrentMessages,
 }: {
@@ -23,6 +24,10 @@ export async function processChatStream({
   experimental_onToolCall?: (
     chatMessages: Message[],
     toolCalls: ToolCall[],
+  ) => Promise<void | ChatRequest>;
+  experimental_onToolExecution?: (
+    chatMessages: Message[],
+    toolExecutionMessage: Message,
   ) => Promise<void | ChatRequest>;
   updateChatRequest: (chatRequest: ChatRequest) => void;
   getCurrentMessages: () => Message[];
@@ -42,7 +47,8 @@ export async function processChatStream({
           (message.function_call === undefined ||
             typeof message.function_call === 'string') &&
           (message.tool_calls === undefined ||
-            typeof message.tool_calls === 'string')
+            typeof message.tool_calls === 'string') &&
+          (message.role !== 'tool')
         ) {
           continue;
         }
@@ -110,6 +116,25 @@ export async function processChatStream({
           // A function call response was returned.
           // The updated chat with function call response will be sent to the API in the next iteration of the loop.
           updateChatRequest(toolCallResponse);
+        }
+        // try to handle tool execution
+        if (experimental_onToolExecution) {
+          // User handles the tool execution in their own toolExecutionHandler.
+          const toolExecutionResponse: ChatRequest | void =
+            await experimental_onToolExecution(
+              getCurrentMessages(),
+              message,
+            );
+
+          // If the user does not return anything as a result of the tool execution, the loop will break.
+          if (toolExecutionResponse === undefined) {
+            hasFollowingResponse = false;
+            break;
+          }
+
+          // A tool execution response was returned.
+          // The updated chat with tool execution response will be sent to the API in the next iteration of the loop.
+          updateChatRequest(toolExecutionResponse);
         }
       }
       if (!hasFollowingResponse) {
