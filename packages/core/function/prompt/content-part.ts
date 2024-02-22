@@ -31,9 +31,9 @@ export interface ToolCallPart {
   args: unknown;
 }
 
-export interface ToolResponsePart {
-  type: 'tool-response';
+export interface ToolResultPart {
+  type: 'tool-result';
 
   id: string;
-  response: unknown;
+  result: unknown;
 }

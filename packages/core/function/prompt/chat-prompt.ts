@@ -2,7 +2,7 @@ import {
   ImagePart,
   TextPart,
   ToolCallPart,
-  ToolResponsePart,
+  ToolResultPart,
 } from './content-part';
 
 /**
@@ -34,7 +34,7 @@ export interface ChatPrompt {
 
 export type UserContent = string | Array<TextPart | ImagePart>;
 export type AssistantContent = string | Array<TextPart | ToolCallPart>;
-export type ToolContent = Array<ToolResponsePart>;
+export type ToolContent = Array<ToolResultPart>;
 
 /**
  * A message in a chat prompt.
