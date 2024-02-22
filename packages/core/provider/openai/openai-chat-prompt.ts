@@ -4,7 +4,6 @@ import {
   ImagePart,
   TextPart,
   convertDataContentToBase64String,
-  isTextPrompt,
 } from '../../function';
 import {
   InstructionPrompt,
@@ -12,21 +11,13 @@ import {
 } from '../../function/prompt/instruction-prompt';
 
 export function convertToOpenAIChatPrompt(
-  prompt: string | InstructionPrompt | ChatPrompt,
+  prompt: InstructionPrompt | ChatPrompt,
 ): Array<ChatCompletionMessageParam> {
-  if (isTextPrompt(prompt)) {
-    return convertTextPromptToOpenAIChatPrompt(prompt);
-  } else if (isInstructionPrompt(prompt)) {
+  if (isInstructionPrompt(prompt)) {
     return convertInstructionPromptToOpenAIChatPrompt(prompt);
   } else {
     return convertChatPromptToOpenAIChatPrompt(prompt);
   }
-}
-
-export function convertTextPromptToOpenAIChatPrompt(
-  prompt: string,
-): Array<ChatCompletionMessageParam> {
-  return [user(prompt)];
 }
 
 export function convertInstructionPromptToOpenAIChatPrompt(

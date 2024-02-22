@@ -22,6 +22,12 @@ export async function streamMessage({
     ToolDefinition<string, unknown> | Tool<string, unknown, unknown>
   >;
 }): Promise<StreamMessageResponse> {
+  // map simple text prompt to basic instruction prompt, so that
+  // providers only need to implement the instruction & chat prompts:
+  if (typeof prompt === 'string') {
+    prompt = { instruction: prompt };
+  }
+
   const modelStream = await model.doStreamText({ prompt, tools });
 
   const toolStream = runToolsTransformation({

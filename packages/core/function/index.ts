@@ -2,7 +2,6 @@ export * from './prompt/chat-prompt';
 export * from './prompt/content-part';
 export * from './prompt/data-content';
 export * from './prompt/instruction-prompt';
-export * from './prompt/text-prompt';
 export * from './schema/index';
 export * from './stream-message/message-generator';
 export * from './stream-message/message-stream-part';
