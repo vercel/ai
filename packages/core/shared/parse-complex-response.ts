@@ -12,6 +12,11 @@ type PrefixMap = {
     role: 'assistant';
     tool_calls: ToolCall[];
   };
+  tool_execution_message?: Message & {
+    role: 'tool';
+    name: string;
+    tool_call_id: string;
+  };
   data: JSONValue[];
 };
 
@@ -66,6 +71,21 @@ export async function parseComplexResponse({
           createdAt,
         };
       }
+    }
+
+    let toolExecutionMessage: Message | null | undefined = null;
+
+    if (type === 'tool_execution_message') {
+      prefixMap['tool_execution_message'] = {
+        id: generateId(),
+        role: 'tool',
+        name: value.name,
+        tool_call_id: value.tool_call_id,
+        content: value.content,
+        createdAt,
+      };
+
+      toolExecutionMessage = prefixMap['tool_execution_message'];
     }
 
     let functionCallMessage: Message | null | undefined = null;
@@ -140,7 +160,7 @@ export async function parseComplexResponse({
     }
 
     // We add function & tool calls and response messages to the messages[], but data is its own thing
-    const merged = [functionCallMessage, toolCallMessage, responseMessage]
+    const merged = [functionCallMessage, toolCallMessage, toolExecutionMessage, responseMessage]
       .filter(Boolean)
       .map(message => ({
         ...assignAnnotationsToMessage(message, message_annotations),
@@ -156,6 +176,7 @@ export async function parseComplexResponse({
       prefixMap.text,
       prefixMap.function_call,
       prefixMap.tool_calls,
+      prefixMap.tool_execution_message,
     ].filter(Boolean) as Message[],
     data: prefixMap.data,
   };

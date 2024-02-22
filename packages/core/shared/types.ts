@@ -334,6 +334,14 @@ export type AssistantMessage = {
   }>;
 };
 
+export type ToolExecutionMessage = {
+  id: string;
+  role: 'tool';
+  name: string;
+  tool_call_id: string;
+  content: string;
+};
+
 /*
  * A data message is an application-specific message from the assistant
  * that should be shown in order with the other messages.
