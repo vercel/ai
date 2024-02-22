@@ -4,6 +4,7 @@ import {
   JSONValue,
   Message,
   ToolCall,
+  ToolExecutionMessage,
 } from './types';
 
 export async function processChatStream({
@@ -27,7 +28,7 @@ export async function processChatStream({
   ) => Promise<void | ChatRequest>;
   experimental_onToolExecution?: (
     chatMessages: Message[],
-    toolExecutionMessage: Message,
+    toolExecutionMessage: ToolExecutionMessage,
   ) => Promise<void | ChatRequest>;
   updateChatRequest: (chatRequest: ChatRequest) => void;
   getCurrentMessages: () => Message[];
@@ -119,11 +120,22 @@ export async function processChatStream({
         }
         // try to handle tool execution
         if (experimental_onToolExecution) {
+          if (message.role !== 'tool' || !message.content || !message.tool_call_id || !message.name) {
+            continue;
+          }
+          // The message is a tool execution message.
+          const toolExecutionMessage: ToolExecutionMessage = {
+            id: message.id,
+            role: message.role,
+            content: message.content,
+            tool_call_id: message.tool_call_id,
+            name: message.name,
+          };
           // User handles the tool execution in their own toolExecutionHandler.
           const toolExecutionResponse: ChatRequest | void =
             await experimental_onToolExecution(
               getCurrentMessages(),
-              message,
+              toolExecutionMessage,
             );
 
           // If the user does not return anything as a result of the tool execution, the loop will break.
