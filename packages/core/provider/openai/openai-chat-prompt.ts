@@ -107,7 +107,7 @@ export function convertChatPromptToOpenAIChatPrompt(
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.id,
-            content: JSON.stringify(toolResponse.response),
+            content: JSON.stringify(toolResponse.result),
           });
         }
         break;

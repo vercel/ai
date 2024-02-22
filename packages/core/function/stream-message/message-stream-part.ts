@@ -1,4 +1,11 @@
 import { MessageGeneratorStreamPart } from './message-generator';
 
-// TODO extend with tool call results and errors
-export type MessageStreamPart = MessageGeneratorStreamPart;
+export type ToolResultMessageStreamPart = {
+  type: 'tool-result';
+  id: string | null;
+  result: unknown;
+};
+
+export type MessageStreamPart =
+  | MessageGeneratorStreamPart
+  | ToolResultMessageStreamPart;

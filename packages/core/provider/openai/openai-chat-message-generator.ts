@@ -1,11 +1,12 @@
 import OpenAI from 'openai';
-import { ChatPrompt, MessageStreamPart } from '../../function';
+import { ChatPrompt } from '../../function';
 import { InstructionPrompt } from '../../function/prompt/instruction-prompt';
 import { MessageGenerator } from '../../function/stream-message/message-generator';
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
 import { readableFromAsyncIterable } from '../../streams';
 import { tryParseJSON } from '../../function/util/try-json-parse';
 import { ToolDefinition } from '../../function/tool/ToolDefinition';
+import { MessageGeneratorStreamPart } from '../../function/dist';
 
 export interface OpenAIChatMessageGeneratorSettings {
   id: string;
@@ -35,28 +36,19 @@ export class OpenAIChatMessageGenerator implements MessageGenerator {
   }: {
     prompt: string | InstructionPrompt | ChatPrompt;
     tools?: Array<ToolDefinition<string, unknown>>;
-  }): Promise<ReadableStream<MessageStreamPart>> {
+  }): Promise<ReadableStream<MessageGeneratorStreamPart>> {
     const openaiResponse = await this.client.chat.completions.create({
       stream: true,
       model: this.settings.id,
       max_tokens: this.settings.maxTokens,
       messages: convertToOpenAIChatPrompt(prompt),
-      tools: tools?.map(tool => {
-        console.log({
-          type: 'function',
-          function: {
-            name: tool.name,
-            arguments: JSON.stringify(tool.parameters.getJsonSchema()),
-          },
-        });
-        return {
-          type: 'function',
-          function: {
-            name: tool.name,
-            arguments: JSON.stringify(tool.parameters.getJsonSchema()),
-          },
-        };
-      }),
+      tools: tools?.map(tool => ({
+        type: 'function',
+        function: {
+          name: tool.name,
+          arguments: JSON.stringify(tool.parameters.getJsonSchema()),
+        },
+      })),
     });
 
     const toolCalls: Array<{
@@ -71,7 +63,7 @@ export class OpenAIChatMessageGenerator implements MessageGenerator {
     return readableFromAsyncIterable(openaiResponse).pipeThrough(
       new TransformStream<
         OpenAI.Chat.Completions.ChatCompletionChunk,
-        MessageStreamPart
+        MessageGeneratorStreamPart
       >({
         transform(chunk, controller) {
           if (chunk.choices?.[0].delta == null) {

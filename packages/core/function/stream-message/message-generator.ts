@@ -9,6 +9,11 @@ export interface MessageGenerator {
   }): PromiseLike<ReadableStream<MessageGeneratorStreamPart>>;
 }
 
+export type MessageGeneratorErrorStreamPart = {
+  type: 'error';
+  error: unknown;
+};
+
 export type MessageGeneratorStreamPart =
   | {
       type: 'text-delta';
@@ -20,7 +25,4 @@ export type MessageGeneratorStreamPart =
       name: string;
       args: unknown;
     }
-  | {
-      type: 'error';
-      error: unknown;
-    };
+  | MessageGeneratorErrorStreamPart;

@@ -8,6 +8,8 @@ export class StreamMessageTextResponse extends Response {
       messageStream.pipeThrough(
         new TransformStream<MessageStreamPart, string>({
           transform(chunk, controller) {
+            console.log('forwarding chunk to client', chunk);
+
             switch (chunk.type) {
               case 'error': {
                 // TODO forward errors to the client
@@ -22,6 +24,7 @@ export class StreamMessageTextResponse extends Response {
 
               case 'tool-call': {
                 // TODO need a way to send single tool calls to the client
+
                 controller.enqueue(
                   formatStreamPart('tool_calls', {
                     tool_calls: [
@@ -36,6 +39,10 @@ export class StreamMessageTextResponse extends Response {
                     ],
                   }),
                 );
+                break;
+              }
+
+              case 'tool-result': {
                 break;
               }
 

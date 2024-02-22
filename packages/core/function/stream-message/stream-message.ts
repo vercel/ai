@@ -1,11 +1,9 @@
 import { ChatPrompt } from '../prompt/chat-prompt';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
+import { Tool } from '../tool';
 import { ToolDefinition } from '../tool/ToolDefinition';
-import {
-  MessageGenerator,
-  MessageGeneratorStreamPart,
-} from './message-generator';
-import { MessageStreamPart } from './message-stream-part';
+import { MessageGenerator } from './message-generator';
+import { runToolsTransformation } from './run-tools-transformation';
 import { StreamMessageTextResponse } from './stream-message-text-response';
 
 /**
@@ -16,48 +14,20 @@ import { StreamMessageTextResponse } from './stream-message-text-response';
 export async function streamMessage({
   model,
   prompt,
-  tools,
+  tools = [],
 }: {
   model: MessageGenerator;
   prompt: string | InstructionPrompt | ChatPrompt;
-  tools?: Array<ToolDefinition<string, unknown>>;
+  tools?: Array<
+    ToolDefinition<string, unknown> | Tool<string, unknown, unknown>
+  >;
 }): Promise<StreamMessageResponse> {
-  const modelStream = await model.doStreamText({
-    prompt,
+  const modelStream = await model.doStreamText({ prompt, tools });
+
+  const toolStream = runToolsTransformation({
     tools,
+    generatorStream: modelStream,
   });
-
-  // TODO tool handling: transform stream to handle tool calls
-  let controller: TransformStreamDefaultController<MessageStreamPart> | null =
-    null;
-  let canClose = false;
-
-  const toolStream = modelStream.pipeThrough(
-    new TransformStream<MessageGeneratorStreamPart, MessageStreamPart>({
-      start(controllerArg) {
-        console.log('start');
-        controller = controllerArg;
-      },
-
-      transform(chunk, controller) {
-        console.log('chunk', chunk);
-        controller?.enqueue(chunk);
-
-        if (chunk.type === 'tool-call') {
-          // if tool is available and executable, call it
-          // TODO handle tool calls
-        }
-      },
-
-      flush() {
-        console.log('flush');
-        // check outstanding tool calls
-        // if none, close
-
-        canClose = true;
-      },
-    }),
-  );
 
   return {
     toTextResponse() {
