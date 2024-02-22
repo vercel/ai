@@ -16,6 +16,7 @@ export async function POST(req: Request) {
       new Tool({
         name: 'get_city_temperature' as const,
         description: 'Get the current weather',
+
         parameters: zodSchema(
           z.object({
             city: z
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
               ),
           }),
         ),
+
         execute: async ({ city, format }) => ({
           temperature: 20,
           unit: format === 'celsius' ? 'C' : 'F',
