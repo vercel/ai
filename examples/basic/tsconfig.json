@@ -5,14 +5,14 @@
     "sourceMap": true,
     "target": "es2022",
     "lib": ["es2022", "dom"],
-    "module": "commonjs",
+    "module": "esnext",
     "types": ["node"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
     "rootDir": "./src",
     "outDir": "./build",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts"]
 }
