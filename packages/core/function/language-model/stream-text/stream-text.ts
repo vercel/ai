@@ -19,29 +19,33 @@ export async function streamText({
   return new StreamTextResult(modelStream);
 }
 
-export class StreamTextResult implements AsyncIterable<string> {
+export class StreamTextResult {
   private readonly modelStream: ReadableStream<LanguageModelStreamPart>;
+
+  readonly textStream: AsyncIterable<string>;
 
   constructor(modelStream: ReadableStream<LanguageModelStreamPart>) {
     this.modelStream = modelStream;
-  }
 
-  [Symbol.asyncIterator](): AsyncIterator<string> {
-    const reader = this.modelStream.getReader();
-    return {
-      next: async () => {
-        // loops until a text delta is found or the stream is finished:
-        while (true) {
-          const { done, value } = await reader.read();
+    this.textStream = {
+      [Symbol.asyncIterator](): AsyncIterator<string> {
+        const reader = modelStream.getReader();
+        return {
+          next: async () => {
+            // loops until a text delta is found or the stream is finished:
+            while (true) {
+              const { done, value } = await reader.read();
 
-          if (done) {
-            return { value: null, done: true };
-          }
+              if (done) {
+                return { value: null, done: true };
+              }
 
-          if (value.type === 'text-delta') {
-            return { value: value.textDelta, done: false };
-          }
-        }
+              if (value.type === 'text-delta') {
+                return { value: value.textDelta, done: false };
+              }
+            }
+          },
+        };
       },
     };
   }

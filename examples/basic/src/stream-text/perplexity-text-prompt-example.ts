@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const textStream = await streamText({
+const result = await streamText({
   model: perplexity.chat({
     id: 'pplx-70b-online',
   }),
@@ -12,6 +12,6 @@ const textStream = await streamText({
   prompt: 'What happened in San Francisco in this week?',
 });
 
-for await (const textPart of textStream) {
+for await (const textPart of result.textStream) {
   process.stdout.write(textPart);
 }
