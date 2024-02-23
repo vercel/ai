@@ -2,17 +2,16 @@ import { ChatCompletionMessageParam } from 'openai/resources';
 import {
   ChatPrompt,
   ImagePart,
+  InstructionPrompt,
+  LanguageModelPrompt,
   TextPart,
   convertDataContentToBase64String,
+  isInstructionPrompt,
   isTextPrompt,
 } from '../../function';
-import {
-  InstructionPrompt,
-  isInstructionPrompt,
-} from '../../function/prompt/instruction-prompt';
 
 export function convertToOpenAIChatPrompt(
-  prompt: string | InstructionPrompt | ChatPrompt,
+  prompt: LanguageModelPrompt,
 ): Array<ChatCompletionMessageParam> {
   if (isTextPrompt(prompt)) {
     return convertTextPromptToOpenAIChatPrompt(prompt);

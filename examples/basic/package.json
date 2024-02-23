@@ -1,0 +1,12 @@
+{
+  "name": "ai-sdk-examples",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "ai": "2.2.35",
+    "dotenv": "16.4.5"
+  },
+  "devDependencies": {
+    "tsx": "4.7.1"
+  }
+}

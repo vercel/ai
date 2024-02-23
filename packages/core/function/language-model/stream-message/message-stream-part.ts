@@ -1,4 +1,4 @@
-import { LanguageModelStreamPart } from '../language-model/language-model';
+import { LanguageModelStreamPart } from '../language-model';
 
 export type ToolResultMessageStreamPart = {
   type: 'tool-result';

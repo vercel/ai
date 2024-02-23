@@ -1,5 +1,5 @@
-import { formatStreamPart } from '../../shared/stream-parts';
-import { COMPLEX_HEADER } from '../../shared/utils';
+import { formatStreamPart } from '../../../shared/stream-parts';
+import { COMPLEX_HEADER } from '../../../shared/utils';
 import { MessageStreamPart } from './message-stream-part';
 
 export class StreamMessageTextResponse extends Response {

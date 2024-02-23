@@ -1,12 +1,15 @@
 import OpenAI from 'openai';
+import {
+  LanguageModel,
+  LanguageModelPrompt,
+  LanguageModelStreamPart,
+} from '../../function';
 import { ChatPrompt } from '../../function/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../function/language-model/prompt/instruction-prompt';
-import { LanguageModel } from '../../function/language-model/language-model';
-import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
-import { readableFromAsyncIterable } from '../../streams';
-import { tryParseJSON } from '../../function/util/try-json-parse';
 import { ToolDefinition } from '../../function/language-model/tool/tool-definition';
-import { MessageGeneratorStreamPart } from '../../function/dist';
+import { tryParseJSON } from '../../function/util/try-json-parse';
+import { readableFromAsyncIterable } from '../../streams';
+import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
 
 export interface OpenAIChatMessageGeneratorSettings {
   id: string;
@@ -30,9 +33,15 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     );
   }
 
-  async generate() {
+  async generate({ prompt }: { prompt: LanguageModelPrompt }) {
+    const openaiResponse = await this.client.chat.completions.create({
+      model: this.settings.id,
+      max_tokens: this.settings.maxTokens,
+      messages: convertToOpenAIChatPrompt(prompt),
+    });
+
     return {
-      text: 'hello',
+      text: openaiResponse.choices[0].message.content!,
     };
   }
 
@@ -42,7 +51,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
   }: {
     prompt: string | InstructionPrompt | ChatPrompt;
     tools?: Array<ToolDefinition<string, unknown>>;
-  }): Promise<ReadableStream<MessageGeneratorStreamPart>> {
+  }): Promise<ReadableStream<LanguageModelStreamPart>> {
     const openaiResponse = await this.client.chat.completions.create({
       stream: true,
       model: this.settings.id,
@@ -69,7 +78,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     return readableFromAsyncIterable(openaiResponse).pipeThrough(
       new TransformStream<
         OpenAI.Chat.Completions.ChatCompletionChunk,
-        MessageGeneratorStreamPart
+        LanguageModelStreamPart
       >({
         transform(chunk, controller) {
           if (chunk.choices?.[0].delta == null) {
