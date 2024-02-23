@@ -11,15 +11,15 @@ export async function streamText({
 }: {
   model: LanguageModel;
   prompt: string | InstructionPrompt | ChatPrompt;
-}): Promise<StreamTextResponse> {
+}): Promise<StreamTextResult> {
   const modelStream = await model.stream({
     prompt,
   });
 
-  return new StreamTextResponse(modelStream);
+  return new StreamTextResult(modelStream);
 }
 
-export class StreamTextResponse implements AsyncIterable<string> {
+export class StreamTextResult implements AsyncIterable<string> {
   private readonly modelStream: ReadableStream<LanguageModelStreamPart>;
 
   constructor(modelStream: ReadableStream<LanguageModelStreamPart>) {

@@ -7,7 +7,7 @@ dotenv.config();
 
 const image = fs.readFileSync('./data/comic-cat.png');
 
-const text = await generateText({
+const result = await generateText({
   model: openai.chat({
     id: 'gpt-4-vision-preview',
     maxTokens: 512,
@@ -21,4 +21,4 @@ const text = await generateText({
   },
 });
 
-console.log(text);
+console.log(result.text);

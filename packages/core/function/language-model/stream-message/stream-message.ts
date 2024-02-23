@@ -21,7 +21,7 @@ export async function streamMessage({
   tools?: Array<
     ToolDefinition<string, unknown> | Tool<string, unknown, unknown>
   >;
-}): Promise<StreamMessageResponse> {
+}): Promise<StreamMessageResult> {
   const modelStream = await model.stream({ prompt, tools });
 
   const toolStream = runToolsTransformation({
@@ -37,7 +37,7 @@ export async function streamMessage({
 }
 
 // TODO implement async iterable as well as stream
-export interface StreamMessageResponse {
+export interface StreamMessageResult {
   // TODO abort(): void;
 
   toTextResponse(): Response;

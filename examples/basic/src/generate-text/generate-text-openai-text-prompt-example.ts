@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const text = await generateText({
+const result = await generateText({
   model: openai.chat({
     id: 'gpt-3.5-turbo',
   }),
@@ -12,4 +12,4 @@ const text = await generateText({
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
-console.log(text);
+console.log(result.text);

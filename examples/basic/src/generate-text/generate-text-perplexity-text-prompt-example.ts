@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const text = await generateText({
+const result = await generateText({
   model: perplexity.chat({
     id: 'pplx-70b-online',
   }),
@@ -12,4 +12,4 @@ const text = await generateText({
   prompt: 'What happened in San Francisco in this week?',
 });
 
-console.log(text);
+console.log(result.text);

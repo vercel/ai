@@ -11,8 +11,16 @@ export async function generateText({
 }: {
   model: LanguageModel;
   prompt: string | InstructionPrompt | ChatPrompt;
-}): Promise<string> {
+}): Promise<GenerateTextResult> {
   const modelResponse = await model.generate({ prompt });
 
-  return modelResponse.text;
+  return new GenerateTextResult(modelResponse);
+}
+
+export class GenerateTextResult {
+  readonly text: string;
+
+  constructor(modelResponse: { text: string }) {
+    this.text = modelResponse.text;
+  }
 }
