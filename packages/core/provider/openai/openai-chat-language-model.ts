@@ -3,6 +3,7 @@ import {
   LanguageModel,
   LanguageModelPrompt,
   LanguageModelStreamPart,
+  Schema,
 } from '../../function';
 import { ChatPrompt } from '../../function/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../function/language-model/prompt/instruction-prompt';
@@ -33,7 +34,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     );
   }
 
-  async generate({ prompt }: { prompt: LanguageModelPrompt }) {
+  async doGenerate({ prompt }: { prompt: LanguageModelPrompt }) {
     const openaiResponse = await this.client.chat.completions.create({
       model: this.settings.id,
       max_tokens: this.settings.maxTokens,
@@ -45,7 +46,44 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     };
   }
 
-  async stream({
+  doGenerateJsonText = async ({
+    schema,
+    prompt,
+  }: {
+    schema: Schema<unknown>;
+    prompt: LanguageModelPrompt;
+  }): Promise<{
+    jsonText: string;
+  }> => {
+    const openaiResponse = await this.client.chat.completions.create({
+      model: this.settings.id,
+      max_tokens: this.settings.maxTokens,
+      messages: convertToOpenAIChatPrompt(prompt),
+      tool_choice: {
+        type: 'function',
+        function: { name: 'json' },
+      },
+      tools: [
+        {
+          type: 'function',
+          function: {
+            // TODO enable setting name/description through json mode setting
+            name: 'json',
+            description: 'Convert the previous message to JSON',
+            parameters: schema.getJsonSchema() as Record<string, unknown>,
+          },
+        },
+      ],
+    });
+
+    return {
+      jsonText:
+        // TODO handle null case
+        openaiResponse.choices[0].message.tool_calls?.[0].function.arguments!,
+    };
+  };
+
+  async doStream({
     prompt,
     tools,
   }: {
@@ -61,7 +99,11 @@ export class OpenAIChatLanguageModel implements LanguageModel {
         type: 'function',
         function: {
           name: tool.name,
-          arguments: JSON.stringify(tool.parameters.getJsonSchema()),
+          description: tool.description,
+          parameters: tool.parameters.getJsonSchema() as Record<
+            string,
+            unknown
+          >,
         },
       })),
     });

@@ -11,7 +11,7 @@ export async function generateText({
   model: LanguageModel;
   prompt: LanguageModelPrompt;
 }): Promise<GenerateTextResult> {
-  const modelResponse = await model.generate({ prompt });
+  const modelResponse = await model.doGenerate({ prompt });
 
   return new GenerateTextResult(modelResponse);
 }

@@ -22,7 +22,7 @@ export async function streamMessage({
     ToolDefinition<string, unknown> | Tool<string, unknown, unknown>
   >;
 }): Promise<StreamMessageResult> {
-  const modelStream = await model.stream({ prompt, tools });
+  const modelStream = await model.doStream({ prompt, tools });
 
   const toolStream = runToolsTransformation({
     tools,

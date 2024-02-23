@@ -1,14 +1,22 @@
 import { ToolDefinition } from './tool/tool-definition';
 import { LanguageModelPrompt } from './prompt';
+import { Schema } from '../schema/schema';
 
 export interface LanguageModel {
   // TODO include usage data
   // TODO support tool calls
-  generate(options: { prompt: LanguageModelPrompt }): PromiseLike<{
+  doGenerate(options: { prompt: LanguageModelPrompt }): PromiseLike<{
     text: string;
   }>;
 
-  stream(options: {
+  doGenerateJsonText(options: {
+    schema: Schema<unknown>;
+    prompt: LanguageModelPrompt;
+  }): PromiseLike<{
+    jsonText: string;
+  }>;
+
+  doStream(options: {
     prompt: LanguageModelPrompt;
     tools?: Array<ToolDefinition<string, unknown>>;
   }): PromiseLike<ReadableStream<LanguageModelStreamPart>>;

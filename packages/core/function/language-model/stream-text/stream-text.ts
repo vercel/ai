@@ -12,7 +12,7 @@ export async function streamText({
   model: LanguageModel;
   prompt: LanguageModelPrompt;
 }): Promise<StreamTextResult> {
-  const modelStream = await model.stream({
+  const modelStream = await model.doStream({
     prompt,
   });
 
