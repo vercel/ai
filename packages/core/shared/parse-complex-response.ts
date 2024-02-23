@@ -139,6 +139,10 @@ export async function parseComplexResponse({
         prefixMap['tool_calls'],
         message_annotations,
       );
+      toolExecutionMessage = assignAnnotationsToMessage(
+        prefixMap['tool_execution_message'],
+        message_annotations,
+      );
       responseMessage = assignAnnotationsToMessage(
         prefixMap['text'],
         message_annotations,
@@ -151,6 +155,7 @@ export async function parseComplexResponse({
         'text',
         'function_call',
         'tool_calls',
+        'tool_execution_message',
       ];
       messagePrefixKeys.forEach(key => {
         if (prefixMap[key]) {
