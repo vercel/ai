@@ -18,8 +18,8 @@ pnpm install
 pnpm build
 ```
 
-3. Run any example:
+3. Run any example (from the `examples/basic` directory) with the following command:
 
 ```sh
-pnpm tsx examples/basic/src/path/to/example.ts
+pnpm tsx src/path/to/example.ts
 ```
