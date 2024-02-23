@@ -94,7 +94,8 @@
     "sswr": "2.0.0",
     "swr": "2.2.0",
     "swr-store": "0.10.6",
-    "swrv": "1.0.4"
+    "swrv": "1.0.4",
+    "type-fest": "4.10.3"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.12.0",

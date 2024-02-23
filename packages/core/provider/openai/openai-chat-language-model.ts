@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import {
   LanguageModel,
+  LanguageModelErrorStreamPart,
   LanguageModelPrompt,
   LanguageModelStreamPart,
   Schema,
@@ -173,6 +174,78 @@ export class OpenAIChatLanguageModel implements LanguageModel {
                 id: toolCall.id ?? null,
                 name: toolCall.function.name,
                 args,
+              });
+            }
+          }
+        },
+      }),
+    );
+  }
+
+  async doStreamJsonText({
+    schema,
+    prompt,
+  }: {
+    schema: Schema<unknown>;
+    prompt: string | InstructionPrompt | ChatPrompt;
+  }): Promise<
+    ReadableStream<
+      | { type: 'json-text-delta'; textDelta: string }
+      | LanguageModelErrorStreamPart
+    >
+  > {
+    const openaiResponse = await this.client.chat.completions.create({
+      stream: true,
+      model: this.settings.id,
+      max_tokens: this.settings.maxTokens,
+      messages: convertToOpenAIChatPrompt(prompt),
+      tool_choice: {
+        type: 'function',
+        function: { name: 'json' },
+      },
+      tools: [
+        {
+          type: 'function',
+          function: {
+            // TODO enable setting name/description through json mode setting
+            name: 'json',
+            description: 'Convert the previous message to JSON',
+            parameters: schema.getJsonSchema() as Record<string, unknown>,
+          },
+        },
+      ],
+    });
+
+    return readableFromAsyncIterable(openaiResponse).pipeThrough(
+      new TransformStream<
+        OpenAI.Chat.Completions.ChatCompletionChunk,
+        | { type: 'json-text-delta'; textDelta: string }
+        | LanguageModelErrorStreamPart
+      >({
+        transform(chunk, controller) {
+          if (chunk.choices?.[0].delta == null) {
+            return;
+          }
+
+          const delta = chunk.choices[0].delta;
+
+          if (delta.tool_calls == null) {
+            return;
+          }
+
+          for (const toolCallDelta of delta.tool_calls) {
+            const index = toolCallDelta.index;
+
+            if (index !== 0) {
+              continue;
+            }
+
+            const argumentsDelta = toolCallDelta.function?.arguments;
+
+            if (argumentsDelta != null) {
+              controller.enqueue({
+                type: 'json-text-delta',
+                textDelta: argumentsDelta,
               });
             }
           }

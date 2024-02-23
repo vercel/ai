@@ -20,6 +20,16 @@ export interface LanguageModel {
     prompt: LanguageModelPrompt;
     tools?: Array<ToolDefinition<string, unknown>>;
   }): PromiseLike<ReadableStream<LanguageModelStreamPart>>;
+
+  doStreamJsonText(options: {
+    schema: Schema<unknown>;
+    prompt: LanguageModelPrompt;
+  }): PromiseLike<
+    ReadableStream<
+      | { type: 'json-text-delta'; textDelta: string }
+      | LanguageModelErrorStreamPart
+    >
+  >;
 }
 
 export type LanguageModelErrorStreamPart = {
@@ -28,14 +38,6 @@ export type LanguageModelErrorStreamPart = {
 };
 
 export type LanguageModelStreamPart =
-  | {
-      type: 'text-delta';
-      textDelta: string;
-    }
-  | {
-      type: 'tool-call';
-      id: string | null;
-      name: string;
-      args: unknown;
-    }
+  | { type: 'text-delta'; textDelta: string }
+  | { type: 'tool-call'; id: string | null; name: string; args: unknown }
   | LanguageModelErrorStreamPart;
