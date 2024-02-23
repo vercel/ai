@@ -1,4 +1,4 @@
-import { Schema } from '../schema';
+import { Schema } from '../../schema/scxhema';
 
 /**
  * A tool definition contains all information required for a language model to generate tool calls.

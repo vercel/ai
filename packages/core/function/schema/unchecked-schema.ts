@@ -1,4 +1,4 @@
-import { Schema } from './Schema';
+import { Schema } from './scxhema';
 
 export function uncheckedSchema<OBJECT>(jsonSchema?: unknown) {
   return new UncheckedSchema<OBJECT>(jsonSchema);

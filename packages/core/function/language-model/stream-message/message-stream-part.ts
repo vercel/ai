@@ -1,4 +1,4 @@
-import { MessageGeneratorStreamPart } from './message-generator';
+import { LanguageModelStreamPart } from '../language-model/language-model';
 
 export type ToolResultMessageStreamPart = {
   type: 'tool-result';
@@ -7,5 +7,5 @@ export type ToolResultMessageStreamPart = {
 };
 
 export type MessageStreamPart =
-  | MessageGeneratorStreamPart
+  | LanguageModelStreamPart
   | ToolResultMessageStreamPart;

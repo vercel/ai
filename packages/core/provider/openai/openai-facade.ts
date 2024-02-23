@@ -1,8 +1,8 @@
 import {
-  OpenAIChatMessageGenerator,
+  OpenAIChatLanguageModel,
   OpenAIChatMessageGeneratorSettings,
-} from './openai-chat-message-generator';
+} from './openai-chat-language-model';
 
 export function chat(settings: OpenAIChatMessageGeneratorSettings) {
-  return new OpenAIChatMessageGenerator(settings);
+  return new OpenAIChatLanguageModel(settings);
 }

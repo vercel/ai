@@ -1,8 +1,8 @@
+import { LanguageModel } from '../language-model';
 import { ChatPrompt } from '../prompt/chat-prompt';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
-import { Tool } from '../tool';
-import { ToolDefinition } from '../tool/ToolDefinition';
-import { MessageGenerator } from './message-generator';
+import { Tool } from '../tool/Toolx';
+import { ToolDefinition } from '../tool/tool-definition';
 import { runToolsTransformation } from './run-tools-transformation';
 import { StreamMessageTextResponse } from './stream-message-text-response';
 
@@ -16,13 +16,13 @@ export async function streamMessage({
   prompt,
   tools = [],
 }: {
-  model: MessageGenerator;
+  model: LanguageModel;
   prompt: string | InstructionPrompt | ChatPrompt;
   tools?: Array<
     ToolDefinition<string, unknown> | Tool<string, unknown, unknown>
   >;
 }): Promise<StreamMessageResponse> {
-  const modelStream = await model.doStreamText({ prompt, tools });
+  const modelStream = await model.stream({ prompt, tools });
 
   const toolStream = runToolsTransformation({
     tools,

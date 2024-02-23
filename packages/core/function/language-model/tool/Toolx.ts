@@ -1,5 +1,5 @@
-import { Schema } from '../schema';
-import { ToolDefinition } from './ToolDefinition';
+import { Schema } from '../../schema';
+import { ToolDefinition } from './tool-definition';
 
 /**
  * A tool is a function with a name, description and defined inputs that can be used

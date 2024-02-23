@@ -1,11 +1,11 @@
 import OpenAI from 'openai';
 import {
-  OpenAIChatMessageGenerator,
+  OpenAIChatLanguageModel,
   OpenAIChatMessageGeneratorSettings,
-} from '../openai/openai-chat-message-generator';
+} from '../openai/openai-chat-language-model';
 
 export function chat(settings: OpenAIChatMessageGeneratorSettings) {
-  return new OpenAIChatMessageGenerator({
+  return new OpenAIChatLanguageModel({
     client: new OpenAI({
       apiKey: process.env.PERPLEXITY_API_KEY || '',
       baseURL: 'https://api.perplexity.ai/',

@@ -1,11 +1,11 @@
 import OpenAI from 'openai';
-import { ChatPrompt } from '../../function';
-import { InstructionPrompt } from '../../function/prompt/instruction-prompt';
-import { MessageGenerator } from '../../function/stream-message/message-generator';
+import { ChatPrompt } from '../../function/language-model/prompt/chat-prompt';
+import { InstructionPrompt } from '../../function/language-model/prompt/instruction-prompt';
+import { LanguageModel } from '../../function/language-model/language-model';
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
 import { readableFromAsyncIterable } from '../../streams';
 import { tryParseJSON } from '../../function/util/try-json-parse';
-import { ToolDefinition } from '../../function/tool/ToolDefinition';
+import { ToolDefinition } from '../../function/language-model/tool/tool-definition';
 import { MessageGeneratorStreamPart } from '../../function/dist';
 
 export interface OpenAIChatMessageGeneratorSettings {
@@ -14,7 +14,7 @@ export interface OpenAIChatMessageGeneratorSettings {
   client?: OpenAI;
 }
 
-export class OpenAIChatMessageGenerator implements MessageGenerator {
+export class OpenAIChatLanguageModel implements LanguageModel {
   readonly settings: OpenAIChatMessageGeneratorSettings;
 
   constructor(settings: OpenAIChatMessageGeneratorSettings) {
@@ -30,7 +30,13 @@ export class OpenAIChatMessageGenerator implements MessageGenerator {
     );
   }
 
-  async doStreamText({
+  async generate() {
+    return {
+      text: 'hello',
+    };
+  }
+
+  async stream({
     prompt,
     tools,
   }: {

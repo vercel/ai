@@ -1,10 +1,10 @@
 import { nanoid } from 'nanoid';
-import { Tool } from '../tool';
-import { ToolDefinition } from '../tool/ToolDefinition';
+import { Tool } from '../tool/Toolx';
+import { ToolDefinition } from '../tool/tool-definition';
 import {
-  MessageGeneratorErrorStreamPart,
-  MessageGeneratorStreamPart,
-} from './message-generator';
+  LanguageModelErrorStreamPart,
+  LanguageModelStreamPart,
+} from '../language-model';
 import {
   MessageStreamPart,
   ToolResultMessageStreamPart,
@@ -17,17 +17,17 @@ export function runToolsTransformation({
   tools: Array<
     ToolDefinition<string, unknown> | Tool<string, unknown, unknown>
   >;
-  generatorStream: ReadableStream<MessageGeneratorStreamPart>;
+  generatorStream: ReadableStream<LanguageModelStreamPart>;
 }): ReadableStream<MessageStreamPart> {
   let canClose = false;
   const outstandingToolCalls = new Set<string>();
 
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
-    ToolResultMessageStreamPart | MessageGeneratorErrorStreamPart
+    ToolResultMessageStreamPart | LanguageModelErrorStreamPart
   > | null = null;
   const toolResultsStream = new ReadableStream<
-    ToolResultMessageStreamPart | MessageGeneratorErrorStreamPart
+    ToolResultMessageStreamPart | LanguageModelErrorStreamPart
   >({
     start(controller) {
       toolResultsStreamController = controller;
@@ -36,11 +36,11 @@ export function runToolsTransformation({
 
   // forward stream
   const forwardStream = new TransformStream<
-    MessageGeneratorStreamPart,
-    MessageGeneratorStreamPart
+    LanguageModelStreamPart,
+    LanguageModelStreamPart
   >({
     transform(
-      chunk: MessageGeneratorStreamPart,
+      chunk: LanguageModelStreamPart,
       controller: TransformStreamDefaultController<MessageStreamPart>,
     ) {
       controller?.enqueue(chunk);
