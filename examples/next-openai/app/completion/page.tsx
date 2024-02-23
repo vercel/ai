@@ -5,7 +5,7 @@ import { useCompletion } from 'ai/react';
 export default function Chat() {
   const { completion, input, handleInputChange, handleSubmit, error, data } =
     useCompletion({
-      api: '/api/new-completion',
+      api: '/api/completion-new',
     });
 
   return (
