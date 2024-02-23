@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Performs a deep-equal comparison of two parsed JSON objects.
  *

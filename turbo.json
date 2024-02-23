@@ -9,6 +9,7 @@
         "AWS_ACCESS_KEY_ID",
         "AWS_SECRET_ACCESS_KEY",
         "COHERE_API_KEY",
+        "FIREWORKS_API_KEY",
         "GOOGLE_API_KEY",
         "HUGGINGFACE_API_KEY",
         "MISTRAL_API_KEY",
