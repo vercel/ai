@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { Tool } from '../tool/Toolx';
+import { Tool } from '../tool/tool';
 import { ToolDefinition } from '../tool/tool-definition';
 import {
   LanguageModelErrorStreamPart,

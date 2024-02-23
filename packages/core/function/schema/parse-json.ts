@@ -1,6 +1,6 @@
 import SecureJSON from 'secure-json-parse';
 import { JSONParseError } from './json-parse-error';
-import { Schema } from './scxhema';
+import { Schema } from './schema';
 import { safeValidateTypes, validateTypes } from './validate-types';
 import { TypeValidationError } from './type-validation-error';
 

@@ -1,7 +1,7 @@
 import { LanguageModel } from '../language-model';
 import { ChatPrompt } from '../prompt/chat-prompt';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
-import { Tool } from '../tool/Toolx';
+import { Tool } from '../tool/tool';
 import { ToolDefinition } from '../tool/tool-definition';
 import { runToolsTransformation } from './run-tools-transformation';
 import { StreamMessageTextResponse } from './stream-message-text-response';

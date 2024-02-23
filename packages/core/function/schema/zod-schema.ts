@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { Schema } from './scxhema';
+import { Schema } from './schema';
 
 export function zodSchema<OBJECT>(zodSchema: z.Schema<OBJECT>) {
   return new ZodSchema(zodSchema);

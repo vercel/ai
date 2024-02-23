@@ -1,2 +1,2 @@
-export * from './Toolx';
+export * from './tool';
 export * from './tool-definition';

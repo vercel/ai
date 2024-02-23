@@ -1,4 +1,4 @@
-import { Schema } from './scxhema';
+import { Schema } from './schema';
 import { TypeValidationError } from './type-validation-error';
 
 /**

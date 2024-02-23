@@ -1,2 +1,2 @@
 export * from './schema/index';
-export * from './language-model/';
+export * from './language-model/index';
