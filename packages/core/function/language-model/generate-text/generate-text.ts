@@ -1,6 +1,5 @@
 import { LanguageModel } from '../language-model';
-import { ChatPrompt } from '../prompt/chat-prompt';
-import { InstructionPrompt } from '../prompt/instruction-prompt';
+import { LanguageModelPrompt } from '../prompt';
 
 /**
  * Generate a text using a language model.
@@ -10,7 +9,7 @@ export async function generateText({
   prompt,
 }: {
   model: LanguageModel;
-  prompt: string | InstructionPrompt | ChatPrompt;
+  prompt: LanguageModelPrompt;
 }): Promise<GenerateTextResult> {
   const modelResponse = await model.generate({ prompt });
 
