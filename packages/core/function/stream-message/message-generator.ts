@@ -4,7 +4,7 @@ import { ToolDefinition } from '../tool/ToolDefinition';
 
 export interface MessageGenerator {
   doStreamText(options: {
-    prompt: InstructionPrompt | ChatPrompt;
+    prompt: string | InstructionPrompt | ChatPrompt;
     tools?: Array<ToolDefinition<string, unknown>>;
   }): PromiseLike<ReadableStream<MessageGeneratorStreamPart>>;
 }

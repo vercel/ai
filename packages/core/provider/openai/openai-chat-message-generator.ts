@@ -34,7 +34,7 @@ export class OpenAIChatMessageGenerator implements MessageGenerator {
     prompt,
     tools,
   }: {
-    prompt: InstructionPrompt | ChatPrompt;
+    prompt: string | InstructionPrompt | ChatPrompt;
     tools?: Array<ToolDefinition<string, unknown>>;
   }): Promise<ReadableStream<MessageGeneratorStreamPart>> {
     const openaiResponse = await this.client.chat.completions.create({
