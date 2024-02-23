@@ -14,7 +14,7 @@ export function isDeepEqualData(obj1: any, obj2: any): boolean {
   if (obj1 == null || obj2 == null) return false;
 
   // Check if both are objects
-  if (typeof obj1 !== "object" && typeof obj2 !== "object")
+  if (typeof obj1 !== 'object' && typeof obj2 !== 'object')
     return obj1 === obj2;
 
   // If they are not strictly equal, they both need to be Objects

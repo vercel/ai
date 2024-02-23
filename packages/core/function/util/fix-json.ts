@@ -1,19 +1,19 @@
 type State =
-  | "ROOT"
-  | "FINISH"
-  | "INSIDE_STRING"
-  | "INSIDE_STRING_ESCAPE"
-  | "INSIDE_LITERAL"
-  | "INSIDE_NUMBER"
-  | "INSIDE_OBJECT_START"
-  | "INSIDE_OBJECT_KEY"
-  | "INSIDE_OBJECT_AFTER_KEY"
-  | "INSIDE_OBJECT_BEFORE_VALUE"
-  | "INSIDE_OBJECT_AFTER_VALUE"
-  | "INSIDE_OBJECT_AFTER_COMMA"
-  | "INSIDE_ARRAY_START"
-  | "INSIDE_ARRAY_AFTER_VALUE"
-  | "INSIDE_ARRAY_AFTER_COMMA";
+  | 'ROOT'
+  | 'FINISH'
+  | 'INSIDE_STRING'
+  | 'INSIDE_STRING_ESCAPE'
+  | 'INSIDE_LITERAL'
+  | 'INSIDE_NUMBER'
+  | 'INSIDE_OBJECT_START'
+  | 'INSIDE_OBJECT_KEY'
+  | 'INSIDE_OBJECT_AFTER_KEY'
+  | 'INSIDE_OBJECT_BEFORE_VALUE'
+  | 'INSIDE_OBJECT_AFTER_VALUE'
+  | 'INSIDE_OBJECT_AFTER_COMMA'
+  | 'INSIDE_ARRAY_START'
+  | 'INSIDE_ARRAY_AFTER_VALUE'
+  | 'INSIDE_ARRAY_AFTER_COMMA';
 
 // Implemented as a scanner with additional fixing
 // that performs a single linear time scan pass over the partial JSON.
@@ -25,7 +25,7 @@ type State =
 // is assumed that the resulting JSON will be processed by a standard
 // JSON parser that will detect any invalid JSON.
 export function fixJson(input: string): string {
-  const stack: State[] = ["ROOT"];
+  const stack: State[] = ['ROOT'];
   let lastValidIndex = -1;
   let literalStart: number | null = null;
 
@@ -36,57 +36,57 @@ export function fixJson(input: string): string {
           lastValidIndex = i;
           stack.pop();
           stack.push(swapState);
-          stack.push("INSIDE_STRING");
+          stack.push('INSIDE_STRING');
           break;
         }
 
-        case "f":
-        case "t":
-        case "n": {
+        case 'f':
+        case 't':
+        case 'n': {
           lastValidIndex = i;
           literalStart = i;
           stack.pop();
           stack.push(swapState);
-          stack.push("INSIDE_LITERAL");
+          stack.push('INSIDE_LITERAL');
           break;
         }
 
-        case "-": {
+        case '-': {
           stack.pop();
           stack.push(swapState);
-          stack.push("INSIDE_NUMBER");
+          stack.push('INSIDE_NUMBER');
           break;
         }
-        case "0":
-        case "1":
-        case "2":
-        case "3":
-        case "4":
-        case "5":
-        case "6":
-        case "7":
-        case "8":
-        case "9": {
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9': {
           lastValidIndex = i;
           stack.pop();
           stack.push(swapState);
-          stack.push("INSIDE_NUMBER");
-          break;
-        }
-
-        case "{": {
-          lastValidIndex = i;
-          stack.pop();
-          stack.push(swapState);
-          stack.push("INSIDE_OBJECT_START");
+          stack.push('INSIDE_NUMBER');
           break;
         }
 
-        case "[": {
+        case '{': {
           lastValidIndex = i;
           stack.pop();
           stack.push(swapState);
-          stack.push("INSIDE_ARRAY_START");
+          stack.push('INSIDE_OBJECT_START');
+          break;
+        }
+
+        case '[': {
+          lastValidIndex = i;
+          stack.pop();
+          stack.push(swapState);
+          stack.push('INSIDE_ARRAY_START');
           break;
         }
       }
@@ -95,12 +95,12 @@ export function fixJson(input: string): string {
 
   function processAfterObjectValue(char: string, i: number) {
     switch (char) {
-      case ",": {
+      case ',': {
         stack.pop();
-        stack.push("INSIDE_OBJECT_AFTER_COMMA");
+        stack.push('INSIDE_OBJECT_AFTER_COMMA');
         break;
       }
-      case "}": {
+      case '}': {
         lastValidIndex = i;
         stack.pop();
         break;
@@ -110,12 +110,12 @@ export function fixJson(input: string): string {
 
   function processAfterArrayValue(char: string, i: number) {
     switch (char) {
-      case ",": {
+      case ',': {
         stack.pop();
-        stack.push("INSIDE_ARRAY_AFTER_COMMA");
+        stack.push('INSIDE_ARRAY_AFTER_COMMA');
         break;
       }
-      case "]": {
+      case ']': {
         lastValidIndex = i;
         stack.pop();
         break;
@@ -128,18 +128,18 @@ export function fixJson(input: string): string {
     const currentState = stack[stack.length - 1];
 
     switch (currentState) {
-      case "ROOT":
-        processValueStart(char, i, "FINISH");
+      case 'ROOT':
+        processValueStart(char, i, 'FINISH');
         break;
 
-      case "INSIDE_OBJECT_START": {
+      case 'INSIDE_OBJECT_START': {
         switch (char) {
           case '"': {
             stack.pop();
-            stack.push("INSIDE_OBJECT_KEY");
+            stack.push('INSIDE_OBJECT_KEY');
             break;
           }
-          case "}": {
+          case '}': {
             stack.pop();
             break;
           }
@@ -147,33 +147,33 @@ export function fixJson(input: string): string {
         break;
       }
 
-      case "INSIDE_OBJECT_AFTER_COMMA": {
+      case 'INSIDE_OBJECT_AFTER_COMMA': {
         switch (char) {
           case '"': {
             stack.pop();
-            stack.push("INSIDE_OBJECT_KEY");
+            stack.push('INSIDE_OBJECT_KEY');
             break;
           }
         }
         break;
       }
 
-      case "INSIDE_OBJECT_KEY": {
+      case 'INSIDE_OBJECT_KEY': {
         switch (char) {
           case '"': {
             stack.pop();
-            stack.push("INSIDE_OBJECT_AFTER_KEY");
+            stack.push('INSIDE_OBJECT_AFTER_KEY');
             break;
           }
         }
         break;
       }
 
-      case "INSIDE_OBJECT_AFTER_KEY": {
+      case 'INSIDE_OBJECT_AFTER_KEY': {
         switch (char) {
-          case ":": {
+          case ':': {
             stack.pop();
-            stack.push("INSIDE_OBJECT_BEFORE_VALUE");
+            stack.push('INSIDE_OBJECT_BEFORE_VALUE');
 
             break;
           }
@@ -181,17 +181,17 @@ export function fixJson(input: string): string {
         break;
       }
 
-      case "INSIDE_OBJECT_BEFORE_VALUE": {
-        processValueStart(char, i, "INSIDE_OBJECT_AFTER_VALUE");
+      case 'INSIDE_OBJECT_BEFORE_VALUE': {
+        processValueStart(char, i, 'INSIDE_OBJECT_AFTER_VALUE');
         break;
       }
 
-      case "INSIDE_OBJECT_AFTER_VALUE": {
+      case 'INSIDE_OBJECT_AFTER_VALUE': {
         processAfterObjectValue(char, i);
         break;
       }
 
-      case "INSIDE_STRING": {
+      case 'INSIDE_STRING': {
         switch (char) {
           case '"': {
             stack.pop();
@@ -199,8 +199,8 @@ export function fixJson(input: string): string {
             break;
           }
 
-          case "\\": {
-            stack.push("INSIDE_STRING_ESCAPE");
+          case '\\': {
+            stack.push('INSIDE_STRING_ESCAPE');
             break;
           }
 
@@ -212,9 +212,9 @@ export function fixJson(input: string): string {
         break;
       }
 
-      case "INSIDE_ARRAY_START": {
+      case 'INSIDE_ARRAY_START': {
         switch (char) {
-          case "]": {
+          case ']': {
             lastValidIndex = i;
             stack.pop();
             break;
@@ -222,22 +222,22 @@ export function fixJson(input: string): string {
 
           default: {
             lastValidIndex = i;
-            processValueStart(char, i, "INSIDE_ARRAY_AFTER_VALUE");
+            processValueStart(char, i, 'INSIDE_ARRAY_AFTER_VALUE');
             break;
           }
         }
         break;
       }
 
-      case "INSIDE_ARRAY_AFTER_VALUE": {
+      case 'INSIDE_ARRAY_AFTER_VALUE': {
         switch (char) {
-          case ",": {
+          case ',': {
             stack.pop();
-            stack.push("INSIDE_ARRAY_AFTER_COMMA");
+            stack.push('INSIDE_ARRAY_AFTER_COMMA');
             break;
           }
 
-          case "]": {
+          case ']': {
             lastValidIndex = i;
             stack.pop();
             break;
@@ -252,69 +252,69 @@ export function fixJson(input: string): string {
         break;
       }
 
-      case "INSIDE_ARRAY_AFTER_COMMA": {
-        processValueStart(char, i, "INSIDE_ARRAY_AFTER_VALUE");
+      case 'INSIDE_ARRAY_AFTER_COMMA': {
+        processValueStart(char, i, 'INSIDE_ARRAY_AFTER_VALUE');
         break;
       }
 
-      case "INSIDE_STRING_ESCAPE": {
+      case 'INSIDE_STRING_ESCAPE': {
         stack.pop();
         lastValidIndex = i;
 
         break;
       }
 
-      case "INSIDE_NUMBER": {
+      case 'INSIDE_NUMBER': {
         switch (char) {
-          case "0":
-          case "1":
-          case "2":
-          case "3":
-          case "4":
-          case "5":
-          case "6":
-          case "7":
-          case "8":
-          case "9": {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9': {
             lastValidIndex = i;
             break;
           }
 
-          case "e":
-          case "E":
-          case "-":
-          case ".": {
+          case 'e':
+          case 'E':
+          case '-':
+          case '.': {
             break;
           }
 
-          case ",": {
+          case ',': {
             stack.pop();
 
-            if (stack[stack.length - 1] === "INSIDE_ARRAY_AFTER_VALUE") {
+            if (stack[stack.length - 1] === 'INSIDE_ARRAY_AFTER_VALUE') {
               processAfterArrayValue(char, i);
             }
 
-            if (stack[stack.length - 1] === "INSIDE_OBJECT_AFTER_VALUE") {
+            if (stack[stack.length - 1] === 'INSIDE_OBJECT_AFTER_VALUE') {
               processAfterObjectValue(char, i);
             }
 
             break;
           }
 
-          case "}": {
+          case '}': {
             stack.pop();
 
-            if (stack[stack.length - 1] === "INSIDE_OBJECT_AFTER_VALUE") {
+            if (stack[stack.length - 1] === 'INSIDE_OBJECT_AFTER_VALUE') {
               processAfterObjectValue(char, i);
             }
 
             break;
           }
 
-          case "]": {
+          case ']': {
             stack.pop();
 
-            if (stack[stack.length - 1] === "INSIDE_ARRAY_AFTER_VALUE") {
+            if (stack[stack.length - 1] === 'INSIDE_ARRAY_AFTER_VALUE') {
               processAfterArrayValue(char, i);
             }
 
@@ -330,19 +330,19 @@ export function fixJson(input: string): string {
         break;
       }
 
-      case "INSIDE_LITERAL": {
+      case 'INSIDE_LITERAL': {
         const partialLiteral = input.substring(literalStart!, i + 1);
 
         if (
-          !"false".startsWith(partialLiteral) &&
-          !"true".startsWith(partialLiteral) &&
-          !"null".startsWith(partialLiteral)
+          !'false'.startsWith(partialLiteral) &&
+          !'true'.startsWith(partialLiteral) &&
+          !'null'.startsWith(partialLiteral)
         ) {
           stack.pop();
 
-          if (stack[stack.length - 1] === "INSIDE_OBJECT_AFTER_VALUE") {
+          if (stack[stack.length - 1] === 'INSIDE_OBJECT_AFTER_VALUE') {
             processAfterObjectValue(char, i);
-          } else if (stack[stack.length - 1] === "INSIDE_ARRAY_AFTER_VALUE") {
+          } else if (stack[stack.length - 1] === 'INSIDE_ARRAY_AFTER_VALUE') {
             processAfterArrayValue(char, i);
           }
         } else {
@@ -360,37 +360,37 @@ export function fixJson(input: string): string {
     const state = stack[i];
 
     switch (state) {
-      case "INSIDE_STRING": {
+      case 'INSIDE_STRING': {
         result += '"';
         break;
       }
 
-      case "INSIDE_OBJECT_KEY":
-      case "INSIDE_OBJECT_AFTER_KEY":
-      case "INSIDE_OBJECT_AFTER_COMMA":
-      case "INSIDE_OBJECT_START":
-      case "INSIDE_OBJECT_BEFORE_VALUE":
-      case "INSIDE_OBJECT_AFTER_VALUE": {
-        result += "}";
+      case 'INSIDE_OBJECT_KEY':
+      case 'INSIDE_OBJECT_AFTER_KEY':
+      case 'INSIDE_OBJECT_AFTER_COMMA':
+      case 'INSIDE_OBJECT_START':
+      case 'INSIDE_OBJECT_BEFORE_VALUE':
+      case 'INSIDE_OBJECT_AFTER_VALUE': {
+        result += '}';
         break;
       }
 
-      case "INSIDE_ARRAY_START":
-      case "INSIDE_ARRAY_AFTER_COMMA":
-      case "INSIDE_ARRAY_AFTER_VALUE": {
-        result += "]";
+      case 'INSIDE_ARRAY_START':
+      case 'INSIDE_ARRAY_AFTER_COMMA':
+      case 'INSIDE_ARRAY_AFTER_VALUE': {
+        result += ']';
         break;
       }
 
-      case "INSIDE_LITERAL": {
+      case 'INSIDE_LITERAL': {
         const partialLiteral = input.substring(literalStart!, input.length);
 
-        if ("true".startsWith(partialLiteral)) {
-          result += "true".slice(partialLiteral.length);
-        } else if ("false".startsWith(partialLiteral)) {
-          result += "false".slice(partialLiteral.length);
-        } else if ("null".startsWith(partialLiteral)) {
-          result += "null".slice(partialLiteral.length);
+        if ('true'.startsWith(partialLiteral)) {
+          result += 'true'.slice(partialLiteral.length);
+        } else if ('false'.startsWith(partialLiteral)) {
+          result += 'false'.slice(partialLiteral.length);
+        } else if ('null'.startsWith(partialLiteral)) {
+          result += 'null'.slice(partialLiteral.length);
         }
       }
     }
