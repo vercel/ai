@@ -333,7 +333,7 @@ function chunkToText(): (chunk: OpenAIStreamReturnTypes) => string | void {
         }
       } else if (delta.function_call?.arguments) {
         return cleanupArguments(delta.function_call?.arguments);
-      } else if (delta.tool_calls?.[0].function?.arguments) {
+      } else if (delta.tool_calls?.[0]?.function?.arguments) {
         return cleanupArguments(delta.tool_calls?.[0]?.function?.arguments);
       } else if (
         isFunctionStreamingIn &&
