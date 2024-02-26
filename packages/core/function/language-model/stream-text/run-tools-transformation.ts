@@ -5,10 +5,7 @@ import {
   LanguageModelErrorStreamPart,
   LanguageModelStreamPart,
 } from '../language-model';
-import {
-  MessageStreamPart,
-  ToolResultMessageStreamPart,
-} from './message-stream-part';
+import { ToolResultStreamPart } from './tool-result-stream-part';
 
 export function runToolsTransformation({
   tools,
@@ -18,16 +15,16 @@ export function runToolsTransformation({
     ToolDefinition<string, unknown> | Tool<string, unknown, unknown>
   >;
   generatorStream: ReadableStream<LanguageModelStreamPart>;
-}): ReadableStream<MessageStreamPart> {
+}): ReadableStream<LanguageModelStreamPart | ToolResultStreamPart> {
   let canClose = false;
   const outstandingToolCalls = new Set<string>();
 
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
-    ToolResultMessageStreamPart | LanguageModelErrorStreamPart
+    ToolResultStreamPart | LanguageModelErrorStreamPart
   > | null = null;
   const toolResultsStream = new ReadableStream<
-    ToolResultMessageStreamPart | LanguageModelErrorStreamPart
+    ToolResultStreamPart | LanguageModelErrorStreamPart
   >({
     start(controller) {
       toolResultsStreamController = controller;
@@ -41,7 +38,9 @@ export function runToolsTransformation({
   >({
     transform(
       chunk: LanguageModelStreamPart,
-      controller: TransformStreamDefaultController<MessageStreamPart>,
+      controller: TransformStreamDefaultController<
+        LanguageModelStreamPart | ToolResultStreamPart
+      >,
     ) {
       controller?.enqueue(chunk);
 
@@ -100,7 +99,7 @@ export function runToolsTransformation({
   });
 
   // combine the generator stream and the tool results stream
-  return new ReadableStream<MessageStreamPart>({
+  return new ReadableStream<LanguageModelStreamPart | ToolResultStreamPart>({
     async start(controller) {
       generatorStream.pipeThrough(forwardStream).pipeTo(
         new WritableStream({
