@@ -6,8 +6,6 @@ import fs from 'node:fs';
 dotenv.config();
 
 async function main() {
-  const image = fs.readFileSync('./data/comic-cat.png');
-
   const result = await generateText({
     model: openai.chat({
       id: 'gpt-4-vision-preview',
@@ -17,7 +15,7 @@ async function main() {
     prompt: {
       instruction: [
         { type: 'text', text: 'Describe the image in detail.' },
-        { type: 'image', image },
+        { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
       ],
     },
   });
