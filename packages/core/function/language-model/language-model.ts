@@ -1,6 +1,4 @@
-import { ToolDefinition } from './tool/tool-definition';
 import { LanguageModelPrompt } from './prompt';
-import { Schema } from '../schema/schema';
 
 export interface LanguageModel {
   // TODO include usage data
@@ -10,7 +8,7 @@ export interface LanguageModel {
   }>;
 
   doGenerateJsonText(options: {
-    schema: Schema<unknown>;
+    schema: Record<string, unknown>;
     prompt: LanguageModelPrompt;
   }): PromiseLike<{
     jsonText: string;
@@ -18,11 +16,15 @@ export interface LanguageModel {
 
   doStream(options: {
     prompt: LanguageModelPrompt;
-    tools?: Array<ToolDefinition<string, unknown>>;
+    tools?: Array<{
+      name: string;
+      description?: string;
+      parameters: Record<string, unknown>;
+    }>;
   }): PromiseLike<ReadableStream<LanguageModelStreamPart>>;
 
   doStreamJsonText(options: {
-    schema: Schema<unknown>;
+    schema: Record<string, unknown>;
     prompt: LanguageModelPrompt;
   }): PromiseLike<
     ReadableStream<

@@ -1,4 +1,4 @@
-import { Schema } from '../../schema/schema';
+import { z } from 'zod';
 
 /**
  * A tool definition contains all information required for a language model to generate tool calls.
@@ -21,5 +21,5 @@ export interface ToolDefinition<NAME extends string, PARAMETERS> {
    * The schema of the input that the tool expects. The language model will use this to generate the input.
    * Use descriptions to make the input understandable for the language model.
    */
-  parameters: Schema<PARAMETERS>;
+  parameters: z.Schema<PARAMETERS>;
 }

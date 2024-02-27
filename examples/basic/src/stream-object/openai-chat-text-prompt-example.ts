@@ -1,4 +1,4 @@
-import { streamObject, zodSchema } from 'ai/function';
+import { streamObject } from 'ai/function';
 import { openai } from 'ai/provider';
 import dotenv from 'dotenv';
 import { z } from 'zod';
@@ -11,19 +11,17 @@ const result = await streamObject({
     maxTokens: 2000,
   }),
 
-  schema: zodSchema(
-    z.object({
-      characters: z.array(
-        z.object({
-          name: z.string(),
-          class: z
-            .string()
-            .describe('Character class, e.g. warrior, mage, or thief.'),
-          description: z.string(),
-        }),
-      ),
-    }),
-  ),
+  schema: z.object({
+    characters: z.array(
+      z.object({
+        name: z.string(),
+        class: z
+          .string()
+          .describe('Character class, e.g. warrior, mage, or thief.'),
+        description: z.string(),
+      }),
+    ),
+  }),
 
   prompt: 'Generate 3 character descriptions for a fantasy role playing game.',
 });

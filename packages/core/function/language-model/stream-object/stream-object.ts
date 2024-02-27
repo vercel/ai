@@ -1,5 +1,6 @@
 import { PartialDeep } from 'type-fest';
-import { Schema } from '../../schema/schema';
+import { z } from 'zod';
+import { ZodSchema } from '../../schema/zod-schema';
 import { isDeepEqualData } from '../../util/is-deep-equal-data';
 import { parsePartialJson } from '../../util/parse-partial-json';
 import { LanguageModel, LanguageModelErrorStreamPart } from '../language-model';
@@ -10,15 +11,17 @@ import { LanguageModelPrompt } from '../prompt';
  */
 export async function streamObject<T>({
   model,
-  schema,
+  schema: zodSchema,
   prompt,
 }: {
   model: LanguageModel;
-  schema: Schema<T>;
+  schema: z.Schema<T>;
   prompt: LanguageModelPrompt;
 }): Promise<StreamObjectResult<T>> {
+  const schema = new ZodSchema(zodSchema);
+
   const modelStream = await model.doStreamJsonText({
-    schema,
+    schema: schema.getJsonSchema(),
     prompt,
   });
 

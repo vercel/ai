@@ -1,3 +1,4 @@
+import zodToJsonSchema from 'zod-to-json-schema';
 import { LanguageModel, LanguageModelStreamPart } from '../language-model';
 import { LanguageModelPrompt } from '../prompt';
 import { Tool } from '../tool';
@@ -20,7 +21,14 @@ export async function streamText({
     ToolDefinition<string, unknown> | Tool<string, unknown, unknown>
   >;
 }): Promise<StreamTextResult> {
-  const modelStream = await model.doStream({ prompt, tools });
+  const modelStream = await model.doStream({
+    prompt,
+    tools: tools?.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: zodToJsonSchema(tool.parameters),
+    })),
+  });
 
   const toolStream = runToolsTransformation({
     tools,

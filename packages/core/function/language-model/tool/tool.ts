@@ -1,4 +1,4 @@
-import { Schema } from '../../schema';
+import { z } from 'zod';
 import { ToolDefinition } from './tool-definition';
 
 /**
@@ -23,12 +23,12 @@ export class Tool<NAME extends string, PARAMETERS, RESULT>
    * The schema of the input that the tool expects. The language model will use this to generate the input.
    * Use descriptions to make the input understandable for the language model.
    */
-  readonly parameters: Schema<PARAMETERS>;
+  parameters: z.Schema<PARAMETERS>;
 
   /**
    * An optional schema of the output that the tool produces. This will be used to validate the output.
    */
-  readonly returnType?: Schema<RESULT>;
+  readonly returnType?: z.Schema<RESULT>;
 
   /**
    * The actual execution function of the tool.
@@ -44,8 +44,8 @@ export class Tool<NAME extends string, PARAMETERS, RESULT>
   }: {
     name: NAME;
     description?: string;
-    parameters: Schema<PARAMETERS>;
-    returnType?: Schema<RESULT>;
+    parameters: z.Schema<PARAMETERS>;
+    returnType?: z.Schema<RESULT>;
     execute(args: PARAMETERS): PromiseLike<RESULT>;
   }) {
     this.name = name;

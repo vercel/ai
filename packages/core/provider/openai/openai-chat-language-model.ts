@@ -4,7 +4,6 @@ import {
   LanguageModelErrorStreamPart,
   LanguageModelPrompt,
   LanguageModelStreamPart,
-  Schema,
 } from '../../function';
 import { ChatPrompt } from '../../function/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../function/language-model/prompt/instruction-prompt';
@@ -51,7 +50,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     schema,
     prompt,
   }: {
-    schema: Schema<unknown>;
+    schema: Record<string, unknown>;
     prompt: LanguageModelPrompt;
   }): Promise<{
     jsonText: string;
@@ -71,7 +70,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
             // TODO enable setting name/description through json mode setting
             name: 'json',
             description: 'Convert the previous message to JSON',
-            parameters: schema.getJsonSchema() as Record<string, unknown>,
+            parameters: schema,
           },
         },
       ],
@@ -89,7 +88,11 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     tools,
   }: {
     prompt: string | InstructionPrompt | ChatPrompt;
-    tools?: Array<ToolDefinition<string, unknown>>;
+    tools?: Array<{
+      name: string;
+      description?: string;
+      parameters: Record<string, unknown>;
+    }>;
   }): Promise<ReadableStream<LanguageModelStreamPart>> {
     const openaiResponse = await this.client.chat.completions.create({
       stream: true,
@@ -101,10 +104,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.parameters.getJsonSchema() as Record<
-            string,
-            unknown
-          >,
+          parameters: tool.parameters,
         },
       })),
     });
@@ -186,7 +186,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     schema,
     prompt,
   }: {
-    schema: Schema<unknown>;
+    schema: Record<string, unknown>;
     prompt: string | InstructionPrompt | ChatPrompt;
   }): Promise<
     ReadableStream<
@@ -210,7 +210,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
             // TODO enable setting name/description through json mode setting
             name: 'json',
             description: 'Convert the previous message to JSON',
-            parameters: schema.getJsonSchema() as Record<string, unknown>,
+            parameters: schema,
           },
         },
       ],
