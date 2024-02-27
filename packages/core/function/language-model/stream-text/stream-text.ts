@@ -69,7 +69,10 @@ export class StreamTextResult {
               }
 
               if (value.type === 'text-delta') {
-                return { value: value.textDelta, done: false };
+                // do not stream empty text deltas:
+                if (value.textDelta.length > 0) {
+                  return { value: value.textDelta, done: false };
+                }
               }
             }
           },
@@ -84,9 +87,22 @@ export class StreamTextResult {
         const reader = stream.getReader();
         return {
           next: async () => {
+            // loops until a valid delta is found or the stream is finished:
             while (true) {
               const { done, value } = await reader.read();
-              return done ? { value: null, done: true } : { value, done };
+
+              if (done) {
+                return { value: null, done: true };
+              }
+
+              if (value.type === 'text-delta') {
+                // do not stream empty text deltas:
+                if (value.textDelta.length > 0) {
+                  return { value, done: false };
+                }
+              } else {
+                return { value, done: false };
+              }
             }
           },
         };

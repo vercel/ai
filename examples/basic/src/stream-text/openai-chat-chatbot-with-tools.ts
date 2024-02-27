@@ -44,7 +44,7 @@ async function main() {
     for await (const delta of result.fullStream) {
       switch (delta.type) {
         case 'text-delta': {
-          if (fullResponse.length === 0 && delta.textDelta.length > 0) {
+          if (fullResponse.length === 0) {
             process.stdout.write('\nAssistant: ');
           }
 
