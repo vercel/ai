@@ -37,10 +37,8 @@ Create a Next.js Route Handler that we'll use to generate a chat completion via 
 For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
 
 ```tsx filename="app/api/chat/route.ts" showLineNumbers
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { MistralStream, StreamingTextResponse } from 'ai';
 
-// Note: There are no types for the Mistral API client yet.
-// @ts-ignore
 import MistralClient from '@mistralai/mistralai';
 
 const client = new MistralClient(process.env.MISTRAL_API_KEY || '');
@@ -49,16 +47,15 @@ export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
   const { messages } = await req.json();
 
-  const response = await client.chatStream({
-    model: 'mistral-tiny',
-    stream: true,
-    max_tokens: 1000,
+  const response = client.chatStream({
+    model: 'mistral-small',
+    maxTokens: 1000,
     messages,
   });
 
   // Convert the response into a friendly text-stream. The Mistral client responses are
-  // compatible with the Vercel AI SDK OpenAIStream adapter.
-  const stream = OpenAIStream(response);
+  // compatible with the Vercel AI SDK MistralStream adapter.
+  const stream = MistralStream(response);
 
   // Respond with the stream
   return new StreamingTextResponse(stream);
@@ -68,10 +65,9 @@ export async function POST(req: Request) {
 <Callout>
   Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
   pass the streaming `response` we receive from Mistral to the
-  Mistral-compatible [`OpenAIStream`](/docs/api-reference/openai-stream). This
-  method decodes/extracts the text tokens in the response and then re-encodes
-  them properly for simple consumption. We can then pass that new stream
-  directly to
+  [`MistralStream`](/docs/api-reference/mistral-stream). This method
+  decodes/extracts the text tokens in the response and then re-encodes them
+  properly for simple consumption. We can then pass that new stream directly to
   [`StreamingTextResponse`](/docs/api-reference/streaming-text-response). This
   is another utility class that extends the normal Node/Edge Runtime `Response`
   class with the default headers you probably want (hint: `'Content-Type':
@@ -120,29 +116,26 @@ export default function Chat() {
 Similar to the Chatbot example above, we'll create a Next.js Route Handler that generates a text completion via the Mistral api that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
-import { OpenAIStream, StreamingTextResponse } from 'ai';
-
-// Note: There are no types for the Mistral API client yet.
-// @ts-ignore
 import MistralClient from '@mistralai/mistralai';
+import { MistralStream, StreamingTextResponse } from 'ai';
 
 const client = new MistralClient(process.env.MISTRAL_API_KEY || '');
+
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
 
-  const response = await client.chatStream({
-    model: 'mistral-tiny',
-    stream: true,
-    max_tokens: 1000,
-    // use the chat completion API but only send a single prompt:
+  // Ask Mistral for a streaming completion given the prompt
+  const response = client.chatStream({
+    model: 'mistral-small',
+    maxTokens: 1000,
     messages: [{ role: 'user', content: prompt }],
   });
 
-  // Convert the response into a friendly text-stream. The Mistral client responses are
-  // compatible with the Vercel AI SDK OpenAIStream adapter.
-  const stream = OpenAIStream(response);
+  // Convert the response into a friendly text-stream
+  const stream = MistralStream(response);
 
   // Respond with the stream
   return new StreamingTextResponse(stream);
@@ -216,13 +209,13 @@ export default function Completion() {
 
 ## Guide: Save to Database After Completion
 
-It’s common to want to save the result of a completion to a database after streaming it back to the user. The `OpenAIStream` adapter accepts a couple of optional callbacks that can be used to do this.
+It’s common to want to save the result of a completion to a database after streaming it back to the user. The `MistralStream` adapter accepts a couple of optional callbacks that can be used to do this.
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
 export async function POST(req: Request) {
   // ...
   // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response, {
+  const stream = MistralStream(response, {
     onStart: async () => {
       // This callback is called when the stream starts
       // You can use this to save the prompt to your database
