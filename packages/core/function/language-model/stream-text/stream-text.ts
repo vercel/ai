@@ -1,6 +1,7 @@
 import zodToJsonSchema from 'zod-to-json-schema';
 import { LanguageModel, LanguageModelStreamPart } from '../language-model';
-import { LanguageModelPrompt } from '../prompt';
+import { ChatPrompt } from '../prompt/chat-prompt';
+import { InstructionPrompt } from '../prompt/instruction-prompt';
 import { Tool } from '../tool';
 import { ToolDefinition } from '../tool/tool-definition';
 import { runToolsTransformation } from './run-tools-transformation';
@@ -16,7 +17,7 @@ export async function streamText({
   tools,
 }: {
   model: LanguageModel;
-  prompt: LanguageModelPrompt;
+  prompt: InstructionPrompt | ChatPrompt;
   tools?: Array<
     ToolDefinition<string, unknown> | Tool<string, unknown, unknown>
   >;

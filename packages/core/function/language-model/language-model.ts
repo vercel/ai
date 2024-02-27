@@ -1,21 +1,22 @@
-import { LanguageModelPrompt } from './prompt';
+import { ChatPrompt } from './prompt/chat-prompt';
+import { InstructionPrompt } from './prompt/instruction-prompt';
 
 export interface LanguageModel {
   // TODO include usage data
   // TODO support tool calls
-  doGenerate(options: { prompt: LanguageModelPrompt }): PromiseLike<{
+  doGenerate(options: { prompt: InstructionPrompt | ChatPrompt }): PromiseLike<{
     text: string;
   }>;
 
   doGenerateJsonText(options: {
     schema: Record<string, unknown>;
-    prompt: LanguageModelPrompt;
+    prompt: InstructionPrompt | ChatPrompt;
   }): PromiseLike<{
     jsonText: string;
   }>;
 
   doStream(options: {
-    prompt: LanguageModelPrompt;
+    prompt: InstructionPrompt | ChatPrompt;
     tools?: Array<{
       name: string;
       description?: string;
@@ -25,7 +26,7 @@ export interface LanguageModel {
 
   doStreamJsonText(options: {
     schema: Record<string, unknown>;
-    prompt: LanguageModelPrompt;
+    prompt: InstructionPrompt | ChatPrompt;
   }): PromiseLike<
     ReadableStream<
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart

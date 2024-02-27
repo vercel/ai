@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { safeParseJSON } from '../../schema/parse-json';
 import { ZodSchema } from '../../schema/zod-schema';
 import { LanguageModel } from '../language-model';
-import { LanguageModelPrompt } from '../prompt';
+import { ChatPrompt } from '../prompt/chat-prompt';
+import { InstructionPrompt } from '../prompt/instruction-prompt';
 import { ObjectParseError } from './object-parse-error';
 import { ObjectValidationError } from './object-validation-error';
 
@@ -16,7 +17,7 @@ export async function generateObject<T>({
 }: {
   model: LanguageModel;
   schema: z.Schema<T>;
-  prompt: LanguageModelPrompt;
+  prompt: InstructionPrompt | ChatPrompt;
 }): Promise<GenerateObjectResult<T>> {
   const schema = new ZodSchema(zodSchema);
 

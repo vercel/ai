@@ -3,43 +3,31 @@ import {
   ChatPrompt,
   ImagePart,
   InstructionPrompt,
-  LanguageModelPrompt,
   TextPart,
   convertDataContentToBase64String,
   isInstructionPrompt,
-  isTextPrompt,
 } from '../../function';
 
 export function convertToOpenAIChatPrompt(
-  prompt: LanguageModelPrompt,
+  prompt: InstructionPrompt | ChatPrompt,
 ): Array<ChatCompletionMessageParam> {
-  if (isTextPrompt(prompt)) {
-    return convertTextPromptToOpenAIChatPrompt(prompt);
-  } else if (isInstructionPrompt(prompt)) {
-    return convertInstructionPromptToOpenAIChatPrompt(prompt);
-  } else {
-    return convertChatPromptToOpenAIChatPrompt(prompt);
-  }
-}
-
-export function convertTextPromptToOpenAIChatPrompt(
-  prompt: string,
-): Array<ChatCompletionMessageParam> {
-  return [user(prompt)];
+  return isInstructionPrompt(prompt)
+    ? convertInstructionPromptToOpenAIChatPrompt(prompt)
+    : convertChatPromptToOpenAIChatPrompt(prompt);
 }
 
 export function convertInstructionPromptToOpenAIChatPrompt(
   prompt: InstructionPrompt,
 ): Array<ChatCompletionMessageParam> {
-  const messages: Array<ChatCompletionMessageParam> = [];
-
-  if (prompt.system != null) {
-    messages.push(system(prompt.system));
+  if (typeof prompt === 'string') {
+    return [user(prompt)];
   }
 
-  messages.push(user(prompt.instruction));
+  if (prompt.system == null) {
+    return [user(prompt.instruction)];
+  }
 
-  return messages;
+  return [system(prompt.system), user(prompt.instruction)];
 }
 
 export function convertChatPromptToOpenAIChatPrompt(

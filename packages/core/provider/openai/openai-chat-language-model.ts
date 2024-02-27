@@ -1,8 +1,8 @@
+import { nanoid } from 'nanoid';
 import OpenAI from 'openai';
 import {
   ErrorStreamPart,
   LanguageModel,
-  LanguageModelPrompt,
   LanguageModelStreamPart,
 } from '../../function';
 import { ChatPrompt } from '../../function/language-model/prompt/chat-prompt';
@@ -10,7 +10,6 @@ import { InstructionPrompt } from '../../function/language-model/prompt/instruct
 import { tryParseJSON } from '../../function/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
-import { nanoid } from 'nanoid';
 
 export interface OpenAIChatMessageGeneratorSettings {
   id: string;
@@ -34,7 +33,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     );
   }
 
-  async doGenerate({ prompt }: { prompt: LanguageModelPrompt }) {
+  async doGenerate({ prompt }: { prompt: ChatPrompt | InstructionPrompt }) {
     const openaiResponse = await this.client.chat.completions.create({
       model: this.settings.id,
       max_tokens: this.settings.maxTokens,
@@ -51,7 +50,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     prompt,
   }: {
     schema: Record<string, unknown>;
-    prompt: LanguageModelPrompt;
+    prompt: ChatPrompt | InstructionPrompt;
   }): Promise<{
     jsonText: string;
   }> => {
@@ -87,7 +86,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     prompt,
     tools,
   }: {
-    prompt: string | InstructionPrompt | ChatPrompt;
+    prompt: InstructionPrompt | ChatPrompt;
     tools?: Array<{
       name: string;
       description?: string;
@@ -187,7 +186,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     prompt,
   }: {
     schema: Record<string, unknown>;
-    prompt: string | InstructionPrompt | ChatPrompt;
+    prompt: InstructionPrompt | ChatPrompt;
   }): Promise<
     ReadableStream<
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart

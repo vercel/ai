@@ -3,8 +3,9 @@ import { z } from 'zod';
 import { ZodSchema } from '../../schema/zod-schema';
 import { isDeepEqualData } from '../../util/is-deep-equal-data';
 import { parsePartialJson } from '../../util/parse-partial-json';
-import { LanguageModel, ErrorStreamPart } from '../language-model';
-import { LanguageModelPrompt } from '../prompt';
+import { ErrorStreamPart, LanguageModel } from '../language-model';
+import { ChatPrompt } from '../prompt/chat-prompt';
+import { InstructionPrompt } from '../prompt/instruction-prompt';
 
 /**
  * Stream an object as a partial object stream.
@@ -16,7 +17,7 @@ export async function streamObject<T>({
 }: {
   model: LanguageModel;
   schema: z.Schema<T>;
-  prompt: LanguageModelPrompt;
+  prompt: InstructionPrompt | ChatPrompt;
 }): Promise<StreamObjectResult<T>> {
   const schema = new ZodSchema(zodSchema);
 
