@@ -42,12 +42,12 @@ export function runToolsTransformation({
       controller?.enqueue(chunk);
 
       if (chunk.type === 'tool-call') {
-        const tool = tools.find(tool => tool.name === chunk.name);
+        const tool = tools.find(tool => tool.name === chunk.toolName);
 
         if (tool == null) {
           toolResultsStreamController!.enqueue({
             type: 'error',
-            error: `Tool ${chunk.name} not found`,
+            error: `Tool ${chunk.toolName} not found`,
           });
         } else if ('execute' in tool) {
           const toolExecutionId = nanoid(); // use our own id to guarantee uniqueness
@@ -58,6 +58,7 @@ export function runToolsTransformation({
               toolResultsStreamController!.enqueue({
                 type: 'tool-result',
                 toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
                 result,
               });
 

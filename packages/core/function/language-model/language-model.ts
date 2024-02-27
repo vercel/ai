@@ -40,8 +40,8 @@ export type ErrorStreamPart = {
 
 type ToolCallStreamPart = {
   type: 'tool-call';
-  toolCallId: string | null;
-  name: string;
+  toolCallId: string;
+  toolName: string;
   args: unknown;
 };
 

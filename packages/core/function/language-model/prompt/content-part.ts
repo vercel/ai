@@ -26,14 +26,14 @@ export interface ImagePart {
 export interface ToolCallPart {
   type: 'tool-call';
 
-  id: string;
-  name: string;
+  toolCallId: string;
+  toolName: string;
   args: unknown;
 }
 
 export interface ToolResultPart {
   type: 'tool-result';
 
-  id: string;
+  toolCallId: string;
   result: unknown;
 }

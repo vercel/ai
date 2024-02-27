@@ -5,14 +5,15 @@ import * as readline from 'node:readline/promises';
 
 dotenv.config();
 
-const systemPrompt = `You are a helpful, respectful and honest assistant.`;
-
 const terminal = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-const chat: ChatPrompt = { system: systemPrompt, messages: [] };
+const chat: ChatPrompt = {
+  system: `You are a helpful, respectful and honest assistant.`,
+  messages: [],
+};
 
 async function main() {
   while (true) {

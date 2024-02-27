@@ -1,5 +1,6 @@
 export type ToolResultStreamPart = {
   type: 'tool-result';
-  toolCallId: string | null;
+  toolCallId: string;
+  toolName: string;
   result: unknown;
 };

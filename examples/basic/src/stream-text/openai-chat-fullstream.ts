@@ -1,7 +1,7 @@
-import { streamText, createTool } from 'ai/function';
+import { streamText } from 'ai/function';
 import { openai } from 'ai/provider';
 import dotenv from 'dotenv';
-import { z } from 'zod';
+import { weatherTool } from '../tools/weather-tool';
 
 dotenv.config();
 
@@ -10,20 +10,7 @@ const result = await streamText({
     id: 'gpt-3.5-turbo',
   }),
 
-  tools: [
-    createTool({
-      name: 'weather',
-      description: 'Get the weather in a location',
-      parameters: z.object({
-        location: z.string().describe('The location to get the weather for'),
-      }),
-      execute: async ({ location }) => ({
-        location,
-        temperature: 72,
-        description: 'sunny',
-      }),
-    }),
-  ],
+  tools: [weatherTool],
 
   prompt: 'What is the weather in San Francisco?',
 });

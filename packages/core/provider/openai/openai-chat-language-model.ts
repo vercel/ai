@@ -10,6 +10,7 @@ import { InstructionPrompt } from '../../function/language-model/prompt/instruct
 import { tryParseJSON } from '../../function/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
+import { nanoid } from 'nanoid';
 
 export interface OpenAIChatMessageGeneratorSettings {
   id: string;
@@ -170,8 +171,8 @@ export class OpenAIChatLanguageModel implements LanguageModel {
 
               controller.enqueue({
                 type: 'tool-call',
-                toolCallId: toolCall.id ?? null,
-                name: toolCall.function.name,
+                toolCallId: toolCall.id ?? nanoid(),
+                toolName: toolCall.function.name,
                 args,
               });
             }

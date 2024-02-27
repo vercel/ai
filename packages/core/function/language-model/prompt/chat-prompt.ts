@@ -36,12 +36,13 @@ export type UserContent = string | Array<TextPart | ImagePart>;
 export type AssistantContent = string | Array<TextPart | ToolCallPart>;
 export type ToolContent = Array<ToolResultPart>;
 
+export type UserMessage = { role: 'user'; content: UserContent };
+export type AssistantMessage = { role: 'assistant'; content: AssistantContent };
+export type ToolMessage = { role: 'tool'; content: ToolContent };
+
 /**
  * A message in a chat prompt.
  *
  * @see ChatPrompt
  */
-export type ChatMessage =
-  | { role: 'user'; content: UserContent }
-  | { role: 'assistant'; content: AssistantContent }
-  | { role: 'tool'; content: ToolContent };
+export type ChatMessage = UserMessage | AssistantMessage | ToolMessage;

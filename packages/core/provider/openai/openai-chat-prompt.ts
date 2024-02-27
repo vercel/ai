@@ -76,10 +76,10 @@ export function convertChatPromptToOpenAIChatPrompt(
               }
               case 'tool-call': {
                 toolCalls.push({
-                  id: part.id,
+                  id: part.toolCallId,
                   type: 'function',
                   function: {
-                    name: part.name,
+                    name: part.toolName,
                     arguments: JSON.stringify(part.args),
                   },
                 });
@@ -105,7 +105,7 @@ export function convertChatPromptToOpenAIChatPrompt(
         for (const toolResponse of content) {
           messages.push({
             role: 'tool',
-            tool_call_id: toolResponse.id,
+            tool_call_id: toolResponse.toolCallId,
             content: JSON.stringify(toolResponse.result),
           });
         }
