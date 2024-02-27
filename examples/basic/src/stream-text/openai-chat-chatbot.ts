@@ -26,7 +26,7 @@ async function main() {
     });
 
     let fullResponse = '';
-    process.stdout.write('\nAssistant : ');
+    process.stdout.write('\nAssistant: ');
     for await (const delta of result.textStream) {
       fullResponse += delta;
       process.stdout.write(delta);

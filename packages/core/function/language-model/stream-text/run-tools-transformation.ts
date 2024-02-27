@@ -118,7 +118,7 @@ export function runToolsTransformation({
             controller.enqueue(chunk);
           },
           close() {
-            // the tool results stream controller is closed elsewhere
+            controller.close();
           },
         }),
       );
