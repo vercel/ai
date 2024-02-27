@@ -41,13 +41,13 @@ import { MistralStream, StreamingTextResponse } from 'ai';
 
 import MistralClient from '@mistralai/mistralai';
 
-const client = new MistralClient(process.env.MISTRAL_API_KEY || '');
+const mistral = new MistralClient(process.env.MISTRAL_API_KEY || '');
 
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
   const { messages } = await req.json();
 
-  const response = client.chatStream({
+  const response = mistral.chatStream({
     model: 'mistral-small',
     maxTokens: 1000,
     messages,
@@ -119,7 +119,7 @@ Similar to the Chatbot example above, we'll create a Next.js Route Handler that 
 import MistralClient from '@mistralai/mistralai';
 import { MistralStream, StreamingTextResponse } from 'ai';
 
-const client = new MistralClient(process.env.MISTRAL_API_KEY || '');
+const mistral = new MistralClient(process.env.MISTRAL_API_KEY || '');
 
 export const runtime = 'edge';
 
@@ -128,7 +128,7 @@ export async function POST(req: Request) {
   const { prompt } = await req.json();
 
   // Ask Mistral for a streaming completion given the prompt
-  const response = client.chatStream({
+  const response = mistral.chatStream({
     model: 'mistral-small',
     maxTokens: 1000,
     messages: [{ role: 'user', content: prompt }],

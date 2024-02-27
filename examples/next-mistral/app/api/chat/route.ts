@@ -1,13 +1,15 @@
 import MistralClient from '@mistralai/mistralai';
 import { MistralStream, StreamingTextResponse } from 'ai';
 
-const client = new MistralClient(process.env.MISTRAL_API_KEY || '');
+export const runtime = 'edge';
+
+const mistral = new MistralClient(process.env.MISTRAL_API_KEY || '');
 
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
   const { messages } = await req.json();
 
-  const response = client.chatStream({
+  const response = mistral.chatStream({
     model: 'mistral-small',
     maxTokens: 1000,
     messages,
