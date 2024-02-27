@@ -7,12 +7,8 @@ dotenv.config();
 
 async function main() {
   const result = await streamText({
-    model: openai.chat({
-      id: 'gpt-3.5-turbo',
-    }),
-
+    model: openai.chat({ id: 'gpt-3.5-turbo' }),
     tools: [weatherTool],
-
     prompt: 'What is the weather in San Francisco?',
   });
 
