@@ -10,6 +10,7 @@
   "huggingface-stream": "HuggingFaceStream",
   "langchain-stream": "LangChainStream",
   "openai-stream": "OpenAIStream",
+  "mistral-stream": "MistralStream",
   "replicate-stream": "ReplicateStream",
   "inkeep-stream": "InkeepStream",
   "stream-data": "experimental_StreamData",
