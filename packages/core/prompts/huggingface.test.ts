@@ -3,7 +3,29 @@ import {
   experimental_buildLlama2Prompt,
   experimental_buildOpenAssistantPrompt,
   experimental_buildStarChatBetaPrompt,
+  experimental_buildZephyrPrompt,
 } from './huggingface';
+
+describe('buildZephyrPrompt', () => {
+  it('should return a string with user, assistant, and system messages', () => {
+    const messages: Pick<Message, 'content' | 'role'>[] = [
+      { content: 'You are a chat bot.', role: 'system' },
+      { content: 'Hello!', role: 'user' },
+      { content: 'Hi there!', role: 'assistant' },
+    ];
+
+    const expectedPrompt = `<|system|>\nYou are a chat bot.<\s>\n<|user|>\nHello!<\s>\n<|assistant|>\nHi there!<\s>\n<|assistant|>\n`;
+    const prompt = experimental_buildZephyrPrompt(messages);
+    expect(prompt).toEqual(expectedPrompt);
+  });
+
+  it('should throw an error if a function message is included', () => {
+    const messages: Pick<Message, 'content' | 'role'>[] = [
+      { content: 'someFunction()', role: 'function' },
+    ];
+    expect(() => experimental_buildZephyrPrompt(messages)).toThrow();
+  });
+});
 
 describe('buildStarChatBetaPrompt', () => {
   it('should return a string with user, assistant, and system messages', () => {
