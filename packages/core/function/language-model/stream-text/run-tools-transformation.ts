@@ -8,10 +8,10 @@ import {
 import { ToolResultStreamPart } from './tool-result-stream-part';
 
 export function runToolsTransformation({
-  tools,
+  tools = [],
   generatorStream,
 }: {
-  tools: Array<
+  tools?: Array<
     ToolDefinition<string, unknown> | Tool<string, unknown, unknown>
   >;
   generatorStream: ReadableStream<LanguageModelStreamPart>;

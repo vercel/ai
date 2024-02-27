@@ -12,7 +12,7 @@ import { ToolResultStreamPart } from './tool-result-stream-part';
 export async function streamText({
   model,
   prompt,
-  tools = [],
+  tools,
 }: {
   model: LanguageModel;
   prompt: LanguageModelPrompt;
@@ -37,6 +37,10 @@ export class StreamTextResult {
 
   readonly textStream: AsyncIterable<string>;
 
+  readonly fullStream: AsyncIterable<
+    LanguageModelStreamPart | ToolResultStreamPart
+  >;
+
   constructor(
     stream: ReadableStream<LanguageModelStreamPart | ToolResultStreamPart>,
   ) {
@@ -58,6 +62,22 @@ export class StreamTextResult {
               if (value.type === 'text-delta') {
                 return { value: value.textDelta, done: false };
               }
+            }
+          },
+        };
+      },
+    };
+
+    this.fullStream = {
+      [Symbol.asyncIterator](): AsyncIterator<
+        LanguageModelStreamPart | ToolResultStreamPart
+      > {
+        const reader = stream.getReader();
+        return {
+          next: async () => {
+            while (true) {
+              const { done, value } = await reader.read();
+              return done ? { value: null, done: true } : { value, done };
             }
           },
         };
