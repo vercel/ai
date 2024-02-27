@@ -1,13 +1,12 @@
 import OpenAI from 'openai';
 import {
+  ErrorStreamPart,
   LanguageModel,
-  LanguageModelErrorStreamPart,
   LanguageModelPrompt,
   LanguageModelStreamPart,
 } from '../../function';
 import { ChatPrompt } from '../../function/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../function/language-model/prompt/instruction-prompt';
-import { ToolDefinition } from '../../function/language-model/tool/tool-definition';
 import { tryParseJSON } from '../../function/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
@@ -171,7 +170,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
 
               controller.enqueue({
                 type: 'tool-call',
-                id: toolCall.id ?? null,
+                toolCallId: toolCall.id ?? null,
                 name: toolCall.function.name,
                 args,
               });
@@ -190,8 +189,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     prompt: string | InstructionPrompt | ChatPrompt;
   }): Promise<
     ReadableStream<
-      | { type: 'json-text-delta'; textDelta: string }
-      | LanguageModelErrorStreamPart
+      { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
     >
   > {
     const openaiResponse = await this.client.chat.completions.create({
@@ -219,8 +217,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     return readableFromAsyncIterable(openaiResponse).pipeThrough(
       new TransformStream<
         OpenAI.Chat.Completions.ChatCompletionChunk,
-        | { type: 'json-text-delta'; textDelta: string }
-        | LanguageModelErrorStreamPart
+        { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
       >({
         transform(chunk, controller) {
           if (chunk.choices?.[0].delta == null) {

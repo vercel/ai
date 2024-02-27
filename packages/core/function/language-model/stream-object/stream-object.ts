@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ZodSchema } from '../../schema/zod-schema';
 import { isDeepEqualData } from '../../util/is-deep-equal-data';
 import { parsePartialJson } from '../../util/parse-partial-json';
-import { LanguageModel, LanguageModelErrorStreamPart } from '../language-model';
+import { LanguageModel, ErrorStreamPart } from '../language-model';
 import { LanguageModelPrompt } from '../prompt';
 
 /**
@@ -35,8 +35,7 @@ export class StreamObjectResult<T> {
 
   constructor(
     modelStream: ReadableStream<
-      | { type: 'json-text-delta'; textDelta: string }
-      | LanguageModelErrorStreamPart
+      { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
     >,
   ) {
     let accumulatedText = '';

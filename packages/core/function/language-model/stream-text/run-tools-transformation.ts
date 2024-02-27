@@ -1,10 +1,7 @@
 import { nanoid } from 'nanoid';
 import { Tool } from '../tool/tool';
 import { ToolDefinition } from '../tool/tool-definition';
-import {
-  LanguageModelErrorStreamPart,
-  LanguageModelStreamPart,
-} from '../language-model';
+import { ErrorStreamPart, LanguageModelStreamPart } from '../language-model';
 import { ToolResultStreamPart } from './tool-result-stream-part';
 
 export function runToolsTransformation({
@@ -21,10 +18,10 @@ export function runToolsTransformation({
 
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
-    ToolResultStreamPart | LanguageModelErrorStreamPart
+    ToolResultStreamPart | ErrorStreamPart
   > | null = null;
   const toolResultsStream = new ReadableStream<
-    ToolResultStreamPart | LanguageModelErrorStreamPart
+    ToolResultStreamPart | ErrorStreamPart
   >({
     start(controller) {
       toolResultsStreamController = controller;
@@ -60,7 +57,7 @@ export function runToolsTransformation({
             result => {
               toolResultsStreamController!.enqueue({
                 type: 'tool-result',
-                id: chunk.id,
+                toolCallId: chunk.toolCallId,
                 result,
               });
 

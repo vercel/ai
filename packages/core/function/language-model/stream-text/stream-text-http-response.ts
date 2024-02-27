@@ -36,7 +36,7 @@ export class StreamTextHttpResponse extends Response {
                     tool_calls: [
                       {
                         type: 'function',
-                        id: chunk.id ?? '', // TODO client need to support null id
+                        id: chunk.toolCallId ?? '', // TODO client need to support null id
                         function: {
                           name: chunk.name,
                           arguments: JSON.stringify(chunk.args),

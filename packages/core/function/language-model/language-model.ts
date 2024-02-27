@@ -28,18 +28,29 @@ export interface LanguageModel {
     prompt: LanguageModelPrompt;
   }): PromiseLike<
     ReadableStream<
-      | { type: 'json-text-delta'; textDelta: string }
-      | LanguageModelErrorStreamPart
+      { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
     >
   >;
 }
 
-export type LanguageModelErrorStreamPart = {
+export type ErrorStreamPart = {
   type: 'error';
   error: unknown;
 };
 
+type ToolCallStreamPart = {
+  type: 'tool-call';
+  toolCallId: string | null;
+  name: string;
+  args: unknown;
+};
+
+type TextDeltaStreamPart = {
+  type: 'text-delta';
+  textDelta: string;
+};
+
 export type LanguageModelStreamPart =
-  | { type: 'text-delta'; textDelta: string }
-  | { type: 'tool-call'; id: string | null; name: string; args: unknown }
-  | LanguageModelErrorStreamPart;
+  | TextDeltaStreamPart
+  | ToolCallStreamPart
+  | ErrorStreamPart;
