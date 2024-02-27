@@ -1,20 +1,15 @@
-import {
-  OpenAIStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from '.';
+import MistralClient from '@mistralai/mistralai';
+import { StreamingTextResponse, experimental_StreamData } from '.';
 import { mistralChunks } from '../tests/snapshots/mistral';
 import { readAllChunks } from '../tests/utils/mock-client';
 import { createMockServer } from '../tests/utils/mock-server';
-
-// @ts-ignore
-import MistralClient from '@mistralai/mistralai';
+import { MistralStream } from './mistral-stream';
 
 const server = createMockServer([
   {
     url: 'http://localhost:3030/v1/chat/completions',
     chunks: mistralChunks,
-    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n\n`,
     suffix: 'data: [DONE]',
   },
 ]);
@@ -35,12 +30,12 @@ describe('MistralStream', () => {
   it('should be able to parse SSE and receive the streamed response', async () => {
     const client = new MistralClient('api-key', 'http://localhost:3030');
 
-    const mistralResponse = await client.chatStream({
+    const mistralResponse = client.chatStream({
       model: 'mistral-small',
       messages: [{ role: 'user', content: 'What is the best French cheese?' }],
     });
 
-    const stream = OpenAIStream(mistralResponse);
+    const stream = MistralStream(mistralResponse);
     const response = new StreamingTextResponse(stream);
 
     const chunks = await readAllChunks(response);
@@ -56,14 +51,14 @@ describe('MistralStream', () => {
 
       const client = new MistralClient('api-key', 'http://localhost:3030');
 
-      const mistralResponse = await client.chatStream({
+      const mistralResponse = client.chatStream({
         model: 'mistral-small',
         messages: [
           { role: 'user', content: 'What is the best French cheese?' },
         ],
       });
 
-      const stream = OpenAIStream(mistralResponse, {
+      const stream = MistralStream(mistralResponse, {
         onFinal() {
           data.close();
         },
@@ -89,14 +84,14 @@ describe('MistralStream', () => {
 
       const client = new MistralClient('api-key', 'http://localhost:3030');
 
-      const mistralResponse = await client.chatStream({
+      const mistralResponse = client.chatStream({
         model: 'mistral-small',
         messages: [
           { role: 'user', content: 'What is the best French cheese?' },
         ],
       });
 
-      const stream = OpenAIStream(mistralResponse, {
+      const stream = MistralStream(mistralResponse, {
         onFinal() {
           data.close();
         },

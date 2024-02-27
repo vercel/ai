@@ -353,6 +353,25 @@ describe('OpenAIStream', () => {
         ],
       });
     });
+
+    it('should call onFinal with tool response when onToolCall returns string', async () => {
+      let finalResponse: any = undefined;
+
+      const stream = OpenAIStream(await fetch(TOOL_CALL_TEST_URL), {
+        async experimental_onToolCall(payload, appendToolCallMessage) {
+          return 'tool-response';
+        },
+
+        onFinal(response) {
+          finalResponse = response;
+        },
+      });
+
+      const response = new StreamingTextResponse(stream);
+      await createClient(response).readAll(); // consume stream
+
+      expect(finalResponse).toEqual('tool-response');
+    });
   });
 
   describe('Azure SDK', () => {
