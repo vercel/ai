@@ -29,9 +29,9 @@ pnpm install @langchain/openai
 import { NextRequest } from 'next/server';
 import { Message as VercelChatMessage, StreamingTextResponse } from 'ai';
 
-import { ChatOpenAI } from "@langchain/openai";
-import { BytesOutputParser } from "@langchain/core/output_parsers";
-import { PromptTemplate } from "@langchain/core/prompts";
+import { ChatOpenAI } from '@langchain/openai';
+import { BytesOutputParser } from '@langchain/core/output_parsers';
+import { PromptTemplate } from '@langchain/core/prompts';
 
 export const runtime = 'edge';
 
