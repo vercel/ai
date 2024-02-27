@@ -8,7 +8,6 @@ import { openai } from 'ai/provider';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
-import { text } from 'stream/consumers';
 
 dotenv.config();
 
