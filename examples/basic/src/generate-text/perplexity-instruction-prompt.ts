@@ -5,10 +5,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const result = await generateText({
-  model: perplexity.chat({
-    id: 'pplx-70b-online',
-  }),
-
+  model: perplexity.chat({ id: 'pplx-70b-online' }),
   prompt: 'What happened in San Francisco in this week?',
 });
 

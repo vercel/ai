@@ -1,15 +1,12 @@
 import { generateText } from 'ai/function';
-import { openai } from 'ai/provider';
+import { mistral, perplexity } from 'ai/provider';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const result = await generateText({
-  model: openai.chat({
-    id: 'gpt-3.5-turbo',
-  }),
-
-  prompt: 'Invent a new holiday and describe its traditions.',
+  model: mistral.chat({ id: 'mistral-small' }),
+  prompt: 'What is the best French cheese?',
 });
 
 console.log(result.text);

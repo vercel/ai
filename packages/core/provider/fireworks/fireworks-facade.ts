@@ -1,10 +1,10 @@
 import OpenAI from 'openai';
 import {
   OpenAIChatLanguageModel,
-  OpenAIChatMessageGeneratorSettings,
+  OpenAIChatLanguageModelSettings,
 } from '../openai/openai-chat-language-model';
 
-export function chat(settings: OpenAIChatMessageGeneratorSettings) {
+export function chat(settings: OpenAIChatLanguageModelSettings) {
   return new OpenAIChatLanguageModel({
     client: new OpenAI({
       apiKey: process.env.FIREWORKS_API_KEY,

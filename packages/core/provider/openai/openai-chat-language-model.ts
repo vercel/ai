@@ -11,16 +11,16 @@ import { tryParseJSON } from '../../function/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
 
-export interface OpenAIChatMessageGeneratorSettings {
+export interface OpenAIChatLanguageModelSettings {
   id: string;
   maxTokens?: number;
   client?: OpenAI;
 }
 
 export class OpenAIChatLanguageModel implements LanguageModel {
-  readonly settings: OpenAIChatMessageGeneratorSettings;
+  readonly settings: OpenAIChatLanguageModelSettings;
 
-  constructor(settings: OpenAIChatMessageGeneratorSettings) {
+  constructor(settings: OpenAIChatLanguageModelSettings) {
     this.settings = settings;
   }
 

@@ -28,6 +28,7 @@ export interface ToolCallPart {
 
   toolCallId: string;
   toolName: string;
+
   args: unknown;
 }
 
@@ -35,5 +36,7 @@ export interface ToolResultPart {
   type: 'tool-result';
 
   toolCallId: string;
+  toolName: string;
+
   result: unknown;
 }
