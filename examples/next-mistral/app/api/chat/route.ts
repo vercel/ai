@@ -1,6 +1,5 @@
-import { MistralStream, StreamingTextResponse } from 'ai';
-
 import MistralClient from '@mistralai/mistralai';
+import { MistralStream, StreamingTextResponse } from 'ai';
 
 const client = new MistralClient(process.env.MISTRAL_API_KEY || '');
 
