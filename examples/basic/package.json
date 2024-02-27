@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "ai": "2.2.35",
+    "ai": "2.2.36",
     "dotenv": "16.4.5",
     "zod": "3.22.4",
     "zod-to-json-schema": "3.22.4"
