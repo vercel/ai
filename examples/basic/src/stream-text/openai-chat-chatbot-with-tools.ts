@@ -11,11 +11,6 @@ import { weatherTool } from '../tools/weather-tool';
 
 dotenv.config();
 
-// ANSI escape codes for color:
-const reset = '\x1b[0m';
-const turquoise = '\x1b[36m';
-const green = '\x1b[32m';
-
 const terminal = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -62,9 +57,7 @@ async function main() {
           toolCalls.push(delta);
 
           process.stdout.write(
-            `\n${green}Tool call: '${delta.toolName}' ${JSON.stringify(
-              delta.args,
-            )}${reset}`,
+            `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.args)}`,
           );
           break;
         }
@@ -73,9 +66,9 @@ async function main() {
           toolResponses.push(delta);
 
           process.stdout.write(
-            `\n${turquoise}Tool response: '${delta.toolName}' ${JSON.stringify(
+            `\nTool response: '${delta.toolName}' ${JSON.stringify(
               delta.result,
-            )}${reset}`,
+            )}`,
           );
           break;
         }
