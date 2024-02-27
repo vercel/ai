@@ -17,3 +17,12 @@ export interface Tool<NAME extends string, PARAMETERS, RESULT>
    */
   execute: (args: PARAMETERS) => PromiseLike<RESULT>;
 }
+
+/**
+ * Helper function to easily create tools with type script. Makes type inference easier.
+ */
+export function createTool<NAME extends string, PARAMETERS, RESULT>(
+  tool: Tool<NAME, PARAMETERS, RESULT>,
+): Tool<NAME, PARAMETERS, RESULT> {
+  return tool;
+}
