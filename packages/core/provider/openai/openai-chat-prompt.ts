@@ -59,7 +59,7 @@ export function convertChatPromptToOpenAIChatPrompt(
       }
       case 'assistant': {
         if (typeof content === 'string') {
-          messages.push(assistant(content));
+          messages.push({ role: 'assistant', content });
         } else {
           let text = '';
           const toolCalls: Array<{
@@ -95,7 +95,7 @@ export function convertChatPromptToOpenAIChatPrompt(
           messages.push({
             role: 'assistant',
             content: text,
-            tool_calls: toolCalls,
+            tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           });
         }
 
@@ -155,34 +155,5 @@ function user(
             }
           }),
     name: options?.name,
-  };
-}
-
-/**
- * Creates an assistant chat message.
- * The assistant message can optionally contain tool calls
- * or a function call (function calls are deprecated).
- */
-function assistant(content: string | null): ChatCompletionMessageParam {
-  return {
-    role: 'assistant',
-    content,
-  };
-}
-
-/**
- * Creates a tool result chat message with the result of a tool call.
- */
-function tool({
-  toolCallId,
-  content,
-}: {
-  toolCallId: string;
-  content: unknown;
-}): ChatCompletionMessageParam {
-  return {
-    role: 'tool' as const,
-    tool_call_id: toolCallId,
-    content: JSON.stringify(content),
   };
 }

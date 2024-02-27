@@ -8,6 +8,7 @@ import { openai } from 'ai/provider';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
+import { text } from 'stream/consumers';
 
 dotenv.config();
 
@@ -46,10 +47,13 @@ async function main() {
     const toolCalls: ToolCallPart[] = [];
     const toolResponses: ToolResultPart[] = [];
 
-    process.stdout.write('\nAssistant: ');
     for await (const delta of result.fullStream) {
       switch (delta.type) {
         case 'text-delta': {
+          if (fullResponse.length === 0 && delta.textDelta.length > 0) {
+            process.stdout.write('\nAssistant: ');
+          }
+
           fullResponse += delta.textDelta;
           process.stdout.write(delta.textDelta);
           break;
@@ -59,7 +63,7 @@ async function main() {
           toolCalls.push(delta);
 
           process.stdout.write(
-            `\n\n${green}Calling '${delta.toolName}' tool with ${JSON.stringify(
+            `\n${green}Tool call: '${delta.toolName}' ${JSON.stringify(
               delta.args,
             )}${reset}`,
           );
@@ -70,7 +74,7 @@ async function main() {
           toolResponses.push(delta);
 
           process.stdout.write(
-            `\n\n${turquoise}'${delta.toolName}' response: ${JSON.stringify(
+            `\n${turquoise}Tool response: '${delta.toolName}' ${JSON.stringify(
               delta.result,
             )}${reset}`,
           );
