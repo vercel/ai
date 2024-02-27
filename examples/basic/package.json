@@ -2,7 +2,6 @@
   "name": "ai-sdk-examples",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "dependencies": {
     "ai": "2.2.36",
     "dotenv": "16.4.5",

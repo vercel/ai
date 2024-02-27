@@ -4,9 +4,13 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const result = await generateText({
-  model: openai.chat({ id: 'gpt-3.5-turbo' }),
-  prompt: 'Invent a new holiday and describe its traditions.',
-});
+async function main() {
+  const result = await generateText({
+    model: openai.chat({ id: 'gpt-3.5-turbo' }),
+    prompt: 'Invent a new holiday and describe its traditions.',
+  });
 
-console.log(result.text);
+  console.log(result.text);
+}
+
+main();

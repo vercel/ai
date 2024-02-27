@@ -131,6 +131,7 @@
     "zod-to-json-schema": "3.22.4"
   },
   "peerDependencies": {
+    "@mistralai/mistralai": "0.1.3",
     "openai": "^4.28.0",
     "react": "^18.2.0",
     "solid-js": "^1.7.7",

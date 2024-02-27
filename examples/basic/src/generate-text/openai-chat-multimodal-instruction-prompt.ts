@@ -5,20 +5,24 @@ import fs from 'node:fs';
 
 dotenv.config();
 
-const image = fs.readFileSync('./data/comic-cat.png');
+async function main() {
+  const image = fs.readFileSync('./data/comic-cat.png');
 
-const result = await generateText({
-  model: openai.chat({
-    id: 'gpt-4-vision-preview',
-    maxTokens: 512,
-  }),
+  const result = await generateText({
+    model: openai.chat({
+      id: 'gpt-4-vision-preview',
+      maxTokens: 512,
+    }),
 
-  prompt: {
-    instruction: [
-      { type: 'text', text: 'Describe the image in detail.' },
-      { type: 'image', image },
-    ],
-  },
-});
+    prompt: {
+      instruction: [
+        { type: 'text', text: 'Describe the image in detail.' },
+        { type: 'image', image },
+      ],
+    },
+  });
 
-console.log(result.text);
+  console.log(result.text);
+}
+
+main();
