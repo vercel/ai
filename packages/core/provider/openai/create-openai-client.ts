@@ -1,9 +1,11 @@
 import OpenAI from 'openai';
-import { loadDynamically } from '../../core/util/load-dynamically';
 
 /**
  * Creates an OpenAI client (optional peer dependency) on demand.
+ *
  * This avoids error when the peer dependency is not installed and the provider is not used.
+ * Support ESM and CommonJS module loading.
+ * Hardcoded module name to allow for webpack bundling.
  */
 export async function createOpenAIClient({
   apiKey,
@@ -12,6 +14,19 @@ export async function createOpenAIClient({
   apiKey: string;
   baseURL?: string;
 }): Promise<OpenAI> {
-  const OpenAI = await loadDynamically('openai');
+  let OpenAI: any;
+
+  try {
+    // CommonJS Module loading:
+    OpenAI = require('openai');
+  } catch (error) {
+    try {
+      // attempt ES Module loading:
+      OpenAI = (await import('openai')).default;
+    } catch (error) {
+      throw new Error(`Failed to load '${module}' module dynamically.`);
+    }
+  }
+
   return new OpenAI({ apiKey, baseURL });
 }
