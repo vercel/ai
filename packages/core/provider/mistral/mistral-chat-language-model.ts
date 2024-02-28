@@ -12,6 +12,7 @@ import {
 import { injectJsonSchemaIntoInstructionPrompt } from '../../core/language-model/inject-json-schema-into-instruction-prompt';
 import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
+import { createMistralClient } from './create-mistral-client';
 import {
   convertInstructionPromptToMistralChatPrompt,
   convertToMistralChatPrompt,
@@ -76,14 +77,19 @@ export class MistralChatLanguageModel implements LanguageModel {
     this.settings = settings;
   }
 
-  get client() {
-    return (
-      this.settings.client ?? new MistralClient(process.env.Mistral_API_KEY)
-    );
+  private async getClient() {
+    if (this.settings.client == null) {
+      return createMistralClient({
+        apiKey: process.env.MISTRAL_API_KEY!, // TODO error if not set & lazy load
+      });
+    }
+
+    return this.settings.client;
   }
 
   async doGenerate({ prompt }: { prompt: ChatPrompt | InstructionPrompt }) {
-    const clientResponse = await this.client.chat({
+    const client = await this.getClient();
+    const clientResponse = await client.chat({
       model: this.settings.id,
       maxTokens: this.settings.maxTokens,
       messages: convertToMistralChatPrompt(prompt),
@@ -124,7 +130,8 @@ export class MistralChatLanguageModel implements LanguageModel {
 
     switch (outputMode) {
       case 'JSON_OUTPUT': {
-        const clientResponse = await this.client.chat({
+        const client = await this.getClient();
+        const clientResponse = await client.chat({
           responseFormat: { type: 'json_object' } as ResponseFormat,
           model: this.settings.id,
           maxTokens: this.settings.maxTokens,
@@ -142,7 +149,8 @@ export class MistralChatLanguageModel implements LanguageModel {
       }
 
       case 'TOOL_CALL': {
-        const clientResponse = await this.client.chat({
+        const client = await this.getClient();
+        const clientResponse = await client.chat({
           model: this.settings.id,
           maxTokens: this.settings.maxTokens,
           toolChoice: 'any' as ToolChoice,
