@@ -1,6 +1,10 @@
 import { ChatPrompt } from './prompt/chat-prompt';
 import { InstructionPrompt } from './prompt/instruction-prompt';
 
+export interface LanguageModelSettings {
+  maxTokens?: number;
+}
+
 export interface LanguageModel {
   // TODO include usage data
   // TODO support tool calls

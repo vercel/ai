@@ -6,7 +6,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: mistral.chat({ id: 'mistral-small' }),
+    model: mistral.chat({ id: 'mistral-small-latest' }),
     prompt: 'What is the best French cheese?',
   });
 
