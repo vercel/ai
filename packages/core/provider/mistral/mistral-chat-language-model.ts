@@ -1,4 +1,4 @@
-import MistralClient, { ResponseFormats } from '@mistralai/mistralai';
+import MistralClient, { ResponseFormat } from '@mistralai/mistralai';
 import {
   ErrorStreamPart,
   LanguageModel,
@@ -6,9 +6,13 @@ import {
   LanguageModelStreamPart,
   UnsupportedFunctionalityError,
 } from '../../function';
+import { injectJsonSchemaIntoInstructionPrompt } from '../../function/language-model/inject-json-schema-into-instruction-prompt';
 import { ChatPrompt } from '../../function/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../function/language-model/prompt/instruction-prompt';
-import { convertToMistralChatPrompt } from './mistral-chat-prompt';
+import {
+  convertInstructionPromptToMistralChatPrompt,
+  convertToMistralChatPrompt,
+} from './mistral-chat-prompt';
 
 export type MistralChatModelType =
   | 'open-mistral-7b'
@@ -109,10 +113,15 @@ export class MistralChatLanguageModel implements LanguageModel {
     jsonText: string;
   }> => {
     const openaiResponse = await this.client.chat({
-      responseFormat: { type: ResponseFormats.json_object },
+      responseFormat: { type: 'json_object' } as ResponseFormat,
       model: this.settings.id,
       maxTokens: this.settings.maxTokens,
-      messages: convertToMistralChatPrompt(prompt), // TODO inject schema
+      messages: convertInstructionPromptToMistralChatPrompt(
+        injectJsonSchemaIntoInstructionPrompt({
+          prompt,
+          schema,
+        }),
+      ),
     });
 
     return {
