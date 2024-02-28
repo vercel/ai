@@ -8,16 +8,15 @@ import {
   LanguageModel,
   LanguageModelSettings,
   LanguageModelStreamPart,
-  UnsupportedFunctionalityError,
 } from '../../core';
 import { injectJsonSchemaIntoInstructionPrompt } from '../../core/language-model/inject-json-schema-into-instruction-prompt';
 import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
+import { readableFromAsyncIterable } from '../../streams/ai-stream';
 import {
   convertInstructionPromptToMistralChatPrompt,
   convertToMistralChatPrompt,
 } from './mistral-chat-prompt';
-import { readableFromAsyncIterable } from '../../streams/ai-stream';
 
 export type MistralChatModelType =
   | 'open-mistral-7b'
