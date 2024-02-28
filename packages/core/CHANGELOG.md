@@ -1,5 +1,11 @@
 # ai
 
+## 2.2.37
+
+### Patch Changes
+
+- a6b5764: Add support for Mistral's JavaScript SDK
+
 ## 2.2.36
 
 ### Patch Changes

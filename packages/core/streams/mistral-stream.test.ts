@@ -9,7 +9,7 @@ const server = createMockServer([
   {
     url: 'http://localhost:3030/v1/chat/completions',
     chunks: mistralChunks,
-    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n\n`,
+    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
     suffix: 'data: [DONE]',
   },
 ]);
