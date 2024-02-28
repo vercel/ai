@@ -1,14 +1,33 @@
+import OpenAI from 'openai';
 import {
   OpenAIChatLanguageModel,
   OpenAIChatLanguageModelSettings,
 } from '../openai/openai-chat-language-model';
+import { createOpenAIClient } from '../openai/create-openai-client';
+import { loadApiKey } from '../../core/language-model/create-api-key-loader';
 
-export function chat(settings: OpenAIChatLanguageModelSettings) {
+export function chat(
+  settings: Omit<OpenAIChatLanguageModelSettings, 'client'> & {
+    client?: OpenAI;
+    apiKey?: string;
+  },
+) {
+  const { client, apiKey, ...rest } = settings;
   return new OpenAIChatLanguageModel({
-    client: {
-      apiKey: process.env.FIREWORKS_API_KEY!, // TODO lazy load & error message
-      baseURL: 'https://api.fireworks.ai/inference/v1',
+    ...rest,
+    client: async () => {
+      if (client) {
+        return client;
+      }
+
+      return createOpenAIClient({
+        apiKey: loadApiKey({
+          apiKey,
+          environmentVariableName: 'FIREWORKS_API_KEY',
+          description: 'FireWorks',
+        }),
+        baseURL: 'https://api.fireworks.ai/inference/v1',
+      });
     },
-    ...settings,
   });
 }

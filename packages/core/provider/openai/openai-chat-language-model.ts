@@ -3,19 +3,18 @@ import OpenAI from 'openai';
 import {
   ErrorStreamPart,
   LanguageModel,
+  LanguageModelSettings,
   LanguageModelStreamPart,
 } from '../../core';
 import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
 import { tryParseJSON } from '../../core/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
-import { createOpenAIClient } from './create-openai-client';
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
 
-export interface OpenAIChatLanguageModelSettings {
+export interface OpenAIChatLanguageModelSettings extends LanguageModelSettings {
   id: string;
-  maxTokens?: number;
-  client?: OpenAI | { apiKey: string; baseURL?: string };
+  client: () => Promise<OpenAI>;
 }
 
 export class OpenAIChatLanguageModel implements LanguageModel {
@@ -25,18 +24,8 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     this.settings = settings;
   }
 
-  private async getClient() {
-    if (this.settings.client == null) {
-      return createOpenAIClient({
-        apiKey: process.env.OPENAI_API_KEY!, // TODO error if not set & lazy load
-      });
-    }
-
-    if ('apiKey' in this.settings.client) {
-      return createOpenAIClient(this.settings.client);
-    }
-
-    return this.settings.client;
+  private getClient(): Promise<OpenAI> {
+    return this.settings.client();
   }
 
   async doGenerate({ prompt }: { prompt: ChatPrompt | InstructionPrompt }) {

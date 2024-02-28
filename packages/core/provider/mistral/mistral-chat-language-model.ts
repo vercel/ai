@@ -28,7 +28,7 @@ export type MistralChatModelType =
 
 export interface MistralChatLanguageModelSettings
   extends LanguageModelSettings {
-  client?: MistralClient;
+  client: () => Promise<MistralClient>;
 
   /**
    * The ID of the model to use.
@@ -77,14 +77,8 @@ export class MistralChatLanguageModel implements LanguageModel {
     this.settings = settings;
   }
 
-  private async getClient() {
-    if (this.settings.client == null) {
-      return createMistralClient({
-        apiKey: process.env.MISTRAL_API_KEY!, // TODO error if not set & lazy load
-      });
-    }
-
-    return this.settings.client;
+  private getClient(): Promise<MistralClient> {
+    return this.settings.client();
   }
 
   async doGenerate({ prompt }: { prompt: ChatPrompt | InstructionPrompt }) {
