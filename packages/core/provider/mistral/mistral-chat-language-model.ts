@@ -261,10 +261,52 @@ export class MistralChatLanguageModel implements LanguageModel {
         );
       }
 
+      case 'TOOL_CALL': {
+        const client = await this.getClient();
+        const response = client.chatStream({
+          ...this.basePrompt,
+          toolChoice: 'any' as ToolChoice,
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'json',
+                description: 'Respond with a JSON object.',
+                parameters: schema,
+              },
+            },
+          ],
+          messages: convertInstructionPromptToMistralChatPrompt(prompt),
+        });
+
+        return readableFromAsyncIterable(response).pipeThrough(
+          new TransformStream<
+            ChatCompletionResponseChunk,
+            { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
+          >({
+            transform(chunk, controller) {
+              if (chunk.choices?.[0].delta == null) {
+                return;
+              }
+
+              const delta = chunk.choices[0].delta;
+
+              if (delta.content != null) {
+                controller.enqueue({
+                  type: 'json-text-delta',
+                  // Note: Mistral does not support tool streaming as of 2024-Feb-28
+                  // The result come in a single chunk as content.
+                  textDelta: delta.content,
+                });
+              }
+            },
+          }),
+        );
+      }
+
       default: {
-        // const _exhaustiveCheck: never = outputMode;
-        // throw new Error(`Unsupported objectMode: ${_exhaustiveCheck}`);
-        throw new Error(`Unsupported objectMode: ${outputMode}`);
+        const _exhaustiveCheck: never = outputMode;
+        throw new Error(`Unsupported objectMode: ${_exhaustiveCheck}`);
       }
     }
   }
