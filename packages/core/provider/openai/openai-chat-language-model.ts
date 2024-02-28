@@ -9,12 +9,13 @@ import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
 import { tryParseJSON } from '../../core/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
+import { createOpenAIClient } from './create-openai-client';
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
 
 export interface OpenAIChatLanguageModelSettings {
   id: string;
   maxTokens?: number;
-  client?: OpenAI;
+  client?: OpenAI | { apiKey: string; baseURL?: string };
 }
 
 export class OpenAIChatLanguageModel implements LanguageModel {
@@ -24,17 +25,23 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     this.settings = settings;
   }
 
-  get client() {
-    return (
-      this.settings.client ??
-      new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      })
-    );
+  private async getClient() {
+    if (this.settings.client == null) {
+      return createOpenAIClient({
+        apiKey: process.env.OPENAI_API_KEY!, // TODO error if not set & lazy load
+      });
+    }
+
+    if ('apiKey' in this.settings.client) {
+      return createOpenAIClient(this.settings.client);
+    }
+
+    return this.settings.client;
   }
 
   async doGenerate({ prompt }: { prompt: ChatPrompt | InstructionPrompt }) {
-    const openaiResponse = await this.client.chat.completions.create({
+    const client = await this.getClient();
+    const openaiResponse = await client.chat.completions.create({
       model: this.settings.id,
       max_tokens: this.settings.maxTokens,
       messages: convertToOpenAIChatPrompt(prompt),
@@ -56,7 +63,8 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       parameters: Record<string, unknown>;
     }>;
   }): Promise<ReadableStream<LanguageModelStreamPart>> {
-    const openaiResponse = await this.client.chat.completions.create({
+    const client = await this.getClient();
+    const openaiResponse = await client.chat.completions.create({
       stream: true,
       model: this.settings.id,
       max_tokens: this.settings.maxTokens,
@@ -153,7 +161,8 @@ export class OpenAIChatLanguageModel implements LanguageModel {
   }): Promise<{
     jsonText: string;
   }> => {
-    const openaiResponse = await this.client.chat.completions.create({
+    const client = await this.getClient();
+    const openaiResponse = await client.chat.completions.create({
       model: this.settings.id,
       max_tokens: this.settings.maxTokens,
       messages: convertToOpenAIChatPrompt(prompt),
@@ -192,7 +201,8 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
     >
   > {
-    const clientResponse = await this.client.chat.completions.create({
+    const client = await this.getClient();
+    const clientResponse = await client.chat.completions.create({
       stream: true,
       model: this.settings.id,
       max_tokens: this.settings.maxTokens,

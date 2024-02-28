@@ -1,4 +1,3 @@
-import OpenAI from 'openai';
 import {
   OpenAIChatLanguageModel,
   OpenAIChatLanguageModelSettings,
@@ -6,10 +5,10 @@ import {
 
 export function chat(settings: OpenAIChatLanguageModelSettings) {
   return new OpenAIChatLanguageModel({
-    client: new OpenAI({
-      apiKey: process.env.FIREWORKS_API_KEY,
+    client: {
+      apiKey: process.env.FIREWORKS_API_KEY!, // TODO lazy load & error message
       baseURL: 'https://api.fireworks.ai/inference/v1',
-    }),
+    },
     ...settings,
   });
 }

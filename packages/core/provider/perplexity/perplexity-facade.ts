@@ -1,4 +1,3 @@
-import OpenAI from 'openai';
 import {
   OpenAIChatLanguageModel,
   OpenAIChatLanguageModelSettings,
@@ -6,10 +5,10 @@ import {
 
 export function chat(settings: OpenAIChatLanguageModelSettings) {
   return new OpenAIChatLanguageModel({
-    client: new OpenAI({
-      apiKey: process.env.PERPLEXITY_API_KEY,
+    client: {
+      apiKey: process.env.PERPLEXITY_API_KEY!, // TODO error if not set & lazy load
       baseURL: 'https://api.perplexity.ai/',
-    }),
+    },
     ...settings,
   });
 }
