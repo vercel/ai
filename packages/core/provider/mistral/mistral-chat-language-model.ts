@@ -82,9 +82,8 @@ export class MistralChatLanguageModel implements LanguageModel {
     return this.settings.client();
   }
 
-  async doGenerate({ prompt }: { prompt: ChatPrompt | InstructionPrompt }) {
-    const client = await this.getClient();
-    const clientResponse = await client.chat({
+  private get basePrompt() {
+    return {
       model: this.settings.id,
 
       maxTokens: this.settings.maxTokens,
@@ -93,7 +92,13 @@ export class MistralChatLanguageModel implements LanguageModel {
       topP: this.settings.topP,
       randomSeed: this.settings.randomSeed,
       safePrompt: this.settings.safePrompt,
+    };
+  }
 
+  async doGenerate({ prompt }: { prompt: ChatPrompt | InstructionPrompt }) {
+    const client = await this.getClient();
+    const clientResponse = await client.chat({
+      ...this.basePrompt,
       messages: convertToMistralChatPrompt(prompt),
     });
 
@@ -116,15 +121,7 @@ export class MistralChatLanguageModel implements LanguageModel {
     const client = await this.getClient();
 
     const response = client.chatStream({
-      model: this.settings.id,
-
-      maxTokens: this.settings.maxTokens,
-
-      temperature: this.settings.temperature,
-      topP: this.settings.topP,
-      randomSeed: this.settings.randomSeed,
-      safePrompt: this.settings.safePrompt,
-
+      ...this.basePrompt,
       messages: convertToMistralChatPrompt(prompt),
     });
 
@@ -165,15 +162,7 @@ export class MistralChatLanguageModel implements LanguageModel {
       case 'JSON_OUTPUT': {
         const client = await this.getClient();
         const clientResponse = await client.chat({
-          model: this.settings.id,
-
-          maxTokens: this.settings.maxTokens,
-
-          temperature: this.settings.temperature,
-          topP: this.settings.topP,
-          randomSeed: this.settings.randomSeed,
-          safePrompt: this.settings.safePrompt,
-
+          ...this.basePrompt,
           responseFormat: { type: 'json_object' } as ResponseFormat,
           messages: convertInstructionPromptToMistralChatPrompt(
             injectJsonSchemaIntoInstructionPrompt({
@@ -191,15 +180,7 @@ export class MistralChatLanguageModel implements LanguageModel {
       case 'TOOL_CALL': {
         const client = await this.getClient();
         const clientResponse = await client.chat({
-          model: this.settings.id,
-
-          maxTokens: this.settings.maxTokens,
-
-          temperature: this.settings.temperature,
-          topP: this.settings.topP,
-          randomSeed: this.settings.randomSeed,
-          safePrompt: this.settings.safePrompt,
-
+          ...this.basePrompt,
           toolChoice: 'any' as ToolChoice,
           tools: [
             {
