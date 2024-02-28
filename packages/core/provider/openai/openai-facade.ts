@@ -4,7 +4,7 @@ import {
   OpenAIChatLanguageModelSettings,
 } from './openai-chat-language-model';
 import { createOpenAIClient } from './create-openai-client';
-import { loadApiKey } from '../../core/language-model/create-api-key-loader';
+import { loadApiKey } from '../../core/language-model/load-api-key';
 
 export function chat(
   settings: Omit<OpenAIChatLanguageModelSettings, 'client'> & {
