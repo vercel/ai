@@ -222,9 +222,50 @@ export class MistralChatLanguageModel implements LanguageModel {
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
     >
   > {
-    throw new UnsupportedFunctionalityError({
-      provider: 'mistral.chat',
-      functionality: 'doStreamJsonText',
-    });
+    const outputMode = this.settings.objectMode ?? 'JSON_OUTPUT';
+
+    switch (outputMode) {
+      case 'JSON_OUTPUT': {
+        const client = await this.getClient();
+        const response = client.chatStream({
+          ...this.basePrompt,
+          responseFormat: { type: 'json_object' } as ResponseFormat,
+          messages: convertInstructionPromptToMistralChatPrompt(
+            injectJsonSchemaIntoInstructionPrompt({
+              prompt,
+              schema,
+            }),
+          ),
+        });
+
+        return readableFromAsyncIterable(response).pipeThrough(
+          new TransformStream<
+            ChatCompletionResponseChunk,
+            { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
+          >({
+            transform(chunk, controller) {
+              if (chunk.choices?.[0].delta == null) {
+                return;
+              }
+
+              const delta = chunk.choices[0].delta;
+
+              if (delta.content != null) {
+                controller.enqueue({
+                  type: 'json-text-delta',
+                  textDelta: delta.content,
+                });
+              }
+            },
+          }),
+        );
+      }
+
+      default: {
+        // const _exhaustiveCheck: never = outputMode;
+        // throw new Error(`Unsupported objectMode: ${_exhaustiveCheck}`);
+        throw new Error(`Unsupported objectMode: ${outputMode}`);
+      }
+    }
   }
 }
