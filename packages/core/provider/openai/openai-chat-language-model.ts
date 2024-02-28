@@ -192,7 +192,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
     >
   > {
-    const openaiResponse = await this.client.chat.completions.create({
+    const clientResponse = await this.client.chat.completions.create({
       stream: true,
       model: this.settings.id,
       max_tokens: this.settings.maxTokens,
@@ -207,14 +207,14 @@ export class OpenAIChatLanguageModel implements LanguageModel {
           function: {
             // TODO enable setting name/description through json mode setting
             name: 'json',
-            description: 'Convert the previous message to JSON',
+            description: 'Respond with a JSON object.',
             parameters: schema,
           },
         },
       ],
     });
 
-    return readableFromAsyncIterable(openaiResponse).pipeThrough(
+    return readableFromAsyncIterable(clientResponse).pipeThrough(
       new TransformStream<
         OpenAI.Chat.Completions.ChatCompletionChunk,
         { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart

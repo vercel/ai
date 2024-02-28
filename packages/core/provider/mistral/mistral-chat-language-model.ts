@@ -1,4 +1,7 @@
-import MistralClient, { ResponseFormat } from '@mistralai/mistralai';
+import MistralClient, {
+  ResponseFormat,
+  ToolChoice,
+} from '@mistralai/mistralai';
 import {
   ErrorStreamPart,
   LanguageModel,
@@ -26,7 +29,12 @@ export interface MistralChatLanguageModelSettings
   extends LanguageModelSettings {
   client?: MistralClient;
 
+  /**
+   * The ID of the model to use.
+   */
   id: MistralChatModelType;
+
+  objectMode?: 'JSON_OUTPUT' | 'TOOL_CALL';
 
   /**
    * What sampling temperature to use, between 0.0 and 1.0.
@@ -75,14 +83,14 @@ export class MistralChatLanguageModel implements LanguageModel {
   }
 
   async doGenerate({ prompt }: { prompt: ChatPrompt | InstructionPrompt }) {
-    const openaiResponse = await this.client.chat({
+    const clientResponse = await this.client.chat({
       model: this.settings.id,
       maxTokens: this.settings.maxTokens,
       messages: convertToMistralChatPrompt(prompt),
     });
 
     return {
-      text: openaiResponse.choices[0].message.content!,
+      text: clientResponse.choices[0].message.content!,
     };
   }
 
@@ -112,21 +120,59 @@ export class MistralChatLanguageModel implements LanguageModel {
   }): Promise<{
     jsonText: string;
   }> => {
-    const openaiResponse = await this.client.chat({
-      responseFormat: { type: 'json_object' } as ResponseFormat,
-      model: this.settings.id,
-      maxTokens: this.settings.maxTokens,
-      messages: convertInstructionPromptToMistralChatPrompt(
-        injectJsonSchemaIntoInstructionPrompt({
-          prompt,
-          schema,
-        }),
-      ),
-    });
+    const outputMode = this.settings.objectMode ?? 'JSON_OUTPUT';
 
-    return {
-      jsonText: openaiResponse.choices[0].message.content!,
-    };
+    switch (outputMode) {
+      case 'JSON_OUTPUT': {
+        const clientResponse = await this.client.chat({
+          responseFormat: { type: 'json_object' } as ResponseFormat,
+          model: this.settings.id,
+          maxTokens: this.settings.maxTokens,
+          messages: convertInstructionPromptToMistralChatPrompt(
+            injectJsonSchemaIntoInstructionPrompt({
+              prompt,
+              schema,
+            }),
+          ),
+        });
+
+        return {
+          jsonText: clientResponse.choices[0].message.content!,
+        };
+      }
+
+      case 'TOOL_CALL': {
+        const clientResponse = await this.client.chat({
+          model: this.settings.id,
+          maxTokens: this.settings.maxTokens,
+          toolChoice: 'any' as ToolChoice,
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'json',
+                description: 'Respond with a JSON object.',
+                parameters: schema,
+              },
+            },
+          ],
+          messages: convertInstructionPromptToMistralChatPrompt(prompt),
+        });
+
+        // Note: correct types not supported by MistralClient as of 2024-Feb-28
+        const message = clientResponse.choices[0].message as any;
+        const toolCall = message.tool_calls[0];
+
+        return {
+          jsonText: toolCall.function.arguments,
+        };
+      }
+
+      default: {
+        const _exhaustiveCheck: never = outputMode;
+        throw new Error(`Unsupported objectMode: ${_exhaustiveCheck}`);
+      }
+    }
   };
 
   async doStreamJsonText({
