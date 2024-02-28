@@ -66,7 +66,7 @@ export class MistralChatLanguageModel implements LanguageModel {
 
   get client() {
     return (
-      this.settings.client || new MistralClient(process.env.Mistral_API_KEY)
+      this.settings.client ?? new MistralClient(process.env.Mistral_API_KEY)
     );
   }
 

@@ -26,7 +26,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
 
   get client() {
     return (
-      this.settings.client ||
+      this.settings.client ??
       new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       })
