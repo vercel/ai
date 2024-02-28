@@ -12,7 +12,6 @@ import {
 import { injectJsonSchemaIntoInstructionPrompt } from '../../core/language-model/inject-json-schema-into-instruction-prompt';
 import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
-import { createMistralClient } from './create-mistral-client';
 import {
   convertInstructionPromptToMistralChatPrompt,
   convertToMistralChatPrompt,
