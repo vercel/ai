@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { loadDynamically } from '../../core/util/load-dynamically';
 
 /**
  * Creates an OpenAI client (optional peer dependency) on demand.
@@ -11,20 +12,6 @@ export async function createOpenAIClient({
   apiKey: string;
   baseURL?: string;
 }): Promise<OpenAI> {
-  let OpenAI: any;
-
-  try {
-    OpenAI = (await import('openai')).default;
-  } catch (error) {
-    try {
-      OpenAI = require('openai');
-    } catch (error) {
-      throw new Error(`Failed to load 'openai' module dynamically.`);
-    }
-  }
-
-  return new OpenAI({
-    apiKey,
-    baseURL,
-  });
+  const OpenAI = await loadDynamically('openai');
+  return new OpenAI({ apiKey, baseURL });
 }
