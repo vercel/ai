@@ -45,43 +45,6 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     };
   }
 
-  doGenerateJsonText = async ({
-    schema,
-    prompt,
-  }: {
-    schema: Record<string, unknown>;
-    prompt: ChatPrompt | InstructionPrompt;
-  }): Promise<{
-    jsonText: string;
-  }> => {
-    const openaiResponse = await this.client.chat.completions.create({
-      model: this.settings.id,
-      max_tokens: this.settings.maxTokens,
-      messages: convertToOpenAIChatPrompt(prompt),
-      tool_choice: {
-        type: 'function',
-        function: { name: 'json' },
-      },
-      tools: [
-        {
-          type: 'function',
-          function: {
-            // TODO enable setting name/description through json mode setting
-            name: 'json',
-            description: 'Convert the previous message to JSON',
-            parameters: schema,
-          },
-        },
-      ],
-    });
-
-    return {
-      jsonText:
-        // TODO handle null case
-        openaiResponse.choices[0].message.tool_calls?.[0].function.arguments!,
-    };
-  };
-
   async doStream({
     prompt,
     tools,
@@ -181,12 +144,49 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     );
   }
 
+  doGenerateJsonText = async ({
+    schema,
+    prompt,
+  }: {
+    schema: Record<string, unknown>;
+    prompt: InstructionPrompt;
+  }): Promise<{
+    jsonText: string;
+  }> => {
+    const openaiResponse = await this.client.chat.completions.create({
+      model: this.settings.id,
+      max_tokens: this.settings.maxTokens,
+      messages: convertToOpenAIChatPrompt(prompt),
+      tool_choice: {
+        type: 'function',
+        function: { name: 'json' },
+      },
+      tools: [
+        {
+          type: 'function',
+          function: {
+            // TODO enable setting name/description through json mode setting
+            name: 'json',
+            description: 'Convert the previous message to JSON',
+            parameters: schema,
+          },
+        },
+      ],
+    });
+
+    return {
+      jsonText:
+        // TODO handle null case
+        openaiResponse.choices[0].message.tool_calls?.[0].function.arguments!,
+    };
+  };
+
   async doStreamJsonText({
     schema,
     prompt,
   }: {
     schema: Record<string, unknown>;
-    prompt: InstructionPrompt | ChatPrompt;
+    prompt: InstructionPrompt;
   }): Promise<
     ReadableStream<
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart

@@ -1,4 +1,4 @@
-import MistralClient from '@mistralai/mistralai';
+import MistralClient, { ResponseFormats } from '@mistralai/mistralai';
 import {
   ErrorStreamPart,
   LanguageModel,
@@ -82,21 +82,6 @@ export class MistralChatLanguageModel implements LanguageModel {
     };
   }
 
-  doGenerateJsonText = async ({
-    schema,
-    prompt,
-  }: {
-    schema: Record<string, unknown>;
-    prompt: ChatPrompt | InstructionPrompt;
-  }): Promise<{
-    jsonText: string;
-  }> => {
-    throw new UnsupportedFunctionalityError({
-      provider: 'mistral.chat',
-      functionality: 'doGenerateJsonText',
-    });
-  };
-
   async doStream({
     prompt,
     tools,
@@ -114,12 +99,33 @@ export class MistralChatLanguageModel implements LanguageModel {
     });
   }
 
+  doGenerateJsonText = async ({
+    schema,
+    prompt,
+  }: {
+    schema: Record<string, unknown>;
+    prompt: InstructionPrompt;
+  }): Promise<{
+    jsonText: string;
+  }> => {
+    const openaiResponse = await this.client.chat({
+      responseFormat: { type: ResponseFormats.json_object },
+      model: this.settings.id,
+      maxTokens: this.settings.maxTokens,
+      messages: convertToMistralChatPrompt(prompt), // TODO inject schema
+    });
+
+    return {
+      jsonText: openaiResponse.choices[0].message.content!,
+    };
+  };
+
   async doStreamJsonText({
     schema,
     prompt,
   }: {
     schema: Record<string, unknown>;
-    prompt: InstructionPrompt | ChatPrompt;
+    prompt: InstructionPrompt;
   }): Promise<
     ReadableStream<
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart

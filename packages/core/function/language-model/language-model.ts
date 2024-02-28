@@ -6,17 +6,8 @@ export interface LanguageModelSettings {
 }
 
 export interface LanguageModel {
-  // TODO include usage data
-  // TODO support tool calls
   doGenerate(options: { prompt: InstructionPrompt | ChatPrompt }): PromiseLike<{
     text: string;
-  }>;
-
-  doGenerateJsonText(options: {
-    schema: Record<string, unknown>;
-    prompt: InstructionPrompt | ChatPrompt;
-  }): PromiseLike<{
-    jsonText: string;
   }>;
 
   doStream(options: {
@@ -28,9 +19,16 @@ export interface LanguageModel {
     }>;
   }): PromiseLike<ReadableStream<LanguageModelStreamPart>>;
 
+  doGenerateJsonText(options: {
+    schema: Record<string, unknown>;
+    prompt: InstructionPrompt;
+  }): PromiseLike<{
+    jsonText: string;
+  }>;
+
   doStreamJsonText(options: {
     schema: Record<string, unknown>;
-    prompt: InstructionPrompt | ChatPrompt;
+    prompt: InstructionPrompt;
   }): PromiseLike<
     ReadableStream<
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
