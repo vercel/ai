@@ -1,4 +1,4 @@
-import { streamMessage } from 'ai/function';
+import { streamText } from 'ai/core';
 import { openai } from 'ai/provider';
 
 export const runtime = 'edge';
@@ -6,12 +6,10 @@ export const runtime = 'edge';
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const stream = await streamMessage({
-    model: openai.chat({
-      id: 'gpt-3.5-turbo',
-    }),
+  const stream = await streamText({
+    model: openai.chat({ id: 'gpt-3.5-turbo' }),
     prompt: { messages },
   });
 
-  return stream.toTextResponse();
+  return stream.toResponse();
 }

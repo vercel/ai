@@ -1,4 +1,4 @@
-import { Tool, streamMessage, zodSchema } from 'ai/function';
+import { createTool, streamText } from 'ai/core';
 import { openai } from 'ai/provider';
 import { z } from 'zod';
 
@@ -7,30 +7,27 @@ export const runtime = 'edge';
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const stream = await streamMessage({
-    model: openai.chat({
-      id: 'gpt-4',
-    }),
+  const stream = await streamText({
+    model: openai.chat({ id: 'gpt-4' }),
 
     tools: [
-      new Tool({
+      createTool({
         name: 'get_city_temperature' as const,
         description: 'Get the current weather',
 
-        parameters: zodSchema(
-          z.object({
-            city: z
-              .string()
-              .describe('The city and state, e.g. San Francisco, CA'),
-            format: z
-              .enum(['celsius', 'fahrenheit'])
-              .describe(
-                'The temperature unit to use. Infer this from the users location.',
-              ),
-          }),
-        ),
+        parameters: z.object({
+          city: z
+            .string()
+            .describe('The city and state, e.g. San Francisco, CA'),
+          format: z
+            .enum(['celsius', 'fahrenheit'])
+            .describe(
+              'The temperature unit to use. Infer this from the users location.',
+            ),
+        }),
 
         execute: async ({ city, format }) => ({
+          city,
           temperature: 20,
           unit: format === 'celsius' ? 'C' : 'F',
         }),
@@ -44,5 +41,5 @@ export async function POST(req: Request) {
     },
   });
 
-  return stream.toTextResponse();
+  return stream.toResponse();
 }
