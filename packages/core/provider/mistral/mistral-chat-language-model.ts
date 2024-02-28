@@ -1,4 +1,5 @@
 import MistralClient, {
+  ChatCompletionResponseChunk,
   ResponseFormat,
   ToolChoice,
 } from '@mistralai/mistralai';
@@ -16,6 +17,7 @@ import {
   convertInstructionPromptToMistralChatPrompt,
   convertToMistralChatPrompt,
 } from './mistral-chat-prompt';
+import { readableFromAsyncIterable } from '../../streams/ai-stream';
 
 export type MistralChatModelType =
   | 'open-mistral-7b'
@@ -57,9 +59,9 @@ export interface MistralChatLanguageModelSettings
   /**
    * The seed to use for random sampling. If set, different calls will generate deterministic results.
    *
-   * Default: null
+   * Default: undefined
    */
-  randomSeed?: number | null;
+  randomSeed?: number;
 
   /**
    * Whether to inject a safety prompt before all conversations.
@@ -84,7 +86,14 @@ export class MistralChatLanguageModel implements LanguageModel {
     const client = await this.getClient();
     const clientResponse = await client.chat({
       model: this.settings.id,
+
       maxTokens: this.settings.maxTokens,
+
+      temperature: this.settings.temperature,
+      topP: this.settings.topP,
+      randomSeed: this.settings.randomSeed,
+      safePrompt: this.settings.safePrompt,
+
       messages: convertToMistralChatPrompt(prompt),
     });
 
@@ -104,10 +113,41 @@ export class MistralChatLanguageModel implements LanguageModel {
       parameters: Record<string, unknown>;
     }>;
   }): Promise<ReadableStream<LanguageModelStreamPart>> {
-    throw new UnsupportedFunctionalityError({
-      provider: 'mistral.chat',
-      functionality: 'doStream',
+    const client = await this.getClient();
+
+    const response = client.chatStream({
+      model: this.settings.id,
+
+      maxTokens: this.settings.maxTokens,
+
+      temperature: this.settings.temperature,
+      topP: this.settings.topP,
+      randomSeed: this.settings.randomSeed,
+      safePrompt: this.settings.safePrompt,
+
+      messages: convertToMistralChatPrompt(prompt),
     });
+
+    return readableFromAsyncIterable(response).pipeThrough(
+      new TransformStream<ChatCompletionResponseChunk, LanguageModelStreamPart>(
+        {
+          transform(chunk, controller) {
+            if (chunk.choices?.[0].delta == null) {
+              return;
+            }
+
+            const delta = chunk.choices[0].delta;
+
+            if (delta.content != null) {
+              controller.enqueue({
+                type: 'text-delta',
+                textDelta: delta.content,
+              });
+            }
+          },
+        },
+      ),
+    );
   }
 
   doGenerateJsonText = async ({
@@ -125,9 +165,16 @@ export class MistralChatLanguageModel implements LanguageModel {
       case 'JSON_OUTPUT': {
         const client = await this.getClient();
         const clientResponse = await client.chat({
-          responseFormat: { type: 'json_object' } as ResponseFormat,
           model: this.settings.id,
+
           maxTokens: this.settings.maxTokens,
+
+          temperature: this.settings.temperature,
+          topP: this.settings.topP,
+          randomSeed: this.settings.randomSeed,
+          safePrompt: this.settings.safePrompt,
+
+          responseFormat: { type: 'json_object' } as ResponseFormat,
           messages: convertInstructionPromptToMistralChatPrompt(
             injectJsonSchemaIntoInstructionPrompt({
               prompt,
@@ -145,7 +192,14 @@ export class MistralChatLanguageModel implements LanguageModel {
         const client = await this.getClient();
         const clientResponse = await client.chat({
           model: this.settings.id,
+
           maxTokens: this.settings.maxTokens,
+
+          temperature: this.settings.temperature,
+          topP: this.settings.topP,
+          randomSeed: this.settings.randomSeed,
+          safePrompt: this.settings.safePrompt,
+
           toolChoice: 'any' as ToolChoice,
           tools: [
             {

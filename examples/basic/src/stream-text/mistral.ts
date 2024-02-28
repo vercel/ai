@@ -1,13 +1,13 @@
 import { streamText } from 'ai/core';
-import { perplexity } from 'ai/provider';
+import { mistral } from 'ai/provider';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 async function main() {
   const result = await streamText({
-    model: perplexity.chat({ id: 'pplx-70b-online' }),
-    prompt: 'What happened in San Francisco in this week?',
+    model: mistral.chat({ id: 'mistral-small-latest' }),
+    prompt: 'What is the best French cheese?',
   });
 
   for await (const textPart of result.textStream) {
