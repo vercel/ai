@@ -233,63 +233,113 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
     >
   > {
-    const client = await this.getClient();
-    const clientResponse = await client.chat.completions.create({
-      stream: true,
-      model: this.settings.id,
-      max_tokens: this.settings.maxTokens,
-      messages: convertToOpenAIChatPrompt(prompt),
-      tool_choice: {
-        type: 'function',
-        function: { name: 'json' },
-      },
-      tools: [
-        {
-          type: 'function',
-          function: {
-            // TODO enable setting name/description through json mode setting
-            name: 'json',
-            description: 'Respond with a JSON object.',
-            parameters: schema,
+    const outputMode = this.settings.objectMode ?? 'TOOL_CALL';
+
+    switch (outputMode) {
+      case 'JSON_OUTPUT': {
+        const client = await this.getClient();
+        const clientResponse = await client.chat.completions.create({
+          stream: true,
+          model: this.settings.id,
+          max_tokens: this.settings.maxTokens,
+
+          response_format: { type: 'json_object' },
+          messages: convertInstructionPromptToOpenAIChatPrompt(
+            injectJsonSchemaIntoInstructionPrompt({
+              prompt,
+              schema,
+            }),
+          ),
+        });
+
+        return readableFromAsyncIterable(clientResponse).pipeThrough(
+          new TransformStream<
+            OpenAI.Chat.Completions.ChatCompletionChunk,
+            { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
+          >({
+            transform(chunk, controller) {
+              if (chunk.choices?.[0].delta == null) {
+                return;
+              }
+
+              const delta = chunk.choices[0].delta;
+
+              if (delta.content != null) {
+                controller.enqueue({
+                  type: 'json-text-delta',
+                  textDelta: delta.content,
+                });
+              }
+            },
+          }),
+        );
+      }
+
+      case 'TOOL_CALL': {
+        const client = await this.getClient();
+        const clientResponse = await client.chat.completions.create({
+          stream: true,
+          model: this.settings.id,
+          max_tokens: this.settings.maxTokens,
+          messages: convertToOpenAIChatPrompt(prompt),
+          tool_choice: {
+            type: 'function',
+            function: { name: 'json' },
           },
-        },
-      ],
-    });
+          tools: [
+            {
+              type: 'function',
+              function: {
+                // TODO enable setting name/description through json mode setting
+                name: 'json',
+                description: 'Respond with a JSON object.',
+                parameters: schema,
+              },
+            },
+          ],
+        });
 
-    return readableFromAsyncIterable(clientResponse).pipeThrough(
-      new TransformStream<
-        OpenAI.Chat.Completions.ChatCompletionChunk,
-        { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
-      >({
-        transform(chunk, controller) {
-          if (chunk.choices?.[0].delta == null) {
-            return;
-          }
+        return readableFromAsyncIterable(clientResponse).pipeThrough(
+          new TransformStream<
+            OpenAI.Chat.Completions.ChatCompletionChunk,
+            { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
+          >({
+            transform(chunk, controller) {
+              if (chunk.choices?.[0].delta == null) {
+                return;
+              }
 
-          const delta = chunk.choices[0].delta;
+              const delta = chunk.choices[0].delta;
 
-          if (delta.tool_calls == null) {
-            return;
-          }
+              if (delta.tool_calls == null) {
+                return;
+              }
 
-          for (const toolCallDelta of delta.tool_calls) {
-            const index = toolCallDelta.index;
+              for (const toolCallDelta of delta.tool_calls) {
+                const index = toolCallDelta.index;
 
-            if (index !== 0) {
-              continue;
-            }
+                if (index !== 0) {
+                  continue;
+                }
 
-            const argumentsDelta = toolCallDelta.function?.arguments;
+                const argumentsDelta = toolCallDelta.function?.arguments;
 
-            if (argumentsDelta != null) {
-              controller.enqueue({
-                type: 'json-text-delta',
-                textDelta: argumentsDelta,
-              });
-            }
-          }
-        },
-      }),
-    );
+                if (argumentsDelta != null) {
+                  controller.enqueue({
+                    type: 'json-text-delta',
+                    textDelta: argumentsDelta,
+                  });
+                }
+              }
+            },
+          }),
+        );
+      }
+
+      default: {
+        const _exhaustiveCheck: never = outputMode;
+        throw new Error(`Unsupported objectMode: ${_exhaustiveCheck}`);
+      }
+    }
   }
 }
