@@ -42,11 +42,11 @@
       "module": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
-    "./function": {
-      "types": "./function/dist/index.d.ts",
-      "import": "./function/dist/index.mjs",
-      "module": "./function/dist/index.mjs",
-      "require": "./function/dist/index.js"
+    "./core": {
+      "types": "./core/dist/index.d.ts",
+      "import": "./core/dist/index.mjs",
+      "module": "./core/dist/index.mjs",
+      "require": "./core/dist/index.js"
     },
     "./provider": {
       "types": "./provider/dist/index.d.ts",

@@ -6,7 +6,7 @@ import {
   TextPart,
   convertDataContentToBase64String,
   isInstructionPrompt,
-} from '../../function';
+} from '../../core';
 
 export function convertToOpenAIChatPrompt(
   prompt: InstructionPrompt | ChatPrompt,

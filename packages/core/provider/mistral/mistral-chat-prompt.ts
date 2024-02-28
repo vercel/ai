@@ -6,7 +6,7 @@ import {
   TextPart,
   UnsupportedFunctionalityError,
   isInstructionPrompt,
-} from '../../function';
+} from '../../core';
 
 type MistralChatMessage = {
   role: string;

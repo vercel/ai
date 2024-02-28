@@ -1,4 +1,4 @@
-import { generateText } from 'ai/function';
+import { generateText } from 'ai/core';
 import { openai } from 'ai/provider';
 import dotenv from 'dotenv';
 

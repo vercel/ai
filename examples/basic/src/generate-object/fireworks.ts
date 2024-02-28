@@ -1,4 +1,4 @@
-import { generateObject } from 'ai/function';
+import { generateObject } from 'ai/core';
 import { fireworks } from 'ai/provider';
 import dotenv from 'dotenv';
 import { z } from 'zod';

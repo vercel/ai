@@ -4,10 +4,10 @@ import {
   ErrorStreamPart,
   LanguageModel,
   LanguageModelStreamPart,
-} from '../../function';
-import { ChatPrompt } from '../../function/language-model/prompt/chat-prompt';
-import { InstructionPrompt } from '../../function/language-model/prompt/instruction-prompt';
-import { tryParseJSON } from '../../function/util/try-json-parse';
+} from '../../core';
+import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
+import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
+import { tryParseJSON } from '../../core/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
 import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
 

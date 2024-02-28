@@ -1,4 +1,4 @@
-import { streamText } from 'ai/function';
+import { streamText } from 'ai/core';
 import { perplexity } from 'ai/provider';
 import dotenv from 'dotenv';
 

@@ -5,10 +5,10 @@ import {
   LanguageModelSettings,
   LanguageModelStreamPart,
   UnsupportedFunctionalityError,
-} from '../../function';
-import { injectJsonSchemaIntoInstructionPrompt } from '../../function/language-model/inject-json-schema-into-instruction-prompt';
-import { ChatPrompt } from '../../function/language-model/prompt/chat-prompt';
-import { InstructionPrompt } from '../../function/language-model/prompt/instruction-prompt';
+} from '../../core';
+import { injectJsonSchemaIntoInstructionPrompt } from '../../core/language-model/inject-json-schema-into-instruction-prompt';
+import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
+import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
 import {
   convertInstructionPromptToMistralChatPrompt,
   convertToMistralChatPrompt,

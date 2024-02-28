@@ -1,4 +1,4 @@
-import { streamObject } from 'ai/function';
+import { streamObject } from 'ai/core';
 import { fireworks } from 'ai/provider';
 import dotenv from 'dotenv';
 import { z } from 'zod';

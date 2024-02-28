@@ -10,10 +10,10 @@ export default defineConfig([
     sourcemap: true,
   },
   {
-    entry: ['function/index.ts'],
+    entry: ['core/index.ts'],
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue', 'solid-js'],
-    outDir: 'function/dist',
+    outDir: 'core/dist',
     dts: true,
     sourcemap: true,
   },

@@ -1,9 +1,4 @@
-import {
-  ChatPrompt,
-  ToolCallPart,
-  ToolResultPart,
-  streamText,
-} from 'ai/function';
+import { ChatPrompt, ToolCallPart, ToolResultPart, streamText } from 'ai/core';
 import { openai } from 'ai/provider';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';

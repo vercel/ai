@@ -1,4 +1,4 @@
-import { streamText } from 'ai/function';
+import { streamText } from 'ai/core';
 import { openai } from 'ai/provider';
 import dotenv from 'dotenv';
 import { weatherTool } from '../tools/weather-tool';

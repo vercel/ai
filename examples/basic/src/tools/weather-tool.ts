@@ -1,4 +1,4 @@
-import { createTool } from 'ai/function';
+import { createTool } from 'ai/core';
 import { z } from 'zod';
 
 export const weatherTool = createTool({

@@ -1,4 +1,4 @@
-import { generateObject } from 'ai/function';
+import { generateObject } from 'ai/core';
 import { mistral } from 'ai/provider';
 import dotenv from 'dotenv';
 import { z } from 'zod';
