@@ -10,11 +10,21 @@ import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
 import { tryParseJSON } from '../../core/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
-import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
+import {
+  convertInstructionPromptToOpenAIChatPrompt,
+  convertToOpenAIChatPrompt,
+} from './openai-chat-prompt';
+import { injectJsonSchemaIntoInstructionPrompt } from '../../core/language-model/inject-json-schema-into-instruction-prompt';
 
 export interface OpenAIChatLanguageModelSettings extends LanguageModelSettings {
-  id: string;
   client: () => Promise<OpenAI>;
+
+  /**
+   * The ID of the model to use.
+   */
+  id: string;
+
+  objectMode?: 'JSON_OUTPUT' | 'TOOL_CALL';
 }
 
 export class OpenAIChatLanguageModel implements LanguageModel {
@@ -150,33 +160,66 @@ export class OpenAIChatLanguageModel implements LanguageModel {
   }): Promise<{
     jsonText: string;
   }> => {
-    const client = await this.getClient();
-    const openaiResponse = await client.chat.completions.create({
-      model: this.settings.id,
-      max_tokens: this.settings.maxTokens,
-      messages: convertToOpenAIChatPrompt(prompt),
-      tool_choice: {
-        type: 'function',
-        function: { name: 'json' },
-      },
-      tools: [
-        {
-          type: 'function',
-          function: {
-            // TODO enable setting name/description through json mode setting
-            name: 'json',
-            description: 'Convert the previous message to JSON',
-            parameters: schema,
-          },
-        },
-      ],
-    });
+    const outputMode = this.settings.objectMode ?? 'TOOL_CALL';
 
-    return {
-      jsonText:
-        // TODO handle null case
-        openaiResponse.choices[0].message.tool_calls?.[0].function.arguments!,
-    };
+    switch (outputMode) {
+      case 'JSON_OUTPUT': {
+        const client = await this.getClient();
+        const openaiResponse = await client.chat.completions.create({
+          model: this.settings.id,
+          max_tokens: this.settings.maxTokens,
+
+          response_format: { type: 'json_object' },
+          messages: convertInstructionPromptToOpenAIChatPrompt(
+            injectJsonSchemaIntoInstructionPrompt({
+              prompt,
+              schema,
+            }),
+          ),
+        });
+
+        return {
+          // TODO handle null case
+          jsonText: openaiResponse.choices[0].message.content!,
+        };
+      }
+
+      case 'TOOL_CALL': {
+        const client = await this.getClient();
+        const openaiResponse = await client.chat.completions.create({
+          model: this.settings.id,
+          max_tokens: this.settings.maxTokens,
+          messages: convertToOpenAIChatPrompt(prompt),
+          tool_choice: {
+            type: 'function',
+            function: { name: 'json' },
+          },
+          tools: [
+            {
+              type: 'function',
+              function: {
+                // TODO enable setting name/description through json mode setting
+                name: 'json',
+                description: 'Convert the previous message to JSON',
+                parameters: schema,
+              },
+            },
+          ],
+        });
+
+        return {
+          jsonText:
+            // TODO handle null case
+            openaiResponse.choices[0].message.tool_calls?.[0].function
+              .arguments!,
+        };
+      }
+
+      default: {
+        const _exhaustiveCheck: never = outputMode;
+        throw new Error(`Unsupported objectMode: ${_exhaustiveCheck}`);
+      }
+    }
   };
 
   async doStreamJsonText({

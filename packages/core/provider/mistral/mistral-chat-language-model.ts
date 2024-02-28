@@ -172,6 +172,7 @@ export class MistralChatLanguageModel implements LanguageModel {
         });
 
         return {
+          // TODO handle null case
           jsonText: clientResponse.choices[0].message.content!,
         };
       }
