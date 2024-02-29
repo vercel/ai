@@ -1,12 +1,5 @@
 import { ToolCalls, ToolType } from '@mistralai/mistralai';
-import {
-  ChatPrompt,
-  ImagePart,
-  InstructionPrompt,
-  TextPart,
-  UnsupportedFunctionalityError,
-  isInstructionPrompt,
-} from '../../core';
+import { ChatPrompt, UnsupportedFunctionalityError } from '../../core';
 
 type MistralChatMessage = {
   role: string;
@@ -16,40 +9,35 @@ type MistralChatMessage = {
 };
 
 export function convertToMistralChatPrompt(
-  prompt: InstructionPrompt | ChatPrompt,
-): Array<MistralChatMessage> {
-  return isInstructionPrompt(prompt)
-    ? convertInstructionPromptToMistralChatPrompt(prompt)
-    : convertChatPromptToMistralChatPrompt(prompt);
-}
-
-export function convertInstructionPromptToMistralChatPrompt(
-  prompt: InstructionPrompt,
-): Array<MistralChatMessage> {
-  if (typeof prompt === 'string') {
-    return [user(prompt)];
-  }
-
-  if (prompt.system == null) {
-    return [user(prompt.instruction)];
-  }
-
-  return [system(prompt.system), user(prompt.instruction)];
-}
-
-export function convertChatPromptToMistralChatPrompt(
   prompt: ChatPrompt,
 ): Array<MistralChatMessage> {
   const messages: Array<MistralChatMessage> = [];
 
   if (prompt.system != null) {
-    messages.push(system(prompt.system));
+    messages.push({ role: 'system', content: prompt.system });
   }
 
   for (const { role, content } of prompt.messages) {
     switch (role) {
       case 'user': {
-        messages.push(user(content));
+        if (typeof content === 'string') {
+          messages.push({ role: 'user', content });
+        } else {
+          const textParts = content.map(part => {
+            switch (part.type) {
+              case 'text': {
+                return { type: 'text', text: part.text };
+              }
+              case 'image': {
+                throw new UnsupportedFunctionalityError({
+                  provider: 'mistral.chat',
+                  functionality: 'image-part',
+                });
+              }
+            }
+          });
+          messages.push({ role: 'user', content: textParts.join('') });
+        }
         break;
       }
       case 'assistant': {
@@ -121,35 +109,4 @@ export function convertChatPromptToMistralChatPrompt(
   }
 
   return messages;
-}
-
-/**
- * Creates a system chat message.
- */
-function system(content: string): MistralChatMessage {
-  return { role: 'system', content };
-}
-
-function user(
-  content: string | Array<TextPart | ImagePart>,
-): MistralChatMessage {
-  if (typeof content === 'string') {
-    return { role: 'user', content };
-  }
-
-  const textParts = content.map(part => {
-    switch (part.type) {
-      case 'text': {
-        return { type: 'text', text: part.text };
-      }
-      case 'image': {
-        throw new UnsupportedFunctionalityError({
-          provider: 'mistral.chat',
-          functionality: 'image-part',
-        });
-      }
-    }
-  });
-
-  return { role: 'user', content: textParts.join('') };
 }

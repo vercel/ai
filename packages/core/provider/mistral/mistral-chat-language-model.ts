@@ -10,10 +10,7 @@ import {
   ObjectMode,
 } from '../../core';
 import { readableFromAsyncIterable } from '../../streams/ai-stream';
-import {
-  convertChatPromptToMistralChatPrompt,
-  convertToMistralChatPrompt,
-} from './mistral-chat-prompt';
+import { convertToMistralChatPrompt } from './mistral-chat-prompt';
 
 export type MistralChatModelType =
   | 'open-mistral-7b'
@@ -102,13 +99,14 @@ export class MistralChatLanguageModel implements LanguageModel {
     MistralClient['chat']
   >[0] {
     const type = mode.type;
-    const messages = convertChatPromptToMistralChatPrompt(prompt);
+    const messages = convertToMistralChatPrompt(prompt);
 
     switch (type) {
       case 'regular': {
         return {
           ...this.basePrompt,
           messages,
+          // TODO tools
         };
       }
 
@@ -175,7 +173,7 @@ export class MistralChatLanguageModel implements LanguageModel {
     ReadableStream<LanguageModelStreamPart>
   > {
     const type = mode.type;
-    const messages = convertChatPromptToMistralChatPrompt(prompt);
+    const messages = convertToMistralChatPrompt(prompt);
     const client = await this.getClient();
 
     switch (type) {

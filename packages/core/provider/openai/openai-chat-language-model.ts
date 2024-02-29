@@ -62,6 +62,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
         return {
           ...this.basePrompt,
           messages,
+          // TODO tools
         };
       }
 
