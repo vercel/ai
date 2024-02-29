@@ -1,0 +1,74 @@
+---
+title: useActions
+layout:
+  toc: false
+---
+
+import { Tabs, Tab } from 'nextra-theme-docs'
+
+# useActions
+
+## `useActions`
+
+`useActions` is a hook that allows you to call server actions from the client. This is particularly useful for building interfaces that require calling a function after an interaction.
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+    ```tsx filename="app/action.tsx"
+    async function viewStock(symbol: string) {
+      "use server"
+
+      const price = getStockPrice(symbol);
+      const uiStream = createUIStream();
+
+      uiStream.close(
+        <div>
+          {symbol}: {price}
+        </div>
+      );
+
+      return {
+        id: Date.now(),
+        display: uiStream.value,
+      };
+    }
+    ```
+
+    ```tsx filename="app/page.tsx" {5, 21}
+    import { useUIState, useActions } from 'ai/rsc';
+
+    export default function Page() {
+      const [messages, setMessages] = useUIState();
+      const { viewStock } = useActions();
+
+      return (
+        <div>
+          <div>
+            {
+              messages.map((message) => (
+                <div key={message.id}>
+                  {message.display}
+                </div>
+              ))
+            }
+          </div>
+
+          <button
+            onClick={async () => {
+              const newMessage = await viewStock("NVDA");
+
+              setMessages((currentMessages: any) => [
+                ...currentMessages,
+                newMessage,
+              ]);
+            }}
+          >
+            Purchase
+          </button>
+        </div>
+      )
+    }
+    ```
+
+  </Tab>
+</Tabs>

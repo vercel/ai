@@ -1,0 +1,300 @@
+---
+title: Interactive User Interfaces
+---
+
+import { Callout, Tabs, Tab, Steps } from 'nextra-theme-docs'
+import { UIPreviewCard, Card } from '@/components/home/card'
+import { Browser } from '@/components/home/browser'
+import { EventPlanning } from '@/components/home/event-planning'
+import { Searching } from '@/components/home/searching'
+
+# Interactive User Interfaces
+
+An interesting consequence of models like GPT-3.5+ being able to call functions is that it can be used to render interactive interfaces for specific user intents within a conversation.
+
+Rendering interfaces within a conversation opens up novel ways for humans to interact with language models beyond text. They also offer a better way for developeres to precisely identify and debug exact locations of incorrect reasoning performed by the model.
+
+With the help of React Server Components and Server Actions, the AI SDK natively supports rendering interfaces with the addition of `ai/rsc`. You can bring your own model with `ai/rsc` even if the model doesn't support function calling/tools by emulating structured outputs like JSON or directly streaming their outputs.
+
+## Examples
+
+<div className="grid lg:grid-cols-2 grid-cols-1 gap-4 mt-8">
+  <UIPreviewCard
+    title="Search"
+    description="Let your users see more than words can say by rendering components directly within your search experience."
+  >
+    <Searching />
+  </UIPreviewCard>
+  <UIPreviewCard
+    title="Task Planning"
+    description="Make it easier for your users to interpret agent execution so they can stay in the loop with the magic behind the scenes."
+  >
+    <EventPlanning />
+  </UIPreviewCard>
+</div>
+
+## AI and UI States
+
+The AI SDK introduces two new concepts: `AIState` and `UIState`. These states introduce a clear separation of concerns between the server-side AI operations and client-side UI interactions within the application. This separation allows developers to securely maintain the AI state, which typically includes system prompts and proprietary configurations, ensuring privacy and security. Meanwhile, the UI state is designed to allow React Server Components to be efficiently streamed to the client.
+
+### AIState
+
+`AIState` is a JSON representation of all the context the LLM needs to read. Usually for a chat app, `AIState` contains the textual conversation history between the user and the assistant. In practice, it can also be used to store other values and meta information such as `createdAt` of each message. `AIState` by default, can be accessed/modified on both Server and Client.
+
+### UIState
+
+`UIState` is what the application uses to display the UI. It is a fully client-side state (very similar to `useState`) and can keep data and UI elements returned by the LLM. This state can be anything, but can't be accessed on the server.
+
+## Setup
+
+<Steps>
+
+### Build your app
+
+#### Prerequisites
+
+Before you start, make sure you have the following:
+
+- Node.js 18+ installed on your local development machine.
+- An OpenAI API key.
+
+If you haven't obtained your OpenAI API key, you can do so by [signing up](https://platform.openai.com/signup/) on the OpenAI website.
+
+#### Install Next.js
+
+<Tabs items={['Next.js (App Router)']}>
+    <Tab>
+    We'll start by creating a new Next.js application. This command will create a new directory named `my-ai-app` and set up a basic Next.js application inside it.
+
+    ```sh
+    pnpm dlx create-next-app@canary my-ai-app
+    ```
+    </Tab>
+
+</Tabs>
+
+Navigate to the newly created directory:
+
+```sh
+cd my-ai-app
+```
+
+#### Install Dependencies
+
+Next, we'll install `ai` and `openai`, OpenAI's official JavaScript SDK compatible with the Vercel Edge Runtime.
+
+```sh
+pnpm install ai openai
+```
+
+#### Configure OpenAI API Key
+
+Create a `.env.local` file in your project root and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
+
+```sh
+touch .env.local
+```
+
+Edit the `.env.local` file:
+
+```env filename=".env.local"
+OPENAI_API_KEY=xxxxxxxxx
+```
+
+Replace `xxxxxxxxx` with your actual OpenAI API key.
+
+### Create an `ai/rsc` instance on the server
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+    ```tsx filename="app/action.tsx"
+    import { OpenAI } from "openai";
+    import { runOpenAICompletion } from "ai";
+    import { createAI, createStreamableUI, getMutableAIState } from "ai/rsc";
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    async function submitUserMessage(content: string) {
+      "use server";
+
+      const aiState = getMutableAIState();
+
+      // Update AI state with new message
+      aiState.update([
+        ...aiState.get(),
+        {
+          role: "user",
+          content,
+        },
+      ]);
+
+      const uiStream = createStreamableUI(<div>Loading...</div>);
+
+      const completion = runOpenAICompletion(openai, {
+        model: "gpt-3.5-turbo",
+        stream: true,
+        messages: [
+          {
+            role: "system",
+            content: `You are a friendly weather assistant!`,
+          },
+          ...aiState.get().map((message: any) => ({
+            role: message.role,
+            content: message.content,
+          })),
+        ],
+        functions: [
+          {
+            name: 'get_current_weather',
+            description: 'Get the current weather in a given location',
+            parameters: zodSchema(
+              z.object({
+                location: z
+                  .string()
+                  .describe('The city and state, e.g. San Francisco, CA'),
+                unit: z
+                  .string()
+                  .describe('The unit of the temperature, e.g. C or F'),
+              })
+            ),
+          },
+        ] as const,
+      });
+
+      completion.onTextContent((content: string, isFinal: boolean) => {
+        uiStream.update(<div>{content}</div>);
+
+        if (isFinal) {
+          uiStream.done();
+          aiState.done([...aiState.get(), { role: "assistant", content }]);
+        }
+      });
+
+      completion.onFunctionCall("get_current_weather", async ({ location, unit }) => {
+        const { temperature, description } = await getWeather(location, unit);
+
+        uiStream.done(
+          <Weather
+            temperature={temperature}
+            unit={unit}
+            description={description}
+          />
+        );
+
+        aiState.done([
+          ...aiState.get(),
+          {
+            role: "system",
+            content: `The weather is ${temperature}${unit}, ${description}.`,
+          },
+        ]);
+      });
+
+      return {
+        id: Date.now(),
+        display: uiStream.value,
+      };
+    }
+
+    export const AI = createAI({
+      actions: {
+        submitUserMessage
+      },
+      initialUIState: [],
+      initialAIState: []
+    });
+    ```
+
+  </Tab>
+</Tabs>
+
+### Connect to the `ai/rsc` instance from the client
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+    ```tsx filename="app/layout.tsx"
+    import { AI } from 'ai/rsc';
+
+    export default function RootLayout({
+      children,
+    }: Readonly<{
+      children: React.ReactNode;
+    }>) {
+      return (
+        <html lang="en">
+          <body>
+            <AI>
+              {children}
+            </AI>
+          </body>
+        </html>
+      )
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+### Send and receive messages
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+    ```tsx filename="app/page.tsx"
+    "use client"
+    
+    import { useState } from 'react';
+    import { AI, useUIState, useActions } from "ai/rsc";
+
+    export default function Page() {
+      const [inputValue, setInputValue] = useState("");
+      const [messages, setMessages] = useUIState();
+      const { submitUserMessage } = useActions();
+
+      return (
+        <div>
+          {
+            // View messages in UI state
+            messages.map((message) => (
+              <div key={message.id}>
+                {message.display}
+              </div>
+            ))
+          }
+
+          <form onSubmit={async () => {
+            // Add user message to UI state
+            setMessages((currentMessages) => [
+              ...currentMessages,
+              {
+                id: Date.now(),
+                display: <UserMessage>{value}</UserMessage>,
+              },
+            ]);
+
+            // Submit and get response message
+            const responseMessage = await submitUserMessage(inputValue);
+            setMessages((currentMessages) => [
+              ...currentMessages,
+              responseMessage,
+            ]);
+          }}>
+
+          <input
+            placeholder="Send a message..."
+            value={inputValue}
+            onChange={(event) => {
+              setInputValue(event.target.value)
+            }}
+          />
+        </form>
+        </div>
+      )
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+</Steps>

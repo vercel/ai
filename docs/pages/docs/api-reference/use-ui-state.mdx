@@ -1,0 +1,58 @@
+---
+title: useUIState
+layout:
+  toc: false
+---
+
+import { Tabs, Tab } from 'nextra-theme-docs'
+
+# useUIState
+
+## `useUIState`
+
+`useUIState` is a hook that enables you to read and update the [UI state](../concepts/ai-rsc#uistate) of your `ai/rsc` instance.
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+    `useUIState` behaves like `useState`, exposing the UI state (`messages`) and the update function (`setMessages`) into your application.
+
+    ```tsx filename="app/page.tsx" {4, 9-13, 17-23}
+    import { useUIState } from "ai/rsc";
+
+    export default function Page() {
+      const [messages, setMessages] = useUIState();
+      const [inputValue, setInputValue] = useState("");
+
+      return (
+        <div>
+          {messages.map((message) => (
+            <div key={message.id}>
+              {message.display}
+            </div>
+          ))}
+
+          <form
+            onSubmit={async (event: any) => {
+              setMessages((currentMessages) => [
+                ...currentMessages,
+                {
+                  id: Date.now(),
+                  display: <UserMessage>{value}</UserMessage>,
+                },
+              ]);
+            }}
+          >
+            <input
+              placeholder="Type a message..."
+              autoFocus
+              value={inputValue}
+              onChange={(event) => setInputValue(event.target.value)}
+            />
+          </form>
+        </div>
+      );
+    }
+    ```
+
+  </Tab>
+</Tabs>

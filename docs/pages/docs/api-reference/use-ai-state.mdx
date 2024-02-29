@@ -1,0 +1,71 @@
+---
+title: useAIState
+layout:
+  toc: false
+---
+
+import { Tabs, Tab } from 'nextra-theme-docs'
+
+# useAIState
+
+## `useAIState`
+
+`useAIState` is a hook that enables you to read and update the [AI state](../concepts/ai-rsc#aistate) of your `ai/rsc` instance.
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+    `useAIState` behaves like `useState`, exposing the AI state (`history`) and the update function (`setHistory`) into your application.
+
+    ```tsx filename="app/page.tsx" {5, 25, 27}
+    import { useUIState } from "ai/rsc";
+
+    export default function Page() {
+      const [messages, setMessages] = useUIState();
+      const [history, setHistory] = useAIState();
+      const [value, setValue] = useState(50);
+
+      // Whenever the slider changes, we need to update the local value state
+      // and the history so the LLM also knows what's going on.
+      function onSliderChange(event) {
+        const newValue = Number(event.target.value);
+        setValue(newValue);
+
+        // Insert a hidden history info to the list.
+        const info = {
+          id,
+          role: "system" as const,
+          content: `[User has changed value to ${newValue}]`,
+        };
+
+        // If last history state is already this info, update it.
+        // If it doesn't exist, append it to history.
+        // This is to avoid adding every slider change to the history.
+        if (history[history.length - 1]?.id === id) {
+          setHistory([...history.slice(0, -1), info]);
+        } else {
+          setHistory([...history, info]);
+        }
+      }
+
+      return (
+        <div>
+          {messages.map((message) => (
+            <div key={message.id}>
+              {message.display}
+            </div>
+          ))}
+
+          <input
+            type="range"
+            value={value}
+            onChange={onSliderChange}
+            min="10"
+            max="100"
+          />
+        </div>
+      );
+    }
+    ```
+
+  </Tab>
+</Tabs>

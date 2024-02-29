@@ -2,9 +2,18 @@
 title: Next.js App Router
 ---
 
+import { Callout } from 'nextra-theme-docs'
+
 # Next.js App Router
 
 The Vercel AI SDK has been built with [Next.js App Router](https://nextjs.org/docs/app) support in mind.
+
+<Callout>
+  It is recommended that you use the new `ai/rsc` library, which is designed to
+  work seamlessly with the Next.js App Router and provides a more streamlined
+  experience. See how to use it
+  [here](https://sdk.vercel.ai/docs/concepts/ai-rsc).
+</Callout>
 
 ## Route Handlers
 
@@ -14,33 +23,33 @@ for your API requests is the recommended way to use the Vercel AI SDK with Next.
 Below is a minimal route handler for using the OpenAI Chat API with the `openai` API client and the Vercel AI SDK. Consult our [guides](/docs/guides) for examples of using other providers.
 
 ```typescript filename="app/api/chat/route.ts" showLineNumbers
-import OpenAI from 'openai';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import OpenAI from 'openai'
+import { OpenAIStream, StreamingTextResponse } from 'ai'
 
 // Optional, but recommended: run on the edge runtime.
 // See https://vercel.com/docs/concepts/functions/edge-functions
-export const runtime = 'edge';
+export const runtime = 'edge'
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+  apiKey: process.env.OPENAI_API_KEY!
+})
 
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
-  const { messages } = await req.json();
+  const { messages } = await req.json()
 
   // Request the OpenAI API for the response based on the prompt
   const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo',
     stream: true,
-    messages: messages,
-  });
+    messages: messages
+  })
 
   // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response);
+  const stream = OpenAIStream(response)
 
   // Respond with the stream
-  return new StreamingTextResponse(stream);
+  return new StreamingTextResponse(stream)
 }
 ```
 
@@ -51,23 +60,23 @@ Note that using the Edge Runtime is optional but highly recommended due to [long
 The Route Handler code can be adapted to work with [Server Components](https://nextjs.org/docs/getting-started/react-essentials#server-components), but additional work needs to be done to render the stream as it comes in. The provided example is a proof-of-concept.
 
 ```typescript filename="app/page.tsx" showLineNumbers
-import OpenAI from 'openai';
-import { OpenAIStream } from 'ai';
-import { Suspense } from 'react';
+import OpenAI from 'openai'
+import { OpenAIStream } from 'ai'
+import { Suspense } from 'react'
 
 // Optional, but recommended: run on the edge runtime.
 // See https://vercel.com/docs/concepts/functions/edge-functions
-export const runtime = 'edge';
+export const runtime = 'edge'
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+  apiKey: process.env.OPENAI_API_KEY!
+})
 
 export default async function Page({
-  searchParams,
+  searchParams
 }: {
   // note that using searchParams opts your page into dynamic rendering. See https://nextjs.org/docs/app/api-reference/file-conventions/page#searchparams-optional
-  searchParams: Record<string, string>;
+  searchParams: Record<string, string>
 }) {
   // Request the OpenAI API for the response based on the prompt
   const response = await openai.chat.completions.create({
@@ -77,36 +86,36 @@ export default async function Page({
       {
         role: 'user',
         content:
-          searchParams['prompt'] ?? 'Give me code for generating a JSX button',
-      },
-    ],
-  });
+          searchParams['prompt'] ?? 'Give me code for generating a JSX button'
+      }
+    ]
+  })
 
   // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response);
+  const stream = OpenAIStream(response)
 
-  const reader = stream.getReader();
+  const reader = stream.getReader()
 
   // We recursively render the stream as it comes in
   return (
     <Suspense>
       <Reader reader={reader} />
     </Suspense>
-  );
+  )
 }
 
 async function Reader({
-  reader,
+  reader
 }: {
-  reader: ReadableStreamDefaultReader<any>;
+  reader: ReadableStreamDefaultReader<any>
 }) {
-  const { done, value } = await reader.read();
+  const { done, value } = await reader.read()
 
   if (done) {
-    return null;
+    return null
   }
 
-  const text = new TextDecoder().decode(value);
+  const text = new TextDecoder().decode(value)
 
   return (
     <span>
@@ -115,7 +124,7 @@ async function Reader({
         <Reader reader={reader} />
       </Suspense>
     </span>
-  );
+  )
 }
 ```
 
@@ -125,22 +134,22 @@ You can use the SDK's [`useChat`](/docs/api-reference/use-chat) and [`useComplet
 However, you cannot set a routes runtime from them, so if you want to opt-in to the Edge runtime you should create a wrapper React Server Component like so:
 
 ```typescript filename="app/page.tsx" showLineNumbers
-import Chat from './chat';
+import Chat from './chat'
 
-export const runtime = 'edge';
+export const runtime = 'edge'
 
 export default function Page() {
-  return <Chat />;
+  return <Chat />
 }
 ```
 
 ```typescript filename="app/chat.tsx" showLineNumbers
-'use client';
+'use client'
 
-import { useChat } from 'ai/react';
+import { useChat } from 'ai/react'
 
 export default function MyComponent() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const { messages, input, handleInputChange, handleSubmit } = useChat()
 
   return (
     <div>
@@ -161,7 +170,7 @@ export default function MyComponent() {
         <button type="submit">Send</button>
       </form>
     </div>
-  );
+  )
 }
 ```
 
