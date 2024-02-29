@@ -215,9 +215,7 @@ export class MistralChatLanguageModel implements LanguageModel {
     mode,
     prompt,
   }: Parameters<LanguageModel['doStreamJsonText']>[0]): Promise<
-    ReadableStream<
-      { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
-    >
+    ReadableStream<LanguageModelStreamPart>
   > {
     const type = mode.type;
     const messages = convertChatPromptToMistralChatPrompt(prompt);
@@ -234,7 +232,7 @@ export class MistralChatLanguageModel implements LanguageModel {
         return readableFromAsyncIterable(response).pipeThrough(
           new TransformStream<
             ChatCompletionResponseChunk,
-            { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
+            LanguageModelStreamPart
           >({
             transform(chunk, controller) {
               if (chunk.choices?.[0].delta == null) {
@@ -245,7 +243,7 @@ export class MistralChatLanguageModel implements LanguageModel {
 
               if (delta.content != null) {
                 controller.enqueue({
-                  type: 'json-text-delta',
+                  type: 'text-delta',
                   textDelta: delta.content,
                 });
               }
@@ -274,7 +272,7 @@ export class MistralChatLanguageModel implements LanguageModel {
         return readableFromAsyncIterable(response).pipeThrough(
           new TransformStream<
             ChatCompletionResponseChunk,
-            { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
+            LanguageModelStreamPart
           >({
             transform(chunk, controller) {
               if (chunk.choices?.[0].delta == null) {
@@ -285,10 +283,12 @@ export class MistralChatLanguageModel implements LanguageModel {
 
               if (delta.content != null) {
                 controller.enqueue({
-                  type: 'json-text-delta',
+                  type: 'tool-call-delta',
                   // Note: Mistral does not support tool streaming as of 2024-Feb-28
                   // The result come in a single chunk as content.
-                  textDelta: delta.content,
+                  toolCallId: delta.tool_calls?.[0]?.id ?? '', // TODO empty?
+                  toolName: delta.tool_calls?.[0]?.function.name ?? '', // TODO empty?
+                  argsTextDelta: delta.content,
                 });
               }
             },

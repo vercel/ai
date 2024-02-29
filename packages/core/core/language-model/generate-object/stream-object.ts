@@ -3,7 +3,11 @@ import { z } from 'zod';
 import { ZodSchema } from '../../schema/zod-schema';
 import { isDeepEqualData } from '../../util/is-deep-equal-data';
 import { parsePartialJson } from '../../util/parse-partial-json';
-import { ErrorStreamPart, LanguageModel } from '../language-model';
+import {
+  ErrorStreamPart,
+  LanguageModel,
+  LanguageModelStreamPart,
+} from '../language-model';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
 import { convertInstructionPromptToChatPrompt } from '../prompt/convert-instruction-prompt-to-chat-prompt';
 import { injectJsonSchemaIntoInstructionPrompt } from './inject-json-schema-into-instruction-prompt';
@@ -24,17 +28,11 @@ export async function streamObject<T>({
   const jsonSchema = schema.getJsonSchema();
   const objectMode = model.objectMode;
 
-  let modelStream: ReadableStream<
-    | {
-        type: 'json-text-delta';
-        textDelta: string;
-      }
-    | ErrorStreamPart
-  >;
+  let modelStream: ReadableStream<string | ErrorStreamPart>;
 
   switch (objectMode) {
     case 'json': {
-      modelStream = await model.doStreamJsonText({
+      const streamResponse = await model.doStreamJsonText({
         mode: { type: 'json' },
         prompt: convertInstructionPromptToChatPrompt(
           injectJsonSchemaIntoInstructionPrompt({
@@ -44,11 +42,26 @@ export async function streamObject<T>({
         ),
       });
 
+      modelStream = streamResponse.pipeThrough(
+        new TransformStream<LanguageModelStreamPart, string | ErrorStreamPart>({
+          transform(chunk, controller) {
+            switch (chunk.type) {
+              case 'text-delta':
+                controller.enqueue(chunk.textDelta);
+                break;
+              case 'error':
+                controller.enqueue(chunk);
+                break;
+            }
+          },
+        }),
+      );
+
       break;
     }
 
     case 'tool': {
-      modelStream = await model.doStreamJsonText({
+      const streamResponse = await model.doStreamJsonText({
         mode: {
           type: 'tool',
           tool: {
@@ -59,6 +72,21 @@ export async function streamObject<T>({
         },
         prompt: convertInstructionPromptToChatPrompt(prompt),
       });
+
+      modelStream = streamResponse.pipeThrough(
+        new TransformStream<LanguageModelStreamPart, string | ErrorStreamPart>({
+          transform(chunk, controller) {
+            switch (chunk.type) {
+              case 'tool-call-delta':
+                controller.enqueue(chunk.argsTextDelta);
+                break;
+              case 'error':
+                controller.enqueue(chunk);
+                break;
+            }
+          },
+        }),
+      );
 
       break;
     }
@@ -77,11 +105,7 @@ export class StreamObjectResult<T> {
     PartialDeep<T, { recurseIntoArrays: true }>
   >;
 
-  constructor(
-    modelStream: ReadableStream<
-      { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
-    >,
-  ) {
+  constructor(modelStream: ReadableStream<string | ErrorStreamPart>) {
     let accumulatedText = '';
     let latestObject: PartialDeep<T, { recurseIntoArrays: true }> | undefined =
       undefined;
@@ -101,8 +125,8 @@ export class StreamObjectResult<T> {
                 return { value: null, done: true };
               }
 
-              if (value.type === 'json-text-delta') {
-                accumulatedText += value.textDelta;
+              if (typeof value === 'string') {
+                accumulatedText += value;
 
                 const currentObject = parsePartialJson(
                   accumulatedText,
@@ -114,6 +138,8 @@ export class StreamObjectResult<T> {
                   return { value: currentObject, done: false };
                 }
               }
+
+              // TODO handle error parts
             }
           },
         };

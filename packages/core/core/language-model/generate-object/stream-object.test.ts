@@ -21,12 +21,12 @@ describe('result.objectStream', () => {
           });
 
           return convertArrayToReadableStream([
-            { type: 'json-text-delta', textDelta: '{ ' },
-            { type: 'json-text-delta', textDelta: '"content": ' },
-            { type: 'json-text-delta', textDelta: `"Hello, ` },
-            { type: 'json-text-delta', textDelta: `world` },
-            { type: 'json-text-delta', textDelta: `!"` },
-            { type: 'json-text-delta', textDelta: ' }' },
+            { type: 'text-delta', textDelta: '{ ' },
+            { type: 'text-delta', textDelta: '"content": ' },
+            { type: 'text-delta', textDelta: `"Hello, ` },
+            { type: 'text-delta', textDelta: `world` },
+            { type: 'text-delta', textDelta: `!"` },
+            { type: 'text-delta', textDelta: ' }' },
           ]);
         },
       }),
@@ -69,12 +69,42 @@ describe('result.objectStream', () => {
           });
 
           return convertArrayToReadableStream([
-            { type: 'json-text-delta', textDelta: '{ ' },
-            { type: 'json-text-delta', textDelta: '"content": ' },
-            { type: 'json-text-delta', textDelta: `"Hello, ` },
-            { type: 'json-text-delta', textDelta: `world` },
-            { type: 'json-text-delta', textDelta: `!"` },
-            { type: 'json-text-delta', textDelta: ' }' },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: '{ ',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: '"content": ',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: `"Hello, `,
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: `world`,
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: `!"`,
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: ' }',
+            },
           ]);
         },
       }),

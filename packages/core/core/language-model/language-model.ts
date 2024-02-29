@@ -38,11 +38,7 @@ export interface LanguageModel {
       | { type: 'json' }
       | { type: 'tool'; tool: LanguageModelToolDefinition };
     prompt: ChatPrompt;
-  }): PromiseLike<
-    ReadableStream<
-      { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
-    >
-  >;
+  }): PromiseLike<ReadableStream<LanguageModelStreamPart>>;
 }
 
 type LanguageModelToolDefinition = {
@@ -63,6 +59,13 @@ type ToolCallStreamPart = {
   args: unknown;
 };
 
+type ToolCallDeltaStreamPart = {
+  type: 'tool-call-delta';
+  toolCallId: string;
+  toolName: string;
+  argsTextDelta: string;
+};
+
 type TextDeltaStreamPart = {
   type: 'text-delta';
   textDelta: string;
@@ -70,5 +73,6 @@ type TextDeltaStreamPart = {
 
 export type LanguageModelStreamPart =
   | TextDeltaStreamPart
+  | ToolCallDeltaStreamPart
   | ToolCallStreamPart
   | ErrorStreamPart;

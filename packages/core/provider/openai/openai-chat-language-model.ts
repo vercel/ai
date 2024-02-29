@@ -1,20 +1,17 @@
 import { nanoid } from 'nanoid';
 import OpenAI from 'openai';
 import {
-  ErrorStreamPart,
   LanguageModel,
   LanguageModelSettings,
   LanguageModelStreamPart,
   ObjectMode,
 } from '../../core';
-import { injectJsonSchemaIntoInstructionPrompt } from '../../core/language-model/generate-object/inject-json-schema-into-instruction-prompt';
 import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
 import { tryParseJSON } from '../../core/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
 import {
   convertChatPromptToOpenAIChatPrompt,
-  convertInstructionPromptToOpenAIChatPrompt,
   convertToOpenAIChatPrompt,
 } from './openai-chat-prompt';
 
@@ -216,9 +213,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     mode,
     prompt,
   }: Parameters<LanguageModel['doStreamJsonText']>[0]): Promise<
-    ReadableStream<
-      { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
-    >
+    ReadableStream<LanguageModelStreamPart>
   > {
     const type = mode.type;
     const messages = convertChatPromptToOpenAIChatPrompt(prompt);
@@ -236,7 +231,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
         return readableFromAsyncIterable(clientResponse).pipeThrough(
           new TransformStream<
             OpenAI.Chat.Completions.ChatCompletionChunk,
-            { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
+            LanguageModelStreamPart
           >({
             transform(chunk, controller) {
               if (chunk.choices?.[0].delta == null) {
@@ -247,7 +242,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
 
               if (delta.content != null) {
                 controller.enqueue({
-                  type: 'json-text-delta',
+                  type: 'text-delta',
                   textDelta: delta.content,
                 });
               }
@@ -265,10 +260,15 @@ export class OpenAIChatLanguageModel implements LanguageModel {
           messages,
         });
 
+        const toolCalls: Array<{
+          toolCallId: string;
+          toolName: string;
+        }> = [];
+
         return readableFromAsyncIterable(clientResponse).pipeThrough(
           new TransformStream<
             OpenAI.Chat.Completions.ChatCompletionChunk,
-            { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
+            LanguageModelStreamPart
           >({
             transform(chunk, controller) {
               if (chunk.choices?.[0].delta == null) {
@@ -288,12 +288,23 @@ export class OpenAIChatLanguageModel implements LanguageModel {
                   continue;
                 }
 
+                if (toolCalls[index] == null) {
+                  toolCalls[index] = {
+                    toolCallId: toolCallDelta.id ?? '', // TODO empty?
+                    toolName: toolCallDelta.function?.name ?? '', // TODO empty?
+                  };
+                }
+
+                const toolCall = toolCalls[index];
+
                 const argumentsDelta = toolCallDelta.function?.arguments;
 
                 if (argumentsDelta != null) {
                   controller.enqueue({
-                    type: 'json-text-delta',
-                    textDelta: argumentsDelta,
+                    type: 'tool-call-delta',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    argsTextDelta: argumentsDelta,
                   });
                 }
               }

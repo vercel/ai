@@ -48,7 +48,9 @@ export class StreamTextHttpResponse extends Response {
                 break;
               }
 
+              case 'tool-call-delta':
               case 'tool-result': {
+                // ignored
                 break;
               }
 
