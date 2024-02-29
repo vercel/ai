@@ -9,7 +9,7 @@ import {
 } from '../../core';
 import { tryParseJSON } from '../../core/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
-import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
+import { convertToOpenAIChatPrompt } from './convert-to-openai-chat-prompt';
 
 export interface OpenAIChatLanguageModelSettings extends LanguageModelSettings {
   client: () => Promise<OpenAI>;
