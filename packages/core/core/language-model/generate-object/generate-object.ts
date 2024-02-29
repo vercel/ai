@@ -20,8 +20,11 @@ export async function generateObject<T>({
 }): Promise<GenerateObjectResult<T>> {
   const schema = new ZodSchema(zodSchema);
 
+  const objectMode = model.objectMode;
+
   const result = await model.doGenerateJsonText({
     schema: schema.getJsonSchema(),
+    objectMode,
     prompt,
   });
 

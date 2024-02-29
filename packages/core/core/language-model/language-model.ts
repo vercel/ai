@@ -5,6 +5,8 @@ export interface LanguageModelSettings {
   maxTokens?: number;
 }
 
+export type ObjectMode = 'TOOL' | 'JSON';
+
 export interface LanguageModel {
   doGenerate(options: { prompt: InstructionPrompt | ChatPrompt }): PromiseLike<{
     text: string;
@@ -19,8 +21,16 @@ export interface LanguageModel {
     }>;
   }): PromiseLike<ReadableStream<LanguageModelStreamPart>>;
 
+  objectMode: ObjectMode;
+
   doGenerateJsonText(options: {
     schema: Record<string, unknown>;
+    objectMode: ObjectMode;
+    tools?: Array<{
+      name: string;
+      description?: string;
+      parameters: Record<string, unknown>;
+    }>;
     prompt: InstructionPrompt;
   }): PromiseLike<{
     jsonText: string;
