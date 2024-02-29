@@ -1,10 +1,6 @@
 import 'server-only';
 
-import {
-  createAI,
-  createStreamableUI,
-  getMutableAIState,
-} from 'ai/rsc';
+import { createAI, createStreamableUI, getMutableAIState } from 'ai/rsc';
 import OpenAI from 'openai';
 
 import {
