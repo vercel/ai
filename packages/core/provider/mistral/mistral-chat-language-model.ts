@@ -4,19 +4,14 @@ import MistralClient, {
   ToolChoice,
 } from '@mistralai/mistralai';
 import {
-  ErrorStreamPart,
   LanguageModel,
   LanguageModelSettings,
   LanguageModelStreamPart,
   ObjectMode,
 } from '../../core';
-import { injectJsonSchemaIntoInstructionPrompt } from '../../core/language-model/generate-object/inject-json-schema-into-instruction-prompt';
-import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
-import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
 import { readableFromAsyncIterable } from '../../streams/ai-stream';
 import {
   convertChatPromptToMistralChatPrompt,
-  convertInstructionPromptToMistralChatPrompt,
   convertToMistralChatPrompt,
 } from './mistral-chat-prompt';
 
@@ -100,42 +95,33 @@ export class MistralChatLanguageModel implements LanguageModel {
     };
   }
 
-  async doGenerate({
+  private getDoGenerateArgs({
     mode,
     prompt,
-  }: Parameters<LanguageModel['doGenerate']>[0]) {
+  }: Parameters<LanguageModel['doGenerate']>[0]): Parameters<
+    MistralClient['chat']
+  >[0] {
     const type = mode.type;
     const messages = convertChatPromptToMistralChatPrompt(prompt);
-    const client = await this.getClient();
 
     switch (type) {
       case 'regular': {
-        const clientResponse = await client.chat({
-          ...this.basePrompt,
-          messages: convertToMistralChatPrompt(prompt),
-        });
-
-        // TODO extract standard response processing
         return {
-          text: clientResponse.choices[0].message.content,
+          ...this.basePrompt,
+          messages,
         };
       }
 
       case 'object-json': {
-        const clientResponse = await client.chat({
+        return {
           ...this.basePrompt,
           responseFormat: { type: 'json_object' } as ResponseFormat,
           messages,
-        });
-
-        // TODO extract standard response processing
-        return {
-          text: clientResponse.choices[0].message.content,
         };
       }
 
       case 'object-tool': {
-        const clientResponse = await client.chat({
+        return {
           ...this.basePrompt,
           toolChoice: 'any' as ToolChoice,
           tools: [
@@ -149,18 +135,6 @@ export class MistralChatLanguageModel implements LanguageModel {
             },
           ],
           messages,
-        });
-
-        // Note: correct types not supported by MistralClient as of 2024-Feb-28
-        const message = clientResponse.choices[0].message as any;
-
-        // TODO extract standard response processing
-        return {
-          toolCalls: message.tool_calls?.map((toolCall: any) => ({
-            toolCallId: toolCall.id,
-            toolName: toolCall.function.name,
-            args: toolCall.function.arguments,
-          })),
         };
       }
 
@@ -169,6 +143,29 @@ export class MistralChatLanguageModel implements LanguageModel {
         throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
       }
     }
+  }
+
+  async doGenerate({
+    mode,
+    prompt,
+  }: Parameters<LanguageModel['doGenerate']>[0]) {
+    const client = await this.getClient();
+
+    const clientResponse = await client.chat(
+      this.getDoGenerateArgs({ mode, prompt }),
+    );
+
+    // Note: correct types not supported by MistralClient as of 2024-Feb-28
+    const message = clientResponse.choices[0].message as any;
+
+    return {
+      text: message.content,
+      toolCalls: message.tool_calls?.map((toolCall: any) => ({
+        toolCallId: toolCall.id,
+        toolName: toolCall.function.name,
+        args: toolCall.function.arguments,
+      })),
+    };
   }
 
   async doStream({

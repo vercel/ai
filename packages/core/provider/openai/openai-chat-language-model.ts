@@ -61,7 +61,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       case 'regular': {
         return {
           ...this.basePrompt,
-          messages: convertToOpenAIChatPrompt(prompt),
+          messages,
         };
       }
 
