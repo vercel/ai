@@ -4,7 +4,7 @@ layout:
   toc: false
 ---
 
-import { Tabs, Tab } from 'nextra-theme-docs'
+import { Tabs, Tab } from 'nextra-theme-docs';
 
 # getMutableAIState
 
@@ -29,15 +29,15 @@ You must call `.done()` when you're finished updating the AI state.
 ## Examples
 
 ```tsx
-const state = getMutableAIState()
-state.update({ ...state.get(), key: 'value' })
-state.update(currentState => ({ ...currentState, key: 'value' }))
-state.done()
+const state = getMutableAIState();
+state.update({ ...state.get(), key: 'value' });
+state.update(currentState => ({ ...currentState, key: 'value' }));
+state.done();
 ```
 
 ```tsx
-const state = getMutableAIState()
-state.done({ ...state.get(), key: 'value' }) // Done with a new state
+const state = getMutableAIState();
+state.done({ ...state.get(), key: 'value' }); // Done with a new state
 ```
 
 ## Usage
