@@ -10,7 +10,7 @@ import {
   ObjectMode,
 } from '../../core';
 import { readableFromAsyncIterable } from '../../streams/ai-stream';
-import { convertToMistralChatPrompt } from './mistral-chat-prompt';
+import { convertToMistralChatPrompt } from './convert-to-mistral-chat-prompt';
 
 export type MistralChatModelType =
   | 'open-mistral-7b'
