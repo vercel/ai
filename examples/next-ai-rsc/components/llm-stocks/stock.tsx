@@ -54,23 +54,23 @@ export function Stock({ name = 'DOGE', price = 12.34, delta = 1 }) {
         setHistory([...history, message]);
       }
     }
-  }, [startHighlight, endHighlight]);
+  }, [startHighlight, endHighlight, history, id, setHistory, xToDate]);
 
   return (
-    <div className="p-4 rounded-xl bg-zinc-950 text-green-400 border">
-      <div className="float-right inline-block px-2 py-1 rounded-full bg-white/10 text-xs">
+    <div className="p-4 text-green-400 border rounded-xl bg-zinc-950">
+      <div className="inline-block float-right px-2 py-1 text-xs rounded-full bg-white/10">
         {`${delta > 0 ? '+' : ''}${((delta / price) * 100).toFixed(2)}% ${
           delta > 0 ? '↑' : '↓'
         }`}
       </div>
       <div className="text-lg text-zinc-300">{name}</div>
       <div className="text-3xl font-bold">${price}</div>
-      <div className="text text-xs text-zinc-500 mt-1">
+      <div className="mt-1 text-xs text text-zinc-500">
         Closed: Feb 27, 4:59 PM EST
       </div>
 
       <div
-        className="-mx-4 relative cursor-col-resize"
+        className="relative -mx-4 cursor-col-resize"
         onPointerDown={event => {
           if (chartRef.current) {
             const { clientX } = event;
@@ -117,7 +117,7 @@ export function Stock({ name = 'DOGE', price = 12.34, delta = 1 }) {
       >
         {priceAtTime.x > 0 ? (
           <div
-            className="flex gap-2 bg-zinc-800 p-2 rounded-md pointer-events-none select-none z-10 w-fit absolute"
+            className="absolute z-10 flex gap-2 p-2 rounded-md pointer-events-none select-none bg-zinc-800 w-fit"
             style={{
               left: priceAtTime.x - 124 / 2,
               top: 30,
@@ -132,7 +132,7 @@ export function Stock({ name = 'DOGE', price = 12.34, delta = 1 }) {
 
         {startHighlight ? (
           <div
-            className="w-5 h-32 bg-zinc-500/20 absolute rounded-md border border-zinc-500 pointer-events-none select-none"
+            className="absolute w-5 h-32 border rounded-md pointer-events-none select-none bg-zinc-500/20 border-zinc-500"
             style={{
               left: startHighlight,
               width: endHighlight
