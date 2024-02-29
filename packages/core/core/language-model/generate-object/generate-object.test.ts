@@ -15,7 +15,7 @@ describe('result.object', () => {
               'JSON schema:\n' +
               '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
               'You MUST answer with a JSON object that matches the JSON schema above.',
-            instruction: 'prompt',
+            messages: [{ role: 'user', content: 'prompt' }],
           });
 
           return {
@@ -49,7 +49,9 @@ describe('result.object', () => {
               },
             },
           });
-          assert.deepStrictEqual(prompt, 'prompt');
+          assert.deepStrictEqual(prompt, {
+            messages: [{ role: 'user', content: 'prompt' }],
+          });
 
           return {
             toolCalls: [

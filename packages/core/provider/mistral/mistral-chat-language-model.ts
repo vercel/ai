@@ -15,6 +15,7 @@ import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
 import { readableFromAsyncIterable } from '../../streams/ai-stream';
 import {
+  convertChatPromptToMistralChatPrompt,
   convertInstructionPromptToMistralChatPrompt,
   convertToMistralChatPrompt,
 } from './mistral-chat-prompt';
@@ -156,14 +157,15 @@ export class MistralChatLanguageModel implements LanguageModel {
     prompt,
   }: Parameters<LanguageModel['doGenerateJsonText']>[0]) {
     const type = mode.type;
+    const messages = convertChatPromptToMistralChatPrompt(prompt);
+    const client = await this.getClient();
 
     switch (type) {
       case 'json': {
-        const client = await this.getClient();
         const clientResponse = await client.chat({
           ...this.basePrompt,
           responseFormat: { type: 'json_object' } as ResponseFormat,
-          messages: convertInstructionPromptToMistralChatPrompt(prompt),
+          messages,
         });
 
         // TODO extract standard response processing
@@ -173,7 +175,6 @@ export class MistralChatLanguageModel implements LanguageModel {
       }
 
       case 'tool': {
-        const client = await this.getClient();
         const clientResponse = await client.chat({
           ...this.basePrompt,
           toolChoice: 'any' as ToolChoice,
@@ -187,7 +188,7 @@ export class MistralChatLanguageModel implements LanguageModel {
               },
             },
           ],
-          messages: convertInstructionPromptToMistralChatPrompt(prompt),
+          messages,
         });
 
         // Note: correct types not supported by MistralClient as of 2024-Feb-28

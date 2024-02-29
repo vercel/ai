@@ -23,7 +23,7 @@ export interface LanguageModel {
     mode:
       | { type: 'json' }
       | { type: 'tool'; tool: LanguageModelToolDefinition };
-    prompt: InstructionPrompt;
+    prompt: ChatPrompt;
   }): PromiseLike<{
     text?: string;
     toolCalls?: Array<{

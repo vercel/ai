@@ -13,6 +13,7 @@ import { InstructionPrompt } from '../../core/language-model/prompt/instruction-
 import { tryParseJSON } from '../../core/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
 import {
+  convertChatPromptToOpenAIChatPrompt,
   convertInstructionPromptToOpenAIChatPrompt,
   convertToOpenAIChatPrompt,
 } from './openai-chat-prompt';
@@ -43,11 +44,18 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     return this.settings.objectMode ?? 'tool';
   }
 
+  private get basePrompt() {
+    return {
+      model: this.settings.id,
+
+      max_tokens: this.settings.maxTokens,
+    };
+  }
+
   async doGenerate({ prompt }: { prompt: ChatPrompt | InstructionPrompt }) {
     const client = await this.getClient();
     const openaiResponse = await client.chat.completions.create({
-      model: this.settings.id,
-      max_tokens: this.settings.maxTokens,
+      ...this.basePrompt,
       messages: convertToOpenAIChatPrompt(prompt),
     });
 
@@ -69,9 +77,8 @@ export class OpenAIChatLanguageModel implements LanguageModel {
   }): Promise<ReadableStream<LanguageModelStreamPart>> {
     const client = await this.getClient();
     const openaiResponse = await client.chat.completions.create({
+      ...this.basePrompt,
       stream: true,
-      model: this.settings.id,
-      max_tokens: this.settings.maxTokens,
       messages: convertToOpenAIChatPrompt(prompt),
       tools: tools?.map(tool => ({
         type: 'function',
@@ -161,16 +168,15 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     prompt,
   }: Parameters<LanguageModel['doGenerateJsonText']>[0]) {
     const type = mode.type;
+    const messages = convertChatPromptToOpenAIChatPrompt(prompt);
+    const client = await this.getClient();
 
     switch (type) {
       case 'json': {
-        const client = await this.getClient();
         const openaiResponse = await client.chat.completions.create({
-          model: this.settings.id,
-          max_tokens: this.settings.maxTokens,
-
+          ...this.basePrompt,
           response_format: { type: 'json_object' },
-          messages: convertInstructionPromptToOpenAIChatPrompt(prompt),
+          messages,
         });
 
         // TODO extract standard response processing
@@ -180,14 +186,12 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       }
 
       case 'tool': {
-        const client = await this.getClient();
         const openaiResponse = await client.chat.completions.create({
-          model: this.settings.id,
-          max_tokens: this.settings.maxTokens,
+          ...this.basePrompt,
 
-          messages: convertToOpenAIChatPrompt(prompt),
           tool_choice: { type: 'function', function: { name: mode.tool.name } },
           tools: [{ type: 'function', function: mode.tool }],
+          messages,
         });
 
         // TODO extract standard response processing
@@ -226,9 +230,9 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       case 'json': {
         const client = await this.getClient();
         const clientResponse = await client.chat.completions.create({
+          ...this.basePrompt,
+
           stream: true,
-          model: this.settings.id,
-          max_tokens: this.settings.maxTokens,
 
           response_format: { type: 'json_object' },
           messages: convertInstructionPromptToOpenAIChatPrompt(
@@ -265,9 +269,10 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       case 'tool': {
         const client = await this.getClient();
         const clientResponse = await client.chat.completions.create({
+          ...this.basePrompt,
+
           stream: true,
-          model: this.settings.id,
-          max_tokens: this.settings.maxTokens,
+
           messages: convertToOpenAIChatPrompt(prompt),
           tool_choice: {
             type: 'function',

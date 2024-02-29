@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { safeParseJSON } from '../../schema/parse-json';
 import { ZodSchema } from '../../schema/zod-schema';
-import { injectJsonSchemaIntoInstructionPrompt } from './inject-json-schema-into-instruction-prompt';
 import { LanguageModel } from '../language-model';
+import { convertInstructionPromptToChatPrompt } from '../prompt/convert-instruction-prompt-to-chat-prompt';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
+import { injectJsonSchemaIntoInstructionPrompt } from './inject-json-schema-into-instruction-prompt';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import { ObjectParseError } from './object-parse-error';
 import { ObjectValidationError } from './object-validation-error';
@@ -30,10 +31,12 @@ export async function generateObject<T>({
     case 'json': {
       const generateResult = await model.doGenerateJsonText({
         mode: { type: 'json' },
-        prompt: injectJsonSchemaIntoInstructionPrompt({
-          prompt,
-          schema: jsonSchema,
-        }),
+        prompt: convertInstructionPromptToChatPrompt(
+          injectJsonSchemaIntoInstructionPrompt({
+            prompt,
+            schema: jsonSchema,
+          }),
+        ),
       });
 
       if (generateResult.text === undefined) {
@@ -55,7 +58,7 @@ export async function generateObject<T>({
             parameters: jsonSchema,
           },
         },
-        prompt,
+        prompt: convertInstructionPromptToChatPrompt(prompt),
       });
 
       const functionArgs = generateResult.toolCalls?.[0]?.args;
