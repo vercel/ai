@@ -1,0 +1,92 @@
+---
+title: getMutableAIState
+layout:
+  toc: false
+---
+
+import { Tabs, Tab } from 'nextra-theme-docs';
+
+# getMutableAIState
+
+## `getMutableAIState`
+
+`getMutableAIState` is called within a Server Action to make updates to the [AI state](../concepts/ai-rsc#aistate).
+
+## Methods
+
+### `get`
+
+The `get` method returns a mutable copy of the AI state.
+
+### `update`
+
+The `update` method updates the AI state with a new value.
+
+### `done`
+
+You must call `.done()` when you're finished updating the AI state.
+
+## Examples
+
+```tsx
+const state = getMutableAIState();
+state.update({ ...state.get(), key: 'value' });
+state.update(currentState => ({ ...currentState, key: 'value' }));
+state.done();
+```
+
+```tsx
+const state = getMutableAIState();
+state.done({ ...state.get(), key: 'value' }); // Done with a new state
+```
+
+## Usage
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+
+    ```tsx filename="app/action.tsx" {6-7, 19-22, 32}
+    import { getMutableAIState } from 'ai/rsc';
+
+    async function submitUserMessage(content: string) {
+      'use server'
+
+      const aiState = getMutableAIState()
+      aiState.update([...aiState.get(), { role: 'user', content }])
+
+      const reply = createStreamableUI(<BotMessage>{spinner}</BotMessage>)
+
+      const completion = runOpenAICompletion(openai, {
+        model: 'gpt-3.5-turbo',
+        stream: true,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a friendly assistant!',
+          },
+          ...aiState.get().map((message: any) => ({
+            role: message.role,
+            content: message.content,
+          })),
+        ],
+        functions: [],
+      })
+
+      completion.onTextContent((content: string, isFinal: boolean) => {
+        reply.update(<BotMessage>{content}</BotMessage>)
+
+        if (isFinal) {
+          reply.done()
+          aiState.done([...aiState.get(), { role: 'assistant', content }])
+        }
+      })
+
+      return {
+        id: Date.now(),
+        display: reply.value,
+      }
+    }
+    ```
+
+  </Tab>
+</Tabs>

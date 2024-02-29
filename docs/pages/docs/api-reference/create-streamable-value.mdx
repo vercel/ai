@@ -1,0 +1,72 @@
+---
+title: createStreamableValue
+layout:
+  toc: false
+---
+
+import { Tabs, Tab } from 'nextra-theme-docs';
+
+# createStreamableValue
+
+## `createStreamableValue`
+
+Create a wrapped, changable value that can be streamed to the client.
+
+## Parameters
+
+Any data (i.e. JSON) that RSC supports.
+
+## Returns
+
+This creates a special value that can be returned from Actions to the client. It holds the data inside and can be updated via the `update` method.
+
+## Methods
+
+### `update`
+
+The `update` method is used to update the value of the streamable value.
+
+### `done`
+
+The `done` method is used to replace the old data with a new one and mark it as done. This is useful for when you want to replace the data with the final result.
+
+## Example
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+    Value Streams are created on the server and streamed to the client.
+
+    ```tsx filename="app/action.tsx" {6-9, 13-16, 20-23, 27}
+    import { createStreamableValue } from "ai/rsc";
+
+    async function getCustomerProfile(id: string) {
+      "use server";
+
+      const valueStream = createStreamableValue({
+        profile: null,
+        subscriptions: null,
+      })
+
+      const profile = await getProfile(id);
+
+      valueStream.update({
+        profile,
+        subscriptions: null,
+      });
+
+      const subscriptions = await getSubscriptions(profile.customerId);
+
+      valueStream.done({
+        profile,
+        subscriptions,
+      });
+
+      return {
+        id: Date.now(),
+        profile: valueStream.value,
+      }
+    }
+    ```
+
+  </Tab>
+</Tabs>
