@@ -12,6 +12,7 @@ import {
   convertChatPromptToOpenAIChatPrompt,
   convertToOpenAIChatPrompt,
 } from './openai-chat-prompt';
+import { ChatCompletionCreateParamsNonStreaming } from 'openai/resources';
 
 export interface OpenAIChatLanguageModelSettings extends LanguageModelSettings {
   client: () => Promise<OpenAI>;
@@ -47,55 +48,37 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     };
   }
 
-  async doGenerate({
+  private getDoGenerateArgs({
     mode,
     prompt,
-  }: Parameters<LanguageModel['doGenerate']>[0]) {
+  }: Parameters<
+    LanguageModel['doGenerate']
+  >[0]): ChatCompletionCreateParamsNonStreaming {
     const type = mode.type;
     const messages = convertChatPromptToOpenAIChatPrompt(prompt);
-    const client = await this.getClient();
 
     switch (type) {
       case 'regular': {
-        const response = await client.chat.completions.create({
+        return {
           ...this.basePrompt,
           messages: convertToOpenAIChatPrompt(prompt),
-        });
-
-        // TODO extract standard response processing
-        return {
-          text: response.choices[0].message.content ?? undefined,
         };
       }
 
       case 'object-json': {
-        const response = await client.chat.completions.create({
+        return {
           ...this.basePrompt,
           response_format: { type: 'json_object' },
           messages,
-        });
-
-        // TODO extract standard response processing
-        return {
-          text: response.choices[0].message.content ?? undefined,
         };
       }
 
       case 'object-tool': {
-        const response = await client.chat.completions.create({
+        return {
           ...this.basePrompt,
           tool_choice: { type: 'function', function: { name: mode.tool.name } },
           tools: [{ type: 'function', function: mode.tool }],
           messages,
-        });
-
-        // TODO extract standard response processing
-        return {
-          toolCalls: response.choices[0].message.tool_calls?.map(toolCall => ({
-            toolCallId: toolCall.id,
-            toolName: toolCall.function.name,
-            args: toolCall.function.arguments!,
-          })),
         };
       }
 
@@ -104,6 +87,28 @@ export class OpenAIChatLanguageModel implements LanguageModel {
         throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
       }
     }
+  }
+
+  async doGenerate({
+    mode,
+    prompt,
+  }: Parameters<LanguageModel['doGenerate']>[0]) {
+    const client = await this.getClient();
+
+    const completion = await client.chat.completions.create(
+      this.getDoGenerateArgs({ mode, prompt }),
+    );
+
+    const message = completion.choices[0].message;
+
+    return {
+      text: message.content ?? undefined,
+      toolCalls: message.tool_calls?.map(toolCall => ({
+        toolCallId: toolCall.id,
+        toolName: toolCall.function.name,
+        args: toolCall.function.arguments!,
+      })),
+    };
   }
 
   async doStream({
