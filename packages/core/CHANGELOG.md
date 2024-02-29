@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.0
+
+### Major Changes
+
+- 51054a9: add ai/rsc
+
 ## 2.2.37
 
 ### Patch Changes
