@@ -1,7 +1,12 @@
-import Link from 'next/link'
+import Link from 'next/link';
 
-import { IconGitHub, IconSeparator, IconSparkles, IconVercel } from '@/components/ui/icons'
-import { Button } from '@/components/ui/button'
+import {
+  IconGitHub,
+  IconSeparator,
+  IconSparkles,
+  IconVercel,
+} from '@/components/ui/icons';
+import { Button } from '@/components/ui/button';
 
 export async function Header() {
   return (
@@ -20,7 +25,11 @@ export async function Header() {
       </span>
       <div className="flex items-center justify-end space-x-2">
         <Button variant="outline" asChild>
-          <a target="_blank" href="https://github.com/vercel/ai-rsc-demo" rel="noopener noreferrer">
+          <a
+            target="_blank"
+            href="https://github.com/vercel/ai-rsc-demo"
+            rel="noopener noreferrer"
+          >
             <IconGitHub />
             <span className="ml-2 hidden md:flex">GitHub</span>
           </a>
@@ -37,5 +46,5 @@ export async function Header() {
         </Button>
       </div>
     </header>
-  )
+  );
 }

@@ -7,7 +7,6 @@
   An experimental preview of AI Server Components. 
 </p>
 
-
 ## Features
 
 - [Next.js](https://nextjs.org) App Router
@@ -26,7 +25,6 @@
 You can deploy your own version of the demo to Vercel with one click:
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fai-rsc-demo&env=OPENAI_API_KEY&envDescription=OpenAI%20API%20Key&envLink=https%3A%2F%2Fplatform.openai.com%2Fapi-keys)
-
 
 ## Running locally
 
@@ -54,6 +52,3 @@ This library is created by [Vercel](https://vercel.com) and [Next.js](https://ne
 - Jeremy Philemon ([@jeremyphilemon](https://github.com/jeremyphilemon)) - [Vercel](https://vercel.com)
 - shadcn ([@shadcn](https://twitter.com/shadcn)) - [Vercel](https://vercel.com)
 - Jared Palmer ([@jaredpalmer](https://twitter.com/jaredpalmer)) - [Vercel](https://vercel.com)
-
-
-

@@ -1,57 +1,61 @@
-'use client'
+'use client';
 
-import * as React from 'react'
-import Textarea from 'react-textarea-autosize'
+import * as React from 'react';
+import Textarea from 'react-textarea-autosize';
 
-import { useActions, useUIState } from 'ai-njkcad81/rsc'
-import { UserMessage } from '@/components/llm-stocks/message'
-import { type AI } from '@/app/action'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { IconArrowElbow, IconPlus } from '@/components/ui/icons'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
-import { cn } from '@/lib/utils'
-import { useRouter } from 'next/navigation'
+import { useActions, useUIState } from 'ai/rsc';
+import { UserMessage } from '@/components/llm-stocks/message';
+import { type AI } from '@/app/action';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { IconArrowElbow, IconPlus } from '@/components/ui/icons';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useEnterSubmit } from '@/lib/hooks/use-enter-submit';
+import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 export function PromptForm() {
-  const { formRef, onKeyDown } = useEnterSubmit()
-  const inputRef = React.useRef<HTMLTextAreaElement>(null)
-  const router = useRouter()
-  const { submitUserMessage } = useActions()
-  const [inputValue, setInputValue] = React.useState('')
-  const [_, setMessages] = useUIState<typeof AI>()
+  const { formRef, onKeyDown } = useEnterSubmit();
+  const inputRef = React.useRef<HTMLTextAreaElement>(null);
+  const router = useRouter();
+  const { submitUserMessage } = useActions();
+  const [inputValue, setInputValue] = React.useState('');
+  const [_, setMessages] = useUIState<typeof AI>();
 
   React.useEffect(() => {
     if (inputRef.current) {
-      inputRef.current.focus()
+      inputRef.current.focus();
     }
-  }, [])
+  }, []);
 
   return (
     <form
       onSubmit={async (e: any) => {
-        e.preventDefault()
+        e.preventDefault();
         // Blur focus on mobile
         if (window.innerWidth < 600) {
-          e.target['message']?.blur()
+          e.target['message']?.blur();
         }
 
-        const value = inputValue.trim()
-        setInputValue('')
-        if (!value) return
+        const value = inputValue.trim();
+        setInputValue('');
+        if (!value) return;
 
         // Add user message UI
-        setMessages((currentMessages) => [
+        setMessages(currentMessages => [
           ...currentMessages,
           {
             id: Date.now(),
             display: <UserMessage>{value}</UserMessage>,
           },
-        ])
+        ]);
 
         // Submit and get response message
-        const responseMessage = await submitUserMessage(value)
-        setMessages((currentMessages) => [...currentMessages, responseMessage])
+        const responseMessage = await submitUserMessage(value);
+        setMessages(currentMessages => [...currentMessages, responseMessage]);
       }}
       ref={formRef}
     >
@@ -59,14 +63,14 @@ export function PromptForm() {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={(e) => {
-                e.preventDefault()
-                router.refresh()
-                router.push('/')
+              onClick={e => {
+                e.preventDefault();
+                router.refresh();
+                router.push('/');
               }}
               className={cn(
                 buttonVariants({ size: 'sm', variant: 'outline' }),
-                'absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 sm:left-4'
+                'absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 sm:left-4',
               )}
             >
               <IconPlus />
@@ -86,7 +90,7 @@ export function PromptForm() {
           spellCheck={false}
           autoComplete="off"
           autoCorrect="off"
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={e => setInputValue(e.target.value)}
           placeholder="Send a message."
           className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus-within:outline-none sm:text-sm"
         />
@@ -103,5 +107,5 @@ export function PromptForm() {
         </div>
       </div>
     </form>
-  )
+  );
 }

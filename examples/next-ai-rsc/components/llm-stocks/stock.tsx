@@ -1,99 +1,109 @@
-'use client'
+'use client';
 
-import { useState, useRef, useEffect, useId } from 'react'
-import { scaleLinear } from 'd3-scale'
-import { subMonths, format } from 'date-fns'
-import { useResizeObserver } from 'usehooks-ts'
-import { useAIState } from  'ai-njkcad81/rsc'
+import { useState, useRef, useEffect, useId } from 'react';
+import { scaleLinear } from 'd3-scale';
+import { subMonths, format } from 'date-fns';
+import { useResizeObserver } from 'usehooks-ts';
+import { useAIState } from 'ai/rsc';
 
-import type { AI } from '../../app/action'
+import type { AI } from '../../app/action';
 
 export function Stock({ name = 'DOGE', price = 12.34, delta = 1 }) {
-  const [history, setHistory] = useAIState<typeof AI>()
-  const [selectedDuration, setSelectedDuration] = useState('6M')
-  const id = useId()
+  const [history, setHistory] = useAIState<typeof AI>();
+  const [selectedDuration, setSelectedDuration] = useState('6M');
+  const id = useId();
 
   const [priceAtTime, setPriceAtTime] = useState({
     time: '00:00',
     value: price.toFixed(2),
     x: 0,
-  })
+  });
 
-  const [startHighlight, setStartHighlight] = useState(0)
-  const [endHighlight, setEndHighlight] = useState(0)
+  const [startHighlight, setStartHighlight] = useState(0);
+  const [endHighlight, setEndHighlight] = useState(0);
 
-  const chartRef = useRef<HTMLDivElement>(null)
+  const chartRef = useRef<HTMLDivElement>(null);
   const { width = 0 } = useResizeObserver({
     ref: chartRef,
     box: 'border-box',
-  })
+  });
 
-  const xToDate = scaleLinear([0, width], [subMonths(new Date(), 6), new Date()])
-  const xToValue = scaleLinear([0, width], [price - price / 2, price + price / 2])
+  const xToDate = scaleLinear(
+    [0, width],
+    [subMonths(new Date(), 6), new Date()],
+  );
+  const xToValue = scaleLinear(
+    [0, width],
+    [price - price / 2, price + price / 2],
+  );
 
   useEffect(() => {
     if (startHighlight && endHighlight) {
       const message = {
         id,
         role: 'system' as const,
-        content: `[User has highlighted dates between between ${format(xToDate(startHighlight), 'd LLL')} and ${format(
-          xToDate(endHighlight),
-          'd LLL, yyyy'
-        )}`,
-      }
+        content: `[User has highlighted dates between between ${format(
+          xToDate(startHighlight),
+          'd LLL',
+        )} and ${format(xToDate(endHighlight), 'd LLL, yyyy')}`,
+      };
 
       if (history[history.length - 1]?.id === id) {
-        setHistory([...history.slice(0, -1), message])
+        setHistory([...history.slice(0, -1), message]);
       } else {
-        setHistory([...history, message])
+        setHistory([...history, message]);
       }
     }
-  }, [startHighlight, endHighlight])
+  }, [startHighlight, endHighlight]);
 
   return (
     <div className="p-4 rounded-xl bg-zinc-950 text-green-400 border">
       <div className="float-right inline-block px-2 py-1 rounded-full bg-white/10 text-xs">
-        {`${delta > 0 ? '+' : ''}${((delta / price) * 100).toFixed(2)}% ${delta > 0 ? '↑' : '↓'}`}
+        {`${delta > 0 ? '+' : ''}${((delta / price) * 100).toFixed(2)}% ${
+          delta > 0 ? '↑' : '↓'
+        }`}
       </div>
       <div className="text-lg text-zinc-300">{name}</div>
       <div className="text-3xl font-bold">${price}</div>
-      <div className="text text-xs text-zinc-500 mt-1">Closed: Feb 27, 4:59 PM EST</div>
+      <div className="text text-xs text-zinc-500 mt-1">
+        Closed: Feb 27, 4:59 PM EST
+      </div>
 
       <div
         className="-mx-4 relative cursor-col-resize"
-        onPointerDown={(event) => {
+        onPointerDown={event => {
           if (chartRef.current) {
-            const { clientX } = event
-            const { left } = chartRef.current.getBoundingClientRect()
+            const { clientX } = event;
+            const { left } = chartRef.current.getBoundingClientRect();
 
-            setStartHighlight(clientX - left)
-            setEndHighlight(0)
+            setStartHighlight(clientX - left);
+            setEndHighlight(0);
 
             setPriceAtTime({
               time: format(xToDate(clientX), 'dd LLL yy'),
               value: xToValue(clientX).toFixed(2),
               x: clientX - left,
-            })
+            });
           }
         }}
-        onPointerUp={(event) => {
+        onPointerUp={event => {
           if (chartRef.current) {
-            const { clientX } = event
-            const { left } = chartRef.current.getBoundingClientRect()
+            const { clientX } = event;
+            const { left } = chartRef.current.getBoundingClientRect();
 
-            setEndHighlight(clientX - left)
+            setEndHighlight(clientX - left);
           }
         }}
-        onPointerMove={(event) => {
+        onPointerMove={event => {
           if (chartRef.current) {
-            const { clientX } = event
-            const { left } = chartRef.current.getBoundingClientRect()
+            const { clientX } = event;
+            const { left } = chartRef.current.getBoundingClientRect();
 
             setPriceAtTime({
               time: format(xToDate(clientX), 'dd LLL yy'),
               value: xToValue(clientX).toFixed(2),
               x: clientX - left,
-            })
+            });
           }
         }}
         onPointerLeave={() => {
@@ -101,7 +111,7 @@ export function Stock({ name = 'DOGE', price = 12.34, delta = 1 }) {
             time: '00:00',
             value: price.toFixed(2),
             x: 0,
-          })
+          });
         }}
         ref={chartRef}
       >
@@ -114,7 +124,9 @@ export function Stock({ name = 'DOGE', price = 12.34, delta = 1 }) {
             }}
           >
             <div className="text-xs tabular-nums">${priceAtTime.value}</div>
-            <div className="text-xs text-zinc-400 tabular-nums">{priceAtTime.time}</div>
+            <div className="text-xs text-zinc-400 tabular-nums">
+              {priceAtTime.time}
+            </div>
           </div>
         ) : null}
 
@@ -123,15 +135,29 @@ export function Stock({ name = 'DOGE', price = 12.34, delta = 1 }) {
             className="w-5 h-32 bg-zinc-500/20 absolute rounded-md border border-zinc-500 pointer-events-none select-none"
             style={{
               left: startHighlight,
-              width: endHighlight ? endHighlight - startHighlight : priceAtTime.x - startHighlight,
+              width: endHighlight
+                ? endHighlight - startHighlight
+                : priceAtTime.x - startHighlight,
               bottom: 0,
             }}
           ></div>
         ) : null}
 
-        <svg className="uch-psvg" viewBox="0 0 250.0 168.0" height="150" width="100%" preserveAspectRatio="none">
+        <svg
+          className="uch-psvg"
+          viewBox="0 0 250.0 168.0"
+          height="150"
+          width="100%"
+          preserveAspectRatio="none"
+        >
           <defs>
-            <linearGradient id="fill-id-tsuid_31" x1="0%" x2="0%" y1="0%" y2="100%">
+            <linearGradient
+              id="fill-id-tsuid_31"
+              x1="0%"
+              x2="0%"
+              y1="0%"
+              y2="100%"
+            >
               <stop offset="0%" stopColor="#34a853" stopOpacity="0.38"></stop>
               <stop offset="13%" stopColor="#e6f4ea" stopOpacity="0"></stop>
             </linearGradient>
@@ -139,7 +165,13 @@ export function Stock({ name = 'DOGE', price = 12.34, delta = 1 }) {
               <rect height="100%" width="0" x="0" y="0"></rect>
             </clipPath>
             <defs>
-              <linearGradient id="chart-grad-_f1bJZYLUHqWpxc8Prs2meA_33" x1="0%" x2="0%" y1="0%" y2="100%">
+              <linearGradient
+                id="chart-grad-_f1bJZYLUHqWpxc8Prs2meA_33"
+                x1="0%"
+                x2="0%"
+                y1="0%"
+                y2="100%"
+              >
                 <stop offset="0%" stopColor="#34a853" stopOpacity="0.38"></stop>
                 <stop offset="13%" stopColor="#e6f4ea" stopOpacity="0"></stop>
               </linearGradient>
@@ -165,5 +197,5 @@ export function Stock({ name = 'DOGE', price = 12.34, delta = 1 }) {
         </svg>
       </div>
     </div>
-  )
+  );
 }

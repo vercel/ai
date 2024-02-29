@@ -1,49 +1,56 @@
-'use client'
+'use client';
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react';
 
-import { useUIState, useActions, useAIState } from 'ai-njkcad81/rsc'
-import { UserMessage } from '@/components/llm-stocks/message'
+import { useUIState, useActions, useAIState } from 'ai/rsc';
+import { UserMessage } from '@/components/llm-stocks/message';
 
-import { type AI } from './action'
-import { ChatScrollAnchor } from '@/lib/hooks/chat-scroll-anchor'
-import { FooterText } from '@/components/footer'
-import Textarea from 'react-textarea-autosize'
-import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { IconArrowElbow, IconPlus } from '@/components/ui/icons'
-import { Button } from '@/components/ui/button'
-import { ChatList } from '@/components/chat-list'
-import { EmptyScreen } from '@/components/empty-screen'
-import { toast } from '@/components/ui/use-toast'
+import { type AI } from './action';
+import { ChatScrollAnchor } from '@/lib/hooks/chat-scroll-anchor';
+import { FooterText } from '@/components/footer';
+import Textarea from 'react-textarea-autosize';
+import { useEnterSubmit } from '@/lib/hooks/use-enter-submit';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { IconArrowElbow, IconPlus } from '@/components/ui/icons';
+import { Button } from '@/components/ui/button';
+import { ChatList } from '@/components/chat-list';
+import { EmptyScreen } from '@/components/empty-screen';
+import { toast } from '@/components/ui/use-toast';
 
 export default function Page() {
-  const [messages, setMessages] = useUIState<typeof AI>()
-  const { submitUserMessage } = useActions()
-  const [inputValue, setInputValue] = useState('')
-  const { formRef, onKeyDown } = useEnterSubmit()
-  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const [messages, setMessages] = useUIState<typeof AI>();
+  const { submitUserMessage } = useActions();
+  const [inputValue, setInputValue] = useState('');
+  const { formRef, onKeyDown } = useEnterSubmit();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === '/') {
-        if (e.target && ['INPUT', 'TEXTAREA'].includes((e.target as any).nodeName)) {
-          return
+        if (
+          e.target &&
+          ['INPUT', 'TEXTAREA'].includes((e.target as any).nodeName)
+        ) {
+          return;
         }
-        e.preventDefault()
-        e.stopPropagation()
+        e.preventDefault();
+        e.stopPropagation();
         if (inputRef?.current) {
-          inputRef.current.focus()
+          inputRef.current.focus();
         }
       }
-    }
+    };
 
-    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [inputRef])
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [inputRef]);
 
   return (
     <div>
@@ -54,19 +61,22 @@ export default function Page() {
           </>
         ) : (
           <EmptyScreen
-            submitMessage={async (message) => {
+            submitMessage={async message => {
               // Add user message UI
-              setMessages((currentMessages) => [
+              setMessages(currentMessages => [
                 ...currentMessages,
                 {
                   id: Date.now(),
                   display: <UserMessage>{message}</UserMessage>,
                 },
-              ])
+              ]);
 
               // Submit and get response message
-              const responseMessage = await submitUserMessage(message)
-              setMessages((currentMessages) => [...currentMessages, responseMessage])
+              const responseMessage = await submitUserMessage(message);
+              setMessages(currentMessages => [
+                ...currentMessages,
+                responseMessage,
+              ]);
             }}
           />
         )}
@@ -78,36 +88,39 @@ export default function Page() {
             <form
               ref={formRef}
               onSubmit={async (e: any) => {
-                e.preventDefault()
+                e.preventDefault();
 
                 // Blur focus on mobile
                 if (window.innerWidth < 600) {
-                  e.target['message']?.blur()
+                  e.target['message']?.blur();
                 }
 
-                const value = inputValue.trim()
-                setInputValue('')
-                if (!value) return
+                const value = inputValue.trim();
+                setInputValue('');
+                if (!value) return;
 
                 // Add user message UI
-                setMessages((currentMessages) => [
+                setMessages(currentMessages => [
                   ...currentMessages,
                   {
                     id: Date.now(),
                     display: <UserMessage>{value}</UserMessage>,
                   },
-                ])
+                ]);
 
                 try {
                   // Submit and get response message
-                  const responseMessage = await submitUserMessage(value)
-                  setMessages((currentMessages) => [...currentMessages, responseMessage])
+                  const responseMessage = await submitUserMessage(value);
+                  setMessages(currentMessages => [
+                    ...currentMessages,
+                    responseMessage,
+                  ]);
                 } catch (error) {
                   toast({
                     title: 'Something went wrong',
                     description: 'Please try again later',
                     duration: 5000,
-                  })
+                  });
                 }
               }}
             >
@@ -118,9 +131,9 @@ export default function Page() {
                       variant="outline"
                       size="icon"
                       className="absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 sm:left-4"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        window.location.reload()
+                      onClick={e => {
+                        e.preventDefault();
+                        window.location.reload();
                       }}
                     >
                       <IconPlus />
@@ -142,12 +155,16 @@ export default function Page() {
                   name="message"
                   rows={1}
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={e => setInputValue(e.target.value)}
                 />
                 <div className="absolute right-0 top-4 sm:right-4">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button type="submit" size="icon" disabled={inputValue === ''}>
+                      <Button
+                        type="submit"
+                        size="icon"
+                        disabled={inputValue === ''}
+                      >
                         <IconArrowElbow />
                         <span className="sr-only">Send message</span>
                       </Button>
@@ -162,5 +179,5 @@ export default function Page() {
         </div>
       </div>
     </div>
-  )
+  );
 }

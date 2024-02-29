@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 /**
  * A tool definition contains all information required for a language model to generate tool calls.
@@ -10,16 +10,16 @@ export interface ToolDefinition<NAME extends string, PARAMETERS> {
    *
    * Note: Using generics to enable result type inference when there are multiple tool calls.
    */
-  name: NAME
+  name: NAME;
 
   /**
    * A optional description of what the tool does. Will be used by the language model to decide whether to use the tool.
    */
-  description?: string
+  description?: string;
 
   /**
    * The schema of the input that the tool expects. The language model will use this to generate the input.
    * Use descriptions to make the input understandable for the language model.
    */
-  parameters: z.Schema<PARAMETERS>
+  parameters: z.Schema<PARAMETERS>;
 }
