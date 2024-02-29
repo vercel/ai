@@ -10,14 +10,20 @@ describe('result.textStream', () => {
   it('should send text deltas', async () => {
     const result = await streamText({
       model: new MockLanguageModel({
-        doStream: async ({ prompt }) =>
-          convertArrayToReadableStream([
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
+          assert.deepStrictEqual(prompt, {
+            messages: [{ role: 'user', content: 'test-input' }],
+          });
+
+          return convertArrayToReadableStream([
             { type: 'text-delta', textDelta: 'Hello' },
             { type: 'text-delta', textDelta: ', ' },
-            { type: 'text-delta', textDelta: `${prompt}!` },
-          ]),
+            { type: 'text-delta', textDelta: `world!` },
+          ]);
+        },
       }),
-      prompt: 'world',
+      prompt: 'test-input',
     });
 
     assert.deepStrictEqual(
@@ -31,14 +37,20 @@ describe('result.fullStream', () => {
   it('should send text deltas', async () => {
     const result = await streamText({
       model: new MockLanguageModel({
-        doStream: async ({ prompt }) =>
-          convertArrayToReadableStream([
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
+          assert.deepStrictEqual(prompt, {
+            messages: [{ role: 'user', content: 'test-input' }],
+          });
+
+          return convertArrayToReadableStream([
             { type: 'text-delta', textDelta: 'Hello' },
             { type: 'text-delta', textDelta: ', ' },
-            { type: 'text-delta', textDelta: `${prompt}!` },
-          ]),
+            { type: 'text-delta', textDelta: `world!` },
+          ]);
+        },
       }),
-      prompt: 'world',
+      prompt: 'test-input',
     });
 
     assert.deepStrictEqual(
@@ -54,15 +66,36 @@ describe('result.fullStream', () => {
   it('should send tool calls', async () => {
     const result = await streamText({
       model: new MockLanguageModel({
-        doStream: async ({ prompt }) =>
-          convertArrayToReadableStream([
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: [
+              {
+                name: 'tool-1',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
+                },
+              },
+            ],
+          });
+          assert.deepStrictEqual(prompt, {
+            messages: [{ role: 'user', content: 'test-input' }],
+          });
+
+          return convertArrayToReadableStream([
             {
               type: 'tool-call',
               toolCallId: 'call-1',
               toolName: 'tool-1',
-              args: { value: prompt },
+              args: { value: 'value' },
             },
-          ]),
+          ]);
+        },
       }),
       tools: [
         {
@@ -80,7 +113,7 @@ describe('result.fullStream', () => {
           type: 'tool-call',
           toolCallId: 'call-1',
           toolName: 'tool-1',
-          args: { value: 'test-input' },
+          args: { value: 'value' },
         },
       ],
     );
@@ -89,15 +122,36 @@ describe('result.fullStream', () => {
   it('should send tool results', async () => {
     const result = await streamText({
       model: new MockLanguageModel({
-        doStream: async ({ prompt }) =>
-          convertArrayToReadableStream([
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: [
+              {
+                name: 'tool-1',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
+                },
+              },
+            ],
+          });
+          assert.deepStrictEqual(prompt, {
+            messages: [{ role: 'user', content: 'test-input' }],
+          });
+
+          return convertArrayToReadableStream([
             {
               type: 'tool-call',
               toolCallId: 'call-1',
               toolName: 'tool-1',
-              args: { value: prompt },
+              args: { value: 'value' },
             },
-          ]),
+          ]);
+        },
       }),
       tools: [
         createTool({
@@ -116,13 +170,13 @@ describe('result.fullStream', () => {
           type: 'tool-call',
           toolCallId: 'call-1',
           toolName: 'tool-1',
-          args: { value: 'test-input' },
+          args: { value: 'value' },
         },
         {
           type: 'tool-result',
           toolCallId: 'call-1',
           toolName: 'tool-1',
-          result: 'test-input-result',
+          result: 'value-result',
         },
       ],
     );
