@@ -92,7 +92,7 @@ export class MistralChatLanguageModel implements LanguageModel {
     };
   }
 
-  private getDoGenerateArgs({
+  private getArgs({
     mode,
     prompt,
   }: Parameters<LanguageModel['doGenerate']>[0]): Parameters<
@@ -149,9 +149,7 @@ export class MistralChatLanguageModel implements LanguageModel {
   }: Parameters<LanguageModel['doGenerate']>[0]) {
     const client = await this.getClient();
 
-    const clientResponse = await client.chat(
-      this.getDoGenerateArgs({ mode, prompt }),
-    );
+    const clientResponse = await client.chat(this.getArgs({ mode, prompt }));
 
     // Note: correct types not supported by MistralClient as of 2024-Feb-28
     const message = clientResponse.choices[0].message as any;
@@ -172,118 +170,42 @@ export class MistralChatLanguageModel implements LanguageModel {
   }: Parameters<LanguageModel['doStream']>[0]): Promise<
     ReadableStream<LanguageModelStreamPart>
   > {
-    const type = mode.type;
-    const messages = convertToMistralChatPrompt(prompt);
     const client = await this.getClient();
 
-    switch (type) {
-      case 'regular': {
-        const response = client.chatStream({
-          ...this.basePrompt,
-          messages: convertToMistralChatPrompt(prompt),
-        });
+    const response = client.chatStream(this.getArgs({ mode, prompt }));
 
-        return readableFromAsyncIterable(response).pipeThrough(
-          new TransformStream<
-            ChatCompletionResponseChunk,
-            LanguageModelStreamPart
-          >({
-            transform(chunk, controller) {
-              if (chunk.choices?.[0].delta == null) {
-                return;
-              }
+    return readableFromAsyncIterable(response).pipeThrough(
+      new TransformStream<ChatCompletionResponseChunk, LanguageModelStreamPart>(
+        {
+          transform(chunk, controller) {
+            if (chunk.choices?.[0].delta == null) {
+              return;
+            }
 
-              const delta = chunk.choices[0].delta;
+            const delta = chunk.choices[0].delta;
 
-              if (delta.content != null) {
-                controller.enqueue({
-                  type: 'text-delta',
-                  textDelta: delta.content,
-                });
-              }
-            },
-          }),
-        );
-      }
+            if (delta.content != null) {
+              controller.enqueue({
+                type: 'text-delta',
+                textDelta: delta.content,
+              });
+            }
 
-      case 'object-json': {
-        const response = client.chatStream({
-          ...this.basePrompt,
-          responseFormat: { type: 'json_object' } as ResponseFormat,
-          messages,
-        });
+            if (delta.content != null) {
+              controller.enqueue({
+                type: 'tool-call-delta',
+                // Note: Mistral does not support tool streaming as of 2024-Feb-28
+                // The result come in a single chunk as content.
+                toolCallId: delta.tool_calls?.[0]?.id ?? '', // TODO empty?
+                toolName: delta.tool_calls?.[0]?.function.name ?? '', // TODO empty?
+                argsTextDelta: delta.content,
+              });
+            }
 
-        return readableFromAsyncIterable(response).pipeThrough(
-          new TransformStream<
-            ChatCompletionResponseChunk,
-            LanguageModelStreamPart
-          >({
-            transform(chunk, controller) {
-              if (chunk.choices?.[0].delta == null) {
-                return;
-              }
-
-              const delta = chunk.choices[0].delta;
-
-              if (delta.content != null) {
-                controller.enqueue({
-                  type: 'text-delta',
-                  textDelta: delta.content,
-                });
-              }
-            },
-          }),
-        );
-      }
-
-      case 'object-tool': {
-        const response = client.chatStream({
-          ...this.basePrompt,
-          toolChoice: 'any' as ToolChoice,
-          tools: [
-            {
-              type: 'function',
-              function: {
-                name: mode.tool.name,
-                description: mode.tool.description ?? '',
-                parameters: mode.tool.parameters,
-              },
-            },
-          ],
-          messages,
-        });
-
-        return readableFromAsyncIterable(response).pipeThrough(
-          new TransformStream<
-            ChatCompletionResponseChunk,
-            LanguageModelStreamPart
-          >({
-            transform(chunk, controller) {
-              if (chunk.choices?.[0].delta == null) {
-                return;
-              }
-
-              const delta = chunk.choices[0].delta;
-
-              if (delta.content != null) {
-                controller.enqueue({
-                  type: 'tool-call-delta',
-                  // Note: Mistral does not support tool streaming as of 2024-Feb-28
-                  // The result come in a single chunk as content.
-                  toolCallId: delta.tool_calls?.[0]?.id ?? '', // TODO empty?
-                  toolName: delta.tool_calls?.[0]?.function.name ?? '', // TODO empty?
-                  argsTextDelta: delta.content,
-                });
-              }
-            },
-          }),
-        );
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
+            // TODO full tool call
+          },
+        },
+      ),
+    );
   }
 }
