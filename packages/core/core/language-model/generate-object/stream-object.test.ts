@@ -10,8 +10,8 @@ describe('result.objectStream', () => {
     const result = await streamObject({
       model: new MockLanguageModel({
         objectMode: 'json',
-        doStreamJsonText: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'json' });
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, { type: 'object-json' });
           assert.deepStrictEqual(prompt, {
             system:
               'JSON schema:\n' +
@@ -49,9 +49,9 @@ describe('result.objectStream', () => {
     const result = await streamObject({
       model: new MockLanguageModel({
         objectMode: 'tool',
-        doStreamJsonText: async ({ prompt, mode }) => {
+        doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
-            type: 'tool',
+            type: 'object-tool',
             tool: {
               name: 'json',
               description: 'Respond with a JSON object.',

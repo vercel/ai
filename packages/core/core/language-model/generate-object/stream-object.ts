@@ -32,8 +32,8 @@ export async function streamObject<T>({
 
   switch (objectMode) {
     case 'json': {
-      const streamResponse = await model.doStreamJsonText({
-        mode: { type: 'json' },
+      const streamResponse = await model.doStream({
+        mode: { type: 'object-json' },
         prompt: convertToChatPrompt(
           injectJsonSchemaIntoInstructionPrompt({
             prompt,
@@ -61,9 +61,9 @@ export async function streamObject<T>({
     }
 
     case 'tool': {
-      const streamResponse = await model.doStreamJsonText({
+      const streamResponse = await model.doStream({
         mode: {
-          type: 'tool',
+          type: 'object-tool',
           tool: {
             name: 'json',
             description: 'Respond with a JSON object.',

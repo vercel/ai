@@ -1,5 +1,4 @@
 import { ChatPrompt } from './prompt/chat-prompt';
-import { InstructionPrompt } from './prompt/instruction-prompt';
 
 export interface LanguageModelSettings {
   maxTokens?: number;
@@ -12,7 +11,7 @@ export interface LanguageModel {
 
   doGenerate(options: {
     mode:
-      | { type: 'regular' } // TODO tools
+      | { type: 'regular' } // TODO tools (& then extract)
       | { type: 'object-json' }
       | { type: 'object-tool'; tool: LanguageModelToolDefinition };
     prompt: ChatPrompt;
@@ -26,14 +25,10 @@ export interface LanguageModel {
   }>;
 
   doStream(options: {
-    prompt: InstructionPrompt | ChatPrompt;
-    tools?: Array<LanguageModelToolDefinition>;
-  }): PromiseLike<ReadableStream<LanguageModelStreamPart>>;
-
-  doStreamJsonText(options: {
     mode:
-      | { type: 'json' }
-      | { type: 'tool'; tool: LanguageModelToolDefinition };
+      | { type: 'regular'; tools?: Array<LanguageModelToolDefinition> }
+      | { type: 'object-json' }
+      | { type: 'object-tool'; tool: LanguageModelToolDefinition };
     prompt: ChatPrompt;
   }): PromiseLike<ReadableStream<LanguageModelStreamPart>>;
 }

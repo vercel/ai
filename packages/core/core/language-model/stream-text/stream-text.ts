@@ -1,6 +1,7 @@
 import zodToJsonSchema from 'zod-to-json-schema';
 import { LanguageModel, LanguageModelStreamPart } from '../language-model';
 import { ChatPrompt } from '../prompt/chat-prompt';
+import { convertToChatPrompt } from '../prompt/convert-to-chat-prompt';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
 import { Tool } from '../tool';
 import { ToolDefinition } from '../tool/tool-definition';
@@ -23,12 +24,15 @@ export async function streamText({
   >;
 }): Promise<StreamTextResult> {
   const modelStream = await model.doStream({
-    prompt,
-    tools: tools?.map(tool => ({
-      name: tool.name,
-      description: tool.description,
-      parameters: zodToJsonSchema(tool.parameters),
-    })),
+    mode: {
+      type: 'regular',
+      tools: tools?.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: zodToJsonSchema(tool.parameters),
+      })),
+    },
+    prompt: convertToChatPrompt(prompt),
   });
 
   const toolStream = runToolsTransformation({

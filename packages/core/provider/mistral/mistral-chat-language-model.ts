@@ -172,49 +172,9 @@ export class MistralChatLanguageModel implements LanguageModel {
   }
 
   async doStream({
-    prompt,
-    tools,
-  }: {
-    prompt: InstructionPrompt | ChatPrompt;
-    tools?: Array<{
-      name: string;
-      description?: string;
-      parameters: Record<string, unknown>;
-    }>;
-  }): Promise<ReadableStream<LanguageModelStreamPart>> {
-    const client = await this.getClient();
-
-    const response = client.chatStream({
-      ...this.basePrompt,
-      messages: convertToMistralChatPrompt(prompt),
-    });
-
-    return readableFromAsyncIterable(response).pipeThrough(
-      new TransformStream<ChatCompletionResponseChunk, LanguageModelStreamPart>(
-        {
-          transform(chunk, controller) {
-            if (chunk.choices?.[0].delta == null) {
-              return;
-            }
-
-            const delta = chunk.choices[0].delta;
-
-            if (delta.content != null) {
-              controller.enqueue({
-                type: 'text-delta',
-                textDelta: delta.content,
-              });
-            }
-          },
-        },
-      ),
-    );
-  }
-
-  async doStreamJsonText({
     mode,
     prompt,
-  }: Parameters<LanguageModel['doStreamJsonText']>[0]): Promise<
+  }: Parameters<LanguageModel['doStream']>[0]): Promise<
     ReadableStream<LanguageModelStreamPart>
   > {
     const type = mode.type;
@@ -222,7 +182,36 @@ export class MistralChatLanguageModel implements LanguageModel {
     const client = await this.getClient();
 
     switch (type) {
-      case 'json': {
+      case 'regular': {
+        const response = client.chatStream({
+          ...this.basePrompt,
+          messages: convertToMistralChatPrompt(prompt),
+        });
+
+        return readableFromAsyncIterable(response).pipeThrough(
+          new TransformStream<
+            ChatCompletionResponseChunk,
+            LanguageModelStreamPart
+          >({
+            transform(chunk, controller) {
+              if (chunk.choices?.[0].delta == null) {
+                return;
+              }
+
+              const delta = chunk.choices[0].delta;
+
+              if (delta.content != null) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: delta.content,
+                });
+              }
+            },
+          }),
+        );
+      }
+
+      case 'object-json': {
         const response = client.chatStream({
           ...this.basePrompt,
           responseFormat: { type: 'json_object' } as ResponseFormat,
@@ -252,7 +241,7 @@ export class MistralChatLanguageModel implements LanguageModel {
         );
       }
 
-      case 'tool': {
+      case 'object-tool': {
         const response = client.chatStream({
           ...this.basePrompt,
           toolChoice: 'any' as ToolChoice,

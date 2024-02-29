@@ -6,8 +6,6 @@ import {
   LanguageModelStreamPart,
   ObjectMode,
 } from '../../core';
-import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
-import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
 import { tryParseJSON } from '../../core/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
 import {
@@ -109,108 +107,9 @@ export class OpenAIChatLanguageModel implements LanguageModel {
   }
 
   async doStream({
-    prompt,
-    tools,
-  }: {
-    prompt: InstructionPrompt | ChatPrompt;
-    tools?: Array<{
-      name: string;
-      description?: string;
-      parameters: Record<string, unknown>;
-    }>;
-  }): Promise<ReadableStream<LanguageModelStreamPart>> {
-    const client = await this.getClient();
-    const openaiResponse = await client.chat.completions.create({
-      ...this.basePrompt,
-      stream: true,
-      messages: convertToOpenAIChatPrompt(prompt),
-      tools: tools?.map(tool => ({
-        type: 'function',
-        function: {
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.parameters,
-        },
-      })),
-    });
-
-    const toolCalls: Array<{
-      id?: string;
-      type?: 'function';
-      function?: {
-        name?: string;
-        arguments?: string;
-      };
-    }> = [];
-
-    return readableFromAsyncIterable(openaiResponse).pipeThrough(
-      new TransformStream<
-        OpenAI.Chat.Completions.ChatCompletionChunk,
-        LanguageModelStreamPart
-      >({
-        transform(chunk, controller) {
-          if (chunk.choices?.[0].delta == null) {
-            return;
-          }
-
-          const delta = chunk.choices[0].delta;
-
-          if (delta.content != null) {
-            controller.enqueue({
-              type: 'text-delta',
-              textDelta: delta.content,
-            });
-          }
-
-          if (delta.tool_calls != null) {
-            for (const toolCallDelta of delta.tool_calls) {
-              const index = toolCallDelta.index;
-
-              // new tool call, add to list
-              if (toolCalls[index] == null) {
-                toolCalls[index] = toolCallDelta;
-                continue;
-              }
-
-              // existing tool call, merge
-              const toolCall = toolCalls[index];
-
-              if (toolCallDelta.function?.arguments != null) {
-                toolCall.function!.arguments +=
-                  toolCallDelta.function?.arguments ?? '';
-              }
-
-              // check if tool call is complete
-              if (
-                toolCall.function?.name == null ||
-                toolCall.function?.arguments == null
-              ) {
-                continue;
-              }
-
-              const args = tryParseJSON(toolCall.function.arguments);
-
-              if (args == null) {
-                continue;
-              }
-
-              controller.enqueue({
-                type: 'tool-call',
-                toolCallId: toolCall.id ?? nanoid(),
-                toolName: toolCall.function.name,
-                args,
-              });
-            }
-          }
-        },
-      }),
-    );
-  }
-
-  async doStreamJsonText({
     mode,
     prompt,
-  }: Parameters<LanguageModel['doStreamJsonText']>[0]): Promise<
+  }: Parameters<LanguageModel['doStream']>[0]): Promise<
     ReadableStream<LanguageModelStreamPart>
   > {
     const type = mode.type;
@@ -218,7 +117,95 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     const client = await this.getClient();
 
     switch (type) {
-      case 'json': {
+      case 'regular': {
+        const openaiResponse = await client.chat.completions.create({
+          ...this.basePrompt,
+          stream: true,
+          messages: convertToOpenAIChatPrompt(prompt),
+          tools: mode.tools?.map(tool => ({
+            type: 'function',
+            function: {
+              name: tool.name,
+              description: tool.description,
+              parameters: tool.parameters,
+            },
+          })),
+        });
+
+        const toolCalls: Array<{
+          id?: string;
+          type?: 'function';
+          function?: {
+            name?: string;
+            arguments?: string;
+          };
+        }> = [];
+
+        return readableFromAsyncIterable(openaiResponse).pipeThrough(
+          new TransformStream<
+            OpenAI.Chat.Completions.ChatCompletionChunk,
+            LanguageModelStreamPart
+          >({
+            transform(chunk, controller) {
+              if (chunk.choices?.[0].delta == null) {
+                return;
+              }
+
+              const delta = chunk.choices[0].delta;
+
+              if (delta.content != null) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: delta.content,
+                });
+              }
+
+              if (delta.tool_calls != null) {
+                for (const toolCallDelta of delta.tool_calls) {
+                  const index = toolCallDelta.index;
+
+                  // new tool call, add to list
+                  if (toolCalls[index] == null) {
+                    toolCalls[index] = toolCallDelta;
+                    continue;
+                  }
+
+                  // existing tool call, merge
+                  const toolCall = toolCalls[index];
+
+                  if (toolCallDelta.function?.arguments != null) {
+                    toolCall.function!.arguments +=
+                      toolCallDelta.function?.arguments ?? '';
+                  }
+
+                  // check if tool call is complete
+                  if (
+                    toolCall.function?.name == null ||
+                    toolCall.function?.arguments == null
+                  ) {
+                    continue;
+                  }
+
+                  const args = tryParseJSON(toolCall.function.arguments);
+
+                  if (args == null) {
+                    continue;
+                  }
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: toolCall.id ?? nanoid(),
+                    toolName: toolCall.function.name,
+                    args,
+                  });
+                }
+              }
+            },
+          }),
+        );
+      }
+
+      case 'object-json': {
         const clientResponse = await client.chat.completions.create({
           ...this.basePrompt,
           stream: true,
@@ -249,7 +236,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
         );
       }
 
-      case 'tool': {
+      case 'object-tool': {
         const clientResponse = await client.chat.completions.create({
           ...this.basePrompt,
           stream: true,
