@@ -1,12 +1,10 @@
-import { ToolCalls, ToolType } from '@mistralai/mistralai';
+import MistralClient, { ToolType } from '@mistralai/mistralai';
+import { LastArrayElement } from 'type-fest';
 import { ChatPrompt, UnsupportedFunctionalityError } from '../../core';
 
-type MistralChatMessage = {
-  role: string;
-  name?: string;
-  content: string | string[];
-  tool_calls?: Array<ToolCalls>;
-};
+type MistralChatMessage = LastArrayElement<
+  Parameters<MistralClient['chat']>[0]['messages']
+>;
 
 export function convertToMistralChatPrompt(
   prompt: ChatPrompt,
