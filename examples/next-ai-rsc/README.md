@@ -1,5 +1,5 @@
 <a href="https://sdk.vercel.ai/rsc-demo">
-  <img alt="AI Server Components Demo" src="https://github.com/vercel/ai-rsc-demo/assets/4060187/2942721b-9890-43a7-9761-9749dc8182d3">
+  <img alt="AI Server Components Demo" src="https://github.com/vercel/ai/assets/4060187/7a35550b-f3ad-41d3-afd4-c044b344d433">
   <h1 align="center">AI Server Components Demo</h1>
 </a>
 
