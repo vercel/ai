@@ -1,0 +1,14 @@
+{
+  "types": "./dist/types.d.ts",
+  "exports": {
+    "types": "./dist/types.d.ts",
+    "react-server": "./dist/server.mjs",
+    "import": "./dist/client.mjs",
+    "module": "./dist/client.mjs"
+  },
+  "private": true,
+  "peerDependencies": {
+    "react": ">=18",
+    "zod": ">=3"
+  }
+}
