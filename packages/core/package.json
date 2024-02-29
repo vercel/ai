@@ -44,10 +44,10 @@
       "require": "./dist/index.js"
     },
     "./rsc": {
-      "types": "./rsc/dist/types.d.ts",
-      "react-server": "./rsc/dist/server.mjs",
-      "import": "./rsc/dist/client.mjs",
-      "module": "./rsc/dist/client.mjs"
+      "types": "./rsc/dist/rsc-types.d.ts",
+      "react-server": "./rsc/dist/rsc-server.mjs",
+      "import": "./rsc/dist/rsc-client.mjs",
+      "module": "./rsc/dist/rsc-client.mjs"
     },
     "./prompts": {
       "types": "./prompts/dist/index.d.ts",

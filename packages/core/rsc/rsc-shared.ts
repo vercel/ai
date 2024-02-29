@@ -7,4 +7,4 @@ export {
   useActions,
   useSyncUIState,
   InternalAIProvider,
-} from './rsc-client';
+} from './shared-client';

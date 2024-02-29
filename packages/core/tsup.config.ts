@@ -81,10 +81,10 @@ export default defineConfig([
   },
   // RSC APIs - server, client, types
   {
-    entry: ['rsc/server.ts', 'rsc/client.ts', 'rsc/types.ts'],
+    entry: ['rsc/rsc-server.ts', 'rsc/rsc-client.ts', 'rsc/rsc-types.ts'],
     outDir: 'rsc/dist',
     format: ['esm'],
-    external: ['react', 'zod', './rsc/shared.ts', /\/rsc-shared/],
+    external: ['react', 'zod', /\/rsc-shared/],
     dts: true,
     sourcemap: true,
   },
