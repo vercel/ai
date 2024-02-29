@@ -19,7 +19,8 @@
         "NODE_ENV",
         "ASSISTANT_ID",
         "INKEEP_API_KEY",
-        "INKEEP_INTEGRATION_ID"
+        "INKEEP_INTEGRATION_ID",
+        "VERCEL_URL"
       ],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
