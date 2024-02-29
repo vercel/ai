@@ -9,16 +9,14 @@ describe('result.object', () => {
       model: new MockLanguageModel({
         doGenerateJsonText: async ({ prompt }) => {
           return {
-            jsonText: `{ "hello": "${prompt}" }`,
+            jsonText: `{ "content": "Hello, ${prompt}!" }`,
           };
         },
       }),
-      schema: z.object({
-        hello: z.string(),
-      }),
+      schema: z.object({ content: z.string() }),
       prompt: 'world',
     });
 
-    assert.deepStrictEqual(result.object, { hello: 'world' });
+    assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
   });
 });
