@@ -48,18 +48,32 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     };
   }
 
-  private getDoGenerateArgs({
+  private getArgs(
+    option: Parameters<LanguageModel['doGenerate']>[0] & {
+      stream: true;
+    },
+  ): ChatCompletionCreateParamsStreaming;
+  private getArgs(
+    options: Parameters<LanguageModel['doGenerate']>[0] & {
+      stream: false;
+    },
+  ): ChatCompletionCreateParamsNonStreaming;
+  private getArgs({
     mode,
     prompt,
-  }: Parameters<
-    LanguageModel['doGenerate']
-  >[0]): ChatCompletionCreateParamsNonStreaming {
+    stream,
+  }: Parameters<LanguageModel['doGenerate']>[0] & {
+    stream: boolean;
+  }):
+    | ChatCompletionCreateParamsNonStreaming
+    | ChatCompletionCreateParamsStreaming {
     const type = mode.type;
     const messages = convertToOpenAIChatPrompt(prompt);
 
     switch (type) {
       case 'regular': {
         return {
+          stream,
           ...this.basePrompt,
           messages,
           // TODO tools
@@ -68,6 +82,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
 
       case 'object-json': {
         return {
+          stream,
           ...this.basePrompt,
           response_format: { type: 'json_object' },
           messages,
@@ -76,6 +91,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
 
       case 'object-tool': {
         return {
+          stream,
           ...this.basePrompt,
           tool_choice: { type: 'function', function: { name: mode.tool.name } },
           tools: [{ type: 'function', function: mode.tool }],
@@ -97,7 +113,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     const client = await this.getClient();
 
     const completion = await client.chat.completions.create(
-      this.getDoGenerateArgs({ mode, prompt }),
+      this.getArgs({ stream: false, mode, prompt }),
     );
 
     const message = completion.choices[0].message;
@@ -112,51 +128,6 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     };
   }
 
-  private getDoStreamArgs({
-    mode,
-    prompt,
-  }: Parameters<
-    LanguageModel['doGenerate']
-  >[0]): ChatCompletionCreateParamsStreaming {
-    const type = mode.type;
-    const messages = convertToOpenAIChatPrompt(prompt);
-
-    switch (type) {
-      case 'regular': {
-        return {
-          stream: true,
-          ...this.basePrompt,
-          messages,
-          // TODO tools
-        };
-      }
-
-      case 'object-json': {
-        return {
-          stream: true,
-          ...this.basePrompt,
-          response_format: { type: 'json_object' },
-          messages,
-        };
-      }
-
-      case 'object-tool': {
-        return {
-          stream: true,
-          ...this.basePrompt,
-          tool_choice: { type: 'function', function: { name: mode.tool.name } },
-          tools: [{ type: 'function', function: mode.tool }],
-          messages,
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
-  }
-
   async doStream({
     mode,
     prompt,
@@ -166,7 +137,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     const client = await this.getClient();
 
     const response = await client.chat.completions.create(
-      this.getDoStreamArgs({ mode, prompt }),
+      this.getArgs({ stream: true, mode, prompt }),
     );
 
     const toolCalls: Array<{
