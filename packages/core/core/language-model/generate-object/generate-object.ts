@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { safeParseJSON } from '../../schema/parse-json';
 import { ZodSchema } from '../../schema/zod-schema';
-import { injectJsonSchemaIntoInstructionPrompt } from '../inject-json-schema-into-instruction-prompt';
+import { injectJsonSchemaIntoInstructionPrompt } from './inject-json-schema-into-instruction-prompt';
 import { LanguageModel } from '../language-model';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
 import { NoObjectGeneratedError } from './no-object-generated-error';

@@ -1,4 +1,4 @@
-import { InstructionPrompt } from '.';
+import { InstructionPrompt } from '../..';
 
 const DEFAULT_SCHEMA_PREFIX = 'JSON schema:';
 const DEFAULT_SCHEMA_SUFFIX =

@@ -10,7 +10,7 @@ import {
   LanguageModelStreamPart,
   ObjectMode,
 } from '../../core';
-import { injectJsonSchemaIntoInstructionPrompt } from '../../core/language-model/inject-json-schema-into-instruction-prompt';
+import { injectJsonSchemaIntoInstructionPrompt } from '../../core/language-model/generate-object/inject-json-schema-into-instruction-prompt';
 import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
 import { readableFromAsyncIterable } from '../../streams/ai-stream';
