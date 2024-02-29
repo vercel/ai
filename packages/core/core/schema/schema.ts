@@ -13,7 +13,7 @@ export interface Schema<OBJECT> {
   /**
    * Returns the JSON schema for this schema. The schema has to be a valid JSON schema in object form.
    */
-  getJsonSchema(): unknown;
+  getJsonSchema(): Record<string, unknown>;
 
   /**
    * Use only for typing inference. The value is always `undefined`.

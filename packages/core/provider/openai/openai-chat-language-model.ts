@@ -5,7 +5,9 @@ import {
   LanguageModel,
   LanguageModelSettings,
   LanguageModelStreamPart,
+  ObjectMode,
 } from '../../core';
+import { injectJsonSchemaIntoInstructionPrompt } from '../../core/language-model/inject-json-schema-into-instruction-prompt';
 import { ChatPrompt } from '../../core/language-model/prompt/chat-prompt';
 import { InstructionPrompt } from '../../core/language-model/prompt/instruction-prompt';
 import { tryParseJSON } from '../../core/util/try-json-parse';
@@ -14,7 +16,6 @@ import {
   convertInstructionPromptToOpenAIChatPrompt,
   convertToOpenAIChatPrompt,
 } from './openai-chat-prompt';
-import { injectJsonSchemaIntoInstructionPrompt } from '../../core/language-model/inject-json-schema-into-instruction-prompt';
 
 export interface OpenAIChatLanguageModelSettings extends LanguageModelSettings {
   client: () => Promise<OpenAI>;
@@ -24,7 +25,7 @@ export interface OpenAIChatLanguageModelSettings extends LanguageModelSettings {
    */
   id: string;
 
-  objectMode?: 'JSON_OUTPUT' | 'TOOL_CALL';
+  objectMode?: ObjectMode;
 }
 
 export class OpenAIChatLanguageModel implements LanguageModel {
@@ -36,6 +37,10 @@ export class OpenAIChatLanguageModel implements LanguageModel {
 
   private getClient(): Promise<OpenAI> {
     return this.settings.client();
+  }
+
+  get objectMode(): ObjectMode {
+    return this.settings.objectMode ?? 'tool';
   }
 
   async doGenerate({ prompt }: { prompt: ChatPrompt | InstructionPrompt }) {
@@ -151,31 +156,21 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     );
   }
 
-  doGenerateJsonText = async ({
-    schema,
+  async doGenerateJsonText({
+    mode,
     prompt,
-  }: {
-    schema: Record<string, unknown>;
-    prompt: InstructionPrompt;
-  }): Promise<{
-    jsonText: string;
-  }> => {
-    const outputMode = this.settings.objectMode ?? 'TOOL_CALL';
+  }: Parameters<LanguageModel['doGenerateJsonText']>[0]) {
+    const type = mode.type;
 
-    switch (outputMode) {
-      case 'JSON_OUTPUT': {
+    switch (type) {
+      case 'json': {
         const client = await this.getClient();
         const openaiResponse = await client.chat.completions.create({
           model: this.settings.id,
           max_tokens: this.settings.maxTokens,
 
           response_format: { type: 'json_object' },
-          messages: convertInstructionPromptToOpenAIChatPrompt(
-            injectJsonSchemaIntoInstructionPrompt({
-              prompt,
-              schema,
-            }),
-          ),
+          messages: convertInstructionPromptToOpenAIChatPrompt(prompt),
         });
 
         return {
@@ -184,29 +179,18 @@ export class OpenAIChatLanguageModel implements LanguageModel {
         };
       }
 
-      case 'TOOL_CALL': {
+      case 'tool': {
         const client = await this.getClient();
         const openaiResponse = await client.chat.completions.create({
           model: this.settings.id,
           max_tokens: this.settings.maxTokens,
+
           messages: convertToOpenAIChatPrompt(prompt),
-          tool_choice: {
-            type: 'function',
-            function: { name: 'json' },
-          },
-          tools: [
-            {
-              type: 'function',
-              function: {
-                // TODO enable setting name/description through json mode setting
-                name: 'json',
-                description: 'Convert the previous message to JSON',
-                parameters: schema,
-              },
-            },
-          ],
+          tool_choice: { type: 'function', function: { name: mode.tool.name } },
+          tools: [{ type: 'function', function: mode.tool }],
         });
 
+        // TODO standard processing for tool calls
         return {
           jsonText:
             // TODO handle null case
@@ -216,11 +200,11 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       }
 
       default: {
-        const _exhaustiveCheck: never = outputMode;
-        throw new Error(`Unsupported objectMode: ${_exhaustiveCheck}`);
+        const _exhaustiveCheck: never = type;
+        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
       }
     }
-  };
+  }
 
   async doStreamJsonText({
     schema,
@@ -233,10 +217,10 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
     >
   > {
-    const outputMode = this.settings.objectMode ?? 'TOOL_CALL';
+    const outputMode = this.settings.objectMode ?? 'tool';
 
     switch (outputMode) {
-      case 'JSON_OUTPUT': {
+      case 'json': {
         const client = await this.getClient();
         const clientResponse = await client.chat.completions.create({
           stream: true,
@@ -275,7 +259,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
         );
       }
 
-      case 'TOOL_CALL': {
+      case 'tool': {
         const client = await this.getClient();
         const clientResponse = await client.chat.completions.create({
           stream: true,

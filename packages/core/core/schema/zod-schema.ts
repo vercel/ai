@@ -23,7 +23,7 @@ export class ZodSchema<OBJECT> implements Schema<OBJECT> {
       : { success: false, error: result.error };
   }
 
-  getJsonSchema(): Record<string, unknown> {
+  getJsonSchema() {
     return zodToJsonSchema(this.zodSchema) as Record<string, unknown>;
   }
 

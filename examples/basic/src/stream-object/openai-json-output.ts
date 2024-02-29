@@ -10,7 +10,7 @@ async function main() {
     model: openai.chat({
       id: 'gpt-4-turbo-preview',
       maxTokens: 2000,
-      objectMode: 'JSON_OUTPUT',
+      objectMode: 'json',
     }),
 
     schema: z.object({

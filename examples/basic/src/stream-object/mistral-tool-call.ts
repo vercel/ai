@@ -10,7 +10,7 @@ async function main() {
     model: mistral.chat({
       id: 'mistral-small-latest',
       maxTokens: 2000,
-      objectMode: 'TOOL_CALL',
+      objectMode: 'tool',
     }),
 
     schema: z.object({

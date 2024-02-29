@@ -4,39 +4,60 @@ import { MockLanguageModel } from '../test/mock-language-model';
 import { generateObject } from './generate-object';
 
 describe('result.object', () => {
-  it('should generate object with JSON mode', async () => {
+  it('should generate object with json mode', async () => {
     const result = await generateObject({
       model: new MockLanguageModel({
-        objectMode: 'JSON',
-        doGenerateJsonText: async ({ prompt, objectMode }) => {
-          assert.strictEqual(objectMode, 'JSON');
+        objectMode: 'json',
+        doGenerateJsonText: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, { type: 'json' });
+          assert.deepStrictEqual(prompt, {
+            system:
+              'JSON schema:\n' +
+              '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
+              'You MUST answer with a JSON object that matches the JSON schema above.',
+            instruction: 'prompt',
+          });
 
           return {
-            jsonText: `{ "content": "Hello, ${prompt}!" }`,
+            jsonText: `{ "content": "Hello, world!" }`,
           };
         },
       }),
       schema: z.object({ content: z.string() }),
-      prompt: 'world',
+      prompt: 'prompt',
     });
 
     assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
   });
 
-  it('should generate object with TOOL mode', async () => {
+  it('should generate object with tool mode', async () => {
     const result = await generateObject({
       model: new MockLanguageModel({
-        objectMode: 'TOOL',
-        doGenerateJsonText: async ({ prompt, objectMode }) => {
-          assert.strictEqual(objectMode, 'TOOL');
+        objectMode: 'tool',
+        doGenerateJsonText: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'tool',
+            tool: {
+              name: 'json',
+              description: 'Respond with a JSON object.',
+              parameters: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                additionalProperties: false,
+                properties: { content: { type: 'string' } },
+                required: ['content'],
+                type: 'object',
+              },
+            },
+          });
+          assert.deepStrictEqual(prompt, 'prompt');
 
           return {
-            jsonText: `{ "content": "Hello, ${prompt}!" }`,
+            jsonText: `{ "content": "Hello, world!" }`,
           };
         },
       }),
       schema: z.object({ content: z.string() }),
-      prompt: 'world',
+      prompt: 'prompt',
     });
 
     assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
