@@ -9,7 +9,7 @@ import {
   LanguageModelStreamPart,
 } from '../language-model';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
-import { convertInstructionPromptToChatPrompt } from '../prompt/convert-instruction-prompt-to-chat-prompt';
+import { convertToChatPrompt } from '../prompt/convert-to-chat-prompt';
 import { injectJsonSchemaIntoInstructionPrompt } from './inject-json-schema-into-instruction-prompt';
 
 /**
@@ -34,7 +34,7 @@ export async function streamObject<T>({
     case 'json': {
       const streamResponse = await model.doStreamJsonText({
         mode: { type: 'json' },
-        prompt: convertInstructionPromptToChatPrompt(
+        prompt: convertToChatPrompt(
           injectJsonSchemaIntoInstructionPrompt({
             prompt,
             schema: jsonSchema,
@@ -70,7 +70,7 @@ export async function streamObject<T>({
             parameters: jsonSchema,
           },
         },
-        prompt: convertInstructionPromptToChatPrompt(prompt),
+        prompt: convertToChatPrompt(prompt),
       });
 
       modelStream = streamResponse.pipeThrough(

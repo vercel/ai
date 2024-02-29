@@ -100,16 +100,75 @@ export class MistralChatLanguageModel implements LanguageModel {
     };
   }
 
-  async doGenerate({ prompt }: { prompt: ChatPrompt | InstructionPrompt }) {
+  async doGenerate({
+    mode,
+    prompt,
+  }: Parameters<LanguageModel['doGenerate']>[0]) {
+    const type = mode.type;
+    const messages = convertChatPromptToMistralChatPrompt(prompt);
     const client = await this.getClient();
-    const clientResponse = await client.chat({
-      ...this.basePrompt,
-      messages: convertToMistralChatPrompt(prompt),
-    });
 
-    return {
-      text: clientResponse.choices[0].message.content!,
-    };
+    switch (type) {
+      case 'regular': {
+        const clientResponse = await client.chat({
+          ...this.basePrompt,
+          messages: convertToMistralChatPrompt(prompt),
+        });
+
+        // TODO extract standard response processing
+        return {
+          text: clientResponse.choices[0].message.content,
+        };
+      }
+
+      case 'object-json': {
+        const clientResponse = await client.chat({
+          ...this.basePrompt,
+          responseFormat: { type: 'json_object' } as ResponseFormat,
+          messages,
+        });
+
+        // TODO extract standard response processing
+        return {
+          text: clientResponse.choices[0].message.content,
+        };
+      }
+
+      case 'object-tool': {
+        const clientResponse = await client.chat({
+          ...this.basePrompt,
+          toolChoice: 'any' as ToolChoice,
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: mode.tool.name,
+                description: mode.tool.description ?? '',
+                parameters: mode.tool.parameters,
+              },
+            },
+          ],
+          messages,
+        });
+
+        // Note: correct types not supported by MistralClient as of 2024-Feb-28
+        const message = clientResponse.choices[0].message as any;
+
+        // TODO extract standard response processing
+        return {
+          toolCalls: message.tool_calls?.map((toolCall: any) => ({
+            toolCallId: toolCall.id,
+            toolName: toolCall.function.name,
+            args: toolCall.function.arguments,
+          })),
+        };
+      }
+
+      default: {
+        const _exhaustiveCheck: never = type;
+        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
+      }
+    }
   }
 
   async doStream({
@@ -150,65 +209,6 @@ export class MistralChatLanguageModel implements LanguageModel {
         },
       ),
     );
-  }
-
-  async doGenerateJsonText({
-    mode,
-    prompt,
-  }: Parameters<LanguageModel['doGenerateJsonText']>[0]) {
-    const type = mode.type;
-    const messages = convertChatPromptToMistralChatPrompt(prompt);
-    const client = await this.getClient();
-
-    switch (type) {
-      case 'json': {
-        const clientResponse = await client.chat({
-          ...this.basePrompt,
-          responseFormat: { type: 'json_object' } as ResponseFormat,
-          messages,
-        });
-
-        // TODO extract standard response processing
-        return {
-          text: clientResponse.choices[0].message.content,
-        };
-      }
-
-      case 'tool': {
-        const clientResponse = await client.chat({
-          ...this.basePrompt,
-          toolChoice: 'any' as ToolChoice,
-          tools: [
-            {
-              type: 'function',
-              function: {
-                name: mode.tool.name,
-                description: mode.tool.description ?? '',
-                parameters: mode.tool.parameters,
-              },
-            },
-          ],
-          messages,
-        });
-
-        // Note: correct types not supported by MistralClient as of 2024-Feb-28
-        const message = clientResponse.choices[0].message as any;
-
-        // TODO extract standard response processing
-        return {
-          toolCalls: message.tool_calls?.map((toolCall: any) => ({
-            toolCallId: toolCall.id,
-            toolName: toolCall.function.name,
-            args: toolCall.function.arguments,
-          })),
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
   }
 
   async doStreamJsonText({

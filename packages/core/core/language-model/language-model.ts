@@ -8,21 +8,13 @@ export interface LanguageModelSettings {
 export type ObjectMode = 'tool' | 'json';
 
 export interface LanguageModel {
-  doGenerate(options: { prompt: InstructionPrompt | ChatPrompt }): PromiseLike<{
-    text: string;
-  }>;
-
-  doStream(options: {
-    prompt: InstructionPrompt | ChatPrompt;
-    tools?: Array<LanguageModelToolDefinition>;
-  }): PromiseLike<ReadableStream<LanguageModelStreamPart>>;
-
   objectMode: ObjectMode;
 
-  doGenerateJsonText(options: {
+  doGenerate(options: {
     mode:
-      | { type: 'json' }
-      | { type: 'tool'; tool: LanguageModelToolDefinition };
+      | { type: 'regular' } // TODO tools
+      | { type: 'object-json' }
+      | { type: 'object-tool'; tool: LanguageModelToolDefinition };
     prompt: ChatPrompt;
   }): PromiseLike<{
     text?: string;
@@ -32,6 +24,11 @@ export interface LanguageModel {
       args: string;
     }>;
   }>;
+
+  doStream(options: {
+    prompt: InstructionPrompt | ChatPrompt;
+    tools?: Array<LanguageModelToolDefinition>;
+  }): PromiseLike<ReadableStream<LanguageModelStreamPart>>;
 
   doStreamJsonText(options: {
     mode:

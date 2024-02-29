@@ -49,16 +49,63 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     };
   }
 
-  async doGenerate({ prompt }: { prompt: ChatPrompt | InstructionPrompt }) {
+  async doGenerate({
+    mode,
+    prompt,
+  }: Parameters<LanguageModel['doGenerate']>[0]) {
+    const type = mode.type;
+    const messages = convertChatPromptToOpenAIChatPrompt(prompt);
     const client = await this.getClient();
-    const openaiResponse = await client.chat.completions.create({
-      ...this.basePrompt,
-      messages: convertToOpenAIChatPrompt(prompt),
-    });
 
-    return {
-      text: openaiResponse.choices[0].message.content!,
-    };
+    switch (type) {
+      case 'regular': {
+        const response = await client.chat.completions.create({
+          ...this.basePrompt,
+          messages: convertToOpenAIChatPrompt(prompt),
+        });
+
+        // TODO extract standard response processing
+        return {
+          text: response.choices[0].message.content ?? undefined,
+        };
+      }
+
+      case 'object-json': {
+        const response = await client.chat.completions.create({
+          ...this.basePrompt,
+          response_format: { type: 'json_object' },
+          messages,
+        });
+
+        // TODO extract standard response processing
+        return {
+          text: response.choices[0].message.content ?? undefined,
+        };
+      }
+
+      case 'object-tool': {
+        const response = await client.chat.completions.create({
+          ...this.basePrompt,
+          tool_choice: { type: 'function', function: { name: mode.tool.name } },
+          tools: [{ type: 'function', function: mode.tool }],
+          messages,
+        });
+
+        // TODO extract standard response processing
+        return {
+          toolCalls: response.choices[0].message.tool_calls?.map(toolCall => ({
+            toolCallId: toolCall.id,
+            toolName: toolCall.function.name,
+            args: toolCall.function.arguments!,
+          })),
+        };
+      }
+
+      default: {
+        const _exhaustiveCheck: never = type;
+        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
+      }
+    }
   }
 
   async doStream({
@@ -158,55 +205,6 @@ export class OpenAIChatLanguageModel implements LanguageModel {
         },
       }),
     );
-  }
-
-  async doGenerateJsonText({
-    mode,
-    prompt,
-  }: Parameters<LanguageModel['doGenerateJsonText']>[0]) {
-    const type = mode.type;
-    const messages = convertChatPromptToOpenAIChatPrompt(prompt);
-    const client = await this.getClient();
-
-    switch (type) {
-      case 'json': {
-        const openaiResponse = await client.chat.completions.create({
-          ...this.basePrompt,
-          response_format: { type: 'json_object' },
-          messages,
-        });
-
-        // TODO extract standard response processing
-        return {
-          text: openaiResponse.choices[0].message.content ?? undefined,
-        };
-      }
-
-      case 'tool': {
-        const openaiResponse = await client.chat.completions.create({
-          ...this.basePrompt,
-          tool_choice: { type: 'function', function: { name: mode.tool.name } },
-          tools: [{ type: 'function', function: mode.tool }],
-          messages,
-        });
-
-        // TODO extract standard response processing
-        return {
-          toolCalls: openaiResponse.choices[0].message.tool_calls?.map(
-            toolCall => ({
-              toolCallId: toolCall.id,
-              toolName: toolCall.function.name,
-              args: toolCall.function.arguments!,
-            }),
-          ),
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
   }
 
   async doStreamJsonText({

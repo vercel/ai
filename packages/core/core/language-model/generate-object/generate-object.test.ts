@@ -8,8 +8,8 @@ describe('result.object', () => {
     const result = await generateObject({
       model: new MockLanguageModel({
         objectMode: 'json',
-        doGenerateJsonText: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'json' });
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, { type: 'object-json' });
           assert.deepStrictEqual(prompt, {
             system:
               'JSON schema:\n' +
@@ -34,9 +34,9 @@ describe('result.object', () => {
     const result = await generateObject({
       model: new MockLanguageModel({
         objectMode: 'tool',
-        doGenerateJsonText: async ({ prompt, mode }) => {
+        doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
-            type: 'tool',
+            type: 'object-tool',
             tool: {
               name: 'json',
               description: 'Respond with a JSON object.',

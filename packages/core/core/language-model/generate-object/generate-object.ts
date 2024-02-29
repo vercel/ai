@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { safeParseJSON } from '../../schema/parse-json';
 import { ZodSchema } from '../../schema/zod-schema';
 import { LanguageModel } from '../language-model';
-import { convertInstructionPromptToChatPrompt } from '../prompt/convert-instruction-prompt-to-chat-prompt';
+import { convertToChatPrompt } from '../prompt/convert-to-chat-prompt';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
 import { injectJsonSchemaIntoInstructionPrompt } from './inject-json-schema-into-instruction-prompt';
 import { NoObjectGeneratedError } from './no-object-generated-error';
@@ -29,9 +29,9 @@ export async function generateObject<T>({
 
   switch (objectMode) {
     case 'json': {
-      const generateResult = await model.doGenerateJsonText({
-        mode: { type: 'json' },
-        prompt: convertInstructionPromptToChatPrompt(
+      const generateResult = await model.doGenerate({
+        mode: { type: 'object-json' },
+        prompt: convertToChatPrompt(
           injectJsonSchemaIntoInstructionPrompt({
             prompt,
             schema: jsonSchema,
@@ -49,16 +49,16 @@ export async function generateObject<T>({
     }
 
     case 'tool': {
-      const generateResult = await model.doGenerateJsonText({
+      const generateResult = await model.doGenerate({
         mode: {
-          type: 'tool',
+          type: 'object-tool',
           tool: {
             name: 'json',
             description: 'Respond with a JSON object.',
             parameters: jsonSchema,
           },
         },
-        prompt: convertInstructionPromptToChatPrompt(prompt),
+        prompt: convertToChatPrompt(prompt),
       });
 
       const functionArgs = generateResult.toolCalls?.[0]?.args;
