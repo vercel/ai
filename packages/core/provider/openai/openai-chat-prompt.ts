@@ -1,50 +1,46 @@
 import { ChatCompletionMessageParam } from 'openai/resources';
-import {
-  ChatPrompt,
-  ImagePart,
-  InstructionPrompt,
-  TextPart,
-  convertDataContentToBase64String,
-  isInstructionPrompt,
-} from '../../core';
+import { ChatPrompt, convertDataContentToBase64String } from '../../core';
 
 export function convertToOpenAIChatPrompt(
-  prompt: InstructionPrompt | ChatPrompt,
-): Array<ChatCompletionMessageParam> {
-  return isInstructionPrompt(prompt)
-    ? convertInstructionPromptToOpenAIChatPrompt(prompt)
-    : convertChatPromptToOpenAIChatPrompt(prompt);
-}
-
-export function convertInstructionPromptToOpenAIChatPrompt(
-  prompt: InstructionPrompt,
-): Array<ChatCompletionMessageParam> {
-  if (typeof prompt === 'string') {
-    return [user(prompt)];
-  }
-
-  if (prompt.system == null) {
-    return [user(prompt.instruction)];
-  }
-
-  return [system(prompt.system), user(prompt.instruction)];
-}
-
-export function convertChatPromptToOpenAIChatPrompt(
   prompt: ChatPrompt,
 ): Array<ChatCompletionMessageParam> {
   const messages: Array<ChatCompletionMessageParam> = [];
 
   if (prompt.system != null) {
-    messages.push(system(prompt.system));
+    messages.push({ role: 'system', content: prompt.system });
   }
 
   for (const { role, content } of prompt.messages) {
     switch (role) {
       case 'user': {
-        messages.push(user(content));
+        messages.push({
+          role: 'user',
+          content:
+            typeof content === 'string'
+              ? content
+              : content.map(part => {
+                  switch (part.type) {
+                    case 'text': {
+                      return { type: 'text', text: part.text };
+                    }
+                    case 'image': {
+                      return {
+                        type: 'image_url',
+                        image_url: {
+                          url: `data:${
+                            part.mimeType ?? 'image/jpeg'
+                          };base64,${convertDataContentToBase64String(
+                            part.image,
+                          )}`,
+                        },
+                      };
+                    }
+                  }
+                }),
+        });
         break;
       }
+
       case 'assistant': {
         if (typeof content === 'string') {
           messages.push({ role: 'assistant', content });
@@ -89,6 +85,7 @@ export function convertChatPromptToOpenAIChatPrompt(
 
         break;
       }
+
       case 'tool': {
         for (const toolResponse of content) {
           messages.push({
@@ -99,6 +96,7 @@ export function convertChatPromptToOpenAIChatPrompt(
         }
         break;
       }
+
       default: {
         const _exhaustiveCheck: never = role;
         throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
@@ -107,41 +105,4 @@ export function convertChatPromptToOpenAIChatPrompt(
   }
 
   return messages;
-}
-
-/**
- * Creates a system chat message.
- */
-function system(content: string): ChatCompletionMessageParam {
-  return { role: 'system', content };
-}
-
-function user(
-  content: string | Array<TextPart | ImagePart>,
-  options?: { name?: string },
-): ChatCompletionMessageParam {
-  return {
-    role: 'user',
-    content:
-      typeof content === 'string'
-        ? content
-        : content.map(part => {
-            switch (part.type) {
-              case 'text': {
-                return { type: 'text', text: part.text };
-              }
-              case 'image': {
-                return {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:${
-                      part.mimeType ?? 'image/jpeg'
-                    };base64,${convertDataContentToBase64String(part.image)}`,
-                  },
-                };
-              }
-            }
-          }),
-    name: options?.name,
-  };
 }

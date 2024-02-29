@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid';
 import OpenAI from 'openai';
+import { ChatCompletionCreateParamsNonStreaming } from 'openai/resources';
 import {
   LanguageModel,
   LanguageModelSettings,
@@ -8,11 +9,7 @@ import {
 } from '../../core';
 import { tryParseJSON } from '../../core/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
-import {
-  convertChatPromptToOpenAIChatPrompt,
-  convertToOpenAIChatPrompt,
-} from './openai-chat-prompt';
-import { ChatCompletionCreateParamsNonStreaming } from 'openai/resources';
+import { convertToOpenAIChatPrompt } from './openai-chat-prompt';
 
 export interface OpenAIChatLanguageModelSettings extends LanguageModelSettings {
   client: () => Promise<OpenAI>;
@@ -55,7 +52,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     LanguageModel['doGenerate']
   >[0]): ChatCompletionCreateParamsNonStreaming {
     const type = mode.type;
-    const messages = convertChatPromptToOpenAIChatPrompt(prompt);
+    const messages = convertToOpenAIChatPrompt(prompt);
 
     switch (type) {
       case 'regular': {
@@ -119,7 +116,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
     ReadableStream<LanguageModelStreamPart>
   > {
     const type = mode.type;
-    const messages = convertChatPromptToOpenAIChatPrompt(prompt);
+    const messages = convertToOpenAIChatPrompt(prompt);
     const client = await this.getClient();
 
     switch (type) {
