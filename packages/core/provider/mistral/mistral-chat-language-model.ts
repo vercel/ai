@@ -191,18 +191,16 @@ export class MistralChatLanguageModel implements LanguageModel {
               });
             }
 
-            if (delta.content != null) {
+            // Note: Mistral does not support tool streaming as of 2024-Feb-29
+            // The result come in a single chunk as content.
+            if (mode.type === 'object-tool' && delta.content != null) {
               controller.enqueue({
                 type: 'tool-call-delta',
-                // Note: Mistral does not support tool streaming as of 2024-Feb-28
-                // The result come in a single chunk as content.
                 toolCallId: delta.tool_calls?.[0]?.id ?? '', // TODO empty?
                 toolName: delta.tool_calls?.[0]?.function.name ?? '', // TODO empty?
                 argsTextDelta: delta.content,
               });
             }
-
-            // TODO full tool call
           },
         },
       ),
