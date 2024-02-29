@@ -24,3 +24,28 @@ describe('result.textStream', () => {
     );
   });
 });
+
+describe('result.fullStream', () => {
+  it('should send all text parts as fullStream', async () => {
+    const result = await streamText({
+      model: new MockLanguageModel({
+        doStream: async ({ prompt }) =>
+          convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: `${prompt}!` },
+          ]),
+      }),
+      prompt: 'world',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.fullStream),
+      [
+        { type: 'text-delta', textDelta: 'Hello' },
+        { type: 'text-delta', textDelta: ', ' },
+        { type: 'text-delta', textDelta: 'world!' },
+      ],
+    );
+  });
+});
