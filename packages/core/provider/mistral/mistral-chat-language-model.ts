@@ -212,30 +212,23 @@ export class MistralChatLanguageModel implements LanguageModel {
   }
 
   async doStreamJsonText({
-    schema,
+    mode,
     prompt,
-  }: {
-    schema: Record<string, unknown>;
-    prompt: InstructionPrompt;
-  }): Promise<
+  }: Parameters<LanguageModel['doStreamJsonText']>[0]): Promise<
     ReadableStream<
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
     >
   > {
-    const outputMode = this.settings.objectMode ?? 'json';
+    const type = mode.type;
+    const messages = convertChatPromptToMistralChatPrompt(prompt);
+    const client = await this.getClient();
 
-    switch (outputMode) {
+    switch (type) {
       case 'json': {
-        const client = await this.getClient();
         const response = client.chatStream({
           ...this.basePrompt,
           responseFormat: { type: 'json_object' } as ResponseFormat,
-          messages: convertInstructionPromptToMistralChatPrompt(
-            injectJsonSchemaIntoInstructionPrompt({
-              prompt,
-              schema,
-            }),
-          ),
+          messages,
         });
 
         return readableFromAsyncIterable(response).pipeThrough(
@@ -262,7 +255,6 @@ export class MistralChatLanguageModel implements LanguageModel {
       }
 
       case 'tool': {
-        const client = await this.getClient();
         const response = client.chatStream({
           ...this.basePrompt,
           toolChoice: 'any' as ToolChoice,
@@ -270,13 +262,13 @@ export class MistralChatLanguageModel implements LanguageModel {
             {
               type: 'function',
               function: {
-                name: 'json',
-                description: 'Respond with a JSON object.',
-                parameters: schema,
+                name: mode.tool.name,
+                description: mode.tool.description ?? '',
+                parameters: mode.tool.parameters,
               },
             },
           ],
-          messages: convertInstructionPromptToMistralChatPrompt(prompt),
+          messages,
         });
 
         return readableFromAsyncIterable(response).pipeThrough(
@@ -305,8 +297,8 @@ export class MistralChatLanguageModel implements LanguageModel {
       }
 
       default: {
-        const _exhaustiveCheck: never = outputMode;
-        throw new Error(`Unsupported objectMode: ${_exhaustiveCheck}`);
+        const _exhaustiveCheck: never = type;
+        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
       }
     }
   }

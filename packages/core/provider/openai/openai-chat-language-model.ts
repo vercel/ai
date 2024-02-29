@@ -188,7 +188,6 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       case 'tool': {
         const openaiResponse = await client.chat.completions.create({
           ...this.basePrompt,
-
           tool_choice: { type: 'function', function: { name: mode.tool.name } },
           tools: [{ type: 'function', function: mode.tool }],
           messages,
@@ -214,33 +213,24 @@ export class OpenAIChatLanguageModel implements LanguageModel {
   }
 
   async doStreamJsonText({
-    schema,
+    mode,
     prompt,
-  }: {
-    schema: Record<string, unknown>;
-    prompt: InstructionPrompt;
-  }): Promise<
+  }: Parameters<LanguageModel['doStreamJsonText']>[0]): Promise<
     ReadableStream<
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
     >
   > {
-    const outputMode = this.settings.objectMode ?? 'tool';
+    const type = mode.type;
+    const messages = convertChatPromptToOpenAIChatPrompt(prompt);
+    const client = await this.getClient();
 
-    switch (outputMode) {
+    switch (type) {
       case 'json': {
-        const client = await this.getClient();
         const clientResponse = await client.chat.completions.create({
           ...this.basePrompt,
-
           stream: true,
-
           response_format: { type: 'json_object' },
-          messages: convertInstructionPromptToOpenAIChatPrompt(
-            injectJsonSchemaIntoInstructionPrompt({
-              prompt,
-              schema,
-            }),
-          ),
+          messages,
         });
 
         return readableFromAsyncIterable(clientResponse).pipeThrough(
@@ -267,28 +257,12 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       }
 
       case 'tool': {
-        const client = await this.getClient();
         const clientResponse = await client.chat.completions.create({
           ...this.basePrompt,
-
           stream: true,
-
-          messages: convertToOpenAIChatPrompt(prompt),
-          tool_choice: {
-            type: 'function',
-            function: { name: 'json' },
-          },
-          tools: [
-            {
-              type: 'function',
-              function: {
-                // TODO enable setting name/description through json mode setting
-                name: 'json',
-                description: 'Respond with a JSON object.',
-                parameters: schema,
-              },
-            },
-          ],
+          tool_choice: { type: 'function', function: { name: mode.tool.name } },
+          tools: [{ type: 'function', function: mode.tool }],
+          messages,
         });
 
         return readableFromAsyncIterable(clientResponse).pipeThrough(
@@ -329,8 +303,8 @@ export class OpenAIChatLanguageModel implements LanguageModel {
       }
 
       default: {
-        const _exhaustiveCheck: never = outputMode;
-        throw new Error(`Unsupported objectMode: ${_exhaustiveCheck}`);
+        const _exhaustiveCheck: never = type;
+        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
       }
     }
   }

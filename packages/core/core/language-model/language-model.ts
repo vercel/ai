@@ -34,8 +34,10 @@ export interface LanguageModel {
   }>;
 
   doStreamJsonText(options: {
-    schema: Record<string, unknown>;
-    prompt: InstructionPrompt;
+    mode:
+      | { type: 'json' }
+      | { type: 'tool'; tool: LanguageModelToolDefinition };
+    prompt: ChatPrompt;
   }): PromiseLike<
     ReadableStream<
       { type: 'json-text-delta'; textDelta: string } | ErrorStreamPart
