@@ -16,7 +16,7 @@
 
 ## Quick Links
 
-- [Read the blog post](https://vercel.com/blog/ai-server-components-a-new-rendering-model-for-ai-native-web-applications)
+- [Read the blog post](https://vercel.com/blog/ai-sdk-3-generative-ui)
 - [See the demo](https://sdk.vercel.ai/demo)
 - [Visit the docs](https://sdk.vercel.ai/docs/concepts/ai-rsc)
 
