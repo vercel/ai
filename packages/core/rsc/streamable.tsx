@@ -342,31 +342,3 @@ export function render<
 
   return ui.value;
 }
-
-// const openai = {} as OpenAI
-
-// render({
-//   model: 'gpt-3.5-turbo',
-//   provider: openai,
-//   messages: [],
-//   functions: {
-//     hi: {
-//       description: 'Say hi',
-//       parameters: z.object({
-//         symbol: z.string().describe('The name or symbol of the stock or currency. e.g. DOGE/AAPL/USD.'),
-//         price: z.number().describe('The price of the stock.'),
-//         delta: z.number().describe('The change in price of the stock'),
-//       }),
-//       render: ({ symbol }) => {
-//         return <div>{symbol}</div>
-//       },
-//     },
-//     hello: {
-//       description: 'Say hi',
-//       parameters: z.object({ name: z.number() }),
-//       render: ({ name }) => {
-//         return <div>{name}</div>
-//       },
-//     },
-//   },
-// })
