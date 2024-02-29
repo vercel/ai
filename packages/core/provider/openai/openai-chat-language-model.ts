@@ -173,9 +173,9 @@ export class OpenAIChatLanguageModel implements LanguageModel {
           messages: convertInstructionPromptToOpenAIChatPrompt(prompt),
         });
 
+        // TODO extract standard response processing
         return {
-          // TODO handle null case
-          jsonText: openaiResponse.choices[0].message.content!,
+          text: openaiResponse.choices[0].message.content ?? undefined,
         };
       }
 
@@ -190,12 +190,15 @@ export class OpenAIChatLanguageModel implements LanguageModel {
           tools: [{ type: 'function', function: mode.tool }],
         });
 
-        // TODO standard processing for tool calls
+        // TODO extract standard response processing
         return {
-          jsonText:
-            // TODO handle null case
-            openaiResponse.choices[0].message.tool_calls?.[0].function
-              .arguments!,
+          toolCalls: openaiResponse.choices[0].message.tool_calls?.map(
+            toolCall => ({
+              toolCallId: toolCall.id,
+              toolName: toolCall.function.name,
+              args: toolCall.function.arguments!,
+            }),
+          ),
         };
       }
 

@@ -14,11 +14,7 @@ export interface LanguageModel {
 
   doStream(options: {
     prompt: InstructionPrompt | ChatPrompt;
-    tools?: Array<{
-      name: string;
-      description?: string;
-      parameters: Record<string, unknown>;
-    }>;
+    tools?: Array<LanguageModelToolDefinition>;
   }): PromiseLike<ReadableStream<LanguageModelStreamPart>>;
 
   objectMode: ObjectMode;
@@ -26,17 +22,15 @@ export interface LanguageModel {
   doGenerateJsonText(options: {
     mode:
       | { type: 'json' }
-      | {
-          type: 'tool';
-          tool: {
-            name: string;
-            description?: string;
-            parameters: Record<string, unknown>;
-          };
-        };
+      | { type: 'tool'; tool: LanguageModelToolDefinition };
     prompt: InstructionPrompt;
   }): PromiseLike<{
-    jsonText: string;
+    text?: string;
+    toolCalls?: Array<{
+      toolCallId: string;
+      toolName: string;
+      args: string;
+    }>;
   }>;
 
   doStreamJsonText(options: {
@@ -48,6 +42,12 @@ export interface LanguageModel {
     >
   >;
 }
+
+type LanguageModelToolDefinition = {
+  name: string;
+  description?: string;
+  parameters: Record<string, unknown>;
+};
 
 export type ErrorStreamPart = {
   type: 'error';

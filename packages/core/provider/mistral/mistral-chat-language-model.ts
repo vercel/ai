@@ -166,9 +166,9 @@ export class MistralChatLanguageModel implements LanguageModel {
           messages: convertInstructionPromptToMistralChatPrompt(prompt),
         });
 
+        // TODO extract standard response processing
         return {
-          // TODO handle null case
-          jsonText: clientResponse.choices[0].message.content!,
+          text: clientResponse.choices[0].message.content,
         };
       }
 
@@ -192,10 +192,14 @@ export class MistralChatLanguageModel implements LanguageModel {
 
         // Note: correct types not supported by MistralClient as of 2024-Feb-28
         const message = clientResponse.choices[0].message as any;
-        const toolCall = message.tool_calls[0];
 
+        // TODO extract standard response processing
         return {
-          jsonText: toolCall.function.arguments,
+          toolCalls: message.tool_calls?.map((toolCall: any) => ({
+            toolCallId: toolCall.id,
+            toolName: toolCall.function.name,
+            args: toolCall.function.arguments,
+          })),
         };
       }
 

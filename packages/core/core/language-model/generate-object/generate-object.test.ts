@@ -19,7 +19,7 @@ describe('result.object', () => {
           });
 
           return {
-            jsonText: `{ "content": "Hello, world!" }`,
+            text: `{ "content": "Hello, world!" }`,
           };
         },
       }),
@@ -52,7 +52,13 @@ describe('result.object', () => {
           assert.deepStrictEqual(prompt, 'prompt');
 
           return {
-            jsonText: `{ "content": "Hello, world!" }`,
+            toolCalls: [
+              {
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                args: `{ "content": "Hello, world!" }`,
+              },
+            ],
           };
         },
       }),

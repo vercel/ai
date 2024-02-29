@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { safeParseJSON } from '../../schema/parse-json';
 import { ZodSchema } from '../../schema/zod-schema';
-import { LanguageModel, ObjectMode } from '../language-model';
+import { injectJsonSchemaIntoInstructionPrompt } from '../inject-json-schema-into-instruction-prompt';
+import { LanguageModel } from '../language-model';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
+import { NoObjectGeneratedError } from './no-object-generated-error';
 import { ObjectParseError } from './object-parse-error';
 import { ObjectValidationError } from './object-validation-error';
-import { injectJsonSchemaIntoInstructionPrompt } from '../inject-json-schema-into-instruction-prompt';
-import { Schema } from '../../schema/schema';
 
 /**
  * Generate a structured, typed object using a language model.
@@ -24,24 +24,29 @@ export async function generateObject<T>({
   const jsonSchema = schema.getJsonSchema();
   const objectMode = model.objectMode;
 
-  let result: {
-    jsonText: string;
-  };
+  let result: string;
 
   switch (objectMode) {
     case 'json': {
-      result = await model.doGenerateJsonText({
+      const generateResult = await model.doGenerateJsonText({
         mode: { type: 'json' },
         prompt: injectJsonSchemaIntoInstructionPrompt({
           prompt,
           schema: jsonSchema,
         }),
       });
+
+      if (generateResult.text === undefined) {
+        throw new NoObjectGeneratedError();
+      }
+
+      result = generateResult.text;
+
       break;
     }
 
     case 'tool': {
-      result = await model.doGenerateJsonText({
+      const generateResult = await model.doGenerateJsonText({
         mode: {
           type: 'tool',
           tool: {
@@ -52,6 +57,15 @@ export async function generateObject<T>({
         },
         prompt,
       });
+
+      const functionArgs = generateResult.toolCalls?.[0]?.args;
+
+      if (functionArgs === undefined) {
+        throw new NoObjectGeneratedError();
+      }
+
+      result = functionArgs;
+
       break;
     }
 
@@ -61,11 +75,11 @@ export async function generateObject<T>({
     }
   }
 
-  const parseResult = safeParseJSON({ text: result.jsonText });
+  const parseResult = safeParseJSON({ text: result });
 
   if (!parseResult.success) {
     throw new ObjectParseError({
-      valueText: result.jsonText,
+      valueText: result,
       cause: parseResult.error,
     });
   }
@@ -74,7 +88,7 @@ export async function generateObject<T>({
 
   if (!validationResult.success) {
     throw new ObjectValidationError({
-      valueText: result.jsonText,
+      valueText: result,
       value: parseResult.value,
       cause: validationResult.error,
     });
