@@ -42,7 +42,7 @@ importers:
         specifier: 0.12.0
         version: 0.12.0
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -88,7 +88,7 @@ importers:
         specifier: 3.451.0
         version: 3.451.0
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -177,7 +177,7 @@ importers:
   examples/next-fireworks:
     dependencies:
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -226,7 +226,7 @@ importers:
         specifier: 0.1.1
         version: 0.1.1
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -272,7 +272,7 @@ importers:
         specifier: ^2.5.1
         version: 2.6.4
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -318,7 +318,7 @@ importers:
         specifier: ^0.1.8
         version: 0.1.8(zod@3.22.4)
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -361,7 +361,7 @@ importers:
   examples/next-langchain:
     dependencies:
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.196
@@ -410,7 +410,7 @@ importers:
         specifier: 0.1.3
         version: 0.1.3
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -453,7 +453,7 @@ importers:
   examples/next-openai:
     dependencies:
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -499,7 +499,7 @@ importers:
   examples/next-openai-pages:
     dependencies:
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -551,7 +551,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -600,7 +600,7 @@ importers:
   examples/next-perplexity:
     dependencies:
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -646,7 +646,7 @@ importers:
   examples/next-replicate:
     dependencies:
       ai:
-        specifier: ^2.2.4
+        specifier: ^3.0.0
         version: link:../../packages/core
       next:
         specifier: 14.0.3
@@ -692,7 +692,7 @@ importers:
   examples/nuxt-langchain:
     dependencies:
       ai:
-        specifier: ^2.2.4
+        specifier: ^3.0.0
         version: link:../../packages/core
       langchain:
         specifier: ^0.0.129
@@ -771,7 +771,7 @@ importers:
         specifier: ^3.3.4
         version: 3.3.8
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       nuxt:
         specifier: ^3.6.5
@@ -804,7 +804,7 @@ importers:
         specifier: 0.8.2
         version: 0.8.2(solid-js@1.8.7)
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       openai:
         specifier: 4.16.1
@@ -836,12 +836,12 @@ importers:
         version: 4.9.5
       vite:
         specifier: ^4.1.4
-        version: 4.5.0(@types/node@20.9.0)
+        version: 4.5.0(@types/node@17.0.45)
 
   examples/sveltekit-openai:
     dependencies:
       ai:
-        specifier: 2.2.37
+        specifier: 3.0.0
         version: link:../../packages/core
       openai:
         specifier: 4.16.1
@@ -876,7 +876,7 @@ importers:
         version: 5.1.3
       vite:
         specifier: ^4.3.9
-        version: 4.5.0(@types/node@20.9.0)
+        version: 4.5.0(@types/node@17.0.45)
 
   packages/core:
     dependencies:
@@ -943,7 +943,7 @@ importers:
         version: 0.8.4(@solidjs/router@0.8.2)(solid-js@1.8.7)
       '@testing-library/jest-dom':
         specifier: ^6.1.4
-        version: 6.1.4
+        version: 6.1.4(vitest@0.34.6)
       '@testing-library/react':
         specifier: ^14.0.0
         version: 14.1.2(react-dom@18.2.0)(react@18.2.0)
@@ -5146,7 +5146,7 @@ packages:
       svelte: 4.2.3
       tiny-glob: 0.2.9
       undici: 5.26.5
-      vite: 4.5.0(@types/node@20.9.0)
+      vite: 4.5.0(@types/node@17.0.45)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -5162,7 +5162,7 @@ packages:
       '@sveltejs/vite-plugin-svelte': 2.5.2(svelte@4.2.3)(vite@4.5.0)
       debug: 4.3.4
       svelte: 4.2.3
-      vite: 4.5.0(@types/node@20.9.0)
+      vite: 4.5.0(@types/node@17.0.45)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -5181,7 +5181,7 @@ packages:
       magic-string: 0.30.5
       svelte: 4.2.3
       svelte-hmr: 0.15.3(svelte@4.2.3)
-      vite: 4.5.0(@types/node@20.9.0)
+      vite: 4.5.0(@types/node@17.0.45)
       vitefu: 0.2.5(vite@4.5.0)
     transitivePeerDependencies:
       - supports-color
@@ -5207,7 +5207,7 @@ packages:
       pretty-format: 27.5.1
     dev: true
 
-  /@testing-library/jest-dom@6.1.4:
+  /@testing-library/jest-dom@6.1.4(vitest@0.34.6):
     resolution: {integrity: sha512-wpoYrCYwSZ5/AxcrjLxJmCU6I5QAJXslEeSiMQqaWmP2Kzpd1LvF/qxmAIW2qposULGWq2gw30GgVNFLSc2Jnw==}
     engines: {node: '>=14', npm: '>=6', yarn: '>=1'}
     peerDependencies:
@@ -5233,6 +5233,7 @@ packages:
       dom-accessibility-api: 0.5.16
       lodash: 4.17.21
       redent: 3.0.0
+      vitest: 0.34.6
     dev: true
 
   /@testing-library/react@14.1.2(react-dom@18.2.0)(react@18.2.0):
@@ -14147,7 +14148,7 @@ packages:
       sirv: 2.0.3
       solid-start: 0.3.10(@solidjs/meta@0.29.3)(@solidjs/router@0.8.2)(solid-js@1.8.7)(solid-start-node@0.3.10)(vite@4.5.0)
       terser: 5.24.0
-      vite: 4.5.0(@types/node@20.9.0)
+      vite: 4.5.0(@types/node@17.0.45)
     transitivePeerDependencies:
       - supports-color
 
@@ -14219,7 +14220,7 @@ packages:
       solid-start-node: 0.3.10(solid-start@0.3.10)(vite@4.5.0)
       terser: 5.24.0
       undici: 5.27.2
-      vite: 4.5.0(@types/node@20.9.0)
+      vite: 4.5.0(@types/node@17.0.45)
       vite-plugin-inspect: 0.7.42(rollup@3.29.4)(vite@4.5.0)
       vite-plugin-solid: 2.7.2(solid-js@1.8.7)(vite@4.5.0)
       wait-on: 6.0.1(debug@4.3.4)
@@ -15774,7 +15775,7 @@ packages:
       open: 9.1.0
       picocolors: 1.0.0
       sirv: 2.0.3
-      vite: 4.5.0(@types/node@20.9.0)
+      vite: 4.5.0(@types/node@17.0.45)
     transitivePeerDependencies:
       - rollup
       - supports-color
@@ -15904,6 +15905,7 @@ packages:
       rollup: 3.29.4
     optionalDependencies:
       fsevents: 2.3.3
+    dev: true
 
   /vitefu@0.2.5(vite@4.5.0):
     resolution: {integrity: sha512-SgHtMLoqaeeGnd2evZ849ZbACbnwQCIwRH57t18FxcXoZop0uQu0uzlIhJBlF/eWVzuce0sHeqPcDo+evVcg8Q==}
