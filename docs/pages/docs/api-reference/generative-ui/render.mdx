@@ -12,7 +12,11 @@ import { Searching } from '@/components/home/searching';
 
 The `render` function is a helper function to create a streamable UI from an LLM response. It currently only supports
 OpenAI API compatible models with function calling, like gpt-3.5-turbo and [FireFunction](https://fireworks.ai/blog/firefunction-v1-gpt-4-level-function-calling).
-`render` provides a generator-based API for streaming updating UIs from the LLM.
+`render` provides a few APIs for streaming updating UIs from the LLM:
+- `() => ReactNode` - a function that returns a React Node
+- `async () => ReactNode` - an async function that returns a React Node
+- `function* () {}` - an generator function that returns a React Node.
+- `async function* () {}` - an async generator function that returns a React Node.
 
 If you use other models, you can [prompt engineer](docs/concepts/prompt-engineering) them
 into returning structured data and manually handle the streaming UI with [`createStreamableUI`](./create-streamable-ui), [`createStreamableValue`](./create-streamable-value) and an [AI Provider](/docs/api-reference/providers).
