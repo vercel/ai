@@ -198,7 +198,7 @@ Besides that, you can also chat with users and do some calculations if needed.`,
           ),
         }),
       },
-    ] as const,
+    ],
     temperature: 0,
   });
 
