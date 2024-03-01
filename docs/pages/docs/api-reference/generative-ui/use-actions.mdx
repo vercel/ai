@@ -1,0 +1,58 @@
+---
+title: useActions
+layout:
+  toc: false
+---
+
+import { Tabs, Tab } from 'nextra-theme-docs';
+
+# useActions
+
+## `useActions`
+
+`useActions` is a hook to help you access your Server Actions from the client. It’s required to access these server actions via this hook (because we patched these actions when they’re passing through this context), and if you directly import the actions instead of using useActions, you might run into the current issue of “cannot find client component.”
+This is particularly useful for building interfaces that require user interactions with the server.
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+    ```tsx filename="app/action.tsx"
+    async function viewStock(symbol: string) {
+      "use server"
+
+      const price = getStockPrice(symbol);
+      const uiStream = createUIStream();
+
+      uiStream.close(
+        <div>
+          {symbol}: {price}
+        </div>
+      );
+
+      return {
+        id: Date.now(),
+        display: uiStream.value,
+      };
+    }
+    ```
+
+```tsx filename="app/components/button.tsx"
+export function Button({ setMessages }) {
+  const { viewStock } = useActions();
+  const [messages, setMessages] = useUIState();
+
+  return (
+    <button
+      onClick={async () => {
+        const newMessage = await viewStock('NVDA');
+
+        setMessages((currentMessages: any) => [...currentMessages, newMessage]);
+      }}
+    >
+      Purchase
+    </button>
+  );
+}
+```
+
+</Tab>
+</Tabs>

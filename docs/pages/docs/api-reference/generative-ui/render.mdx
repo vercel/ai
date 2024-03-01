@@ -1,0 +1,112 @@
+---
+title: render
+---
+
+import { Callout, Tabs, Tab, Steps } from 'nextra-theme-docs';
+import { UIPreviewCard, Card } from '@/components/home/card';
+import { Browser } from '@/components/home/browser';
+import { EventPlanning } from '@/components/home/event-planning';
+import { Searching } from '@/components/home/searching';
+
+# render()
+
+The `render` function is a helper function to create a streamable UI from an LLM response. It currently only supports OpenAI-compatible models/providers. By default, the `text` method will return a React fragment wrapped around the text content of the LLM response. 
+
+The `render` function also allows you to map [OpenAI-compatible Tool/Function Calls](https://platform.openai.com/docs/guides/function-calling) to [React Server Components](https://vercel.com/blog/understanding-react-server-components) using the `tools` key. Note that both `text` and `render` can be specified, and `text` being the fallback for when no function is called by the model.
+
+
+`render` provides a few APIs for streaming updating UIs from the LLM:
+- `() => ReactNode` - a function that returns a React Node
+- `async () => ReactNode` - an async function that returns a React Node
+- `function* () {}` - an generator function that returns a React Node.
+- `async function* () {}` - an async generator function that returns a React Node.
+
+If you use other models, you can [prompt engineer](docs/concepts/prompt-engineering) them
+into returning structured data and manually handle the streaming UI with [`createStreamableUI`](./create-streamable-ui), [`createStreamableValue`](./create-streamable-value) and an [AI Provider](/docs/api-reference/providers).
+
+<Tabs items={['Next.js (App Router)']}>
+    <Tab>
+    ```tsx filename="app/actions.tsx"
+
+    const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    async function submitUserMessage(content: string) {
+      "use server";
+
+      const aiState = getMutableAIState();
+
+      // Update AI state with new message.
+      aiState.update([
+        ...aiState.get(),
+        {
+          role: "user",
+          content,
+        },
+      ]);
+
+      // render() returns a stream of UI components
+      const ui = render({
+        model: 'gpt-4-turbo',
+        provider: openai,
+        // You may want to construct messages from your AI state
+        messages: [
+          { role: 'system', content: 'You are a flight assistant' },
+          { role: 'user', content: userInput }
+        ],
+        // `text` is called when an AI returns a text response (as opposed to a tool call)
+        text: ({ content, done }) => {
+          // text can be streamed from the LLM, but we only want to close the stream with .done() when its completed.
+          // done() marks the state as available for the client to access
+          if (done) {
+            aiState.done({
+              ...aiState.get(),
+              {
+                role: "assistant",
+                content
+              }
+            })
+          }
+
+          return <div>{content}</div>
+        }
+        tools: {
+          get_flight_info: {
+            description: 'Get the information for a flight',
+            parameters: z.object({
+              flightNumber: z.string().describe('the number of the flight')
+            }).required(),
+            // flightNumber is inferred from the parameters passed above
+            render: async function* ({ flightNumber }) {
+              yield <Spinner/>
+              const flightInfo = await getFlightInfo(flightNumber)
+
+              aiState.done([
+                ...aiState.get(),
+                {
+                  role: "function",
+                  name: "get_flight_info",
+                  // Content can be any string to provide context to the LLM in the rest of the conversation
+                  content: JSON.stringify(flightInfo),
+                }
+              ]);
+
+              return <FlightCard flightInfo={flightInfo} />
+            }
+          }
+        }
+      })
+
+      return {
+        id: Date.now(),
+        // You can render ui on the client with something like `{message.display}` and the
+        // result yielded in `render` or `text` will be displayed on the client and streamed
+        // in as it is returned from the model.
+        display: ui
+      };
+    }
+    ```
+    </Tab>
+
+</Tabs>
