@@ -368,7 +368,7 @@ In the example below, we have a slider that allows the user to purchase a number
 
 import { useAIState } from 'ai/rsc';
 import { useId } from 'react';
-import { AI } from '../action';
+import type { AI } from '../action';
 
 export function Slider({ name, price }) {
   const [aiState, setAIState] = useAIState<typeof AI>();
