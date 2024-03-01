@@ -408,23 +408,27 @@ In the example below, we pass a `historyChart` streamable as a prop to a `StockC
 
 ```tsx filename="app/action.tsx"
 // Create a streaming UI node. You can make as many as you need.
-const ui = createStreamableUI(null);
+async function getStockHistoryChart() {
+  "use server"
 
-const response = await callLLM('What is the current stock price of AAPL?');
+  const ui = createStreamableUI(null);
 
-const historyChart = createStreamableUI(<Spinner />);
+  const response = await callLLM('What is the current stock price of AAPL?');
 
-// We won't be updating this again so we use `done()` instead of `update()`.
-ui.done(<StockCard historyChart={historyChart.value} />)(
-  // We need to wrap this in an async IIFE to avoid blocking. Without it, the UI wouldn't render
-  // while the fetch is in progress.
-  async () => {
-    const historyData = await fetch('stock-data-api.com');
-    historyChart.done(<HistoryChart data={historyData} />);
-  },
-)();
+  const historyChart = createStreamableUI(<Spinner />);
 
-return ui;
+  // We won't be updating this again so we use `done()` instead of `update()`.
+  ui.done(<StockCard historyChart={historyChart.value} />)(
+    // We need to wrap this in an async IIFE to avoid blocking. Without it, the UI wouldn't render
+    // while the fetch is in progress.
+    async () => {
+      const historyData = await fetch('stock-data-api.com');
+      historyChart.done(<HistoryChart data={historyData} />);
+    },
+  )();
+
+  return ui;
+}
 ```
 
 {/* ### Streaming data other than components to the client */}
