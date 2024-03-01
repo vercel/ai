@@ -227,6 +227,12 @@ export function render<
       )
     : undefined;
 
+  if (functions && tools) {
+    throw new Error(
+      "You can't have both functions and tools defined. Please choose one or the other.",
+    );
+  }
+
   let finished: ReturnType<typeof createResolvablePromise> | undefined;
 
   async function handleRender(
@@ -302,14 +308,19 @@ export function render<
             : {}),
         })) as any,
         {
-          async experimental_onFunctionCall(functionCallPayload) {
-            hasFunction = true;
-            handleRender(
-              functionCallPayload.arguments,
-              options.functions?.[functionCallPayload.name as any]?.render,
-              ui,
-            );
-          },
+          ...(functions
+            ? {
+                async experimental_onFunctionCall(functionCallPayload) {
+                  hasFunction = true;
+                  handleRender(
+                    functionCallPayload.arguments,
+                    options.functions?.[functionCallPayload.name as any]
+                      ?.render,
+                    ui,
+                  );
+                },
+              }
+            : {}),
           ...(tools
             ? {
                 async experimental_onToolCall(toolCallPayload: any) {
