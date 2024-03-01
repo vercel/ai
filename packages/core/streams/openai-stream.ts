@@ -266,7 +266,9 @@ export interface CompletionUsage {
  *
  * @return {(data: string) => string | void} A parser function that takes a JSON string as input and returns the extracted text content or nothing.
  */
-function parseOpenAIStream(): (data: string) => string | void {
+function parseOpenAIStream(): (
+  data: string,
+) => string | void | { isText: false; content: string } {
   const extract = chunkToText();
   return data => extract(JSON.parse(data) as OpenAIStreamReturnTypes);
 }
@@ -314,7 +316,9 @@ async function* streamable(stream: AsyncIterableOpenAIStreamReturnTypes) {
   }
 }
 
-function chunkToText(): (chunk: OpenAIStreamReturnTypes) => string | void {
+function chunkToText(): (
+  chunk: OpenAIStreamReturnTypes,
+) => string | { isText: false; content: string } | void {
   const trimStartOfStream = trimStartOfStreamHelper();
   let isFunctionStreamingIn: boolean;
   return json => {
@@ -322,32 +326,53 @@ function chunkToText(): (chunk: OpenAIStreamReturnTypes) => string | void {
       const delta = json.choices[0]?.delta;
       if (delta.function_call?.name) {
         isFunctionStreamingIn = true;
-        return `{"function_call": {"name": "${delta.function_call.name}", "arguments": "`;
+        return {
+          isText: false,
+          content: `{"function_call": {"name": "${delta.function_call.name}", "arguments": "`,
+        };
       } else if (delta.tool_calls?.[0]?.function?.name) {
         isFunctionStreamingIn = true;
         const toolCall = delta.tool_calls[0];
         if (toolCall.index === 0) {
-          return `{"tool_calls":[ {"id": "${toolCall.id}", "type": "function", "function": {"name": "${toolCall.function?.name}", "arguments": "`;
+          return {
+            isText: false,
+            content: `{"tool_calls":[ {"id": "${toolCall.id}", "type": "function", "function": {"name": "${toolCall.function?.name}", "arguments": "`,
+          };
         } else {
-          return `"}}, {"id": "${toolCall.id}", "type": "function", "function": {"name": "${toolCall.function?.name}", "arguments": "`;
+          return {
+            isText: false,
+            content: `"}}, {"id": "${toolCall.id}", "type": "function", "function": {"name": "${toolCall.function?.name}", "arguments": "`,
+          };
         }
       } else if (delta.function_call?.arguments) {
-        return cleanupArguments(delta.function_call?.arguments);
+        return {
+          isText: false,
+          content: cleanupArguments(delta.function_call.arguments),
+        };
       } else if (delta.tool_calls?.[0]?.function?.arguments) {
-        return cleanupArguments(delta.tool_calls?.[0]?.function?.arguments);
+        return {
+          isText: false,
+          content: cleanupArguments(delta.tool_calls[0].function.arguments),
+        };
       } else if (
         isFunctionStreamingIn &&
         (json.choices[0]?.finish_reason === 'function_call' ||
           json.choices[0]?.finish_reason === 'stop')
       ) {
         isFunctionStreamingIn = false; // Reset the flag
-        return '"}}';
+        return {
+          isText: false,
+          content: '"}}',
+        };
       } else if (
         isFunctionStreamingIn &&
         json.choices[0]?.finish_reason === 'tool_calls'
       ) {
         isFunctionStreamingIn = false; // Reset the flag
-        return '"}}]}';
+        return {
+          isText: false,
+          content: '"}}]}',
+        };
       }
     }
 
@@ -358,6 +383,7 @@ function chunkToText(): (chunk: OpenAIStreamReturnTypes) => string | void {
         ? json.choices[0].text
         : '',
     );
+
     return text;
   };
 

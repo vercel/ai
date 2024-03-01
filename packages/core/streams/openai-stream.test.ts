@@ -130,7 +130,7 @@ describe('OpenAIStream', () => {
     expect(JSON.stringify(chunks)).toMatchInlineSnapshot(`"[\\"Hello\\"]"`);
   });
 
-  describe('StreamData prototcol', () => {
+  describe('StreamData protocol', () => {
     it('should send text', async () => {
       const data = new experimental_StreamData();
 
@@ -215,6 +215,30 @@ describe('OpenAIStream', () => {
       expect(chunks).toEqual([
         '1:{"function_call":{"name":"get_current_weather","arguments":"{\\n\\"location\\": \\"Charlottesville, Virginia\\",\\n\\"format\\": \\"celsius\\"\\n}"}}\n',
       ]);
+    });
+
+    it('should not call onToken for function calls', async () => {
+      const data = new experimental_StreamData();
+
+      const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
+        onFinal() {
+          data.close();
+        },
+        async experimental_onFunctionCall({ name }) {
+          // no response
+        },
+        onToken(token) {
+          console.trace();
+          assert.fail(`onToken should not be called (token: ${token})`);
+        },
+        experimental_streamData: true,
+      });
+
+      const response = new StreamingTextResponse(stream, {}, data);
+
+      const client = createClient(response);
+
+      await client.readAll(); // consume stream
     });
 
     it('should send function response and data when onFunctionCall is defined, returns undefined, and data is added', async () => {
