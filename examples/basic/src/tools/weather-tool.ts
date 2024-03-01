@@ -1,13 +1,11 @@
-import { createTool } from 'ai/core';
 import { z } from 'zod';
 
-export const weatherTool = createTool({
-  name: 'weather',
+export const weatherTool = {
   description: 'Get the weather in a location',
   parameters: z.object({
     location: z.string().describe('The location to get the weather for'),
   }),
-  execute: async ({ location }) => ({
+  execute: async ({ location }: { location: string }) => ({
     location,
     temperature: 72 + Math.floor(Math.random() * 21) - 10,
     description:
@@ -17,4 +15,4 @@ export const weatherTool = createTool({
         ? 'cloudy'
         : 'raining',
   }),
-});
+};

@@ -25,3 +25,77 @@ describe('result.text', () => {
     assert.deepStrictEqual(result.text, 'Hello, world!');
   });
 });
+
+describe('result.toolCalls', () => {
+  it('should contain tool calls', async () => {
+    const result = await generateText({
+      model: new MockLanguageModel({
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: [
+              {
+                name: 'tool1',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
+                },
+              },
+              {
+                name: 'tool2',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { somethingElse: { type: 'string' } },
+                  required: ['somethingElse'],
+                  type: 'object',
+                },
+              },
+            ],
+          });
+          assert.deepStrictEqual(prompt, {
+            messages: [{ role: 'user', content: 'test-input' }],
+          });
+
+          return {
+            toolCalls: [
+              {
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+        },
+        // 2nd tool to show typing:
+        tool2: {
+          parameters: z.object({ somethingElse: z.string() }),
+        },
+      },
+      prompt: 'test-input',
+    });
+
+    // test type inference
+    if (result.toolCalls[0].toolName === 'tool1') {
+      assertType<string>(result.toolCalls[0].args.value);
+    }
+
+    assert.deepStrictEqual(result.toolCalls, [
+      {
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        args: { value: 'value' },
+      },
+    ]);
+  });
+});

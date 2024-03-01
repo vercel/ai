@@ -1,70 +1,58 @@
+import { ValueOf } from 'type-fest';
+import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
-import { LanguageModel } from '../language-model';
+import { safeParseJSON } from '../../schema/parse-json';
+import { ZodSchema } from '../../schema/zod-schema';
+import { LanguageModel, LanguageModelToolCall } from '../language-model';
 import { ChatPrompt } from '../prompt/chat-prompt';
 import { convertToChatPrompt } from '../prompt/convert-to-chat-prompt';
 import { InstructionPrompt } from '../prompt/instruction-prompt';
 import { Tool } from '../tool/tool';
-import { ToolDefinition } from '../tool/tool-definition';
-import { ZodSchema } from '../../schema/zod-schema';
-import { safeParseJSON } from '../../schema/parse-json';
 
 /**
  * Generate a text and call tools using a language model.
  */
-export async function generateText({
+export async function generateText<
+  TOOLS extends {
+    [name: string]: z.Schema;
+  } = {},
+>({
   model,
   tools,
   prompt,
 }: {
   model: LanguageModel;
-  tools?: Array<
-    ToolDefinition<string, unknown> | Tool<string, unknown, unknown>
-  >;
+  tools?: {
+    [name in keyof TOOLS]: {
+      description?: string;
+      parameters: TOOLS[name];
+      execute?: (args: z.infer<TOOLS[name]>) => unknown;
+    };
+  };
   prompt: InstructionPrompt | ChatPrompt;
-}): Promise<GenerateTextResult> {
+}): Promise<GenerateTextResult<ValueOf<ToToolCalls<TOOLS>>>> {
   const modelResponse = await model.doGenerate({
     mode: {
       type: 'regular',
-      tools: tools?.map(tool => ({
-        name: tool.name,
-        description: tool.description,
-        parameters: zodToJsonSchema(tool.parameters),
-      })),
+      tools:
+        tools == null
+          ? undefined
+          : Object.entries(tools).map(([name, value]) => {
+              const tool = value as Tool<any, unknown>;
+              return {
+                name,
+                description: tool.description,
+                parameters: zodToJsonSchema(tool.parameters),
+              };
+            }),
     },
     prompt: convertToChatPrompt(prompt),
   });
 
   // parse and validate tool calls
-  const toolCalls: Array<ToolCall> = [];
+  const toolCalls: Array<ValueOf<ToToolCalls<TOOLS>>> = [];
   for (const modelToolCall of modelResponse.toolCalls ?? []) {
-    // TODO extract into reusable function for parsing tool call arguments (typed)
-    const tool = tools?.find(tool => tool.name === modelToolCall.toolName);
-
-    // TODO add dedicated error to list of errors (NoSuchToolError)
-    if (tool == null) {
-      throw new Error(`Tool not found: ${modelToolCall.toolName}`);
-    }
-
-    const parseResult = safeParseJSON({
-      text: modelToolCall.args,
-      schema: new ZodSchema(tool.parameters),
-    });
-
-    // TODO dedicate tool call error (InvalidToolArgumentsError)
-    if (parseResult.success === false) {
-      throw new Error(
-        `Tool call ${modelToolCall.toolName} has invalid arguments: ${parseResult.error}`,
-      );
-    }
-
-    // TODO should have typesafe tool call arguments
-    const toolArgs = parseResult.value;
-
-    toolCalls.push({
-      toolCallId: modelToolCall.toolCallId,
-      toolName: modelToolCall.toolName,
-      args: toolArgs,
-    });
+    toolCalls.push(parseToolCall({ toolCall: modelToolCall, tools }));
   }
 
   // should have typesafe tool call arguments
@@ -79,19 +67,83 @@ export async function generateText({
   });
 }
 
-// TODO typed
-export interface ToolCall {
-  toolCallId: string;
-  toolName: string;
+function parseToolCall<
+  TOOLS extends {
+    [name: string]: z.Schema;
+  } = {},
+>({
+  toolCall,
+  tools,
+}: {
+  toolCall: LanguageModelToolCall;
+  tools?: {
+    [name in keyof TOOLS]: {
+      description?: string;
+      parameters: TOOLS[name];
+      execute?: (args: z.infer<TOOLS[name]>) => unknown;
+    };
+  };
+}): ValueOf<ToToolCalls<TOOLS>> {
+  const toolName = toolCall.toolName as keyof TOOLS & string;
 
-  args: unknown;
+  if (tools == null) {
+    // TODO add dedicated error to list of errors (NoSuchToolError)
+    throw new Error(`Tool not found: ${toolName}`);
+  }
+
+  const tool = tools[toolName];
+
+  // TODO add dedicated error to list of errors (NoSuchToolError)
+  if (tool == null) {
+    throw new Error(`Tool not found: ${toolName}`);
+  }
+
+  const parseResult = safeParseJSON({
+    text: toolCall.args,
+    schema: new ZodSchema(tool.parameters),
+  });
+
+  // TODO dedicate tool call error (InvalidToolArgumentsError)
+  if (parseResult.success === false) {
+    throw new Error(
+      `Tool call ${toolName} has invalid arguments: ${parseResult.error}`,
+    );
+  }
+
+  // TODO should have typesafe tool call arguments
+  const toolArgs = parseResult.value;
+
+  return {
+    toolCallId: toolCall.toolCallId,
+    toolName,
+    args: toolArgs,
+  };
 }
 
-export class GenerateTextResult {
-  readonly text: string;
-  readonly toolCalls: Array<ToolCall>;
+export interface ToolCall<TOOL_NAME extends string, ARGS> {
+  toolCallId: string;
+  toolName: TOOL_NAME;
+  args: ARGS;
+}
 
-  constructor(options: { text: string; toolCalls: Array<ToolCall> }) {
+// transforms the tools into tool calls
+type ToToolCalls<
+  TOOLS extends {
+    [name: string]: z.Schema;
+  },
+> = {
+  [K in keyof TOOLS]: {
+    toolCallId: string;
+    toolName: K;
+    args: z.infer<TOOLS[K]>;
+  };
+};
+
+export class GenerateTextResult<T> {
+  readonly text: string;
+  readonly toolCalls: Array<T>;
+
+  constructor(options: { text: string; toolCalls: Array<T> }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
   }

@@ -4,7 +4,6 @@ import { convertArrayToReadableStream } from '../test/convert-array-to-readable-
 import { convertAsyncIterableToArray } from '../test/convert-async-iterable-to-array';
 import { MockLanguageModel } from '../test/mock-language-model';
 import { streamText } from './stream-text';
-import { createTool } from '../tool';
 
 describe('result.textStream', () => {
   it('should send text deltas', async () => {
@@ -71,7 +70,7 @@ describe('result.fullStream', () => {
             type: 'regular',
             tools: [
               {
-                name: 'tool-1',
+                name: 'tool1',
                 description: undefined,
                 parameters: {
                   $schema: 'http://json-schema.org/draft-07/schema#',
@@ -91,18 +90,17 @@ describe('result.fullStream', () => {
             {
               type: 'tool-call',
               toolCallId: 'call-1',
-              toolName: 'tool-1',
-              args: { value: 'value' },
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
             },
           ]);
         },
       }),
-      tools: [
-        {
-          name: 'tool-1',
+      tools: {
+        tool1: {
           parameters: z.object({ value: z.string() }),
         },
-      ],
+      },
       prompt: 'test-input',
     });
 
@@ -112,7 +110,7 @@ describe('result.fullStream', () => {
         {
           type: 'tool-call',
           toolCallId: 'call-1',
-          toolName: 'tool-1',
+          toolName: 'tool1',
           args: { value: 'value' },
         },
       ],
@@ -127,7 +125,7 @@ describe('result.fullStream', () => {
             type: 'regular',
             tools: [
               {
-                name: 'tool-1',
+                name: 'tool1',
                 description: undefined,
                 parameters: {
                   $schema: 'http://json-schema.org/draft-07/schema#',
@@ -147,19 +145,18 @@ describe('result.fullStream', () => {
             {
               type: 'tool-call',
               toolCallId: 'call-1',
-              toolName: 'tool-1',
-              args: { value: 'value' },
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
             },
           ]);
         },
       }),
-      tools: [
-        createTool({
-          name: 'tool-1',
+      tools: {
+        tool1: {
           parameters: z.object({ value: z.string() }),
           execute: async ({ value }) => `${value}-result`,
-        }),
-      ],
+        },
+      },
       prompt: 'test-input',
     });
 
@@ -169,13 +166,13 @@ describe('result.fullStream', () => {
         {
           type: 'tool-call',
           toolCallId: 'call-1',
-          toolName: 'tool-1',
+          toolName: 'tool1',
           args: { value: 'value' },
         },
         {
           type: 'tool-result',
           toolCallId: 'call-1',
-          toolName: 'tool-1',
+          toolName: 'tool1',
           result: 'value-result',
         },
       ],

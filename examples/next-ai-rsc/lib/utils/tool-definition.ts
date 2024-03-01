@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 /**
- * A tool definition contains all information required for a language model to generate tool calls.
+ * A tool definition contains a description of the tool and the schema of the input that the tool expects.
+ * The tool name is provided by the tools mapping.
  */
 export interface ToolDefinition<NAME extends string, PARAMETERS> {
   /**

@@ -1,18 +1,54 @@
 import { nanoid } from 'nanoid';
-import { Tool } from '../tool/tool';
-import { ToolDefinition } from '../tool/tool-definition';
+import { z } from 'zod';
 import { ErrorStreamPart, LanguageModelStreamPart } from '../language-model';
 import { ToolResultStreamPart } from './tool-result-stream-part';
+import { safeParseJSON } from '../../schema/parse-json';
+import { ZodSchema } from '../../schema/zod-schema';
 
-export function runToolsTransformation({
-  tools = [],
+type ReturnStreamPart<
+  TOOLS extends {
+    [name: string]: z.Schema;
+  } = {},
+> =
+  | {
+      type: 'text-delta';
+      textDelta: string;
+    }
+  | {
+      // TODO more precise tool call stream parts
+      type: 'tool-call';
+      toolCallId: keyof TOOLS & string;
+      toolName: string;
+      args: z.infer<TOOLS[keyof TOOLS]>;
+    }
+  | {
+      type: 'error';
+      error: unknown;
+    }
+  | {
+      type: 'tool-result';
+      toolCallId: string;
+      toolName: string;
+      result: unknown;
+    };
+
+export function runToolsTransformation<
+  TOOLS extends {
+    [name: string]: z.Schema;
+  } = {},
+>({
+  tools,
   generatorStream,
 }: {
-  tools?: Array<
-    ToolDefinition<string, unknown> | Tool<string, unknown, unknown>
-  >;
+  tools?: {
+    [name in keyof TOOLS]: {
+      description?: string;
+      parameters: TOOLS[name];
+      execute?: (args: z.infer<TOOLS[name]>) => unknown;
+    };
+  };
   generatorStream: ReadableStream<LanguageModelStreamPart>;
-}): ReadableStream<LanguageModelStreamPart | ToolResultStreamPart> {
+}): ReadableStream<ReturnStreamPart<TOOLS>> {
   let canClose = false;
   const outstandingToolCalls = new Set<string>();
 
@@ -31,7 +67,7 @@ export function runToolsTransformation({
   // forward stream
   const forwardStream = new TransformStream<
     LanguageModelStreamPart,
-    LanguageModelStreamPart
+    ReturnStreamPart<TOOLS>
   >({
     transform(
       chunk: LanguageModelStreamPart,
@@ -39,53 +75,116 @@ export function runToolsTransformation({
         LanguageModelStreamPart | ToolResultStreamPart
       >,
     ) {
-      // TODO need to transform tool calls (omit tool call deltas, add typed tool calls)
-      controller?.enqueue(chunk);
+      const chunkType = chunk.type;
 
-      if (chunk.type === 'tool-call') {
-        const tool = tools.find(tool => tool.name === chunk.toolName);
+      switch (chunkType) {
+        // forward:
+        case 'text-delta':
+        case 'error': {
+          controller.enqueue(chunk);
+          break;
+        }
 
-        if (tool == null) {
-          // TODO dedicated error type (NoSuchToolError)
-          toolResultsStreamController!.enqueue({
-            type: 'error',
-            error: `Tool ${chunk.toolName} not found`,
+        // process
+        case 'tool-call': {
+          const toolName = chunk.toolName as keyof TOOLS & string;
+
+          if (tools == null) {
+            // TODO add dedicated error to list of errors (NoSuchToolError)
+            toolResultsStreamController!.enqueue({
+              type: 'error',
+              error: `Tool ${chunk.toolName} not found (no tools provided)`,
+            });
+            break;
+          }
+
+          const tool = tools[toolName];
+
+          if (tool == null) {
+            // TODO add dedicated error to list of errors (NoSuchToolError)
+            toolResultsStreamController!.enqueue({
+              type: 'error',
+              error: `Tool ${chunk.toolName} not found`,
+            });
+
+            break;
+          }
+
+          const parseResult = safeParseJSON({
+            text: chunk.args,
+            schema: new ZodSchema(tool.parameters),
           });
-        } else if ('execute' in tool) {
-          const toolExecutionId = nanoid(); // use our own id to guarantee uniqueness
-          outstandingToolCalls.add(toolExecutionId);
 
-          // TODO full tool call args parsing & validation
-          tool.execute(JSON.parse(chunk.args)).then(
-            result => {
-              toolResultsStreamController!.enqueue({
-                type: 'tool-result',
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
-                result,
-              });
+          if (parseResult.success === false) {
+            // TODO dedicate tool call error (InvalidToolArgumentsError)
+            toolResultsStreamController!.enqueue({
+              type: 'error',
+              error: `Tool call ${toolName} has invalid arguments: ${parseResult.error}`,
+            });
 
-              outstandingToolCalls.delete(toolExecutionId);
+            break;
+          }
 
-              // close the tool results controller if no more outstanding tool calls
-              if (canClose && outstandingToolCalls.size === 0) {
-                toolResultsStreamController!.close();
-              }
-            },
-            error => {
-              toolResultsStreamController!.enqueue({
-                type: 'error',
-                error,
-              });
+          // TODO should have typesafe tool call arguments
+          const toolArgs = parseResult.value;
 
-              outstandingToolCalls.delete(toolExecutionId);
+          controller.enqueue({
+            type: 'tool-call',
+            toolCallId: chunk.toolCallId,
+            toolName,
+            args: toolArgs,
+          });
 
-              // close the tool results controller if no more outstanding tool calls
-              if (canClose && outstandingToolCalls.size === 0) {
-                toolResultsStreamController!.close();
-              }
-            },
-          );
+          if (tool.execute != null) {
+            const toolExecutionId = nanoid(); // use our own id to guarantee uniqueness
+            outstandingToolCalls.add(toolExecutionId);
+
+            // TODO full tool call args parsing & validation
+            const argsp = JSON.parse(chunk.args);
+            const execute = tool.execute as any;
+            execute(argsp).then(
+              (result: any) => {
+                toolResultsStreamController!.enqueue({
+                  type: 'tool-result',
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                  result,
+                });
+
+                outstandingToolCalls.delete(toolExecutionId);
+
+                // close the tool results controller if no more outstanding tool calls
+                if (canClose && outstandingToolCalls.size === 0) {
+                  toolResultsStreamController!.close();
+                }
+              },
+              (error: any) => {
+                toolResultsStreamController!.enqueue({
+                  type: 'error',
+                  error,
+                });
+
+                outstandingToolCalls.delete(toolExecutionId);
+
+                // close the tool results controller if no more outstanding tool calls
+                if (canClose && outstandingToolCalls.size === 0) {
+                  toolResultsStreamController!.close();
+                }
+              },
+            );
+          }
+
+          break;
+        }
+
+        // ignore
+        case 'tool-call-delta': {
+          break;
+        }
+
+        default: {
+          const _exhaustiveCheck: never = chunkType;
+          throw new Error(`Unhandled chunk type: ${_exhaustiveCheck}`);
         }
       }
     },
@@ -100,7 +199,7 @@ export function runToolsTransformation({
   });
 
   // combine the generator stream and the tool results stream
-  return new ReadableStream<LanguageModelStreamPart | ToolResultStreamPart>({
+  return new ReadableStream<ReturnStreamPart<TOOLS>>({
     async start(controller) {
       generatorStream.pipeThrough(forwardStream).pipeTo(
         new WritableStream({

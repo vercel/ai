@@ -5,7 +5,7 @@ export interface LanguageModel {
 
   doGenerate(options: LanguageModelCallOptions): PromiseLike<{
     text?: string;
-    toolCalls?: Array<ToolCall>;
+    toolCalls?: Array<LanguageModelToolCall>;
   }>;
 
   doStream(
@@ -38,7 +38,7 @@ export type ErrorStreamPart = {
   error: unknown;
 };
 
-type ToolCall = {
+export type LanguageModelToolCall = {
   toolCallId: string;
   toolName: string;
   args: string;
@@ -46,7 +46,7 @@ type ToolCall = {
 
 type ToolCallStreamPart = {
   type: 'tool-call';
-} & ToolCall;
+} & LanguageModelToolCall;
 
 type ToolCallDeltaStreamPart = {
   type: 'tool-call-delta';
