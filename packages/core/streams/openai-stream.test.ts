@@ -217,7 +217,7 @@ describe('OpenAIStream', () => {
       ]);
     });
 
-    it('should not call onToken for function calls', async () => {
+    it('should not call onText for function calls', async () => {
       const data = new experimental_StreamData();
 
       const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
@@ -227,8 +227,8 @@ describe('OpenAIStream', () => {
         async experimental_onFunctionCall({ name }) {
           // no response
         },
-        onToken(token) {
-          assert.fail(`onToken should not be called (token: ${token})`);
+        onText(token) {
+          assert.fail(`onText should not be called (token: ${token})`);
         },
         experimental_streamData: true,
       });

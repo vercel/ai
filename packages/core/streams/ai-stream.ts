@@ -34,6 +34,8 @@ export interface AIStreamCallbacksAndOptions {
   onFinal?: (completion: string) => Promise<void> | void;
   /** `onToken`: Called for each tokenized message. */
   onToken?: (token: string) => Promise<void> | void;
+  /** `onText`: Called for each text chunk. */
+  onText?: (text: string) => Promise<void> | void;
   /**
    * A flag for enabling the experimental_StreamData class and the new protocol.
    * @see https://github.com/vercel-labs/ai/pull/425
@@ -152,8 +154,10 @@ export function createCallbacksTransformer(
 
       aggregatedResponse += content;
 
-      if (callbacks.onToken && typeof message === 'string')
-        await callbacks.onToken(message);
+      if (callbacks.onToken) await callbacks.onToken(content);
+      if (callbacks.onText && typeof message === 'string') {
+        await callbacks.onText(message);
+      }
     },
 
     async flush(): Promise<void> {
