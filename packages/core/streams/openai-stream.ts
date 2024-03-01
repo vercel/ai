@@ -264,7 +264,9 @@ export interface CompletionUsage {
  * The parser extracts and trims text content from the JSON data. This parser
  * can handle data for chat or completion models.
  *
- * @return {(data: string) => string | void} A parser function that takes a JSON string as input and returns the extracted text content or nothing.
+ * @return {(data: string) => string | void| { isText: false; content: string }}
+ * A parser function that takes a JSON string as input and returns the extracted text content,
+ * a complex object with isText: false for function/tool calls, or nothing.
  */
 function parseOpenAIStream(): (
   data: string,
