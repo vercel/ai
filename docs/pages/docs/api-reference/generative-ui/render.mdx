@@ -10,27 +10,136 @@ import { Searching } from '@/components/home/searching';
 
 # render()
 
-The `render` function is a helper function to create a streamable UI from an LLM response. It currently only supports OpenAI-compatible models/providers. By default, the `text` method will return a React fragment wrapped around the text content of the LLM response. 
+The `render` function is a powerful helper function to create a streamable UIs from an LLM response.
 
-The `render` function also allows you to map [OpenAI-compatible Tool/Function Calls](https://platform.openai.com/docs/guides/function-calling) to [React Server Components](https://vercel.com/blog/understanding-react-server-components) using the `tools` key. Note that both `text` and `render` can be specified, and `text` being the fallback for when no function is called by the model.
+Note: this function only supports OpenAI SDK-compatible models/providers.
 
+## Streaming Text
 
-`render` provides a few APIs for streaming updating UIs from the LLM:
+By default, `render` will stream the text content of the LLM response wrapped with a React Fragment `<>` tag.
+
+<Tabs items={['Next.js (App Router)']}>
+    <Tab>
+    ```tsx filename="app/actions.tsx"
+    import { OpenAI } from "openai";
+    import { render } from "ai/rsc";
+    
+    const openai = new OpenAI();
+
+    async function submitUserMessage(content: string) {
+      "use server";
+
+      const aiState = getMutableAIState();
+
+      // Update AI state with new message.
+      aiState.update([
+        ...aiState.get(),
+        {
+          role: "user",
+          content,
+        },
+      ]);
+
+      // render() returns a stream of UI components
+      const ui = render({
+        model: 'gpt-4-turbo',
+        provider: openai,
+        // You may want to construct messages from your AI state
+        messages: [
+          { role: 'system', content: 'You are a flight assistant' },
+          { role: 'user', content: userInput }
+        ],
+      })
+
+      return {
+        id: Date.now(),
+        // You can render ui on the client with something like `{message.display}`
+        display: ui
+      };
+    }
+    ```
+    </Tab>
+
+</Tabs>
+
+You can also customize the React component streamed for text responses by using the `text` key.
+
+<Tabs items={['Next.js (App Router)']}>
+    <Tab>
+    ```tsx filename="app/actions.tsx"
+    async function submitUserMessage(content: string) {
+      "use server";
+      
+      // ... same as above
+
+      const ui = render({
+
+        // ... same as above
+
+        // `text` is called when an AI returns a text response (as opposed to a tool call)
+        text: ({ content, done }) => {
+          // text can be streamed from the LLM, but we only want to close the stream with .done() when its completed.
+          // done() marks the state as available for the client to access
+          if (done) {
+            aiState.done({
+              ...aiState.get(),
+              {
+                role: "assistant",
+                content
+              }
+            })
+          }
+
+          return <div>{content}</div>
+        }
+      })
+
+      return {
+        id: Date.now(),
+        // You can render UI on the client with something like `{message.display}` and the
+        // result yielded in`text` will be displayed on the client and streamed
+        // in as it is returned from the model.
+        display: ui
+      };
+    }
+    ```
+    </Tab>
+
+</Tabs>
+
+## Tools and Function Calls with React Server Components
+
+The `render` function allows you to map [OpenAI-compatible model/providers with Function Calls and Assistants Tools](https://platform.openai.com/docs/guides/function-calling) to [React Server Components](https://vercel.com/blog/understanding-react-server-components) using the `tools` key.
+Note that both `text` and `render` can be specified at the same time, with `text` being the fallback for when no function is called by the model.
+
+If you use other models, you can [prompt engineer](docs/concepts/prompt-engineering) them
+into returning structured data and manually handle the streaming UI with [`createStreamableUI`](./create-streamable-ui) and [`createStreamableValue`](./create-streamable-value).
+
+Tool/Function Schema definitions use [Zod](https://zod.dev/) schemas to specify the function parameters and return values. `render` will automatically validate the schemas and throw an error if the function call is invalid.
+
+To install Zod, run:
+
+```sh
+pnpm install zod
+```
+
+Each tool specified also accepts a nested `render` function for returning React components. There are a few different signatures you can use:
+
 - `() => ReactNode` - a function that returns a React Node
 - `async () => ReactNode` - an async function that returns a React Node
 - `function* () {}` - an generator function that returns a React Node.
 - `async function* () {}` - an async generator function that returns a React Node.
 
-If you use other models, you can [prompt engineer](docs/concepts/prompt-engineering) them
-into returning structured data and manually handle the streaming UI with [`createStreamableUI`](./create-streamable-ui), [`createStreamableValue`](./create-streamable-value) and an [AI Provider](/docs/api-reference/providers).
+If you use a generator signature, you can `yield` React Nodes and they will be sent as distinct updates to the client. This is very powerful for loading states and agentic, multi-step behaviors.
 
 <Tabs items={['Next.js (App Router)']}>
     <Tab>
     ```tsx filename="app/actions.tsx"
+    import { OpenAI } from "openai";
+    import { render } from "ai/rsc";
+    import { z } from "zod";
 
-    const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-    });
+    const openai = new OpenAI();
 
     async function submitUserMessage(content: string) {
       "use server";
@@ -100,7 +209,7 @@ into returning structured data and manually handle the streaming UI with [`creat
 
       return {
         id: Date.now(),
-        // You can render ui on the client with something like `{message.display}` and the
+        // You can render UI on the client with something like `{message.display}` and the
         // result yielded in `render` or `text` will be displayed on the client and streamed
         // in as it is returned from the model.
         display: ui
