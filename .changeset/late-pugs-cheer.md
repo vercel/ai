@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-fix text response and async generator
+ai/rsc: fix text response and async generator
