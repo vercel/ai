@@ -34,6 +34,8 @@ export interface AIStreamCallbacksAndOptions {
   onFinal?: (completion: string) => Promise<void> | void;
   /** `onToken`: Called for each tokenized message. */
   onToken?: (token: string) => Promise<void> | void;
+  /** `onText`: Called for each text chunk. */
+  onText?: (text: string) => Promise<void> | void;
   /**
    * A flag for enabling the experimental_StreamData class and the new protocol.
    * @see https://github.com/vercel-labs/ai/pull/425
@@ -60,7 +62,10 @@ export interface AIStreamParserOptions {
  * @returns {string | void} The parsed data or void.
  */
 export interface AIStreamParser {
-  (data: string, options: AIStreamParserOptions): string | void;
+  (data: string, options: AIStreamParserOptions):
+    | string
+    | void
+    | { isText: false; content: string };
 }
 
 /**
@@ -70,7 +75,7 @@ export interface AIStreamParser {
  */
 export function createEventStreamTransformer(
   customParser?: AIStreamParser,
-): TransformStream<Uint8Array, string> {
+): TransformStream<Uint8Array, string | { isText: false; content: string }> {
   const textDecoder = new TextDecoder();
   let eventSourceParser: EventSourceParser;
 
@@ -132,7 +137,7 @@ export function createEventStreamTransformer(
  */
 export function createCallbacksTransformer(
   cb: AIStreamCallbacksAndOptions | OpenAIStreamCallbacks | undefined,
-): TransformStream<string, Uint8Array> {
+): TransformStream<string | { isText: false; content: string }, Uint8Array> {
   const textEncoder = new TextEncoder();
   let aggregatedResponse = '';
   const callbacks = cb || {};
@@ -143,10 +148,16 @@ export function createCallbacksTransformer(
     },
 
     async transform(message, controller): Promise<void> {
-      controller.enqueue(textEncoder.encode(message));
+      const content = typeof message === 'string' ? message : message.content;
 
-      aggregatedResponse += message;
-      if (callbacks.onToken) await callbacks.onToken(message);
+      controller.enqueue(textEncoder.encode(content));
+
+      aggregatedResponse += content;
+
+      if (callbacks.onToken) await callbacks.onToken(content);
+      if (callbacks.onText && typeof message === 'string') {
+        await callbacks.onText(message);
+      }
     },
 
     async flush(): Promise<void> {
