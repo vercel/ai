@@ -1,16 +1,16 @@
 <a href="https://sdk.vercel.ai/rsc-demo">
-  <img alt="AI Server Components Demo" src="https://github.com/vercel/ai/assets/4060187/7a35550b-f3ad-41d3-afd4-c044b344d433">
+  <img alt="Generative UI Demo" src="https://github.com/vercel/ai/assets/4060187/f21fa839-c710-4f09-9af4-2056f603d98f">
   <h1 align="center">AI Server Components Demo</h1>
 </a>
 
 <p align="center">
-  An experimental preview of AI Server Components. 
+  An experimental preview of AI SDK 3.0 with Generative UI support
 </p>
 
 ## Features
 
-- [Next.js](https://nextjs.org) App Router
-- [Vercel AI SDK 3.0](https://sdk.vercel.ai/docs) with AI Server Components
+- [Next.js](https://nextjs.org) App Router + React Server Components
+- [Vercel AI SDK 3.0](https://sdk.vercel.ai/docs) for Generative UI
 - OpenAI Tools/Function Calling
 - [shadcn/ui](https://ui.shadcn.com)
 
