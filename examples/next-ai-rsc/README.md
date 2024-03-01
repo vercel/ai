@@ -7,8 +7,6 @@
   An experimental preview of AI SDK 3.0 with Generative UI support
 </p>
 
-See it live: https://sdk.vercel.ai/demo
-
 ## Features
 
 - [Next.js](https://nextjs.org) App Router + React Server Components
