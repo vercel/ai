@@ -93,7 +93,7 @@ into returning structured data and manually handle the streaming UI with [`creat
 
       return {
         id: Date.now(),
-        // You can render ui on the client with something like `{message.ui}` and the
+        // You can render ui on the client with something like `{message.display}` and the
         // result yielded in `render` or `text` will be displayed on the client and streamed
         // in as it is returned from the model.
         display: ui
