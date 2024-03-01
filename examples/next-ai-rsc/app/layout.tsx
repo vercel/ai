@@ -16,7 +16,7 @@ const meta = {
 };
 export const metadata: Metadata = {
   ...meta,
-  metadataBase: new URL(process.env.VERCEL_URL),
+  metadataBase: new URL(process.env.VERCEL_URL || ""),
   title: {
     default: 'AI RSC Demo',
     template: `%s - AI RSC Demo`,
@@ -63,9 +63,9 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <div className="flex min-h-screen flex-col">
+            <div className="flex flex-col min-h-screen">
               <Header />
-              <main className="flex flex-1 flex-col bg-muted/50 dark:bg-background">
+              <main className="flex flex-col flex-1 bg-muted/50 dark:bg-background">
                 {children}
               </main>
             </div>
