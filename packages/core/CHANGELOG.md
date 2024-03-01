@@ -1,5 +1,12 @@
 # ai
 
+## 3.0.1
+
+### Patch Changes
+
+- ac20a25: ai/rsc: fix text response and async generator
+- b88778f: Added onText callback for text tokens.
+
 ## 3.0.0
 
 ### Major Changes
