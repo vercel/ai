@@ -16,7 +16,7 @@ import { Tabs, Tab } from 'nextra-theme-docs';
 
 ### `initialAIState`: [`AIState`](/docs/concepts/ai-rsc#aistate)
 
-`AIState` is a JSON representation of all the context the LLM needs to read. Usually for a chat app, `AIState` contains the textual conversation history between the user and the assistant. It can also be used to store other values and information such as a `createdAt` field for each message.
+`AIState` is a JSON representation of all the context the LLM needs to read. Usually for a chat app, `AIState` contains the textual conversation history between the user and the assistant. It can also be used to store other values and information such as a `createdAt` field for each message, or a `chatId` field besides all the messages.
 `AIState` by default, can be accessed/modified on both Server and Client, so the values must be serializable.
 
 ### `initialUIState`: [`UIState`](/docs/concepts/ai-rsc#uistate)
