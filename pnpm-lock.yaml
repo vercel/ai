@@ -63,7 +63,7 @@ importers:
         specifier: ^1.0.1
         version: 1.0.1
       ai:
-        specifier: ^3.0.0
+        specifier: 3.0.0
         version: link:../../packages/core
       class-variance-authority:
         specifier: ^0.7.0
