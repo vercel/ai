@@ -364,7 +364,7 @@ hook.
 In the example below, we have a slider that allows the user to purchase a number of shares of a stock. When the user changes the slider, we update the AI state with the new information.
 
 ```tsx filename="app/components/slider.tsx"
-"use client";
+'use client';
 
 import { useAIState } from 'ai/rsc';
 import { useId } from 'react';
@@ -418,17 +418,17 @@ async function getStockHistoryChart() {
 
   const response = await callLLM('What is the current stock price of AAPL?');
 
-  const historyChart = createStreamableUI(<Spinner />);
+  // We need to wrap this in an async IIFE to avoid blocking. Without it, the UI wouldn't render
+  // while the fetch is in progress.
+  async () => {
+    const historyChart = createStreamableUI(<Spinner />);
 
-  // We won't be updating this again so we use `done()` instead of `update()`.
-  ui.done(<StockCard historyChart={historyChart.value} />)(
-    // We need to wrap this in an async IIFE to avoid blocking. Without it, the UI wouldn't render
-    // while the fetch is in progress.
-    async () => {
-      const historyData = await fetch('stock-data-api.com');
-      historyChart.done(<HistoryChart data={historyData} />);
-    },
-  )();
+    // We won't be updating this again so we use `done()` instead of `update()`.
+    ui.done(<StockCard historyChart={historyChart.value} />)(
+
+    const historyData = await fetch('stock-data-api.com');
+    historyChart.done(<HistoryChart data={historyData} />);
+  })();
 
   return ui;
 }
