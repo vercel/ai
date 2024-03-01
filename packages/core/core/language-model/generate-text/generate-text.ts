@@ -23,11 +23,7 @@ export async function generateText<
 }: {
   model: LanguageModel;
   tools?: {
-    [name in keyof TOOLS]: {
-      description?: string;
-      parameters: TOOLS[name];
-      execute?: (args: z.infer<TOOLS[name]>) => unknown;
-    };
+    [name in keyof TOOLS]: Tool<TOOLS[name], unknown>;
   };
   prompt: InstructionPrompt | ChatPrompt;
 }): Promise<GenerateTextResult<ValueOf<ToToolCalls<TOOLS>>>> {
@@ -77,11 +73,7 @@ function parseToolCall<
 }: {
   toolCall: LanguageModelToolCall;
   tools?: {
-    [name in keyof TOOLS]: {
-      description?: string;
-      parameters: TOOLS[name];
-      execute?: (args: z.infer<TOOLS[name]>) => unknown;
-    };
+    [name in keyof TOOLS]: Tool<TOOLS[name], unknown>;
   };
 }): ValueOf<ToToolCalls<TOOLS>> {
   const toolName = toolCall.toolName as keyof TOOLS & string;

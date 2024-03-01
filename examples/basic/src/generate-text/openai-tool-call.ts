@@ -12,16 +12,14 @@ async function main() {
     tools: {
       weather: weatherTool,
       cityAttractions: {
-        parameters: z.object({
-          city: z.string(),
-        }),
+        parameters: z.object({ city: z.string() }),
       },
     },
     prompt:
       'What is the weather in San Francisco and what attractions should I visit?',
   });
 
-  // strong typing for tool calls:
+  // typed tool calls:
   for (const toolCall of result.toolCalls) {
     switch (toolCall.toolName) {
       case 'cityAttractions': {

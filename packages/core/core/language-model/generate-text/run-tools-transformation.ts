@@ -1,9 +1,10 @@
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
-import { ErrorStreamPart, LanguageModelStreamPart } from '../language-model';
-import { ToolResultStreamPart } from './tool-result-stream-part';
 import { safeParseJSON } from '../../schema/parse-json';
 import { ZodSchema } from '../../schema/zod-schema';
+import { ErrorStreamPart, LanguageModelStreamPart } from '../language-model';
+import { Tool } from '../tool';
+import { ToolResultStreamPart } from './tool-result-stream-part';
 
 type ReturnStreamPart<
   TOOLS extends {
@@ -41,11 +42,7 @@ export function runToolsTransformation<
   generatorStream,
 }: {
   tools?: {
-    [name in keyof TOOLS]: {
-      description?: string;
-      parameters: TOOLS[name];
-      execute?: (args: z.infer<TOOLS[name]>) => unknown;
-    };
+    [name in keyof TOOLS]: Tool<TOOLS[name], unknown>;
   };
   generatorStream: ReadableStream<LanguageModelStreamPart>;
 }): ReadableStream<ReturnStreamPart<TOOLS>> {
