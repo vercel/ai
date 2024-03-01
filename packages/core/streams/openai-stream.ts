@@ -349,12 +349,12 @@ function chunkToText(): (
       } else if (delta.function_call?.arguments) {
         return {
           isText: false,
-          content: cleanupArguments(delta.function_call.arguments),
+          content: cleanupArguments(delta.function_call?.arguments),
         };
       } else if (delta.tool_calls?.[0]?.function?.arguments) {
         return {
           isText: false,
-          content: cleanupArguments(delta.tool_calls[0].function.arguments),
+          content: cleanupArguments(delta.tool_calls?.[0]?.function?.arguments),
         };
       } else if (
         isFunctionStreamingIn &&
