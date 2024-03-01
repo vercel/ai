@@ -10,7 +10,7 @@ import { Tabs, Tab } from 'nextra-theme-docs';
 
 ## `useActions`
 
-`useActions` is a hook to help you access your Server Actions from the client.
+`useActions` is a hook to help you access your Server Actions from the client. It’s required to access these server actions via this hook (because we patched these actions when they’re passing through this context), and if you directly import the actions instead of using useActions, you might run into the current issue of “cannot find client component.”
 This is particularly useful for building interfaces that require user interactions with the server.
 
 <Tabs items={['Next.js (App Router)']}>
