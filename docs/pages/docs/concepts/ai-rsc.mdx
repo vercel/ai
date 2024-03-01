@@ -411,7 +411,7 @@ In the example below, we pass a `historyChart` streamable as a prop to a `StockC
 ```tsx filename="app/action.tsx"
 // Create a streaming UI node. You can make as many as you need.
 async function getStockHistoryChart() {
-  "use server"
+  'use server';
 
   const ui = createStreamableUI(<Spinner />);
 
