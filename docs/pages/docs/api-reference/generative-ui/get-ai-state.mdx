@@ -10,7 +10,7 @@ import { Tabs, Tab } from 'nextra-theme-docs';
 
 ## `getAIState`
 
-`getAIState` is called within a Server Action to get the current [AI state](../concepts/ai-rsc#ai-state). If `key` is provided, it will return the value of the specified key in the AI state if it's an object. If it's not an object, it will throw an error.
+`getAIState` is called within a Server Action to get the current [AI state](/docs/concepts/ai-rsc#ai-state). If `key` is provided, it will return the value of the specified key in the AI state if it's an object. If it's not an object, it will throw an error.
 
 The AI state returned is read-only so if you want to make updates to it, you should use [getMutableAIState](./get-mutable-ai-state).
 

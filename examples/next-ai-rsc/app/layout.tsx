@@ -16,7 +16,6 @@ const meta = {
 };
 export const metadata: Metadata = {
   ...meta,
-  metadataBase: new URL(process.env.VERCEL_URL || ''),
   title: {
     default: 'AI RSC Demo',
     template: `%s - AI RSC Demo`,
