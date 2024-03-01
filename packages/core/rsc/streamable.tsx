@@ -163,12 +163,12 @@ export function render<
   } = {},
 >(options: {
   /**
-   * The model name to use. Currently the only models available are OpenAI's
-   * GPT models (3.5/4) with Function Calling and Assistants Tools.
+   * The model name to use. Must be OpenAI SDK compatible. Tools and Functions are only supported
+   * GPT models (3.5/4), OpenAI Assistants, Mistral small and large, and Fireworks firefunction-v1.
    *
    * @example "gpt-3.5-turbo"
    */
-  model: `gpt-${string}`;
+  model: string;
   /**
    * The provider instance to use. Currently the only provider available is OpenAI.
    * This needs to match the model name.
