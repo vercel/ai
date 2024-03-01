@@ -349,12 +349,11 @@ async function handleUserMessage(userInput) {
 }
 ```
 
-And then your WeatherCard can call the `refreshAction` in an `onClick` event or in something like a timeout to refresh the weather data.
-The AI SDK will handle keeping your UI in sync with the server and updating the UI as the server responds.
+And then your `WeatherCard` component can call the `refreshAction` function in an `onClick` event handler, an effect or something like polling to load the latest weather data and update the client UI.
 
 {/* ### Serializing, storing, and syncing AI State */}
 
-### Updating AI State from components
+### Updating AI State from Client Components
 
 The AI state represents the context of the conversation provided to the language model and is
 often an array of chat messages. Sometimes, like if the user is filling out a form or interacting with a UI element like a slider,
@@ -414,21 +413,20 @@ In the example below, we pass a `historyChart` streamable as a prop to a `StockC
 async function getStockHistoryChart() {
   "use server"
 
-  const ui = createStreamableUI(null);
-
+  const ui = createStreamableUI(<Spinner />);
 
   // We need to wrap this in an async IIFE to avoid blocking. Without it, the UI wouldn't render
   // while the fetch or LLM call are in progress.
-  async () => {
-    const response = await callLLM('What is the current stock price of AAPL?');
+  (async () => {
+    const price = await callLLM('What is the current stock price of AAPL?');
 
+    // Show a spinner as the history chart for now.
+    // We won't be updating this again so we use `ui.done()` instead of `ui.update()`.
     const historyChart = createStreamableUI(<Spinner />);
+    ui.done(<StockCard historyChart={historyChart.value} price={price} />);
 
-    // We won't be updating this again so we use `done()` instead of `update()`.
-    ui.done(<StockCard historyChart={historyChart.value} />)(
-
-
-    const historyData = await fetch('stock-data-api.com');
+    // Getting the history data and then update that part of the UI.
+    const historyData = await fetch('https://my-stock-data-api.com');
     historyChart.done(<HistoryChart data={historyData} />);
   })();
 
