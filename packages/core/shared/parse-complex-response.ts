@@ -30,6 +30,8 @@ export async function parseComplexResponse({
   onFinish,
   generateId = nanoid,
   getCurrentDate = () => new Date(),
+  finishAudioStream,
+  appendAudioChunk,
 }: {
   reader: ReadableStreamDefaultReader<Uint8Array>;
   abortControllerRef?: {
@@ -39,6 +41,8 @@ export async function parseComplexResponse({
   onFinish?: (prefixMap: PrefixMap) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;
+  finishAudioStream?: () => void;
+  appendAudioChunk?: (base64Chunk: string) => void;
 }) {
   const createdAt = getCurrentDate();
   const prefixMap: PrefixMap = {
@@ -101,6 +105,10 @@ export async function parseComplexResponse({
       prefixMap['data'].push(...value);
     }
 
+    if (type === 'audio') {
+      appendAudioChunk?.(value);
+    }
+
     let responseMessage = prefixMap['text'];
 
     if (type === 'message_annotations') {
@@ -149,6 +157,7 @@ export async function parseComplexResponse({
     update(merged, [...prefixMap['data']]); // make a copy of the data array
   }
 
+  finishAudioStream?.();
   onFinish?.(prefixMap);
 
   return {

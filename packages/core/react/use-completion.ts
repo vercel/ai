@@ -6,6 +6,7 @@ import {
   RequestOptions,
   UseCompletionOptions,
 } from '../shared/types';
+import { useMediaSource } from './use-media-source';
 
 export type UseCompletionHelpers = {
   /** The current completion result */
@@ -57,6 +58,13 @@ export type UseCompletionHelpers = {
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
   data?: JSONValue[] | undefined;
+
+  /**
+   * The URL of the speech audio stream. This is only available when the route forwards
+   * audio data to the client. You can use this URL in HTML5 audio elements to play the
+   * audio stream.
+   */
+  experimental_speechUrl: string | null;
 };
 
 export function useCompletion({
@@ -96,6 +104,15 @@ export function useCompletion({
   const [abortController, setAbortController] =
     useState<AbortController | null>(null);
 
+  // speech setup
+  const {
+    mediaSourceUrl: speechUrl,
+    finishAudioStream,
+    appendAudioChunk,
+  } = useMediaSource({
+    id: completionId,
+  });
+
   const extraMetadataRef = useRef({
     credentials,
     headers,
@@ -125,11 +142,15 @@ export function useCompletion({
         setError,
         setAbortController,
         onResponse,
-        onFinish,
+        onFinish: (prompt, completion) => {
+          finishAudioStream();
+          onFinish?.(prompt, completion);
+        },
         onError,
         onData: data => {
           mutateStreamData([...(streamData || []), ...(data || [])], false);
         },
+        onAudioChunk: appendAudioChunk,
       }),
     [
       mutate,
@@ -143,6 +164,8 @@ export function useCompletion({
       setError,
       streamData,
       mutateStreamData,
+      finishAudioStream,
+      appendAudioChunk,
     ],
   );
 
@@ -194,5 +217,6 @@ export function useCompletion({
     handleSubmit,
     isLoading,
     data: streamData,
+    experimental_speechUrl: speechUrl,
   };
 }

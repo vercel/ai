@@ -16,6 +16,7 @@ export async function callCompletionApi({
   onFinish,
   onError,
   onData,
+  onAudioChunk,
 }: {
   api: string;
   prompt: string;
@@ -30,6 +31,7 @@ export async function callCompletionApi({
   onFinish?: (prompt: string, completion: string) => void;
   onError?: (error: Error) => void;
   onData?: (data: JSONValue[]) => void;
+  onAudioChunk?: (base64Chunk: string) => void;
 }) {
   try {
     setLoading(true);
@@ -92,6 +94,10 @@ export async function callCompletionApi({
           }
           case 'data': {
             onData?.(value);
+            break;
+          }
+          case 'audio': {
+            onAudioChunk?.(value);
             break;
           }
         }

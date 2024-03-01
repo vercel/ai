@@ -11,6 +11,7 @@
         "COHERE_API_KEY",
         "GOOGLE_API_KEY",
         "HUGGINGFACE_API_KEY",
+        "LMNT_API_KEY",
         "MISTRAL_API_KEY",
         "OPENAI_API_KEY",
         "OPENAI_API_BASE",
