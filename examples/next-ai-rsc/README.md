@@ -1,11 +1,13 @@
 <a href="https://sdk.vercel.ai/rsc-demo">
   <img alt="Generative UI Demo" src="https://github.com/vercel/ai/assets/4060187/f21fa839-c710-4f09-9af4-2056f603d98f">
-  <h1 align="center">AI Server Components Demo</h1>
+  <h1 align="center">Generative UI Demo</h1>
 </a>
 
 <p align="center">
   An experimental preview of AI SDK 3.0 with Generative UI support
 </p>
+
+See it live: https://sdk.vercel.ai/demo
 
 ## Features
 
