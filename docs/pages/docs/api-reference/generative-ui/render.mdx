@@ -15,7 +15,6 @@ The `render` function is a helper function to create a streamable UI from an LLM
 The `render` function also allows you to map [OpenAI-compatible Tool/Function Calls](https://platform.openai.com/docs/guides/function-calling) to [React Server Components](https://vercel.com/blog/understanding-react-server-components) using the `tools` key. Note that both `text` and `render` can be specified, and `text` being the fallback for when no function is called by the model.
 
 
-OpenAI API compatible models with function calling, like gpt-3.5-turbo and [FireFunction](https://fireworks.ai/blog/firefunction-v1-gpt-4-level-function-calling).
 `render` provides a few APIs for streaming updating UIs from the LLM:
 - `() => ReactNode` - a function that returns a React Node
 - `async () => ReactNode` - an async function that returns a React Node
