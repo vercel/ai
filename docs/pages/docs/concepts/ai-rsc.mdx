@@ -1,0 +1,440 @@
+---
+title: Generative UI
+---
+
+import { Callout, Tabs, Tab, Steps } from 'nextra-theme-docs';
+import { UIPreviewCard, Card } from '@/components/home/card';
+import { Browser } from '@/components/home/browser';
+import { EventPlanning } from '@/components/home/event-planning';
+import { Searching } from '@/components/home/searching';
+
+# Generative UI
+
+The introduction of function calling with language models like GPT-3.5+ has paved the way for tailored interactive user interfaces that the language model decides to render.
+
+Leveraging React Server Components and Server Actions, the AI SDK seamlessly integrates interface rendering capabilities through the `ai/rsc` package.
+You can use models that do not support function calling with `ai/rsc` by emulating structured outputs like JSON or directly streaming their outputs.
+
+## Examples
+
+<div className="grid lg:grid-cols-2 grid-cols-1 gap-4 mt-8">
+  <UIPreviewCard
+    title="Search"
+    description="Let your users see more than words can say by rendering components directly within your search experience."
+  >
+    <Searching />
+  </UIPreviewCard>
+  <UIPreviewCard
+    title="Task Planning"
+    description="Make it easier for your users to interpret agent execution so they can stay in the loop with the magic behind the scenes."
+  >
+    <EventPlanning />
+  </UIPreviewCard>
+</div>
+
+## AI and UI State
+
+The AI SDK introduces two new concepts: `AIState` and `UIState`. These states introduce a clear separation of concerns between the server-side AI operations and client-side UI rendered in the application. This separation allows developers to securely maintain the AI state, which may include something like your system prompt or other metadata. Meanwhile, the UI state is designed to allow React Server Components to be efficiently streamed to the client.
+
+### AIState
+
+`AIState` is a JSON representation of all the context the LLM needs to read. For a chat app, `AIState` generally stores the textual conversation history between the user and the assistant. In practice, it can also be used to store other values and meta information such as `createdAt` of each message. `AIState` by default, can be accessed/modified on both Server and Client.
+
+### UIState
+
+`UIState` is what the application uses to display the UI. It is a fully client-side state (very similar to `useState`) and can keep data and UI elements returned by the LLM. This state can be anything, but can't be accessed on the server.
+
+## Setup
+
+<Steps>
+
+### Build your app
+
+#### Prerequisites
+
+Before you start, make sure you have the following:
+
+- Node.js 18+ installed on your local development machine.
+- An OpenAI API key.
+
+If you haven't obtained your OpenAI API key, you can do so by [signing up](https://platform.openai.com/signup/) on the OpenAI website.
+
+#### Install Next.js
+
+<Tabs items={['Next.js (App Router)']}>
+    <Tab>
+    We'll start by creating a new Next.js application. This command will create a new directory named `my-ai-app` and set up a basic Next.js application inside it.
+
+    ```sh
+    pnpm dlx create-next-app@canary my-ai-app
+    ```
+    </Tab>
+
+</Tabs>
+
+Navigate to the newly created directory:
+
+```sh
+cd my-ai-app
+```
+
+#### Install Dependencies
+
+Next, we'll install `ai` and `openai`, OpenAI's official JavaScript SDK compatible with the Vercel Edge Runtime.
+
+```sh
+pnpm install ai openai
+```
+
+#### Configure OpenAI API Key
+
+Create a `.env.local` file in your project root and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
+
+```sh
+touch .env.local
+```
+
+Edit the `.env.local` file:
+
+```env filename=".env.local"
+OPENAI_API_KEY=xxxxxxxxx
+```
+
+Replace `xxxxxxxxx` with your actual OpenAI API key.
+
+### Create an `ai/rsc` instance on the server
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+    ```tsx filename="app/action.tsx"
+    import { OpenAI } from "openai";
+    import { createAI, createStreamableUI, getMutableAIState } from "ai/rsc";
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    async function submitUserMessage(content: string) {
+      "use server";
+
+      const aiState = getMutableAIState();
+
+      // Update AI state with new message.
+      aiState.update([
+        ...aiState.get(),
+        {
+          role: "user",
+          content,
+        },
+      ]);
+
+      // render() returns a stream of UI components
+      const ui = render({
+        model: 'gpt-4-turbo',
+        provider: openai,
+        messages: [
+          { role: 'system', content: 'You are a flight assistant' },
+          { role: 'user', content: userInput }
+        ],
+        // `text` is called when an AI returns a text response (as opposed to a tool call)
+        text: ({ content, done }) => {
+          // text can be streamed from the LLM, but we only want to close the stream with .done() when its completed.
+          // done() marks the state as available for the client to access
+          if (done) {
+            aiState.done({
+              ...aiState.get(),
+              {
+                role: "assistant",
+                content
+              }
+            })
+          }
+
+          return <div>{content}</div>
+        }
+        tools: {
+          get_flight_info: {
+            description: 'Get the information for a flight',
+            parameters: z.object({
+              flightNumber: z.string().describe('the number of the flight')
+            }).required(),
+            // flightNumber is inferred from the parameters passed above
+            render: async function* ({ flightNumber }) {
+              yield <Spinner/>
+              const flightInfo = await getFlightInfo(flightNumber)
+
+              aiState.done([
+                ...aiState.get(),
+                {
+                  role: "function",
+                  name: "get_flight_info",
+                  // Content can be any string to provide context to the LLM in the rest of the conversation
+                  content: JSON.stringify(flightInfo),
+                }
+              ]);
+
+              return <FlightCard flightInfo={flightInfo} />
+            }
+          }
+        }
+      })
+
+      return {
+        id: Date.now(),
+        display: ui
+      };
+    }
+
+    export const AI = createAI({
+      actions: {
+        submitUserMessage
+      },
+      // Each state can be any shape of object, but for chat applications
+      // it makes sense to have an array of messages. Or you may prefer { id: number, messages: Message[] }
+      initialUIState: [],
+      initialAIState: []
+    });
+    ```
+
+  </Tab>
+</Tabs>
+
+### Connect to the `ai/rsc` instance from the client
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+    ```tsx filename="app/layout.tsx"
+    import { AI } from 'ai/rsc';
+
+    export default function RootLayout({
+      children,
+    }: Readonly<{
+      children: React.ReactNode;
+    }>) {
+      return (
+        <html lang="en">
+          <body>
+            <AI>
+              {children}
+            </AI>
+          </body>
+        </html>
+      )
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+### Send and receive messages
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+    ```tsx filename="app/page.tsx"
+    "use client"
+    
+    import { useState } from 'react';
+    import { AI, useUIState, useActions } from "ai/rsc";
+
+    export default function Page() {
+      const [inputValue, setInputValue] = useState("");
+      const [messages, setMessages] = useUIState();
+      const { submitUserMessage } = useActions();
+
+      return (
+        <div>
+          {
+            // View messages in UI state
+            messages.map((message) => (
+              <div key={message.id}>
+                {message.display}
+              </div>
+            ))
+          }
+
+          <form onSubmit={async () => {
+            // Add user message to UI state
+            setMessages((currentMessages) => [
+              ...currentMessages,
+              {
+                id: Date.now(),
+                display: <UserMessage>{value}</UserMessage>,
+              },
+            ]);
+
+            // Submit and get response message
+            const responseMessage = await submitUserMessage(inputValue);
+            setMessages((currentMessages) => [
+              ...currentMessages,
+              responseMessage,
+            ]);
+          }}>
+
+          <input
+            placeholder="Send a message..."
+            value={inputValue}
+            onChange={(event) => {
+              setInputValue(event.target.value)
+            }}
+          />
+        </form>
+        </div>
+      )
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+</Steps>
+
+## Recipes
+
+{/* weather blog post with returning nested action */}
+
+### Requesting updates from the server from generated UI
+
+In many cases, the interface you render will need to request updates from the server.
+For example, a weather app might need to request the latest weather data every 5 minutes, or a button press should execute a search.
+To accomplish this, you can pass Server Actions to your UI components and call them as needed.
+
+For example, if you have an `handleUserMessage` action registered in [`createAI`](/docs/api-reference/create-ai), you can define nested Server Actions like this:
+
+```tsx filename="app/action.tsx" {26-29}
+async function handleUserMessage(userInput) {
+  'use server';
+  const card = createStreamableUI(<Spinner />);
+
+  async function getCityWeather() {
+    try {
+      card.update(
+        <>
+          Analyzing...
+          <WeatherCardSkeleton />
+        </>,
+      );
+
+      // Your customized LLM logic, e.g. tools API.
+      const res = await callLLM(
+        `Return the city name from the user input: ${userInput}`,
+      );
+
+      const temperature = await getCityTemperature(res.city);
+      card.done(
+        <>
+          Here's the weather of {res.city}:
+          <WeatherCard
+            city={res.city}
+            temperature={temperature}
+            refreshAction={async () => {
+              'use server';
+              return getCityTemperature(res.city);
+            }}
+          />
+        </>,
+      );
+    } catch {
+      card.done(<ErrorCard />);
+      tokenCounter.done(0);
+    }
+  }
+
+  getCityWeather();
+
+  return {
+    startedAt: Date.now(),
+    ui: card.value, // Streamed UI value
+    tokens: tokenCounter.value, // Extra meta information.
+  };
+}
+```
+
+And then your WeatherCard can call the `refreshAction` in an `onClick` event or in something like a timeout to refresh the weather data.
+The AI SDK will handle keeping your UI in sync with the server and updating the UI as the server responds.
+
+{/* ### Serializing, storing, and syncing AI State */}
+
+### Updating AI State from components
+
+The AI State represents the context of the conversation provided to the language model and is
+often an array of chat messages. Sometimes, like if the user is filling out a form or interacting with a UI element like a slider,
+you need to update the language models context with the new information. You can mutate the AI state on the client using the [`useAIState`](/docs/api-reference/use-ai-state)
+hook.
+
+In the example below, we have a slider that allows the user to purchase a number of shares of a stock. When the user changes the slider, we update the AI state with the new information.
+
+```tsx filename="app/components/slider.tsx"
+'use client';
+
+import { useAIState } from 'ai/rsc';
+import { useId } from 'react';
+import type { AI } from '../action';
+
+export function Slider({ name, price }) {
+  const [aiState, setAIState] = useAIState<typeof AI>();
+
+  // A unique identifier we attach to each message so we can update it later.
+  const id = useId();
+
+  // Whenever the slider changes, we need to update the local value state and the history
+  // so LLM also knows what's going on without having a new message every time the slider changes.
+  function onSliderChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setValue(Number(e.target.value));
+
+    // Insert a new message into the AI state.
+    const info = {
+      role: 'assistant' as const,
+      content: `[User has changed to purchase ${newValue} shares of ${name}. Total cost: $${(
+        newValue * price
+      ).toFixed(2)}]`,
+
+      // Identifier of this UI component, so we don't insert it many times.
+      id,
+    };
+
+    // If the last history state already has this component, update it. This is to avoid
+    // adding every slider change to the history.
+    if (history[history.length - 1]?.id === id) {
+      setHistory([...history.slice(0, -1), info]);
+    } else {
+      // If it doesn't exist, append it to history.
+      setHistory([...history, info]);
+    }
+  }
+}
+```
+
+### Nested UI Streaming
+
+One powerful feature provided by the AI SDK is the ability to stream UI components _within_ other UI components. This allows you to create complex UIs that are built up from smaller, reusable components.
+In the example below, we pass a `historyChart` streamable as a prop to a `StockCard` component. The `StockCard` can render the `historyChart` streamable, and it will automatically update as the server responds with new data.
+
+```tsx filename="app/action.tsx"
+// Create a streaming UI node. You can make as many as you need.
+async function getStockHistoryChart() {
+  "use server"
+
+  const ui = createStreamableUI(null);
+
+
+  // We need to wrap this in an async IIFE to avoid blocking. Without it, the UI wouldn't render
+  // while the fetch or LLM call are in progress.
+  async () => {
+    const response = await callLLM('What is the current stock price of AAPL?');
+
+    const historyChart = createStreamableUI(<Spinner />);
+
+    // We won't be updating this again so we use `done()` instead of `update()`.
+    ui.done(<StockCard historyChart={historyChart.value} />)(
+
+
+    const historyData = await fetch('stock-data-api.com');
+    historyChart.done(<HistoryChart data={historyData} />);
+  })();
+
+  return ui;
+}
+```
+
+{/* ### Streaming data other than components to the client */}
+{/* Showing current stock price in document.title; you can't render react components there */}

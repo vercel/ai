@@ -1,0 +1,90 @@
+---
+title: createStreamableUI
+layout:
+  toc: false
+---
+
+import { Tabs, Tab } from 'nextra-theme-docs';
+
+# createStreamableUI
+
+## `createStreamableUI`
+
+Create a piece of changable UI that can be streamed to the client. On the client side, it can be rendered as a normal React node.
+
+## Parameters
+
+Any valid `React.ReactNode` can be passed in such as `string` or `array`. But it will always be a UI node as a result and the client side can only render it, but not deconstructing it. Think of `createStreamableUI('hello')` gives you `<>hello<>`.
+
+## Returns
+
+This creates a special value that can be returned from Actions to the client. It holds a UI node inside and can be updated via the `update` method.
+
+## Methods
+
+### `update`
+
+The `update` method is used to update the UI node. It takes a new UI node and replaces the old one.
+
+### `append`
+
+The `append` method is used to append a new UI node to the end of the old one.
+
+### `done`
+
+The `done` method is used to replace the UI node with a new one and mark it as done. This is useful for when you want to replace the loading UI with the final result.
+
+## Example
+
+<Tabs items={['Next.js (App Router)']}>
+  <Tab>
+    UI Streams are created on the server and streamed to the client.
+
+    ```tsx filename="app/action.tsx" {8-15, 19-26, 30-37, 41}
+    import { createStreamableUI } from "ai/rsc";
+
+    async function confirmPurchase(symbol: string, amount: number) {
+      "use server";
+
+      const price = getStockPrice(symbol);
+
+      const uiStream = createStreamableUI(
+        <div className="inline-flex gap-1">
+          {spinner}
+          <p className="mb-2">
+            Purchasing {amount} ${symbol}...
+          </p>
+        </div>
+      );
+
+      await sleep(1000);
+
+      uiStream.update(
+        <div className="inline-flex gap-1">
+          {spinner}
+          <p className="mb-2">
+            Purchasing {amount} ${symbol}... working on it...
+          </p>
+        </div>
+      );
+
+      await sleep(1000);
+
+      uiStream.done(
+        <div>
+          <p className="mb-2">
+            You have successfully purchased {amount} ${symbol}.
+            Total cost: ${amount * price}
+          </p>
+        </div>
+      );
+
+      return {
+        id: Date.now(),
+        display: uiStream.value,
+      }
+    }
+    ```
+
+  </Tab>
+</Tabs>
