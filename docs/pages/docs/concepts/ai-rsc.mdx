@@ -300,7 +300,7 @@ To accomplish this, you can pass Server Actions to your UI components and call t
 
 For example, if you have an `handleUserMessage` action registered in [`createAI`](/docs/api-reference/create-ai), you can define nested Server Actions like this:
 
-```tsx filename="app/action.tsx" {27-30}
+```tsx filename="app/action.tsx" {26-29}
 async function handleUserMessage(userInput) {
   'use server';
   const card = createStreamableUI(<Spinner />);
@@ -364,7 +364,10 @@ hook.
 In the example below, we have a slider that allows the user to purchase a number of shares of a stock. When the user changes the slider, we update the AI state with the new information.
 
 ```tsx filename="app/components/slider.tsx"
+"use client";
+
 import { useAIState } from 'ai/rsc';
+import { useId } from 'react';
 import { AI } from '../action';
 
 export function Slider({ name, price }) {
