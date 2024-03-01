@@ -254,20 +254,23 @@ export function render<
       typeof value === 'object' &&
       Symbol.asyncIterator in value
     ) {
-      for await (const node of value as AsyncGenerator<
+      const it = value as AsyncGenerator<
         React.ReactNode,
         React.ReactNode,
         void
-      >) {
-        res.update(node);
+      >;
+      while (true) {
+        const { done, value } = await it.next();
+        res.update(value);
+        if (done) break;
       }
       finished?.resolve(void 0);
     } else if (value && typeof value === 'object' && Symbol.iterator in value) {
       const it = value as Generator<React.ReactNode, React.ReactNode, void>;
       while (true) {
         const { done, value } = it.next();
-        if (done) break;
         res.update(value);
+        if (done) break;
       }
       finished?.resolve(void 0);
     } else {
@@ -323,15 +326,18 @@ export function render<
                 },
               }
             : {}),
-          onToken(token) {
-            text += token;
-            if (hasFunction) return;
+          onText(chunk) {
+            text += chunk;
             handleRender({ content: text, done: false }, options.text, ui);
           },
           async onFinal() {
-            if (hasFunction) return;
-            handleRender({ content: text, done: true }, options.text, ui);
+            if (hasFunction) {
+              await finished?.promise;
+              ui.done();
+              return;
+            }
 
+            handleRender({ content: text, done: true }, options.text, ui);
             await finished?.promise;
             ui.done();
           },
