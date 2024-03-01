@@ -9,7 +9,7 @@ describe('result.text', () => {
       model: new MockLanguageModel({
         objectMode: 'json',
         doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'regular' });
+          assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
           assert.deepStrictEqual(prompt, {
             messages: [{ role: 'user', content: 'prompt' }],
           });

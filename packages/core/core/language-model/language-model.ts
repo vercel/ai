@@ -1,36 +1,30 @@
 import { ChatPrompt } from './prompt/chat-prompt';
 
-export interface LanguageModelSettings {
-  maxTokens?: number;
+export interface LanguageModel {
+  objectMode: ObjectMode;
+
+  doGenerate(options: LanguageModelCallOptions): PromiseLike<{
+    text?: string;
+    toolCalls?: Array<ToolCall>;
+  }>;
+
+  doStream(
+    options: LanguageModelCallOptions,
+  ): PromiseLike<ReadableStream<LanguageModelStreamPart>>;
 }
 
 export type ObjectMode = 'tool' | 'json';
 
-export interface LanguageModel {
-  objectMode: ObjectMode;
+type LanguageModelCallOptions = {
+  mode:
+    | { type: 'regular'; tools?: Array<LanguageModelToolDefinition> }
+    | { type: 'object-json' }
+    | { type: 'object-tool'; tool: LanguageModelToolDefinition };
+  prompt: ChatPrompt;
+};
 
-  doGenerate(options: {
-    mode:
-      | { type: 'regular' } // TODO tools (& then extract)
-      | { type: 'object-json' }
-      | { type: 'object-tool'; tool: LanguageModelToolDefinition };
-    prompt: ChatPrompt;
-  }): PromiseLike<{
-    text?: string;
-    toolCalls?: Array<{
-      toolCallId: string;
-      toolName: string;
-      args: string;
-    }>;
-  }>;
-
-  doStream(options: {
-    mode:
-      | { type: 'regular'; tools?: Array<LanguageModelToolDefinition> }
-      | { type: 'object-json' }
-      | { type: 'object-tool'; tool: LanguageModelToolDefinition };
-    prompt: ChatPrompt;
-  }): PromiseLike<ReadableStream<LanguageModelStreamPart>>;
+export interface LanguageModelSettings {
+  maxTokens?: number;
 }
 
 type LanguageModelToolDefinition = {
@@ -44,12 +38,15 @@ export type ErrorStreamPart = {
   error: unknown;
 };
 
-type ToolCallStreamPart = {
-  type: 'tool-call';
+type ToolCall = {
   toolCallId: string;
   toolName: string;
-  args: unknown;
+  args: string;
 };
+
+type ToolCallStreamPart = {
+  type: 'tool-call';
+} & ToolCall;
 
 type ToolCallDeltaStreamPart = {
   type: 'tool-call-delta';

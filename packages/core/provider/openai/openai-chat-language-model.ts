@@ -72,11 +72,21 @@ export class OpenAIChatLanguageModel implements LanguageModel {
 
     switch (type) {
       case 'regular': {
+        // when the tools array is empty, change it to undefined to prevent OpenAI errors:
+        const tools = mode.tools?.length ? mode.tools : undefined;
+
         return {
           stream,
           ...this.basePrompt,
           messages,
-          // TODO tools
+          tools: tools?.map(tool => ({
+            type: 'function',
+            function: {
+              name: tool.name,
+              description: tool.description,
+              parameters: tool.parameters,
+            },
+          })),
         };
       }
 
@@ -197,14 +207,9 @@ export class OpenAIChatLanguageModel implements LanguageModel {
               // check if tool call is complete
               if (
                 toolCall.function?.name == null ||
-                toolCall.function?.arguments == null
+                toolCall.function?.arguments == null ||
+                tryParseJSON(toolCall.function.arguments) == null
               ) {
-                continue;
-              }
-
-              const args = tryParseJSON(toolCall.function.arguments);
-
-              if (args == null) {
                 continue;
               }
 
@@ -212,7 +217,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
                 type: 'tool-call',
                 toolCallId: toolCall.id ?? nanoid(),
                 toolName: toolCall.function.name,
-                args,
+                args: toolCall.function.arguments,
               });
             }
           }

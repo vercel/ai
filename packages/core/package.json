@@ -13,7 +13,9 @@
     "vue/dist/**/*",
     "solid/dist/**/*",
     "prompts/dist/**/*",
-    "rsc/dist/**/*"
+    "rsc/dist/**/*",
+    "core/dist/**/*",
+    "provider/dist/**/*"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",

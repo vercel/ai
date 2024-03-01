@@ -39,12 +39,14 @@ export function runToolsTransformation({
         LanguageModelStreamPart | ToolResultStreamPart
       >,
     ) {
+      // TODO need to transform tool calls (omit tool call deltas, add typed tool calls)
       controller?.enqueue(chunk);
 
       if (chunk.type === 'tool-call') {
         const tool = tools.find(tool => tool.name === chunk.toolName);
 
         if (tool == null) {
+          // TODO dedicated error type (NoSuchToolError)
           toolResultsStreamController!.enqueue({
             type: 'error',
             error: `Tool ${chunk.toolName} not found`,
@@ -53,7 +55,8 @@ export function runToolsTransformation({
           const toolExecutionId = nanoid(); // use our own id to guarantee uniqueness
           outstandingToolCalls.add(toolExecutionId);
 
-          tool.execute(chunk.args).then(
+          // TODO full tool call args parsing & validation
+          tool.execute(JSON.parse(chunk.args)).then(
             result => {
               toolResultsStreamController!.enqueue({
                 type: 'tool-result',
