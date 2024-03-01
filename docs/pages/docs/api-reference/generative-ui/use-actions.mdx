@@ -4,7 +4,7 @@ layout:
   toc: false
 ---
 
-import { Tabs, Tab } from 'nextra-theme-docs'
+import { Tabs, Tab } from 'nextra-theme-docs';
 
 # useActions
 
@@ -37,20 +37,20 @@ This is particularly useful for building interfaces that require user interactio
 
 ```tsx filename="app/components/button.tsx"
 export function Button({ setMessages }) {
-  const { viewStock } = useActions()
-  const [messages, setMessages] = useUIState()
+  const { viewStock } = useActions();
+  const [messages, setMessages] = useUIState();
 
   return (
     <button
       onClick={async () => {
-        const newMessage = await viewStock('NVDA')
+        const newMessage = await viewStock('NVDA');
 
-        setMessages((currentMessages: any) => [...currentMessages, newMessage])
+        setMessages((currentMessages: any) => [...currentMessages, newMessage]);
       }}
     >
       Purchase
     </button>
-  )
+  );
 }
 ```
 
