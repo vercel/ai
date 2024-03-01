@@ -228,7 +228,6 @@ describe('OpenAIStream', () => {
           // no response
         },
         onToken(token) {
-          console.trace();
           assert.fail(`onToken should not be called (token: ${token})`);
         },
         experimental_streamData: true,
