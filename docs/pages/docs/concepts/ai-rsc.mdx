@@ -108,7 +108,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
   <Tab>
     ```tsx filename="app/action.tsx"
     import { OpenAI } from "openai";
-    import { createAI, createStreamableUI, getMutableAIState, render} from "ai/rsc";
+    import { createAI, getMutableAIState, render } from "ai/rsc";
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -252,7 +252,9 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
             ))
           }
 
-          <form onSubmit={async () => {
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+
             // Add user message to UI state
             setMessages((currentMessages) => [
               ...currentMessages,
