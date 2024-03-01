@@ -53,7 +53,7 @@ By default, `render` will stream the text content of the LLM response wrapped wi
 
       return {
         id: Date.now(),
-        // You can render ui on the client with something like `{message.ui}`
+        // You can render ui on the client with something like `{message.display}`
         display: ui
       };
     }
@@ -96,7 +96,7 @@ You can also customize the React component streamed for text responses by using 
 
       return {
         id: Date.now(),
-        // You can render ui on the client with something like `{message.ui}` and the
+        // You can render UI on the client with something like `{message.display}` and the
         // result yielded in`text` will be displayed on the client and streamed
         // in as it is returned from the model.
         display: ui
@@ -209,7 +209,7 @@ If you use a generator signature, you can `yield` React Nodes and they will be s
 
       return {
         id: Date.now(),
-        // You can render ui on the client with something like `{message.ui}` and the
+        // You can render UI on the client with something like `{message.display}` and the
         // result yielded in `render` or `text` will be displayed on the client and streamed
         // in as it is returned from the model.
         display: ui
