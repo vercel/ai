@@ -108,7 +108,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
   <Tab>
     ```tsx filename="app/action.tsx"
     import { OpenAI } from "openai";
-    import { createAI, render, createStreamableUI, getMutableAIState, render } from "ai/rsc";
+    import { createAI, createStreamableUI, getMutableAIState, render} from "ai/rsc";
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
