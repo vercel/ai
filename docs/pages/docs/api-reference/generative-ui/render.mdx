@@ -14,9 +14,55 @@ The `render` function is a powerful helper function to create a streamable UIs f
 
 Note: this function only supports OpenAI SDK-compatible models/providers.
 
-## Streaming Text Responses
+## Streaming Text
 
-By default, `render` will stream the text content of the LLM response wrapped with a React Fragment `<>` tag. This behavior can be modified with a custom component using the `text` key.
+By default, `render` will stream the text content of the LLM response wrapped with a React Fragment `<>` tag.
+
+<Tabs items={['Next.js (App Router)']}>
+    <Tab>
+    ```tsx filename="app/actions.tsx"
+    import { OpenAI } from "openai";
+    import { render } from "ai/rsc";
+    
+    const openai = new OpenAI();
+
+    async function submitUserMessage(content: string) {
+      "use server";
+
+      const aiState = getMutableAIState();
+
+      // Update AI state with new message.
+      aiState.update([
+        ...aiState.get(),
+        {
+          role: "user",
+          content,
+        },
+      ]);
+
+      // render() returns a stream of UI components
+      const ui = render({
+        model: 'gpt-4-turbo',
+        provider: openai,
+        // You may want to construct messages from your AI state
+        messages: [
+          { role: 'system', content: 'You are a flight assistant' },
+          { role: 'user', content: userInput }
+        ],
+      })
+
+      return {
+        id: Date.now(),
+        // You can render ui on the client with something like `{message.ui}`
+        display: ui
+      };
+    }
+    ```
+    </Tab>
+
+</Tabs>
+
+You can also customize the React component streamed for text responses by using the `text` key.
 
 <Tabs items={['Next.js (App Router)']}>
     <Tab>
