@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.2
+
+### Patch Changes
+
+- 73bd06e: fix(useActions): return typed object
+
 ## 3.0.1
 
 ### Patch Changes
