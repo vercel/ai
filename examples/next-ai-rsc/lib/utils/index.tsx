@@ -102,13 +102,15 @@ export function runOpenAICompletion<
     ) => {
       onTextContent = callback;
     },
-    onFunctionCall: <TName extends keyof TToolMap>(
+    onFunctionCall: <TName extends TFunctions[number]['name']>(
       name: TName,
       callback: (
         args: z.output<
-          TToolMap[TName] extends infer TToolDef
-            ? TToolDef extends TAnyToolDefinitionArray[number]
-              ? TToolDef['parameters']
+          TName extends keyof TToolMap
+            ? TToolMap[TName] extends infer TToolDef
+              ? TToolDef extends TAnyToolDefinitionArray[number]
+                ? TToolDef['parameters']
+                : never
               : never
             : never
         >,
