@@ -393,13 +393,13 @@ export function Slider({ name, price }) {
       id,
     };
 
-    // If the last history state already has this component, update it. This is to avoid
-    // adding every slider change to the history.
-    if (history[history.length - 1]?.id === id) {
-      setHistory([...history.slice(0, -1), info]);
+    // If the last message is already inserted by us, update it. This is to avoid
+    // adding every slider change to the AI state.
+    if (aiState[aiState.length - 1]?.id === id) {
+      setAIState([...aiState.slice(0, -1), info]);
     } else {
-      // If it doesn't exist, append it to history.
-      setHistory([...history, info]);
+      // If it doesn't exist, append it to the AI state.
+      setAIState([...aiState, info]);
     }
   }
 }
