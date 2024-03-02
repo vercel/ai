@@ -110,21 +110,44 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
     import { OpenAI } from "openai";
     import { createAI, getMutableAIState, render } from "ai/rsc";
 
+    const initialAIState: {
+      role: 'user' | 'assistant' | 'system' | 'function';
+      content: string;
+      id?: string;
+      name?: string;
+    }[] = [];
+
+    const initialUIState: {
+      id: number;
+      display: React.ReactNode;
+    }[] = [];
+
+    // AI is a provider you wrap your application with so you can access AI and UI state in your components.
+    export const AI = createAI({
+      actions: {
+        submitUserMessage
+      },
+      // Each state can be any shape of object, but for chat applications
+      // it makes sense to have an array of messages. Or you may prefer something like { id: number, messages: Message[] }
+      initialUIState,
+      initialAIState
+    });
+
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    async function submitUserMessage(content: string) {
+    async function submitUserMessage(userInput: string) {
       "use server";
 
-      const aiState = getMutableAIState();
+      const aiState = getMutableAIState<typeof AI>();
 
       // Update AI state with new message.
       aiState.update([
         ...aiState.get(),
         {
           role: "user",
-          content,
+          content: userInput,
         },
       ]);
 
@@ -151,7 +174,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
           }
 
           return <div>{content}</div>
-        }
+        },
         tools: {
           get_flight_info: {
             description: 'Get the information for a flight',
@@ -184,16 +207,6 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
         display: ui
       };
     }
-
-    export const AI = createAI({
-      actions: {
-        submitUserMessage
-      },
-      // Each state can be any shape of object, but for chat applications
-      // it makes sense to have an array of messages. Or you may prefer { id: number, messages: Message[] }
-      initialUIState: [],
-      initialAIState: []
-    });
     ```
 
   </Tab>
@@ -234,12 +247,13 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
     "use client"
     
     import { useState } from 'react';
-    import { AI, useUIState, useActions } from "ai/rsc";
+    import { useUIState, useActions } from "ai/rsc";
+    import { AI } from 'app/action';
 
     export default function Page() {
       const [inputValue, setInputValue] = useState("");
-      const [messages, setMessages] = useUIState();
-      const { submitUserMessage } = useActions();
+      const [messages, setMessages] = useUIState<typeof AI>();
+      const { submitUserMessage } = useActions<typeof AI>();
 
       return (
         <div>
