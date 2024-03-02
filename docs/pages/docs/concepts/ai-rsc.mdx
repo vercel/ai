@@ -109,6 +109,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
     ```tsx filename="app/action.tsx"
     import { OpenAI } from "openai";
     import { createAI, getMutableAIState, render } from "ai/rsc";
+    import { z } from "zod";
 
     const initialAIState: {
       role: 'user' | 'assistant' | 'system' | 'function';
@@ -245,6 +246,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
       );
     }
     ```
+
   </Tab>
 </Tabs>
 
