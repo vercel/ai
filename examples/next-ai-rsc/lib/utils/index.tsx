@@ -105,8 +105,13 @@ export function runOpenAICompletion<
     onFunctionCall: <TName extends keyof TToolMap>(
       name: TName,
       callback: (
-        // @ts-expect-error
-        args: z.output<TToolMap[TName]['parameters']>,
+        args: z.output<
+          TToolMap[TName] extends infer TToolDef
+            ? TToolDef extends TAnyToolDefinitionArray[number]
+              ? TToolDef['parameters']
+              : never
+            : never
+        >,
       ) => void | Promise<void>,
     ) => {
       onFunctionCall[name] = callback;
