@@ -10,7 +10,7 @@ import { OptionTable } from '@/components/table';
 
 ## `streamToResponse(stream: ReadableStream, response: ServerResponse, options?: Options)`
 
-This method will pipe a `ReadableStream` to a Node.js `ServerResponse` object. It can be helpful to combine this with other AI stream utilities, such as [`OpenAIStream`](/docs/api-reference/openai-stream#openaistream), in Node.js environments.
+This method will pipe a `ReadableStream` to a Node.js `ServerResponse` object. It can be helpful to combine this with other AI stream utilities, such as [`OpenAIStream`](/docs/api-reference/providers/openai-stream), in Node.js environments.
 
 Similar to [`StreamingTextResponse`](/docs/api-reference/streaming-text-response#streamingtextresponse), it automatically sets the status code to `200` and the `Content-Type` header to `'text/plain; charset=utf-8'`.
 
@@ -18,7 +18,7 @@ Similar to [`StreamingTextResponse`](/docs/api-reference/streaming-text-response
 
 ### `stream: ReadableStream`
 
-The Web Stream to pipe to the response. It can be the return value of [`OpenAIStream`](/docs/api-reference/openai-stream#openaistream), [`HuggingFaceStream`](/docs/api-reference/huggingface-stream#huggingfacestream), [`AnthropicStream`](/docs/api-reference/anthropic-stream#anthropicstream), or an [`AIStream`](/docs/api-reference/ai-stream#aistream) instance.
+The Web Stream to pipe to the response. It can be the return value of [`OpenAIStream`](/docs/api-reference/providers/openai-stream), [`HuggingFaceStream`](/docs/api-reference/providers/huggingface-stream), [`AnthropicStream`](/docs/api-reference/providers/anthropic-stream), or an [`AIStream`](/docs/api-reference/ai-stream) instance.
 
 ### `response: ServerResponse`
 

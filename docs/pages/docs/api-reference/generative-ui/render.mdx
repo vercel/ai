@@ -112,7 +112,7 @@ You can also customize the React component streamed for text responses by using 
 The `render` function allows you to map [OpenAI-compatible model/providers with Function Calls and Assistants Tools](https://platform.openai.com/docs/guides/function-calling) to [React Server Components](https://vercel.com/blog/understanding-react-server-components) using the `tools` key.
 Note that both `text` and `render` can be specified at the same time, with `text` being the fallback for when no function is called by the model.
 
-If you use other models, you can [prompt engineer](docs/concepts/prompt-engineering) them
+If you use other models, you can [prompt engineer](/docs/concepts/prompt-engineering) them
 into returning structured data and manually handle the streaming UI with [`createStreamableUI`](./create-streamable-ui) and [`createStreamableValue`](./create-streamable-value).
 
 Tool/Function Schema definitions use [Zod](https://zod.dev/) schemas to specify the function parameters and return values. `render` will automatically validate the schemas and throw an error if the function call is invalid.

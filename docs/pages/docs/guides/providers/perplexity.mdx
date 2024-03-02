@@ -80,7 +80,7 @@ export async function POST(req: Request) {
 <Callout>
   Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
   pass the streaming `response` we receive from Perplexity to
-  [`OpenAIStream`](/docs/api-reference/openai-stream). This method
+  [`OpenAIStream`](/docs/api-reference/providers/openai-stream). This method
   decodes/extracts the text tokens in the response and then re-encodes them
   properly for simple consumption. We can then pass that new stream directly to
   [`StreamingTextResponse`](/docs/api-reference/streaming-text-response). This

@@ -317,7 +317,7 @@ In many cases, the interface you render will need to request updates from the se
 For example, a weather app might need to request the latest weather data every 5 minutes, or a button press should execute a search.
 To accomplish this, you can pass Server Actions to your UI components and call them as needed.
 
-For example, if you have an `handleUserMessage` action registered in [`createAI`](/docs/api-reference/create-ai), you can define nested Server Actions like this:
+For example, if you have an `handleUserMessage` action registered in [`createAI`](/docs/api-reference/generative-ui/create-ai), you can define nested Server Actions like this:
 
 ```tsx filename="app/action.tsx" {26-29}
 async function handleUserMessage(userInput) {
@@ -376,7 +376,7 @@ And then your `WeatherCard` component can call the `refreshAction` function in a
 
 The AI state represents the context of the conversation provided to the language model and is
 often an array of chat messages. Sometimes, like if the user is filling out a form or interacting with a UI element like a slider,
-you need to update the language models context with the new information. You can mutate the AI state on the client using the [`useAIState`](/docs/api-reference/use-ai-state)
+you need to update the language models context with the new information. You can mutate the AI state on the client using the [`useAIState`](/docs/api-reference/generative-ui/use-ai-state)
 hook.
 
 In the example below, we have a slider that allows the user to purchase a number of shares of a stock. When the user changes the slider, we update the AI state with the new information.
