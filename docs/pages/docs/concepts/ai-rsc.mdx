@@ -253,7 +253,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
     export default function Page() {
       const [inputValue, setInputValue] = useState("");
       const [messages, setMessages] = useUIState<typeof AI>();
-      const { submitUserMessage } = useActions<typeof AI>();
+      const { submitUserMessage } = useActions();
 
       return (
         <div>
