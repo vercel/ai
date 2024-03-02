@@ -44,7 +44,7 @@
       "require": "./dist/index.js"
     },
     "./rsc": {
-      "types": "./rsc/dist/rsc-types.d.ts",
+      "types": "./rsc/dist/index.d.ts",
       "react-server": "./rsc/dist/rsc-server.mjs",
       "import": "./rsc/dist/rsc-client.mjs",
       "module": "./rsc/dist/rsc-client.mjs"
