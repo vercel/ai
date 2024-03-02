@@ -122,17 +122,6 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
       display: React.ReactNode;
     }[] = [];
 
-    // AI is a provider you wrap your application with so you can access AI and UI state in your components.
-    export const AI = createAI({
-      actions: {
-        submitUserMessage
-      },
-      // Each state can be any shape of object, but for chat applications
-      // it makes sense to have an array of messages. Or you may prefer something like { id: number, messages: Message[] }
-      initialUIState,
-      initialAIState
-    });
-
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
@@ -207,6 +196,17 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
         display: ui
       };
     }
+
+    // AI is a provider you wrap your application with so you can access AI and UI state in your components.
+    export const AI = createAI({
+      actions: {
+        submitUserMessage
+      },
+      // Each state can be any shape of object, but for chat applications
+      // it makes sense to have an array of messages. Or you may prefer something like { id: number, messages: Message[] }
+      initialUIState,
+      initialAIState
+    });
     ```
 
   </Tab>
