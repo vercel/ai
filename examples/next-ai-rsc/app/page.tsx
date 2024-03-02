@@ -84,7 +84,7 @@ export default function Page() {
       </div>
       <div className="fixed inset-x-0 bottom-0 w-full bg-gradient-to-b from-muted/30 from-0% to-muted/30 to-50% duration-300 ease-in-out animate-in dark:from-background/10 dark:from-10% dark:to-background/80 peer-[[data-state=open]]:group-[]:lg:pl-[250px] peer-[[data-state=open]]:group-[]:xl:pl-[300px]">
         <div className="mx-auto sm:max-w-2xl sm:px-4">
-          <div className="space-y-4 border-t bg-background px-4 py-2 shadow-lg sm:rounded-t-xl sm:border md:py-4">
+          <div className="px-4 py-2 space-y-4 border-t shadow-lg bg-background sm:rounded-t-xl sm:border md:py-4">
             <form
               ref={formRef}
               onSubmit={async (e: any) => {
@@ -116,21 +116,18 @@ export default function Page() {
                     responseMessage,
                   ]);
                 } catch (error) {
-                  toast({
-                    title: 'Something went wrong',
-                    description: 'Please try again later',
-                    duration: 5000,
-                  });
+                  // You may want to show a toast or trigger an error state.
+                  console.error(error);
                 }
               }}
             >
-              <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
+              <div className="relative flex flex-col w-full px-8 overflow-hidden max-h-60 grow bg-background sm:rounded-md sm:border sm:px-12">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="outline"
                       size="icon"
-                      className="absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 sm:left-4"
+                      className="absolute left-0 w-8 h-8 p-0 rounded-full top-4 bg-background sm:left-4"
                       onClick={e => {
                         e.preventDefault();
                         window.location.reload();

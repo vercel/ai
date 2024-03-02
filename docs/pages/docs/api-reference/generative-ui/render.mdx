@@ -81,13 +81,13 @@ You can also customize the React component streamed for text responses by using 
           // text can be streamed from the LLM, but we only want to close the stream with .done() when its completed.
           // done() marks the state as available for the client to access
           if (done) {
-            aiState.done({
+            aiState.done([
               ...aiState.get(),
               {
                 role: "assistant",
                 content
               }
-            })
+            ])
           }
 
           return <div>{content}</div>
@@ -169,13 +169,13 @@ If you use a generator signature, you can `yield` React Nodes and they will be s
           // text can be streamed from the LLM, but we only want to close the stream with .done() when its completed.
           // done() marks the state as available for the client to access
           if (done) {
-            aiState.done({
+            aiState.done([
               ...aiState.get(),
               {
                 role: "assistant",
                 content
               }
-            })
+            ])
           }
 
           return <div>{content}</div>

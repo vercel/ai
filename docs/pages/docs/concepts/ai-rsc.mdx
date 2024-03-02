@@ -107,30 +107,30 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 <Tabs items={['Next.js (App Router)']}>
   <Tab>
     ```tsx filename="app/action.tsx"
-    import { OpenAI } from "openai";
-    import { createAI, createStreamableUI, getMutableAIState, render} from "ai/rsc";
+    import { OpenAI } from 'openai';
+    import { createAI, getMutableAIState, render } from 'ai/rsc';
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    async function submitUserMessage(content: string) {
-      "use server";
+    async function submitUserMessage(userInput: string) {
+      'use server';
 
-      const aiState = getMutableAIState();
+      const aiState = getMutableAIState<typeof AI>();
 
       // Update AI state with new message.
       aiState.update([
         ...aiState.get(),
         {
-          role: "user",
-          content,
+          role: 'user',
+          content: userInput,
         },
       ]);
 
       // render() returns a stream of UI components
       const ui = render({
-        model: 'gpt-4-turbo',
+        model: 'gpt-4-0125-preview',
         provider: openai,
         messages: [
           { role: 'system', content: 'You are a flight assistant' },
@@ -141,17 +141,17 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
           // text can be streamed from the LLM, but we only want to close the stream with .done() when its completed.
           // done() marks the state as available for the client to access
           if (done) {
-            aiState.done({
+            aiState.done([
               ...aiState.get(),
               {
                 role: "assistant",
                 content
               }
-            })
+            ]);
           }
 
           return <div>{content}</div>
-        }
+        },
         tools: {
           get_flight_info: {
             description: 'Get the information for a flight',
@@ -185,14 +185,29 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
       };
     }
 
+    // Define the initial state of the AI. It can be any JSON object.
+    const initialAIState: {
+      role: 'user' | 'assistant' | 'system' | 'function';
+      content: string;
+      id?: string;
+      name?: string;
+    }[] = [];
+
+    // The initial UI state that the client will keep track of.
+    const initialUIState: {
+      id: number;
+      display: React.ReactNode;
+    }[] = [];
+
+    // AI is a provider you wrap your application with so you can access AI and UI state in your components.
     export const AI = createAI({
       actions: {
         submitUserMessage
       },
       // Each state can be any shape of object, but for chat applications
-      // it makes sense to have an array of messages. Or you may prefer { id: number, messages: Message[] }
-      initialUIState: [],
-      initialAIState: []
+      // it makes sense to have an array of messages. Or you may prefer something like { id: number, messages: Message[] }
+      initialUIState,
+      initialAIState
     });
     ```
 
@@ -204,7 +219,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 <Tabs items={['Next.js (App Router)']}>
   <Tab>
     ```tsx filename="app/layout.tsx"
-    import { AI } from 'ai/rsc';
+    import { AI } from './action';
 
     export default function RootLayout({
       children,
@@ -231,15 +246,16 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 <Tabs items={['Next.js (App Router)']}>
   <Tab>
     ```tsx filename="app/page.tsx"
-    "use client"
-    
+    'use client'
+
     import { useState } from 'react';
-    import { AI, useUIState, useActions } from "ai/rsc";
+    import { useUIState, useActions } from 'ai/rsc';
+    import type { AI } from './action';
 
     export default function Page() {
-      const [inputValue, setInputValue] = useState("");
-      const [messages, setMessages] = useUIState();
-      const { submitUserMessage } = useActions();
+      const [inputValue, setInputValue] = useState('');
+      const [messages, setMessages] = useUIState<typeof AI>();
+      const { submitUserMessage } = useActions<typeof AI>();
 
       return (
         <div>
@@ -252,13 +268,15 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
             ))
           }
 
-          <form onSubmit={async () => {
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+
             // Add user message to UI state
             setMessages((currentMessages) => [
               ...currentMessages,
               {
                 id: Date.now(),
-                display: <UserMessage>{value}</UserMessage>,
+                display: <UserMessage>{inputValue}</UserMessage>,
               },
             ]);
 
@@ -268,16 +286,17 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
               ...currentMessages,
               responseMessage,
             ]);
-          }}>
 
-          <input
-            placeholder="Send a message..."
-            value={inputValue}
-            onChange={(event) => {
-              setInputValue(event.target.value)
-            }}
-          />
-        </form>
+            setInputValue('');
+          }}>
+            <input
+              placeholder="Send a message..."
+              value={inputValue}
+              onChange={(event) => {
+                setInputValue(event.target.value)
+              }}
+            />
+          </form>
         </div>
       )
     }
@@ -391,13 +410,13 @@ export function Slider({ name, price }) {
       id,
     };
 
-    // If the last history state already has this component, update it. This is to avoid
-    // adding every slider change to the history.
-    if (history[history.length - 1]?.id === id) {
-      setHistory([...history.slice(0, -1), info]);
+    // If the last message is already inserted by us, update it. This is to avoid
+    // adding every slider change to the AI state.
+    if (aiState[aiState.length - 1]?.id === id) {
+      setAIState([...aiState.slice(0, -1), info]);
     } else {
-      // If it doesn't exist, append it to history.
-      setHistory([...history, info]);
+      // If it doesn't exist, append it to the AI state.
+      setAIState([...aiState, info]);
     }
   }
 }
