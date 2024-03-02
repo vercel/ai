@@ -8,8 +8,8 @@ const exampleMessages = [
     message: 'What are the trending stocks?',
   },
   {
-    heading: "What's the stock price of APPL?",
-    message: "What's the stock price of APPL?",
+    heading: "What's the stock price of AAPL?",
+    message: "What's the stock price of AAPL?",
   },
   {
     heading: "I'd like to buy 10 shares of MSFT",
