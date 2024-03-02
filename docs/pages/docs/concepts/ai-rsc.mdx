@@ -107,38 +107,15 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 <Tabs items={['Next.js (App Router)']}>
   <Tab>
     ```tsx filename="app/action.tsx"
-    import { OpenAI } from "openai";
-    import { createAI, getMutableAIState, render } from "ai/rsc";
-
-    const initialAIState: {
-      role: 'user' | 'assistant' | 'system' | 'function';
-      content: string;
-      id?: string;
-      name?: string;
-    }[] = [];
-
-    const initialUIState: {
-      id: number;
-      display: React.ReactNode;
-    }[] = [];
-
-    // AI is a provider you wrap your application with so you can access AI and UI state in your components.
-    export const AI = createAI({
-      actions: {
-        submitUserMessage
-      },
-      // Each state can be any shape of object, but for chat applications
-      // it makes sense to have an array of messages. Or you may prefer something like { id: number, messages: Message[] }
-      initialUIState,
-      initialAIState
-    });
+    import { OpenAI } from 'openai';
+    import { createAI, getMutableAIState, render } from 'ai/rsc';
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
 
     async function submitUserMessage(userInput: string) {
-      "use server";
+      'use server';
 
       const aiState = getMutableAIState<typeof AI>();
 
@@ -146,7 +123,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
       aiState.update([
         ...aiState.get(),
         {
-          role: "user",
+          role: 'user',
           content: userInput,
         },
       ]);
@@ -207,6 +184,31 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
         display: ui
       };
     }
+
+    // Define the initial state of the AI. It can be any JSON object.
+    const initialAIState: {
+      role: 'user' | 'assistant' | 'system' | 'function';
+      content: string;
+      id?: string;
+      name?: string;
+    }[] = [];
+
+    // The initial UI state that the client will keep track of.
+    const initialUIState: {
+      id: number;
+      display: React.ReactNode;
+    }[] = [];
+
+    // AI is a provider you wrap your application with so you can access AI and UI state in your components.
+    export const AI = createAI({
+      actions: {
+        submitUserMessage
+      },
+      // Each state can be any shape of object, but for chat applications
+      // it makes sense to have an array of messages. Or you may prefer something like { id: number, messages: Message[] }
+      initialUIState,
+      initialAIState
+    });
     ```
 
   </Tab>
@@ -217,7 +219,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 <Tabs items={['Next.js (App Router)']}>
   <Tab>
     ```tsx filename="app/layout.tsx"
-    import { AI } from 'app/action';
+    import { AI } from './action';
 
     export default function RootLayout({
       children,
@@ -244,16 +246,16 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 <Tabs items={['Next.js (App Router)']}>
   <Tab>
     ```tsx filename="app/page.tsx"
-    "use client"
-    
+    'use client'
+
     import { useState } from 'react';
-    import { useUIState, useActions } from "ai/rsc";
-    import { AI } from 'app/action';
+    import { useUIState, useActions } from 'ai/rsc';
+    import type { AI } from './action';
 
     export default function Page() {
-      const [inputValue, setInputValue] = useState("");
+      const [inputValue, setInputValue] = useState('');
       const [messages, setMessages] = useUIState<typeof AI>();
-      const { submitUserMessage } = useActions();
+      const { submitUserMessage } = useActions<typeof AI>();
 
       return (
         <div>
@@ -274,7 +276,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
               ...currentMessages,
               {
                 id: Date.now(),
-                display: <UserMessage>{inputValue}</UserMessage>
+                display: <UserMessage>{inputValue}</UserMessage>,
               },
             ]);
 
@@ -285,17 +287,16 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
               responseMessage,
             ]);
 
-            setInputValue("");
+            setInputValue('');
           }}>
-
-          <input
-            placeholder="Send a message..."
-            value={inputValue}
-            onChange={(event) => {
-              setInputValue(event.target.value)
-            }}
-          />
-        </form>
+            <input
+              placeholder="Send a message..."
+              value={inputValue}
+              onChange={(event) => {
+                setInputValue(event.target.value)
+              }}
+            />
+          </form>
         </div>
       )
     }
