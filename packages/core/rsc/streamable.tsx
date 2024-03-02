@@ -196,6 +196,10 @@ export function render<
   temperature?: number;
 }): ReactNode {
   const ui = createStreamableUI(options.initial);
+  let handleText = options.text;
+  if (!handleText) {
+    handleText = ({ content }: { content: string }) => content;
+  }
 
   const functions = options.functions
     ? Object.entries(options.functions).map(
@@ -339,7 +343,7 @@ export function render<
             : {}),
           onText(chunk) {
             text += chunk;
-            handleRender({ content: text, done: false }, options.text, ui);
+            handleRender({ content: text, done: false }, handleText, ui);
           },
           async onFinal() {
             if (hasFunction) {
@@ -348,7 +352,7 @@ export function render<
               return;
             }
 
-            handleRender({ content: text, done: true }, options.text, ui);
+            handleRender({ content: text, done: true }, handleText, ui);
             await finished?.promise;
             ui.done();
           },
