@@ -274,7 +274,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
               ...currentMessages,
               {
                 id: Date.now(),
-                display: <UserMessage>{value}</UserMessage>,
+                display: <UserMessage>{inputValue}</UserMessage>
               },
             ]);
 
@@ -284,6 +284,8 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
               ...currentMessages,
               responseMessage,
             ]);
+
+            setInputValue("");
           }}>
 
           <input
