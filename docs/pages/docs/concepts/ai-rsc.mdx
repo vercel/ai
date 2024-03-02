@@ -164,13 +164,13 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
           // text can be streamed from the LLM, but we only want to close the stream with .done() when its completed.
           // done() marks the state as available for the client to access
           if (done) {
-            aiState.done({
+            aiState.done([
               ...aiState.get(),
               {
                 role: "assistant",
                 content
               }
-            })
+            ]);
           }
 
           return <div>{content}</div>
