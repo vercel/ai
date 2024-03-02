@@ -27,14 +27,14 @@ export type InternalAIProviderProps<AIState = any, UIState = any> = {
   wrappedSyncUIState?: ServerWrappedAction<AIState>;
 };
 
-export type AIProviderProps<AIState = any, UIState = any> = {
+export type AIProviderProps<AIState = any, UIState = any, Actions = any> = {
   children: React.ReactNode;
   initialAIState?: AIState;
   initialUIState?: UIState;
 };
 
 export type AIProvider<AIState = any, UIState = any, Actions = any> = (
-  props: AIProviderProps<AIState, UIState>,
+  props: AIProviderProps<AIState, UIState, Actions>,
 ) => Promise<React.ReactElement>;
 
 export type InferAIState<T, Fallback> = T extends AIProvider<
