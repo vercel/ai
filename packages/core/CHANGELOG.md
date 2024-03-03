@@ -1,5 +1,12 @@
 # ai
 
+## 3.0.3
+
+### Patch Changes
+
+- 4d816ca: fix(render): parse the args based on the zod schema
+- d158a47: fix potential race conditions
+
 ## 3.0.2
 
 ### Patch Changes
