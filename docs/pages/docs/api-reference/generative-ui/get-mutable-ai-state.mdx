@@ -48,7 +48,10 @@ state.done([...state.get(), newMessage]);
 
 // is equivalent to:
 const state = getMutableAIState();
-state.update({ ...state.get(), messages: [...state.get().messages, newMessage] });
+state.update({
+  ...state.get(),
+  messages: [...state.get().messages, newMessage],
+});
 ```
 
 ## Usage
