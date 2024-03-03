@@ -266,15 +266,7 @@ Besides that, you can also chat with users and do some calculations if needed.`,
 
   completion.onFunctionCall(
     'show_stock_price',
-    async ({
-      symbol,
-      price,
-      delta,
-    }: {
-      symbol: string;
-      price: number;
-      delta: number;
-    }) => {
+    async ({ symbol, price, delta }) => {
       reply.update(
         <BotCard>
           <StockSkeleton />
@@ -302,15 +294,7 @@ Besides that, you can also chat with users and do some calculations if needed.`,
 
   completion.onFunctionCall(
     'show_stock_purchase_ui',
-    ({
-      symbol,
-      price,
-      numberOfShares = 100,
-    }: {
-      symbol: string;
-      price: number;
-      numberOfShares?: number;
-    }) => {
+    ({ symbol, price, numberOfShares = 100 }) => {
       if (numberOfShares <= 0 || numberOfShares > 1000) {
         reply.done(<BotMessage>Invalid amount</BotMessage>);
         aiState.done([

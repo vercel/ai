@@ -1,9 +1,13 @@
-import { ToolDefinition } from '@/lib/utils/tool-definition';
+import {
+  TAnyToolDefinitionArray,
+  TToolDefinitionMap,
+} from '@/lib/utils/tool-definition';
 import { OpenAIStream } from 'ai';
 import type OpenAI from 'openai';
 import zodToJsonSchema from 'zod-to-json-schema';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { z } from 'zod';
 
 const consumeStream = async (stream: ReadableStream) => {
   const reader = stream.getReader();
@@ -17,20 +21,26 @@ export function runOpenAICompletion<
   T extends Omit<
     Parameters<typeof OpenAI.prototype.chat.completions.create>[0],
     'functions'
-  > & {
-    functions: ToolDefinition<any, any>[];
+  >,
+  const TFunctions extends TAnyToolDefinitionArray,
+>(
+  openai: OpenAI,
+  params: T & {
+    functions: TFunctions;
   },
->(openai: OpenAI, params: T) {
+) {
   let text = '';
   let hasFunction = false;
 
-  type FunctionNames = T['functions'] extends Array<any>
-    ? T['functions'][number]['name']
-    : never;
-
+  type TToolMap = TToolDefinitionMap<TFunctions>;
   let onTextContent: (text: string, isFinal: boolean) => void = () => {};
 
-  let onFunctionCall: Record<string, (args: Record<string, any>) => void> = {};
+  const functionsMap: Record<string, TFunctions[number]> = {};
+  for (const fn of params.functions) {
+    functionsMap[fn.name] = fn;
+  }
+
+  let onFunctionCall = {} as any;
 
   const { functions, ...rest } = params;
 
@@ -52,9 +62,25 @@ export function runOpenAICompletion<
         {
           async experimental_onFunctionCall(functionCallPayload) {
             hasFunction = true;
-            onFunctionCall[
-              functionCallPayload.name as keyof typeof onFunctionCall
-            ]?.(functionCallPayload.arguments as Record<string, any>);
+
+            if (!onFunctionCall[functionCallPayload.name]) {
+              return;
+            }
+
+            // we need to convert arguments from z.input to z.output
+            // this is necessary if someone uses a .default in their schema
+            const zodSchema = functionsMap[functionCallPayload.name].parameters;
+            const parsedArgs = zodSchema.safeParse(
+              functionCallPayload.arguments,
+            );
+
+            if (!parsedArgs.success) {
+              throw new Error(
+                `Invalid function call in message. Expected a function call object`,
+              );
+            }
+
+            onFunctionCall[functionCallPayload.name]?.(parsedArgs.data);
           },
           onToken(token) {
             text += token;
@@ -76,9 +102,19 @@ export function runOpenAICompletion<
     ) => {
       onTextContent = callback;
     },
-    onFunctionCall: (
-      name: FunctionNames,
-      callback: (args: any) => void | Promise<void>,
+    onFunctionCall: <TName extends TFunctions[number]['name']>(
+      name: TName,
+      callback: (
+        args: z.output<
+          TName extends keyof TToolMap
+            ? TToolMap[TName] extends infer TToolDef
+              ? TToolDef extends TAnyToolDefinitionArray[number]
+                ? TToolDef['parameters']
+                : never
+              : never
+            : never
+        >,
+      ) => void | Promise<void>,
     ) => {
       onFunctionCall[name] = callback;
     },
