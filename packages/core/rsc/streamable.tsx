@@ -244,6 +244,7 @@ export function render<
 
     if (finished) await finished.promise;
     finished = createResolvablePromise();
+
     const value = renderer(args);
     if (
       value instanceof Promise ||
@@ -298,16 +299,6 @@ export function render<
         fn.type === 'functions'
           ? options.functions?.[fn.name]
           : options.tools?.[fn.name];
-
-      const safeParsed = renderer?.parameters.safeParse(fn.arguments);
-
-      if (safeParsed && !safeParsed.success) {
-        throw new Error(
-          `Invalid function call arguments in message. ${safeParsed.error.message}`,
-        );
-      }
-
-      return safeParsed?.data;
     };
 
     consumeStream(
@@ -348,7 +339,7 @@ export function render<
             : {}),
           ...(tools
             ? {
-                async experimental_onToolCall(toolCallPayload: any) {
+                async experimental_onToolCall(toolCallPayload) {
                   hasFunction = true;
 
                   // TODO: We might need Promise.all here?
@@ -356,10 +347,9 @@ export function render<
                     handleRender(
                       parseFunctionCallArguments({
                         type: 'tools',
-                        name: tool.name,
-                        arguments: tool.function.arguments,
+                        ...tool.func,
                       }),
-                      options.tools?.[tool.func.name as any]?.render,
+                      options.tools?.[tool.func.name]?.render,
                       ui,
                     );
                   }
