@@ -31,12 +31,12 @@ export type AIProviderProps<AIState = any, UIState = any, Actions = any> = {
   children: React.ReactNode;
   initialAIState?: AIState;
   initialUIState?: UIState;
+  __actions?: Actions;
 };
 
-export interface AIProvider<AIState = any, UIState = any, Actions = any> {
-  $Actions: Actions;
-  (props: AIProviderProps<AIState, UIState>): Promise<React.ReactElement>;
-}
+export type AIProvider<AIState = any, UIState = any, Actions = any> = (
+  props: AIProviderProps<AIState, UIState, Actions>,
+) => Promise<React.ReactElement>;
 
 export type InferAIState<T, Fallback> = T extends AIProvider<
   infer AIState,

@@ -15,6 +15,7 @@ import type {
   InternalAIStateStorageOptions,
   OnSetAIState,
   OnGetUIState,
+  AIProviderProps,
 } from './types';
 
 async function innerAction<T>(
@@ -77,11 +78,7 @@ export function createAI<
     ? wrapAction(onGetUIState, {})
     : undefined;
 
-  async function AI(props: {
-    children: React.ReactNode;
-    initialAIState?: AIState;
-    initialUIState?: UIState;
-  }) {
+  async function AI(props: AIProviderProps<AIState, UIState, Actions>) {
     if ('useState' in React) {
       // This file must be running on the React Server layer.
       // Ideally we should be using `import "server-only"` here but we can have a
@@ -116,5 +113,5 @@ export function createAI<
     );
   }
 
-  return AI as unknown as AIProvider<AIState, UIState, Actions>;
+  return AI as AIProvider<AIState, UIState, Actions>;
 }
