@@ -23,7 +23,7 @@ import { toast } from '@/components/ui/use-toast';
 
 export default function Page() {
   const [messages, setMessages] = useUIState<typeof AI>();
-  const { submitUserMessage } = useActions();
+  const { submitUserMessage } = useActions<typeof AI>();
   const [inputValue, setInputValue] = useState('');
   const { formRef, onKeyDown } = useEnterSubmit();
   const inputRef = useRef<HTMLTextAreaElement>(null);

@@ -116,5 +116,5 @@ export function createAI<
     );
   }
 
-  return AI as AIProvider<AIState, UIState, Actions>;
+  return AI as unknown as AIProvider<AIState, UIState, Actions>;
 }
