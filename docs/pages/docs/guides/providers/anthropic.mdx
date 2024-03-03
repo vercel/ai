@@ -67,9 +67,10 @@ export async function POST(req: Request) {
 <Callout>
   Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
   pass the streaming `response` we receive from Anthropic's TypeScript SDK to
-  [`AnthropicStream`](/docs/api-reference/anthropic-stream). This utility class
-  decodes/extracts the text tokens in the response and then re-encodes them
-  properly for simple consumption. We can then pass that new stream directly to
+  [`AnthropicStream`](/docs/api-reference/providers/anthropic-stream). This
+  utility class decodes/extracts the text tokens in the response and then
+  re-encodes them properly for simple consumption. We can then pass that new
+  stream directly to
   [`StreamingTextResponse`](/docs/api-reference/streaming-text-response). This
   is another utility class that extends the normal Node/Edge Runtime `Response`
   class with the default headers you probably want (hint: `'Content-Type':

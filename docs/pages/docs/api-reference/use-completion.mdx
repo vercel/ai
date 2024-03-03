@@ -445,9 +445,9 @@ export default function PostEditorPage() {
 ```
 
 In the code snippet above, we define a React component `PostEditor` that utilizes
-a custom prompt and the [`complete`](docs/api-reference/use-completion#usecompletionhelpers) function to request a JSON string from an AI model.
+a custom prompt and the [`complete`](/docs/api-reference/use-completion#usecompletionhelpers) function to request a JSON string from an AI model.
 
-The server API formats the prompt for the AI model, and then it uses the [OpenAIStream](/docs/api-reference/openai-stream) and [StreamingTextResponse](/docs/api-reference/streaming-text-response) utilities to stream the response back to the client.
+The server API formats the prompt for the AI model, and then it uses the [OpenAIStream](/docs/api-reference/providers/openai-stream) and [StreamingTextResponse](/docs/api-reference/streaming-text-response) utilities to stream the response back to the client.
 
 ```tsx filename="app/api/completion/route.ts"
 import OpenAI from 'openai';
