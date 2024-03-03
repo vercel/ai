@@ -14,13 +14,14 @@ export function createResolvablePromise<T = any>() {
 }
 
 export function createSuspensedChunk(initialValue: React.ReactNode) {
-  const Row = (async ({
-    current,
-    next,
-  }: {
+  const Row = (async (props: {
     current: React.ReactNode;
     next: Promise<any>;
   }) => {
+    if (!props) console.trace(props);
+
+    const { current, next } = props;
+
     const chunk = await next;
     if (chunk.done) {
       return chunk.value;
