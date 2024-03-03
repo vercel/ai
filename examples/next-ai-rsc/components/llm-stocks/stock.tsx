@@ -49,12 +49,12 @@ export function Stock({ name = 'DOGE', price = 12.34, delta = 1 }) {
       };
 
       if (history[history.length - 1]?.id === id) {
-        setHistory([...history.slice(0, -1), message]);
+        setHistory(prevHistory => [...prevHistory.slice(0, -1), message]);
       } else {
-        setHistory([...history, message]);
+        setHistory(prevHistory => [...prevHistory, message]);
       }
     }
-  }, [startHighlight, endHighlight, history, id, setHistory, xToDate]);
+  }, [startHighlight, endHighlight]);
 
   return (
     <div className="p-4 text-green-400 border rounded-xl bg-zinc-950">
