@@ -115,12 +115,39 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
       apiKey: process.env.OPENAI_API_KEY,
     });
 
+    // An example of a spinner component. You can also import your own components,
+    // or 3rd party component libraries.
+    function Spinner() {
+      return <div>Loading...</div>;
+    }
+
+    // An example of a flight card component.
+    function FlightCard({ flightInfo }) {
+      return (
+        <div>
+          <h2>Flight Information</h2>
+          <p>Flight Number: {flightInfo.flightNumber}</p>
+          <p>Departure: {flightInfo.departure}</p>
+          <p>Arrival: {flightInfo.arrival}</p>
+        </div>
+      );
+    }
+
+    // An example of a function that fetches flight information from an external API.
+    async function getFlightInfo(flightNumber: string) {
+      return {
+        flightNumber,
+        departure: 'New York',
+        arrival: 'San Francisco',
+      };
+    }
+
     async function submitUserMessage(userInput: string) {
       'use server';
 
       const aiState = getMutableAIState<typeof AI>();
 
-      // Update AI state with new message.
+      // Update the AI state with the new user message.
       aiState.update([
         ...aiState.get(),
         {
@@ -129,7 +156,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
         },
       ]);
 
-      // render() returns a stream of UI components
+      // The `render()` creates a generated, streamable UI.
       const ui = render({
         model: 'gpt-4-0125-preview',
         provider: openai,
@@ -137,10 +164,11 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
           { role: 'system', content: 'You are a flight assistant' },
           { role: 'user', content: userInput }
         ],
-        // `text` is called when an AI returns a text response (as opposed to a tool call)
+        // `text` is called when an AI returns a text response (as opposed to a tool call).
+        // Its content is streamed from the LLM, so this function will be called
+        // multiple times with `content` being incremental.
         text: ({ content, done }) => {
-          // text can be streamed from the LLM, but we only want to close the stream with .done() when its completed.
-          // done() marks the state as available for the client to access
+          // When it's the final content, mark the state as done and ready for the client to access.
           if (done) {
             aiState.done([
               ...aiState.get(),
@@ -151,7 +179,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
             ]);
           }
 
-          return <div>{content}</div>
+          return <p>{content}</p>
         },
         tools: {
           get_flight_info: {
@@ -159,21 +187,25 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
             parameters: z.object({
               flightNumber: z.string().describe('the number of the flight')
             }).required(),
-            // flightNumber is inferred from the parameters passed above
             render: async function* ({ flightNumber }) {
+              // Show a spinner on the client while we wait for the response.
               yield <Spinner/>
+
+              // Fetch the flight information from an external API.
               const flightInfo = await getFlightInfo(flightNumber)
 
+              // Update the final AI state.
               aiState.done([
                 ...aiState.get(),
                 {
                   role: "function",
                   name: "get_flight_info",
-                  // Content can be any string to provide context to the LLM in the rest of the conversation
+                  // Content can be any string to provide context to the LLM in the rest of the conversation.
                   content: JSON.stringify(flightInfo),
                 }
               ]);
 
+              // Return the flight card to the client.
               return <FlightCard flightInfo={flightInfo} />
             }
           }
@@ -194,7 +226,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
       name?: string;
     }[] = [];
 
-    // The initial UI state that the client will keep track of.
+    // The initial UI state that the client will keep track of, which contains the message IDs and their UI nodes.
     const initialUIState: {
       id: number;
       display: React.ReactNode;
