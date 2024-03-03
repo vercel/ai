@@ -1,8 +1,8 @@
 import React, { Suspense } from 'react';
 
-export function createResolvablePromise() {
-  let resolve: (value: any) => void, reject: (error: any) => void;
-  const promise = new Promise((res, rej) => {
+export function createResolvablePromise<T = any>() {
+  let resolve: (value: T) => void, reject: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
     resolve = res;
     reject = rej;
   });

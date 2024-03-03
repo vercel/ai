@@ -247,7 +247,7 @@ export function render<
   ) {
     if (!renderer) return;
 
-    const resolvable = createResolvablePromise();
+    const resolvable = createResolvablePromise<void>();
 
     if (finished) {
       finished = finished.then(() => resolvable.promise);
