@@ -28,7 +28,9 @@ The `update` method is used to update the value of the streamable value.
 
 ### `done`
 
-The `done` method is used to replace the old data with a new one and mark it as done. This is useful for when you want to replace the data with the final result.
+The `done` method marks the value as finalized. You can either call it without any parameters or with a new value as the final state. Once called, it cannot be updated or appended anymore.
+
+The `done` method is always **required** to be called, otherwise the response will be stuck in a loading state.
 
 ## Example
 
@@ -36,7 +38,7 @@ The `done` method is used to replace the old data with a new one and mark it as 
   <Tab>
     Value Streams are created on the server and streamed to the client.
 
-    ```tsx filename="app/action.tsx" {6-9, 13-16, 20-23, 27}
+    ```tsx filename="app/action.tsx" {6-9, 14-17, 21-24, 29}
     import { createStreamableValue } from "ai/rsc";
 
     async function getCustomerProfile(id: string) {
@@ -47,19 +49,21 @@ The `done` method is used to replace the old data with a new one and mark it as 
         subscriptions: null,
       })
 
-      const profile = await getProfile(id);
+      (async () => {
+        const profile = await getProfile(id);
 
-      valueStream.update({
-        profile,
-        subscriptions: null,
-      });
+        valueStream.update({
+          profile,
+          subscriptions: null,
+        });
 
-      const subscriptions = await getSubscriptions(profile.customerId);
+        const subscriptions = await getSubscriptions(profile.customerId);
 
-      valueStream.done({
-        profile,
-        subscriptions,
-      });
+        valueStream.done({
+          profile,
+          subscriptions,
+        });
+      })();
 
       return {
         id: Date.now(),

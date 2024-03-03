@@ -18,5 +18,5 @@ The AI state returned is read-only so if you want to make updates to it, you sho
 
 ```tsx
 const state = getAIState(); // Get the entire AI state
-const field = getAIState('key'); // Get the value of the key
+const field = getAIState('key'); // Get the value of the key. This is equivalent to `getAIState().key`.
 ```
