@@ -31,7 +31,7 @@ export type AIProviderProps<AIState = any, UIState = any, Actions = any> = {
   children: React.ReactNode;
   initialAIState?: AIState;
   initialUIState?: UIState;
-  __actions?: Actions;
+  $ActionTypes?: Actions;
 };
 
 export type AIProvider<AIState = any, UIState = any, Actions = any> = (
