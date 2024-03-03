@@ -15,7 +15,6 @@ import type {
   InternalAIStateStorageOptions,
   OnSetAIState,
   OnGetUIState,
-  AIProviderProps,
 } from './types';
 
 async function innerAction<T>(
