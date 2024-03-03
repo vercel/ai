@@ -93,7 +93,7 @@ function createMockUpProvider() {
   } as any;
 }
 
-describe('rsc - streamable', () => {
+describe('rsc - render()', () => {
   it('should emit React Nodes with sync render function', async () => {
     const ui = render({
       model: 'gpt-3.5-turbo',
