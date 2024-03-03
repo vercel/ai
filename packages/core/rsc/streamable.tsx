@@ -197,6 +197,11 @@ export function render<
 }): ReactNode {
   const ui = createStreamableUI(options.initial);
 
+  // The default text renderer just returns the content as string.
+  const text = options.text
+    ? options.text
+    : ({ content }: { content: string }) => content;
+
   const functions = options.functions
     ? Object.entries(options.functions).map(
         ([name, { description, parameters }]) => {
@@ -233,7 +238,7 @@ export function render<
     );
   }
 
-  let finished: ReturnType<typeof createResolvablePromise> | undefined;
+  let finished: Promise<void> | undefined;
 
   async function handleRender(
     args: any,
@@ -242,8 +247,14 @@ export function render<
   ) {
     if (!renderer) return;
 
-    if (finished) await finished.promise;
-    finished = createResolvablePromise();
+    const resolvable = createResolvablePromise<void>();
+
+    if (finished) {
+      finished = finished.then(() => resolvable.promise);
+    } else {
+      finished = resolvable.promise;
+    }
+
     const value = renderer(args);
     if (
       value instanceof Promise ||
@@ -254,7 +265,7 @@ export function render<
     ) {
       const node = await (value as Promise<React.ReactNode>);
       res.update(node);
-      finished?.resolve(void 0);
+      resolvable.resolve(void 0);
     } else if (
       value &&
       typeof value === 'object' &&
@@ -270,7 +281,7 @@ export function render<
         res.update(value);
         if (done) break;
       }
-      finished?.resolve(void 0);
+      resolvable.resolve(void 0);
     } else if (value && typeof value === 'object' && Symbol.iterator in value) {
       const it = value as Generator<React.ReactNode, React.ReactNode, void>;
       while (true) {
@@ -278,16 +289,16 @@ export function render<
         res.update(value);
         if (done) break;
       }
-      finished?.resolve(void 0);
+      resolvable.resolve(void 0);
     } else {
       res.update(value);
-      finished?.resolve(void 0);
+      resolvable.resolve(void 0);
     }
   }
 
   (async () => {
     let hasFunction = false;
-    let text = '';
+    let content = '';
 
     const parseFunctionCallArguments = (fn: {
       type: 'functions' | 'tools';
@@ -365,18 +376,18 @@ export function render<
               }
             : {}),
           onText(chunk) {
-            text += chunk;
-            handleRender({ content: text, done: false }, options.text, ui);
+            content += chunk;
+            handleRender({ content, done: false }, text, ui);
           },
           async onFinal() {
             if (hasFunction) {
-              await finished?.promise;
+              await finished;
               ui.done();
               return;
             }
 
-            handleRender({ content: text, done: true }, options.text, ui);
-            await finished?.promise;
+            handleRender({ content, done: true }, text, ui);
+            await finished;
             ui.done();
           },
         },
