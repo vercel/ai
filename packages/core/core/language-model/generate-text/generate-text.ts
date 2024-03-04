@@ -12,19 +12,13 @@ import { Tool } from '../tool/tool';
 /**
  * Generate a text and call tools using a language model.
  */
-export async function generateText<
-  TOOLS extends {
-    [name: string]: z.Schema;
-  } = {},
->({
+export async function generateText<TOOLS extends Record<string, Tool>>({
   model,
   tools,
   prompt,
 }: {
   model: LanguageModel;
-  tools?: {
-    [name in keyof TOOLS]: Tool<TOOLS[name], unknown>;
-  };
+  tools?: TOOLS;
   prompt: InstructionPrompt | ChatPrompt;
 }): Promise<GenerateTextResult<ValueOf<ToToolCalls<TOOLS>>>> {
   const modelResponse = await model.doGenerate({
@@ -63,18 +57,12 @@ export async function generateText<
   });
 }
 
-function parseToolCall<
-  TOOLS extends {
-    [name: string]: z.Schema;
-  } = {},
->({
+function parseToolCall<TOOLS extends Record<string, Tool>>({
   toolCall,
   tools,
 }: {
   toolCall: LanguageModelToolCall;
-  tools?: {
-    [name in keyof TOOLS]: Tool<TOOLS[name], unknown>;
-  };
+  tools?: TOOLS;
 }): ValueOf<ToToolCalls<TOOLS>> {
   const toolName = toolCall.toolName as keyof TOOLS & string;
 
@@ -119,15 +107,11 @@ export interface ToolCall<TOOL_NAME extends string, ARGS> {
 }
 
 // transforms the tools into tool calls
-type ToToolCalls<
-  TOOLS extends {
-    [name: string]: z.Schema;
-  },
-> = {
-  [K in keyof TOOLS]: {
+type ToToolCalls<TOOLS extends Record<string, Tool>> = {
+  [NAME in keyof TOOLS]: {
     toolCallId: string;
-    toolName: K;
-    args: z.infer<TOOLS[K]>;
+    toolName: NAME;
+    args: z.infer<TOOLS[NAME]['parameters']>;
   };
 };
 
