@@ -1,5 +1,13 @@
 # ai
 
+## 3.0.4
+
+### Patch Changes
+
+- 7962862: fix `useActions` type inference
+- aab5324: Revert "fix(render): parse the args based on the zod schema"
+- fe55612: Bump OpenAI dependency to 4.28.4; fix type error in render
+
 ## 3.0.3
 
 ### Patch Changes
