@@ -87,7 +87,7 @@ importers:
         specifier: ^0.2.1
         version: 0.2.1(next@14.1.1)(react-dom@18.2.0)(react@18.2.0)
       openai:
-        specifier: ^4.27.0
+        specifier: ^4.28.4
         version: 4.28.4
       react:
         specifier: ^18
