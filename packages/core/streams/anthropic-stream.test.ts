@@ -142,7 +142,7 @@ describe('Anthropic message', () => {
       apiKey: 'sk-doesnt-matter',
     });
 
-    const anthropicResponse = await anthropic.beta.messages.create({
+    const anthropicResponse = await anthropic.messages.create({
       messages: [{ role: 'user', content: 'Hello' }],
       model: 'claude-2.1',
       stream: true,
@@ -170,7 +170,7 @@ describe('Anthropic message', () => {
 
       const data = new experimental_StreamData();
 
-      const anthropicResponse = await anthropic.beta.messages.create({
+      const anthropicResponse = await anthropic.messages.create({
         messages: [{ role: 'user', content: 'Hello' }],
         model: 'claude-2.1',
         stream: true,
@@ -204,7 +204,7 @@ describe('Anthropic message', () => {
 
       data.append({ t1: 'v1' });
 
-      const anthropicResponse = await anthropic.beta.messages.create({
+      const anthropicResponse = await anthropic.messages.create({
         messages: [{ role: 'user', content: 'Hello' }],
         model: 'claude-2.1',
         stream: true,
