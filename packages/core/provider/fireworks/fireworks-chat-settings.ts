@@ -33,7 +33,7 @@ export interface FireworksChatSettings extends LanguageModelSettings {
    * conversations grow. Note that even with this set, you may still receive "prompt too long"
    * errors if individual messages are too long for the model context window.
    */
-  promptTruncateLen?: number;
+  promptTruncateLength?: number;
 
   /**
    * What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make

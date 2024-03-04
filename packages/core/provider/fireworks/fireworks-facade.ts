@@ -32,7 +32,7 @@ export function chat(
       mapSettings: settings => ({
         model: settings.id,
         max_tokens: settings.maxTokens,
-        prompt_truncate_length: settings.promptTruncateLen,
+        prompt_truncate_len: settings.promptTruncateLength,
         temperature: settings.temperature,
         top_p: settings.topP,
         top_k: settings.topK,
