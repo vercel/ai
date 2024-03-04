@@ -6,14 +6,14 @@ import type { AI } from '../../app/action';
 
 export function Stocks({ stocks }: { stocks: any[] }) {
   const [, setMessages] = useUIState<typeof AI>();
-  const { submitUserMessage } = useActions();
+  const { submitUserMessage } = useActions<typeof AI>();
 
   return (
-    <div className="flex flex-col sm:flex-row text-sm gap-2 mb-4 overflow-y-scroll pb-4">
+    <div className="flex flex-col gap-2 pb-4 mb-4 overflow-y-scroll text-sm sm:flex-row">
       {stocks.map(stock => (
         <button
           key={stock.symbol}
-          className="bg-zinc-900 text-left p-2 rounded-lg flex flex-row gap-2 cursor-pointer hover:bg-zinc-800 sm:w-52"
+          className="flex flex-row gap-2 p-2 text-left rounded-lg cursor-pointer bg-zinc-900 hover:bg-zinc-800 sm:w-52"
           onClick={async () => {
             const response = await submitUserMessage(`View ${stock.symbol}`);
             setMessages(currentMessages => [...currentMessages, response]);
@@ -27,8 +27,8 @@ export function Stocks({ stocks }: { stocks: any[] }) {
             {stock.delta > 0 ? '↑' : '↓'}
           </div>
           <div className="flex flex-col">
-            <div className="text-zinc-300 bold uppercase">{stock.symbol}</div>
-            <div className="text-zinc-500 text-base">${stock.price}</div>
+            <div className="uppercase text-zinc-300 bold">{stock.symbol}</div>
+            <div className="text-base text-zinc-500">${stock.price}</div>
           </div>
           <div className="flex flex-col ml-auto">
             <div
