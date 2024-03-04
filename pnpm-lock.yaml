@@ -1102,8 +1102,8 @@ importers:
         specifier: 2.0.9
         version: 2.0.9(typescript@5.1.3)
       openai:
-        specifier: 4.17.4
-        version: 4.17.4
+        specifier: 4.28.4
+        version: 4.28.4
       react-dom:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
@@ -13370,23 +13370,6 @@ packages:
       web-streams-polyfill: 3.2.1
     transitivePeerDependencies:
       - encoding
-
-  /openai@4.17.4:
-    resolution: {integrity: sha512-ThRFkl6snLbcAKS58St7N3CaKuI5WdYUvIjPvf4s+8SdymgNtOfzmZcZXVcCefx04oKFnvZJvIcTh3eAFUUhAQ==}
-    hasBin: true
-    dependencies:
-      '@types/node': 18.18.9
-      '@types/node-fetch': 2.6.9
-      abort-controller: 3.0.0
-      agentkeepalive: 4.5.0
-      digest-fetch: 1.3.0
-      form-data-encoder: 1.7.2
-      formdata-node: 4.4.1
-      node-fetch: 2.7.0
-      web-streams-polyfill: 3.2.1
-    transitivePeerDependencies:
-      - encoding
-    dev: true
 
   /openai@4.28.4:
     resolution: {integrity: sha512-RNIwx4MT/F0zyizGcwS+bXKLzJ8QE9IOyigDG/ttnwB220d58bYjYFp0qjvGwEFBO6+pvFVIDABZPGDl46RFsg==}
