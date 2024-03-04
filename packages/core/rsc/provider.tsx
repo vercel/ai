@@ -77,11 +77,7 @@ export function createAI<
     ? wrapAction(onGetUIState, {})
     : undefined;
 
-  async function AI(props: {
-    children: React.ReactNode;
-    initialAIState?: AIState;
-    initialUIState?: UIState;
-  }) {
+  const AI: AIProvider<AIState, UIState, Actions> = async props => {
     if ('useState' in React) {
       // This file must be running on the React Server layer.
       // Ideally we should be using `import "server-only"` here but we can have a
@@ -114,7 +110,7 @@ export function createAI<
         {props.children}
       </InternalAIProvider>
     );
-  }
+  };
 
-  return AI as AIProvider<AIState, UIState, Actions>;
+  return AI;
 }
