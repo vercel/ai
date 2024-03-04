@@ -27,7 +27,7 @@
     "geist": "^1.2.2",
     "next": "14.1.1",
     "next-themes": "^0.2.1",
-    "openai": "^4.27.0",
+    "openai": "^4.28.4",
     "react": "^18",
     "react-dom": "^18",
     "react-intersection-observer": "^9.8.0",
