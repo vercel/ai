@@ -66,8 +66,9 @@ export function EmptyScreen({
           ))}
         </div>
       </div>
-      <p className="leading-normal text-muted-foreground text-[0.8rem] text-center">
-        Note: This is not real financial advice.
+      <p className="leading-normal text-muted-foreground text-[0.8rem] text-center max-w-96 ml-auto mr-auto">
+        Note: Data and latency are simulated for illustrative purposes and
+        should not be considered as financial advice.
       </p>
     </div>
   );
