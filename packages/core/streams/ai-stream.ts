@@ -16,7 +16,7 @@ export interface ToolCallPayload {
     type: 'function';
     func: {
       name: string;
-      arguments: Record<string, unknown>;
+      arguments: string;
     };
   }[];
 }

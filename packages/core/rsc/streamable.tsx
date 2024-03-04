@@ -292,7 +292,7 @@ export function render<
     const parseFunctionCallArguments = (fn: {
       type: 'functions' | 'tools';
       name: string;
-      arguments: any;
+      arguments: Record<string, unknown>;
     }) => {
       const renderer =
         fn.type === 'functions'
@@ -355,7 +355,8 @@ export function render<
                     handleRender(
                       parseFunctionCallArguments({
                         type: 'tools',
-                        ...tool.func,
+                        name: tool.func.name,
+                        arguments: JSON.parse(tool.func.arguments),
                       }),
                       options.tools?.[tool.func.name as any]?.render,
                       ui,

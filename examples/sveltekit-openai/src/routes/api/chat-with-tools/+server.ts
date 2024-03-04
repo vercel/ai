@@ -84,7 +84,10 @@ export async function POST({ request }) {
           // Call a weather API here
           const weatherData = {
             temperature: 20,
-            unit: toolCall.func.arguments.format === 'celsius' ? 'C' : 'F',
+            unit:
+              JSON.parse(toolCall.func.arguments).format === 'celsius'
+                ? 'C'
+                : 'F',
           };
 
           const newMessages = appendToolCallMessage({
