@@ -1,7 +1,7 @@
 // This file provides the AI context to all AI Actions via AsyncLocalStorage.
 
 import * as React from 'react';
-import { InternalAIProvider } from './rsc-shared';
+import { InternalAIProvider } from './rsc-shared.mjs';
 import {
   withAIState,
   getAIStateDeltaPromise,

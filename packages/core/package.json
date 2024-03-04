@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -59,7 +59,7 @@
       "require": "./provider/dist/index.js"
     },
     "./rsc": {
-      "types": "./rsc/dist/rsc-types.d.ts",
+      "types": "./rsc/dist/index.d.mts",
       "react-server": "./rsc/dist/rsc-server.mjs",
       "import": "./rsc/dist/rsc-client.mjs",
       "module": "./rsc/dist/rsc-client.mjs"
@@ -109,7 +109,7 @@
     "type-fest": "4.10.3"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "0.12.0",
+    "@anthropic-ai/sdk": "0.15.0",
     "@aws-sdk/client-bedrock-runtime": "3.451.0",
     "@edge-runtime/vm": "^3.1.7",
     "@google/generative-ai": "0.1.1",
@@ -135,7 +135,7 @@
     "openai": "4.28.4",
     "react-dom": "^18.2.0",
     "solid-js": "^1.8.7",
-    "tsup": "^6.7.0",
+    "tsup": "^7.2.0",
     "typescript": "5.1.3",
     "vite-plugin-solid": "2.7.2",
     "zod": "3.22.4",

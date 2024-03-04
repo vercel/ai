@@ -16,29 +16,49 @@ This is particularly useful for building interfaces that require user interactio
 <Tabs items={['Next.js (App Router)']}>
   <Tab>
     ```tsx filename="app/action.tsx"
+    import { createAI, createStreamableUI } from 'ai/rsc';
+
+    async function getStockPrice() {
+      // ...
+    }
+
     async function viewStock(symbol: string) {
       "use server"
 
-      const price = getStockPrice(symbol);
-      const uiStream = createUIStream();
+      const uiStream = createStreamableUI(<div>Loading...</div>);
 
-      uiStream.close(
-        <div>
-          {symbol}: {price}
-        </div>
-      );
+      // If you don't wrap this in an IIFE, the stream will block
+      // on the await call the Loading state will never be sent
+      // to the client.
+      (async () => {
+        const price = await getStockPrice(symbol);
+
+        uiStream.close(
+          <div>
+            {symbol}: {price}
+          </div>
+        );
+      })();
 
       return {
         id: Date.now(),
         display: uiStream.value,
       };
     }
+
+    export const AI = createAI({
+      actions: {
+        viewStock,
+      },
+    });
     ```
 
 ```tsx filename="app/components/button.tsx"
+import { AI } from '../action';
+
 export function Button({ setMessages }) {
-  const { viewStock } = useActions();
-  const [messages, setMessages] = useUIState();
+  const { viewStock } = useActions<typeof AI>();
+  const [messages, setMessages] = useUIState<typeof AI>();
 
   return (
     <button

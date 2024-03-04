@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   // Ask Claude for a streaming chat completion given the prompt
-  const response = await anthropic.beta.messages.create({
+  const response = await anthropic.messages.create({
     messages,
     model: 'claude-2.1',
     stream: true,

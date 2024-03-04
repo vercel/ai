@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { useUIState, useActions, useAIState } from 'ai/rsc';
+import { useUIState, useActions } from 'ai/rsc';
 import { UserMessage } from '@/components/llm-stocks/message';
 
 import { type AI } from './action';
@@ -19,7 +19,6 @@ import { IconArrowElbow, IconPlus } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
 import { ChatList } from '@/components/chat-list';
 import { EmptyScreen } from '@/components/empty-screen';
-import { toast } from '@/components/ui/use-toast';
 
 export default function Page() {
   const [messages, setMessages] = useUIState<typeof AI>();
