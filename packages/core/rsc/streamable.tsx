@@ -181,14 +181,14 @@ export function render<
   tools?: {
     [name in keyof TS]: {
       description?: string;
-      parameters: TS[name];
+      parameters?: TS[name];
       render: Renderer<z.output<TS[name]>>;
     };
   };
   functions?: {
     [name in keyof FS]: {
       description?: string;
-      parameters: FS[name];
+      parameters?: FS[name];
       render: Renderer<z.output<FS[name]>>;
     };
   };
@@ -310,7 +310,7 @@ export function render<
           ? options.functions?.[fn.name]
           : options.tools?.[fn.name];
 
-      const safeParsed = renderer?.parameters.safeParse(fn.arguments);
+      const safeParsed = renderer?.parameters?.safeParse(fn.arguments);
 
       if (safeParsed && !safeParsed.success) {
         throw new Error(
