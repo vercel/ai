@@ -14,26 +14,34 @@ import { tryParseJSON } from '../../core/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
 import { convertToOpenAIChatPrompt } from './convert-to-openai-chat-prompt';
 
-export interface OpenAIChatLanguageModelSettings extends LanguageModelSettings {
-  client: () => Promise<OpenAI>;
+export class OpenAIChatLanguageModel<
+  SETTINGS extends LanguageModelSettings & {
+    objectMode?: 'tool' | 'json';
+  },
+> implements LanguageModel
+{
+  readonly settings: SETTINGS;
 
-  /**
-   * The ID of the model to use.
-   */
-  id: string;
+  private readonly getClient: () => Promise<OpenAI>;
+  private readonly mapSettings: (settings: SETTINGS) => Record<
+    string,
+    unknown
+  > & {
+    model: string;
+  };
 
-  objectMode?: ObjectMode;
-}
-
-export class OpenAIChatLanguageModel implements LanguageModel {
-  readonly settings: OpenAIChatLanguageModelSettings;
-
-  constructor(settings: OpenAIChatLanguageModelSettings) {
+  constructor(
+    settings: SETTINGS,
+    config: {
+      client: () => Promise<OpenAI>;
+      mapSettings: (settings: SETTINGS) => Record<string, unknown> & {
+        model: string;
+      };
+    },
+  ) {
     this.settings = settings;
-  }
-
-  private getClient(): Promise<OpenAI> {
-    return this.settings.client();
+    this.getClient = config.client;
+    this.mapSettings = config.mapSettings;
   }
 
   get objectMode(): ObjectMode {
@@ -41,11 +49,7 @@ export class OpenAIChatLanguageModel implements LanguageModel {
   }
 
   private get basePrompt() {
-    return {
-      model: this.settings.id,
-
-      max_tokens: this.settings.maxTokens,
-    };
+    return this.mapSettings(this.settings);
   }
 
   private getArgs(
