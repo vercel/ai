@@ -1,0 +1,5 @@
+---
+'ai': patch
+---
+
+type improvements
