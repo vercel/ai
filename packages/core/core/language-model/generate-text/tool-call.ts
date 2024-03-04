@@ -11,7 +11,7 @@ export interface ToolCall<NAME extends string, ARGS> {
   args: ARGS;
 }
 
-// transforms the tools into tool calls
+// transforms the tools into a tool call union
 export type ToToolCall<TOOLS extends Record<string, Tool>> = ValueOf<{
   [NAME in keyof TOOLS]: {
     toolCallId: string;

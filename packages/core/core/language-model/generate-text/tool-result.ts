@@ -21,16 +21,19 @@ type ToToolsWithDefinedExecute<TOOLS extends Record<string, Tool>> = {
     : K]: TOOLS[K];
 };
 
-// transforms the tools into tool calls
-export type ToToolResult<TOOLS extends Record<string, Tool>> = ValueOf<{
-  [K in keyof TOOLS]: {
+// transforms the tools into a tool result union
+type ToToolResultObject<TOOLS extends Record<string, Tool>> = ValueOf<{
+  [NAME in keyof TOOLS]: {
     toolCallId: string;
-    toolName: K;
-    args: z.infer<TOOLS[K]['parameters']>;
-    result: Awaited<ReturnType<Exclude<TOOLS[K]['execute'], undefined>>>;
+    toolName: NAME & string;
+    args: z.infer<TOOLS[NAME]['parameters']>;
+    result: Awaited<ReturnType<Exclude<TOOLS[NAME]['execute'], undefined>>>;
   };
 }>;
 
+export type ToToolResult<TOOLS extends Record<string, Tool>> =
+  ToToolResultObject<ToToolsWithDefinedExecute<ToToolsWithExecute<TOOLS>>>;
+
 export type ToToolResultArray<TOOLS extends Record<string, Tool>> = Array<
-  ToToolResult<ToToolsWithDefinedExecute<ToToolsWithExecute<TOOLS>>>
+  ToToolResult<TOOLS>
 >;

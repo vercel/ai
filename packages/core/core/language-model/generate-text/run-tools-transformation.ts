@@ -96,10 +96,9 @@ export function runToolsTransformation<TOOLS extends Record<string, Tool>>({
               (result: any) => {
                 toolResultsStreamController!.enqueue({
                   type: 'tool-result',
-                  toolCallId: toolCall.toolCallId,
-                  toolName: toolCall.toolName as string, // TODO fix typing
+                  ...toolCall,
                   result,
-                });
+                } as any);
 
                 outstandingToolCalls.delete(toolExecutionId);
 

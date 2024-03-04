@@ -37,7 +37,7 @@ async function main() {
   // typed tool results for tools with execute method:
   for (const toolResult of result.toolResults) {
     switch (toolResult.toolName) {
-      // NOT AVAILABLE BC THERE IS NO EXECUTE METHOD:
+      // NOT AVAILABLE (NO EXECUTE METHOD)
       // case 'cityAttractions': {
       //   toolResult.args.city; // string
       //   toolResult.result;

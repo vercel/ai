@@ -44,7 +44,23 @@ async function main() {
       }
 
       case 'tool-result': {
-        console.log('Tool result:', part);
+        switch (part.toolName) {
+          // NOT AVAILABLE (NO EXECUTE METHOD)
+          // case 'cityAttractions': {
+          //   console.log('TOOL RESULT cityAttractions');
+          //   console.log(`city: ${part.args.city}`); // string
+          //   console.log(`result: ${part.result}`);
+          //   break;
+          // }
+
+          case 'weather': {
+            console.log('TOOL RESULT weather');
+            console.log(`location: ${part.args.location}`); // string
+            console.log(`temperature: ${part.result.temperature}`); // number
+            break;
+          }
+        }
+
         break;
       }
 
