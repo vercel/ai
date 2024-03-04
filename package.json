@@ -14,7 +14,7 @@
     "test": "turbo test --filter=ai...",
     "ci:release": "turbo clean && turbo build --filter=ai... && changeset publish",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
-    "check-docs-links": "node ./check-links.js"
+    "check-docs-links": "node ./check-docs-links.js"
   },
   "lint-staged": {
     "*": [
