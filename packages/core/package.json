@@ -44,7 +44,7 @@
       "require": "./dist/index.js"
     },
     "./rsc": {
-      "types": "./rsc/dist/rsc-types.d.ts",
+      "types": "./rsc/dist/index.d.mts",
       "react-server": "./rsc/dist/rsc-server.mjs",
       "import": "./rsc/dist/rsc-client.mjs",
       "module": "./rsc/dist/rsc-client.mjs"
@@ -119,7 +119,7 @@
     "openai": "4.28.4",
     "react-dom": "^18.2.0",
     "solid-js": "^1.8.7",
-    "tsup": "^6.7.0",
+    "tsup": "^7.2.0",
     "typescript": "5.1.3",
     "vite-plugin-solid": "2.7.2"
   },

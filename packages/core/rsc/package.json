@@ -1,7 +1,7 @@
 {
-  "types": "./dist/rsc-types.d.ts",
+  "types": "./dist/rsc-types.d.mts",
   "exports": {
-    "types": "./dist/rsc-types.d.ts",
+    "types": "./dist/index.d.mts",
     "react-server": "./dist/rsc-server.mjs",
     "import": "./dist/rsc-client.mjs",
     "module": "./dist/rsc-client.mjs"
