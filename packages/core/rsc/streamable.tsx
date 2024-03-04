@@ -204,32 +204,32 @@ export function render<
 
   const functions = options.functions
     ? Object.entries(options.functions).map(
-        ([name, { description, parameters }]) => {
-          return {
-            name,
-            description,
-            parameters: zodToJsonSchema(parameters) as Record<string, unknown>,
-          };
-        },
-      )
+      ([name, { description, parameters }]) => {
+        return {
+          name,
+          description,
+          parameters: parameters ? zodToJsonSchema(parameters) as Record<string, unknown> : undefined,
+        };
+      },
+    )
     : undefined;
 
   const tools = options.tools
     ? Object.entries(options.tools).map(
-        ([name, { description, parameters }]) => {
-          return {
-            type: 'function' as const,
-            function: {
-              name,
-              description,
-              parameters: zodToJsonSchema(parameters) as Record<
-                string,
-                unknown
-              >,
-            },
-          };
-        },
-      )
+      ([name, { description, parameters }]) => {
+        return {
+          type: 'function' as const,
+          function: {
+            name,
+            description,
+            parameters: parameters ? zodToJsonSchema(parameters) as Record<
+              string,
+              unknown
+            > : undefined,
+          },
+        };
+      },
+    )
     : undefined;
 
   if (functions && tools) {
@@ -330,50 +330,50 @@ export function render<
           stream: true,
           ...(functions
             ? {
-                functions,
-              }
+              functions,
+            }
             : {}),
           ...(tools
             ? {
-                tools,
-              }
+              tools,
+            }
             : {}),
         })) as any,
         {
           ...(functions
             ? {
-                async experimental_onFunctionCall(functionCallPayload) {
-                  hasFunction = true;
-                  handleRender(
-                    parseFunctionCallArguments({
-                      ...functionCallPayload,
-                      type: 'functions',
-                    }),
-                    options.functions?.[functionCallPayload.name as any]
-                      ?.render,
-                    ui,
-                  );
-                },
-              }
+              async experimental_onFunctionCall(functionCallPayload) {
+                hasFunction = true;
+                handleRender(
+                  parseFunctionCallArguments({
+                    ...functionCallPayload,
+                    type: 'functions',
+                  }),
+                  options.functions?.[functionCallPayload.name as any]
+                    ?.render,
+                  ui,
+                );
+              },
+            }
             : {}),
           ...(tools
             ? {
-                async experimental_onToolCall(toolCallPayload) {
-                  hasFunction = true;
+              async experimental_onToolCall(toolCallPayload) {
+                hasFunction = true;
 
-                  // TODO: We might need Promise.all here?
-                  for (const tool of toolCallPayload.tools) {
-                    handleRender(
-                      parseFunctionCallArguments({
-                        type: 'tools',
-                        ...tool.func,
-                      }),
-                      options.tools?.[tool.func.name as any]?.render,
-                      ui,
-                    );
-                  }
-                },
-              }
+                // TODO: We might need Promise.all here?
+                for (const tool of toolCallPayload.tools) {
+                  handleRender(
+                    parseFunctionCallArguments({
+                      type: 'tools',
+                      ...tool.func,
+                    }),
+                    options.tools?.[tool.func.name as any]?.render,
+                    ui,
+                  );
+                }
+              },
+            }
             : {}),
           onText(chunk) {
             content += chunk;
