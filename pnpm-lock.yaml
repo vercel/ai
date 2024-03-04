@@ -39,7 +39,7 @@ importers:
   examples/basic:
     dependencies:
       ai:
-        specifier: 3.0.4
+        specifier: 3.0.5
         version: link:../../packages/core
       dotenv:
         specifier: 16.4.5
