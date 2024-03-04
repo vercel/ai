@@ -11,6 +11,9 @@ importers:
       '@changesets/cli':
         specifier: ^2.22.0
         version: 2.26.2
+      chalk:
+        specifier: ^5.3.0
+        version: 5.3.0
       eslint:
         specifier: ^7.32.0
         version: 7.32.0
