@@ -73,7 +73,7 @@ export async function POST(req: Request) {
 <Callout>
   Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
   pass the streaming `response` we receive from Google's Generative AI SDK to
-  [`GoogleGenerativeAIStream`](/docs/api-reference/google-generative-ai-stream).
+  [`GoogleGenerativeAIStream`](/docs/api-reference/providers/google-generative-ai-stream).
   This utility class decodes/extracts the text tokens in the response and then
   re-encodes them properly for simple consumption. We can then pass that new
   stream directly to

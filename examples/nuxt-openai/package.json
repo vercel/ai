@@ -17,7 +17,7 @@
     "@vue/runtime-core": "^3.3.4",
     "@vue/runtime-dom": "^3.3.4",
     "@vue/shared": "^3.3.4",
-    "ai": "3.0.0",
+    "ai": "3.0.4",
     "nuxt": "^3.6.5",
     "openai": "4.16.1",
     "tailwindcss": "^3.3.3",

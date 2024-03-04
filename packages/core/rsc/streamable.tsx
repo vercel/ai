@@ -163,12 +163,12 @@ export function render<
   } = {},
 >(options: {
   /**
-   * The model name to use. Currently the only models available are OpenAI's
-   * GPT models (3.5/4) with Function Calling and Assistants Tools.
+   * The model name to use. Must be OpenAI SDK compatible. Tools and Functions are only supported
+   * GPT models (3.5/4), OpenAI Assistants, Mistral small and large, and Fireworks firefunction-v1.
    *
    * @example "gpt-3.5-turbo"
    */
-  model: `gpt-${string}`;
+  model: string;
   /**
    * The provider instance to use. Currently the only provider available is OpenAI.
    * This needs to match the model name.
@@ -196,6 +196,11 @@ export function render<
   temperature?: number;
 }): ReactNode {
   const ui = createStreamableUI(options.initial);
+
+  // The default text renderer just returns the content as string.
+  const text = options.text
+    ? options.text
+    : ({ content }: { content: string }) => content;
 
   const functions = options.functions
     ? Object.entries(options.functions).map(
@@ -227,7 +232,13 @@ export function render<
       )
     : undefined;
 
-  let finished: ReturnType<typeof createResolvablePromise> | undefined;
+  if (functions && tools) {
+    throw new Error(
+      "You can't have both functions and tools defined. Please choose one or the other.",
+    );
+  }
+
+  let finished: Promise<void> | undefined;
 
   async function handleRender(
     args: any,
@@ -236,8 +247,14 @@ export function render<
   ) {
     if (!renderer) return;
 
-    if (finished) await finished.promise;
-    finished = createResolvablePromise();
+    const resolvable = createResolvablePromise<void>();
+
+    if (finished) {
+      finished = finished.then(() => resolvable.promise);
+    } else {
+      finished = resolvable.promise;
+    }
+
     const value = renderer(args);
     if (
       value instanceof Promise ||
@@ -248,37 +265,40 @@ export function render<
     ) {
       const node = await (value as Promise<React.ReactNode>);
       res.update(node);
-      finished?.resolve(void 0);
+      resolvable.resolve(void 0);
     } else if (
       value &&
       typeof value === 'object' &&
       Symbol.asyncIterator in value
     ) {
-      for await (const node of value as AsyncGenerator<
+      const it = value as AsyncGenerator<
         React.ReactNode,
         React.ReactNode,
         void
-      >) {
-        res.update(node);
+      >;
+      while (true) {
+        const { done, value } = await it.next();
+        res.update(value);
+        if (done) break;
       }
-      finished?.resolve(void 0);
+      resolvable.resolve(void 0);
     } else if (value && typeof value === 'object' && Symbol.iterator in value) {
       const it = value as Generator<React.ReactNode, React.ReactNode, void>;
       while (true) {
         const { done, value } = it.next();
-        if (done) break;
         res.update(value);
+        if (done) break;
       }
-      finished?.resolve(void 0);
+      resolvable.resolve(void 0);
     } else {
       res.update(value);
-      finished?.resolve(void 0);
+      resolvable.resolve(void 0);
     }
   }
 
   (async () => {
     let hasFunction = false;
-    let text = '';
+    let content = '';
 
     consumeStream(
       OpenAIStream(
@@ -299,14 +319,19 @@ export function render<
             : {}),
         })) as any,
         {
-          async experimental_onFunctionCall(functionCallPayload) {
-            hasFunction = true;
-            handleRender(
-              functionCallPayload.arguments,
-              options.functions?.[functionCallPayload.name as any]?.render,
-              ui,
-            );
-          },
+          ...(functions
+            ? {
+                async experimental_onFunctionCall(functionCallPayload) {
+                  hasFunction = true;
+                  handleRender(
+                    functionCallPayload.arguments,
+                    options.functions?.[functionCallPayload.name as any]
+                      ?.render,
+                    ui,
+                  );
+                },
+              }
+            : {}),
           ...(tools
             ? {
                 async experimental_onToolCall(toolCallPayload: any) {
@@ -323,16 +348,19 @@ export function render<
                 },
               }
             : {}),
-          onToken(token) {
-            text += token;
-            if (hasFunction) return;
-            handleRender({ content: text, done: false }, options.text, ui);
+          onText(chunk) {
+            content += chunk;
+            handleRender({ content, done: false }, text, ui);
           },
           async onFinal() {
-            if (hasFunction) return;
-            handleRender({ content: text, done: true }, options.text, ui);
+            if (hasFunction) {
+              await finished;
+              ui.done();
+              return;
+            }
 
-            await finished?.promise;
+            handleRender({ content, done: true }, text, ui);
+            await finished;
             ui.done();
           },
         },

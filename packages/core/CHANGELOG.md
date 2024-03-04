@@ -1,5 +1,33 @@
 # ai
 
+## 3.0.4
+
+### Patch Changes
+
+- 7962862: fix `useActions` type inference
+- aab5324: Revert "fix(render): parse the args based on the zod schema"
+- fe55612: Bump OpenAI dependency to 4.28.4; fix type error in render
+
+## 3.0.3
+
+### Patch Changes
+
+- 4d816ca: fix(render): parse the args based on the zod schema
+- d158a47: fix potential race conditions
+
+## 3.0.2
+
+### Patch Changes
+
+- 73bd06e: fix(useActions): return typed object
+
+## 3.0.1
+
+### Patch Changes
+
+- ac20a25: ai/rsc: fix text response and async generator
+- b88778f: Added onText callback for text tokens.
+
 ## 3.0.0
 
 ### Major Changes

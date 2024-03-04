@@ -40,6 +40,20 @@ const state = getMutableAIState();
 state.done({ ...state.get(), key: 'value' }); // Done with a new state
 ```
 
+It can be called with a specific key as a shorthand for updating a part of the state (if the state is an object):
+
+```tsx
+const state = getMutableAIState('messages');
+state.done([...state.get(), newMessage]);
+
+// is equivalent to:
+const state = getMutableAIState();
+state.update({
+  ...state.get(),
+  messages: [...state.get().messages, newMessage],
+});
+```
+
 ## Usage
 
 <Tabs items={['Next.js (App Router)']}>

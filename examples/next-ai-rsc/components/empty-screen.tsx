@@ -8,8 +8,8 @@ const exampleMessages = [
     message: 'What are the trending stocks?',
   },
   {
-    heading: "What's the stock price of APPL?",
-    message: "What's the stock price of APPL?",
+    heading: "What's the stock price of AAPL?",
+    message: "What's the stock price of AAPL?",
   },
   {
     heading: "I'd like to buy 10 shares of MSFT",
@@ -26,7 +26,7 @@ export function EmptyScreen({
     <div className="mx-auto max-w-2xl px-4">
       <div className="rounded-lg border bg-background p-8 mb-4">
         <h1 className="mb-2 text-lg font-semibold">
-          Welcome to AI Server Components demo!
+          Welcome to AI SDK 3.0 Generative UI demo!
         </h1>
         <p className="mb-2 leading-normal text-muted-foreground">
           This is a demo of an interactive financial assistant. It can show you
@@ -35,15 +35,19 @@ export function EmptyScreen({
         <p className="mb-2 leading-normal text-muted-foreground">
           The demo is built with{' '}
           <ExternalLink href="https://nextjs.org">Next.js</ExternalLink> and the{' '}
-          <ExternalLink href="https://sdk.vercel.ai">
+          <ExternalLink href="https://sdk.vercel.ai/docs">
             Vercel AI SDK
           </ExternalLink>
           .
         </p>
         <p className="mb-2 leading-normal text-muted-foreground">
-          It uses AI Server Components to combine text with UI generated as
-          output of the LLM. UI state is synced with AI, so the model is aware
-          of your interactions.
+          It uses{' '}
+          <ExternalLink href="https://vercel.com/blog/ai-sdk-3-generative-ui">
+            React Server Components
+          </ExternalLink>{' '}
+          to combine text with UI generated as output of the LLM. The UI state
+          is synced through the SDK so the model is aware of your interactions
+          as they happen.
         </p>
         <p className="leading-normal text-muted-foreground">Try an example:</p>
         <div className="mt-4 flex flex-col items-start space-y-2 mb-4">

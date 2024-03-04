@@ -133,7 +133,7 @@ export async function POST(req: Request) {
 This example leverages a few utilities provided by the Vercel AI SDK:
 
 1. First, we pass the streaming `response` we receive from the Inkeep API to the
-   [`InkeepStream`](/docs/api-reference/inkeep-stream). This
+   [`InkeepStream`](/docs/api-reference/providers/inkeep-stream). This
    method decodes/extracts the content of the message from Inkeep's server-side events response and then re-encodes them into a standard [ReadableStream](https://developer.mozilla.org/docs/Web/API/ReadableStream).
 
 2. We then pass that stream directly to the Vercel AI SDK's [`StreamingTextResponse`](/docs/api-reference/streaming-text-response).

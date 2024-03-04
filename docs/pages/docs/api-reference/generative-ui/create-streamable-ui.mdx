@@ -28,11 +28,13 @@ The `update` method is used to update the UI node. It takes a new UI node and re
 
 ### `append`
 
-The `append` method is used to append a new UI node to the end of the old one.
+The `append` method is used to append a new UI node to the end of the old one. Once appended a new UI node, the previous UI node cannot be updated anymore.
 
 ### `done`
 
-The `done` method is used to replace the UI node with a new one and mark it as done. This is useful for when you want to replace the loading UI with the final result.
+The `done` method marks the UI node as finalized. You can either call it without any parameters or with a new UI node as the final state. Once called, the UI node cannot be updated or appended anymore.
+
+The `done` method is always **required** to be called, otherwise the response will be stuck in a loading state.
 
 ## Example
 
@@ -40,7 +42,7 @@ The `done` method is used to replace the UI node with a new one and mark it as d
   <Tab>
     UI Streams are created on the server and streamed to the client.
 
-    ```tsx filename="app/action.tsx" {8-15, 19-26, 30-37, 41}
+    ```tsx filename="app/action.tsx" {8-15, 23-30, 34-41, 46}
     import { createStreamableUI } from "ai/rsc";
 
     async function confirmPurchase(symbol: string, amount: number) {
@@ -57,27 +59,32 @@ The `done` method is used to replace the UI node with a new one and mark it as d
         </div>
       );
 
-      await sleep(1000);
+      // This async function is immediately invoked but it will not block the
+      // return statement. Because of that, the client will receive the initial
+      // UI immediately and then the updates will be streamed later.
+      (async () => {
+        await sleep(1000);
 
-      uiStream.update(
-        <div className="inline-flex gap-1">
-          {spinner}
-          <p className="mb-2">
-            Purchasing {amount} ${symbol}... working on it...
-          </p>
-        </div>
-      );
+        uiStream.update(
+          <div className="inline-flex gap-1">
+            {spinner}
+            <p className="mb-2">
+              Purchasing {amount} ${symbol}... working on it...
+            </p>
+          </div>
+        );
 
-      await sleep(1000);
+        await sleep(1000);
 
-      uiStream.done(
-        <div>
-          <p className="mb-2">
-            You have successfully purchased {amount} ${symbol}.
-            Total cost: ${amount * price}
-          </p>
-        </div>
-      );
+        uiStream.done(
+          <div>
+            <p className="mb-2">
+              You have successfully purchased {amount} ${symbol}.
+              Total cost: ${amount * price}
+            </p>
+          </div>
+        );
+      })();
 
       return {
         id: Date.now(),

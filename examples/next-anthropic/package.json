@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.12.0",
-    "ai": "3.0.0",
-    "next": "14.0.3",
+    "ai": "3.0.4",
+    "next": "14.1.1",
     "react": "18.2.0",
     "react-dom": "^18.2.0"
   },
