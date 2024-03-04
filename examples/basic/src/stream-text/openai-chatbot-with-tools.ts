@@ -27,7 +27,7 @@ async function main() {
 
     const result = await streamText({
       model: openai.chat({ id: 'gpt-3.5-turbo' }),
-      tools: [weatherTool],
+      tools: { weatherTool },
       prompt: chat,
     });
 

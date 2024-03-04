@@ -5,9 +5,9 @@ import { ZodSchema } from '../../schema/zod-schema';
 import { LanguageModelToolCall } from '../language-model';
 import { Tool } from '../tool';
 
-export interface ToolCall<TOOL_NAME extends string, ARGS> {
+export interface ToolCall<NAME extends string, ARGS> {
   toolCallId: string;
-  toolName: TOOL_NAME;
+  toolName: NAME;
   args: ARGS;
 }
 

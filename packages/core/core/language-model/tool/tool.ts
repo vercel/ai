@@ -28,8 +28,23 @@ export interface Tool<PARAMETERS extends z.ZodTypeAny = any, RESULT = any> {
 /**
  * Helper function for inferring the execute args of a tool.
  */
+// Note: special type inference is needed for the execute function args to make sure they are inferred correctly.
+export function tool<PARAMETERS extends z.ZodTypeAny, RESULT>(
+  tool: Tool<PARAMETERS, RESULT> & {
+    execute: (args: z.infer<PARAMETERS>) => PromiseLike<RESULT>;
+  },
+): Tool<PARAMETERS, RESULT> & {
+  execute: (args: z.infer<PARAMETERS>) => PromiseLike<RESULT>;
+};
+export function tool<PARAMETERS extends z.ZodTypeAny, RESULT>(
+  tool: Tool<PARAMETERS, RESULT> & {
+    execute?: undefined;
+  },
+): Tool<PARAMETERS, RESULT> & {
+  execute: undefined;
+};
 export function tool<PARAMETERS extends z.ZodTypeAny, RESULT = any>(
   tool: Tool<PARAMETERS, RESULT>,
-) {
+): Tool<PARAMETERS, RESULT> {
   return tool;
 }

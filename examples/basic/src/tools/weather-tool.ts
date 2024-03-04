@@ -8,11 +8,5 @@ export const weatherTool = {
   execute: async ({ location }: { location: string }) => ({
     location,
     temperature: 72 + Math.floor(Math.random() * 21) - 10,
-    description:
-      Math.random() < 0.33
-        ? 'sunny'
-        : Math.random() < 0.66
-        ? 'cloudy'
-        : 'raining',
   }),
 };
