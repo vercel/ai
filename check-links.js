@@ -10,6 +10,7 @@ const knownBrokenLinks = [
 ];
 
 const markdownLinkRegex = /\[.*?\]\((.*?)\)/g;
+const hrefLinkRegex = /href="(.*?)"/g;
 
 const hasExtension = link => path.extname(link);
 
@@ -55,10 +56,21 @@ async function checkMarkdownLinks(baseDir) {
     const content = await fs.readFile(file, 'utf8');
     const relativeFilePath = `/${path.relative(baseDir, file)}`;
 
+    const links = [];
     let match;
-    while ((match = markdownLinkRegex.exec(content)) !== null) {
-      const link = match[1];
 
+    // Gather all Markdown links
+    while ((match = markdownLinkRegex.exec(content)) !== null) {
+      links.push(match[1]); // Capture the link
+    }
+
+    // Gather all HTML href links
+    while ((match = hrefLinkRegex.exec(content)) !== null) {
+      links.push(match[1]); // Capture the href value
+    }
+
+    // Iterate over the combined list of links
+    for (const link of links) {
       if (shouldSkip(relativeFilePath, link)) {
         console.log(chalk.grey(`· ${relativeFilePath} -> ${link}`));
         continue;
