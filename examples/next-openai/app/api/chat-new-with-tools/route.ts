@@ -1,4 +1,4 @@
-import { createTool, streamText } from 'ai/core';
+import { streamText, tool } from 'ai/core';
 import { openai } from 'ai/provider';
 import { z } from 'zod';
 
@@ -10,9 +10,8 @@ export async function POST(req: Request) {
   const stream = await streamText({
     model: openai.chat({ id: 'gpt-4' }),
 
-    tools: [
-      createTool({
-        name: 'get_city_temperature' as const,
+    tools: {
+      get_city_temperature: tool({
         description: 'Get the current weather',
 
         parameters: z.object({
@@ -32,7 +31,7 @@ export async function POST(req: Request) {
           unit: format === 'celsius' ? 'C' : 'F',
         }),
       }),
-    ],
+    },
 
     prompt: {
       system:
