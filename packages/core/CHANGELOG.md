@@ -1,5 +1,12 @@
 # ai
 
+## 3.0.5
+
+### Patch Changes
+
+- a973f1e: Support Anthropic SDK v0.15.0
+- e25f3ca: type improvements
+
 ## 3.0.4
 
 ### Patch Changes
