@@ -173,6 +173,7 @@ describe('result.fullStream', () => {
           type: 'tool-result',
           toolCallId: 'call-1',
           toolName: 'tool1',
+          args: { value: 'value' },
           result: 'value-result',
         },
       ],
