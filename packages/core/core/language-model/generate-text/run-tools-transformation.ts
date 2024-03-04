@@ -1,51 +1,17 @@
 import { nanoid } from 'nanoid';
-import { z } from 'zod';
-import { safeParseJSON } from '../../schema/parse-json';
-import { ZodSchema } from '../../schema/zod-schema';
 import { ErrorStreamPart, LanguageModelStreamPart } from '../language-model';
 import { Tool } from '../tool';
+import { TextStreamPart } from './stream-text';
+import { parseToolCall } from './tool-call';
 import { ToolResultStreamPart } from './tool-result-stream-part';
 
-type ReturnStreamPart<
-  TOOLS extends {
-    [name: string]: z.Schema;
-  } = {},
-> =
-  | {
-      type: 'text-delta';
-      textDelta: string;
-    }
-  | {
-      // TODO more precise tool call stream parts
-      type: 'tool-call';
-      toolCallId: keyof TOOLS & string;
-      toolName: string;
-      args: z.infer<TOOLS[keyof TOOLS]>;
-    }
-  | {
-      type: 'error';
-      error: unknown;
-    }
-  | {
-      type: 'tool-result';
-      toolCallId: string;
-      toolName: string;
-      result: unknown;
-    };
-
-export function runToolsTransformation<
-  TOOLS extends {
-    [name: string]: z.Schema;
-  } = {},
->({
+export function runToolsTransformation<TOOLS extends Record<string, Tool>>({
   tools,
   generatorStream,
 }: {
-  tools?: {
-    [name in keyof TOOLS]: Tool<TOOLS[name], unknown>;
-  };
+  tools?: TOOLS;
   generatorStream: ReadableStream<LanguageModelStreamPart>;
-}): ReadableStream<ReturnStreamPart<TOOLS>> {
+}): ReadableStream<TextStreamPart<TOOLS>> {
   let canClose = false;
   const outstandingToolCalls = new Set<string>();
 
@@ -64,13 +30,11 @@ export function runToolsTransformation<
   // forward stream
   const forwardStream = new TransformStream<
     LanguageModelStreamPart,
-    ReturnStreamPart<TOOLS>
+    TextStreamPart<TOOLS>
   >({
     transform(
       chunk: LanguageModelStreamPart,
-      controller: TransformStreamDefaultController<
-        LanguageModelStreamPart | ToolResultStreamPart
-      >,
+      controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
     ) {
       const chunkType = chunk.type;
 
@@ -107,44 +71,36 @@ export function runToolsTransformation<
             break;
           }
 
-          const parseResult = safeParseJSON({
-            text: chunk.args,
-            schema: new ZodSchema(tool.parameters),
+          // TODO try catch or safe parse
+          const toolCall = parseToolCall({
+            toolCall: chunk,
+            tools,
           });
 
-          if (parseResult.success === false) {
-            // TODO dedicate tool call error (InvalidToolArgumentsError)
-            toolResultsStreamController!.enqueue({
-              type: 'error',
-              error: `Tool call ${toolName} has invalid arguments: ${parseResult.error}`,
-            });
-
-            break;
-          }
-
-          // TODO should have typesafe tool call arguments
-          const toolArgs = parseResult.value;
+          // TODO dedicate tool call error (InvalidToolArgumentsError)
+          // toolResultsStreamController!.enqueue({
+          //   type: 'error',
+          //   error: `Tool call ${toolName} has invalid arguments: ${parseResult.error}`,
+          // });
 
           controller.enqueue({
             type: 'tool-call',
-            toolCallId: chunk.toolCallId,
-            toolName,
-            args: toolArgs,
+            ...toolCall,
           });
 
           if (tool.execute != null) {
             const toolExecutionId = nanoid(); // use our own id to guarantee uniqueness
             outstandingToolCalls.add(toolExecutionId);
 
-            // TODO full tool call args parsing & validation
-            const argsp = JSON.parse(chunk.args);
-            const execute = tool.execute as any;
-            execute(argsp).then(
+            // Note: we don't await the tool execution here, because we want to process
+            // the next chunk as soon as possible. This is important for the case where
+            // the tool execution takes a long time.
+            tool.execute(toolCall.args).then(
               (result: any) => {
                 toolResultsStreamController!.enqueue({
                   type: 'tool-result',
-                  toolCallId: chunk.toolCallId,
-                  toolName: chunk.toolName,
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName as string, // TODO fix typing
                   result,
                 });
 
@@ -196,7 +152,7 @@ export function runToolsTransformation<
   });
 
   // combine the generator stream and the tool results stream
-  return new ReadableStream<ReturnStreamPart<TOOLS>>({
+  return new ReadableStream<TextStreamPart<TOOLS>>({
     async start(controller) {
       generatorStream.pipeThrough(forwardStream).pipeTo(
         new WritableStream({

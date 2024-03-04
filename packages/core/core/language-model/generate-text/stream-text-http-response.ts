@@ -1,20 +1,12 @@
 import { formatStreamPart } from '../../../shared/stream-parts';
 import { COMPLEX_HEADER } from '../../../shared/utils';
-import { LanguageModelStreamPart } from '../language-model';
-import { ToolResultStreamPart } from './tool-result-stream-part';
+import { TextStreamPart } from './stream-text';
 
 export class StreamTextHttpResponse extends Response {
-  constructor(
-    messageStream: ReadableStream<
-      LanguageModelStreamPart | ToolResultStreamPart
-    >,
-  ) {
+  constructor(messageStream: ReadableStream<TextStreamPart<any>>) {
     super(
       messageStream.pipeThrough(
-        new TransformStream<
-          LanguageModelStreamPart | ToolResultStreamPart,
-          string
-        >({
+        new TransformStream<TextStreamPart<any>, string>({
           transform(chunk, controller) {
             switch (chunk.type) {
               case 'error': {
@@ -48,7 +40,6 @@ export class StreamTextHttpResponse extends Response {
                 break;
               }
 
-              case 'tool-call-delta':
               case 'tool-result': {
                 // ignored
                 break;

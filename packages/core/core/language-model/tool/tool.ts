@@ -6,7 +6,7 @@ import { z } from 'zod';
  *
  * The tool can also contain an optional execute function for the actual execution function of the tool.
  */
-export interface Tool<PARAMETERS extends z.ZodSchema, RESULT> {
+export interface Tool<PARAMETERS extends z.ZodTypeAny = any, RESULT = any> {
   /**
    * A optional description of what the tool does. Will be used by the language model to decide whether to use the tool.
    */
@@ -23,4 +23,13 @@ export interface Tool<PARAMETERS extends z.ZodSchema, RESULT> {
    * If not provided, the tool will not be executed automatically.
    */
   execute?: (args: z.infer<PARAMETERS>) => PromiseLike<RESULT>;
+}
+
+/**
+ * Helper function for inferring the execute args of a tool.
+ */
+function tool<PARAMETERS extends z.ZodTypeAny, RESULT = any>(
+  tool: Tool<PARAMETERS, RESULT>,
+) {
+  return tool;
 }
