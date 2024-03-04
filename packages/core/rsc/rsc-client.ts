@@ -4,4 +4,4 @@ export {
   useAIState,
   useActions,
   useSyncUIState,
-} from './rsc-shared';
+} from './rsc-shared.mjs';
