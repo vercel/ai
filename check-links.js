@@ -3,15 +3,50 @@ const path = require('path');
 const glob = require('glob');
 let chalk;
 
-const markdownLinkRegex = /\[.*?\]\((.*?)\)/g;
-const projectRoot = process.cwd(); // Gets the current working directory
-
-const skipKnownBrokenLinks = [
+// For the times when we know that we shouldn't resolve something
+// e.g., the `/prompt` page is a relative link, but is not in the docs
+const knownBrokenLinks = [
   { from: '/docs/concepts/prompt-engineering.mdx', to: '/prompt' },
 ];
 
+const markdownLinkRegex = /\[.*?\]\((.*?)\)/g;
+
+const hasExtension = link => path.extname(link);
+
+const isExternalLink = link => link.startsWith('http') || link.startsWith('//');
+
+const isKnownBrokenLink = (from, to) => {
+  return knownBrokenLinks.some(skip => skip.from === from && skip.to === to);
+};
+
+const resolveLink = ({ docsRoot, file, link }) => {
+  let resolvedLink = link;
+
+  // For absolute paths, prepend the documentation root path
+  // For relative paths, resolve the path from the current file
+  if (resolvedLink.startsWith('/')) {
+    resolvedLink = path.join(docsRoot, resolvedLink);
+  } else if (resolvedLink.startsWith('./')) {
+    resolvedLink = path.resolve(path.dirname(file), resolvedLink);
+  }
+
+  // If the resolvedLink has an anchor, only use the root
+  if (resolvedLink.includes('#')) {
+    const [linkPath, _anchor] = resolvedLink.split('#');
+    resolvedLink = linkPath;
+  }
+
+  // Add markdown extension
+  resolvedLink += '.mdx';
+
+  return resolvedLink;
+};
+
+const shouldSkip = (from, to) => {
+  return isKnownBrokenLink(from, to) || isExternalLink(to) || hasExtension(to);
+};
+
 async function checkMarkdownLinks(baseDir) {
-  // chalk = (await import('chalk')).default;
   const files = glob.sync(`${baseDir}/**/*.mdx`);
   let errorCount = 0;
   chalk = (await import('chalk')).default;
@@ -19,63 +54,34 @@ async function checkMarkdownLinks(baseDir) {
   for (const file of files) {
     const content = await fs.readFile(file, 'utf8');
     const relativeFilePath = `/${path.relative(baseDir, file)}`;
+
     let match;
-
     while ((match = markdownLinkRegex.exec(content)) !== null) {
-      const originalLink = match[1];
-      let link = originalLink;
+      const link = match[1];
 
-      if (
-        skipKnownBrokenLinks.some(
-          skip => skip.from === relativeFilePath && skip.to === link,
-        )
-      )
+      if (shouldSkip(relativeFilePath, link)) {
+        console.log(chalk.grey(`· ${relativeFilePath} -> ${link}`));
         continue;
-
-      // Skip external links
-      if (link.startsWith('http') || link.startsWith('//')) continue;
-
-      // Skip links which have an extension (e.g., .png)
-      if (path.extname(link)) continue;
-
-      // For absolute paths, prepend the documentation root path
-      // For relative paths, resolve the path from the current file
-      if (link.startsWith('/')) {
-        link = path.join(docsRoot, link);
-      } else if (link.startsWith('./')) {
-        link = path.resolve(path.dirname(file), link);
       }
 
-      // If the link has an anchor, only use the root
-      if (link.includes('#')) {
-        const [linkPath, _anchor] = link.split('#');
-        link = linkPath;
-      }
-
-      // Add markdown extension
-      link += '.mdx';
-
-      const relativeLinkPath = `/${path.relative(baseDir, link)}`;
+      const resolvedLink = resolveLink({ docsRoot, file, link });
+      const relativeLinkPath = `/${path.relative(baseDir, resolvedLink)}`;
 
       try {
-        await fs.access(link);
+        await fs.access(resolvedLink);
         console.log(
-          chalk.green(
-            `✓ ${relativeFilePath} -> ${originalLink} (${relativeLinkPath})`,
-          ),
+          chalk.green(`✓ ${relativeFilePath} -> ${link} (${relativeLinkPath})`),
         );
       } catch (error) {
         errorCount += 1;
         console.error(
-          chalk.red(
-            `✖ ${relativeFilePath} -> ${originalLink} (${relativeLinkPath})`,
-          ),
+          chalk.red(`✖ ${relativeFilePath} -> ${link} (${relativeLinkPath})`),
         );
       }
     }
   }
 
-  // After all links have been checked:
+  // After all links have been checked
   if (errorCount > 0) {
     console.error(
       chalk.red(
