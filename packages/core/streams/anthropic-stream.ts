@@ -6,20 +6,27 @@ import {
 } from './ai-stream';
 import { createStreamDataTransformer } from './stream-data';
 
-// https://github.com/anthropics/anthropic-sdk-typescript/blob/0fc31f4f1ae2976afd0af3236e82d9e2c84c43c9/src/resources/completions.ts#L28-L49
+// from anthropic sdk (Completion)
 interface CompletionChunk {
+  /**
+   * Unique object identifier.
+   *
+   * The format and length of IDs may change over time.
+   */
+  id: string;
+
   /**
    * The resulting completion up to and excluding the stop sequences.
    */
   completion: string;
 
   /**
-   * The model that performed the completion.
+   * The model that handled the request.
    */
   model: string;
 
   /**
-   * The reason that we stopped sampling.
+   * The reason that we stopped.
    *
    * This may be one the following values:
    *
@@ -27,7 +34,14 @@ interface CompletionChunk {
    *   `stop_sequences` parameter, or a stop sequence built into the model
    * - `"max_tokens"`: we exceeded `max_tokens_to_sample` or the model's maximum
    */
-  stop_reason: string;
+  stop_reason: string | null;
+
+  /**
+   * Object type.
+   *
+   * For Text Completions, this is always `"completion"`.
+   */
+  type: 'completion';
 }
 
 interface StreamError {
