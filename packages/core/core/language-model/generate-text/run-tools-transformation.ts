@@ -1,9 +1,8 @@
 import { nanoid } from 'nanoid';
-import { ErrorStreamPart, LanguageModelStreamPart } from '../language-model';
+import { LanguageModelStreamPart } from '../language-model';
 import { Tool } from '../tool';
 import { TextStreamPart } from './stream-text';
 import { parseToolCall } from './tool-call';
-import { ToolResultStreamPart } from './tool-result-stream-part';
 
 export function runToolsTransformation<TOOLS extends Record<string, Tool>>({
   tools,
@@ -17,11 +16,9 @@ export function runToolsTransformation<TOOLS extends Record<string, Tool>>({
 
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
-    ToolResultStreamPart | ErrorStreamPart
+    TextStreamPart<TOOLS>
   > | null = null;
-  const toolResultsStream = new ReadableStream<
-    ToolResultStreamPart | ErrorStreamPart
-  >({
+  const toolResultsStream = new ReadableStream<TextStreamPart<TOOLS>>({
     start(controller) {
       toolResultsStreamController = controller;
     },

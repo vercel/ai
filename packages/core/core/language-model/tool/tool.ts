@@ -28,7 +28,7 @@ export interface Tool<PARAMETERS extends z.ZodTypeAny = any, RESULT = any> {
 /**
  * Helper function for inferring the execute args of a tool.
  */
-function tool<PARAMETERS extends z.ZodTypeAny, RESULT = any>(
+export function tool<PARAMETERS extends z.ZodTypeAny, RESULT = any>(
   tool: Tool<PARAMETERS, RESULT>,
 ) {
   return tool;
