@@ -9,8 +9,10 @@ const knownBrokenLinks = [
   { from: '/docs/concepts/prompt-engineering.mdx', to: '/prompt' },
 ];
 
-const markdownLinkRegex = /\[.*?\]\((.*?)\)/g;
 const hrefLinkRegex = /href="(.*?)"/g;
+const markdownLinkRegex = /\[.*?\]\((.*?)\)/g;
+
+const verbose = process.argv.includes('--verbose');
 
 const hasExtension = link => path.extname(link);
 
@@ -72,7 +74,7 @@ async function checkMarkdownLinks(baseDir) {
     // Iterate over the combined list of links
     for (const link of links) {
       if (shouldSkip(relativeFilePath, link)) {
-        console.log(chalk.grey(`· ${relativeFilePath} -> ${link}`));
+        verbose && console.log(chalk.grey(`· ${relativeFilePath} -> ${link}`));
         continue;
       }
 
@@ -81,9 +83,12 @@ async function checkMarkdownLinks(baseDir) {
 
       try {
         await fs.access(resolvedLink);
-        console.log(
-          chalk.green(`✓ ${relativeFilePath} -> ${link} (${relativeLinkPath})`),
-        );
+        verbose &&
+          console.log(
+            chalk.green(
+              `✓ ${relativeFilePath} -> ${link} (${relativeLinkPath})`,
+            ),
+          );
       } catch (error) {
         errorCount += 1;
         console.error(
