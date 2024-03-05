@@ -319,4 +319,15 @@ describe('rsc - createStreamableUI()', () => {
     );
     expect(final).toMatchInlineSnapshot('"hello world!"');
   });
+
+  it('should error when updating a closed streamable', async () => {
+    const ui = createStreamableUI(<div>1</div>);
+    ui.done(<div>2</div>);
+
+    expect(() => {
+      ui.update(<div>3</div>);
+    }).toThrowErrorMatchingInlineSnapshot(
+      '".update(): UI stream is already closed."',
+    );
+  });
 });

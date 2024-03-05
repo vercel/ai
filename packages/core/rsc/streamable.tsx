@@ -22,16 +22,16 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
   let closed = false;
   let { row, resolve, reject } = createSuspensedChunk(initialValue);
 
-  function assertStream() {
+  function assertStream(method: string) {
     if (closed) {
-      throw new Error('UI stream is already closed.');
+      throw new Error(method + ': UI stream is already closed.');
     }
   }
 
   return {
     value: row,
     update(value: React.ReactNode) {
-      assertStream();
+      assertStream('.update()');
 
       const resolvable = createResolvablePromise();
       currentValue = value;
@@ -41,7 +41,7 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       reject = resolvable.reject;
     },
     append(value: React.ReactNode) {
-      assertStream();
+      assertStream('.append()');
 
       const resolvable = createResolvablePromise();
       if (typeof currentValue === 'string' && typeof value === 'string') {
@@ -60,13 +60,13 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       reject = resolvable.reject;
     },
     error(error: any) {
-      assertStream();
+      assertStream('.error()');
 
       closed = true;
       reject(error);
     },
     done(...args: any) {
-      assertStream();
+      assertStream('.done()');
 
       closed = true;
       if (args.length) {
@@ -87,9 +87,9 @@ export function createStreamableValue<T = any>(initialValue?: T) {
   let closed = false;
   let { promise, resolve, reject } = createResolvablePromise();
 
-  function assertStream() {
+  function assertStream(method: string) {
     if (closed) {
-      throw new Error('Value stream is already closed.');
+      throw new Error(method + ': Value stream is already closed.');
     }
   }
 
@@ -111,7 +111,7 @@ export function createStreamableValue<T = any>(initialValue?: T) {
   return {
     value: createWrapped(initialValue, true),
     update(value: T) {
-      assertStream();
+      assertStream('.update()');
 
       const resolvePrevious = resolve;
       const resolvable = createResolvablePromise();
@@ -124,13 +124,13 @@ export function createStreamableValue<T = any>(initialValue?: T) {
       // currentValue = value
     },
     error(error: any) {
-      assertStream();
+      assertStream('.error()');
 
       closed = true;
       reject(error);
     },
     done(...args: any) {
-      assertStream();
+      assertStream('.done()');
 
       closed = true;
 
