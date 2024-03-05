@@ -8,7 +8,7 @@ import { OpenAIStream } from '../streams';
 
 import {
   STREAMABLE_VALUE_TYPE,
-  DEV_DEFAULT_STREAMABLE_TIMEOUT,
+  DEV_DEFAULT_STREAMABLE_WARNING_TIME,
 } from './constants';
 import {
   createResolvablePromise,
@@ -41,7 +41,7 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
         console.warn(
           'The streamable UI has been slow to update. This may be a bug or a performance issue or you forgot to call `.done()`.',
         );
-      }, DEV_DEFAULT_STREAMABLE_TIMEOUT);
+      }, DEV_DEFAULT_STREAMABLE_WARNING_TIME);
     }
   }
   warnUnclosedStream();
@@ -130,7 +130,7 @@ export function createStreamableValue<T = any>(initialValue?: T) {
         console.warn(
           'The streamable UI has been slow to update. This may be a bug or a performance issue or you forgot to call `.done()`.',
         );
-      }, DEV_DEFAULT_STREAMABLE_TIMEOUT);
+      }, DEV_DEFAULT_STREAMABLE_WARNING_TIME);
     }
   }
   warnUnclosedStream();
