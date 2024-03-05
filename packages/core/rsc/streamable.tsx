@@ -6,7 +6,10 @@ import zodToJsonSchema from 'zod-to-json-schema';
 // TODO: This needs to be externalized.
 import { OpenAIStream } from '../streams';
 
-import { STREAMABLE_VALUE_TYPE } from './constants';
+import {
+  STREAMABLE_VALUE_TYPE,
+  DEV_DEFAULT_STREAMABLE_TIMEOUT,
+} from './constants';
 import {
   createResolvablePromise,
   createSuspensedChunk,
@@ -28,6 +31,21 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
     }
   }
 
+  let warningTimeout: NodeJS.Timeout | undefined;
+  function warnUnclosedStream() {
+    if (process.env.NODE_ENV === 'development') {
+      if (warningTimeout) {
+        clearTimeout(warningTimeout);
+      }
+      warningTimeout = setTimeout(() => {
+        console.warn(
+          'The streamable UI has been slow to update. This may be a bug or a performance issue or you forgot to call `.done()`.',
+        );
+      }, DEV_DEFAULT_STREAMABLE_TIMEOUT);
+    }
+  }
+  warnUnclosedStream();
+
   return {
     value: row,
     update(value: React.ReactNode) {
@@ -39,6 +57,8 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       resolve({ value: currentValue, done: false, next: resolvable.promise });
       resolve = resolvable.resolve;
       reject = resolvable.reject;
+
+      warnUnclosedStream();
     },
     append(value: React.ReactNode) {
       assertStream('.append()');
@@ -58,16 +78,24 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       resolve({ value: currentValue, done: false, next: resolvable.promise });
       resolve = resolvable.resolve;
       reject = resolvable.reject;
+
+      warnUnclosedStream();
     },
     error(error: any) {
       assertStream('.error()');
 
+      if (warningTimeout) {
+        clearTimeout(warningTimeout);
+      }
       closed = true;
       reject(error);
     },
     done(...args: any) {
       assertStream('.done()');
 
+      if (warningTimeout) {
+        clearTimeout(warningTimeout);
+      }
       closed = true;
       if (args.length) {
         resolve({ value: args[0], done: true });
@@ -83,7 +111,6 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
  * On the client side, the value can be accessed via the useStreamableValue() hook.
  */
 export function createStreamableValue<T = any>(initialValue?: T) {
-  // let currentValue = initialValue
   let closed = false;
   let { promise, resolve, reject } = createResolvablePromise();
 
@@ -92,6 +119,21 @@ export function createStreamableValue<T = any>(initialValue?: T) {
       throw new Error(method + ': Value stream is already closed.');
     }
   }
+
+  let warningTimeout: NodeJS.Timeout | undefined;
+  function warnUnclosedStream() {
+    if (process.env.NODE_ENV === 'development') {
+      if (warningTimeout) {
+        clearTimeout(warningTimeout);
+      }
+      warningTimeout = setTimeout(() => {
+        console.warn(
+          'The streamable UI has been slow to update. This may be a bug or a performance issue or you forgot to call `.done()`.',
+        );
+      }, DEV_DEFAULT_STREAMABLE_TIMEOUT);
+    }
+  }
+  warnUnclosedStream();
 
   function createWrapped(val: T | undefined, initial?: boolean) {
     if (initial) {
@@ -121,17 +163,23 @@ export function createStreamableValue<T = any>(initialValue?: T) {
 
       resolvePrevious(createWrapped(value));
 
-      // currentValue = value
+      warnUnclosedStream();
     },
     error(error: any) {
       assertStream('.error()');
 
+      if (warningTimeout) {
+        clearTimeout(warningTimeout);
+      }
       closed = true;
       reject(error);
     },
     done(...args: any) {
       assertStream('.done()');
 
+      if (warningTimeout) {
+        clearTimeout(warningTimeout);
+      }
       closed = true;
 
       if (args.length) {
