@@ -34,18 +34,16 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       assertStream();
 
       const resolvable = createResolvablePromise();
-      resolve({ value, done: false, next: resolvable.promise });
+      currentValue = value;
+
+      resolve({ value: currentValue, done: false, next: resolvable.promise });
       resolve = resolvable.resolve;
       reject = resolvable.reject;
-      currentValue = value;
     },
     append(value: React.ReactNode) {
       assertStream();
 
       const resolvable = createResolvablePromise();
-      resolve({ value, done: false, next: resolvable.promise });
-      resolve = resolvable.resolve;
-      reject = resolvable.reject;
       if (typeof currentValue === 'string' && typeof value === 'string') {
         currentValue += value;
       } else {
@@ -56,6 +54,10 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
           </>
         );
       }
+
+      resolve({ value: currentValue, done: false, next: resolvable.promise });
+      resolve = resolvable.resolve;
+      reject = resolvable.reject;
     },
     error(error: any) {
       assertStream();
