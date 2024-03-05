@@ -3,7 +3,7 @@ import {
   openaiFunctionCallChunks,
 } from '../tests/snapshots/openai-chat';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
-import { render } from './streamable';
+import { createStreamableUI, render } from './streamable';
 import { z } from 'zod';
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
@@ -34,6 +34,10 @@ afterEach(() => {
 afterAll(() => {
   server.close();
 });
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function recursiveResolve(val: any): Promise<any> {
   if (val && typeof val === 'object' && typeof val.then === 'function') {
@@ -79,6 +83,22 @@ async function simulateFlightServerRender(node: React.ReactElement) {
   }
 
   return traverse(node);
+}
+
+function getFinalValueFromResolved(node: any) {
+  if (!node) return node;
+  if (node.type === 'Symbol(react.suspense)') {
+    return getFinalValueFromResolved(node.children);
+  } else if (node.type === 'Row') {
+    let value = node.props.value;
+    let next = node.props.next;
+    while (next) {
+      value = next.value;
+      next = next.next;
+    }
+    return getFinalValueFromResolved(value);
+  }
+  return node;
 }
 
 function createMockUpProvider() {
@@ -155,5 +175,153 @@ describe('rsc - render()', () => {
 
     const rendered = await simulateFlightServerRender(ui as any);
     expect(rendered).toMatchSnapshot();
+  });
+});
+
+describe('rsc - createStreamableUI()', () => {
+  it('should emit React Nodes that can be updated', async () => {
+    const ui = createStreamableUI(<div>1</div>);
+    ui.update(<div>2</div>);
+    ui.update(<div>3</div>);
+    ui.done();
+
+    const final = getFinalValueFromResolved(
+      await simulateFlightServerRender(ui.value),
+    );
+    expect(final).toMatchInlineSnapshot(`
+      <div>
+        3
+      </div>
+    `);
+  });
+
+  it('should emit React Nodes that can be updated with .done()', async () => {
+    const ui = createStreamableUI(<div>1</div>);
+    ui.update(<div>2</div>);
+    ui.update(<div>3</div>);
+    await sleep(100);
+    ui.done(<div>4</div>);
+
+    const final = getFinalValueFromResolved(
+      await simulateFlightServerRender(ui.value),
+    );
+    expect(final).toMatchInlineSnapshot(`
+      <div>
+        4
+      </div>
+    `);
+  });
+
+  it('should support .append()', async () => {
+    const ui = createStreamableUI(<div>1</div>);
+    ui.update(<div>2</div>);
+    ui.append(<div>3</div>);
+    await sleep(100);
+    ui.append(<div>4</div>);
+    ui.done();
+
+    const final = getFinalValueFromResolved(
+      await simulateFlightServerRender(ui.value),
+    );
+    expect(final).toMatchInlineSnapshot(`
+      <React.Fragment>
+        <React.Fragment>
+          <div>
+            2
+          </div>
+          <div>
+            3
+          </div>
+        </React.Fragment>
+        <div>
+          4
+        </div>
+      </React.Fragment>
+    `);
+  });
+
+  it('should support streaming .append() result before .done()', async () => {
+    const ui = createStreamableUI(<div>1</div>);
+    ui.append(<div>2</div>);
+    ui.append(<div>3</div>);
+
+    const currentRsolved = ui.value.props.children.props.next;
+    const tryResolve1 = await Promise.race([currentRsolved, sleep(100)]);
+    expect(tryResolve1).toBeDefined();
+    const tryResolve2 = await Promise.race([tryResolve1.next, sleep(100)]);
+    expect(tryResolve2).toBeDefined();
+    expect(getFinalValueFromResolved(tryResolve2.value)).toMatchInlineSnapshot(`
+      <React.Fragment>
+        <React.Fragment>
+          <div>
+            1
+          </div>
+          <div>
+            2
+          </div>
+        </React.Fragment>
+        <div>
+          3
+        </div>
+      </React.Fragment>
+    `);
+
+    await sleep(100);
+
+    ui.append(<div>4</div>);
+    ui.done();
+
+    const final = getFinalValueFromResolved(
+      await simulateFlightServerRender(ui.value),
+    );
+    expect(final).toMatchInlineSnapshot(`
+      <React.Fragment>
+        <React.Fragment>
+          <React.Fragment>
+            <div>
+              1
+            </div>
+            <div>
+              2
+            </div>
+          </React.Fragment>
+          <div>
+            3
+          </div>
+        </React.Fragment>
+        <div>
+          4
+        </div>
+      </React.Fragment>
+    `);
+  });
+
+  it('should support updating appended ui', async () => {
+    const ui = createStreamableUI(<div>1</div>);
+    ui.update(<div>2</div>);
+    ui.append(<div>3</div>);
+    await sleep(100);
+    ui.done(<div>4</div>);
+
+    const final = getFinalValueFromResolved(
+      await simulateFlightServerRender(ui.value),
+    );
+    expect(final).toMatchInlineSnapshot(`
+      <div>
+        4
+      </div>
+    `);
+  });
+
+  it('should re-use the text node when appending strings', async () => {
+    const ui = createStreamableUI('hello');
+    ui.append(' world');
+    ui.append('!');
+    ui.done();
+
+    const final = getFinalValueFromResolved(
+      await simulateFlightServerRender(ui.value),
+    );
+    expect(final).toMatchInlineSnapshot('"hello world!"');
   });
 });
