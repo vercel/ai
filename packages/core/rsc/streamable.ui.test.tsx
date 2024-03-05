@@ -35,8 +35,8 @@ afterAll(() => {
   server.close();
 });
 
-function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+function nextTick() {
+  return Promise.resolve();
 }
 
 async function recursiveResolve(val: any): Promise<any> {
@@ -199,7 +199,6 @@ describe('rsc - createStreamableUI()', () => {
     const ui = createStreamableUI(<div>1</div>);
     ui.update(<div>2</div>);
     ui.update(<div>3</div>);
-    await sleep(100);
     ui.done(<div>4</div>);
 
     const final = getFinalValueFromResolved(
@@ -216,7 +215,6 @@ describe('rsc - createStreamableUI()', () => {
     const ui = createStreamableUI(<div>1</div>);
     ui.update(<div>2</div>);
     ui.append(<div>3</div>);
-    await sleep(100);
     ui.append(<div>4</div>);
     ui.done();
 
@@ -246,9 +244,9 @@ describe('rsc - createStreamableUI()', () => {
     ui.append(<div>3</div>);
 
     const currentRsolved = ui.value.props.children.props.next;
-    const tryResolve1 = await Promise.race([currentRsolved, sleep(100)]);
+    const tryResolve1 = await Promise.race([currentRsolved, nextTick()]);
     expect(tryResolve1).toBeDefined();
-    const tryResolve2 = await Promise.race([tryResolve1.next, sleep(100)]);
+    const tryResolve2 = await Promise.race([tryResolve1.next, nextTick()]);
     expect(tryResolve2).toBeDefined();
     expect(getFinalValueFromResolved(tryResolve2.value)).toMatchInlineSnapshot(`
       <React.Fragment>
@@ -265,8 +263,6 @@ describe('rsc - createStreamableUI()', () => {
         </div>
       </React.Fragment>
     `);
-
-    await sleep(100);
 
     ui.append(<div>4</div>);
     ui.done();
@@ -300,7 +296,6 @@ describe('rsc - createStreamableUI()', () => {
     const ui = createStreamableUI(<div>1</div>);
     ui.update(<div>2</div>);
     ui.append(<div>3</div>);
-    await sleep(100);
     ui.done(<div>4</div>);
 
     const final = getFinalValueFromResolved(
