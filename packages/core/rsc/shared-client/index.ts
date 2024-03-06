@@ -1,6 +1,6 @@
 'use client';
 
-export { useStreamableValue } from './hooks';
+export { readStreamableValue } from './streamable';
 export {
   useUIState,
   useAIState,

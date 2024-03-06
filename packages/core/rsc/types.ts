@@ -1,3 +1,5 @@
+import type { STREAMABLE_VALUE_TYPE } from './constants';
+
 export type JSONValue = string | number | boolean | JSONObject | JSONArray;
 
 interface JSONObject {
@@ -83,4 +85,11 @@ export type MutableAIState<AIState> = {
   get: () => AIState;
   update: (newState: ValueOrUpdater<AIState>) => void;
   done: ((newState: AIState) => void) | (() => void);
+};
+
+export type StreamableValue<T = any, E = any> = {
+  type?: typeof STREAMABLE_VALUE_TYPE;
+  curr?: T;
+  error?: E;
+  next?: Promise<StreamableValue<T, E>>;
 };
