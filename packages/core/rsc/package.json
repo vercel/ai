@@ -1,10 +1,9 @@
 {
-  "types": "./dist/rsc-types.d.mts",
+  "types": "./dist/index.d.ts",
   "exports": {
-    "types": "./dist/index.d.mts",
+    "types": "./dist/index.d.ts",
     "react-server": "./dist/rsc-server.mjs",
-    "import": "./dist/rsc-client.mjs",
-    "module": "./dist/rsc-client.mjs"
+    "import": "./dist/rsc-client.mjs"
   },
   "private": true,
   "peerDependencies": {
