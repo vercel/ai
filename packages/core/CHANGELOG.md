@@ -1,5 +1,13 @@
 # ai
 
+## 3.0.6
+
+### Patch Changes
+
+- 1355ad0: Fix: experimental_onToolCall is called with parsed tool args
+- 9348f06: ai/rsc: improve dev error and warnings by trying to detect hanging streams
+- 8be9404: fix type resolution
+
 ## 3.0.5
 
 ### Patch Changes
