@@ -352,14 +352,14 @@ describe('OpenAIStream', () => {
       });
 
       const response = new StreamingTextResponse(stream);
-      const client = createClient(response);
-      const chunks = await client.readAll();
+
+      await createClient(response).readAll(); // consume stream
 
       expect(toolCalls).toEqual({
         tools: [
           {
             func: {
-              arguments: '{}',
+              arguments: {},
               name: 'get_date_time',
             },
             id: 'call_NPkY32jNUOb3Kkm7v9cOgmVg',
@@ -367,7 +367,9 @@ describe('OpenAIStream', () => {
           },
           {
             func: {
-              arguments: '{"url": "https://www.linkedin.com/in/jessepascoe"}',
+              arguments: {
+                url: 'https://www.linkedin.com/in/jessepascoe',
+              },
               name: 'open_webpage',
             },
             id: 'call_pOyOtXFQltSjUGsF7gnLAEcD',
