@@ -1,5 +1,5 @@
 {
-  "types": "./dist/rsc-types.d.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     "types": "./dist/index.d.ts",
     "react-server": "./dist/rsc-server.mjs",
