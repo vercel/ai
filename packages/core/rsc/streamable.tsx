@@ -15,6 +15,7 @@ import {
   createSuspensedChunk,
   consumeStream,
 } from './utils';
+import type { StreamableValue } from './types';
 
 /**
  * Create a piece of changable UI that can be streamed to the client.
@@ -108,11 +109,11 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
 
 /**
  * Create a wrapped, changable value that can be streamed to the client.
- * On the client side, the value can be accessed via the useStreamableValue() hook.
+ * On the client side, the value can be accessed via the readStreamableValue() API.
  */
-export function createStreamableValue<T = any>(initialValue?: T) {
+export function createStreamableValue<T = any, E = any>(initialValue?: T) {
   let closed = false;
-  let { promise, resolve, reject } = createResolvablePromise();
+  let { promise, resolve } = createResolvablePromise<StreamableValue<T, E>>();
 
   function assertStream(method: string) {
     if (closed) {
@@ -135,7 +136,10 @@ export function createStreamableValue<T = any>(initialValue?: T) {
   }
   warnUnclosedStream();
 
-  function createWrapped(val: T | undefined, initial?: boolean) {
+  function createWrapped(
+    val: T | undefined,
+    initial?: boolean,
+  ): StreamableValue<T, E> {
     if (initial) {
       return {
         type: STREAMABLE_VALUE_TYPE,
@@ -159,7 +163,6 @@ export function createStreamableValue<T = any>(initialValue?: T) {
       const resolvable = createResolvablePromise();
       promise = resolvable.promise;
       resolve = resolvable.resolve;
-      reject = resolvable.reject;
 
       resolvePrevious(createWrapped(value));
 
@@ -172,7 +175,7 @@ export function createStreamableValue<T = any>(initialValue?: T) {
         clearTimeout(warningTimeout);
       }
       closed = true;
-      reject(error);
+      resolve({ error });
     },
     done(...args: any) {
       assertStream('.done()');

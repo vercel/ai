@@ -1,5 +1,5 @@
 export {
-  useStreamableValue,
+  readStreamableValue,
   useUIState,
   useAIState,
   useActions,
