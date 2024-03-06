@@ -40,44 +40,37 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "module": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
     "./rsc": {
-      "types": "./rsc/dist/index.d.mts",
+      "types": "./rsc/dist/index.d.ts",
       "react-server": "./rsc/dist/rsc-server.mjs",
-      "import": "./rsc/dist/rsc-client.mjs",
-      "module": "./rsc/dist/rsc-client.mjs"
+      "import": "./rsc/dist/rsc-client.mjs"
     },
     "./prompts": {
       "types": "./prompts/dist/index.d.ts",
       "import": "./prompts/dist/index.mjs",
-      "module": "./prompts/dist/index.mjs",
       "require": "./prompts/dist/index.js"
     },
     "./react": {
       "types": "./react/dist/index.d.ts",
       "react-server": "./react/dist/index.server.mjs",
       "import": "./react/dist/index.mjs",
-      "module": "./react/dist/index.mjs",
       "require": "./react/dist/index.js"
     },
     "./svelte": {
       "types": "./svelte/dist/index.d.ts",
       "import": "./svelte/dist/index.mjs",
-      "module": "./svelte/dist/index.mjs",
       "require": "./svelte/dist/index.js"
     },
     "./vue": {
       "types": "./vue/dist/index.d.ts",
       "import": "./vue/dist/index.mjs",
-      "module": "./vue/dist/index.mjs",
       "require": "./vue/dist/index.js"
     },
     "./solid": {
       "types": "./solid/dist/index.d.ts",
       "import": "./solid/dist/index.mjs",
-      "module": "./solid/dist/index.mjs",
       "require": "./solid/dist/index.js"
     }
   },

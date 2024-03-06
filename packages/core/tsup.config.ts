@@ -80,13 +80,27 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
   },
-  // RSC APIs - server, client, types
+  // RSC APIs - server, client
   {
-    entry: ['rsc/rsc-server.ts', 'rsc/rsc-client.ts', 'rsc/index.ts'],
+    entry: ['rsc/rsc-server.ts', 'rsc/rsc-client.ts'],
     outDir: 'rsc/dist',
     format: ['esm'],
     external: ['react', 'zod', /\/rsc-shared/],
     dts: true,
     sourcemap: true,
+  },
+  // RSC APIs - types
+  {
+    entry: ['rsc/index.ts'],
+    outDir: 'rsc/dist',
+    dts: true,
+    outExtension() {
+      return {
+        // It must be `.d.ts` instead of `.d.mts` to support node resolution.
+        // See https://github.com/vercel/ai/issues/1028.
+        dts: '.d.ts',
+        js: '.mjs',
+      };
+    },
   },
 ]);
