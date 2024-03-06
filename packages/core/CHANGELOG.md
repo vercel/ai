@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.7
+
+### Patch Changes
+
+- 9a9ae73: feat(ai/rsc): readStreamableValue
+
 ## 3.0.6
 
 ### Patch Changes
