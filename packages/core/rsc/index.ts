@@ -7,7 +7,7 @@ export type {
   createAI,
 } from './rsc-server';
 export type {
-  useStreamableValue,
+  readStreamableValue,
   useUIState,
   useAIState,
   useActions,

@@ -109,7 +109,7 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
 
 /**
  * Create a wrapped, changable value that can be streamed to the client.
- * On the client side, the value can be accessed via the useStreamableValue() hook.
+ * On the client side, the value can be accessed via the readStreamableValue() API.
  */
 export function createStreamableValue<T = any, E = any>(initialValue?: T) {
   let closed = false;
