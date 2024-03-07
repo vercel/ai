@@ -12,6 +12,7 @@ import {
 import { createClient, readAllChunks } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 import { azureOpenaiChatCompletionChunks } from '../tests/snapshots/azure-openai';
+import { CreateMessage } from "../shared/types";
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
 const TOOL_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-tool-call';
@@ -379,65 +380,99 @@ describe('OpenAIStream', () => {
       });
     });
 
-    it('should call onFinal with tool response when onToolCall returns string', async () => {
-      let finalResponse: any = undefined;
+    it('should forward unhandled tools to the client', async () => {
 
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
       const stream = OpenAIStream(await fetch(TOOL_CALL_TEST_URL), {
         async experimental_onToolCall(payload, appendToolCallMessage) {
-          return 'tool-response';
-        },
 
-        onFinal(response) {
-          finalResponse = response;
+          for (const toolCall of payload.tools) {
+            if (toolCall.func.name === 'get_date_time') {
+              const newMessages = appendToolCallMessage({
+                tool_call_id: toolCall.id,
+                function_name: 'get_date_time',
+                tool_call_result: {time: 12345678},
+              });
+              return new Response(JSON.stringify({
+                messages: [
+                  { role: 'system', content: 'You are a helpful yada yada' },
+                  { role: 'user', content: 'what time is it?' },
+                  ...newMessages,
+                ]
+              }));
+            }
+          }
         },
       });
 
       const response = new StreamingTextResponse(stream);
-      await createClient(response).readAll(); // consume stream
 
-      expect(finalResponse).toEqual('tool-response');
+      const clientResponse = await createClient(response).readAll(); // consume stream
+
+      expect(clientResponse).toEqual(["{\"tool_calls\":[{\"id\":\"call_pOyOtXFQltSjUGsF7gnLAEcD\",\"type\":\"function\",\"function\":{\"name\":\"open_webpage\",\"arguments\":\"{\\\"url\\\": \\\"https://www.linkedin.com/in/jessepascoe\\\"}\"}}]}"]);
     });
-  });
 
-  describe('Azure SDK', () => {
-    async function* asyncIterableFromArray(array: any[]) {
-      for (const item of array) {
-        // You can also perform any asynchronous operations here if needed
-        yield item;
-      }
-    }
+      it('should call onFinal with tool response when onToolCall returns string', async () => {
+        let finalResponse: any = undefined;
 
-    describe('StreamData prototcol', () => {
-      it('should send text', async () => {
-        const data = new experimental_StreamData();
-
-        const stream = OpenAIStream(
-          asyncIterableFromArray(azureOpenaiChatCompletionChunks),
-          {
-            onFinal() {
-              data.close();
-            },
-            experimental_streamData: true,
+        const stream = OpenAIStream(await fetch(TOOL_CALL_TEST_URL), {
+          async experimental_onToolCall(payload, appendToolCallMessage) {
+            return 'tool-response';
           },
-        );
 
-        const response = new StreamingTextResponse(stream, {}, data);
+          onFinal(response) {
+            finalResponse = response;
+          },
+        });
 
-        const client = createClient(response);
-        const chunks = await client.readAll();
+        const response = new StreamingTextResponse(stream);
+        await createClient(response).readAll(); // consume stream
 
-        expect(chunks).toEqual([
-          '0:"Hello"\n',
-          '0:"!"\n',
-          '0:" How"\n',
-          '0:" can"\n',
-          '0:" I"\n',
-          '0:" assist"\n',
-          '0:" you"\n',
-          '0:" today"\n',
-          '0:"?"\n',
-        ]);
+        expect(finalResponse).toEqual('tool-response');
+      });
+    });
+
+    describe('Azure SDK', () => {
+      async function* asyncIterableFromArray(array: any[]) {
+        for (const item of array) {
+          // You can also perform any asynchronous operations here if needed
+          yield item;
+        }
+      }
+
+      describe('StreamData prototcol', () => {
+        it('should send text', async () => {
+          const data = new experimental_StreamData();
+
+          const stream = OpenAIStream(
+            asyncIterableFromArray(azureOpenaiChatCompletionChunks),
+            {
+              onFinal() {
+                data.close();
+              },
+              experimental_streamData: true,
+            },
+          );
+
+          const response = new StreamingTextResponse(stream, {}, data);
+
+          const client = createClient(response);
+          const chunks = await client.readAll();
+
+          expect(chunks).toEqual([
+            '0:"Hello"\n',
+            '0:"!"\n',
+            '0:" How"\n',
+            '0:" can"\n',
+            '0:" I"\n',
+            '0:" assist"\n',
+            '0:" you"\n',
+            '0:" today"\n',
+            '0:"?"\n',
+          ]);
+        });
       });
     });
   });
-});

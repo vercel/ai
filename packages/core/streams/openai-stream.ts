@@ -18,6 +18,7 @@ import {
 } from './ai-stream';
 import { AzureChatCompletions } from './azure-openai-types';
 import { createStreamDataTransformer } from './stream-data';
+import { toast } from "sonner";
 
 export type OpenAIStreamCallbacks = AIStreamCallbacksAndOptions & {
   /**
@@ -686,6 +687,33 @@ function createFunctionCallTransformer(
             );
             aggregatedFinalCompletionResponse = functionResponse;
             return;
+          } else if (functionResponse instanceof Response && functionResponse.body) {
+            // The user may have handled some tool calls on the server
+            // Forward any unhandled tool calls to the client
+            const response = await functionResponse.clone().json();
+            const messages = response.messages;
+            if(Array.isArray(messages) && messages.length > 0 && payload.tool_calls){
+              const tc = [];
+              for (const t of payload.tool_calls) {
+                if (!messages.find(m => m.name === t.function.name)) {
+                  tc.push(t);
+                }
+              }
+              if(tc.length < payload.tool_calls.length){
+                payload.tool_calls = tc;
+
+                controller.enqueue(
+                  textEncoder.encode(
+                    isComplexMode
+                      ? formatStreamPart(
+                          'tool_calls',
+                          payload,
+                        )
+                      : JSON.stringify(payload),
+                  ),
+                );
+              }
+            }
           }
 
           // Recursively:
