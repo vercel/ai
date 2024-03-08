@@ -6,11 +6,28 @@ type AssistantResponseSettings = {
   messageId: string;
 };
 
-type AssistantResponseCallback = (stream: {
+type AssistantResponseCallback = (options: {
   threadId: string;
   messageId: string;
   sendMessage: (message: AssistantMessage) => void;
   sendDataMessage: (message: DataMessage) => void;
+  forwardRunStream: (
+    stream: ReadableStream<
+      | {
+          event: 'thread.message.created';
+          messageId: string;
+          messageRole: string;
+        }
+      | {
+          event: 'thread.message.delta';
+          delta: string;
+        }
+      | {
+          event: 'thread.run.requires_action' | 'thread.run.completed';
+          data: any;
+        }
+    >,
+  ) => Promise<any>;
 }) => Promise<void>;
 
 export function experimental_AssistantResponse(
@@ -39,6 +56,53 @@ export function experimental_AssistantResponse(
         );
       };
 
+      const forwardRunStream = async (
+        stream: Parameters<
+          Parameters<AssistantResponseCallback>[0]['forwardRunStream']
+        >[0],
+      ) => {
+        const reader = stream.getReader();
+
+        let result: any = undefined;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            break;
+          }
+
+          switch (value.event) {
+            case 'thread.message.created': {
+              controller.enqueue(
+                textEncoder.encode(
+                  formatStreamPart('assistant_message', {
+                    id: value.messageId,
+                    role: 'assistant',
+                    content: [{ type: 'text', text: { value: '' } }],
+                  }),
+                ),
+              );
+              break;
+            }
+
+            case 'thread.message.delta': {
+              controller.enqueue(
+                textEncoder.encode(formatStreamPart('text', value.delta)),
+              );
+              break;
+            }
+
+            case 'thread.run.completed':
+            case 'thread.run.requires_action': {
+              result = value.data;
+              break;
+            }
+          }
+        }
+
+        return result;
+      };
+
       // send the threadId and messageId as the first message:
       controller.enqueue(
         textEncoder.encode(
@@ -55,6 +119,7 @@ export function experimental_AssistantResponse(
           messageId,
           sendMessage,
           sendDataMessage,
+          forwardRunStream,
         });
       } catch (error) {
         sendError((error as any).message ?? `${error}`);
