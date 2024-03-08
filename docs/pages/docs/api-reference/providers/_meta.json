@@ -8,5 +8,6 @@
   "openai-stream": "OpenAIStream",
   "mistral-stream": "MistralStream",
   "replicate-stream": "ReplicateStream",
-  "inkeep-stream": "InkeepStream"
+  "inkeep-stream": "InkeepStream",
+  "assistant-response": "experimental_AssistantResponse"
 }
