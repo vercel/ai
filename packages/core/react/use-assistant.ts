@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { readDataStream } from '../shared/read-data-stream';
 import { Message } from '../shared/types';
+import { nanoid } from 'nanoid';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
@@ -193,7 +194,7 @@ export function experimental_useAssistant({
             setMessages(messages => [
               ...messages,
               {
-                id: value.id ?? '',
+                id: value.id ?? nanoid(),
                 role: 'data',
                 content: '',
                 data: value.data,
