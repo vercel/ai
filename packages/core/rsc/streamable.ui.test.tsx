@@ -3,7 +3,12 @@ import {
   openaiFunctionCallChunks,
 } from '../tests/snapshots/openai-chat';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
-import { createStreamableUI, render } from './streamable';
+import { readStreamableValue } from './shared-client';
+import {
+  createStreamableUI,
+  createStreamableValue,
+  render,
+} from './streamable';
 import { z } from 'zod';
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
@@ -329,5 +334,89 @@ describe('rsc - createStreamableUI()', () => {
     }).toThrowErrorMatchingInlineSnapshot(
       '".update(): UI stream is already closed."',
     );
+  });
+});
+
+describe('rsc - createStreamableValue()', () => {
+  it('should directly emit the final value when reading .value', async () => {
+    const streamable = createStreamableValue('1');
+    streamable.update('2');
+    streamable.update('3');
+
+    expect(streamable.value).toMatchInlineSnapshot(`
+      {
+        "curr": "3",
+        "next": Promise {},
+        "type": Symbol(ui.streamable.value),
+      }
+    `);
+
+    streamable.done('4');
+
+    expect(streamable.value).toMatchInlineSnapshot(`
+      {
+        "curr": "4",
+        "type": Symbol(ui.streamable.value),
+      }
+    `);
+  });
+
+  it('should be able to stream any JSON values', async () => {
+    const streamable = createStreamableValue();
+    streamable.update({ v: 123 });
+
+    expect(streamable.value).toMatchInlineSnapshot(`
+      {
+        "curr": {
+          "v": 123,
+        },
+        "next": Promise {},
+        "type": Symbol(ui.streamable.value),
+      }
+    `);
+
+    streamable.done();
+  });
+
+  it('should support .error()', async () => {
+    const streamable = createStreamableValue();
+    streamable.error('This is an error');
+
+    expect(streamable.value).toMatchInlineSnapshot(`
+      {
+        "error": "This is an error",
+        "type": Symbol(ui.streamable.value),
+      }
+    `);
+  });
+
+  it('should support reading streamed values and errors', async () => {
+    const streamable = createStreamableValue(1);
+    (async () => {
+      await nextTick();
+      streamable.update(2);
+      await nextTick();
+      streamable.update(3);
+      await nextTick();
+      streamable.error('This is an error');
+    })();
+
+    const values = [];
+
+    try {
+      for await (const v of readStreamableValue(streamable.value)) {
+        values.push(v);
+      }
+    } catch (e) {
+      expect(e).toMatchInlineSnapshot(`"This is an error"`);
+    }
+
+    expect(values).toMatchInlineSnapshot(`
+      [
+        1,
+        2,
+        3,
+      ]
+    `);
   });
 });
