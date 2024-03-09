@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.8
+
+### Patch Changes
+
+- a94aab2: ai/rsc: optimize streamable value stream size
+
 ## 3.0.7
 
 ### Patch Changes
