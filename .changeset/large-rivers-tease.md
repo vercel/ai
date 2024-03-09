@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-optimize streamable value
+ai/rsc: optimize streamable value stream size
