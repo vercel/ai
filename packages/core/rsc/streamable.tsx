@@ -113,7 +113,12 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
  */
 export function createStreamableValue<T = any, E = any>(initialValue?: T) {
   let closed = false;
-  let { promise, resolve } = createResolvablePromise<StreamableValue<T, E>>();
+  let resolvable = createResolvablePromise<StreamableValue<T, E>>();
+
+  let currentValue = initialValue;
+  let currentError: E | undefined;
+  let currentPromise: typeof resolvable.promise | undefined =
+    resolvable.promise;
 
   function assertStream(method: string) {
     if (closed) {
@@ -136,35 +141,37 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
   }
   warnUnclosedStream();
 
-  function createWrapped(
-    val: T | undefined,
-    initial?: boolean,
-  ): StreamableValue<T, E> {
-    if (initial) {
-      return {
-        type: STREAMABLE_VALUE_TYPE,
-        curr: val,
-        next: promise,
-      };
+  function createWrapped(withType?: boolean): StreamableValue<T, E> {
+    // This makes the payload much smaller if there're mutative updates before the first read.
+    const init: Partial<StreamableValue<T, E>> =
+      currentError === undefined
+        ? { curr: currentValue }
+        : { error: currentError };
+
+    if (currentPromise) {
+      init.next = currentPromise;
     }
 
-    return {
-      curr: val,
-      next: promise,
-    };
+    if (withType) {
+      init.type = STREAMABLE_VALUE_TYPE;
+    }
+
+    return init;
   }
 
   return {
-    value: createWrapped(initialValue, true),
+    get value() {
+      return createWrapped(true);
+    },
     update(value: T) {
       assertStream('.update()');
 
-      const resolvePrevious = resolve;
-      const resolvable = createResolvablePromise();
-      promise = resolvable.promise;
-      resolve = resolvable.resolve;
+      const resolvePrevious = resolvable.resolve;
+      resolvable = createResolvablePromise();
 
-      resolvePrevious(createWrapped(value));
+      currentValue = value;
+      currentPromise = resolvable.promise;
+      resolvePrevious(createWrapped());
 
       warnUnclosedStream();
     },
@@ -175,7 +182,10 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
         clearTimeout(warningTimeout);
       }
       closed = true;
-      resolve({ error });
+      currentError = error;
+      currentPromise = undefined;
+
+      resolvable.resolve({ error });
     },
     done(...args: any) {
       assertStream('.done()');
@@ -184,13 +194,15 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
         clearTimeout(warningTimeout);
       }
       closed = true;
+      currentPromise = undefined;
 
       if (args.length) {
-        resolve({ curr: args[0] });
+        currentValue = args[0];
+        resolvable.resolve({ curr: args[0] });
         return;
       }
 
-      resolve({});
+      resolvable.resolve({});
     },
   };
 }
