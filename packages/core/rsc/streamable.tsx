@@ -91,7 +91,7 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       closed = true;
       reject(error);
     },
-    done(...args: any) {
+    done(...args: [] | [React.ReactNode]) {
       assertStream('.done()');
 
       if (warningTimeout) {
