@@ -91,7 +91,7 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       closed = true;
       reject(error);
     },
-    done(...args: any) {
+    done(...args: [] | [React.ReactNode]) {
       assertStream('.done()');
 
       if (warningTimeout) {
@@ -187,7 +187,7 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
 
       resolvable.resolve({ error });
     },
-    done(...args: any) {
+    done(...args: [] | [T]) {
       assertStream('.done()');
 
       if (warningTimeout) {
