@@ -187,7 +187,7 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
 
       resolvable.resolve({ error });
     },
-    done(...args: any) {
+    done(...args: [] | [T]) {
       assertStream('.done()');
 
       if (warningTimeout) {
