@@ -92,7 +92,11 @@ export async function callChatApi({
     const decode = createChunkDecoder(false);
 
     // TODO-STREAMDATA: Remove this once Stream Data is not experimental
-    let streamedResponse = '';
+    let streamedContent = '';
+    let streamedToolCalls = '';
+    let streamedFunctionCall = '';
+    let isFunctionCall = false;
+    let isToolCall = false;
     const replyId = generateId();
     let responseMessage: Message = {
       id: replyId,
@@ -107,17 +111,22 @@ export async function callChatApi({
       if (done) {
         break;
       }
-      // Update the chat state with the new message tokens.
-      streamedResponse += decode(value);
 
-      if (streamedResponse.startsWith('{"function_call":')) {
-        // While the function call is streaming, it will be a string.
-        responseMessage['function_call'] = streamedResponse;
-      } else if (streamedResponse.startsWith('{"tool_calls":')) {
-        // While the tool calls are streaming, it will be a string.
-        responseMessage['tool_calls'] = streamedResponse;
+      // Decode the chunk into a string.
+      const decodedValue = decode(value);
+
+      // Based on the chunk's content, update the appropriate field in the response message.
+      if (decodedValue.startsWith('{"function_call":') || isFunctionCall) {
+        isFunctionCall = true;
+        streamedFunctionCall += decodedValue;
+        responseMessage['function_call'] = streamedFunctionCall;
+      } else if (decodedValue.startsWith('{"tool_calls":') || isToolCall) {
+        isToolCall = true;
+        streamedToolCalls += decodedValue;
+        responseMessage['tool_calls'] = streamedToolCalls;
       } else {
-        responseMessage['content'] = streamedResponse;
+        streamedContent += decodedValue;
+        responseMessage['content'] = streamedContent;
       }
 
       appendMessage({ ...responseMessage });
@@ -129,19 +138,19 @@ export async function callChatApi({
       }
     }
 
-    if (streamedResponse.startsWith('{"function_call":')) {
+    if (isFunctionCall) {
       // Once the stream is complete, the function call is parsed into an object.
       const parsedFunctionCall: FunctionCall =
-        JSON.parse(streamedResponse).function_call;
+        JSON.parse(streamedFunctionCall).function_call;
 
       responseMessage['function_call'] = parsedFunctionCall;
 
       appendMessage({ ...responseMessage });
     }
-    if (streamedResponse.startsWith('{"tool_calls":')) {
+    if (isToolCall) {
       // Once the stream is complete, the tool calls are parsed into an array.
       const parsedToolCalls: ToolCall[] =
-        JSON.parse(streamedResponse).tool_calls;
+        JSON.parse(streamedToolCalls).tool_calls;
 
       responseMessage['tool_calls'] = parsedToolCalls;
 
