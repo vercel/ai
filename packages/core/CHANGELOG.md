@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.9
+
+### Patch Changes
+
+- 81ca3d6: fix(ai/rsc): improve .done() argument type
+
 ## 3.0.8
 
 ### Patch Changes
