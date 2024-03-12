@@ -52,5 +52,8 @@
     "singleQuote": true,
     "arrowParens": "avoid",
     "trailingComma": "all"
+  },
+  "dependencies": {
+    "ai": "^3.0.9"
   }
 }
