@@ -1,0 +1,29 @@
+{
+  "mode": "pre",
+  "tag": "canary",
+  "initialVersions": {
+    "ai-rsc-demo": "0.0.0",
+    "next-anthropic": "0.0.0",
+    "next-aws-bedrock": "0.0.0",
+    "next-cohere": "0.0.0",
+    "next-fireworks": "0.0.0",
+    "next-google-generative-ai": "0.0.0",
+    "next-huggingface": "0.0.0",
+    "next-inkeep": "0.0.0",
+    "next-langchain": "0.0.0",
+    "next-mistral": "0.0.0",
+    "next-openai": "0.0.0",
+    "next-openai-pages": "0.0.0",
+    "next-openai-rate-limits": "0.0.0",
+    "next-perplexity": "0.0.0",
+    "next-replicate": "0.0.0",
+    "nuxt-langchain": "0.0.0",
+    "nuxt-openai": "0.0.0",
+    "solidstart-openai": "0.0.0",
+    "sveltekit-openai": "0.0.0",
+    "ai": "3.0.9",
+    "eslint-config-vercel-ai": "0.0.0",
+    "@vercel/ai-tsconfig": "0.0.0"
+  },
+  "changesets": []
+}
