@@ -248,6 +248,12 @@ export type UseChatOptions = {
    * handle the extra fields before forwarding the request to the AI service.
    */
   sendExtraMessageFields?: boolean;
+
+  /**
+   * Whether to pass the `data` field from experimental_DataStream to the last message.
+   * Defaults to `false`. When set to `true`, the data will be passed to the message.
+   */
+  passDataToMessage?: boolean;
 };
 
 export type UseCompletionOptions = {
