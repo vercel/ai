@@ -13,7 +13,9 @@
     "vue/dist/**/*",
     "solid/dist/**/*",
     "prompts/dist/**/*",
-    "rsc/dist/**/*"
+    "rsc/dist/**/*",
+    "core/dist/**/*",
+    "provider/dist/**/*"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
@@ -41,6 +43,18 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./core/dist/index.d.ts",
+      "import": "./core/dist/index.mjs",
+      "module": "./core/dist/index.mjs",
+      "require": "./core/dist/index.js"
+    },
+    "./provider": {
+      "types": "./provider/dist/index.d.ts",
+      "import": "./provider/dist/index.mjs",
+      "module": "./provider/dist/index.mjs",
+      "require": "./provider/dist/index.js"
     },
     "./rsc": {
       "types": "./rsc/dist/index.d.ts",
@@ -75,6 +89,7 @@
     }
   },
   "dependencies": {
+    "secure-json-parse": "2.7.0",
     "eventsource-parser": "1.0.0",
     "jsondiffpatch": "^0.6.0",
     "nanoid": "3.3.6",
@@ -83,7 +98,8 @@
     "swr": "2.2.0",
     "swr-store": "0.10.6",
     "swrv": "1.0.4",
-    "zod-to-json-schema": "^3.22.4"
+    "zod-to-json-schema": "^3.22.4",
+    "type-fest": "4.10.3"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.15.0",
@@ -114,7 +130,8 @@
     "solid-js": "^1.8.7",
     "tsup": "^7.2.0",
     "typescript": "5.1.3",
-    "vite-plugin-solid": "2.7.2"
+    "vite-plugin-solid": "2.7.2",
+    "zod": "3.22.4"
   },
   "peerDependencies": {
     "react": "^18.2.0",

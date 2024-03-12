@@ -103,4 +103,20 @@ export default defineConfig([
       };
     },
   },
+  // AI Core
+  {
+    entry: ['core/index.ts'],
+    format: ['cjs', 'esm'],
+    outDir: 'core/dist',
+    dts: true,
+    sourcemap: true,
+  },
+  // AI Core: Providers
+  {
+    entry: ['provider/index.ts'],
+    format: ['cjs', 'esm'],
+    outDir: 'provider/dist',
+    dts: true,
+    sourcemap: true,
+  },
 ]);
