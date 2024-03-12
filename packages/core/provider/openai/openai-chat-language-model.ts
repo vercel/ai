@@ -177,7 +177,7 @@ export class OpenAIChatLanguageModel<SETTINGS> implements LanguageModel {
           LanguageModelStreamPart
         >({
           transform(chunk, controller) {
-            if (chunk.choices?.[0].delta == null) {
+            if (chunk.choices?.[0]?.delta == null) {
               return;
             }
 
