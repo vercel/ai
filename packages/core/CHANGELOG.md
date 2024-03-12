@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.0-canary.1
+
+### Patch Changes
+
+- Add mode: 'auto' to generateObject and streamObject
+
 ## 3.0.9
 
 ### Patch Changes

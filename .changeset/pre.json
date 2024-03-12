@@ -27,6 +27,7 @@
     "ai-core-examples": "0.0.0"
   },
   "changesets": [
+    "chatty-monkeys-rest",
     "sixty-books-melt"
   ]
 }
