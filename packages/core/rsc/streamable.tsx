@@ -65,18 +65,9 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       assertStream('.append()');
 
       const resolvable = createResolvablePromise();
-      if (typeof currentValue === 'string' && typeof value === 'string') {
-        currentValue += value;
-      } else {
-        currentValue = (
-          <>
-            {currentValue}
-            {value}
-          </>
-        );
-      }
+      currentValue = value;
 
-      resolve({ value: currentValue, done: false, next: resolvable.promise });
+      resolve({ value, done: false, append: true, next: resolvable.promise });
       resolve = resolvable.resolve;
       reject = resolvable.reject;
 
