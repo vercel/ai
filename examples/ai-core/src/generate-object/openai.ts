@@ -1,4 +1,4 @@
-import { streamObject } from 'ai/core';
+import { generateObject } from 'ai/core';
 import { openai } from 'ai/provider';
 import dotenv from 'dotenv';
 import { z } from 'zod';
@@ -6,7 +6,7 @@ import { z } from 'zod';
 dotenv.config();
 
 async function main() {
-  const result = await streamObject({
+  const result = await generateObject({
     model: openai.chat({ id: 'gpt-4-turbo-preview' }),
     maxTokens: 2000,
     schema: z.object({
@@ -20,15 +20,11 @@ async function main() {
         }),
       ),
     }),
-    mode: 'tool',
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
   });
 
-  for await (const partialObject of result.objectStream) {
-    console.clear();
-    console.log(partialObject);
-  }
+  console.log(JSON.stringify(result.object, null, 2));
 }
 
 main();

@@ -20,7 +20,6 @@ async function main() {
         }),
       ),
     }),
-    mode: 'tool',
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
   });

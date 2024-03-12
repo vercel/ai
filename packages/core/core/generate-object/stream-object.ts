@@ -29,14 +29,18 @@ export async function streamObject<T>({
   Prompt & {
     model: LanguageModel;
     schema: z.Schema<T>;
-    mode?: 'json' | 'tool' | 'grammar';
+    mode?: 'auto' | 'json' | 'tool' | 'grammar';
   }): Promise<StreamObjectResult<T>> {
   const schema = new ZodSchema(zodSchema);
   const jsonSchema = schema.getJsonSchema();
 
   let modelStream: ReadableStream<string | ErrorStreamPart>;
 
-  mode = mode ?? model.defaultObjectGenerationMode;
+  // use the default provider mode when the mode is set to 'auto' or unspecified
+  if (mode === 'auto' || mode == null) {
+    mode = model.defaultObjectGenerationMode;
+  }
+
   switch (mode) {
     case 'json': {
       const { stream, warnings } = await model.doStream({

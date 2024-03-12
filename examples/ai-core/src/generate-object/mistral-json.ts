@@ -7,12 +7,8 @@ dotenv.config();
 
 async function main() {
   const result = await generateObject({
-    model: mistral.chat({
-      id: 'mistral-large-latest',
-    }),
-
+    model: mistral.chat({ id: 'mistral-large-latest' }),
     maxTokens: 2000,
-
     schema: z.object({
       characters: z.array(
         z.object({
@@ -24,7 +20,7 @@ async function main() {
         }),
       ),
     }),
-
+    mode: 'json',
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
   });

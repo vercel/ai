@@ -1,5 +1,5 @@
 import { streamObject } from 'ai/core';
-import { openai } from 'ai/provider';
+import { mistral } from 'ai/provider';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await streamObject({
-    model: openai.chat({ id: 'gpt-4-turbo-preview' }),
+    model: mistral.chat({ id: 'mistral-small-latest' }),
     maxTokens: 2000,
     schema: z.object({
       characters: z.array(
@@ -20,7 +20,6 @@ async function main() {
         }),
       ),
     }),
-    mode: 'tool',
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
   });
