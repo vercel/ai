@@ -23,7 +23,10 @@
     "sveltekit-openai": "0.0.0",
     "ai": "3.0.9",
     "eslint-config-vercel-ai": "0.0.0",
-    "@vercel/ai-tsconfig": "0.0.0"
+    "@vercel/ai-tsconfig": "0.0.0",
+    "ai-core-examples": "0.0.0"
   },
-  "changesets": []
+  "changesets": [
+    "sixty-books-melt"
+  ]
 }
