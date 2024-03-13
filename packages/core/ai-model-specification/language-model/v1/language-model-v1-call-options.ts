@@ -27,16 +27,16 @@ export type LanguageModelV1CallOptions = LanguageModelV1CallSettings & {
         tools?: Array<LanguageModelV1FunctionTool>;
       }
     | {
-        // object generation with json mode enabled, stream text
+        // object generation with json mode enabled (streaming: text delta)
         type: 'object-json';
       }
     | {
-        // object generation with grammar enabled, stream text
+        // object generation with grammar enabled (streaming: text delta)
         type: 'object-grammar';
         schema: JsonSchema;
       }
     | {
-        // object generation with tool mode enabled, stream tool call deltas
+        // object generation with tool mode enabled (streaming: tool call deltas)
         type: 'object-tool';
         tool: LanguageModelV1FunctionTool;
       };
