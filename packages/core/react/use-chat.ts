@@ -221,7 +221,7 @@ export function useChat({
   key?: string;
 } = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
-  const hookId = useId();
+  const hookId = nanoid();
   const idKey = id ?? hookId;
   const chatKey = typeof api === 'string' ? [api, idKey] : idKey;
 
