@@ -1,3 +1,4 @@
+import { AssistantStream } from 'openai/lib/AssistantStream';
 import { formatStreamPart } from '../shared/stream-parts';
 import { AssistantMessage, DataMessage } from '../shared/types';
 
@@ -11,23 +12,7 @@ type AssistantResponseCallback = (options: {
   messageId: string;
   sendMessage: (message: AssistantMessage) => void;
   sendDataMessage: (message: DataMessage) => void;
-  forwardRunStream: (
-    stream: ReadableStream<
-      | {
-          event: 'thread.message.created';
-          messageId: string;
-          messageRole: string;
-        }
-      | {
-          event: 'thread.message.delta';
-          delta: string;
-        }
-      | {
-          event: 'thread.run.requires_action' | 'thread.run.completed';
-          data: any;
-        }
-    >,
-  ) => Promise<any>;
+  forwardRunStream: (stream: AssistantStream) => Promise<any>;
 }) => Promise<void>;
 
 export function experimental_AssistantResponse(
@@ -56,27 +41,16 @@ export function experimental_AssistantResponse(
         );
       };
 
-      const forwardRunStream = async (
-        stream: Parameters<
-          Parameters<AssistantResponseCallback>[0]['forwardRunStream']
-        >[0],
-      ) => {
-        const reader = stream.getReader();
-
+      const forwardRunStream = async (stream: AssistantStream) => {
         let result: any = undefined;
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-
+        for await (const value of stream) {
           switch (value.event) {
             case 'thread.message.created': {
               controller.enqueue(
                 textEncoder.encode(
                   formatStreamPart('assistant_message', {
-                    id: value.messageId,
+                    id: value.data.id,
                     role: 'assistant',
                     content: [{ type: 'text', text: { value: '' } }],
                   }),
@@ -86,9 +60,16 @@ export function experimental_AssistantResponse(
             }
 
             case 'thread.message.delta': {
-              controller.enqueue(
-                textEncoder.encode(formatStreamPart('text', value.delta)),
-              );
+              const content = value.data.delta.content?.[0];
+
+              if (content?.type === 'text' && content.text?.value != null) {
+                controller.enqueue(
+                  textEncoder.encode(
+                    formatStreamPart('text', content.text.value),
+                  ),
+                );
+              }
+
               break;
             }
 

@@ -1,6 +1,5 @@
 import { experimental_AssistantResponse } from 'ai';
 import OpenAI from 'openai';
-import { createRun, submitToolOutputs } from './utils';
 
 // Create an OpenAI API client (that's edge friendly!)
 const openai = new OpenAI({
@@ -38,8 +37,7 @@ export async function POST(req: Request) {
     { threadId, messageId: createdMessage.id },
     async ({ forwardRunStream, sendDataMessage }) => {
       // Run the assistant on the thread
-      const runStream = await createRun(threadId, {
-        stream: true,
+      const runStream = openai.beta.threads.runs.createAndStream(threadId, {
         assistant_id:
           process.env.ASSISTANT_ID ??
           (() => {
@@ -107,10 +105,11 @@ export async function POST(req: Request) {
           );
 
         runResult = await forwardRunStream(
-          await submitToolOutputs(threadId, runResult.id, {
-            tool_outputs,
-            stream: true,
-          }),
+          openai.beta.threads.runs.submitToolOutputsStream(
+            threadId,
+            runResult.id,
+            { tool_outputs },
+          ),
         );
       }
     },
