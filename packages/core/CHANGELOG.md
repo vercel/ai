@@ -1,5 +1,12 @@
 # ai
 
+## 3.0.11
+
+### Patch Changes
+
+- ce009e2: Added OpenAI assistants streaming.
+- 3f9bf3e: Updates types to OpenAI SDK 4.29.0
+
 ## 3.0.10
 
 ### Patch Changes
