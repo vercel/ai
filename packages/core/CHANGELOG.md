@@ -1,5 +1,23 @@
 # ai
 
+## 3.0.10
+
+### Patch Changes
+
+- 33d261a: fix(ai/rsc): Fix .append() behavior
+
+## 3.0.9
+
+### Patch Changes
+
+- 81ca3d6: fix(ai/rsc): improve .done() argument type
+
+## 3.0.8
+
+### Patch Changes
+
+- a94aab2: ai/rsc: optimize streamable value stream size
+
 ## 3.0.7
 
 ### Patch Changes

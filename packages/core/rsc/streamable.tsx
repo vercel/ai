@@ -65,18 +65,9 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       assertStream('.append()');
 
       const resolvable = createResolvablePromise();
-      if (typeof currentValue === 'string' && typeof value === 'string') {
-        currentValue += value;
-      } else {
-        currentValue = (
-          <>
-            {currentValue}
-            {value}
-          </>
-        );
-      }
+      currentValue = value;
 
-      resolve({ value: currentValue, done: false, next: resolvable.promise });
+      resolve({ value, done: false, append: true, next: resolvable.promise });
       resolve = resolvable.resolve;
       reject = resolvable.reject;
 
@@ -91,7 +82,7 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       closed = true;
       reject(error);
     },
-    done(...args: any) {
+    done(...args: [] | [React.ReactNode]) {
       assertStream('.done()');
 
       if (warningTimeout) {
@@ -113,7 +104,12 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
  */
 export function createStreamableValue<T = any, E = any>(initialValue?: T) {
   let closed = false;
-  let { promise, resolve } = createResolvablePromise<StreamableValue<T, E>>();
+  let resolvable = createResolvablePromise<StreamableValue<T, E>>();
+
+  let currentValue = initialValue;
+  let currentError: E | undefined;
+  let currentPromise: typeof resolvable.promise | undefined =
+    resolvable.promise;
 
   function assertStream(method: string) {
     if (closed) {
@@ -136,35 +132,37 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
   }
   warnUnclosedStream();
 
-  function createWrapped(
-    val: T | undefined,
-    initial?: boolean,
-  ): StreamableValue<T, E> {
-    if (initial) {
-      return {
-        type: STREAMABLE_VALUE_TYPE,
-        curr: val,
-        next: promise,
-      };
+  function createWrapped(withType?: boolean): StreamableValue<T, E> {
+    // This makes the payload much smaller if there're mutative updates before the first read.
+    const init: Partial<StreamableValue<T, E>> =
+      currentError === undefined
+        ? { curr: currentValue }
+        : { error: currentError };
+
+    if (currentPromise) {
+      init.next = currentPromise;
     }
 
-    return {
-      curr: val,
-      next: promise,
-    };
+    if (withType) {
+      init.type = STREAMABLE_VALUE_TYPE;
+    }
+
+    return init;
   }
 
   return {
-    value: createWrapped(initialValue, true),
+    get value() {
+      return createWrapped(true);
+    },
     update(value: T) {
       assertStream('.update()');
 
-      const resolvePrevious = resolve;
-      const resolvable = createResolvablePromise();
-      promise = resolvable.promise;
-      resolve = resolvable.resolve;
+      const resolvePrevious = resolvable.resolve;
+      resolvable = createResolvablePromise();
 
-      resolvePrevious(createWrapped(value));
+      currentValue = value;
+      currentPromise = resolvable.promise;
+      resolvePrevious(createWrapped());
 
       warnUnclosedStream();
     },
@@ -175,22 +173,27 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
         clearTimeout(warningTimeout);
       }
       closed = true;
-      resolve({ error });
+      currentError = error;
+      currentPromise = undefined;
+
+      resolvable.resolve({ error });
     },
-    done(...args: any) {
+    done(...args: [] | [T]) {
       assertStream('.done()');
 
       if (warningTimeout) {
         clearTimeout(warningTimeout);
       }
       closed = true;
+      currentPromise = undefined;
 
       if (args.length) {
-        resolve({ curr: args[0] });
+        currentValue = args[0];
+        resolvable.resolve({ curr: args[0] });
         return;
       }
 
-      resolve({});
+      resolvable.resolve({});
     },
   };
 }
@@ -230,7 +233,21 @@ export function render<
   messages: Parameters<
     typeof OpenAI.prototype.chat.completions.create
   >[0]['messages'];
-  text?: Renderer<{ content: string; done: boolean }>;
+  text?: Renderer<{
+    /**
+     * The full text content from the model so far.
+     */
+    content: string;
+    /**
+     * The new appended text content from the model since the last `text` call.
+     */
+    delta: string;
+    /**
+     * Whether the model is done generating text.
+     * If `true`, the `content` will be the final output and this call will be the last.
+     */
+    done: boolean;
+  }>;
   tools?: {
     [name in keyof TS]: {
       description?: string;
@@ -403,7 +420,7 @@ export function render<
             : {}),
           onText(chunk) {
             content += chunk;
-            handleRender({ content, done: false }, text, ui);
+            handleRender({ content, done: false, delta: chunk }, text, ui);
           },
           async onFinal() {
             if (hasFunction) {
