@@ -12,7 +12,7 @@ type AssistantResponseCallback = (options: {
   messageId: string;
   sendMessage: (message: AssistantMessage) => void;
   sendDataMessage: (message: DataMessage) => void;
-  forwardRunStream: (stream: AssistantStream) => Promise<any>;
+  forwardStream: (stream: AssistantStream) => Promise<any>;
 }) => Promise<void>;
 
 export function experimental_AssistantResponse(
@@ -41,7 +41,7 @@ export function experimental_AssistantResponse(
         );
       };
 
-      const forwardRunStream = async (stream: AssistantStream) => {
+      const forwardStream = async (stream: AssistantStream) => {
         let result: any = undefined;
 
         for await (const value of stream) {
@@ -100,7 +100,7 @@ export function experimental_AssistantResponse(
           messageId,
           sendMessage,
           sendDataMessage,
-          forwardRunStream,
+          forwardStream,
         });
       } catch (error) {
         sendError((error as any).message ?? `${error}`);

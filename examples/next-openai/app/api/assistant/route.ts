@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
   return experimental_AssistantResponse(
     { threadId, messageId: createdMessage.id },
-    async ({ forwardRunStream, sendDataMessage }) => {
+    async ({ forwardStream, sendDataMessage }) => {
       // Run the assistant on the thread
       const runStream = openai.beta.threads.runs.createAndStream(threadId, {
         assistant_id:
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       });
 
       // forward run status would stream message deltas
-      let runResult = await forwardRunStream(runStream);
+      let runResult = await forwardStream(runStream);
 
       // status can be: queued, in_progress, requires_action, cancelling, cancelled, failed, completed, or expired
       while (
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
             },
           );
 
-        runResult = await forwardRunStream(
+        runResult = await forwardStream(
           openai.beta.threads.runs.submitToolOutputsStream(
             threadId,
             runResult.id,
