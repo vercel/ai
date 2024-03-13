@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.10
+
+### Patch Changes
+
+- 33d261a: fix(ai/rsc): Fix .append() behavior
+
 ## 3.0.9
 
 ### Patch Changes
