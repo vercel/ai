@@ -1,12 +1,12 @@
 import assert from 'node:assert';
 import { z } from 'zod';
-import { MockLanguageModel } from '../test/mock-language-model';
+import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { generateObject } from './generate-object';
 
 describe('result.object', () => {
   it('should generate object with json mode', async () => {
     const result = await generateObject({
-      model: new MockLanguageModel({
+      model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, { type: 'object-json' });
           assert.deepStrictEqual(prompt, [
@@ -35,7 +35,7 @@ describe('result.object', () => {
 
   it('should generate object with tool mode', async () => {
     const result = await generateObject({
-      model: new MockLanguageModel({
+      model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-tool',
@@ -59,6 +59,7 @@ describe('result.object', () => {
           return {
             toolCalls: [
               {
+                toolCallType: 'function',
                 toolCallId: 'tool-call-1',
                 toolName: 'json',
                 args: `{ "content": "Hello, world!" }`,

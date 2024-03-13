@@ -1,5 +1,5 @@
 import zodToJsonSchema from 'zod-to-json-schema';
-import { LanguageModel } from '../../ai-model-specification/index';
+import { LanguageModelV1 } from '../../ai-model-specification/index';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';
@@ -20,7 +20,7 @@ export async function generateText<TOOLS extends Record<string, Tool>>({
   ...settings
 }: CallSettings &
   Prompt & {
-    model: LanguageModel;
+    model: LanguageModelV1;
     tools?: TOOLS;
   }): Promise<GenerateTextResult<TOOLS>> {
   const modelResponse = await model.doGenerate({

@@ -1,9 +1,8 @@
 import { PartialDeep } from 'type-fest';
 import { z } from 'zod';
 import {
-  ErrorStreamPart,
-  LanguageModel,
-  LanguageModelStreamPart,
+  LanguageModelV1,
+  LanguageModelV1StreamPart,
 } from '../../ai-model-specification/index';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -27,7 +26,7 @@ export async function streamObject<T>({
   ...settings
 }: CallSettings &
   Prompt & {
-    model: LanguageModel;
+    model: LanguageModelV1;
     schema: z.Schema<T>;
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
   }): Promise<StreamObjectResult<T>> {
@@ -56,7 +55,10 @@ export async function streamObject<T>({
 
       // TODO remove duplication
       modelStream = stream.pipeThrough(
-        new TransformStream<LanguageModelStreamPart, string | ErrorStreamPart>({
+        new TransformStream<
+          LanguageModelV1StreamPart,
+          string | ErrorStreamPart
+        >({
           transform(chunk, controller) {
             switch (chunk.type) {
               case 'text-delta':
@@ -87,7 +89,10 @@ export async function streamObject<T>({
 
       // TODO remove duplication
       modelStream = stream.pipeThrough(
-        new TransformStream<LanguageModelStreamPart, string | ErrorStreamPart>({
+        new TransformStream<
+          LanguageModelV1StreamPart,
+          string | ErrorStreamPart
+        >({
           transform(chunk, controller) {
             switch (chunk.type) {
               case 'text-delta':
@@ -121,7 +126,10 @@ export async function streamObject<T>({
       });
 
       modelStream = stream.pipeThrough(
-        new TransformStream<LanguageModelStreamPart, string | ErrorStreamPart>({
+        new TransformStream<
+          LanguageModelV1StreamPart,
+          string | ErrorStreamPart
+        >({
           transform(chunk, controller) {
             switch (chunk.type) {
               case 'tool-call-delta':
@@ -198,3 +206,5 @@ export class StreamObjectResult<T> {
     };
   }
 }
+
+export type ErrorStreamPart = { type: 'error'; error: unknown };

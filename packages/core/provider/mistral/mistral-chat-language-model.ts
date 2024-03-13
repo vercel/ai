@@ -4,15 +4,21 @@ import MistralClient, {
   ToolChoice,
 } from '@mistralai/mistralai';
 import {
-  LanguageModel,
-  LanguageModelStreamPart,
+  LanguageModelV1,
+  LanguageModelV1StreamPart,
   LanguageModelV1CallWarning,
 } from '../../ai-model-specification/index';
 import { readableFromAsyncIterable } from '../../streams/ai-stream';
 import { convertToMistralChatPrompt } from './convert-to-mistral-chat-prompt';
 import { MistralChatSettings } from './mistral-chat-settings';
 
-export class MistralChatLanguageModel implements LanguageModel {
+export class MistralChatLanguageModel implements LanguageModelV1 {
+  readonly specificationVersion = 'v1';
+  readonly provider = 'mistral';
+  get modelId(): string {
+    return this.settings.id;
+  }
+
   readonly settings: MistralChatSettings;
 
   readonly defaultObjectGenerationMode = 'json';
@@ -45,7 +51,7 @@ export class MistralChatLanguageModel implements LanguageModel {
     frequencyPenalty,
     presencePenalty,
     seed,
-  }: Parameters<LanguageModel['doGenerate']>[0]): {
+  }: Parameters<LanguageModelV1['doGenerate']>[0]): {
     args: Parameters<MistralClient['chat']>[0];
     warnings: LanguageModelV1CallWarning[];
   } {
@@ -135,8 +141,8 @@ export class MistralChatLanguageModel implements LanguageModel {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModel['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModel['doGenerate']>>> {
+    options: Parameters<LanguageModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const client = await this.getClient();
     const { args, warnings } = this.getArgs(options);
     const clientResponse = await client.chat(args);
@@ -156,8 +162,8 @@ export class MistralChatLanguageModel implements LanguageModel {
   }
 
   async doStream(
-    options: Parameters<LanguageModel['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModel['doStream']>>> {
+    options: Parameters<LanguageModelV1['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const client = await this.getClient();
     const { args, warnings } = this.getArgs(options);
     const response = client.chatStream(args);
@@ -167,7 +173,7 @@ export class MistralChatLanguageModel implements LanguageModel {
       stream: readableFromAsyncIterable(response).pipeThrough(
         new TransformStream<
           ChatCompletionResponseChunk,
-          LanguageModelStreamPart
+          LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
             if (chunk.choices?.[0].delta == null) {

@@ -1,12 +1,12 @@
 import assert from 'node:assert';
 import { z } from 'zod';
-import { MockLanguageModel } from '../test/mock-language-model';
+import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { generateText } from './generate-text';
 
 describe('result.text', () => {
   it('should generate text', async () => {
     const result = await generateText({
-      model: new MockLanguageModel({
+      model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
           assert.deepStrictEqual(prompt, [
@@ -28,7 +28,7 @@ describe('result.text', () => {
 describe('result.toolCalls', () => {
   it('should contain tool calls', async () => {
     const result = await generateText({
-      model: new MockLanguageModel({
+      model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'regular',
@@ -66,6 +66,7 @@ describe('result.toolCalls', () => {
           return {
             toolCalls: [
               {
+                toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
                 args: `{ "value": "value" }`,
@@ -104,7 +105,7 @@ describe('result.toolCalls', () => {
 describe('result.toolResults', () => {
   it('should contain tool results', async () => {
     const result = await generateText({
-      model: new MockLanguageModel({
+      model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'regular',
@@ -130,6 +131,7 @@ describe('result.toolResults', () => {
           return {
             toolCalls: [
               {
+                toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
                 args: `{ "value": "value" }`,

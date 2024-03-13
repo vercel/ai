@@ -5,14 +5,22 @@ import {
   ChatCompletionCreateParamsStreaming,
 } from 'openai/resources';
 import {
-  LanguageModel,
-  LanguageModelStreamPart,
+  LanguageModelV1,
+  LanguageModelV1StreamPart,
 } from '../../ai-model-specification/index';
 import { tryParseJSON } from '../../core/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 
-export class OpenAIChatLanguageModel<SETTINGS> implements LanguageModel {
+export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
+  implements LanguageModelV1
+{
+  readonly specificationVersion = 'v1';
+  readonly provider = 'openai';
+  get modelId(): string {
+    return this.settings.id;
+  }
+
   readonly settings: SETTINGS;
 
   readonly defaultObjectGenerationMode = 'tool';
@@ -44,11 +52,11 @@ export class OpenAIChatLanguageModel<SETTINGS> implements LanguageModel {
   }
 
   private getArgs(
-    options: Parameters<LanguageModel['doGenerate']>[0],
+    options: Parameters<LanguageModelV1['doGenerate']>[0],
     stream: true,
   ): ChatCompletionCreateParamsStreaming;
   private getArgs(
-    options: Parameters<LanguageModel['doGenerate']>[0],
+    options: Parameters<LanguageModelV1['doGenerate']>[0],
     stream: false,
   ): ChatCompletionCreateParamsNonStreaming;
   private getArgs(
@@ -61,7 +69,7 @@ export class OpenAIChatLanguageModel<SETTINGS> implements LanguageModel {
       frequencyPenalty,
       presencePenalty,
       seed,
-    }: Parameters<LanguageModel['doGenerate']>[0],
+    }: Parameters<LanguageModelV1['doGenerate']>[0],
     stream: boolean,
   ):
     | ChatCompletionCreateParamsNonStreaming
@@ -133,8 +141,8 @@ export class OpenAIChatLanguageModel<SETTINGS> implements LanguageModel {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModel['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModel['doGenerate']>>> {
+    options: Parameters<LanguageModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const client = await this.getClient();
 
     const completion = await client.chat.completions.create(
@@ -146,6 +154,7 @@ export class OpenAIChatLanguageModel<SETTINGS> implements LanguageModel {
     return {
       text: message.content ?? undefined,
       toolCalls: message.tool_calls?.map(toolCall => ({
+        toolCallType: 'function',
         toolCallId: toolCall.id,
         toolName: toolCall.function.name,
         args: toolCall.function.arguments!,
@@ -155,8 +164,8 @@ export class OpenAIChatLanguageModel<SETTINGS> implements LanguageModel {
   }
 
   async doStream(
-    options: Parameters<LanguageModel['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModel['doStream']>>> {
+    options: Parameters<LanguageModelV1['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const client = await this.getClient();
 
     const response = await client.chat.completions.create(
@@ -177,7 +186,7 @@ export class OpenAIChatLanguageModel<SETTINGS> implements LanguageModel {
       stream: readableFromAsyncIterable(response).pipeThrough(
         new TransformStream<
           OpenAI.Chat.Completions.ChatCompletionChunk,
-          LanguageModelStreamPart
+          LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
             if (chunk.choices?.[0]?.delta == null) {
@@ -230,6 +239,7 @@ export class OpenAIChatLanguageModel<SETTINGS> implements LanguageModel {
 
                 controller.enqueue({
                   type: 'tool-call',
+                  toolCallType: 'function',
                   toolCallId: toolCall.id ?? nanoid(),
                   toolName: toolCall.function.name,
                   args: toolCall.function.arguments,

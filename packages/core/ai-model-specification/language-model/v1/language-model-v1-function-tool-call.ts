@@ -1,5 +1,5 @@
 export type LanguageModelV1FunctionToolCall = {
-  type: 'function';
+  toolCallType: 'function';
   toolCallId: string;
   toolName: string;
 

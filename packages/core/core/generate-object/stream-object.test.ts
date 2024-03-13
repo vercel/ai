@@ -2,13 +2,13 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { convertArrayToReadableStream } from '../test/convert-array-to-readable-stream';
 import { convertAsyncIterableToArray } from '../test/convert-async-iterable-to-array';
-import { MockLanguageModel } from '../test/mock-language-model';
+import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { streamObject } from './stream-object';
 
 describe('result.objectStream', () => {
   it('should send object deltas with json mode', async () => {
     const result = await streamObject({
-      model: new MockLanguageModel({
+      model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, { type: 'object-json' });
           assert.deepStrictEqual(prompt, [
@@ -53,7 +53,7 @@ describe('result.objectStream', () => {
 
   it('should send object deltas with tool mode', async () => {
     const result = await streamObject({
-      model: new MockLanguageModel({
+      model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-tool',

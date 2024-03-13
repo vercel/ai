@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  LanguageModel,
+  LanguageModelV1,
   NoTextGeneratedError,
 } from '../../ai-model-specification/index';
 import { CallSettings } from '../prompt/call-settings';
@@ -24,7 +24,7 @@ export async function generateObject<T>({
   ...settings
 }: CallSettings &
   Prompt & {
-    model: LanguageModel;
+    model: LanguageModelV1;
     schema: z.Schema<T>;
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
   }): Promise<GenerateObjectResult<T>> {

@@ -1,6 +1,6 @@
 import { ValueOf } from 'type-fest';
 import { z } from 'zod';
-import { LanguageModelToolCall } from '../../ai-model-specification/index';
+import { LanguageModelV1FunctionToolCall } from '../../ai-model-specification/index';
 import { safeParseJSON } from '../schema/parse-json';
 import { ZodSchema } from '../schema/zod-schema';
 import { Tool } from '../tool';
@@ -28,7 +28,7 @@ export function parseToolCall<TOOLS extends Record<string, Tool>>({
   toolCall,
   tools,
 }: {
-  toolCall: LanguageModelToolCall;
+  toolCall: LanguageModelV1FunctionToolCall;
   tools?: TOOLS;
 }): ToToolCall<TOOLS> {
   const toolName = toolCall.toolName as keyof TOOLS & string;

@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { LanguageModelStreamPart } from '../language-model';
+import { LanguageModelV1StreamPart } from '../../ai-model-specification/index';
 import { Tool } from '../tool';
 import { TextStreamPart } from './stream-text';
 import { parseToolCall } from './tool-call';
@@ -9,7 +9,7 @@ export function runToolsTransformation<TOOLS extends Record<string, Tool>>({
   generatorStream,
 }: {
   tools?: TOOLS;
-  generatorStream: ReadableStream<LanguageModelStreamPart>;
+  generatorStream: ReadableStream<LanguageModelV1StreamPart>;
 }): ReadableStream<TextStreamPart<TOOLS>> {
   let canClose = false;
   const outstandingToolCalls = new Set<string>();
@@ -26,11 +26,11 @@ export function runToolsTransformation<TOOLS extends Record<string, Tool>>({
 
   // forward stream
   const forwardStream = new TransformStream<
-    LanguageModelStreamPart,
+    LanguageModelV1StreamPart,
     TextStreamPart<TOOLS>
   >({
     transform(
-      chunk: LanguageModelStreamPart,
+      chunk: LanguageModelV1StreamPart,
       controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
     ) {
       const chunkType = chunk.type;
@@ -127,6 +127,7 @@ export function runToolsTransformation<TOOLS extends Record<string, Tool>>({
         }
 
         // ignore
+        case 'finish-metadata':
         case 'tool-call-delta': {
           break;
         }
