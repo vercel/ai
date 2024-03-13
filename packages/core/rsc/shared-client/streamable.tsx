@@ -11,7 +11,7 @@ function assertStreamableValue(
     value.type !== STREAMABLE_VALUE_TYPE
   ) {
     throw new Error(
-      'Invalid value: this hook only accepts values created via `createValueStream` from the server.',
+      'Invalid value: this hook only accepts values created via `createStreamableValue` from the server.',
     );
   }
 }
