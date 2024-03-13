@@ -1,12 +1,12 @@
 import zodToJsonSchema from 'zod-to-json-schema';
-import { LanguageModel } from '../language-model';
+import { LanguageModel } from '../../ai-model-specification/index';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { getInputFormat } from '../prompt/get-input-format';
 import { Prompt } from '../prompt/prompt';
 import { Tool } from '../tool/tool';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
-import { getInputFormat } from '../prompt/get-input-format';
 
 /**
  * Generate a text and call tools using a language model.

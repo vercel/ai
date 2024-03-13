@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { loadApiKey } from '../../core/language-model/util/load-api-key';
+import { loadApiKey } from '../../ai-model-specification/index';
 import { createOpenAIClient } from './create-openai-client';
 import { OpenAIChatLanguageModel } from './openai-chat-language-model';
 import { OpenAIChatSettings } from './openai-chat-settings';

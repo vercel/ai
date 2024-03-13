@@ -119,4 +119,12 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
   },
+  // AI Core: Model Specification
+  {
+    entry: ['ai-model-specification/index.ts'],
+    format: ['cjs', 'esm'],
+    outDir: 'ai-model-specification/dist',
+    dts: true,
+    sourcemap: true,
+  },
 ]);

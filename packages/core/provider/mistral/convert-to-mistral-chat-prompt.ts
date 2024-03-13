@@ -3,7 +3,7 @@ import { LastArrayElement } from 'type-fest';
 import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
-} from '../../core';
+} from '../../ai-model-specification';
 
 type MistralChatMessage = LastArrayElement<
   Parameters<MistralClient['chat']>[0]['messages']

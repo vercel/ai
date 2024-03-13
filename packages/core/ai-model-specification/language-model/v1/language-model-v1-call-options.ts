@@ -1,4 +1,4 @@
-import { JsonSchema } from './json-schema';
+import { JsonSchema } from '../../util/json-schema';
 import { LanguageModelV1CallSettings } from './language-model-v1-call-settings';
 import { LanguageModelV1FunctionTool } from './language-model-v1-function-tool';
 import { LanguageModelV1Prompt } from './language-model-v1-prompt';

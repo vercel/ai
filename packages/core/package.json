@@ -15,7 +15,8 @@
     "prompts/dist/**/*",
     "rsc/dist/**/*",
     "core/dist/**/*",
-    "provider/dist/**/*"
+    "provider/dist/**/*",
+    "ai-model-specification/dist/**/*"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
@@ -44,6 +45,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./ai-model-specification": {
+      "types": "./ai-model-specification/dist/index.d.ts",
+      "import": "./ai-model-specification/dist/index.mjs",
+      "module": "./ai-model-specification/dist/index.mjs",
+      "require": "./ai-model-specification/dist/index.js"
     },
     "./core": {
       "types": "./core/dist/index.d.ts",

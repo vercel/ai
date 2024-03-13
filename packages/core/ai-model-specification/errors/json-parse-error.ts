@@ -1,4 +1,4 @@
-import { getErrorMessage } from './get-error-message';
+import { getErrorMessage } from '../util/get-error-message';
 
 export class JSONParseError extends Error {
   // note: property order determines debugging output

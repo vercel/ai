@@ -4,15 +4,15 @@ import {
   ErrorStreamPart,
   LanguageModel,
   LanguageModelStreamPart,
-} from '../language-model';
+} from '../../ai-model-specification/index';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { getInputFormat } from '../prompt/get-input-format';
 import { Prompt } from '../prompt/prompt';
 import { ZodSchema } from '../schema/zod-schema';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
-import { getInputFormat } from '../prompt/get-input-format';
 
 /**
  * Stream an object as a partial object stream.

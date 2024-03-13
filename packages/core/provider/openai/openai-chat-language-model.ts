@@ -4,7 +4,10 @@ import {
   ChatCompletionCreateParamsNonStreaming,
   ChatCompletionCreateParamsStreaming,
 } from 'openai/resources';
-import { LanguageModel, LanguageModelStreamPart } from '../../core';
+import {
+  LanguageModel,
+  LanguageModelStreamPart,
+} from '../../ai-model-specification/index';
 import { tryParseJSON } from '../../core/util/try-json-parse';
 import { readableFromAsyncIterable } from '../../streams';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';

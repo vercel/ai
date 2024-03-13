@@ -1,8 +1,8 @@
 import { ValueOf } from 'type-fest';
 import { z } from 'zod';
+import { LanguageModelToolCall } from '../../ai-model-specification/index';
 import { safeParseJSON } from '../schema/parse-json';
 import { ZodSchema } from '../schema/zod-schema';
-import { LanguageModelToolCall } from '../language-model';
 import { Tool } from '../tool';
 
 export interface ToolCall<NAME extends string, ARGS> {

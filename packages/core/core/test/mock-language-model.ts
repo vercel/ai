@@ -1,4 +1,4 @@
-import { LanguageModel } from '..';
+import { LanguageModel } from '../../ai-model-specification/index';
 
 export class MockLanguageModel implements LanguageModel {
   doGenerate: LanguageModel['doGenerate'];

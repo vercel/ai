@@ -1,4 +1,4 @@
-import { getErrorMessage } from './get-error-message';
+import { getErrorMessage } from '../util/get-error-message';
 
 export class TypeValidationError extends Error {
   readonly value: unknown;

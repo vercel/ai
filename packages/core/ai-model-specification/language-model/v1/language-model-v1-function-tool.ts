@@ -1,4 +1,4 @@
-import { JsonSchema } from './json-schema';
+import { JsonSchema } from '../../util/json-schema';
 
 /**
  * A tool has a name, a description, and a set of parameters.
