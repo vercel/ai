@@ -57,7 +57,6 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
-    const messages = convertToOpenAIChatMessages(prompt);
 
     const baseArgs = {
       // model specific settings:
@@ -88,7 +87,7 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
       seed,
 
       // messages:
-      messages,
+      messages: convertToOpenAIChatMessages(prompt),
     };
 
     switch (type) {

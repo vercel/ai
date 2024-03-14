@@ -1,5 +1,5 @@
 import { ChatCompletionMessageParam } from 'openai/resources';
-import { LanguageModelV1Prompt } from '../../core';
+import { LanguageModelV1Prompt } from '../../ai-model-specification';
 import { convertUint8ArrayToBase64 } from '../../core/util/uint8-utils';
 
 export function convertToOpenAIChatMessages(
