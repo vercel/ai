@@ -423,4 +423,26 @@ describe('rsc - createStreamableUI()', () => {
       '".update(): UI stream is already closed."',
     );
   });
+
+  it('should avoid sending data again if the same UI is passed', async () => {
+    const node = <div>1</div>;
+    const ui = createStreamableUI(node);
+    ui.update(node);
+    ui.update(node);
+    ui.update(node);
+    ui.update(node);
+    ui.update(node);
+    ui.update(node);
+    ui.done();
+
+    expect(await flightRender(ui.value)).toMatchInlineSnapshot(`
+      "1:\\"$Sreact.suspense\\"
+      2:D{\\"name\\":\\"\\",\\"env\\":\\"Server\\"}
+      0:[\\"$\\",\\"$1\\",null,{\\"fallback\\":[\\"$\\",\\"div\\",null,{\\"children\\":\\"1\\"}],\\"children\\":\\"$L2\\"}]
+      4:{\\"children\\":\\"1\\"}
+      3:[\\"$\\",\\"div\\",null,\\"$4\\"]
+      2:\\"$3\\"
+      "
+    `);
+  });
 });
