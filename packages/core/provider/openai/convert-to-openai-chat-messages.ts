@@ -1,11 +1,13 @@
-import { ChatCompletionMessageParam } from 'openai/resources';
-import { LanguageModelV1Prompt } from '../../ai-model-specification';
-import { convertUint8ArrayToBase64 } from '../../core/util/uint8-utils';
+import {
+  LanguageModelV1Prompt,
+  convertUint8ArrayToBase64,
+} from '../../ai-model-specification';
+import { OpenAIChatPrompt } from './openai-chat-prompt';
 
 export function convertToOpenAIChatMessages(
   prompt: LanguageModelV1Prompt,
-): Array<ChatCompletionMessageParam> {
-  const messages: Array<ChatCompletionMessageParam> = [];
+): OpenAIChatPrompt {
+  const messages: OpenAIChatPrompt = [];
 
   for (const { role, content } of prompt) {
     switch (role) {

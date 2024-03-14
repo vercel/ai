@@ -10,7 +10,7 @@ import {
   isParseableJson,
   postJsonToApi,
   scale,
-} from '../../ai-model-specification/index';
+} from '../../ai-model-specification';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { openaiFailedResponseHandler } from './openai-error';
 

@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import {
   LanguageModelV1,
@@ -7,13 +6,11 @@ import {
   UnsupportedFunctionalityError,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  isParseableJson,
   postJsonToApi,
   scale,
-} from '../../ai-model-specification/index';
-import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
-import { openaiFailedResponseHandler } from './openai-error';
+} from '../../ai-model-specification';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
+import { openaiFailedResponseHandler } from './openai-error';
 
 type Config<SETTINGS extends { id: string }> = {
   provider: string;
