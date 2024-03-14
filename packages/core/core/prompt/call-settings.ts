@@ -41,8 +41,8 @@ export type CallSettings = {
   frequencyPenalty?: number;
 
   /**
-   * The seed to use for random sampling. If set and supported by the model,
-   * calls will generate deterministic results.
+   * The seed (integer) to use for random sampling. If set and supported
+   * by the model, calls will generate deterministic results.
    */
   seed?: number;
 };

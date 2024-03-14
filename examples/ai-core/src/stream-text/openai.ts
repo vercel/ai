@@ -8,7 +8,7 @@ async function main() {
   const result = await streamText({
     model: openai.chat({ id: 'gpt-3.5-turbo' }),
     maxTokens: 512,
-    temperature: 0.7,
+    temperature: 5.7,
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

@@ -9,6 +9,7 @@ import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';
 import { Prompt } from '../prompt/prompt';
+import { validateCallSettings } from '../prompt/validate-call-settings';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 
 /**
@@ -41,7 +42,7 @@ export async function generateObject<T>({
     case 'json': {
       const generateResult = await model.doGenerate({
         mode: { type: 'object-json' },
-        ...settings,
+        ...validateCallSettings(settings),
         inputFormat: getInputFormat({ prompt, messages }),
         prompt: convertToLanguageModelPrompt({
           system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),

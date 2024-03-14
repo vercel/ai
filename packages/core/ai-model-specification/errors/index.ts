@@ -1,3 +1,4 @@
+export * from './ai-invalid-argument-error';
 export * from './api-call-error';
 export * from './json-parse-error';
 export * from './load-api-key-error';

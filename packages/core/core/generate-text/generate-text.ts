@@ -4,6 +4,7 @@ import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';
 import { Prompt } from '../prompt/prompt';
+import { validateCallSettings } from '../prompt/validate-call-settings';
 import { Tool } from '../tool/tool';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
@@ -36,7 +37,7 @@ export async function generateText<TOOLS extends Record<string, Tool>>({
               parameters: zodToJsonSchema(tool.parameters),
             })),
     },
-    ...settings,
+    ...validateCallSettings(settings),
     inputFormat: getInputFormat({ prompt, messages }),
     prompt: convertToLanguageModelPrompt({
       system,
