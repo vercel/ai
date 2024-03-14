@@ -9,6 +9,7 @@ import {
   createJsonResponseHandler,
   isParseableJson,
   postJsonToApi,
+  scale,
 } from '../../ai-model-specification/index';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { openaiFailedResponseHandler } from './openai-error';
@@ -63,12 +64,27 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
       ...this.config.mapSettings(this.settings),
 
       // standardized settings:
-      // TODO standardize temperature, presencePenalty, frequencyPenalty scales
       max_tokens: maxTokens,
-      temperature,
+      temperature: scale({
+        value: temperature,
+        outputMin: 0,
+        outputMax: 2,
+      }),
       top_p: topP,
-      frequency_penalty: frequencyPenalty,
-      presence_penalty: presencePenalty,
+      frequency_penalty: scale({
+        value: frequencyPenalty,
+        inputMin: -1,
+        inputMax: 1,
+        outputMin: -2,
+        outputMax: 2,
+      }),
+      presence_penalty: scale({
+        value: presencePenalty,
+        inputMin: -1,
+        inputMax: 1,
+        outputMin: -2,
+        outputMax: 2,
+      }),
       seed,
 
       // messages:

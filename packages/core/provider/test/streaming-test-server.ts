@@ -7,11 +7,15 @@ export class StreamingTestServer {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   responseChunks: any[] = [];
 
+  request: Request | undefined;
+
   constructor(url: string) {
     const responseChunks = () => this.responseChunks;
 
     this.server = setupServer(
-      http.post(url, () => {
+      http.post(url, ({ request }) => {
+        this.request = request;
+
         const encoder = new TextEncoder();
         const stream = new ReadableStream({
           async start(controller) {
@@ -37,10 +41,16 @@ export class StreamingTestServer {
     );
   }
 
+  async getRequestBodyJson() {
+    expect(this.request).toBeDefined();
+    return JSON.parse(await this.request!.text());
+  }
+
   setupTestEnvironment() {
     beforeAll(() => this.server.listen());
     beforeEach(() => {
       this.responseChunks = [];
+      this.request = undefined;
     });
     afterEach(() => this.server.resetHandlers());
     afterAll(() => this.server.close());
