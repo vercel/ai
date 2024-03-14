@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.12
+
+### Patch Changes
+
+- b99b008: fix(ai/rsc): avoid appending boundary if the same reference was passed
+
 ## 3.0.11
 
 ### Patch Changes
