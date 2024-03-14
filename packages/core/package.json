@@ -29,6 +29,7 @@
     "test:edge": "vitest --config vitest.edge.config.js --run --threads=false",
     "test:node": "vitest --config vitest.node.config.js --run --threads=false",
     "test:node:core": "pnpm vitest --config vitest.node.config.js --run --threads=false ./core/",
+    "test:node:provider": "pnpm vitest --config vitest.node.config.js --run --threads=false ./provider/",
     "test:ui": "pnpm test:ui:react && pnpm test:ui:vue && pnpm test:ui:solid",
     "test:ui:react": "vitest --config vitest.ui.react.config.js --run",
     "test:ui:solid": "vitest --config vitest.ui.solid.config.js --run",
