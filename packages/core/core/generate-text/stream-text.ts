@@ -100,6 +100,11 @@ export class StreamTextResult<TOOLS extends Record<string, Tool>> {
                   return { value: value.textDelta, done: false };
                 }
               }
+
+              if (value.type === 'error') {
+                // TODO log / store errors
+                console.error('Error:', value.error);
+              }
             }
           },
         };

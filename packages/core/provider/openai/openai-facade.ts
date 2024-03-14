@@ -12,6 +12,7 @@ export function chat(
   return new OpenAIChatLanguageModel<OpenAIChatSettings>(
     { ...remainingSettings },
     {
+      provider: 'openai',
       baseUrl: baseUrl ?? 'https://api.openai.com/v1',
       apiKey: () =>
         loadApiKey({

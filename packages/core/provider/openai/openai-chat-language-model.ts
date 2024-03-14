@@ -14,6 +14,7 @@ import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { openaiFailedResponseHandler } from './openai-error';
 
 type Config<SETTINGS extends { id: string }> = {
+  provider: string;
   baseUrl: string;
   apiKey: () => string;
   mapSettings: (settings: SETTINGS) => Record<string, unknown> & {
@@ -25,7 +26,6 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
   implements LanguageModelV1
 {
   readonly specificationVersion = 'v1';
-  readonly provider = 'openai';
   readonly defaultObjectGenerationMode = 'tool';
 
   readonly settings: SETTINGS;
@@ -35,6 +35,10 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
   constructor(settings: SETTINGS, config: Config<SETTINGS>) {
     this.settings = settings;
     this.config = config;
+  }
+
+  get provider(): string {
+    return this.config.provider;
   }
 
   get modelId(): string {
@@ -107,7 +111,7 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
       case 'object-grammar': {
         throw new UnsupportedFunctionalityError({
           functionality: 'object-grammar mode',
-          provider: 'openai',
+          provider: this.provider,
         });
       }
 
@@ -168,7 +172,7 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
     });
 
     if (response == null) {
-      throw new Error('no response content'); // TODO standardize
+      throw new Error('no response content'); // TODO standardize, handling in postjson
     }
 
     const toolCalls: Array<{
@@ -260,7 +264,7 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
 }
 
 // limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes
+// this approach limits breakages when the API changes and increases efficiency
 const openAIChatResponseSchema = z.object({
   choices: z.array(
     z.object({
@@ -292,7 +296,7 @@ const openAIChatResponseSchema = z.object({
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes
+// this approach limits breakages when the API changes and increases efficiency
 const openaiChatChunkSchema = z.object({
   object: z.literal('chat.completion.chunk'),
   choices: z.array(
