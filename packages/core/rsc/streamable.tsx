@@ -52,6 +52,12 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
     update(value: React.ReactNode) {
       assertStream('.update()');
 
+      // There is no need to update the value if it's referentially equal.
+      if (value === currentValue) {
+        warnUnclosedStream();
+        return;
+      }
+
       const resolvable = createResolvablePromise();
       currentValue = value;
 
