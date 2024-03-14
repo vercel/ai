@@ -1,10 +1,17 @@
 # ai
 
-## 3.1.0-canary.1
+## 3.0.11
 
 ### Patch Changes
 
-- Add mode: 'auto' to generateObject and streamObject
+- ce009e2: Added OpenAI assistants streaming.
+- 3f9bf3e: Updates types to OpenAI SDK 4.29.0
+
+## 3.0.10
+
+### Patch Changes
+
+- 33d261a: fix(ai/rsc): Fix .append() behavior
 
 ## 3.0.9
 

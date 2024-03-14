@@ -65,18 +65,9 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       assertStream('.append()');
 
       const resolvable = createResolvablePromise();
-      if (typeof currentValue === 'string' && typeof value === 'string') {
-        currentValue += value;
-      } else {
-        currentValue = (
-          <>
-            {currentValue}
-            {value}
-          </>
-        );
-      }
+      currentValue = value;
 
-      resolve({ value: currentValue, done: false, next: resolvable.promise });
+      resolve({ value, done: false, append: true, next: resolvable.promise });
       resolve = resolvable.resolve;
       reject = resolvable.reject;
 
@@ -242,7 +233,21 @@ export function render<
   messages: Parameters<
     typeof OpenAI.prototype.chat.completions.create
   >[0]['messages'];
-  text?: Renderer<{ content: string; done: boolean }>;
+  text?: Renderer<{
+    /**
+     * The full text content from the model so far.
+     */
+    content: string;
+    /**
+     * The new appended text content from the model since the last `text` call.
+     */
+    delta: string;
+    /**
+     * Whether the model is done generating text.
+     * If `true`, the `content` will be the final output and this call will be the last.
+     */
+    done: boolean;
+  }>;
   tools?: {
     [name in keyof TS]: {
       description?: string;
@@ -415,7 +420,7 @@ export function render<
             : {}),
           onText(chunk) {
             content += chunk;
-            handleRender({ content, done: false }, text, ui);
+            handleRender({ content, done: false, delta: chunk }, text, ui);
           },
           async onFinal() {
             if (hasFunction) {
