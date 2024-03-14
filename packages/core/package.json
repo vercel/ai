@@ -98,7 +98,7 @@
   },
   "dependencies": {
     "secure-json-parse": "2.7.0",
-    "eventsource-parser": "1.0.0",
+    "eventsource-parser": "1.1.2",
     "jsondiffpatch": "^0.6.0",
     "nanoid": "3.3.6",
     "solid-swr-store": "0.10.7",

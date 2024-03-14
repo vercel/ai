@@ -1,4 +1,4 @@
-export function tryParseJSON(input: string): unknown | null {
+export function tryJsonParse(input: string): unknown | null {
   try {
     // TODO use SecureJSON.parse
     return JSON.parse(input);

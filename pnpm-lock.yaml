@@ -1018,8 +1018,8 @@ importers:
   packages/core:
     dependencies:
       eventsource-parser:
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 1.1.2
+        version: 1.1.2
       jsondiffpatch:
         specifier: ^0.6.0
         version: 0.6.0
@@ -9927,8 +9927,8 @@ packages:
     engines: {node: '>=0.8.x'}
     dev: true
 
-  /eventsource-parser@1.0.0:
-    resolution: {integrity: sha512-9jgfSCa3dmEme2ES3mPByGXfgZ87VbP97tng1G2nWwWx6bV2nYxm2AWCrbQjXToSe+yYlqaZNtxffR9IeQr95g==}
+  /eventsource-parser@1.1.2:
+    resolution: {integrity: sha512-v0eOBUbiaFojBu2s2NPBfYUoRR9GjcDNvCXVaqEf5vVfpIAh9f8RCo4vXTP8c63QRKCFwoLpMpTdPwwhEKVgzA==}
     engines: {node: '>=14.18'}
     dev: false
 

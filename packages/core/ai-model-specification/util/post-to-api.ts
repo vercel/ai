@@ -1,13 +1,16 @@
-import { convertDataContentToUint8Array } from '../../util/format/DataContent';
-import { Schema } from '../schema/Schema';
-import { parseJSON, safeParseJSON } from '../schema/parseJSON';
-import { ApiCallError } from './ApiCallError';
+import {
+  EventSourceParserStream,
+  ParsedEvent,
+} from 'eventsource-parser/stream';
+import { ApiCallError } from '../errors';
+import { parseJSON, safeParseJSON } from './schema/parse-json';
+import { Schema } from './schema/schema';
 
-export type ResponseHandler<T> = (options: {
+export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
   requestBodyValues: unknown;
   response: Response;
-}) => PromiseLike<T>;
+}) => PromiseLike<RETURN_TYPE>;
 
 export const createJsonErrorResponseHandler =
   <T>({
@@ -62,24 +65,13 @@ export const createJsonErrorResponseHandler =
     }
   };
 
-export const createTextErrorResponseHandler =
-  ({
-    isRetryable,
-  }: {
-    isRetryable?: (response: Response) => boolean;
-  } = {}): ResponseHandler<ApiCallError> =>
-  async ({ response, url, requestBodyValues }) => {
-    const responseBody = await response.text();
-
-    return new ApiCallError({
-      message: responseBody.trim() !== '' ? responseBody : response.statusText,
-      url,
-      requestBodyValues,
-      statusCode: response.status,
-      responseBody,
-      isRetryable: isRetryable?.(response),
-    });
-  };
+// TODO integrate parse part
+export const createEventSourceResponseHandler =
+  (): ResponseHandler<ReadableStream<ParsedEvent> | undefined> =>
+  async ({ response }: { response: Response }) =>
+    response.body
+      ?.pipeThrough(new TextDecoderStream())
+      .pipeThrough(new EventSourceParserStream());
 
 export const createJsonResponseHandler =
   <T>(responseSchema: Schema<T>): ResponseHandler<T> =>
@@ -105,26 +97,6 @@ export const createJsonResponseHandler =
     return parsedResult.value;
   };
 
-export const createTextResponseHandler =
-  (): ResponseHandler<string> =>
-  async ({ response }) =>
-    response.text();
-
-export const createAudioMpegResponseHandler =
-  (): ResponseHandler<Uint8Array> =>
-  async ({ response, url, requestBodyValues }) => {
-    if (response.headers.get('Content-Type') !== 'audio/mpeg') {
-      throw new ApiCallError({
-        message: 'Invalid Content-Type (must be audio/mpeg)',
-        statusCode: response.status,
-        url,
-        requestBodyValues,
-      });
-    }
-
-    return convertDataContentToUint8Array(await response.arrayBuffer());
-  };
-
 export const postJsonToApi = async <T>({
   url,
   headers,
@@ -143,8 +115,8 @@ export const postJsonToApi = async <T>({
   postToApi({
     url,
     headers: {
-      ...headers,
       'Content-Type': 'application/json',
+      ...headers,
     },
     body: {
       content: JSON.stringify(body),

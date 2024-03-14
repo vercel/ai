@@ -1,4 +1,4 @@
-import { TypeValidationError } from '../../ai-model-specification';
+import { TypeValidationError } from '../../errors/type-validation-error';
 import { Schema } from './schema';
 
 /**

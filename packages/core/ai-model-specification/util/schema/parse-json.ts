@@ -1,10 +1,8 @@
 import SecureJSON from 'secure-json-parse';
-import {
-  JSONParseError,
-  TypeValidationError,
-} from '../../ai-model-specification';
 import { Schema } from './schema';
 import { safeValidateTypes, validateTypes } from './validate-types';
+import { JSONParseError } from '../../errors/json-parse-error';
+import { TypeValidationError } from '../../errors/type-validation-error';
 
 /**
  * Parses a JSON string into an unknown object.

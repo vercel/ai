@@ -1,8 +1,10 @@
 import { ValueOf } from 'type-fest';
 import { z } from 'zod';
-import { LanguageModelV1FunctionToolCall } from '../../ai-model-specification/index';
-import { safeParseJSON } from '../schema/parse-json';
-import { ZodSchema } from '../schema/zod-schema';
+import {
+  LanguageModelV1FunctionToolCall,
+  ZodSchema,
+  safeParseJSON,
+} from '../../ai-model-specification/index';
 import { Tool } from '../tool';
 
 export interface ToolCall<NAME extends string, ARGS> {

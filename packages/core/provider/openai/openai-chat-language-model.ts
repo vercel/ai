@@ -1,90 +1,77 @@
+import { ParsedEvent } from 'eventsource-parser/stream';
 import { nanoid } from 'nanoid';
-import OpenAI from 'openai';
-import {
-  ChatCompletionCreateParamsNonStreaming,
-  ChatCompletionCreateParamsStreaming,
-} from 'openai/resources';
+import { z } from 'zod';
 import {
   LanguageModelV1,
   LanguageModelV1StreamPart,
+  UnsupportedFunctionalityError,
+  createEventSourceResponseHandler,
+  createJsonResponseHandler,
+  postJsonToApi,
+  safeParseJSON,
+  tryJsonParse,
+  zodSchema,
 } from '../../ai-model-specification/index';
-import { tryParseJSON } from '../../core/util/try-json-parse';
-import { readableFromAsyncIterable } from '../../streams';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
+import { openaiFailedResponseHandler } from './openai-error';
+import { ParsedChunk } from './parsed-chunk';
+
+type Config<SETTINGS extends { id: string }> = {
+  baseUrl: string;
+  apiKey: () => string;
+  mapSettings: (settings: SETTINGS) => Record<string, unknown> & {
+    model: string;
+  };
+};
 
 export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
   implements LanguageModelV1
 {
   readonly specificationVersion = 'v1';
   readonly provider = 'openai';
+  readonly defaultObjectGenerationMode = 'tool';
+
+  readonly settings: SETTINGS;
+
+  private readonly config: Config<SETTINGS>;
+
+  constructor(settings: SETTINGS, config: Config<SETTINGS>) {
+    this.settings = settings;
+    this.config = config;
+  }
+
   get modelId(): string {
     return this.settings.id;
   }
 
-  readonly settings: SETTINGS;
-
-  readonly defaultObjectGenerationMode = 'tool';
-
-  private readonly getClient: () => Promise<OpenAI>;
-  private readonly mapSettings: (settings: SETTINGS) => Record<
-    string,
-    unknown
-  > & {
-    model: string;
-  };
-
-  constructor(
-    settings: SETTINGS,
-    config: {
-      client: () => Promise<OpenAI>;
-      mapSettings: (settings: SETTINGS) => Record<string, unknown> & {
-        model: string;
-      };
-    },
-  ) {
-    this.settings = settings;
-    this.getClient = config.client;
-    this.mapSettings = config.mapSettings;
-  }
-
-  private get basePrompt() {
-    return this.mapSettings(this.settings);
-  }
-
-  private getArgs(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-    stream: true,
-  ): ChatCompletionCreateParamsStreaming;
-  private getArgs(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-    stream: false,
-  ): ChatCompletionCreateParamsNonStreaming;
-  private getArgs(
-    {
-      mode,
-      prompt,
-      maxTokens,
-      temperature,
-      topP,
-      frequencyPenalty,
-      presencePenalty,
-      seed,
-    }: Parameters<LanguageModelV1['doGenerate']>[0],
-    stream: boolean,
-  ):
-    | ChatCompletionCreateParamsNonStreaming
-    | ChatCompletionCreateParamsStreaming {
+  private getArgs({
+    mode,
+    prompt,
+    maxTokens,
+    temperature,
+    topP,
+    frequencyPenalty,
+    presencePenalty,
+    seed,
+  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
     const messages = convertToOpenAIChatMessages(prompt);
 
-    // TODO standardize temperature, presencePenalty, frequencyPenalty scales
-    const standardizedSettings = {
+    const baseArgs = {
+      // model specific settings:
+      ...this.config.mapSettings(this.settings),
+
+      // standardized settings:
+      // TODO standardize temperature, presencePenalty, frequencyPenalty scales
       max_tokens: maxTokens,
       temperature,
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
       seed,
+
+      // messages:
+      messages,
     };
 
     switch (type) {
@@ -93,10 +80,7 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
         const tools = mode.tools?.length ? mode.tools : undefined;
 
         return {
-          stream,
-          ...this.basePrompt,
-          ...standardizedSettings,
-          messages,
+          ...baseArgs,
           tools: tools?.map(tool => ({
             type: 'function',
             function: {
@@ -110,27 +94,24 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
 
       case 'object-json': {
         return {
-          stream,
-          ...this.basePrompt,
-          ...standardizedSettings,
+          ...baseArgs,
           response_format: { type: 'json_object' },
-          messages,
         };
       }
 
       case 'object-tool': {
         return {
-          stream,
-          ...this.basePrompt,
-          ...standardizedSettings,
+          ...baseArgs,
           tool_choice: { type: 'function', function: { name: mode.tool.name } },
           tools: [{ type: 'function', function: mode.tool }],
-          messages,
         };
       }
 
       case 'object-grammar': {
-        throw new Error('Grammar mode is not supported by OpenAI Chat.');
+        throw new UnsupportedFunctionalityError({
+          functionality: 'object-grammar mode',
+          provider: 'openai',
+        });
       }
 
       default: {
@@ -143,13 +124,21 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const client = await this.getClient();
+    const response = await postJsonToApi({
+      url: `${this.config.baseUrl}/chat/completions`,
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey()}`,
+      },
+      body: {
+        ...this.getArgs(options),
+      },
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        zodSchema(openAIChatResponseSchema),
+      ),
+    });
 
-    const completion = await client.chat.completions.create(
-      this.getArgs(options, false),
-    );
-
-    const message = completion.choices[0].message;
+    const message = response.choices[0].message;
 
     return {
       text: message.content ?? undefined,
@@ -166,11 +155,22 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const client = await this.getClient();
+    const response = await postJsonToApi({
+      url: `${this.config.baseUrl}/chat/completions`,
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey()}`,
+      },
+      body: {
+        ...this.getArgs(options),
+        stream: true,
+      },
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createEventSourceResponseHandler(),
+    });
 
-    const response = await client.chat.completions.create(
-      this.getArgs(options, true),
-    );
+    if (response == null) {
+      throw new Error('no response content'); // TODO standardize
+    }
 
     const toolCalls: Array<{
       id?: string;
@@ -183,72 +183,165 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
 
     return {
       warnings: [],
-      stream: readableFromAsyncIterable(response).pipeThrough(
-        new TransformStream<
-          OpenAI.Chat.Completions.ChatCompletionChunk,
-          LanguageModelV1StreamPart
-        >({
-          transform(chunk, controller) {
-            if (chunk.choices?.[0]?.delta == null) {
-              return;
-            }
+      stream: response
+        .pipeThrough(
+          // TODO extract
+          new TransformStream<
+            ParsedEvent,
+            ParsedChunk<z.infer<typeof openaiChatChunkSchema>>
+          >({
+            transform({ data }, controller) {
+              if (data === '[DONE]') {
+                return;
+              }
 
-            const delta = chunk.choices[0].delta;
-
-            if (delta.content != null) {
-              controller.enqueue({
-                type: 'text-delta',
-                textDelta: delta.content,
+              const parseResult = safeParseJSON({
+                text: data,
+                schema: zodSchema(openaiChatChunkSchema),
               });
-            }
 
-            if (delta.tool_calls != null) {
-              for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
+              controller.enqueue(
+                parseResult.success
+                  ? { type: 'value', value: parseResult.value }
+                  : { type: 'error', error: parseResult.error },
+              );
+            },
+          }),
+        )
+        .pipeThrough(
+          new TransformStream<
+            ParsedChunk<z.infer<typeof openaiChatChunkSchema>>,
+            LanguageModelV1StreamPart
+          >({
+            transform(chunk, controller) {
+              if (chunk.type === 'error') {
+                controller.enqueue(chunk);
+                return;
+              }
 
-                // new tool call, add to list
-                if (toolCalls[index] == null) {
-                  toolCalls[index] = toolCallDelta;
-                  continue;
-                }
+              const value = chunk.value;
 
-                // existing tool call, merge
-                const toolCall = toolCalls[index];
+              if (value.choices?.[0]?.delta == null) {
+                return;
+              }
 
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
+              const delta = value.choices[0].delta;
 
-                // send delta
+              if (delta.content != null) {
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallId: toolCall.id ?? '', // TODO empty?
-                  toolName: toolCall.function?.name ?? '', // TODO empty?
-                  argsTextDelta: toolCallDelta.function?.arguments ?? '', // TODO empty?
-                });
-
-                // check if tool call is complete
-                if (
-                  toolCall.function?.name == null ||
-                  toolCall.function?.arguments == null ||
-                  tryParseJSON(toolCall.function.arguments) == null
-                ) {
-                  continue;
-                }
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id ?? nanoid(),
-                  toolName: toolCall.function.name,
-                  args: toolCall.function.arguments,
+                  type: 'text-delta',
+                  textDelta: delta.content,
                 });
               }
-            }
-          },
-        }),
-      ),
+
+              if (delta.tool_calls != null) {
+                for (const toolCallDelta of delta.tool_calls) {
+                  const index = toolCallDelta.index;
+
+                  // new tool call, add to list
+                  if (toolCalls[index] == null) {
+                    toolCalls[index] = toolCallDelta;
+                    continue;
+                  }
+
+                  // existing tool call, merge
+                  const toolCall = toolCalls[index];
+
+                  if (toolCallDelta.function?.arguments != null) {
+                    toolCall.function!.arguments +=
+                      toolCallDelta.function?.arguments ?? '';
+                  }
+
+                  // send delta
+                  controller.enqueue({
+                    type: 'tool-call-delta',
+                    toolCallId: toolCall.id ?? '', // TODO empty?
+                    toolName: toolCall.function?.name ?? '', // TODO empty?
+                    argsTextDelta: toolCallDelta.function?.arguments ?? '', // TODO empty?
+                  });
+
+                  // check if tool call is complete
+                  if (
+                    toolCall.function?.name == null ||
+                    toolCall.function?.arguments == null ||
+                    tryJsonParse(toolCall.function.arguments) == null
+                  ) {
+                    continue;
+                  }
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: toolCall.id ?? nanoid(),
+                    toolName: toolCall.function.name,
+                    args: toolCall.function.arguments,
+                  });
+                }
+              }
+            },
+          }),
+        ),
     };
   }
 }
+
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes
+const openAIChatResponseSchema = z.object({
+  choices: z.array(
+    z.object({
+      message: z.object({
+        role: z.literal('assistant'),
+        content: z.string().nullable(),
+        tool_calls: z
+          .array(
+            z.object({
+              id: z.string(),
+              type: z.literal('function'),
+              function: z.object({
+                name: z.string(),
+                arguments: z.string(),
+              }),
+            }),
+          )
+          .optional(),
+      }),
+      index: z.number(),
+      finish_reason: z.string().optional().nullable(),
+    }),
+  ),
+  object: z.literal('chat.completion'),
+  usage: z.object({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+  }),
+});
+
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes
+const openaiChatChunkSchema = z.object({
+  object: z.literal('chat.completion.chunk'),
+  choices: z.array(
+    z.object({
+      delta: z.object({
+        role: z.enum(['assistant']).optional(),
+        content: z.string().nullable().optional(),
+        tool_calls: z
+          .array(
+            z.object({
+              index: z.number(),
+              id: z.string().optional(),
+              type: z.literal('function').optional(),
+              function: z.object({
+                name: z.string().optional(),
+                arguments: z.string().optional(),
+              }),
+            }),
+          )
+          .optional(),
+      }),
+      finish_reason: z.string().nullable().optional(),
+      index: z.number(),
+    }),
+  ),
+});

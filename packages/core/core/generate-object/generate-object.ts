@@ -2,13 +2,13 @@ import { z } from 'zod';
 import {
   LanguageModelV1,
   NoTextGeneratedError,
+  ZodSchema,
+  safeParseJSON,
 } from '../../ai-model-specification/index';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';
 import { Prompt } from '../prompt/prompt';
-import { safeParseJSON } from '../schema/parse-json';
-import { ZodSchema } from '../schema/zod-schema';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 
 /**
