@@ -1,9 +1,9 @@
 import { PartialDeep } from 'type-fest';
 import { z } from 'zod';
+import zodToJsonSchema from 'zod-to-json-schema';
 import {
   LanguageModelV1,
   LanguageModelV1StreamPart,
-  ZodSchema,
 } from '../../ai-model-specification/index';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -18,7 +18,7 @@ import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
  */
 export async function streamObject<T>({
   model,
-  schema: zodSchema,
+  schema,
   mode,
   system,
   prompt,
@@ -30,8 +30,7 @@ export async function streamObject<T>({
     schema: z.Schema<T>;
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
   }): Promise<StreamObjectResult<T>> {
-  const schema = new ZodSchema(zodSchema);
-  const jsonSchema = schema.getJsonSchema();
+  const jsonSchema = zodToJsonSchema(schema);
 
   let modelStream: ReadableStream<string | ErrorStreamPart>;
 

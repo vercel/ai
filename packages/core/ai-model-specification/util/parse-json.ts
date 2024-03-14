@@ -1,8 +1,8 @@
 import SecureJSON from 'secure-json-parse';
-import { Schema } from './schema';
+import { ZodSchema } from 'zod';
+import { JSONParseError } from '../errors/json-parse-error';
+import { TypeValidationError } from '../errors/type-validation-error';
 import { safeValidateTypes, validateTypes } from './validate-types';
-import { JSONParseError } from '../../errors/json-parse-error';
-import { TypeValidationError } from '../../errors/type-validation-error';
 
 /**
  * Parses a JSON string into an unknown object.
@@ -24,14 +24,14 @@ export function parseJSON<T>({
   schema,
 }: {
   text: string;
-  schema: Schema<T>;
+  schema: ZodSchema<T>;
 }): T;
 export function parseJSON<T>({
   text,
   schema,
 }: {
   text: string;
-  schema?: Schema<T>;
+  schema?: ZodSchema<T>;
 }): T {
   try {
     const value = SecureJSON.parse(text);
@@ -79,7 +79,7 @@ export function safeParseJSON<T>({
   schema,
 }: {
   text: string;
-  schema: Schema<T>;
+  schema: ZodSchema<T>;
 }):
   | { success: true; value: T }
   | { success: false; error: JSONParseError | TypeValidationError };
@@ -88,7 +88,7 @@ export function safeParseJSON<T>({
   schema,
 }: {
   text: string;
-  schema?: Schema<T>;
+  schema?: ZodSchema<T>;
 }):
   | { success: true; value: T }
   | { success: false; error: JSONParseError | TypeValidationError } {
@@ -111,5 +111,14 @@ export function safeParseJSON<T>({
           ? error
           : new JSONParseError({ text, cause: error }),
     };
+  }
+}
+
+export function isParseableJson(input: string): boolean {
+  try {
+    SecureJSON.parse(input);
+    return true;
+  } catch {
+    return false;
   }
 }

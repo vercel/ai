@@ -7,10 +7,9 @@ import {
   UnsupportedFunctionalityError,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  isParseableJson,
   postJsonToApi,
   safeParseJSON,
-  tryJsonParse,
-  zodSchema,
 } from '../../ai-model-specification/index';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { openaiFailedResponseHandler } from './openai-error';
@@ -134,7 +133,7 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        zodSchema(openAIChatResponseSchema),
+        openAIChatResponseSchema,
       ),
     });
 
@@ -197,7 +196,7 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
 
               const parseResult = safeParseJSON({
                 text: data,
-                schema: zodSchema(openaiChatChunkSchema),
+                schema: openaiChatChunkSchema,
               });
 
               controller.enqueue(
@@ -264,7 +263,7 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
                   if (
                     toolCall.function?.name == null ||
                     toolCall.function?.arguments == null ||
-                    tryJsonParse(toolCall.function.arguments) == null
+                    !isParseableJson(toolCall.function.arguments)
                   ) {
                     continue;
                   }

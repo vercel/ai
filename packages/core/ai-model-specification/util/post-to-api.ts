@@ -2,9 +2,9 @@ import {
   EventSourceParserStream,
   ParsedEvent,
 } from 'eventsource-parser/stream';
+import { ZodSchema } from 'zod';
 import { ApiCallError } from '../errors';
-import { parseJSON, safeParseJSON } from './schema/parse-json';
-import { Schema } from './schema/schema';
+import { parseJSON, safeParseJSON } from './parse-json';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
@@ -18,7 +18,7 @@ export const createJsonErrorResponseHandler =
     errorToMessage,
     isRetryable,
   }: {
-    errorSchema: Schema<T>;
+    errorSchema: ZodSchema<T>;
     errorToMessage: (error: T) => string;
     isRetryable?: (response: Response, error?: T) => boolean;
   }): ResponseHandler<ApiCallError> =>
@@ -74,7 +74,7 @@ export const createEventSourceResponseHandler =
       .pipeThrough(new EventSourceParserStream());
 
 export const createJsonResponseHandler =
-  <T>(responseSchema: Schema<T>): ResponseHandler<T> =>
+  <T>(responseSchema: ZodSchema<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
 

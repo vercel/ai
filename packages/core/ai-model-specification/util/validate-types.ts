@@ -1,5 +1,5 @@
-import { TypeValidationError } from '../../errors/type-validation-error';
-import { Schema } from './schema';
+import { ZodSchema } from 'zod';
+import { TypeValidationError } from '../errors/type-validation-error';
 
 /**
  * Validates the types of an unknown object using a schema and
@@ -15,24 +15,11 @@ export function validateTypes<T>({
   schema,
 }: {
   value: unknown;
-  schema: Schema<T>;
+  schema: ZodSchema<T>;
 }): T {
   try {
-    const validationResult = schema.validate(value);
-
-    if (!validationResult.success) {
-      throw new TypeValidationError({
-        value,
-        cause: validationResult.error,
-      });
-    }
-
-    return validationResult.value;
+    return schema.parse(value);
   } catch (error) {
-    if (error instanceof TypeValidationError) {
-      throw error;
-    }
-
     throw new TypeValidationError({ value, cause: error });
   }
 }
@@ -51,15 +38,18 @@ export function safeValidateTypes<T>({
   schema,
 }: {
   value: unknown;
-  schema: Schema<T>;
+  schema: ZodSchema<T>;
 }):
   | { success: true; value: T }
   | { success: false; error: TypeValidationError } {
   try {
-    const validationResult = schema.validate(value);
+    const validationResult = schema.safeParse(value);
 
     if (validationResult.success) {
-      return validationResult;
+      return {
+        success: true,
+        value: validationResult.data,
+      };
     }
 
     return {

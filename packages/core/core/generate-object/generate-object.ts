@@ -1,8 +1,8 @@
 import { z } from 'zod';
+import zodToJsonSchema from 'zod-to-json-schema';
 import {
   LanguageModelV1,
   NoTextGeneratedError,
-  ZodSchema,
   safeParseJSON,
 } from '../../ai-model-specification/index';
 import { CallSettings } from '../prompt/call-settings';
@@ -16,7 +16,7 @@ import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
  */
 export async function generateObject<T>({
   model,
-  schema: zodSchema,
+  schema,
   mode,
   system,
   prompt,
@@ -28,15 +28,14 @@ export async function generateObject<T>({
     schema: z.Schema<T>;
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
   }): Promise<GenerateObjectResult<T>> {
-  const schema = new ZodSchema(zodSchema);
-  const jsonSchema = schema.getJsonSchema();
-
-  let result: string;
+  const jsonSchema = zodToJsonSchema(schema);
 
   // use the default provider mode when the mode is set to 'auto' or unspecified
   if (mode === 'auto' || mode == null) {
     mode = model.defaultObjectGenerationMode;
   }
+
+  let result: string;
 
   switch (mode) {
     case 'json': {

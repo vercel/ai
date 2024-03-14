@@ -1,8 +1,5 @@
 import { z } from 'zod';
-import {
-  createJsonErrorResponseHandler,
-  zodSchema,
-} from '../../ai-model-specification';
+import { createJsonErrorResponseHandler } from '../../ai-model-specification';
 
 const openAIErrorDataSchema = z.object({
   error: z.object({
@@ -16,7 +13,7 @@ const openAIErrorDataSchema = z.object({
 export type OpenAIErrorData = z.infer<typeof openAIErrorDataSchema>;
 
 export const openaiFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: zodSchema(openAIErrorDataSchema),
+  errorSchema: openAIErrorDataSchema,
   errorToMessage: data => data.error.message,
   isRetryable: (response, error) =>
     response.status >= 500 ||

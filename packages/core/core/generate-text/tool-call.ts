@@ -2,7 +2,6 @@ import { ValueOf } from 'type-fest';
 import { z } from 'zod';
 import {
   LanguageModelV1FunctionToolCall,
-  ZodSchema,
   safeParseJSON,
 } from '../../ai-model-specification/index';
 import { Tool } from '../tool';
@@ -49,7 +48,7 @@ export function parseToolCall<TOOLS extends Record<string, Tool>>({
 
   const parseResult = safeParseJSON({
     text: toolCall.args,
-    schema: new ZodSchema(tool.parameters),
+    schema: tool.parameters,
   });
 
   // TODO dedicate tool call error (InvalidToolArgumentsError)
