@@ -61,6 +61,16 @@ export type UseChatHelpers = {
       | React.ChangeEvent<HTMLInputElement>
       | React.ChangeEvent<HTMLTextAreaElement>,
   ) => void;
+  /** The current value of the input multiple */
+  files: File[];
+  /** setState-powered method to update the files value */
+  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  /** An input/textarea-ready onChange handler to control the value of the input */
+  handleFilesChange: (
+    e:
+       React.ChangeEvent<HTMLInputElement>,
+  ) => void;
+
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
     e: React.FormEvent<HTMLFormElement>,
@@ -256,6 +266,7 @@ export function useChat({
   useEffect(() => {
     messagesRef.current = messages || [];
   }, [messages]);
+  const [files, setFiles] = useState<File[]>([]);
 
   // Abort controller to cancel the current API call.
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -448,21 +459,47 @@ export function useChat({
       e.preventDefault();
       if (!input) return;
 
-      append(
-        {
-          content: input,
-          role: 'user',
-          createdAt: new Date(),
-        },
-        options,
-      );
+      // Check if any files were selected
+      if (files.length > 0) {
+        // Prepend image URLs to the input
+        const imageUrls = files
+          .map(file => URL.createObjectURL(file))
+          .join(',');
+        const inputWithImages = imageUrls + '\n' + input;
+
+        // Append message with images
+        append(
+          {
+            content: inputWithImages,
+            role: 'user',
+            createdAt: new Date(),
+          },
+          options,
+        );
+      } else {
+        // No images, append regular message
+        append(
+          {
+            content: input,
+            role: 'user',
+            createdAt: new Date(),
+          },
+          options,
+        );
+      }
       setInput('');
+      setFiles([]); // Reset selected files
     },
     [input, append],
   );
 
   const handleInputChange = (e: any) => {
     setInput(e.target.value);
+  };
+  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList) return;
+    setFiles(Array.from(fileList));
   };
 
   return {
@@ -475,6 +512,9 @@ export function useChat({
     input,
     setInput,
     handleInputChange,
+    files,
+    setFiles,
+    handleFilesChange,
     handleSubmit,
     isLoading,
     data: streamData,
