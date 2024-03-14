@@ -28,6 +28,7 @@
   },
   "changesets": [
     "chatty-monkeys-rest",
-    "sixty-books-melt"
+    "sixty-books-melt",
+    "stale-carrots-check"
   ]
 }
