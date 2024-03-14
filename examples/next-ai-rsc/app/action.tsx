@@ -258,7 +258,7 @@ Besides that, you can also chat with users and do some calculations if needed.`,
       ...aiState.get(),
       {
         role: 'function',
-        name: 'list_stocks',
+        name: 'get_events',
         content: JSON.stringify(events),
       },
     ]);

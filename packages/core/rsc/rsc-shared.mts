@@ -1,7 +1,7 @@
 'use client';
 
 export {
-  useStreamableValue,
+  readStreamableValue,
   useUIState,
   useAIState,
   useActions,

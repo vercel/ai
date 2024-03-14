@@ -1,3 +1,53 @@
+---
+title: experimental_AssistantResponse
+layout:
+  toc: false
+---
+
+import { Callout } from 'nextra-theme-docs';
+
+# `experimental_AssistantResponse`
+
+The `experimental_AssistantResponse` class allows you to send a stream of assistant update to `experimental_useAssistant`.
+
+<Callout>
+  The `experimental_` prefix indicates that the API is not yet stable and may
+  change in the future without a major version bump.
+</Callout>
+
+## `experimental_AssistantResponse(settings: AssistantResponseSettings, process: AssistantResponseCallback): Response` [#assistantresponse]
+
+The `experimental_AssistantResponse` class is designed to facilitate streaming assistant responses to the `useAssistant` hook.
+It receives an assistant thread and a current message, and can send messages and data messages to the client.
+
+## Parameters
+
+### `settings: {threadId: string, messageId: string}`
+
+You can pass the thread and the latest message into the `experimental_AssistantResponse`. This establishes the context for the response.
+
+- `threadId: string`: The thread ID that the response is associated with.
+- `messageId: string`: The ID of the latest message that the response is associated with.
+
+### `process: AssistantResponseCallback`
+
+The process parameter is a callback in which you can run the assistant on threads, and send messages and data messages to the client.
+
+It gets invoked with the following functions that you can use to send messages and data messages to the client:
+
+- `forwardStream: (stream: AssistantStream) => void`: Forwards the assistant response stream to the client.
+- `sendDataMessage: (message: DataMessage) => void`: Send a data message to the client. You can use this to provide information for rendering custom UIs while the assistant is processing the thread.
+
+## Example
+
+### Server-Side Implementation
+
+This example highlights the usage of `experimental_AssistantResponse`
+for an OpenAI assistant within a Next.js environment.
+
+Server:
+
+```tsx filename="app/api/assistant/route.ts"
 import { experimental_AssistantResponse } from 'ai';
 import OpenAI from 'openai';
 
@@ -115,3 +165,9 @@ export async function POST(req: Request) {
     },
   );
 }
+```
+
+### Client-Side Setup
+
+See [use-assistant](https://sdk.vercel.ai/docs/api-reference/use-assistant) for more details
+on how to setup the `useAssistant` hook on the client-side.

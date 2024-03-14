@@ -605,7 +605,7 @@ function createFunctionCallTransformer(
                 type: 'function',
                 func: {
                   name: tool.function.name,
-                  arguments: tool.function.arguments,
+                  arguments: JSON.parse(tool.function.arguments),
                 },
               });
             }

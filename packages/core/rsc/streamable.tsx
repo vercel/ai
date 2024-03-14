@@ -6,12 +6,16 @@ import zodToJsonSchema from 'zod-to-json-schema';
 // TODO: This needs to be externalized.
 import { OpenAIStream } from '../streams';
 
-import { STREAMABLE_VALUE_TYPE } from './constants';
+import {
+  STREAMABLE_VALUE_TYPE,
+  DEV_DEFAULT_STREAMABLE_WARNING_TIME,
+} from './constants';
 import {
   createResolvablePromise,
   createSuspensedChunk,
   consumeStream,
 } from './utils';
+import type { StreamableValue } from './types';
 
 /**
  * Create a piece of changable UI that can be streamed to the client.
@@ -22,16 +26,37 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
   let closed = false;
   let { row, resolve, reject } = createSuspensedChunk(initialValue);
 
-  function assertStream() {
+  function assertStream(method: string) {
     if (closed) {
-      throw new Error('UI stream is already closed.');
+      throw new Error(method + ': UI stream is already closed.');
     }
   }
+
+  let warningTimeout: NodeJS.Timeout | undefined;
+  function warnUnclosedStream() {
+    if (process.env.NODE_ENV === 'development') {
+      if (warningTimeout) {
+        clearTimeout(warningTimeout);
+      }
+      warningTimeout = setTimeout(() => {
+        console.warn(
+          'The streamable UI has been slow to update. This may be a bug or a performance issue or you forgot to call `.done()`.',
+        );
+      }, DEV_DEFAULT_STREAMABLE_WARNING_TIME);
+    }
+  }
+  warnUnclosedStream();
 
   return {
     value: row,
     update(value: React.ReactNode) {
-      assertStream();
+      assertStream('.update()');
+
+      // There is no need to update the value if it's referentially equal.
+      if (value === currentValue) {
+        warnUnclosedStream();
+        return;
+      }
 
       const resolvable = createResolvablePromise();
       currentValue = value;
@@ -39,35 +64,36 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       resolve({ value: currentValue, done: false, next: resolvable.promise });
       resolve = resolvable.resolve;
       reject = resolvable.reject;
+
+      warnUnclosedStream();
     },
     append(value: React.ReactNode) {
-      assertStream();
+      assertStream('.append()');
 
       const resolvable = createResolvablePromise();
-      if (typeof currentValue === 'string' && typeof value === 'string') {
-        currentValue += value;
-      } else {
-        currentValue = (
-          <>
-            {currentValue}
-            {value}
-          </>
-        );
-      }
+      currentValue = value;
 
-      resolve({ value: currentValue, done: false, next: resolvable.promise });
+      resolve({ value, done: false, append: true, next: resolvable.promise });
       resolve = resolvable.resolve;
       reject = resolvable.reject;
+
+      warnUnclosedStream();
     },
     error(error: any) {
-      assertStream();
+      assertStream('.error()');
 
+      if (warningTimeout) {
+        clearTimeout(warningTimeout);
+      }
       closed = true;
       reject(error);
     },
-    done(...args: any) {
-      assertStream();
+    done(...args: [] | [React.ReactNode]) {
+      assertStream('.done()');
 
+      if (warningTimeout) {
+        clearTimeout(warningTimeout);
+      }
       closed = true;
       if (args.length) {
         resolve({ value: args[0], done: true });
@@ -80,66 +106,100 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
 
 /**
  * Create a wrapped, changable value that can be streamed to the client.
- * On the client side, the value can be accessed via the useStreamableValue() hook.
+ * On the client side, the value can be accessed via the readStreamableValue() API.
  */
-export function createStreamableValue<T = any>(initialValue?: T) {
-  // let currentValue = initialValue
+export function createStreamableValue<T = any, E = any>(initialValue?: T) {
   let closed = false;
-  let { promise, resolve, reject } = createResolvablePromise();
+  let resolvable = createResolvablePromise<StreamableValue<T, E>>();
 
-  function assertStream() {
+  let currentValue = initialValue;
+  let currentError: E | undefined;
+  let currentPromise: typeof resolvable.promise | undefined =
+    resolvable.promise;
+
+  function assertStream(method: string) {
     if (closed) {
-      throw new Error('Value stream is already closed.');
+      throw new Error(method + ': Value stream is already closed.');
     }
   }
 
-  function createWrapped(val: T | undefined, initial?: boolean) {
-    if (initial) {
-      return {
-        type: STREAMABLE_VALUE_TYPE,
-        curr: val,
-        next: promise,
-      };
+  let warningTimeout: NodeJS.Timeout | undefined;
+  function warnUnclosedStream() {
+    if (process.env.NODE_ENV === 'development') {
+      if (warningTimeout) {
+        clearTimeout(warningTimeout);
+      }
+      warningTimeout = setTimeout(() => {
+        console.warn(
+          'The streamable UI has been slow to update. This may be a bug or a performance issue or you forgot to call `.done()`.',
+        );
+      }, DEV_DEFAULT_STREAMABLE_WARNING_TIME);
+    }
+  }
+  warnUnclosedStream();
+
+  function createWrapped(withType?: boolean): StreamableValue<T, E> {
+    // This makes the payload much smaller if there're mutative updates before the first read.
+    const init: Partial<StreamableValue<T, E>> =
+      currentError === undefined
+        ? { curr: currentValue }
+        : { error: currentError };
+
+    if (currentPromise) {
+      init.next = currentPromise;
     }
 
-    return {
-      curr: val,
-      next: promise,
-    };
+    if (withType) {
+      init.type = STREAMABLE_VALUE_TYPE;
+    }
+
+    return init;
   }
 
   return {
-    value: createWrapped(initialValue, true),
+    get value() {
+      return createWrapped(true);
+    },
     update(value: T) {
-      assertStream();
+      assertStream('.update()');
 
-      const resolvePrevious = resolve;
-      const resolvable = createResolvablePromise();
-      promise = resolvable.promise;
-      resolve = resolvable.resolve;
-      reject = resolvable.reject;
+      const resolvePrevious = resolvable.resolve;
+      resolvable = createResolvablePromise();
 
-      resolvePrevious(createWrapped(value));
+      currentValue = value;
+      currentPromise = resolvable.promise;
+      resolvePrevious(createWrapped());
 
-      // currentValue = value
+      warnUnclosedStream();
     },
     error(error: any) {
-      assertStream();
+      assertStream('.error()');
 
+      if (warningTimeout) {
+        clearTimeout(warningTimeout);
+      }
       closed = true;
-      reject(error);
+      currentError = error;
+      currentPromise = undefined;
+
+      resolvable.resolve({ error });
     },
-    done(...args: any) {
-      assertStream();
+    done(...args: [] | [T]) {
+      assertStream('.done()');
 
+      if (warningTimeout) {
+        clearTimeout(warningTimeout);
+      }
       closed = true;
+      currentPromise = undefined;
 
       if (args.length) {
-        resolve({ curr: args[0] });
+        currentValue = args[0];
+        resolvable.resolve({ curr: args[0] });
         return;
       }
 
-      resolve({});
+      resolvable.resolve({});
     },
   };
 }
@@ -179,7 +239,21 @@ export function render<
   messages: Parameters<
     typeof OpenAI.prototype.chat.completions.create
   >[0]['messages'];
-  text?: Renderer<{ content: string; done: boolean }>;
+  text?: Renderer<{
+    /**
+     * The full text content from the model so far.
+     */
+    content: string;
+    /**
+     * The new appended text content from the model since the last `text` call.
+     */
+    delta: string;
+    /**
+     * Whether the model is done generating text.
+     * If `true`, the `content` will be the final output and this call will be the last.
+     */
+    done: boolean;
+  }>;
   tools?: {
     [name in keyof TS]: {
       description?: string;
@@ -352,7 +426,7 @@ export function render<
             : {}),
           onText(chunk) {
             content += chunk;
-            handleRender({ content, done: false }, text, ui);
+            handleRender({ content, done: false, delta: chunk }, text, ui);
           },
           async onFinal() {
             if (hasFunction) {

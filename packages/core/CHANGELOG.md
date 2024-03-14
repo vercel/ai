@@ -1,5 +1,50 @@
 # ai
 
+## 3.0.12
+
+### Patch Changes
+
+- b99b008: fix(ai/rsc): avoid appending boundary if the same reference was passed
+
+## 3.0.11
+
+### Patch Changes
+
+- ce009e2: Added OpenAI assistants streaming.
+- 3f9bf3e: Updates types to OpenAI SDK 4.29.0
+
+## 3.0.10
+
+### Patch Changes
+
+- 33d261a: fix(ai/rsc): Fix .append() behavior
+
+## 3.0.9
+
+### Patch Changes
+
+- 81ca3d6: fix(ai/rsc): improve .done() argument type
+
+## 3.0.8
+
+### Patch Changes
+
+- a94aab2: ai/rsc: optimize streamable value stream size
+
+## 3.0.7
+
+### Patch Changes
+
+- 9a9ae73: feat(ai/rsc): readStreamableValue
+
+## 3.0.6
+
+### Patch Changes
+
+- 1355ad0: Fix: experimental_onToolCall is called with parsed tool args
+- 9348f06: ai/rsc: improve dev error and warnings by trying to detect hanging streams
+- 8be9404: fix type resolution
+
 ## 3.0.5
 
 ### Patch Changes
