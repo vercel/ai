@@ -69,10 +69,14 @@ export const createJsonErrorResponseHandler =
 export const createEventSourceResponseHandler =
   <T>(
     chunkSchema: ZodSchema<T>,
-  ): ResponseHandler<ReadableStream<ParsedChunk<T>> | undefined> =>
-  async ({ response }: { response: Response }) =>
-    response.body
-      ?.pipeThrough(new TextDecoderStream())
+  ): ResponseHandler<ReadableStream<ParsedChunk<T>>> =>
+  async ({ response }: { response: Response }) => {
+    if (response.body == null) {
+      throw new Error('No response body'); // TODO AI error
+    }
+
+    return response.body
+      .pipeThrough(new TextDecoderStream())
       .pipeThrough(new EventSourceParserStream())
       .pipeThrough(
         new TransformStream<ParsedEvent, ParsedChunk<T>>({
@@ -94,6 +98,7 @@ export const createEventSourceResponseHandler =
           },
         }),
       );
+  };
 
 export const createJsonResponseHandler =
   <T>(responseSchema: ZodSchema<T>): ResponseHandler<T> =>

@@ -187,10 +187,6 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
       ),
     });
 
-    if (response == null) {
-      throw new Error('no response content'); // TODO standardize, handling in postjson
-    }
-
     const toolCalls: Array<{
       id?: string;
       type?: 'function';
