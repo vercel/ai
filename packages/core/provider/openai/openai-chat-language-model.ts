@@ -1,19 +1,17 @@
-import { ParsedEvent } from 'eventsource-parser/stream';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import {
   LanguageModelV1,
   LanguageModelV1StreamPart,
+  ParsedChunk,
   UnsupportedFunctionalityError,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   isParseableJson,
   postJsonToApi,
-  safeParseJSON,
 } from '../../ai-model-specification/index';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { openaiFailedResponseHandler } from './openai-error';
-import { ParsedChunk } from './parsed-chunk';
 
 type Config<SETTINGS extends { id: string }> = {
   baseUrl: string;
@@ -164,7 +162,9 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
         stream: true,
       },
       failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(),
+      successfulResponseHandler: createEventSourceResponseHandler(
+        openaiChatChunkSchema,
+      ),
     });
 
     if (response == null) {
@@ -182,104 +182,79 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
 
     return {
       warnings: [],
-      stream: response
-        .pipeThrough(
-          // TODO extract
-          new TransformStream<
-            ParsedEvent,
-            ParsedChunk<z.infer<typeof openaiChatChunkSchema>>
-          >({
-            transform({ data }, controller) {
-              if (data === '[DONE]') {
-                return;
-              }
+      stream: response.pipeThrough(
+        new TransformStream<
+          ParsedChunk<z.infer<typeof openaiChatChunkSchema>>,
+          LanguageModelV1StreamPart
+        >({
+          transform(chunk, controller) {
+            if (chunk.type === 'error') {
+              controller.enqueue(chunk);
+              return;
+            }
 
-              const parseResult = safeParseJSON({
-                text: data,
-                schema: openaiChatChunkSchema,
+            const value = chunk.value;
+
+            if (value.choices?.[0]?.delta == null) {
+              return;
+            }
+
+            const delta = value.choices[0].delta;
+
+            if (delta.content != null) {
+              controller.enqueue({
+                type: 'text-delta',
+                textDelta: delta.content,
               });
+            }
 
-              controller.enqueue(
-                parseResult.success
-                  ? { type: 'value', value: parseResult.value }
-                  : { type: 'error', error: parseResult.error },
-              );
-            },
-          }),
-        )
-        .pipeThrough(
-          new TransformStream<
-            ParsedChunk<z.infer<typeof openaiChatChunkSchema>>,
-            LanguageModelV1StreamPart
-          >({
-            transform(chunk, controller) {
-              if (chunk.type === 'error') {
-                controller.enqueue(chunk);
-                return;
-              }
+            if (delta.tool_calls != null) {
+              for (const toolCallDelta of delta.tool_calls) {
+                const index = toolCallDelta.index;
 
-              const value = chunk.value;
+                // new tool call, add to list
+                if (toolCalls[index] == null) {
+                  toolCalls[index] = toolCallDelta;
+                  continue;
+                }
 
-              if (value.choices?.[0]?.delta == null) {
-                return;
-              }
+                // existing tool call, merge
+                const toolCall = toolCalls[index];
 
-              const delta = value.choices[0].delta;
+                if (toolCallDelta.function?.arguments != null) {
+                  toolCall.function!.arguments +=
+                    toolCallDelta.function?.arguments ?? '';
+                }
 
-              if (delta.content != null) {
+                // send delta
                 controller.enqueue({
-                  type: 'text-delta',
-                  textDelta: delta.content,
+                  type: 'tool-call-delta',
+                  toolCallId: toolCall.id ?? '', // TODO empty?
+                  toolName: toolCall.function?.name ?? '', // TODO empty?
+                  argsTextDelta: toolCallDelta.function?.arguments ?? '', // TODO empty?
+                });
+
+                // check if tool call is complete
+                if (
+                  toolCall.function?.name == null ||
+                  toolCall.function?.arguments == null ||
+                  !isParseableJson(toolCall.function.arguments)
+                ) {
+                  continue;
+                }
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: toolCall.id ?? nanoid(),
+                  toolName: toolCall.function.name,
+                  args: toolCall.function.arguments,
                 });
               }
-
-              if (delta.tool_calls != null) {
-                for (const toolCallDelta of delta.tool_calls) {
-                  const index = toolCallDelta.index;
-
-                  // new tool call, add to list
-                  if (toolCalls[index] == null) {
-                    toolCalls[index] = toolCallDelta;
-                    continue;
-                  }
-
-                  // existing tool call, merge
-                  const toolCall = toolCalls[index];
-
-                  if (toolCallDelta.function?.arguments != null) {
-                    toolCall.function!.arguments +=
-                      toolCallDelta.function?.arguments ?? '';
-                  }
-
-                  // send delta
-                  controller.enqueue({
-                    type: 'tool-call-delta',
-                    toolCallId: toolCall.id ?? '', // TODO empty?
-                    toolName: toolCall.function?.name ?? '', // TODO empty?
-                    argsTextDelta: toolCallDelta.function?.arguments ?? '', // TODO empty?
-                  });
-
-                  // check if tool call is complete
-                  if (
-                    toolCall.function?.name == null ||
-                    toolCall.function?.arguments == null ||
-                    !isParseableJson(toolCall.function.arguments)
-                  ) {
-                    continue;
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallType: 'function',
-                    toolCallId: toolCall.id ?? nanoid(),
-                    toolName: toolCall.function.name,
-                    args: toolCall.function.arguments,
-                  });
-                }
-              }
-            },
-          }),
-        ),
+            }
+          },
+        }),
+      ),
     };
   }
 }
