@@ -1,11 +1,13 @@
-import { openai } from '..';
 import { LanguageModelV1Prompt } from '../../ai-model-specification/dist';
 import { convertStreamToArray } from '../test/convert-stream-to-array';
 import { StreamingTestServer } from '../test/streaming-test-server';
+import { OpenAI } from './openai-facade';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
+
+const openai = new OpenAI({ apiKey: 'test-api-key' });
 
 describe('doStream', () => {
   const server = new StreamingTestServer(
@@ -33,13 +35,11 @@ describe('doStream', () => {
       'data: [DONE]\n\n',
     ];
 
-    const { stream } = await openai
-      .chat({ id: 'gpt-3.5-turbo', apiKey: 'test-api-key' })
-      .doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-      });
+    const { stream } = await openai.chat({ id: 'gpt-3.5-turbo' }).doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       stream: true,
@@ -59,14 +59,12 @@ describe('doStream', () => {
   it('should scale the temperature', async () => {
     server.responseChunks = ['data: [DONE]\n\n'];
 
-    await openai
-      .chat({ id: 'gpt-3.5-turbo', apiKey: 'test-api-key' })
-      .doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-        temperature: 0.5,
-      });
+    await openai.chat({ id: 'gpt-3.5-turbo' }).doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      temperature: 0.5,
+    });
 
     expect((await server.getRequestBodyJson()).temperature).toBeCloseTo(1, 5);
   });
@@ -74,14 +72,12 @@ describe('doStream', () => {
   it('should scale the frequency penalty', async () => {
     server.responseChunks = ['data: [DONE]\n\n'];
 
-    await openai
-      .chat({ id: 'gpt-3.5-turbo', apiKey: 'test-api-key' })
-      .doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-        frequencyPenalty: 0.2,
-      });
+    await openai.chat({ id: 'gpt-3.5-turbo' }).doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      frequencyPenalty: 0.2,
+    });
 
     expect((await server.getRequestBodyJson()).frequency_penalty).toBeCloseTo(
       0.4,
@@ -92,14 +88,12 @@ describe('doStream', () => {
   it('should scale the presence penalty', async () => {
     server.responseChunks = ['data: [DONE]\n\n'];
 
-    await openai
-      .chat({ id: 'gpt-3.5-turbo', apiKey: 'test-api-key' })
-      .doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-        presencePenalty: -0.9,
-      });
+    await openai.chat({ id: 'gpt-3.5-turbo' }).doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      presencePenalty: -0.9,
+    });
 
     expect((await server.getRequestBodyJson()).presence_penalty).toBeCloseTo(
       -1.8,

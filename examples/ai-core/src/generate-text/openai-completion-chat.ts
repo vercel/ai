@@ -1,8 +1,10 @@
 import { generateText } from 'ai/core';
-import { openai } from 'ai/provider';
+import { OpenAI } from 'ai/provider';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+const openai = new OpenAI();
 
 async function main() {
   const result = await generateText({

@@ -4,47 +4,22 @@ import { OpenAIChatSettings } from './openai-chat-settings';
 import { OpenAICompletionLanguageModel } from './openai-completion-language-model';
 import { OpenAICompletionSettings } from './openai-completion-settings';
 
-export function chat(
-  settings: OpenAIChatSettings & {
-    baseUrl?: string;
-    apiKey?: string;
-  },
-) {
-  const { baseUrl, apiKey, ...remainingSettings } = settings;
-  return new OpenAIChatLanguageModel<OpenAIChatSettings>(
-    { ...remainingSettings },
-    {
-      provider: 'openai.chat',
-      baseUrl: baseUrl ?? 'https://api.openai.com/v1',
-      apiKey: () =>
-        loadApiKey({
-          apiKey,
-          environmentVariableName: 'OPENAI_API_KEY',
-          description: 'OpenAI',
-        }),
-      mapSettings: settings => ({
-        model: settings.id,
-        logit_bias: settings.logitBias,
-      }),
-    },
-  );
-}
+export class OpenAI {
+  readonly baseUrl?: string;
+  readonly apiKey?: string;
 
-export function completion(
-  settings: OpenAICompletionSettings & {
-    baseUrl?: string;
-    apiKey?: string;
-  },
-) {
-  const { baseUrl, apiKey, ...remainingSettings } = settings;
-  return new OpenAICompletionLanguageModel<OpenAICompletionSettings>(
-    { ...remainingSettings },
-    {
-      provider: 'openai.completion',
-      baseUrl: baseUrl ?? 'https://api.openai.com/v1',
+  constructor({ baseUrl, apiKey }: { baseUrl?: string; apiKey?: string } = {}) {
+    this.baseUrl = baseUrl;
+    this.apiKey = apiKey;
+  }
+
+  chat(settings: OpenAIChatSettings) {
+    return new OpenAIChatLanguageModel<OpenAIChatSettings>(settings, {
+      provider: 'openai.chat',
+      baseUrl: this.baseUrl ?? 'https://api.openai.com/v1',
       apiKey: () =>
         loadApiKey({
-          apiKey,
+          apiKey: this.apiKey,
           environmentVariableName: 'OPENAI_API_KEY',
           description: 'OpenAI',
         }),
@@ -52,6 +27,26 @@ export function completion(
         model: settings.id,
         logit_bias: settings.logitBias,
       }),
-    },
-  );
+    });
+  }
+
+  completion(settings: OpenAICompletionSettings) {
+    return new OpenAICompletionLanguageModel<OpenAICompletionSettings>(
+      settings,
+      {
+        provider: 'openai.completion',
+        baseUrl: this.baseUrl ?? 'https://api.openai.com/v1',
+        apiKey: () =>
+          loadApiKey({
+            apiKey: this.apiKey,
+            environmentVariableName: 'OPENAI_API_KEY',
+            description: 'OpenAI',
+          }),
+        mapSettings: settings => ({
+          model: settings.id,
+          logit_bias: settings.logitBias,
+        }),
+      },
+    );
+  }
 }
