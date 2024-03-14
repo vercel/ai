@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-fix(ai/rsc): avoid appending boundary is the same reference is passed
+fix(ai/rsc): avoid appending boundary if the same reference was passed
