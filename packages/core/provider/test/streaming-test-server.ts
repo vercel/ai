@@ -46,6 +46,11 @@ export class StreamingTestServer {
     return JSON.parse(await this.request!.text());
   }
 
+  async getRequestHeaders() {
+    expect(this.request).toBeDefined();
+    return this.request!.headers;
+  }
+
   setupTestEnvironment() {
     beforeAll(() => this.server.listen());
     beforeEach(() => {

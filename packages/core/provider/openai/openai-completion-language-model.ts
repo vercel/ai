@@ -15,12 +15,11 @@ import { openaiFailedResponseHandler } from './openai-error';
 type Config<SETTINGS extends { id: string }> = {
   provider: string;
   baseUrl: string;
-  apiKey: () => string;
+  headers: () => Record<string, string | undefined>;
   mapSettings: (settings: SETTINGS) => Record<string, unknown> & {
     model: string;
   };
 };
-
 export class OpenAICompletionLanguageModel<SETTINGS extends { id: string }>
   implements LanguageModelV1
 {
@@ -144,12 +143,8 @@ export class OpenAICompletionLanguageModel<SETTINGS extends { id: string }>
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const response = await postJsonToApi({
       url: `${this.config.baseUrl}/completions`,
-      headers: {
-        Authorization: `Bearer ${this.config.apiKey()}`,
-      },
-      body: {
-        ...this.getArgs(options),
-      },
+      headers: this.config.headers(),
+      body: this.getArgs(options),
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openAICompletionResponseSchema,
@@ -167,9 +162,7 @@ export class OpenAICompletionLanguageModel<SETTINGS extends { id: string }>
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const response = await postJsonToApi({
       url: `${this.config.baseUrl}/completions`,
-      headers: {
-        Authorization: `Bearer ${this.config.apiKey()}`,
-      },
+      headers: this.config.headers(),
       body: {
         ...this.getArgs(options),
         stream: true,

@@ -100,4 +100,39 @@ describe('doStream', () => {
       5,
     );
   });
+
+  it('should pass the organization as OpenAI-Organization header', async () => {
+    server.responseChunks = ['data: [DONE]\n\n'];
+
+    const openai = new OpenAI({
+      apiKey: 'test-api-key',
+      organization: 'test-organization',
+    });
+
+    await openai.chat({ id: 'gpt-3.5-turbo' }).doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.getRequestHeaders()).get('OpenAI-Organization'),
+    ).toStrictEqual('test-organization');
+  });
+
+  it('should pass the api key as Authorization header', async () => {
+    server.responseChunks = ['data: [DONE]\n\n'];
+
+    const openai = new OpenAI({ apiKey: 'test-api-key' });
+
+    await openai.chat({ id: 'gpt-3.5-turbo' }).doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.getRequestHeaders()).get('Authorization'),
+    ).toStrictEqual('Bearer test-api-key');
+  });
 });

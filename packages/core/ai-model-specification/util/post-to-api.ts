@@ -10,7 +10,7 @@ export const postJsonToApi = async <T>({
   abortSignal,
 }: {
   url: string;
-  headers?: Record<string, string>;
+  headers?: Record<string, string | undefined>;
   body: unknown;
   failedResponseHandler: ResponseHandler<ApiCallError>;
   successfulResponseHandler: ResponseHandler<T>;
@@ -19,8 +19,8 @@ export const postJsonToApi = async <T>({
   postToApi({
     url,
     headers: {
-      'Content-Type': 'application/json',
       ...headers,
+      'Content-Type': 'application/json',
     },
     body: {
       content: JSON.stringify(body),
@@ -40,7 +40,7 @@ export const postToApi = async <T>({
   abortSignal,
 }: {
   url: string;
-  headers?: Record<string, string>;
+  headers?: Record<string, string | undefined>;
   body: {
     content: string | FormData | Uint8Array;
     values: unknown;
@@ -50,9 +50,14 @@ export const postToApi = async <T>({
   abortSignal?: AbortSignal;
 }) => {
   try {
+    // remove undefined headers:
+    const definedHeaders = Object.fromEntries(
+      Object.entries(headers).filter(([_key, value]) => value != null),
+    ) as Record<string, string>;
+
     const response = await fetch(url, {
       method: 'POST',
-      headers,
+      headers: definedHeaders,
       body: body.content,
       signal: abortSignal,
     });
