@@ -126,7 +126,7 @@ export const postToApi = async <T>({
           cause,
           url,
           requestBodyValues: body.values,
-          isRetryable: true,
+          isRetryable: true, // retry when network error
         });
       }
     }

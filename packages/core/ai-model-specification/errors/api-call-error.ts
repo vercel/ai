@@ -15,7 +15,10 @@ export class ApiCallError extends Error {
     responseBody,
     cause,
     isRetryable = statusCode != null &&
-      (statusCode === 429 || statusCode >= 500),
+      (statusCode === 408 || // request timeout
+        statusCode === 409 || // conflict
+        statusCode === 429 || // too many requests
+        statusCode >= 500), // server error
     data,
   }: {
     message: string;

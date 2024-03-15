@@ -45,4 +45,9 @@ export type CallSettings = {
    * by the model, calls will generate deterministic results.
    */
   seed?: number;
+
+  /**
+   * Maximum number of retries. Set to 0 to disable retries. Default is 2.
+   */
+  maxRetries?: number;
 };

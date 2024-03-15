@@ -11,6 +11,7 @@ async function main() {
     model: openai.chat({ id: 'gpt-3.5-turbo' }),
     maxTokens: 512,
     temperature: 0.3,
+    maxRetries: 5,
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

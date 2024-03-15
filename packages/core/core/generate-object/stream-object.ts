@@ -12,6 +12,7 @@ import { Prompt } from '../prompt/prompt';
 import { validateCallSettings } from '../prompt/validate-call-settings';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { parsePartialJson } from '../util/parse-partial-json';
+import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 
 /**
@@ -24,6 +25,7 @@ export async function streamObject<T>({
   system,
   prompt,
   messages,
+  maxRetries,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -31,6 +33,7 @@ export async function streamObject<T>({
     schema: z.Schema<T>;
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
   }): Promise<StreamObjectResult<T>> {
+  const retry = retryWithExponentialBackoff({ maxRetries });
   const jsonSchema = zodToJsonSchema(schema);
 
   let modelStream: ReadableStream<string | ErrorStreamPart>;
@@ -42,16 +45,18 @@ export async function streamObject<T>({
 
   switch (mode) {
     case 'json': {
-      const { stream, warnings } = await model.doStream({
-        mode: { type: 'object-json' },
-        ...validateCallSettings(settings),
-        inputFormat: getInputFormat({ prompt, messages }),
-        prompt: convertToLanguageModelPrompt({
-          system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-          prompt,
-          messages,
+      const { stream, warnings } = await retry(() =>
+        model.doStream({
+          mode: { type: 'object-json' },
+          ...validateCallSettings(settings),
+          inputFormat: getInputFormat({ prompt, messages }),
+          prompt: convertToLanguageModelPrompt({
+            system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
+            prompt,
+            messages,
+          }),
         }),
-      });
+      );
 
       // TODO remove duplication
       modelStream = stream.pipeThrough(
@@ -76,16 +81,18 @@ export async function streamObject<T>({
     }
 
     case 'grammar': {
-      const { stream, warnings } = await model.doStream({
-        mode: { type: 'object-grammar', schema: jsonSchema },
-        ...settings,
-        inputFormat: getInputFormat({ prompt, messages }),
-        prompt: convertToLanguageModelPrompt({
-          system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-          prompt,
-          messages,
+      const { stream, warnings } = await retry(() =>
+        model.doStream({
+          mode: { type: 'object-grammar', schema: jsonSchema },
+          ...settings,
+          inputFormat: getInputFormat({ prompt, messages }),
+          prompt: convertToLanguageModelPrompt({
+            system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
+            prompt,
+            messages,
+          }),
         }),
-      });
+      );
 
       // TODO remove duplication
       modelStream = stream.pipeThrough(
@@ -110,20 +117,22 @@ export async function streamObject<T>({
     }
 
     case 'tool': {
-      const { stream, warnings } = await model.doStream({
-        mode: {
-          type: 'object-tool',
-          tool: {
-            type: 'function',
-            name: 'json',
-            description: 'Respond with a JSON object.',
-            parameters: jsonSchema,
+      const { stream, warnings } = await retry(() =>
+        model.doStream({
+          mode: {
+            type: 'object-tool',
+            tool: {
+              type: 'function',
+              name: 'json',
+              description: 'Respond with a JSON object.',
+              parameters: jsonSchema,
+            },
           },
-        },
-        ...settings,
-        inputFormat: getInputFormat({ prompt, messages }),
-        prompt: convertToLanguageModelPrompt({ system, prompt, messages }),
-      });
+          ...settings,
+          inputFormat: getInputFormat({ prompt, messages }),
+          prompt: convertToLanguageModelPrompt({ system, prompt, messages }),
+        }),
+      );
 
       modelStream = stream.pipeThrough(
         new TransformStream<

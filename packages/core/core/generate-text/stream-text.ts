@@ -6,6 +6,7 @@ import { getInputFormat } from '../prompt/get-input-format';
 import { Prompt } from '../prompt/prompt';
 import { validateCallSettings } from '../prompt/validate-call-settings';
 import { Tool } from '../tool';
+import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
 import { StreamTextHttpResponse } from './stream-text-http-response';
 import { ToToolCall } from './tool-call';
@@ -20,33 +21,37 @@ export async function streamText<TOOLS extends Record<string, Tool>>({
   system,
   prompt,
   messages,
+  maxRetries,
   ...settings
 }: CallSettings &
   Prompt & {
     model: LanguageModelV1;
     tools?: TOOLS;
   }): Promise<StreamTextResult<TOOLS>> {
-  const { stream, warnings } = await model.doStream({
-    mode: {
-      type: 'regular',
-      tools:
-        tools == null
-          ? undefined
-          : Object.entries(tools).map(([name, tool]) => ({
-              type: 'function',
-              name,
-              description: tool.description,
-              parameters: zodToJsonSchema(tool.parameters),
-            })),
-    },
-    ...validateCallSettings(settings),
-    inputFormat: getInputFormat({ prompt, messages }),
-    prompt: convertToLanguageModelPrompt({
-      system,
-      prompt,
-      messages,
+  const retry = retryWithExponentialBackoff({ maxRetries });
+  const { stream, warnings } = await retry(() =>
+    model.doStream({
+      mode: {
+        type: 'regular',
+        tools:
+          tools == null
+            ? undefined
+            : Object.entries(tools).map(([name, tool]) => ({
+                type: 'function',
+                name,
+                description: tool.description,
+                parameters: zodToJsonSchema(tool.parameters),
+              })),
+      },
+      ...validateCallSettings(settings),
+      inputFormat: getInputFormat({ prompt, messages }),
+      prompt: convertToLanguageModelPrompt({
+        system,
+        prompt,
+        messages,
+      }),
     }),
-  });
+  );
 
   const toolStream = runToolsTransformation({
     tools,

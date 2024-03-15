@@ -10,6 +10,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { getInputFormat } from '../prompt/get-input-format';
 import { Prompt } from '../prompt/prompt';
 import { validateCallSettings } from '../prompt/validate-call-settings';
+import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 
 /**
@@ -22,6 +23,7 @@ export async function generateObject<T>({
   system,
   prompt,
   messages,
+  maxRetries,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -29,6 +31,7 @@ export async function generateObject<T>({
     schema: z.Schema<T>;
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
   }): Promise<GenerateObjectResult<T>> {
+  const retry = retryWithExponentialBackoff({ maxRetries });
   const jsonSchema = zodToJsonSchema(schema);
 
   // use the default provider mode when the mode is set to 'auto' or unspecified
@@ -40,16 +43,18 @@ export async function generateObject<T>({
 
   switch (mode) {
     case 'json': {
-      const generateResult = await model.doGenerate({
-        mode: { type: 'object-json' },
-        ...validateCallSettings(settings),
-        inputFormat: getInputFormat({ prompt, messages }),
-        prompt: convertToLanguageModelPrompt({
-          system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-          prompt,
-          messages,
+      const generateResult = await retry(() =>
+        model.doGenerate({
+          mode: { type: 'object-json' },
+          ...validateCallSettings(settings),
+          inputFormat: getInputFormat({ prompt, messages }),
+          prompt: convertToLanguageModelPrompt({
+            system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
+            prompt,
+            messages,
+          }),
         }),
-      });
+      );
 
       if (generateResult.text === undefined) {
         throw new NoTextGeneratedError();
@@ -61,16 +66,18 @@ export async function generateObject<T>({
     }
 
     case 'grammar': {
-      const generateResult = await model.doGenerate({
-        mode: { type: 'object-grammar', schema: jsonSchema },
-        ...settings,
-        inputFormat: getInputFormat({ prompt, messages }),
-        prompt: convertToLanguageModelPrompt({
-          system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-          prompt,
-          messages,
+      const generateResult = await retry(() =>
+        model.doGenerate({
+          mode: { type: 'object-grammar', schema: jsonSchema },
+          ...settings,
+          inputFormat: getInputFormat({ prompt, messages }),
+          prompt: convertToLanguageModelPrompt({
+            system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
+            prompt,
+            messages,
+          }),
         }),
-      });
+      );
 
       if (generateResult.text === undefined) {
         throw new NoTextGeneratedError();
@@ -82,20 +89,22 @@ export async function generateObject<T>({
     }
 
     case 'tool': {
-      const generateResult = await model.doGenerate({
-        mode: {
-          type: 'object-tool',
-          tool: {
-            type: 'function',
-            name: 'json',
-            description: 'Respond with a JSON object.',
-            parameters: jsonSchema,
+      const generateResult = await retry(() =>
+        model.doGenerate({
+          mode: {
+            type: 'object-tool',
+            tool: {
+              type: 'function',
+              name: 'json',
+              description: 'Respond with a JSON object.',
+              parameters: jsonSchema,
+            },
           },
-        },
-        ...settings,
-        inputFormat: getInputFormat({ prompt, messages }),
-        prompt: convertToLanguageModelPrompt({ system, prompt, messages }),
-      });
+          ...settings,
+          inputFormat: getInputFormat({ prompt, messages }),
+          prompt: convertToLanguageModelPrompt({ system, prompt, messages }),
+        }),
+      );
 
       const functionArgs = generateResult.toolCalls?.[0]?.args;
 

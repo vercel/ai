@@ -6,6 +6,7 @@ import { getInputFormat } from '../prompt/get-input-format';
 import { Prompt } from '../prompt/prompt';
 import { validateCallSettings } from '../prompt/validate-call-settings';
 import { Tool } from '../tool/tool';
+import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
 
@@ -18,33 +19,37 @@ export async function generateText<TOOLS extends Record<string, Tool>>({
   system,
   prompt,
   messages,
+  maxRetries,
   ...settings
 }: CallSettings &
   Prompt & {
     model: LanguageModelV1;
     tools?: TOOLS;
   }): Promise<GenerateTextResult<TOOLS>> {
-  const modelResponse = await model.doGenerate({
-    mode: {
-      type: 'regular',
-      tools:
-        tools == null
-          ? undefined
-          : Object.entries(tools).map(([name, tool]) => ({
-              type: 'function',
-              name,
-              description: tool.description,
-              parameters: zodToJsonSchema(tool.parameters),
-            })),
-    },
-    ...validateCallSettings(settings),
-    inputFormat: getInputFormat({ prompt, messages }),
-    prompt: convertToLanguageModelPrompt({
-      system,
-      prompt,
-      messages,
+  const retry = retryWithExponentialBackoff({ maxRetries });
+  const modelResponse = await retry(() =>
+    model.doGenerate({
+      mode: {
+        type: 'regular',
+        tools:
+          tools == null
+            ? undefined
+            : Object.entries(tools).map(([name, tool]) => ({
+                type: 'function',
+                name,
+                description: tool.description,
+                parameters: zodToJsonSchema(tool.parameters),
+              })),
+      },
+      ...validateCallSettings(settings),
+      inputFormat: getInputFormat({ prompt, messages }),
+      prompt: convertToLanguageModelPrompt({
+        system,
+        prompt,
+        messages,
+      }),
     }),
-  });
+  );
 
   // parse tool calls:
   const toolCalls: ToToolCallArray<TOOLS> = [];
