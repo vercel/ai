@@ -80,7 +80,7 @@ export type UseChatHelpers = {
   /** Whether the API request is in progress */
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
-  data?: JSONValue[] | undefined;
+  data?: JSONValue[];
 };
 
 type StreamingReactResponseAction = (payload: {
