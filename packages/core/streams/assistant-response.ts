@@ -1,6 +1,7 @@
 import { AssistantStream } from 'openai/lib/AssistantStream';
 import { formatStreamPart } from '../shared/stream-parts';
 import { AssistantMessage, DataMessage } from '../shared/types';
+import { Run } from 'openai/resources/beta/threads/runs/runs';
 
 type AssistantResponseSettings = {
   threadId: string;
@@ -12,7 +13,7 @@ type AssistantResponseCallback = (options: {
   messageId: string;
   sendMessage: (message: AssistantMessage) => void;
   sendDataMessage: (message: DataMessage) => void;
-  forwardStream: (stream: AssistantStream) => Promise<any>;
+  forwardStream: (stream: AssistantStream) => Promise<Run | undefined>;
 }) => Promise<void>;
 
 export function experimental_AssistantResponse(
@@ -42,7 +43,7 @@ export function experimental_AssistantResponse(
       };
 
       const forwardStream = async (stream: AssistantStream) => {
-        let result: any = undefined;
+        let result: Run | undefined = undefined;
 
         for await (const value of stream) {
           switch (value.event) {
