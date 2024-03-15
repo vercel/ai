@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { readDataStream } from '../shared/read-data-stream';
 import { Message } from '../shared/types';
+import { nanoid } from 'nanoid';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
@@ -172,11 +173,28 @@ export function experimental_useAssistant({
             break;
           }
 
+          case 'text': {
+            // text delta - add to last message:
+            setMessages(messages => {
+              const lastMessage = messages[messages.length - 1];
+              return [
+                ...messages.slice(0, messages.length - 1),
+                {
+                  id: lastMessage.id,
+                  role: lastMessage.role,
+                  content: lastMessage.content + value,
+                },
+              ];
+            });
+
+            break;
+          }
+
           case 'data_message': {
             setMessages(messages => [
               ...messages,
               {
-                id: value.id ?? '',
+                id: value.id ?? nanoid(),
                 role: 'data',
                 content: '',
                 data: value.data,

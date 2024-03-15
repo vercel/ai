@@ -1,5 +1,30 @@
 # ai
 
+## 3.0.12
+
+### Patch Changes
+
+- b99b008: fix(ai/rsc): avoid appending boundary if the same reference was passed
+
+## 3.0.11
+
+### Patch Changes
+
+- ce009e2: Added OpenAI assistants streaming.
+- 3f9bf3e: Updates types to OpenAI SDK 4.29.0
+
+## 3.0.10
+
+### Patch Changes
+
+- 33d261a: fix(ai/rsc): Fix .append() behavior
+
+## 3.0.9
+
+### Patch Changes
+
+- 81ca3d6: fix(ai/rsc): improve .done() argument type
+
 ## 3.0.8
 
 ### Patch Changes

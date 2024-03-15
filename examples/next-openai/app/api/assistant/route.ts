@@ -1,6 +1,5 @@
 import { experimental_AssistantResponse } from 'ai';
 import OpenAI from 'openai';
-import { MessageContentText } from 'openai/resources/beta/threads/messages/messages';
 
 // Create an OpenAI API client (that's edge friendly!)
 const openai = new OpenAI({
@@ -36,9 +35,9 @@ export async function POST(req: Request) {
 
   return experimental_AssistantResponse(
     { threadId, messageId: createdMessage.id },
-    async ({ threadId, sendMessage, sendDataMessage }) => {
+    async ({ forwardStream, sendDataMessage }) => {
       // Run the assistant on the thread
-      const run = await openai.beta.threads.runs.create(threadId, {
+      const runStream = openai.beta.threads.runs.createAndStream(threadId, {
         assistant_id:
           process.env.ASSISTANT_ID ??
           (() => {
@@ -46,108 +45,72 @@ export async function POST(req: Request) {
           })(),
       });
 
-      async function waitForRun(run: OpenAI.Beta.Threads.Runs.Run) {
-        // Poll for status change
-        while (run.status === 'queued' || run.status === 'in_progress') {
-          // delay for 500ms:
-          await new Promise(resolve => setTimeout(resolve, 500));
+      // forward run status would stream message deltas
+      let runResult = await forwardStream(runStream);
 
-          run = await openai.beta.threads.runs.retrieve(threadId!, run.id);
-        }
+      // status can be: queued, in_progress, requires_action, cancelling, cancelled, failed, completed, or expired
+      while (
+        runResult.status === 'requires_action' &&
+        runResult.required_action?.type === 'submit_tool_outputs'
+      ) {
+        const tool_outputs =
+          runResult.required_action.submit_tool_outputs.tool_calls.map(
+            (toolCall: any) => {
+              const parameters = JSON.parse(toolCall.function.arguments);
 
-        // Check the run status
-        if (
-          run.status === 'cancelled' ||
-          run.status === 'cancelling' ||
-          run.status === 'failed' ||
-          run.status === 'expired'
-        ) {
-          throw new Error(run.status);
-        }
+              switch (toolCall.function.name) {
+                case 'getRoomTemperature': {
+                  const temperature =
+                    homeTemperatures[
+                      parameters.room as keyof typeof homeTemperatures
+                    ];
 
-        if (run.status === 'requires_action') {
-          if (run.required_action?.type === 'submit_tool_outputs') {
-            const tool_outputs =
-              run.required_action.submit_tool_outputs.tool_calls.map(
-                toolCall => {
-                  const parameters = JSON.parse(toolCall.function.arguments);
+                  return {
+                    tool_call_id: toolCall.id,
+                    output: temperature.toString(),
+                  };
+                }
 
-                  switch (toolCall.function.name) {
-                    case 'getRoomTemperature': {
-                      const temperature =
-                        homeTemperatures[
-                          parameters.room as keyof typeof homeTemperatures
-                        ];
+                case 'setRoomTemperature': {
+                  const oldTemperature =
+                    homeTemperatures[
+                      parameters.room as keyof typeof homeTemperatures
+                    ];
 
-                      return {
-                        tool_call_id: toolCall.id,
-                        output: temperature.toString(),
-                      };
-                    }
+                  homeTemperatures[
+                    parameters.room as keyof typeof homeTemperatures
+                  ] = parameters.temperature;
 
-                    case 'setRoomTemperature': {
-                      const oldTemperature =
-                        homeTemperatures[
-                          parameters.room as keyof typeof homeTemperatures
-                        ];
+                  sendDataMessage({
+                    role: 'data',
+                    data: {
+                      oldTemperature,
+                      newTemperature: parameters.temperature,
+                      description: `Temperature in ${parameters.room} changed from ${oldTemperature} to ${parameters.temperature}`,
+                    },
+                  });
 
-                      homeTemperatures[
-                        parameters.room as keyof typeof homeTemperatures
-                      ] = parameters.temperature;
+                  return {
+                    tool_call_id: toolCall.id,
+                    output: `temperature set successfully`,
+                  };
+                }
 
-                      sendDataMessage({
-                        role: 'data',
-                        data: {
-                          oldTemperature,
-                          newTemperature: parameters.temperature,
-                          description: `Temperature in ${parameters.room} changed from ${oldTemperature} to ${parameters.temperature}`,
-                        },
-                      });
+                default:
+                  throw new Error(
+                    `Unknown tool call function: ${toolCall.function.name}`,
+                  );
+              }
+            },
+          );
 
-                      return {
-                        tool_call_id: toolCall.id,
-                        output: `temperature set successfully`,
-                      };
-                    }
-
-                    default:
-                      throw new Error(
-                        `Unknown tool call function: ${toolCall.function.name}`,
-                      );
-                  }
-                },
-              );
-
-            run = await openai.beta.threads.runs.submitToolOutputs(
-              threadId!,
-              run.id,
-              { tool_outputs },
-            );
-
-            await waitForRun(run);
-          }
-        }
-      }
-
-      await waitForRun(run);
-
-      // Get new thread messages (after our message)
-      const responseMessages = (
-        await openai.beta.threads.messages.list(threadId, {
-          after: createdMessage.id,
-          order: 'asc',
-        })
-      ).data;
-
-      // Send the messages
-      for (const message of responseMessages) {
-        sendMessage({
-          id: message.id,
-          role: 'assistant',
-          content: message.content.filter(
-            content => content.type === 'text',
-          ) as Array<MessageContentText>,
-        });
+        runResult = await forwardStream(
+          openai.beta.threads.runs.submitToolOutputsStream(
+            threadId,
+            runResult.id,
+            { tool_outputs },
+          ),
+        );
       }
     },
   );
