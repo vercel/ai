@@ -24,6 +24,7 @@ export async function generateObject<T>({
   prompt,
   messages,
   maxRetries,
+  abortSignal,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -53,6 +54,7 @@ export async function generateObject<T>({
             prompt,
             messages,
           }),
+          abortSignal,
         }),
       );
 
@@ -76,6 +78,7 @@ export async function generateObject<T>({
             prompt,
             messages,
           }),
+          abortSignal,
         }),
       );
 
@@ -103,6 +106,7 @@ export async function generateObject<T>({
           ...settings,
           inputFormat: getInputFormat({ prompt, messages }),
           prompt: convertToLanguageModelPrompt({ system, prompt, messages }),
+          abortSignal,
         }),
       );
 

@@ -20,6 +20,7 @@ export async function generateText<TOOLS extends Record<string, Tool>>({
   prompt,
   messages,
   maxRetries,
+  abortSignal,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -48,6 +49,7 @@ export async function generateText<TOOLS extends Record<string, Tool>>({
         prompt,
         messages,
       }),
+      abortSignal,
     }),
   );
 

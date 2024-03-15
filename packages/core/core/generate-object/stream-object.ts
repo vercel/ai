@@ -26,6 +26,7 @@ export async function streamObject<T>({
   prompt,
   messages,
   maxRetries,
+  abortSignal,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -55,6 +56,7 @@ export async function streamObject<T>({
             prompt,
             messages,
           }),
+          abortSignal,
         }),
       );
 
@@ -91,6 +93,7 @@ export async function streamObject<T>({
             prompt,
             messages,
           }),
+          abortSignal,
         }),
       );
 
@@ -131,6 +134,7 @@ export async function streamObject<T>({
           ...settings,
           inputFormat: getInputFormat({ prompt, messages }),
           prompt: convertToLanguageModelPrompt({ system, prompt, messages }),
+          abortSignal,
         }),
       );
 

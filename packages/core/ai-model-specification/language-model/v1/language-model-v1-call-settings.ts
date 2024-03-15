@@ -51,4 +51,9 @@ export type LanguageModelV1CallSettings = {
    * by the model, calls will generate deterministic results.
    */
   seed?: number;
+
+  /**
+   * Abort signal for cancelling the operation.
+   */
+  abortSignal?: AbortSignal;
 };

@@ -22,6 +22,7 @@ export async function streamText<TOOLS extends Record<string, Tool>>({
   prompt,
   messages,
   maxRetries,
+  abortSignal,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -50,6 +51,7 @@ export async function streamText<TOOLS extends Record<string, Tool>>({
         prompt,
         messages,
       }),
+      abortSignal,
     }),
   );
 

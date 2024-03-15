@@ -149,6 +149,7 @@ export class OpenAICompletionLanguageModel<SETTINGS extends { id: string }>
       successfulResponseHandler: createJsonResponseHandler(
         openAICompletionResponseSchema,
       ),
+      abortSignal: options.abortSignal,
     });
 
     return {
@@ -171,6 +172,7 @@ export class OpenAICompletionLanguageModel<SETTINGS extends { id: string }>
       successfulResponseHandler: createEventSourceResponseHandler(
         openaiCompletionChunkSchema,
       ),
+      abortSignal: options.abortSignal,
     });
 
     return {

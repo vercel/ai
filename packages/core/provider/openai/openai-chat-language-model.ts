@@ -148,6 +148,7 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
       successfulResponseHandler: createJsonResponseHandler(
         openAIChatResponseSchema,
       ),
+      abortSignal: options.abortSignal,
     });
 
     const message = response.choices[0].message;
@@ -178,6 +179,7 @@ export class OpenAIChatLanguageModel<SETTINGS extends { id: string }>
       successfulResponseHandler: createEventSourceResponseHandler(
         openaiChatChunkSchema,
       ),
+      abortSignal: options.abortSignal,
     });
 
     const toolCalls: Array<{

@@ -50,4 +50,9 @@ export type CallSettings = {
    * Maximum number of retries. Set to 0 to disable retries. Default is 2.
    */
   maxRetries?: number;
+
+  /**
+   * Abort signal.
+   */
+  abortSignal?: AbortSignal;
 };
