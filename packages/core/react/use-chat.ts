@@ -65,7 +65,7 @@ export type UseChatHelpers = {
   files: File[];
   /** setState-powered method to update the files value */
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  /** An input/textarea-ready onChange handler to control the value of the input */
+  /** An input-ready onChange handler to control the value of the files */
   handleFilesChange: (
     e:
        React.ChangeEvent<HTMLInputElement>,
@@ -80,7 +80,7 @@ export type UseChatHelpers = {
   /** Whether the API request is in progress */
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
-  data?: JSONValue[];
+  data?: JSONValue[] | undefined;
 };
 
 type StreamingReactResponseAction = (payload: {
@@ -106,7 +106,9 @@ const getStreamedResponse = async (
   // immediately.
   const previousMessages = messagesRef.current;
   mutate(chatRequest.messages, false);
-
+  console.log(
+    'FILES: ' + chatRequest.data,
+  );
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
@@ -171,7 +173,14 @@ const getStreamedResponse = async (
 
   return await callChatApi({
     api,
-    messages: constructedMessagesPayload,
+    messages: [
+      ...constructedMessagesPayload,
+      {
+        ...constructedMessagesPayload.slice(-1)[0],
+        content:
+          `Files selected: ${chatRequest.data!.files}\nQuery:` + constructedMessagesPayload.slice(-1)[0].content,
+      } as Message,
+    ],
     body: {
       data: chatRequest.data,
       ...extraMetadataRef.current.body,
@@ -290,10 +299,9 @@ export function useChat({
       try {
         mutateLoading(true);
         setError(undefined);
-
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
-
+        
         await processChatStream({
           getStreamedResponse: () =>
             getStreamedResponse(
@@ -370,7 +378,8 @@ export function useChat({
       if (!message.id) {
         message.id = generateId();
       }
-
+      console.log("Está en el append");
+      console.log("APPEND FILES: " + JSON.stringify(files?.map((file) => URL.createObjectURL(file))));
       const chatRequest: ChatRequest = {
         messages: messagesRef.current.concat(message as Message),
         options,
@@ -454,41 +463,25 @@ export function useChat({
           ...extraMetadataRef.current,
           ...metadata,
         };
-      }
-
+      }   
       e.preventDefault();
       if (!input) return;
 
-      // Check if any files were selected
-      if (files.length > 0) {
-        // Prepend image URLs to the input
-        const imageUrls = files
-          .map(file => URL.createObjectURL(file))
-          .join(',');
-        const inputWithImages = imageUrls + '\n' + input;
-
-        // Append message with images
-        append(
-          {
-            content: inputWithImages,
-            role: 'user',
-            createdAt: new Date(),
-          },
-          options,
-        );
-      } else {
-        // No images, append regular message
         append(
           {
             content: input,
             role: 'user',
             createdAt: new Date(),
           },
-          options,
+          {
+            ...options,
+            data: {
+              files: JSON.stringify(files.map((file) => ({name: file.name,url: URL.createObjectURL(file), type: file.type})))}, 
+
+          }
         );
-      }
+      setFiles([]);
       setInput('');
-      setFiles([]); // Reset selected files
     },
     [input, append],
   );
@@ -498,7 +491,9 @@ export function useChat({
   };
   const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
+    console.log("SE METE EN HANDLEFILESCHANGE");
     if (!fileList) return;
+    console.log('HANDLEFILESCHANGE: ' + JSON.stringify(Array.from(fileList).map((file) => URL.createObjectURL(file))));
     setFiles(Array.from(fileList));
   };
 
