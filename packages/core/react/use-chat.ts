@@ -106,9 +106,6 @@ const getStreamedResponse = async (
   // immediately.
   const previousMessages = messagesRef.current;
   mutate(chatRequest.messages, false);
-  console.log(
-    'FILES: ' + chatRequest.data,
-  );
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
@@ -378,8 +375,6 @@ export function useChat({
       if (!message.id) {
         message.id = generateId();
       }
-      console.log("Está en el append");
-      console.log("APPEND FILES: " + JSON.stringify(files?.map((file) => URL.createObjectURL(file))));
       const chatRequest: ChatRequest = {
         messages: messagesRef.current.concat(message as Message),
         options,
@@ -491,9 +486,7 @@ export function useChat({
   };
   const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
-    console.log("SE METE EN HANDLEFILESCHANGE");
     if (!fileList) return;
-    console.log('HANDLEFILESCHANGE: ' + JSON.stringify(Array.from(fileList).map((file) => URL.createObjectURL(file))));
     setFiles(Array.from(fileList));
   };
 
