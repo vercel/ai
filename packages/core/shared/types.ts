@@ -199,7 +199,11 @@ export type UseChatOptions = {
    * Callback function to be called when the API response is received.
    */
   onResponse?: (response: Response) => void | Promise<void>;
-
+  /**
+   * Callback function to be called whenever a user message is appended to
+   * the chat list using the append function
+   */
+  onAppend ?: (message: Message | CreateMessage) => void;
   /**
    * Callback function to be called when the chat is finished streaming.
    */

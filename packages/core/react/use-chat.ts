@@ -226,6 +226,7 @@ export function useChat({
   experimental_onFunctionCall,
   experimental_onToolCall,
   onResponse,
+  onAppend,
   onFinish,
   onError,
   credentials,
@@ -374,6 +375,9 @@ export function useChat({
     ) => {
       if (!message.id) {
         message.id = generateId();
+      }
+      if (onAppend) {
+        onAppend(message);
       }
       const chatRequest: ChatRequest = {
         messages: messagesRef.current.concat(message as Message),
