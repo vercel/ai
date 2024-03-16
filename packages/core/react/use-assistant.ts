@@ -70,7 +70,7 @@ export type UseAssistantOptions = {
    * An optional string that represents the ID of an existing thread.
    * If not provided, a new thread will be created.
    */
-  threadId?: string;
+  threadId?: string | undefined;
 
   /**
    * An optional literal that sets the mode of credentials to be used on the request.
