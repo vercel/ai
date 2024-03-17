@@ -33,7 +33,7 @@ export class experimental_StreamingReactResponse {
     options?: {
       ui?: (message: {
         content: string;
-        data?: JSONValue[] | undefined;
+        data?: JSONValue[];
       }) => UINode | Promise<UINode>;
       data?: experimental_StreamData;
       generateId?: IdGenerator;
