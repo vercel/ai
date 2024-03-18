@@ -3,6 +3,12 @@ import { z } from 'zod';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { generateText } from './generate-text';
 
+const dummyResponseValues = {
+  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+  finishReason: 'stop' as const,
+  usage: { promptTokens: 10, completionTokens: 20 },
+};
+
 describe('result.text', () => {
   it('should generate text', async () => {
     const result = await generateText({
@@ -14,6 +20,7 @@ describe('result.text', () => {
           ]);
 
           return {
+            ...dummyResponseValues,
             text: `Hello, world!`,
           };
         },
@@ -64,6 +71,7 @@ describe('result.toolCalls', () => {
           ]);
 
           return {
+            ...dummyResponseValues,
             toolCalls: [
               {
                 toolCallType: 'function',
@@ -129,6 +137,7 @@ describe('result.toolResults', () => {
           ]);
 
           return {
+            ...dummyResponseValues,
             toolCalls: [
               {
                 toolCallType: 'function',
