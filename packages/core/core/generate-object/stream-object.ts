@@ -14,6 +14,10 @@ import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../util/async-iterable-stream';
 
 /**
  * Stream an object as a partial object stream.
@@ -173,50 +177,38 @@ export async function streamObject<T>({
 }
 
 export class StreamObjectResult<T> {
-  readonly objectStream: AsyncIterable<
-    PartialDeep<T, { recurseIntoArrays: true }>
-  >;
+  private readonly originalStream: ReadableStream<string | ErrorStreamPart>;
 
-  constructor(modelStream: ReadableStream<string | ErrorStreamPart>) {
+  constructor(stream: ReadableStream<string | ErrorStreamPart>) {
+    this.originalStream = stream;
+  }
+
+  get objectStream(): AsyncIterableStream<
+    PartialDeep<T, { recurseIntoArrays: true }>
+  > {
     let accumulatedText = '';
     let latestObject: PartialDeep<T, { recurseIntoArrays: true }> | undefined =
       undefined;
 
-    this.objectStream = {
-      [Symbol.asyncIterator](): AsyncIterator<
-        PartialDeep<T, { recurseIntoArrays: true }>
-      > {
-        const reader = modelStream.getReader();
-        return {
-          next: async () => {
-            // loops until a text delta is found or the stream is finished:
-            while (true) {
-              const { done, value } = await reader.read();
+    return createAsyncIterableStream(this.originalStream, {
+      transform(chunk, controller) {
+        if (typeof chunk === 'string') {
+          accumulatedText += chunk;
 
-              if (done) {
-                return { value: null, done: true };
-              }
+          const currentObject = parsePartialJson(
+            accumulatedText,
+          ) as PartialDeep<T, { recurseIntoArrays: true }>;
 
-              if (typeof value === 'string') {
-                accumulatedText += value;
+          if (!isDeepEqualData(latestObject, currentObject)) {
+            latestObject = currentObject;
 
-                const currentObject = parsePartialJson(
-                  accumulatedText,
-                ) as PartialDeep<T, { recurseIntoArrays: true }>;
+            controller.enqueue(currentObject);
+          }
+        }
 
-                if (!isDeepEqualData(latestObject, currentObject)) {
-                  latestObject = currentObject;
-
-                  return { value: currentObject, done: false };
-                }
-              }
-
-              // TODO handle error parts
-            }
-          },
-        };
+        // TODO handle error parts
       },
-    };
+    });
   }
 }
 
