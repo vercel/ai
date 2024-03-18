@@ -190,7 +190,7 @@ export class StreamObjectResult<T> {
         }
 
         if (typeof chunk === 'object' && chunk.type === 'error') {
-          throw chunk.error; // TODO special wrapper error?
+          throw chunk.error;
         }
       },
     });

@@ -98,8 +98,7 @@ export class StreamTextResult<TOOLS extends Record<string, Tool>> {
             controller.enqueue(chunk.textDelta);
           }
         } else if (chunk.type === 'error') {
-          // TODO log / store errors
-          console.error('Error:', chunk.error);
+          throw chunk.error;
         }
       },
     });
