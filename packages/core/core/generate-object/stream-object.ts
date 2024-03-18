@@ -189,7 +189,9 @@ export class StreamObjectResult<T> {
           }
         }
 
-        // TODO handle error parts
+        if (typeof chunk === 'object' && chunk.type === 'error') {
+          throw chunk.error; // TODO special wrapper error?
+        }
       },
     });
   }

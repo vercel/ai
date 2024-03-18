@@ -1,5 +1,8 @@
 import { nanoid } from 'nanoid';
-import { LanguageModelV1StreamPart } from '../../ai-model-specification/index';
+import {
+  LanguageModelV1StreamPart,
+  NoSuchToolError,
+} from '../../ai-model-specification';
 import { Tool } from '../tool';
 import { TextStreamPart } from './stream-text';
 import { parseToolCall } from './tool-call';
@@ -48,10 +51,12 @@ export function runToolsTransformation<TOOLS extends Record<string, Tool>>({
           const toolName = chunk.toolName as keyof TOOLS & string;
 
           if (tools == null) {
-            // TODO add dedicated error to list of errors (NoSuchToolError)
             toolResultsStreamController!.enqueue({
               type: 'error',
-              error: `Tool ${chunk.toolName} not found (no tools provided)`,
+              error: new NoSuchToolError({
+                message: `Tool ${chunk.toolName} not found (no tools provided).`,
+                toolName: chunk.toolName,
+              }),
             });
             break;
           }
@@ -59,10 +64,12 @@ export function runToolsTransformation<TOOLS extends Record<string, Tool>>({
           const tool = tools[toolName];
 
           if (tool == null) {
-            // TODO add dedicated error to list of errors (NoSuchToolError)
             toolResultsStreamController!.enqueue({
               type: 'error',
-              error: `Tool ${chunk.toolName} not found`,
+              error: new NoSuchToolError({
+                message: `Tool ${chunk.toolName} not found.`,
+                toolName: chunk.toolName,
+              }),
             });
 
             break;

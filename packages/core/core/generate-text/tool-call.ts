@@ -2,8 +2,9 @@ import { ValueOf } from 'type-fest';
 import { z } from 'zod';
 import {
   LanguageModelV1FunctionToolCall,
+  NoSuchToolError,
   safeParseJSON,
-} from '../../ai-model-specification/index';
+} from '../../ai-model-specification';
 import { Tool } from '../tool';
 
 export interface ToolCall<NAME extends string, ARGS> {
@@ -35,15 +36,19 @@ export function parseToolCall<TOOLS extends Record<string, Tool>>({
   const toolName = toolCall.toolName as keyof TOOLS & string;
 
   if (tools == null) {
-    // TODO add dedicated error to list of errors (NoSuchToolError)
-    throw new Error(`Tool not found: ${toolName}`);
+    throw new NoSuchToolError({
+      message: `Tool ${toolCall.toolName} not found (no tools provided).`,
+      toolName: toolCall.toolName,
+    });
   }
 
   const tool = tools[toolName];
 
-  // TODO add dedicated error to list of errors (NoSuchToolError)
   if (tool == null) {
-    throw new Error(`Tool not found: ${toolName}`);
+    throw new NoSuchToolError({
+      message: `Tool ${toolCall.toolName} not found.`,
+      toolName: toolCall.toolName,
+    });
   }
 
   const parseResult = safeParseJSON({
