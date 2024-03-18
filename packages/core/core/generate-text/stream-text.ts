@@ -8,7 +8,6 @@ import { validateCallSettings } from '../prompt/validate-call-settings';
 import { Tool } from '../tool';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
-import { StreamTextHttpResponse } from './stream-text-http-response';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
 
@@ -145,9 +144,5 @@ export class StreamTextResult<TOOLS extends Record<string, Tool>> {
         };
       },
     };
-  }
-
-  toResponse() {
-    return new StreamTextHttpResponse(this.rootStream);
   }
 }
