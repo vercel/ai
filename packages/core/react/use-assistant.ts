@@ -1,9 +1,10 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
+import { nanoid } from 'nanoid';
 import { useState } from 'react';
+
 import { readDataStream } from '../shared/read-data-stream';
 import { Message } from '../shared/types';
-import { nanoid } from 'nanoid';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
@@ -12,6 +13,11 @@ export type UseAssistantHelpers = {
    * The current array of chat messages.
    */
   messages: Message[];
+
+  /**
+   * setState-powered method to update the messages array.
+   */
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 
   /**
    * The current thread ID.
@@ -236,6 +242,7 @@ export function experimental_useAssistant({
 
   return {
     messages,
+    setMessages,
     threadId,
     input,
     setInput,

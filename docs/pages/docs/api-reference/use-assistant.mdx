@@ -129,6 +129,11 @@ The `experimental_useAssistant` hook returns an object with several helper metho
 <OptionTable
   options={[
     ['messages', 'Message[]', 'The current array of chat messages.'],
+    [
+      'setMessages',
+      'React.Dispatch<React.SetStateAction<Message>>',
+      'Function to update the `messages` array.',
+    ],
     ['threadId', 'string | undefined', 'The current thread ID.'],
     ['input', 'string', 'The current value of the input field.'],
     [
