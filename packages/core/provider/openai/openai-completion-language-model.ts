@@ -148,10 +148,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    const args = this.getArgs(options);
+
     const response = await postJsonToApi({
       url: `${this.config.baseUrl}/completions`,
       headers: this.config.headers(),
-      body: this.getArgs(options),
+      body: args,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openAICompletionResponseSchema,
@@ -159,8 +161,11 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       abortSignal: options.abortSignal,
     });
 
+    const { prompt: rawPrompt, ...rawSettings } = args;
+
     return {
       text: response.choices[0].text,
+      rawCall: { rawPrompt, rawSettings },
       warnings: [],
     };
   }
@@ -168,6 +173,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    const args = this.getArgs(options);
+
     const response = await postJsonToApi({
       url: `${this.config.baseUrl}/completions`,
       headers: this.config.headers(),
@@ -182,8 +189,9 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       abortSignal: options.abortSignal,
     });
 
+    const { prompt: rawPrompt, ...rawSettings } = args;
+
     return {
-      warnings: [],
       stream: response.pipeThrough(
         new TransformStream<
           ParsedChunk<z.infer<typeof openaiCompletionChunkSchema>>,
@@ -206,6 +214,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
           },
         }),
       ),
+      rawCall: { rawPrompt, rawSettings },
+      warnings: [],
     };
   }
 }

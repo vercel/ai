@@ -65,22 +65,22 @@ export type LanguageModelV1 = {
     //   completionTokens: number;
     // };
 
-    // /**
-    //  * Raw prompt and setting information for observability provider integration.
-    //  */
-    // rawCall: {
-    //   /**
-    //    * Raw prompt after expansion and conversion to the format that the
-    //    * provider uses to send the information to their API.
-    //    */
-    //   rawPrompt: unknown;
+    /**
+     * Raw prompt and setting information for observability provider integration.
+     */
+    rawCall: {
+      /**
+       * Raw prompt after expansion and conversion to the format that the
+       * provider uses to send the information to their API.
+       */
+      rawPrompt: unknown;
 
-    //   /**
-    //    * Raw settings that are used for the API call. Includes provider-specific
-    //    * settings.
-    //    */
-    //   rawSettings: Record<string, unknown>;
-    // };
+      /**
+       * Raw settings that are used for the API call. Includes provider-specific
+       * settings.
+       */
+      rawSettings: Record<string, unknown>;
+    };
 
     warnings?: LanguageModelV1CallWarning[];
   }>;
@@ -96,22 +96,22 @@ export type LanguageModelV1 = {
   doStream(options: LanguageModelV1CallOptions): PromiseLike<{
     stream: ReadableStream<LanguageModelV1StreamPart>;
 
-    // /**
-    //  * Raw prompt and setting information for observability provider integration.
-    //  */
-    // rawCall: {
-    //   /**
-    //    * Raw prompt after expansion and conversion to the format that the
-    //    * provider uses to send the information to their API.
-    //    */
-    //   rawPrompt: unknown;
+    /**
+     * Raw prompt and setting information for observability provider integration.
+     */
+    rawCall: {
+      /**
+       * Raw prompt after expansion and conversion to the format that the
+       * provider uses to send the information to their API.
+       */
+      rawPrompt: unknown;
 
-    //   /**
-    //    * Raw settings that are used for the API call. Includes provider-specific
-    //    * settings.
-    //    */
-    //   rawSettings: Record<string, unknown>;
-    // };
+      /**
+       * Raw settings that are used for the API call. Includes provider-specific
+       * settings.
+       */
+      rawSettings: Record<string, unknown>;
+    };
 
     warnings?: LanguageModelV1CallWarning[];
   }>;

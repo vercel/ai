@@ -142,10 +142,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    const args = this.getArgs(options);
+
     const response = await postJsonToApi({
       url: `${this.config.baseUrl}/chat/completions`,
       headers: this.config.headers(),
-      body: this.getArgs(options),
+      body: args,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openAIChatResponseSchema,
@@ -155,6 +157,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     const message = response.choices[0].message;
 
+    const { messages: rawPrompt, ...rawSettings } = args;
+
     return {
       text: message.content ?? undefined,
       toolCalls: message.tool_calls?.map(toolCall => ({
@@ -163,6 +167,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         toolName: toolCall.function.name,
         args: toolCall.function.arguments!,
       })),
+      rawCall: { rawPrompt, rawSettings },
       warnings: [],
     };
   }
@@ -170,11 +175,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    const args = this.getArgs(options);
+
     const response = await postJsonToApi({
       url: `${this.config.baseUrl}/chat/completions`,
       headers: this.config.headers(),
       body: {
-        ...this.getArgs(options),
+        ...args,
         stream: true,
       },
       failedResponseHandler: openaiFailedResponseHandler,
@@ -183,6 +190,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       ),
       abortSignal: options.abortSignal,
     });
+
+    const { messages: rawPrompt, ...rawSettings } = args;
 
     const toolCalls: Array<{
       id?: string;
@@ -194,7 +203,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     }> = [];
 
     return {
-      warnings: [],
       stream: response.pipeThrough(
         new TransformStream<
           ParsedChunk<z.infer<typeof openaiChatChunkSchema>>,
@@ -268,6 +276,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           },
         }),
       ),
+      rawCall: { rawPrompt, rawSettings },
+      warnings: [],
     };
   }
 }
