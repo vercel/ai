@@ -75,59 +75,59 @@ export function runToolsTransformation<TOOLS extends Record<string, Tool>>({
             break;
           }
 
-          // TODO try catch or safe parse
-          const toolCall = parseToolCall({
-            toolCall: chunk,
-            tools,
-          });
+          try {
+            const toolCall = parseToolCall({
+              toolCall: chunk,
+              tools,
+            });
 
-          // TODO dedicate tool call error (InvalidToolArgumentsError)
-          // toolResultsStreamController!.enqueue({
-          //   type: 'error',
-          //   error: `Tool call ${toolName} has invalid arguments: ${parseResult.error}`,
-          // });
+            controller.enqueue({
+              type: 'tool-call',
+              ...toolCall,
+            });
 
-          controller.enqueue({
-            type: 'tool-call',
-            ...toolCall,
-          });
+            if (tool.execute != null) {
+              const toolExecutionId = nanoid(); // use our own id to guarantee uniqueness
+              outstandingToolCalls.add(toolExecutionId);
 
-          if (tool.execute != null) {
-            const toolExecutionId = nanoid(); // use our own id to guarantee uniqueness
-            outstandingToolCalls.add(toolExecutionId);
+              // Note: we don't await the tool execution here, because we want to process
+              // the next chunk as soon as possible. This is important for the case where
+              // the tool execution takes a long time.
+              tool.execute(toolCall.args).then(
+                (result: any) => {
+                  toolResultsStreamController!.enqueue({
+                    type: 'tool-result',
+                    ...toolCall,
+                    result,
+                  } as any);
 
-            // Note: we don't await the tool execution here, because we want to process
-            // the next chunk as soon as possible. This is important for the case where
-            // the tool execution takes a long time.
-            tool.execute(toolCall.args).then(
-              (result: any) => {
-                toolResultsStreamController!.enqueue({
-                  type: 'tool-result',
-                  ...toolCall,
-                  result,
-                } as any);
+                  outstandingToolCalls.delete(toolExecutionId);
 
-                outstandingToolCalls.delete(toolExecutionId);
+                  // close the tool results controller if no more outstanding tool calls
+                  if (canClose && outstandingToolCalls.size === 0) {
+                    toolResultsStreamController!.close();
+                  }
+                },
+                (error: any) => {
+                  toolResultsStreamController!.enqueue({
+                    type: 'error',
+                    error,
+                  });
 
-                // close the tool results controller if no more outstanding tool calls
-                if (canClose && outstandingToolCalls.size === 0) {
-                  toolResultsStreamController!.close();
-                }
-              },
-              (error: any) => {
-                toolResultsStreamController!.enqueue({
-                  type: 'error',
-                  error,
-                });
+                  outstandingToolCalls.delete(toolExecutionId);
 
-                outstandingToolCalls.delete(toolExecutionId);
-
-                // close the tool results controller if no more outstanding tool calls
-                if (canClose && outstandingToolCalls.size === 0) {
-                  toolResultsStreamController!.close();
-                }
-              },
-            );
+                  // close the tool results controller if no more outstanding tool calls
+                  if (canClose && outstandingToolCalls.size === 0) {
+                    toolResultsStreamController!.close();
+                  }
+                },
+              );
+            }
+          } catch (error) {
+            toolResultsStreamController!.enqueue({
+              type: 'error',
+              error,
+            });
           }
 
           break;

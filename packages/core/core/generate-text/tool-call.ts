@@ -1,6 +1,7 @@
 import { ValueOf } from 'type-fest';
 import { z } from 'zod';
 import {
+  InvalidToolArgumentsError,
   LanguageModelV1FunctionToolCall,
   NoSuchToolError,
   safeParseJSON,
@@ -56,19 +57,17 @@ export function parseToolCall<TOOLS extends Record<string, Tool>>({
     schema: tool.parameters,
   });
 
-  // TODO dedicate tool call error (InvalidToolArgumentsError)
   if (parseResult.success === false) {
-    throw new Error(
-      `Tool call ${toolName} has invalid arguments: ${parseResult.error}`,
-    );
+    throw new InvalidToolArgumentsError({
+      toolName,
+      toolArgs: toolCall.args,
+      cause: parseResult.error,
+    });
   }
-
-  // TODO should have typesafe tool call arguments
-  const toolArgs = parseResult.value;
 
   return {
     toolCallId: toolCall.toolCallId,
     toolName,
-    args: toolArgs,
+    args: parseResult.value,
   };
 }
