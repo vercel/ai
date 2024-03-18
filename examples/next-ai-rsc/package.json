@@ -1,7 +1,7 @@
 {
   "name": "ai-rsc-demo",
   "private": true,
-  "version": "0.0.1-canary.0",
+  "version": "0.0.1-canary.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -19,7 +19,7 @@
     "@radix-ui/react-tooltip": "^1.0.7",
     "@vercel/analytics": "^1.2.2",
     "@vercel/kv": "^1.0.1",
-    "ai": "3.1.0-canary.2",
+    "ai": "3.1.0-canary.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "d3-scale": "^4.0.2",

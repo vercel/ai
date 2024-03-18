@@ -1,5 +1,12 @@
 # ai
 
+## 3.1.0-canary.3
+
+### Patch Changes
+
+- 42209be: AssistantResponse: specify forwardStream return type.
+- Updated API.
+
 ## 3.0.12
 
 ### Patch Changes
