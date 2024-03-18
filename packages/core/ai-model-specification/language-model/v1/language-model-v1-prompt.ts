@@ -37,9 +37,9 @@ export interface LanguageModelV1ImagePart {
   type: 'image';
 
   /**
-   * Image data as a Uint8Array.
+   * Image data as a Uint8Array (e.g. from a Blob or Buffer) or a URL.
    */
-  image: Uint8Array;
+  image: Uint8Array | URL;
 
   /**
    * Optional mime type of the image.

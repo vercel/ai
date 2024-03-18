@@ -3,7 +3,7 @@ import {
   LanguageModelV1Message,
   LanguageModelV1Prompt,
   LanguageModelV1TextPart,
-} from '../language-model';
+} from '../../ai-model-specification';
 import { convertDataContentToUint8Array } from './data-content';
 import { Prompt } from './prompt';
 
@@ -57,7 +57,10 @@ export function convertToLanguageModelPrompt({
                     case 'image': {
                       return {
                         type: 'image',
-                        image: convertDataContentToUint8Array(part.image),
+                        image:
+                          part.image instanceof URL
+                            ? part.image
+                            : convertDataContentToUint8Array(part.image),
                         mimeType: part.mimeType,
                       };
                     }

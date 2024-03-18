@@ -28,9 +28,12 @@ export function convertToOpenAIChatMessages(
                 return {
                   type: 'image_url',
                   image_url: {
-                    url: `data:${
-                      part.mimeType ?? 'image/jpeg'
-                    };base64,${convertUint8ArrayToBase64(part.image)}`,
+                    url:
+                      part.image instanceof URL
+                        ? part.image.toString()
+                        : `data:${
+                            part.mimeType ?? 'image/jpeg'
+                          };base64,${convertUint8ArrayToBase64(part.image)}`,
                   },
                 };
               }

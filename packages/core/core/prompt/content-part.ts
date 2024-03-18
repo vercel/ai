@@ -13,9 +13,12 @@ export interface ImagePart {
   type: 'image';
 
   /**
-   * Image data. Can either be a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer.
+   * Image data. Can either be:
+   *
+   * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
+   * - URL: a URL that points to the image
    */
-  image: DataContent;
+  image: DataContent | URL;
 
   /**
    * Optional mime type of the image.
