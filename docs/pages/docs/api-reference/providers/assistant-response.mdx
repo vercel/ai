@@ -35,7 +35,7 @@ The process parameter is a callback in which you can run the assistant on thread
 
 It gets invoked with the following functions that you can use to send messages and data messages to the client:
 
-- `forwardStream: (stream: AssistantStream) => void`: Forwards the assistant response stream to the client.
+- `forwardStream: (stream: AssistantStream) => Run | undefined`: Forwards the assistant response stream to the client. Returns the `Run` object after it completes, or when it requires an action.
 - `sendDataMessage: (message: DataMessage) => void`: Send a data message to the client. You can use this to provide information for rendering custom UIs while the assistant is processing the thread.
 
 ## Example
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
 
       // status can be: queued, in_progress, requires_action, cancelling, cancelled, failed, completed, or expired
       while (
-        runResult.status === 'requires_action' &&
+        runResult?.status === 'requires_action' &&
         runResult.required_action?.type === 'submit_tool_outputs'
       ) {
         const tool_outputs =

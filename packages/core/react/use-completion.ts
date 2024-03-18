@@ -56,7 +56,7 @@ export type UseCompletionHelpers = {
   /** Whether the API request is in progress */
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
-  data?: JSONValue[] | undefined;
+  data?: JSONValue[];
 };
 
 export function useCompletion({
