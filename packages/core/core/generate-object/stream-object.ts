@@ -3,21 +3,22 @@ import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
 import {
   LanguageModelV1,
+  LanguageModelV1CallOptions,
   LanguageModelV1StreamPart,
-} from '../../ai-model-specification/index';
+} from '../../ai-model-specification';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';
 import { Prompt } from '../prompt/prompt';
 import { validateCallSettings } from '../prompt/validate-call-settings';
-import { isDeepEqualData } from '../util/is-deep-equal-data';
-import { parsePartialJson } from '../util/parse-partial-json';
-import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
-import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
+import { parsePartialJson } from '../util/parse-partial-json';
+import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
+import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 
 /**
  * Stream an object as a partial object stream.
@@ -41,124 +42,102 @@ export async function streamObject<T>({
   const retry = retryWithExponentialBackoff({ maxRetries });
   const jsonSchema = zodToJsonSchema(schema);
 
-  let modelStream: ReadableStream<string | ErrorStreamPart>;
-
   // use the default provider mode when the mode is set to 'auto' or unspecified
   if (mode === 'auto' || mode == null) {
     mode = model.defaultObjectGenerationMode;
   }
 
+  let callOptions: LanguageModelV1CallOptions;
+  let transformer: Transformer<LanguageModelV1StreamPart>;
+
   switch (mode) {
     case 'json': {
-      const { stream, warnings } = await retry(() =>
-        model.doStream({
-          mode: { type: 'object-json' },
-          ...validateCallSettings(settings),
-          inputFormat: getInputFormat({ prompt, messages }),
-          prompt: convertToLanguageModelPrompt({
-            system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-            prompt,
-            messages,
-          }),
-          abortSignal,
+      callOptions = {
+        mode: { type: 'object-json' },
+        ...validateCallSettings(settings),
+        inputFormat: getInputFormat({ prompt, messages }),
+        prompt: convertToLanguageModelPrompt({
+          system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
+          prompt,
+          messages,
         }),
-      );
+        abortSignal,
+      };
 
-      // TODO remove duplication
-      modelStream = stream.pipeThrough(
-        new TransformStream<
-          LanguageModelV1StreamPart,
-          string | ErrorStreamPart
-        >({
-          transform(chunk, controller) {
-            switch (chunk.type) {
-              case 'text-delta':
-                controller.enqueue(chunk.textDelta);
-                break;
-              case 'error':
-                controller.enqueue(chunk);
-                break;
-            }
-          },
-        }),
-      );
+      transformer = {
+        transform: (chunk, controller) => {
+          switch (chunk.type) {
+            case 'text-delta':
+              controller.enqueue(chunk.textDelta);
+              break;
+            case 'error':
+              controller.enqueue(chunk);
+              break;
+          }
+        },
+      };
 
       break;
     }
 
     case 'grammar': {
-      const { stream, warnings } = await retry(() =>
-        model.doStream({
-          mode: { type: 'object-grammar', schema: jsonSchema },
-          ...settings,
-          inputFormat: getInputFormat({ prompt, messages }),
-          prompt: convertToLanguageModelPrompt({
-            system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-            prompt,
-            messages,
-          }),
-          abortSignal,
+      callOptions = {
+        mode: { type: 'object-grammar', schema: jsonSchema },
+        ...settings,
+        inputFormat: getInputFormat({ prompt, messages }),
+        prompt: convertToLanguageModelPrompt({
+          system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
+          prompt,
+          messages,
         }),
-      );
+        abortSignal,
+      };
 
-      // TODO remove duplication
-      modelStream = stream.pipeThrough(
-        new TransformStream<
-          LanguageModelV1StreamPart,
-          string | ErrorStreamPart
-        >({
-          transform(chunk, controller) {
-            switch (chunk.type) {
-              case 'text-delta':
-                controller.enqueue(chunk.textDelta);
-                break;
-              case 'error':
-                controller.enqueue(chunk);
-                break;
-            }
-          },
-        }),
-      );
+      transformer = {
+        transform: (chunk, controller) => {
+          switch (chunk.type) {
+            case 'text-delta':
+              controller.enqueue(chunk.textDelta);
+              break;
+            case 'error':
+              controller.enqueue(chunk);
+              break;
+          }
+        },
+      };
 
       break;
     }
 
     case 'tool': {
-      const { stream, warnings } = await retry(() =>
-        model.doStream({
-          mode: {
-            type: 'object-tool',
-            tool: {
-              type: 'function',
-              name: 'json',
-              description: 'Respond with a JSON object.',
-              parameters: jsonSchema,
-            },
+      callOptions = {
+        mode: {
+          type: 'object-tool',
+          tool: {
+            type: 'function',
+            name: 'json',
+            description: 'Respond with a JSON object.',
+            parameters: jsonSchema,
           },
-          ...settings,
-          inputFormat: getInputFormat({ prompt, messages }),
-          prompt: convertToLanguageModelPrompt({ system, prompt, messages }),
-          abortSignal,
-        }),
-      );
+        },
+        ...settings,
+        inputFormat: getInputFormat({ prompt, messages }),
+        prompt: convertToLanguageModelPrompt({ system, prompt, messages }),
+        abortSignal,
+      };
 
-      modelStream = stream.pipeThrough(
-        new TransformStream<
-          LanguageModelV1StreamPart,
-          string | ErrorStreamPart
-        >({
-          transform(chunk, controller) {
-            switch (chunk.type) {
-              case 'tool-call-delta':
-                controller.enqueue(chunk.argsTextDelta);
-                break;
-              case 'error':
-                controller.enqueue(chunk);
-                break;
-            }
-          },
-        }),
-      );
+      transformer = {
+        transform(chunk, controller) {
+          switch (chunk.type) {
+            case 'tool-call-delta':
+              controller.enqueue(chunk.argsTextDelta);
+              break;
+            case 'error':
+              controller.enqueue(chunk);
+              break;
+          }
+        },
+      };
 
       break;
     }
@@ -173,7 +152,11 @@ export async function streamObject<T>({
     }
   }
 
-  return new StreamObjectResult(modelStream);
+  const { stream, warnings } = await retry(() => model.doStream(callOptions));
+
+  return new StreamObjectResult(
+    stream.pipeThrough(new TransformStream(transformer)),
+  );
 }
 
 export class StreamObjectResult<T> {
