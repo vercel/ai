@@ -71,7 +71,10 @@ export const postToApi = async <T>({
         });
       } catch (error) {
         if (error instanceof Error) {
-          if (error.name === 'AbortError' || error instanceof APICallError) {
+          if (
+            error.name === 'AbortError' ||
+            APICallError.isAPICallError(error)
+          ) {
             throw error;
           }
         }
@@ -94,7 +97,7 @@ export const postToApi = async <T>({
       });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.name === 'AbortError' || error instanceof APICallError) {
+        if (error.name === 'AbortError' || APICallError.isAPICallError(error)) {
           throw error;
         }
       }

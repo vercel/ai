@@ -32,7 +32,7 @@ export class APICallError extends Error {
   }) {
     super(message);
 
-    this.name = 'ApiCallError';
+    this.name = 'AI_APICallError';
 
     this.url = url;
     this.requestBodyValues = requestBodyValues;
@@ -41,6 +41,24 @@ export class APICallError extends Error {
     this.cause = cause;
     this.isRetryable = isRetryable;
     this.data = data;
+  }
+
+  static isAPICallError(error: unknown): error is APICallError {
+    return (
+      error instanceof Error &&
+      error.name === 'AI_APICallError' &&
+      typeof (error as APICallError).url === 'string' &&
+      typeof (error as APICallError).requestBodyValues === 'object' &&
+      ((error as APICallError).statusCode == null ||
+        typeof (error as APICallError).statusCode === 'number') &&
+      ((error as APICallError).responseBody == null ||
+        typeof (error as APICallError).responseBody === 'string') &&
+      ((error as APICallError).cause == null ||
+        typeof (error as APICallError).cause === 'object') &&
+      typeof (error as APICallError).isRetryable === 'boolean' &&
+      ((error as APICallError).data == null ||
+        typeof (error as APICallError).data === 'object')
+    );
   }
 
   toJSON() {

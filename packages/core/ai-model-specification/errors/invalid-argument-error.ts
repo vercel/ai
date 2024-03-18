@@ -1,8 +1,6 @@
-export class AI_InvalidArgumentError extends Error {
+export class InvalidArgumentError extends Error {
   readonly parameter: string;
   readonly value: unknown;
-  // readonly learnMore =
-  //   'https://sdk.vercel.com/docs/ai/errors/ai_invalid_argument_error';
 
   constructor({
     parameter,
@@ -19,6 +17,15 @@ export class AI_InvalidArgumentError extends Error {
 
     this.parameter = parameter;
     this.value = value;
+  }
+
+  static isInvalidArgumentError(error: unknown): error is InvalidArgumentError {
+    return (
+      error instanceof Error &&
+      error.name === 'AI_InvalidArgumentError' &&
+      typeof (error as InvalidArgumentError).parameter === 'string' &&
+      typeof (error as InvalidArgumentError).value === 'string'
+    );
   }
 
   toJSON() {

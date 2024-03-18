@@ -62,10 +62,9 @@ export function safeValidateTypes<T>({
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof TypeValidationError
-          ? error
-          : new TypeValidationError({ value, cause: error }),
+      error: TypeValidationError.isTypeValidationError(error)
+        ? error
+        : new TypeValidationError({ value, cause: error }),
     };
   }
 }

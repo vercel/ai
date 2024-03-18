@@ -1,10 +1,10 @@
 import { CallSettings } from './call-settings';
-import { AI_InvalidArgumentError } from '../../ai-model-specification';
+import { InvalidArgumentError } from '../../ai-model-specification';
 
 export function validateCallSettings(settings: CallSettings): CallSettings {
   if (settings.maxTokens != null) {
     if (!Number.isInteger(settings.maxTokens)) {
-      throw new AI_InvalidArgumentError({
+      throw new InvalidArgumentError({
         parameter: 'maxTokens',
         value: settings.maxTokens,
         message: 'maxTokens must be an integer',
@@ -12,7 +12,7 @@ export function validateCallSettings(settings: CallSettings): CallSettings {
     }
 
     if (settings.maxTokens < 1) {
-      throw new AI_InvalidArgumentError({
+      throw new InvalidArgumentError({
         parameter: 'maxTokens',
         value: settings.maxTokens,
         message: 'maxTokens must be >= 1',
@@ -22,7 +22,7 @@ export function validateCallSettings(settings: CallSettings): CallSettings {
 
   if (settings.temperature != null) {
     if (typeof settings.temperature !== 'number') {
-      throw new AI_InvalidArgumentError({
+      throw new InvalidArgumentError({
         parameter: 'temperature',
         value: settings.temperature,
         message: 'temperature must be a number',
@@ -30,7 +30,7 @@ export function validateCallSettings(settings: CallSettings): CallSettings {
     }
 
     if (settings.temperature < 0 || settings.temperature > 1) {
-      throw new AI_InvalidArgumentError({
+      throw new InvalidArgumentError({
         parameter: 'temperature',
         value: settings.temperature,
         message: 'temperature must be between 0 and 1 (inclusive)',
@@ -40,7 +40,7 @@ export function validateCallSettings(settings: CallSettings): CallSettings {
 
   if (settings.topP != null) {
     if (typeof settings.topP !== 'number') {
-      throw new AI_InvalidArgumentError({
+      throw new InvalidArgumentError({
         parameter: 'topP',
         value: settings.topP,
         message: 'topP must be a number',
@@ -48,7 +48,7 @@ export function validateCallSettings(settings: CallSettings): CallSettings {
     }
 
     if (settings.topP < 0 || settings.topP > 1) {
-      throw new AI_InvalidArgumentError({
+      throw new InvalidArgumentError({
         parameter: 'topP',
         value: settings.topP,
         message: 'topP must be between 0 and 1 (inclusive)',
@@ -58,7 +58,7 @@ export function validateCallSettings(settings: CallSettings): CallSettings {
 
   if (settings.presencePenalty != null) {
     if (typeof settings.presencePenalty !== 'number') {
-      throw new AI_InvalidArgumentError({
+      throw new InvalidArgumentError({
         parameter: 'presencePenalty',
         value: settings.presencePenalty,
         message: 'presencePenalty must be a number',
@@ -66,7 +66,7 @@ export function validateCallSettings(settings: CallSettings): CallSettings {
     }
 
     if (settings.presencePenalty < -1 || settings.presencePenalty > 1) {
-      throw new AI_InvalidArgumentError({
+      throw new InvalidArgumentError({
         parameter: 'presencePenalty',
         value: settings.presencePenalty,
         message: 'presencePenalty must be between -1 and 1 (inclusive)',
@@ -76,7 +76,7 @@ export function validateCallSettings(settings: CallSettings): CallSettings {
 
   if (settings.frequencyPenalty != null) {
     if (typeof settings.frequencyPenalty !== 'number') {
-      throw new AI_InvalidArgumentError({
+      throw new InvalidArgumentError({
         parameter: 'frequencyPenalty',
         value: settings.frequencyPenalty,
         message: 'frequencyPenalty must be a number',
@@ -84,7 +84,7 @@ export function validateCallSettings(settings: CallSettings): CallSettings {
     }
 
     if (settings.frequencyPenalty < -1 || settings.frequencyPenalty > 1) {
-      throw new AI_InvalidArgumentError({
+      throw new InvalidArgumentError({
         parameter: 'frequencyPenalty',
         value: settings.frequencyPenalty,
         message: 'frequencyPenalty must be between -1 and 1 (inclusive)',
@@ -94,7 +94,7 @@ export function validateCallSettings(settings: CallSettings): CallSettings {
 
   if (settings.seed != null) {
     if (!Number.isInteger(settings.seed)) {
-      throw new AI_InvalidArgumentError({
+      throw new InvalidArgumentError({
         parameter: 'seed',
         value: settings.seed,
         message: 'seed must be an integer',

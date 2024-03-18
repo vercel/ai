@@ -1,4 +1,8 @@
-import { RetryError, getErrorMessage } from '../../ai-model-specification';
+import {
+  APICallError,
+  RetryError,
+  getErrorMessage,
+} from '../../ai-model-specification';
 import { delay } from './delay';
 
 export type RetryFunction = <OUTPUT>(
@@ -57,8 +61,8 @@ async function _retryWithExponentialBackoff<OUTPUT>(
 
       if (
         // deal with bundling duplication by using names
-        error.name === 'ApiCallError' &&
-        (error as any).isRetryable === true &&
+        APICallError.isAPICallError(error) &&
+        error.isRetryable === true &&
         tryNumber <= maxRetries
       ) {
         await delay(delayInMs);

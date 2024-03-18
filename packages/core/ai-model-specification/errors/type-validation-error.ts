@@ -11,10 +11,19 @@ export class TypeValidationError extends Error {
         `Error message: ${getErrorMessage(cause)}`,
     );
 
-    this.name = 'TypeValidationError';
+    this.name = 'AI_TypeValidationError';
 
     this.cause = cause;
     this.value = value;
+  }
+
+  static isTypeValidationError(error: unknown): error is TypeValidationError {
+    return (
+      error instanceof Error &&
+      error.name === 'AI_TypeValidationError' &&
+      typeof (error as TypeValidationError).value === 'string' &&
+      typeof (error as TypeValidationError).cause === 'string'
+    );
   }
 
   toJSON() {

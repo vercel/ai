@@ -4,7 +4,11 @@ export class NoTextGeneratedError extends Error {
   constructor() {
     super(`No text generated.`);
 
-    this.name = 'NoTextGeneratedError';
+    this.name = 'AI_NoTextGeneratedError';
+  }
+
+  static isNoTextGeneratedError(error: unknown): error is NoTextGeneratedError {
+    return error instanceof Error && error.name === 'AI_NoTextGeneratedError';
   }
 
   toJSON() {

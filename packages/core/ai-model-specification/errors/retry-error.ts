@@ -20,12 +20,21 @@ export class RetryError extends Error {
   }) {
     super(message);
 
-    this.name = 'RetryError';
+    this.name = 'AI_RetryError';
     this.reason = reason;
     this.errors = errors;
 
     // separate our last error to make debugging via log easier:
     this.lastError = errors[errors.length - 1];
+  }
+
+  static isRetryError(error: unknown): error is RetryError {
+    return (
+      error instanceof Error &&
+      error.name === 'AI_RetryError' &&
+      typeof (error as RetryError).reason === 'string' &&
+      Array.isArray((error as RetryError).errors)
+    );
   }
 
   toJSON() {

@@ -12,10 +12,19 @@ export class JSONParseError extends Error {
         `Error message: ${getErrorMessage(cause)}`,
     );
 
-    this.name = 'JSONParseError';
+    this.name = 'AI_JSONParseError';
 
     this.cause = cause;
     this.text = text;
+  }
+
+  static isJSONParseError(error: unknown): error is JSONParseError {
+    return (
+      error instanceof Error &&
+      error.name === 'AI_JSONParseError' &&
+      typeof (error as JSONParseError).text === 'string' &&
+      typeof (error as JSONParseError).cause === 'string'
+    );
   }
 
   toJSON() {

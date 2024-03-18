@@ -15,10 +15,21 @@ export class UnsupportedFunctionalityError extends Error {
         `Functionality: ${functionality}`,
     );
 
-    this.name = 'UnsupportedFunctionalityError';
+    this.name = 'AI_UnsupportedFunctionalityError';
 
     this.provider = provider;
     this.functionality = functionality;
+  }
+
+  static isUnsupportedFunctionalityError(
+    error: unknown,
+  ): error is UnsupportedFunctionalityError {
+    return (
+      error instanceof Error &&
+      error.name === 'AI_UnsupportedFunctionalityError' &&
+      typeof (error as UnsupportedFunctionalityError).provider === 'string' &&
+      typeof (error as UnsupportedFunctionalityError).functionality === 'string'
+    );
   }
 
   toJSON() {
