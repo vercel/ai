@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
 import { nanoid } from 'nanoid';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { readDataStream } from '../shared/read-data-stream';
 import { Message } from '../shared/types';
@@ -113,10 +113,6 @@ export function experimental_useAssistant({
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<AssistantStatus>('awaiting_message');
   const [error, setError] = useState<undefined | Error>(undefined);
-
-  useEffect(() => {
-    setMessages([]);
-  }, [threadIdParam]);
 
   const handleInputChange = (
     event:
