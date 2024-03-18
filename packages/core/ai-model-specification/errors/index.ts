@@ -1,5 +1,6 @@
 export * from './api-call-error';
 export * from './invalid-argument-error';
+export * from './invalid-prompt-error';
 export * from './json-parse-error';
 export * from './load-api-key-error';
 export * from './no-object-generated-error';
