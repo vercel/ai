@@ -1,5 +1,12 @@
 # ai
 
+## 3.0.13
+
+### Patch Changes
+
+- 026d061: Expose setMessages in useAssistant hook
+- 42209be: AssistantResponse: specify forwardStream return type.
+
 ## 3.0.12
 
 ### Patch Changes
