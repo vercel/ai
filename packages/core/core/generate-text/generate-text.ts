@@ -9,6 +9,7 @@ import { Tool } from '../tool/tool';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
+import { TokenUsage, calculateTokenUsage } from './token-usage';
 
 /**
  * Generate a text and call tools using a language model.
@@ -70,6 +71,7 @@ export async function generateText<TOOLS extends Record<string, Tool>>({
     text: modelResponse.text ?? '',
     toolCalls,
     toolResults,
+    usage: calculateTokenUsage(modelResponse.usage),
   });
 }
 
@@ -108,14 +110,17 @@ export class GenerateTextResult<TOOLS extends Record<string, Tool>> {
   readonly text: string;
   readonly toolCalls: ToToolCallArray<TOOLS>;
   readonly toolResults: ToToolResultArray<TOOLS>;
+  readonly usage: TokenUsage;
 
   constructor(options: {
     text: string;
     toolCalls: ToToolCallArray<TOOLS>;
     toolResults: ToToolResultArray<TOOLS>;
+    usage: TokenUsage;
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
     this.toolResults = options.toolResults;
+    this.usage = options.usage;
   }
 }

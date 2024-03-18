@@ -165,6 +165,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
 
     return {
       text: response.choices[0].text,
+      usage: {
+        promptTokens: response.usage.prompt_tokens,
+        completionTokens: response.usage.completion_tokens,
+      },
       rawCall: { rawPrompt, rawSettings },
       warnings: [],
     };

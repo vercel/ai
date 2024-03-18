@@ -167,6 +167,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         toolName: toolCall.function.name,
         args: toolCall.function.arguments!,
       })),
+      usage: {
+        promptTokens: response.usage.prompt_tokens,
+        completionTokens: response.usage.completion_tokens,
+      },
       rawCall: { rawPrompt, rawSettings },
       warnings: [],
     };

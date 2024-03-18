@@ -12,6 +12,7 @@ import { Prompt } from '../prompt/prompt';
 import { validateCallSettings } from '../prompt/validate-call-settings';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 
 /**
  * Generate a structured, typed object using a language model.
@@ -41,6 +42,7 @@ export async function generateObject<T>({
   }
 
   let result: string;
+  let usage: Parameters<typeof calculateTokenUsage>[0];
 
   switch (mode) {
     case 'json': {
@@ -63,6 +65,7 @@ export async function generateObject<T>({
       }
 
       result = generateResult.text;
+      usage = generateResult.usage;
 
       break;
     }
@@ -87,6 +90,7 @@ export async function generateObject<T>({
       }
 
       result = generateResult.text;
+      usage = generateResult.usage;
 
       break;
     }
@@ -117,6 +121,7 @@ export async function generateObject<T>({
       }
 
       result = functionArgs;
+      usage = generateResult.usage;
 
       break;
     }
@@ -139,13 +144,16 @@ export async function generateObject<T>({
 
   return new GenerateObjectResult({
     object: parseResult.value,
+    usage: calculateTokenUsage(usage),
   });
 }
 
 export class GenerateObjectResult<T> {
   readonly object: T;
+  readonly usage: TokenUsage;
 
-  constructor(options: { object: T }) {
+  constructor(options: { object: T; usage: TokenUsage }) {
     this.object = options.object;
+    this.usage = options.usage;
   }
 }

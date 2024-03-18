@@ -57,13 +57,13 @@ export type LanguageModelV1 = {
     //  */
     // finishReason: LanguageModelV1FinishReason;
 
-    // /**
-    //  * Usage information.
-    //  */
-    // usage: {
-    //   promptTokens: number;
-    //   completionTokens: number;
-    // };
+    /**
+     * Usage information.
+     */
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+    };
 
     /**
      * Raw prompt and setting information for observability provider integration.
