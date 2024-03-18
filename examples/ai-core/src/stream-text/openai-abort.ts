@@ -17,7 +17,7 @@ async function main() {
 
   try {
     const { textStream } = await streamText({
-      model: openai.chat({ id: 'gpt-3.5-turbo' }),
+      model: openai.chat('gpt-3.5-turbo'),
       prompt: 'Write a short story about a robot learning to love:\n\n',
       abortSignal: abortController.signal,
     });

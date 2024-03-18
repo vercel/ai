@@ -11,36 +11,37 @@ import {
 } from '../../ai-model-specification';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { openaiFailedResponseHandler } from './openai-error';
+import {
+  OpenAICompletionModelId,
+  OpenAICompletionSettings,
+} from './openai-completion-settings';
 
-type Config<SETTINGS extends { id: string }> = {
+type OpenAICompletionConfig = {
   provider: string;
   baseUrl: string;
   headers: () => Record<string, string | undefined>;
-  mapSettings: (settings: SETTINGS) => Record<string, unknown> & {
-    model: string;
-  };
 };
-export class OpenAICompletionLanguageModel<SETTINGS extends { id: string }>
-  implements LanguageModelV1
-{
+export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = undefined;
 
-  readonly settings: SETTINGS;
+  readonly modelId: OpenAICompletionModelId;
+  readonly settings: OpenAICompletionSettings;
 
-  private readonly config: Config<SETTINGS>;
+  private readonly config: OpenAICompletionConfig;
 
-  constructor(settings: SETTINGS, config: Config<SETTINGS>) {
+  constructor(
+    modelId: OpenAICompletionModelId,
+    settings: OpenAICompletionSettings,
+    config: OpenAICompletionConfig,
+  ) {
+    this.modelId = modelId;
     this.settings = settings;
     this.config = config;
   }
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  get modelId(): string {
-    return this.settings.id;
   }
 
   private getArgs({
@@ -64,8 +65,14 @@ export class OpenAICompletionLanguageModel<SETTINGS extends { id: string }>
       });
 
     const baseArgs = {
+      // model id:
+      model: this.modelId,
+
       // model specific settings:
-      ...this.config.mapSettings(this.settings),
+      echo: this.settings.echo,
+      logit_bias: this.settings.logitBias,
+      suffix: this.settings.suffix,
+      user: this.settings.user,
 
       // standardized settings:
       max_tokens: maxTokens,

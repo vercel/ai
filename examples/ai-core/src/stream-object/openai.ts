@@ -9,7 +9,7 @@ const openai = new OpenAI();
 
 async function main() {
   const result = await streamObject({
-    model: openai.chat({ id: 'gpt-4-turbo-preview' }),
+    model: openai.chat('gpt-4-turbo-preview'),
     maxTokens: 2000,
     schema: z.object({
       characters: z.array(

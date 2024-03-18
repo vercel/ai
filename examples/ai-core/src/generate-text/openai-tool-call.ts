@@ -10,7 +10,7 @@ const openai = new OpenAI();
 
 async function main() {
   const result = await generateText({
-    model: openai.chat({ id: 'gpt-3.5-turbo' }),
+    model: openai.chat('gpt-3.5-turbo'),
     maxTokens: 512,
     tools: {
       weather: weatherTool,

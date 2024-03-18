@@ -35,7 +35,7 @@ describe('doStream', () => {
       'data: [DONE]\n\n',
     ];
 
-    const { stream } = await openai.chat({ id: 'gpt-3.5-turbo' }).doStream({
+    const { stream } = await openai.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -59,7 +59,7 @@ describe('doStream', () => {
   it('should scale the temperature', async () => {
     server.responseChunks = ['data: [DONE]\n\n'];
 
-    await openai.chat({ id: 'gpt-3.5-turbo' }).doStream({
+    await openai.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -72,7 +72,7 @@ describe('doStream', () => {
   it('should scale the frequency penalty', async () => {
     server.responseChunks = ['data: [DONE]\n\n'];
 
-    await openai.chat({ id: 'gpt-3.5-turbo' }).doStream({
+    await openai.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -88,7 +88,7 @@ describe('doStream', () => {
   it('should scale the presence penalty', async () => {
     server.responseChunks = ['data: [DONE]\n\n'];
 
-    await openai.chat({ id: 'gpt-3.5-turbo' }).doStream({
+    await openai.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -109,7 +109,7 @@ describe('doStream', () => {
       organization: 'test-organization',
     });
 
-    await openai.chat({ id: 'gpt-3.5-turbo' }).doStream({
+    await openai.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -125,7 +125,7 @@ describe('doStream', () => {
 
     const openai = new OpenAI({ apiKey: 'test-api-key' });
 
-    await openai.chat({ id: 'gpt-3.5-turbo' }).doStream({
+    await openai.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,

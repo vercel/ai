@@ -9,7 +9,7 @@ const openai = new OpenAI();
 
 async function main() {
   const result = await generateText({
-    model: openai.chat({ id: 'gpt-4-vision-preview' }),
+    model: openai.chat('gpt-4-vision-preview'),
     maxTokens: 512,
     messages: [
       {

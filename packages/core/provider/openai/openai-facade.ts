@@ -1,9 +1,15 @@
 import { loadApiKey } from '../../ai-model-specification';
 import { OpenAIChatLanguageModel } from './openai-chat-language-model';
-import { OpenAIChatSettings } from './openai-chat-settings';
+import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import { OpenAICompletionLanguageModel } from './openai-completion-language-model';
-import { OpenAICompletionSettings } from './openai-completion-settings';
+import {
+  OpenAICompletionModelId,
+  OpenAICompletionSettings,
+} from './openai-completion-settings';
 
+/**
+ * OpenAI provider.
+ */
 export class OpenAI {
   readonly baseUrl?: string;
   readonly apiKey?: string;
@@ -32,28 +38,25 @@ export class OpenAI {
     };
   }
 
-  chat(settings: OpenAIChatSettings) {
-    return new OpenAIChatLanguageModel<OpenAIChatSettings>(settings, {
+  chat(modelId: OpenAIChatModelId, settings: OpenAIChatSettings = {}) {
+    return new OpenAIChatLanguageModel(modelId, settings, {
       provider: 'openai.chat',
       ...this.baseConfig,
-      mapSettings: settings => ({
-        model: settings.id,
-        logit_bias: settings.logitBias,
-      }),
     });
   }
 
-  completion(settings: OpenAICompletionSettings) {
-    return new OpenAICompletionLanguageModel<OpenAICompletionSettings>(
-      settings,
-      {
-        provider: 'openai.completion',
-        ...this.baseConfig,
-        mapSettings: settings => ({
-          model: settings.id,
-          logit_bias: settings.logitBias,
-        }),
-      },
-    );
+  completion(
+    modelId: OpenAICompletionModelId,
+    settings: OpenAICompletionSettings = {},
+  ) {
+    return new OpenAICompletionLanguageModel(modelId, settings, {
+      provider: 'openai.completion',
+      ...this.baseConfig,
+    });
   }
 }
+
+/**
+ * Default OpenAI provider instance.
+ */
+export const openai = new OpenAI();

@@ -10,7 +10,7 @@ const openai = new OpenAI();
 
 async function main() {
   const result = await streamText({
-    model: openai.chat({ id: 'gpt-3.5-turbo' }),
+    model: openai.chat('gpt-3.5-turbo'),
     tools: {
       weather: weatherTool,
       cityAttractions: {

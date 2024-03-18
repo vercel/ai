@@ -8,7 +8,7 @@ const openai = new OpenAI();
 
 async function main() {
   const result = await streamText({
-    model: openai.chat({ id: 'gpt-3.5-turbo' }),
+    model: openai.chat('gpt-3.5-turbo'),
     maxTokens: 512,
     temperature: 0.3,
     maxRetries: 5,
