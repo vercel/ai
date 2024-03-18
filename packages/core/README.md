@@ -26,7 +26,7 @@ This library is created by [Vercel](https://vercel.com) and [Next.js](https://ne
 - Shu Ding ([@shuding\_](https://twitter.com/shuding_)) - [Vercel](https://vercel.com)
 - Max Leiter ([@max_leiter](https://twitter.com/max_leiter)) - [Vercel](https://vercel.com)
 - Malte Ubl ([@cramforce](https://twitter.com/cramforce)) - [Vercel](https://vercel.com)
-- Justin Ridgewell ([@jridgewell](https://github.com/jridgewell)) - [Vercel](https://vercel.com)
+- Justin Ridgewell ([@jridgewell](https://github.com/jridgewell))
 
 [Contributors](https://github.com/vercel/ai/graphs/contributors)
 
