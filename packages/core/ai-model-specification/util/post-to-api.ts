@@ -1,4 +1,4 @@
-import { ApiCallError } from '../errors/api-call-error';
+import { APICallError } from '../errors/api-call-error';
 import { ResponseHandler } from './response-handler';
 
 export const postJsonToApi = async <T>({
@@ -12,7 +12,7 @@ export const postJsonToApi = async <T>({
   url: string;
   headers?: Record<string, string | undefined>;
   body: unknown;
-  failedResponseHandler: ResponseHandler<ApiCallError>;
+  failedResponseHandler: ResponseHandler<APICallError>;
   successfulResponseHandler: ResponseHandler<T>;
   abortSignal?: AbortSignal;
 }) =>
@@ -71,12 +71,12 @@ export const postToApi = async <T>({
         });
       } catch (error) {
         if (error instanceof Error) {
-          if (error.name === 'AbortError' || error instanceof ApiCallError) {
+          if (error.name === 'AbortError' || error instanceof APICallError) {
             throw error;
           }
         }
 
-        throw new ApiCallError({
+        throw new APICallError({
           message: 'Failed to process error response',
           cause: error,
           statusCode: response.status,
@@ -94,12 +94,12 @@ export const postToApi = async <T>({
       });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.name === 'AbortError' || error instanceof ApiCallError) {
+        if (error.name === 'AbortError' || error instanceof APICallError) {
           throw error;
         }
       }
 
-      throw new ApiCallError({
+      throw new APICallError({
         message: 'Failed to process successful response',
         cause: error,
         statusCode: response.status,
@@ -121,7 +121,7 @@ export const postToApi = async <T>({
 
       if (cause != null) {
         // Failed to connect to server:
-        throw new ApiCallError({
+        throw new APICallError({
           message: `Cannot connect to API: ${cause.message}`,
           cause,
           url,

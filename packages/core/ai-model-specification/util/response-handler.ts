@@ -3,7 +3,7 @@ import {
   ParsedEvent,
 } from 'eventsource-parser/stream';
 import { ZodSchema } from 'zod';
-import { ApiCallError } from '../errors';
+import { APICallError } from '../errors';
 import { parseJSON, safeParseJSON } from './parse-json';
 import { ParsedChunk } from './parsed-chunk';
 
@@ -22,13 +22,13 @@ export const createJsonErrorResponseHandler =
     errorSchema: ZodSchema<T>;
     errorToMessage: (error: T) => string;
     isRetryable?: (response: Response, error?: T) => boolean;
-  }): ResponseHandler<ApiCallError> =>
+  }): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
 
     // Some providers return an empty response body for some errors:
     if (responseBody.trim() === '') {
-      return new ApiCallError({
+      return new APICallError({
         message: response.statusText,
         url,
         requestBodyValues,
@@ -45,7 +45,7 @@ export const createJsonErrorResponseHandler =
         schema: errorSchema,
       });
 
-      return new ApiCallError({
+      return new APICallError({
         message: errorToMessage(parsedError),
         url,
         requestBodyValues,
@@ -55,7 +55,7 @@ export const createJsonErrorResponseHandler =
         isRetryable: isRetryable?.(response, parsedError),
       });
     } catch (parseError) {
-      return new ApiCallError({
+      return new APICallError({
         message: response.statusText,
         url,
         requestBodyValues,
@@ -111,7 +111,7 @@ export const createJsonResponseHandler =
     });
 
     if (!parsedResult.success) {
-      throw new ApiCallError({
+      throw new APICallError({
         message: 'Invalid JSON response',
         cause: parsedResult.error,
         statusCode: response.status,

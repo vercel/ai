@@ -1,4 +1,4 @@
-export class ApiCallError extends Error {
+export class APICallError extends Error {
   readonly url: string;
   readonly requestBodyValues: unknown;
   readonly statusCode?: number;

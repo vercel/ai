@@ -1,9 +1,5 @@
+import { RetryError, getErrorMessage } from '../../ai-model-specification';
 import { delay } from './delay';
-import {
-  ApiCallError,
-  RetryError,
-  getErrorMessage,
-} from '../../ai-model-specification';
 
 export type RetryFunction = <OUTPUT>(
   fn: () => PromiseLike<OUTPUT>,
