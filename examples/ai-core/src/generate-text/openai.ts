@@ -15,6 +15,7 @@ async function main() {
   console.log(result.text);
   console.log();
   console.log('Token usage:', result.usage);
+  console.log('Finish reason:', result.finishReason);
 }
 
 main();

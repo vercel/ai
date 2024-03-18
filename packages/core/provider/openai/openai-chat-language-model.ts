@@ -14,6 +14,7 @@ import {
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import { openaiFailedResponseHandler } from './openai-error';
+import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -155,18 +156,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       abortSignal: options.abortSignal,
     });
 
-    const message = response.choices[0].message;
-
     const { messages: rawPrompt, ...rawSettings } = args;
+    const choice = response.choices[0];
 
     return {
-      text: message.content ?? undefined,
-      toolCalls: message.tool_calls?.map(toolCall => ({
+      text: choice.message.content ?? undefined,
+      toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
         toolCallId: toolCall.id,
         toolName: toolCall.function.name,
         args: toolCall.function.arguments!,
       })),
+      finishReason: mapOpenAIFinishReason(choice.finish_reason),
       usage: {
         promptTokens: response.usage.prompt_tokens,
         completionTokens: response.usage.completion_tokens,

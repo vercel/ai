@@ -52,10 +52,10 @@ export type LanguageModelV1 = {
      */
     toolCalls?: Array<LanguageModelV1FunctionToolCall>;
 
-    // /**
-    //  * Finish reason.
-    //  */
-    // finishReason: LanguageModelV1FinishReason;
+    /**
+     * Finish reason.
+     */
+    finishReason: LanguageModelV1FinishReason;
 
     /**
      * Usage information.

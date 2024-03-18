@@ -15,6 +15,7 @@ import {
   OpenAICompletionModelId,
   OpenAICompletionSettings,
 } from './openai-completion-settings';
+import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 
 type OpenAICompletionConfig = {
   provider: string;
@@ -162,13 +163,15 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     });
 
     const { prompt: rawPrompt, ...rawSettings } = args;
+    const choice = response.choices[0];
 
     return {
-      text: response.choices[0].text,
+      text: choice.text,
       usage: {
         promptTokens: response.usage.prompt_tokens,
         completionTokens: response.usage.completion_tokens,
       },
+      finishReason: mapOpenAIFinishReason(choice.finish_reason),
       rawCall: { rawPrompt, rawSettings },
       warnings: [],
     };

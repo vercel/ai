@@ -1,5 +1,8 @@
 import zodToJsonSchema from 'zod-to-json-schema';
-import { LanguageModelV1 } from '../../ai-model-specification/index';
+import {
+  LanguageModelV1,
+  LanguageModelV1FinishReason,
+} from '../../ai-model-specification';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';
@@ -7,9 +10,9 @@ import { Prompt } from '../prompt/prompt';
 import { validateCallSettings } from '../prompt/validate-call-settings';
 import { Tool } from '../tool/tool';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
+import { TokenUsage, calculateTokenUsage } from './token-usage';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
-import { TokenUsage, calculateTokenUsage } from './token-usage';
 
 /**
  * Generate a text and call tools using a language model.
@@ -71,6 +74,7 @@ export async function generateText<TOOLS extends Record<string, Tool>>({
     text: modelResponse.text ?? '',
     toolCalls,
     toolResults,
+    finishReason: modelResponse.finishReason,
     usage: calculateTokenUsage(modelResponse.usage),
   });
 }
@@ -110,17 +114,20 @@ export class GenerateTextResult<TOOLS extends Record<string, Tool>> {
   readonly text: string;
   readonly toolCalls: ToToolCallArray<TOOLS>;
   readonly toolResults: ToToolResultArray<TOOLS>;
+  readonly finishReason: LanguageModelV1FinishReason;
   readonly usage: TokenUsage;
 
   constructor(options: {
     text: string;
     toolCalls: ToToolCallArray<TOOLS>;
     toolResults: ToToolResultArray<TOOLS>;
+    finishReason: LanguageModelV1FinishReason;
     usage: TokenUsage;
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
     this.toolResults = options.toolResults;
+    this.finishReason = options.finishReason;
     this.usage = options.usage;
   }
 }

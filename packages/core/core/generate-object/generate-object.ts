@@ -2,9 +2,11 @@ import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
 import {
   LanguageModelV1,
+  LanguageModelV1FinishReason,
   NoTextGeneratedError,
   safeParseJSON,
-} from '../../ai-model-specification/index';
+} from '../../ai-model-specification';
+import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';
@@ -12,7 +14,6 @@ import { Prompt } from '../prompt/prompt';
 import { validateCallSettings } from '../prompt/validate-call-settings';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
-import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 
 /**
  * Generate a structured, typed object using a language model.
@@ -42,6 +43,7 @@ export async function generateObject<T>({
   }
 
   let result: string;
+  let finishReason: LanguageModelV1FinishReason;
   let usage: Parameters<typeof calculateTokenUsage>[0];
 
   switch (mode) {
@@ -65,6 +67,7 @@ export async function generateObject<T>({
       }
 
       result = generateResult.text;
+      finishReason = generateResult.finishReason;
       usage = generateResult.usage;
 
       break;
@@ -90,6 +93,7 @@ export async function generateObject<T>({
       }
 
       result = generateResult.text;
+      finishReason = generateResult.finishReason;
       usage = generateResult.usage;
 
       break;
@@ -121,6 +125,7 @@ export async function generateObject<T>({
       }
 
       result = functionArgs;
+      finishReason = generateResult.finishReason;
       usage = generateResult.usage;
 
       break;
@@ -144,16 +149,23 @@ export async function generateObject<T>({
 
   return new GenerateObjectResult({
     object: parseResult.value,
+    finishReason,
     usage: calculateTokenUsage(usage),
   });
 }
 
 export class GenerateObjectResult<T> {
   readonly object: T;
+  readonly finishReason: LanguageModelV1FinishReason;
   readonly usage: TokenUsage;
 
-  constructor(options: { object: T; usage: TokenUsage }) {
+  constructor(options: {
+    object: T;
+    finishReason: LanguageModelV1FinishReason;
+    usage: TokenUsage;
+  }) {
     this.object = options.object;
+    this.finishReason = options.finishReason;
     this.usage = options.usage;
   }
 }

@@ -29,6 +29,7 @@ async function main() {
   console.log(JSON.stringify(result.object, null, 2));
   console.log();
   console.log('Token usage:', result.usage);
+  console.log('Finish reason:', result.finishReason);
 }
 
 main();
