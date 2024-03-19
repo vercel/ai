@@ -10,23 +10,22 @@ const openai = new OpenAI();
 async function main() {
   const result = await generateObject({
     model: openai.chat('gpt-4-turbo-preview'),
-    maxTokens: 2000,
     schema: z.object({
-      characters: z.array(
-        z.object({
-          name: z.string(),
-          class: z
-            .string()
-            .describe('Character class, e.g. warrior, mage, or thief.'),
-          description: z.string(),
-        }),
-      ),
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({
+            name: z.string(),
+            amount: z.string(),
+          }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
-    prompt:
-      'Generate 3 character descriptions for a fantasy role playing game.',
+    prompt: 'Generate a lasagna recipe.',
   });
 
-  console.log(JSON.stringify(result.object, null, 2));
+  console.log(JSON.stringify(result.object.recipe, null, 2));
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
