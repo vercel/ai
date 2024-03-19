@@ -1,5 +1,11 @@
 import zodToJsonSchema from 'zod-to-json-schema';
 import { LanguageModelV1 } from '../../ai-model-specification/index';
+import {
+  AIStreamCallbacksAndOptions,
+  createCallbacksTransformer,
+  createStreamDataTransformer,
+  readableFromAsyncIterable,
+} from '../../streams';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';
@@ -117,5 +123,14 @@ export class StreamTextResult<TOOLS extends Record<string, Tool>> {
         }
       },
     });
+  }
+
+  toAIStream(callbacks?: AIStreamCallbacksAndOptions) {
+    // TODO add support for tool calls
+    return readableFromAsyncIterable(this.textStream)
+      .pipeThrough(createCallbacksTransformer(callbacks))
+      .pipeThrough(
+        createStreamDataTransformer(callbacks?.experimental_streamData),
+      );
   }
 }
