@@ -1,6 +1,6 @@
 {
   "name": "next-inkeep",
-  "version": "0.0.1-canary.1",
+  "version": "0.0.1-canary.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@inkeep/ai-api": "^0.1.8",
-    "ai": "3.1.0-canary.3",
+    "ai": "3.1.0-canary.4",
     "next": "14.1.1",
     "react": "18.2.0",
     "react-dom": "^18.2.0"

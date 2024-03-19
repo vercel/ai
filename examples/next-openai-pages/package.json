@@ -1,6 +1,6 @@
 {
   "name": "next-openai-pages",
-  "version": "0.0.1-canary.1",
+  "version": "0.0.1-canary.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "ai": "3.1.0-canary.3",
+    "ai": "3.1.0-canary.4",
     "next": "14.1.1",
     "openai": "4.16.1",
     "react": "18.2.0",

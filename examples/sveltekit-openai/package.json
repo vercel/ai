@@ -1,6 +1,6 @@
 {
   "name": "sveltekit-openai",
-  "version": "0.0.1-canary.1",
+  "version": "0.0.1-canary.2",
   "private": true,
   "scripts": {
     "dev": "vite dev",
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "openai": "4.16.1",
-    "ai": "3.1.0-canary.3"
+    "ai": "3.1.0-canary.4"
   },
   "devDependencies": {
     "@fontsource/fira-mono": "^4.5.10",

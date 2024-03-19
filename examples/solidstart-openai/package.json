@@ -18,7 +18,7 @@
   "dependencies": {
     "@solidjs/meta": "0.29.3",
     "@solidjs/router": "0.8.2",
-    "ai": "3.1.0-canary.3",
+    "ai": "3.1.0-canary.4",
     "openai": "4.16.1",
     "solid-js": "1.8.7",
     "solid-start": "0.3.10",
@@ -27,5 +27,5 @@
   "engines": {
     "node": ">=16"
   },
-  "version": "0.0.1-canary.1"
+  "version": "0.0.1-canary.2"
 }
