@@ -1,11 +1,11 @@
 # ai
 
-## 3.1.0-canary.3
+## 3.0.13
 
 ### Patch Changes
 
+- 026d061: Expose setMessages in useAssistant hook
 - 42209be: AssistantResponse: specify forwardStream return type.
-- Updated API.
 
 ## 3.0.12
 
