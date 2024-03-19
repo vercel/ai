@@ -48,7 +48,7 @@ async function _retryWithExponentialBackoff<OUTPUT>(
 
     if (tryNumber > maxRetries) {
       throw new RetryError({
-        message: `Failed after ${tryNumber} tries. Last error: ${errorMessage}`,
+        message: `Failed after ${tryNumber} attemps. Last error: ${errorMessage}`,
         reason: 'maxRetriesExceeded',
         errors: newErrors,
       });
@@ -74,8 +74,12 @@ async function _retryWithExponentialBackoff<OUTPUT>(
       }
     }
 
+    if (tryNumber === 1) {
+      throw error; // don't wrap the error when a non-retryable error occurs on the first try
+    }
+
     throw new RetryError({
-      message: `Failed after ${tryNumber} tries with non-retryable error: '${errorMessage}'`,
+      message: `Failed after ${tryNumber} attemps with non-retryable error: '${errorMessage}'`,
       reason: 'errorNotRetryable',
       errors: newErrors,
     });
