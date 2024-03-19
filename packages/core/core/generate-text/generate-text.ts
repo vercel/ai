@@ -6,8 +6,8 @@ import {
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';
+import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { validateCallSettings } from '../prompt/validate-call-settings';
 import { Tool } from '../tool/tool';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { TokenUsage, calculateTokenUsage } from './token-usage';
@@ -46,7 +46,7 @@ export async function generateText<TOOLS extends Record<string, Tool>>({
                 parameters: zodToJsonSchema(tool.parameters),
               })),
       },
-      ...validateCallSettings(settings),
+      ...prepareCallSettings(settings),
       inputFormat: getInputFormat({ prompt, messages }),
       prompt: convertToLanguageModelPrompt({
         system,

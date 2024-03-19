@@ -10,8 +10,8 @@ import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';
+import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { validateCallSettings } from '../prompt/validate-call-settings';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 
@@ -51,7 +51,7 @@ export async function generateObject<T>({
       const generateResult = await retry(() =>
         model.doGenerate({
           mode: { type: 'object-json' },
-          ...validateCallSettings(settings),
+          ...prepareCallSettings(settings),
           inputFormat: getInputFormat({ prompt, messages }),
           prompt: convertToLanguageModelPrompt({
             system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),

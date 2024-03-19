@@ -9,8 +9,8 @@ import {
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';
+import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { validateCallSettings } from '../prompt/validate-call-settings';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -54,7 +54,7 @@ export async function streamObject<T>({
     case 'json': {
       callOptions = {
         mode: { type: 'object-json' },
-        ...validateCallSettings(settings),
+        ...prepareCallSettings(settings),
         inputFormat: getInputFormat({ prompt, messages }),
         prompt: convertToLanguageModelPrompt({
           system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
