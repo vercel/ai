@@ -1,4 +1,4 @@
-import { loadApiKey } from '../../ai-model-specification';
+import { loadApiKey } from '../ai-model-specification';
 import { OpenAIChatLanguageModel } from './openai-chat-language-model';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import { OpenAICompletionLanguageModel } from './openai-completion-language-model';

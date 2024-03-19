@@ -10,11 +10,11 @@ import {
   isParseableJson,
   postJsonToApi,
   scale,
-} from '../../ai-model-specification';
+} from '../ai-model-specification';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
+import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import { openaiFailedResponseHandler } from './openai-error';
-import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 
 type OpenAIChatConfig = {
   provider: string;

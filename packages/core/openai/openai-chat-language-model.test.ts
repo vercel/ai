@@ -1,7 +1,7 @@
-import { LanguageModelV1Prompt } from '../../ai-model-specification/dist';
-import { convertStreamToArray } from '../test/convert-stream-to-array';
-import { StreamingTestServer } from '../test/streaming-test-server';
+import { LanguageModelV1Prompt } from '../ai-model-specification/dist';
 import { OpenAI } from './openai-facade';
+import { convertStreamToArray } from './test/convert-stream-to-array';
+import { StreamingTestServer } from './test/streaming-test-server';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },

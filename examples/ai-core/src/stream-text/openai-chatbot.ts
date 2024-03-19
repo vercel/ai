@@ -1,5 +1,5 @@
 import { Message, streamText } from 'ai/core';
-import { OpenAI } from 'ai/provider';
+import { OpenAI } from 'ai/openai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 

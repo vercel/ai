@@ -1,7 +1,7 @@
 import {
   LanguageModelV1Prompt,
   convertUint8ArrayToBase64,
-} from '../../ai-model-specification';
+} from '../ai-model-specification';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 
 export function convertToOpenAIChatMessages(

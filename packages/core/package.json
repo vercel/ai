@@ -15,12 +15,12 @@
     "prompts/dist/**/*",
     "rsc/dist/**/*",
     "core/dist/**/*",
-    "provider/dist/**/*",
+    "openai/dist/**/*",
     "ai-model-specification/dist/**/*"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
-    "clean": "rm -rf dist && rm -rf core/dist && rm -rf provider/dist && rm -rf ai-model-specification/dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist && rm -rf rsc/dist",
+    "clean": "rm -rf dist && rm -rf core/dist && rm -rf openai/dist && rm -rf ai-model-specification/dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist && rm -rf rsc/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -29,7 +29,7 @@
     "test:edge": "vitest --config vitest.edge.config.js --run --threads=false",
     "test:node": "vitest --config vitest.node.config.js --run --threads=false",
     "test:node:core": "pnpm vitest --config vitest.node.config.js --run --threads=false ./core/",
-    "test:node:provider": "pnpm vitest --config vitest.node.config.js --run --threads=false ./provider/",
+    "test:node:openai": "pnpm vitest --config vitest.node.config.js --run --threads=false ./openai/",
     "test:ui": "pnpm test:ui:react && pnpm test:ui:vue && pnpm test:ui:solid",
     "test:ui:react": "vitest --config vitest.ui.react.config.js --run",
     "test:ui:solid": "vitest --config vitest.ui.solid.config.js --run",
@@ -59,11 +59,11 @@
       "module": "./core/dist/index.mjs",
       "require": "./core/dist/index.js"
     },
-    "./provider": {
-      "types": "./provider/dist/index.d.ts",
-      "import": "./provider/dist/index.mjs",
-      "module": "./provider/dist/index.mjs",
-      "require": "./provider/dist/index.js"
+    "./openai": {
+      "types": "./openai/dist/index.d.ts",
+      "import": "./openai/dist/index.mjs",
+      "module": "./openai/dist/index.mjs",
+      "require": "./openai/dist/index.js"
     },
     "./rsc": {
       "types": "./rsc/dist/index.d.ts",

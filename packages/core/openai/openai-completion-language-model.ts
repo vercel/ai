@@ -8,14 +8,14 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   scale,
-} from '../../ai-model-specification';
+} from '../ai-model-specification';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
-import { openaiFailedResponseHandler } from './openai-error';
+import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAICompletionModelId,
   OpenAICompletionSettings,
 } from './openai-completion-settings';
-import { mapOpenAIFinishReason } from './map-openai-finish-reason';
+import { openaiFailedResponseHandler } from './openai-error';
 
 type OpenAICompletionConfig = {
   provider: string;
