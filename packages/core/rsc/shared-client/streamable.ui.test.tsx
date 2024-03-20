@@ -5,6 +5,15 @@ function nextTick() {
   return Promise.resolve();
 }
 
+async function getRawChunks(s: any) {
+  const { next, ...otherFields } = s;
+  const chunks = [otherFields];
+  if (next) {
+    chunks.push(...(await getRawChunks(await next)));
+  }
+  return chunks;
+}
+
 describe('rsc - readStreamableValue()', () => {
   it('should return an async iterable', () => {
     const streamable = createStreamableValue();
@@ -159,5 +168,65 @@ describe('rsc - readStreamableValue()', () => {
         2,
       ]
     `);
+  });
+
+  describe('patch', () => {
+    it('should be able to append strings as patch', async () => {
+      const streamable = createStreamableValue();
+      const value = streamable.value;
+
+      streamable.update('hello');
+      streamable.update('hello world');
+      streamable.update('hello world!');
+      streamable.update('new string');
+      streamable.done('new string with patch!');
+
+      expect(await getRawChunks(value)).toMatchInlineSnapshot(`
+        [
+          {
+            "curr": undefined,
+            "type": Symbol(ui.streamable.value),
+          },
+          {
+            "curr": "hello",
+          },
+          {
+            "diff": [
+              0,
+              " world",
+            ],
+          },
+          {
+            "diff": [
+              0,
+              "!",
+            ],
+          },
+          {
+            "curr": "new string",
+          },
+          {
+            "diff": [
+              0,
+              " with patch!",
+            ],
+          },
+        ]
+      `);
+
+      const values = [];
+      for await (const v of readStreamableValue(value)) {
+        values.push(v);
+      }
+      expect(values).toMatchInlineSnapshot(`
+        [
+          "hello",
+          "hello world",
+          "hello world!",
+          "new string",
+          "new string with patch!",
+        ]
+      `);
+    });
   });
 });
