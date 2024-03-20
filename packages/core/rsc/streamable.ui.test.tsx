@@ -7,6 +7,7 @@ import { createStreamableUI, render } from './streamable';
 import { z } from 'zod';
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
+const TEXT_CALL_TEST_URL = DEFAULT_TEST_URL;
 
 // This is a workaround to render the Flight response in a test environment.
 async function flightRender(node: React.ReactNode, byChunk?: boolean) {
@@ -172,12 +173,14 @@ function getFinalValueFromResolved(node: any) {
   return node;
 }
 
-function createMockUpProvider() {
+function createMockUpProvider(functionCall = true) {
   return {
     chat: {
       completions: {
         create: async () => {
-          return await fetch(FUNCTION_CALL_TEST_URL);
+          return await fetch(
+            functionCall ? FUNCTION_CALL_TEST_URL : TEXT_CALL_TEST_URL,
+          );
         },
       },
     },
@@ -241,6 +244,84 @@ describe('rsc - render()', () => {
             return <div>Weather</div>;
           },
         },
+      },
+    });
+
+    const rendered = await simulateFlightServerRender(ui as any);
+    expect(rendered).toMatchSnapshot();
+  });
+
+  it('should support text generation', async () => {
+    const ui = render({
+      model: 'gpt-3.5-turbo',
+      messages: [],
+      provider: createMockUpProvider(false),
+      text: ({ content, done }) => {
+        return (
+          <p>
+            {String(done)}: {content}
+          </p>
+        );
+      },
+    });
+
+    const rendered = await simulateFlightServerRender(ui as any);
+    expect(rendered).toMatchSnapshot();
+  });
+
+  it('should support textRender', async () => {
+    const ui = render({
+      model: 'gpt-3.5-turbo',
+      messages: [],
+      provider: createMockUpProvider(false),
+      experimental_textRender: async function* (payload) {
+        for await (const { content, delta, done } of payload) {
+          yield (
+            <p>
+              {String(done)}: {content}: {delta}
+            </p>
+          );
+        }
+        return <div>done.</div>;
+      },
+    });
+
+    const rendered = await simulateFlightServerRender(ui as any);
+    expect(rendered).toMatchSnapshot();
+  });
+
+  it('should support textRender without return value', async () => {
+    const ui = render({
+      model: 'gpt-3.5-turbo',
+      messages: [],
+      provider: createMockUpProvider(false),
+      experimental_textRender: async function* (payload) {
+        for await (const chunk of payload) {
+          yield <p>{JSON.stringify(chunk)}</p>;
+        }
+      },
+    });
+
+    const rendered = await simulateFlightServerRender(ui as any);
+    expect(rendered).toMatchSnapshot();
+  });
+
+  it('should support textRender with a direct return', async () => {
+    const ui = render({
+      model: 'gpt-3.5-turbo',
+      messages: [],
+      provider: createMockUpProvider(false),
+      experimental_textRender: function (payload) {
+        const ui = createStreamableUI(<p>initial</p>);
+
+        (async () => {
+          for await (const chunk of payload) {
+            ui.update(<p>{JSON.stringify(chunk)}</p>);
+          }
+          ui.done();
+        })();
+
+        return ui.value;
       },
     });
 

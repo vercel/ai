@@ -205,12 +205,25 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
 }
 
 type Streamable = ReactNode | Promise<ReactNode>;
-type Renderer<T> = (
+type Renderer<T, R = Streamable> = (
   props: T,
-) =>
-  | Streamable
-  | Generator<Streamable, Streamable, void>
-  | AsyncGenerator<Streamable, Streamable, void>;
+) => R | Generator<Streamable, R, void> | AsyncGenerator<Streamable, R, void>;
+
+type TextPayload = {
+  /**
+   * The full text content from the model so far.
+   */
+  content: string;
+  /**
+   * The new appended text content from the model since the last `text` call.
+   */
+  delta: string;
+  /**
+   * Whether the model is done generating text.
+   * If `true`, the `content` will be the final output and this call will be the last.
+   */
+  done: boolean;
+};
 
 /**
  * `render` is a helper function to create a streamable UI from some LLMs.
@@ -239,21 +252,20 @@ export function render<
   messages: Parameters<
     typeof OpenAI.prototype.chat.completions.create
   >[0]['messages'];
-  text?: Renderer<{
-    /**
-     * The full text content from the model so far.
-     */
-    content: string;
-    /**
-     * The new appended text content from the model since the last `text` call.
-     */
-    delta: string;
-    /**
-     * Whether the model is done generating text.
-     * If `true`, the `content` will be the final output and this call will be the last.
-     */
-    done: boolean;
-  }>;
+  /**
+   * The text renderer to use. This is a function that takes a `{ content: string, delta: string, done: boolean }`
+   * payload and returns a UI node value, such as a string or a React element.
+   *
+   * Note: In future versions, the new `experimental_textRender` API will be replacing `text`.
+   */
+  text?: Renderer<TextPayload>;
+  /**
+   * This will replace `text` in future versions.
+   */
+  experimental_textRender?: Renderer<
+    AsyncIterableIterator<TextPayload>,
+    Streamable | void
+  >;
   tools?: {
     [name in keyof TS]: {
       description?: string;
@@ -273,10 +285,20 @@ export function render<
 }): ReactNode {
   const ui = createStreamableUI(options.initial);
 
+  const textRender = options.experimental_textRender;
+
   // The default text renderer just returns the content as string.
   const text = options.text
     ? options.text
+    : textRender
+    ? undefined
     : ({ content }: { content: string }) => content;
+
+  if (textRender && text) {
+    throw new Error(
+      'You cannot use both `text` and `textRender` at the same time. Please prefer `textRender` as `text` will be deprecated in future versions.',
+    );
+  }
 
   const functions = options.functions
     ? Object.entries(options.functions).map(
@@ -318,8 +340,9 @@ export function render<
 
   async function handleRender(
     args: any,
-    renderer: undefined | Renderer<any>,
+    renderer: undefined | Renderer<any, any>,
     res: ReturnType<typeof createStreamableUI>,
+    final?: boolean,
   ) {
     if (!renderer) return;
 
@@ -340,7 +363,15 @@ export function render<
         typeof value.then === 'function')
     ) {
       const node = await (value as Promise<React.ReactNode>);
-      res.update(node);
+      if (final) {
+        if (typeof node === 'undefined') {
+          res.done();
+        } else {
+          res.done(node);
+        }
+      } else {
+        res.update(node);
+      }
       resolvable.resolve(void 0);
     } else if (
       value &&
@@ -354,27 +385,91 @@ export function render<
       >;
       while (true) {
         const { done, value } = await it.next();
+        if (done) {
+          if (final) {
+            if (typeof value === 'undefined') {
+              res.done();
+            } else {
+              res.done(value);
+            }
+          } else {
+            res.update(value);
+          }
+          break;
+        }
         res.update(value);
-        if (done) break;
       }
       resolvable.resolve(void 0);
     } else if (value && typeof value === 'object' && Symbol.iterator in value) {
       const it = value as Generator<React.ReactNode, React.ReactNode, void>;
       while (true) {
         const { done, value } = it.next();
+        if (done) {
+          if (final) {
+            if (typeof value === 'undefined') {
+              res.done();
+            } else {
+              res.done(value);
+            }
+          } else {
+            res.update(value);
+          }
+          break;
+        }
         res.update(value);
-        if (done) break;
       }
       resolvable.resolve(void 0);
     } else {
-      res.update(value);
+      if (final) {
+        if (typeof value === 'undefined') {
+          res.done();
+        } else {
+          res.done(value);
+        }
+      } else {
+        res.update(value);
+      }
       resolvable.resolve(void 0);
     }
   }
 
   (async () => {
+    let finished = false;
     let hasFunction = false;
+    let hasTextRender = !!textRender;
+    let triggeredTextRender = false;
     let content = '';
+
+    let textResolver: ReturnType<typeof createResolvablePromise<void>> | null =
+      null;
+    const textPayloads: TextPayload[] = [];
+    const textSyncIterable = hasTextRender
+      ? {
+          [Symbol.asyncIterator]() {
+            let done = false;
+            return {
+              async next() {
+                if (done) {
+                  return { done: true };
+                }
+
+                if (!textPayloads.length) {
+                  await (textResolver = createResolvablePromise()).promise;
+                  textResolver = null;
+                }
+
+                const payload = textPayloads.shift()!;
+                if (payload.done) {
+                  done = true;
+                  return { done: false, value: payload };
+                } else {
+                  return { done: false, value: payload };
+                }
+              },
+            };
+          },
+        }
+      : null;
 
     consumeStream(
       OpenAIStream(
@@ -404,6 +499,7 @@ export function render<
                     options.functions?.[functionCallPayload.name as any]
                       ?.render,
                     ui,
+                    true,
                   );
                 },
               }
@@ -421,17 +517,40 @@ export function render<
                       ui,
                     );
                   }
+
+                  await finished;
+                  ui.done();
                 },
               }
             : {}),
           onText(chunk) {
             content += chunk;
-            handleRender({ content, done: false, delta: chunk }, text, ui);
+
+            const payload = { content, done: false, delta: chunk };
+
+            if (hasTextRender) {
+              textPayloads.push(payload);
+              if (textResolver) textResolver.resolve();
+              if (!triggeredTextRender) {
+                triggeredTextRender = true;
+                handleRender(textSyncIterable, textRender, ui, true);
+              }
+            } else {
+              handleRender(payload, text, ui);
+            }
           },
           async onFinal() {
-            if (hasFunction) {
-              await finished;
-              ui.done();
+            if (finished) return;
+            if (hasFunction) return;
+
+            if (hasTextRender) {
+              const payload = { content, done: true, delta: '' };
+              textPayloads.push(payload);
+              if (textResolver) textResolver.resolve();
+              if (!triggeredTextRender) {
+                triggeredTextRender = true;
+                handleRender(textSyncIterable, textRender, ui, true);
+              }
               return;
             }
 

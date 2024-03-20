@@ -7,13 +7,7 @@ exports[`rsc - render() > should emit React Nodes with async render function 1`]
     "props": {
       "c": undefined,
       "n": {
-        "done": false,
-        "next": {
-          "done": true,
-          "value": <div>
-            Weather
-          </div>,
-        },
+        "done": true,
         "value": <div>
           Weather
         </div>,
@@ -37,13 +31,7 @@ exports[`rsc - render() > should emit React Nodes with generator render function
       "n": {
         "done": false,
         "next": {
-          "done": false,
-          "next": {
-            "done": true,
-            "value": <div>
-              Weather
-            </div>,
-          },
+          "done": true,
           "value": <div>
             Weather
           </div>,
@@ -69,16 +57,270 @@ exports[`rsc - render() > should emit React Nodes with sync render function 1`] 
     "props": {
       "c": undefined,
       "n": {
-        "done": false,
-        "next": {
-          "done": true,
-          "value": <div>
-            Weather
-          </div>,
-        },
+        "done": true,
         "value": <div>
           Weather
         </div>,
+      },
+    },
+    "type": "",
+  },
+  "props": {
+    "fallback": undefined,
+  },
+  "type": "Symbol(react.suspense)",
+}
+`;
+
+exports[`rsc - render() > should support text generation 1`] = `
+{
+  "children": {
+    "children": {},
+    "props": {
+      "c": undefined,
+      "n": {
+        "done": false,
+        "next": {
+          "done": false,
+          "next": {
+            "done": false,
+            "next": {
+              "done": false,
+              "next": {
+                "done": false,
+                "next": {
+                  "done": true,
+                  "value": <p>
+                    true
+                    : 
+                    Hello, world.
+                  </p>,
+                },
+                "value": <p>
+                  true
+                  : 
+                  Hello, world.
+                </p>,
+              },
+              "value": <p>
+                false
+                : 
+                Hello, world.
+              </p>,
+            },
+            "value": <p>
+              false
+              : 
+              Hello, world
+            </p>,
+          },
+          "value": <p>
+            false
+            : 
+            Hello,
+          </p>,
+        },
+        "value": <p>
+          false
+          : 
+          Hello
+        </p>,
+      },
+    },
+    "type": "",
+  },
+  "props": {
+    "fallback": undefined,
+  },
+  "type": "Symbol(react.suspense)",
+}
+`;
+
+exports[`rsc - render() > should support textRender 1`] = `
+{
+  "children": {
+    "children": {},
+    "props": {
+      "c": undefined,
+      "n": {
+        "done": false,
+        "next": {
+          "done": false,
+          "next": {
+            "done": false,
+            "next": {
+              "done": false,
+              "next": {
+                "done": false,
+                "next": {
+                  "done": true,
+                  "value": <div>
+                    done.
+                  </div>,
+                },
+                "value": <p>
+                  true
+                  : 
+                  Hello, world.
+                  : 
+                  
+                </p>,
+              },
+              "value": <p>
+                false
+                : 
+                Hello, world.
+                : 
+                .
+              </p>,
+            },
+            "value": <p>
+              false
+              : 
+              Hello, world
+              : 
+               world
+            </p>,
+          },
+          "value": <p>
+            false
+            : 
+            Hello,
+            : 
+            ,
+          </p>,
+        },
+        "value": <p>
+          false
+          : 
+          Hello
+          : 
+          Hello
+        </p>,
+      },
+    },
+    "type": "",
+  },
+  "props": {
+    "fallback": undefined,
+  },
+  "type": "Symbol(react.suspense)",
+}
+`;
+
+exports[`rsc - render() > should support textRender with a direct return 1`] = `
+{
+  "children": {
+    "children": {},
+    "props": {
+      "c": undefined,
+      "n": {
+        "done": true,
+        "value": <React.Suspense
+          fallback={
+            <p>
+              initial
+            </p>
+          }
+        >
+          <Unknown
+            c={
+              <p>
+                initial
+              </p>
+            }
+            n={
+              {
+                "done": false,
+                "next": {
+                  "done": false,
+                  "next": {
+                    "done": false,
+                    "next": {
+                      "done": false,
+                      "next": {
+                        "done": false,
+                        "next": {
+                          "done": true,
+                          "value": <p>
+                            {"content":"Hello, world.","done":true,"delta":""}
+                          </p>,
+                        },
+                        "value": <p>
+                          {"content":"Hello, world.","done":true,"delta":""}
+                        </p>,
+                      },
+                      "value": <p>
+                        {"content":"Hello, world.","done":false,"delta":"."}
+                      </p>,
+                    },
+                    "value": <p>
+                      {"content":"Hello, world","done":false,"delta":" world"}
+                    </p>,
+                  },
+                  "value": <p>
+                    {"content":"Hello,","done":false,"delta":","}
+                  </p>,
+                },
+                "value": <p>
+                  {"content":"Hello","done":false,"delta":"Hello"}
+                </p>,
+              }
+            }
+          />
+        </React.Suspense>,
+      },
+    },
+    "type": "",
+  },
+  "props": {
+    "fallback": undefined,
+  },
+  "type": "Symbol(react.suspense)",
+}
+`;
+
+exports[`rsc - render() > should support textRender without return value 1`] = `
+{
+  "children": {
+    "children": {},
+    "props": {
+      "c": undefined,
+      "n": {
+        "done": false,
+        "next": {
+          "done": false,
+          "next": {
+            "done": false,
+            "next": {
+              "done": false,
+              "next": {
+                "done": false,
+                "next": {
+                  "done": true,
+                  "value": <p>
+                    {"content":"Hello, world.","done":true,"delta":""}
+                  </p>,
+                },
+                "value": <p>
+                  {"content":"Hello, world.","done":true,"delta":""}
+                </p>,
+              },
+              "value": <p>
+                {"content":"Hello, world.","done":false,"delta":"."}
+              </p>,
+            },
+            "value": <p>
+              {"content":"Hello, world","done":false,"delta":" world"}
+            </p>,
+          },
+          "value": <p>
+            {"content":"Hello,","done":false,"delta":","}
+          </p>,
+        },
+        "value": <p>
+          {"content":"Hello","done":false,"delta":"Hello"}
+        </p>,
       },
     },
     "type": "",
