@@ -6,7 +6,6 @@ import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
-  mockFetchTextStream,
 } from '../tests/utils/mock-fetch';
 import { useCompletion } from './use-completion';
 

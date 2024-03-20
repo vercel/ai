@@ -10,11 +10,8 @@
 
 import { parseComplexResponse } from '../shared/parse-complex-response';
 import { IdGenerator, JSONValue } from '../shared/types';
-import { createChunkDecoder, nanoid } from '../shared/utils';
-import {
-  createStreamDataTransformer,
-  experimental_StreamData,
-} from './stream-data';
+import { nanoid } from '../shared/utils';
+import { experimental_StreamData } from './stream-data';
 
 type UINode = string | JSX.Element | JSX.Element[] | null | undefined;
 

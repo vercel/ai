@@ -5,7 +5,6 @@ import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
-  mockFetchTextStream,
 } from '../tests/utils/mock-fetch';
 import TestCompletionComponent from './TestCompletionComponent.vue';
 
