@@ -56,5 +56,5 @@ export function GoogleGenerativeAIStream(
 ): ReadableStream {
   return readableFromAsyncIterable(streamable(response))
     .pipeThrough(createCallbacksTransformer(cb))
-    .pipeThrough(createStreamDataTransformer(cb?.experimental_streamData));
+    .pipeThrough(createStreamDataTransformer());
 }

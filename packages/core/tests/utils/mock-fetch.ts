@@ -1,5 +1,4 @@
 import { vi } from 'vitest';
-import { COMPLEX_HEADER } from '../../shared/utils';
 
 export function mockFetchTextStream({
   url,
@@ -70,9 +69,6 @@ export function mockFetchDataStreamWithGenerator({
       url,
       ok: true,
       status: 200,
-      headers: new Map<string, string>([
-        [COMPLEX_HEADER, 'true'],
-      ]) as any as Headers,
       bodyUsed: false,
       body: {
         getReader() {

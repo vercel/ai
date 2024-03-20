@@ -119,16 +119,7 @@ export class experimental_StreamData {
  * A TransformStream for LLMs that do not have their own transform stream handlers managing encoding (e.g. OpenAIStream has one for function call handling).
  * This assumes every chunk is a 'text' chunk.
  */
-export function createStreamDataTransformer(
-  experimental_streamData: boolean | undefined,
-) {
-  if (!experimental_streamData) {
-    return new TransformStream({
-      transform: async (chunk, controller) => {
-        controller.enqueue(chunk);
-      },
-    });
-  }
+export function createStreamDataTransformer() {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
   return new TransformStream({

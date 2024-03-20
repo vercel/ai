@@ -38,7 +38,6 @@ export const POST = (async ({ request }) => {
     onFinal(completion) {
       data.close();
     },
-    experimental_streamData: true,
   });
 
   // Respond with the stream

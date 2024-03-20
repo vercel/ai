@@ -20,7 +20,6 @@ export async function POST(req: Request) {
       data.append(JSON.stringify({ key: 'value' })); // example
       data.close();
     },
-    experimental_streamData: true,
   });
 
   const llm = new ChatOpenAI({
