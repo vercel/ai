@@ -17,6 +17,13 @@ const homeTemperatures = {
   bathroom: 23,
 };
 
+const assistantConfig = {
+  name: "home assistant",
+  instructions: `You are an assistant with access to a home automation system. You can get and set the temperature in the bedroom, home office, living room, kitchen and bathroom.
+            The system uses temperature in Celsius. If the user requests Fahrenheit, you should convert the temperature to Fahrenheit.`,
+  model: "gpt-4-turbo-preview",
+}
+
 export async function POST(req: Request) {
   // Parse the request body
   const input: {
@@ -26,6 +33,11 @@ export async function POST(req: Request) {
 
   // Create a thread if needed
   const threadId = input.threadId ?? (await openai.beta.threads.create({})).id;
+
+  // Create an assistant if needed
+  const assistantId = process.env.ASSISTANT_ID ?? (await openai.beta.assistants.create({
+    assistantConfig
+  })).id
 
   // Add a message to the thread
   const createdMessage = await openai.beta.threads.messages.create(threadId, {
@@ -38,11 +50,7 @@ export async function POST(req: Request) {
     async ({ forwardStream, sendDataMessage }) => {
       // Run the assistant on the thread
       const runStream = openai.beta.threads.runs.createAndStream(threadId, {
-        assistant_id:
-          process.env.ASSISTANT_ID ??
-          (() => {
-            throw new Error('ASSISTANT_ID is not set');
-          })(),
+        assistant_id: assistantId
       });
 
       // forward run status would stream message deltas
