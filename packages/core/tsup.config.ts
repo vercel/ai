@@ -103,14 +103,7 @@ export default defineConfig([
       };
     },
   },
-  // AI Core
-  {
-    entry: ['core/index.ts'],
-    format: ['cjs', 'esm'],
-    outDir: 'core/dist',
-    dts: true,
-    sourcemap: true,
-  },
+
   // AI Core: Providers
   {
     entry: ['openai/index.ts'],

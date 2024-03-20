@@ -6,7 +6,7 @@ import {
   NoSuchToolError,
   safeParseJSON,
 } from '../../ai-model-specification';
-import { Tool } from '../tool';
+import { ExperimentalTool } from '../tool';
 
 export interface ToolCall<NAME extends string, ARGS> {
   toolCallId: string;
@@ -15,19 +15,19 @@ export interface ToolCall<NAME extends string, ARGS> {
 }
 
 // transforms the tools into a tool call union
-export type ToToolCall<TOOLS extends Record<string, Tool>> = ValueOf<{
-  [NAME in keyof TOOLS]: {
-    toolCallId: string;
-    toolName: NAME & string;
-    args: z.infer<TOOLS[NAME]['parameters']>;
-  };
-}>;
+export type ToToolCall<TOOLS extends Record<string, ExperimentalTool>> =
+  ValueOf<{
+    [NAME in keyof TOOLS]: {
+      toolCallId: string;
+      toolName: NAME & string;
+      args: z.infer<TOOLS[NAME]['parameters']>;
+    };
+  }>;
 
-export type ToToolCallArray<TOOLS extends Record<string, Tool>> = Array<
-  ToToolCall<TOOLS>
->;
+export type ToToolCallArray<TOOLS extends Record<string, ExperimentalTool>> =
+  Array<ToToolCall<TOOLS>>;
 
-export function parseToolCall<TOOLS extends Record<string, Tool>>({
+export function parseToolCall<TOOLS extends Record<string, ExperimentalTool>>({
   toolCall,
   tools,
 }: {

@@ -1,7 +1,7 @@
-import { Message } from './message';
+import { ExperimentalMessage } from './message';
 
 export type Prompt = {
   system?: string;
   prompt?: string;
-  messages?: Array<Message>;
+  messages?: Array<ExperimentalMessage>;
 };

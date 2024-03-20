@@ -1,4 +1,4 @@
-import { generateText, tool } from 'ai/core';
+import { generateText, tool } from 'ai';
 import { OpenAI } from 'ai/openai';
 import dotenv from 'dotenv';
 import { z } from 'zod';

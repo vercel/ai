@@ -8,7 +8,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { getInputFormat } from '../prompt/get-input-format';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { Tool } from '../tool/tool';
+import { ExperimentalTool } from '../tool/tool';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { TokenUsage, calculateTokenUsage } from './token-usage';
 import { ToToolCallArray, parseToolCall } from './tool-call';
@@ -17,7 +17,9 @@ import { ToToolResultArray } from './tool-result';
 /**
  * Generate a text and call tools using a language model.
  */
-export async function generateText<TOOLS extends Record<string, Tool>>({
+export async function generateText<
+  TOOLS extends Record<string, ExperimentalTool>,
+>({
   model,
   tools,
   system,
@@ -79,7 +81,7 @@ export async function generateText<TOOLS extends Record<string, Tool>>({
   });
 }
 
-async function executeTools<TOOLS extends Record<string, Tool>>({
+async function executeTools<TOOLS extends Record<string, ExperimentalTool>>({
   toolCalls,
   tools,
 }: {
@@ -110,7 +112,9 @@ async function executeTools<TOOLS extends Record<string, Tool>>({
   );
 }
 
-export class GenerateTextResult<TOOLS extends Record<string, Tool>> {
+export class GenerateTextResult<
+  TOOLS extends Record<string, ExperimentalTool>,
+> {
   readonly text: string;
   readonly toolCalls: ToToolCallArray<TOOLS>;
   readonly toolResults: ToToolResultArray<TOOLS>;

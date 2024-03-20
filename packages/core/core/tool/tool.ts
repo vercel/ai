@@ -6,7 +6,10 @@ import { z } from 'zod';
  *
  * The tool can also contain an optional execute function for the actual execution function of the tool.
  */
-export interface Tool<PARAMETERS extends z.ZodTypeAny = any, RESULT = any> {
+export interface ExperimentalTool<
+  PARAMETERS extends z.ZodTypeAny = any,
+  RESULT = any,
+> {
   /**
    * A optional description of what the tool does. Will be used by the language model to decide whether to use the tool.
    */
@@ -30,21 +33,21 @@ export interface Tool<PARAMETERS extends z.ZodTypeAny = any, RESULT = any> {
  */
 // Note: special type inference is needed for the execute function args to make sure they are inferred correctly.
 export function tool<PARAMETERS extends z.ZodTypeAny, RESULT>(
-  tool: Tool<PARAMETERS, RESULT> & {
+  tool: ExperimentalTool<PARAMETERS, RESULT> & {
     execute: (args: z.infer<PARAMETERS>) => PromiseLike<RESULT>;
   },
-): Tool<PARAMETERS, RESULT> & {
+): ExperimentalTool<PARAMETERS, RESULT> & {
   execute: (args: z.infer<PARAMETERS>) => PromiseLike<RESULT>;
 };
 export function tool<PARAMETERS extends z.ZodTypeAny, RESULT>(
-  tool: Tool<PARAMETERS, RESULT> & {
+  tool: ExperimentalTool<PARAMETERS, RESULT> & {
     execute?: undefined;
   },
-): Tool<PARAMETERS, RESULT> & {
+): ExperimentalTool<PARAMETERS, RESULT> & {
   execute: undefined;
 };
 export function tool<PARAMETERS extends z.ZodTypeAny, RESULT = any>(
-  tool: Tool<PARAMETERS, RESULT>,
-): Tool<PARAMETERS, RESULT> {
+  tool: ExperimentalTool<PARAMETERS, RESULT>,
+): ExperimentalTool<PARAMETERS, RESULT> {
   return tool;
 }

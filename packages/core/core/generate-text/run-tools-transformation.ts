@@ -3,11 +3,13 @@ import {
   LanguageModelV1StreamPart,
   NoSuchToolError,
 } from '../../ai-model-specification';
-import { Tool } from '../tool';
+import { ExperimentalTool } from '../tool';
 import { TextStreamPart } from './stream-text';
 import { parseToolCall } from './tool-call';
 
-export function runToolsTransformation<TOOLS extends Record<string, Tool>>({
+export function runToolsTransformation<
+  TOOLS extends Record<string, ExperimentalTool>,
+>({
   tools,
   generatorStream,
 }: {

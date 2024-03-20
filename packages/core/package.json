@@ -14,7 +14,6 @@
     "solid/dist/**/*",
     "prompts/dist/**/*",
     "rsc/dist/**/*",
-    "core/dist/**/*",
     "openai/dist/**/*",
     "ai-model-specification/dist/**/*"
   ],
@@ -52,12 +51,6 @@
       "import": "./ai-model-specification/dist/index.mjs",
       "module": "./ai-model-specification/dist/index.mjs",
       "require": "./ai-model-specification/dist/index.js"
-    },
-    "./core": {
-      "types": "./core/dist/index.d.ts",
-      "import": "./core/dist/index.mjs",
-      "module": "./core/dist/index.mjs",
-      "require": "./core/dist/index.js"
     },
     "./openai": {
       "types": "./openai/dist/index.d.ts",

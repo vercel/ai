@@ -1,4 +1,9 @@
-import { Message, ToolCallPart, ToolResultPart, streamText } from 'ai/core';
+import {
+  ExperimentalMessage,
+  ToolCallPart,
+  ToolResultPart,
+  streamText,
+} from 'ai';
 import { OpenAI } from 'ai/openai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
@@ -13,7 +18,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: Message[] = [];
+const messages: ExperimentalMessage[] = [];
 
 async function main() {
   let toolResponseAvailable = false;

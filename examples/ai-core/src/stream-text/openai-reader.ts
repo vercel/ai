@@ -1,4 +1,4 @@
-import { streamText } from 'ai/core';
+import { streamText } from 'ai';
 import { OpenAI } from 'ai/openai';
 import dotenv from 'dotenv';
 
