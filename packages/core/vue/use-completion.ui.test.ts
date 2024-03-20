@@ -18,19 +18,6 @@ afterEach(() => {
   cleanup();
 });
 
-it('should render normal streamed stream', async () => {
-  mockFetchTextStream({
-    url: 'https://example.com/api/completion',
-    chunks: ['Hello', ',', ' world', '.'],
-  });
-
-  await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
-
-  findByText(await screen.findByTestId('completion'), 'Hello, world.');
-
-  expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
-});
-
 it('should render complex text stream', async () => {
   mockFetchDataStream({
     url: 'https://example.com/api/completion',

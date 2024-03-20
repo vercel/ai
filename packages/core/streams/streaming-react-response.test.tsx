@@ -67,6 +67,7 @@ async function extractReactRowContents(response: Promise<ReactResponseRow>) {
 describe('without ui', () => {
   it('should stream text response as React rows', async () => {
     const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL));
+
     const response = new experimental_StreamingReactResponse(
       stream,
       {},
@@ -90,7 +91,6 @@ describe('without ui', () => {
       onFinal() {
         data.close();
       },
-      experimental_streamData: true,
     });
 
     const response = new experimental_StreamingReactResponse(stream, {
@@ -134,7 +134,6 @@ describe('with ui: sync jsx for content', () => {
       onFinal() {
         data.close();
       },
-      experimental_streamData: true,
     });
 
     const response = new experimental_StreamingReactResponse(stream, {
@@ -179,7 +178,6 @@ describe('with ui: async sync jsx for content', () => {
       onFinal() {
         data.close();
       },
-      experimental_streamData: true,
     });
 
     const response = new experimental_StreamingReactResponse(stream, {
@@ -211,7 +209,6 @@ describe('with ui: sync jsx for content and data', () => {
         data.append({ fn: name });
         return undefined;
       },
-      experimental_streamData: true,
     });
 
     const response = new experimental_StreamingReactResponse(stream, {
@@ -256,7 +253,6 @@ describe('with ui: async jsx for content and data', () => {
         data.append({ fn: name });
         return undefined;
       },
-      experimental_streamData: true,
     });
 
     const response = new experimental_StreamingReactResponse(stream, {
