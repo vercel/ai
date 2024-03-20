@@ -17,7 +17,7 @@ import { ToToolResultArray } from './tool-result';
 /**
  * Generate a text and call tools using a language model.
  */
-export async function generateText<
+export async function experimental_generateText<
   TOOLS extends Record<string, ExperimentalTool>,
 >({
   model,

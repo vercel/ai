@@ -3,11 +3,11 @@ import { z } from 'zod';
 import { convertArrayToReadableStream } from '../test/convert-array-to-readable-stream';
 import { convertAsyncIterableToArray } from '../test/convert-async-iterable-to-array';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
-import { streamText } from './stream-text';
+import { experimental_streamText } from './stream-text';
 
 describe('result.textStream', () => {
   it('should send text deltas', async () => {
-    const result = await streamText({
+    const result = await experimental_streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
@@ -21,7 +21,7 @@ describe('result.textStream', () => {
               { type: 'text-delta', textDelta: ', ' },
               { type: 'text-delta', textDelta: `world!` },
             ]),
-            warnings: [],
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
         },
       }),
@@ -37,7 +37,7 @@ describe('result.textStream', () => {
 
 describe('result.fullStream', () => {
   it('should send text deltas', async () => {
-    const result = await streamText({
+    const result = await experimental_streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
@@ -51,7 +51,7 @@ describe('result.fullStream', () => {
               { type: 'text-delta', textDelta: ', ' },
               { type: 'text-delta', textDelta: `world!` },
             ]),
-            warnings: [],
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
         },
       }),
@@ -69,7 +69,7 @@ describe('result.fullStream', () => {
   });
 
   it('should send tool calls', async () => {
-    const result = await streamText({
+    const result = await experimental_streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
@@ -103,7 +103,7 @@ describe('result.fullStream', () => {
                 args: `{ "value": "value" }`,
               },
             ]),
-            warnings: [],
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
         },
       }),
@@ -129,7 +129,7 @@ describe('result.fullStream', () => {
   });
 
   it('should send tool results', async () => {
-    const result = await streamText({
+    const result = await experimental_streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
@@ -163,7 +163,7 @@ describe('result.fullStream', () => {
                 args: `{ "value": "value" }`,
               },
             ]),
-            warnings: [],
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
         },
       }),

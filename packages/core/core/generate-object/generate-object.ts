@@ -18,7 +18,7 @@ import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 /**
  * Generate a structured, typed object using a language model.
  */
-export async function generateObject<T>({
+export async function experimental_generateObject<T>({
   model,
   schema,
   mode,

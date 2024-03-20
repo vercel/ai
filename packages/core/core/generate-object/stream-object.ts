@@ -23,7 +23,7 @@ import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 /**
  * Stream an object as a partial object stream.
  */
-export async function streamObject<T>({
+export async function experimental_streamObject<T>({
   model,
   schema,
   mode,

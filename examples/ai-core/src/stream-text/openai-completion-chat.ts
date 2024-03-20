@@ -1,4 +1,4 @@
-import { streamText } from 'ai';
+import { experimental_streamText } from 'ai';
 import { OpenAI } from 'ai/openai';
 import dotenv from 'dotenv';
 
@@ -7,7 +7,7 @@ dotenv.config();
 const openai = new OpenAI();
 
 async function main() {
-  const result = await streamText({
+  const result = await experimental_streamText({
     model: openai.completion('gpt-3.5-turbo-instruct'),
     maxTokens: 1024,
     system: 'You are a helpful chatbot.',
