@@ -1,5 +1,4 @@
-import { StreamingTextResponse } from 'ai';
-import { streamText } from 'ai/core';
+import { StreamingTextResponse, experimental_streamText } from 'ai';
 import { openai } from 'ai/openai';
 
 export const runtime = 'edge';
@@ -7,7 +6,7 @@ export const runtime = 'edge';
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const result = await streamText({
+  const result = await experimental_streamText({
     model: openai.chat('gpt-4-turbo-preview'),
     messages,
   });

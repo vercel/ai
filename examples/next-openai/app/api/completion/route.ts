@@ -1,5 +1,8 @@
-import { StreamingTextResponse, experimental_StreamData } from 'ai';
-import { streamText } from 'ai/core';
+import {
+  StreamingTextResponse,
+  experimental_StreamData,
+  experimental_streamText,
+} from 'ai';
 import { openai } from 'ai/openai';
 
 export const runtime = 'edge';
@@ -8,7 +11,7 @@ export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
 
-  const result = await streamText({
+  const result = await experimental_streamText({
     model: openai.completion('gpt-3.5-turbo-instruct'),
     maxTokens: 2000,
     prompt,

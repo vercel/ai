@@ -6,8 +6,12 @@ export function convertBase64ToUint8Array(base64String: string) {
 
 export function convertUint8ArrayToBase64(array: Uint8Array): string {
   let latin1string = '';
-  for (const value of array) {
-    latin1string += String.fromCodePoint(value);
+
+  // Note: regular for loop to support older JavaScript versions that
+  // do not support for..of on Uint8Array
+  for (let i = 0; i < array.length; i++) {
+    latin1string += String.fromCodePoint(array[i]);
   }
+
   return globalThis.btoa(latin1string);
 }
