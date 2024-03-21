@@ -1,6 +1,6 @@
 {
   "name": "next-langchain",
-  "version": "0.0.1-canary.2",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "ai": "3.1.0-canary.4",
+    "ai": "latest",
     "langchain": "^0.0.196",
     "next": "14.1.1",
     "react": "18.2.0",

@@ -1,5 +1,5 @@
 ---
-'ai': minor
+'ai': patch
 ---
 
-Added ai/core functions (streamText, generateText, streamObject, generateObject)
+Added ai/core functions (streamText, generateText, streamObject, generateObject) & OpenAI provider

@@ -1,11 +1,5 @@
 # ai
 
-## 3.1.0-canary.4
-
-### Patch Changes
-
-- Continued ai/core development
-
 ## 3.0.13
 
 ### Patch Changes

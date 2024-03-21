@@ -1,9 +1,9 @@
 {
   "name": "ai-core-examples",
-  "version": "0.0.1-canary.2",
+  "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "ai": "3.1.0-canary.4",
+    "ai": "latest",
     "dotenv": "16.4.5",
     "zod": "3.22.4",
     "zod-to-json-schema": "3.22.4"
