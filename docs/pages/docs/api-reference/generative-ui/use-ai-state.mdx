@@ -19,7 +19,7 @@ context and information shared with the AI, such as system messages, function re
     `useAIState` behaves like `useState`, exposing the AI state (you may want to call it `history`) and an update function into your application.
 
     ```tsx filename="app/page.tsx" {5, 25, 27}
-    import { useUIState } from "ai/rsc";
+    import { useUIState, useAIState } from "ai/rsc";
 
     export default function Page() {
       const [messages, setMessages] = useUIState();
