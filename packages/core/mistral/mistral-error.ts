@@ -6,7 +6,7 @@ const mistralErrorDataSchema = z.object({
   message: z.string(),
   type: z.string(),
   param: z.string().nullable(),
-  code: z.string(),
+  code: z.string().nullable(),
 });
 
 export type MistralErrorData = z.infer<typeof mistralErrorDataSchema>;
