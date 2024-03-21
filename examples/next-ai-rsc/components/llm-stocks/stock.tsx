@@ -40,7 +40,7 @@ export function Stock({ name = 'DOGE', price = 12.34, delta = 1 }) {
     if (startHighlight && endHighlight) {
       const message = {
         id,
-        role: 'system' as const,
+        role: 'user' as const,
         content: `[User has highlighted dates between between ${format(
           xToDate(startHighlight),
           'd LLL',
