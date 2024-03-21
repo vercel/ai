@@ -21,4 +21,3 @@ https://${kasadaAPIHostname}/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-
 
 3. Move the existing `app/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/[[...restpath]]/route.ts` file to your
    new path, and fill in the `KASADA_ENDPOINT` and `X-Forwarded-Host` header inside of it. They're labelled `FILL_IN`.
-
