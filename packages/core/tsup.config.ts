@@ -112,6 +112,13 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
   },
+  {
+    entry: ['mistral/index.ts'],
+    format: ['cjs', 'esm'],
+    outDir: 'mistral/dist',
+    dts: true,
+    sourcemap: true,
+  },
   // AI Core: Model Specification
   {
     entry: ['ai-model-specification/index.ts'],
