@@ -119,7 +119,6 @@ export const postToApi = async <T>({
 
     // unwrap original error when fetch failed (for easier debugging):
     if (error instanceof TypeError && error.message === 'fetch failed') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const cause = (error as any).cause;
 
       if (cause != null) {

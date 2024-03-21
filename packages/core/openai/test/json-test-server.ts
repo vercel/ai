@@ -4,7 +4,6 @@ import { SetupServer, setupServer } from 'msw/node';
 export class JsonTestServer {
   readonly server: SetupServer;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   responseBodyJson: any = {};
 
   constructor(url: string) {

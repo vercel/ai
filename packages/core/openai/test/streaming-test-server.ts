@@ -4,7 +4,6 @@ import { SetupServer, setupServer } from 'msw/node';
 export class StreamingTestServer {
   readonly server: SetupServer;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   responseChunks: any[] = [];
 
   request: Request | undefined;
