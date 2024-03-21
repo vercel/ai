@@ -162,7 +162,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
         provider: openai,
         messages: [
           { role: 'system', content: 'You are a flight assistant' },
-          { role: 'user', content: userInput }
+          ...aiState.get()
         ],
         // `text` is called when an AI returns a text response (as opposed to a tool call).
         // Its content is streamed from the LLM, so this function will be called
