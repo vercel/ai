@@ -57,6 +57,7 @@ export function readStreamableValue<T = unknown>(
         streamableValue;
       let curr = row.curr;
       let done = false;
+      let initial = true;
 
       return {
         async next() {
@@ -67,8 +68,22 @@ export function readStreamableValue<T = unknown>(
           if (typeof row.error !== 'undefined') {
             throw row.error;
           }
-          if ('curr' in row) {
-            curr = row.curr;
+          if ('curr' in row || row.diff) {
+            if (row.diff) {
+              switch (row.diff[0]) {
+                case 0:
+                  if (typeof curr !== 'string') {
+                    throw new Error(
+                      'Invalid patch: can only append to string types. This is a bug in the AI SDK.',
+                    );
+                  } else {
+                    (curr as string) = curr + row.diff[1];
+                  }
+                  break;
+              }
+            } else {
+              curr = row.curr;
+            }
 
             // The last emitted { done: true } won't be used as the value
             // by the for await...of syntax.
@@ -89,6 +104,15 @@ export function readStreamableValue<T = unknown>(
           }
 
           row = row.next;
+          if (initial) {
+            initial = false;
+            if (typeof curr === 'undefined') {
+              // This is the initial chunk and there isn't an initial value yet.
+              // Let's skip this one.
+              return this.next();
+            }
+          }
+
           return {
             value: curr,
             done: false,
