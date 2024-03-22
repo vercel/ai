@@ -5,7 +5,7 @@ export class NoResponseBodyError extends Error {
     this.name = 'AI_NoResponseBodyError';
   }
 
-  static isNoSuchToolError(error: unknown): error is NoResponseBodyError {
+  static isNoResponseBodyError(error: unknown): error is NoResponseBodyError {
     return error instanceof Error && error.name === 'AI_NoResponseBodyError';
   }
 
