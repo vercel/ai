@@ -15,20 +15,6 @@ exports[`rsc - render() > should emit React Nodes for multiple tool calls with a
             "value": <div
               className="space-y-4"
             >
-              <React.Suspense>
-                <Unknown
-                  n={
-                    {
-                      "done": false,
-                      "next": {
-                        "done": true,
-                        "value": "",
-                      },
-                      "value": "",
-                    }
-                  }
-                />
-              </React.Suspense>
               <React.Fragment>
                 <React.Suspense>
                   <Unknown
@@ -78,20 +64,6 @@ exports[`rsc - render() > should emit React Nodes for multiple tool calls with a
           "value": <div
             className="space-y-4"
           >
-            <React.Suspense>
-              <Unknown
-                n={
-                  {
-                    "done": false,
-                    "next": {
-                      "done": true,
-                      "value": "",
-                    },
-                    "value": "",
-                  }
-                }
-              />
-            </React.Suspense>
             <React.Fragment>
               <React.Suspense>
                 <Unknown
@@ -141,20 +113,6 @@ exports[`rsc - render() > should emit React Nodes for multiple tool calls with a
         "value": <div
           className="space-y-4"
         >
-          <React.Suspense>
-            <Unknown
-              n={
-                {
-                  "done": false,
-                  "next": {
-                    "done": true,
-                    "value": "",
-                  },
-                  "value": "",
-                }
-              }
-            />
-          </React.Suspense>
           <React.Fragment>
             <React.Suspense>
               <Unknown
@@ -207,20 +165,6 @@ exports[`rsc - render() > should emit React Nodes with async render function 1`]
                     "done": false,
                     "next": {
                       "done": true,
-                      "value": "",
-                    },
-                    "value": "",
-                  }
-                }
-              />
-            </React.Suspense>
-            <React.Suspense>
-              <Unknown
-                n={
-                  {
-                    "done": false,
-                    "next": {
-                      "done": true,
                       "value": <div>
                         Weather
                       </div>,
@@ -235,20 +179,6 @@ exports[`rsc - render() > should emit React Nodes with async render function 1`]
           </React.Fragment>,
         },
         "value": <React.Fragment>
-          <React.Suspense>
-            <Unknown
-              n={
-                {
-                  "done": false,
-                  "next": {
-                    "done": true,
-                    "value": "",
-                  },
-                  "value": "",
-                }
-              }
-            />
-          </React.Suspense>
           <React.Suspense>
             <Unknown
               n={
@@ -296,20 +226,6 @@ exports[`rsc - render() > should emit React Nodes with generator render function
                   {
                     "done": false,
                     "next": {
-                      "done": true,
-                      "value": "",
-                    },
-                    "value": "",
-                  }
-                }
-              />
-            </React.Suspense>
-            <React.Suspense>
-              <Unknown
-                n={
-                  {
-                    "done": false,
-                    "next": {
                       "done": false,
                       "next": {
                         "done": true,
@@ -331,20 +247,6 @@ exports[`rsc - render() > should emit React Nodes with generator render function
           </React.Fragment>,
         },
         "value": <React.Fragment>
-          <React.Suspense>
-            <Unknown
-              n={
-                {
-                  "done": false,
-                  "next": {
-                    "done": true,
-                    "value": "",
-                  },
-                  "value": "",
-                }
-              }
-            />
-          </React.Suspense>
           <React.Suspense>
             <Unknown
               n={
@@ -399,20 +301,6 @@ exports[`rsc - render() > should emit React Nodes with sync render function 1`] 
                     "done": false,
                     "next": {
                       "done": true,
-                      "value": "",
-                    },
-                    "value": "",
-                  }
-                }
-              />
-            </React.Suspense>
-            <React.Suspense>
-              <Unknown
-                n={
-                  {
-                    "done": false,
-                    "next": {
-                      "done": true,
                       "value": <div>
                         Weather
                       </div>,
@@ -427,20 +315,6 @@ exports[`rsc - render() > should emit React Nodes with sync render function 1`] 
           </React.Fragment>,
         },
         "value": <React.Fragment>
-          <React.Suspense>
-            <Unknown
-              n={
-                {
-                  "done": false,
-                  "next": {
-                    "done": true,
-                    "value": "",
-                  },
-                  "value": "",
-                }
-              }
-            />
-          </React.Suspense>
           <React.Suspense>
             <Unknown
               n={

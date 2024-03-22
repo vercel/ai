@@ -325,7 +325,7 @@ export function render<
    * Per default, text, function and tool nodes are wrapped in a React Fragment.
    */
   compose?: Renderer<{
-    text: React.ReactNode;
+    text: React.ReactNode | undefined;
     functionCall: { name: keyof FS; node: React.ReactNode } | undefined;
     toolCalls: { name: keyof TS; id: string; node: React.ReactNode }[];
   }>;
@@ -368,11 +368,7 @@ export function render<
     finished: undefined,
   };
 
-  const textUIContext: StreamableUIContext = {
-    ui: createStreamableUI(),
-    finished: undefined,
-  };
-
+  let textUIContext: StreamableUIContext | undefined;
   let functionUIContext: StreamableFunctionUIContext | undefined;
   const toolUIContexts: StreamableToolUIContext[] = [];
 
@@ -486,7 +482,7 @@ export function render<
   function updateComposedUI() {
     handleRender(
       {
-        text: textUIContext.ui.value,
+        text: textUIContext?.ui.value,
         functionCall: functionUIContext
           ? {
               name: functionUIContext.name,
@@ -531,13 +527,13 @@ export function render<
                       finished: undefined,
                     };
 
+                    updateComposedUI();
+
                     handleRender(
                       functionCallPayload.arguments,
                       functionConfig.render,
                       functionUIContext,
                     );
-
-                    updateComposedUI();
                   }
                 },
               }
@@ -557,14 +553,13 @@ export function render<
                       };
 
                       toolUIContexts.push(toolUIContext);
+                      updateComposedUI();
 
                       handleRender(
                         tool.func.arguments,
                         toolConfig.render,
                         toolUIContext,
                       );
-
-                      updateComposedUI();
                     }
                   }
                 },
@@ -573,27 +568,34 @@ export function render<
           onText(chunk) {
             content += chunk;
 
+            if (!textUIContext) {
+              textUIContext = { ui: createStreamableUI(), finished: undefined };
+              updateComposedUI();
+            }
+
             handleRender(
               { content, done: false, delta: chunk },
               text,
               textUIContext,
             );
-
-            // Update the composed UI when receiving the first text chunk. Until
-            // then, then initial UI is used.
-            if (content === chunk) {
-              updateComposedUI();
-            }
           },
           async onFinal() {
-            handleRender({ content, done: true }, text, textUIContext);
+            if (textUIContext) {
+              handleRender({ content, done: true }, text, textUIContext);
+            }
 
-            const contexts = [
+            const contexts: StreamableUIContext[] = [
               composedUIContext,
-              textUIContext,
-              ...(functionUIContext ? [functionUIContext] : []),
               ...toolUIContexts,
             ];
+
+            if (textUIContext) {
+              contexts.push(textUIContext);
+            }
+
+            if (functionUIContext) {
+              contexts.push(functionUIContext);
+            }
 
             await Promise.all(
               contexts.map(async ({ ui, finished }) => {
