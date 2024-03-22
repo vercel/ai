@@ -28,7 +28,9 @@ interface UIStateItem {
   readonly display: React.ReactNode;
 }
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
+});
 
 async function getFlightInfo(flightNumber: string): Promise<FlightInfo> {
   return {
