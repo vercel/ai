@@ -4,9 +4,8 @@ import {
 } from 'eventsource-parser/stream';
 import { ZodSchema } from 'zod';
 import { APICallError } from '../errors';
-import { parseJSON, safeParseJSON } from './parse-json';
-import { ParsedChunk } from './parsed-chunk';
 import { NoResponseBodyError } from '../errors/no-response-body-error';
+import { ParseResult, parseJSON, safeParseJSON } from './parse-json';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
@@ -70,7 +69,7 @@ export const createJsonErrorResponseHandler =
 export const createEventSourceResponseHandler =
   <T>(
     chunkSchema: ZodSchema<T>,
-  ): ResponseHandler<ReadableStream<ParsedChunk<T>>> =>
+  ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
     if (response.body == null) {
       throw new NoResponseBodyError();
@@ -80,21 +79,17 @@ export const createEventSourceResponseHandler =
       .pipeThrough(new TextDecoderStream())
       .pipeThrough(new EventSourceParserStream())
       .pipeThrough(
-        new TransformStream<ParsedEvent, ParsedChunk<T>>({
+        new TransformStream<ParsedEvent, ParseResult<T>>({
           transform({ data }, controller) {
             if (data === '[DONE]') {
               return;
             }
 
-            const parseResult = safeParseJSON({
-              text: data,
-              schema: chunkSchema,
-            });
-
             controller.enqueue(
-              parseResult.success
-                ? { type: 'value', value: parseResult.value }
-                : { type: 'error', error: parseResult.error },
+              safeParseJSON({
+                text: data,
+                schema: chunkSchema,
+              }),
             );
           },
         }),

@@ -4,7 +4,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1StreamPart,
-  ParsedChunk,
+  ParseResult,
   UnsupportedFunctionalityError,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -212,12 +212,12 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParsedChunk<z.infer<typeof mistralChatChunkSchema>>,
+          ParseResult<z.infer<typeof mistralChatChunkSchema>>,
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
-            if (chunk.type === 'error') {
-              controller.enqueue(chunk);
+            if (!chunk.success) {
+              controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
 

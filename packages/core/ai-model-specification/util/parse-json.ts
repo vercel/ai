@@ -53,19 +53,17 @@ export function parseJSON<T>({
   }
 }
 
+export type ParseResult<T> =
+  | { success: true; value: T }
+  | { success: false; error: JSONParseError | TypeValidationError };
+
 /**
  * Safely parses a JSON string and returns the result as an object of type `unknown`.
  *
  * @param text - The JSON string to parse.
  * @returns {object} Either an object with `success: true` and the parsed data, or an object with `success: false` and the error that occurred.
  */
-export function safeParseJSON({
-  text,
-}: {
-  text: string;
-}):
-  | { success: true; value: unknown }
-  | { success: false; error: JSONParseError | TypeValidationError };
+export function safeParseJSON({ text }: { text: string }): ParseResult<unknown>;
 /**
  * Safely parses a JSON string into a strongly-typed object, using a provided schema to validate the object.
  *
@@ -80,9 +78,7 @@ export function safeParseJSON<T>({
 }: {
   text: string;
   schema: ZodSchema<T>;
-}):
-  | { success: true; value: T }
-  | { success: false; error: JSONParseError | TypeValidationError };
+}): ParseResult<T>;
 export function safeParseJSON<T>({
   text,
   schema,

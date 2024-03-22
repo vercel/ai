@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   LanguageModelV1,
   LanguageModelV1StreamPart,
-  ParsedChunk,
+  ParseResult,
   UnsupportedFunctionalityError,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -201,12 +201,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParsedChunk<z.infer<typeof openaiCompletionChunkSchema>>,
+          ParseResult<z.infer<typeof openaiCompletionChunkSchema>>,
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
-            if (chunk.type === 'error') {
-              controller.enqueue(chunk);
+            if (!chunk.success) {
+              controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
 
