@@ -1,15 +1,15 @@
 import { experimental_generateObject } from 'ai';
-import { OpenAI } from 'ai/openai';
+import { Mistral } from 'ai/mistral';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
 dotenv.config();
 
-const openai = new OpenAI();
+const mistral = new Mistral();
 
 async function main() {
   const result = await experimental_generateObject({
-    model: openai.chat('gpt-4-turbo-preview'),
+    model: mistral.chat('mistral-large-latest'),
     schema: z.object({
       characters: z.array(
         z.object({
@@ -21,7 +21,7 @@ async function main() {
         }),
       ),
     }),
-    mode: 'json',
+    mode: 'tool',
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
   });

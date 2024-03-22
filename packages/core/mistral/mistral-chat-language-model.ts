@@ -26,7 +26,7 @@ type MistralChatConfig = {
 
 export class MistralChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = undefined;
+  readonly defaultObjectGenerationMode = 'json';
 
   readonly modelId: MistralChatModelId;
   readonly settings: MistralChatSettings;
@@ -117,17 +117,24 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-json mode',
-          provider: this.provider,
-        });
+        return {
+          args: {
+            ...baseArgs,
+            response_format: { type: 'json_object' },
+          },
+          warnings,
+        };
       }
 
       case 'object-tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-tool mode',
-          provider: this.provider,
-        });
+        return {
+          args: {
+            ...baseArgs,
+            tool_choice: 'any',
+            tools: [{ type: 'function', function: mode.tool }],
+          },
+          warnings,
+        };
       }
 
       case 'object-grammar': {
@@ -269,7 +276,6 @@ const openAIChatResponseSchema = z.object({
         tool_calls: z
           .array(
             z.object({
-              type: z.literal('function'),
               function: z.object({
                 name: z.string(),
                 arguments: z.string(),
