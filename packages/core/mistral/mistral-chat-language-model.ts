@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import {
   LanguageModelV1,
@@ -8,6 +7,7 @@ import {
   UnsupportedFunctionalityError,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  generateId,
   postJsonToApi,
 } from '../ai-model-specification';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
@@ -174,7 +174,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       text: choice.message.content ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
-        toolCallId: nanoid(),
+        toolCallId: generateId(),
         toolName: toolCall.function.name,
         args: toolCall.function.arguments!,
       })),
@@ -243,7 +243,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
                 controller.enqueue({
                   type: 'tool-call-delta',
                   toolCallType: 'function',
-                  toolCallId: nanoid(),
+                  toolCallId: generateId(),
                   toolName: toolCall.function.name,
                   argsTextDelta: toolCall.function.arguments,
                 });
@@ -251,7 +251,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallType: 'function',
-                  toolCallId: nanoid(),
+                  toolCallId: generateId(),
                   toolName: toolCall.function.name,
                   args: toolCall.function.arguments,
                 });

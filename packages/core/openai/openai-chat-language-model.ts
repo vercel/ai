@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import {
   LanguageModelV1,
@@ -7,6 +6,7 @@ import {
   UnsupportedFunctionalityError,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  generateId,
   isParseableJson,
   postJsonToApi,
   scale,
@@ -273,7 +273,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallType: 'function',
-                  toolCallId: toolCall.id ?? nanoid(),
+                  toolCallId: toolCall.id ?? generateId(),
                   toolName: toolCall.function.name,
                   args: toolCall.function.arguments,
                 });

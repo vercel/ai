@@ -11,7 +11,7 @@ import type {
   Message,
   UseChatOptions,
 } from '../shared/types';
-import { nanoid } from '../shared/utils';
+import { generateId as generateIdFunc } from '../shared/generate-id';
 export type { CreateMessage, Message, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -156,7 +156,7 @@ export function useChat({
   credentials,
   headers,
   body,
-  generateId = nanoid,
+  generateId = generateIdFunc,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;

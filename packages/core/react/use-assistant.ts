@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
-import { nanoid } from 'nanoid';
 import { useState } from 'react';
 
+import { generateId } from '../shared/generate-id';
 import { readDataStream } from '../shared/read-data-stream';
 import { Message } from '../shared/types';
 
@@ -200,7 +200,7 @@ export function experimental_useAssistant({
             setMessages(messages => [
               ...messages,
               {
-                id: value.id ?? nanoid(),
+                id: value.id ?? generateId(),
                 role: 'data',
                 content: '',
                 data: value.data,

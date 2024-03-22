@@ -1,8 +1,8 @@
-import { nanoid } from 'nanoid';
 import {
   LanguageModelV1StreamPart,
   NoSuchToolError,
 } from '../../ai-model-specification';
+import { generateId } from '../../shared/generate-id';
 import { ExperimentalTool } from '../tool';
 import { TextStreamPart } from './stream-text';
 import { parseToolCall } from './tool-call';
@@ -89,7 +89,7 @@ export function runToolsTransformation<
             });
 
             if (tool.execute != null) {
-              const toolExecutionId = nanoid(); // use our own id to guarantee uniqueness
+              const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
               outstandingToolCalls.add(toolExecutionId);
 
               // Note: we don't await the tool execution here, because we want to process
