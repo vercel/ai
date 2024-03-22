@@ -54,16 +54,13 @@ describe('doGenerate', () => {
   it('should pass the messages', async () => {
     prepareJsonResponse({ content: '' });
 
-    const mistral = new Mistral({ apiKey: 'test-api-key' });
-
-    await mistral.chat('mistral-small-latest').doStream({
+    await mistral.chat('mistral-small-latest').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
-      stream: true,
       model: 'mistral-small-latest',
       messages: [{ role: 'user', content: 'Hello' }],
     });
@@ -74,7 +71,7 @@ describe('doGenerate', () => {
 
     const mistral = new Mistral({ apiKey: 'test-api-key' });
 
-    await mistral.chat('mistral-small-latest').doStream({
+    await mistral.chat('mistral-small-latest').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -133,8 +130,6 @@ describe('doStream', () => {
 
   it('should pass the messages', async () => {
     prepareStreamResponse({ content: [''] });
-
-    const mistral = new Mistral({ apiKey: 'test-api-key' });
 
     await mistral.chat('mistral-small-latest').doStream({
       inputFormat: 'prompt',
