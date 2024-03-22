@@ -242,6 +242,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
                 controller.enqueue({
                   type: 'tool-call-delta',
+                  toolCallType: 'function',
                   toolCallId: nanoid(),
                   toolName: toolCall.function.name,
                   argsTextDelta: toolCall.function.arguments,

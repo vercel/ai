@@ -255,6 +255,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 // send delta
                 controller.enqueue({
                   type: 'tool-call-delta',
+                  toolCallType: 'function',
                   toolCallId: toolCall.id ?? '', // TODO empty?
                   toolName: toolCall.function?.name ?? '', // TODO empty?
                   argsTextDelta: toolCallDelta.function?.arguments ?? '', // TODO empty?

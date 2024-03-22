@@ -128,6 +128,7 @@ export type LanguageModelV1StreamPart =
   // The tool call deltas must be partial JSON strings.
   | {
       type: 'tool-call-delta';
+      toolCallType: 'function';
       toolCallId: string;
       toolName: string;
       argsTextDelta: string;
