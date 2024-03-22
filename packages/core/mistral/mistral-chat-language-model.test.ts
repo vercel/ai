@@ -1,6 +1,7 @@
 import { LanguageModelV1Prompt } from '../ai-model-specification';
 import { Mistral } from './mistral-facade';
 import { convertStreamToArray } from './test/convert-stream-to-array';
+import { JsonTestServer } from './test/json-test-server';
 import { StreamingTestServer } from './test/streaming-test-server';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
@@ -9,51 +10,49 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
 
 const mistral = new Mistral({ apiKey: 'test-api-key' });
 
-describe('doStream', () => {
-  const server = new StreamingTestServer(
+describe('doGenerate', () => {
+  const server = new JsonTestServer(
     'https://api.mistral.ai/v1/chat/completions',
   );
 
   server.setupTestEnvironment();
 
-  it('should stream text deltas', async () => {
-    server.responseChunks = [
-      `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
-        `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
-        `"delta":{"role":"assistant","content":""},"finish_reason":null,"logprobs":null}]}\n\n`,
-      `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
-        `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
-        `"delta":{"role":"assistant","content":"Hello"},"finish_reason":null,"logprobs":null}]}\n\n`,
-      `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
-        `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
-        `"delta":{"role":"assistant","content":", "},"finish_reason":null,"logprobs":null}]}\n\n`,
-      `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
-        `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
-        `"delta":{"role":"assistant","content":"world!"},"finish_reason":null,"logprobs":null}]}\n\n`,
-      `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
-        `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
-        `"delta":{"content":""},"finish_reason":"stop","logprobs":null}],` +
-        `"usage":{"prompt_tokens":4,"total_tokens":36,"completion_tokens":32}}\n\n`,
-      `data: [DONE]\n\n`,
-    ];
+  function prepareJsonResponse({ content = '' }: { content?: string }) {
+    server.responseBodyJson = {
+      id: '16362f24e60340d0994dd205c267a43a',
+      object: 'chat.completion',
+      created: 1711113008,
+      model: 'mistral-small-latest',
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content,
+            tool_calls: null,
+          },
+          finish_reason: 'stop',
+          logprobs: null,
+        },
+      ],
+      usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+    };
+  }
 
-    const { stream } = await mistral.chat('mistral-small-latest').doStream({
+  it('should extract text response', async () => {
+    prepareJsonResponse({ content: 'Hello, World!' });
+
+    const { text } = await mistral.chat('mistral-small-latest').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
-      { type: 'text-delta', textDelta: '' },
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'world!' },
-      { type: 'text-delta', textDelta: '' },
-    ]);
+    expect(text).toStrictEqual('Hello, World!');
   });
 
   it('should pass the messages', async () => {
-    server.responseChunks = ['data: [DONE]\n\n'];
+    prepareJsonResponse({ content: '' });
 
     const mistral = new Mistral({ apiKey: 'test-api-key' });
 
@@ -71,7 +70,87 @@ describe('doStream', () => {
   });
 
   it('should pass the api key as Authorization header', async () => {
-    server.responseChunks = ['data: [DONE]\n\n'];
+    prepareJsonResponse({ content: '' });
+
+    const mistral = new Mistral({ apiKey: 'test-api-key' });
+
+    await mistral.chat('mistral-small-latest').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.getRequestHeaders()).get('Authorization'),
+    ).toStrictEqual('Bearer test-api-key');
+  });
+});
+
+describe('doStream', () => {
+  const server = new StreamingTestServer(
+    'https://api.mistral.ai/v1/chat/completions',
+  );
+
+  server.setupTestEnvironment();
+
+  function prepareStreamResponse({ content }: { content: string[] }) {
+    server.responseChunks = [
+      `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
+        `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
+        `"delta":{"role":"assistant","content":""},"finish_reason":null,"logprobs":null}]}\n\n`,
+      ...content.map((text, index) => {
+        return (
+          `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
+          `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
+          `"delta":{"role":"assistant","content":"${text}"},"finish_reason":null,"logprobs":null}]}\n\n`
+        );
+      }),
+      `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
+        `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
+        `"delta":{"content":""},"finish_reason":"stop","logprobs":null}],` +
+        `"usage":{"prompt_tokens":4,"total_tokens":36,"completion_tokens":32}}\n\n`,
+      `data: [DONE]\n\n`,
+    ];
+  }
+
+  it('should stream text deltas', async () => {
+    prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
+
+    const { stream } = await mistral.chat('mistral-small-latest').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertStreamToArray(stream)).toStrictEqual([
+      { type: 'text-delta', textDelta: '' },
+      { type: 'text-delta', textDelta: 'Hello' },
+      { type: 'text-delta', textDelta: ', ' },
+      { type: 'text-delta', textDelta: 'world!' },
+      { type: 'text-delta', textDelta: '' },
+    ]);
+  });
+
+  it('should pass the messages', async () => {
+    prepareStreamResponse({ content: [''] });
+
+    const mistral = new Mistral({ apiKey: 'test-api-key' });
+
+    await mistral.chat('mistral-small-latest').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      stream: true,
+      model: 'mistral-small-latest',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+  });
+
+  it('should pass the api key as Authorization header', async () => {
+    prepareStreamResponse({ content: [''] });
 
     const mistral = new Mistral({ apiKey: 'test-api-key' });
 
