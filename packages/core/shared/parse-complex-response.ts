@@ -30,6 +30,7 @@ export async function parseComplexResponse({
   onFinish,
   generateId = nanoid,
   getCurrentDate = () => new Date(),
+  passDataToMessage,
 }: {
   reader: ReadableStreamDefaultReader<Uint8Array>;
   abortControllerRef?: {
@@ -39,6 +40,7 @@ export async function parseComplexResponse({
   onFinish?: (prefixMap: PrefixMap) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;
+  passDataToMessage?: boolean
 }) {
   const createdAt = getCurrentDate();
   const prefixMap: PrefixMap = {
@@ -65,6 +67,9 @@ export async function parseComplexResponse({
           content: value,
           createdAt,
         };
+        if (prefixMap.data.length > 0 && passDataToMessage) {
+          prefixMap['text'].data = [...prefixMap.data];
+        }
       }
     }
 
@@ -99,6 +104,9 @@ export async function parseComplexResponse({
 
     if (type === 'data') {
       prefixMap['data'].push(...value);
+      if (prefixMap['text'] && passDataToMessage) {
+        prefixMap['text'].data = [...prefixMap['data']];
+      }
     }
 
     let responseMessage = prefixMap['text'];

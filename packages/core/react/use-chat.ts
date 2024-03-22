@@ -91,6 +91,7 @@ const getStreamedResponse = async (
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean,
+  passDataToMessage?: boolean,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -198,6 +199,7 @@ const getStreamedResponse = async (
     },
     onFinish,
     generateId,
+    passDataToMessage,
   });
 };
 
@@ -216,6 +218,7 @@ export function useChat({
   headers,
   body,
   generateId = nanoid,
+  passDataToMessage = false,
 }: Omit<UseChatOptions, 'api'> & {
   api?: string | StreamingReactResponseAction;
   key?: string;
@@ -298,6 +301,7 @@ export function useChat({
               onFinish,
               onResponse,
               sendExtraMessageFields,
+              passDataToMessage,
             ),
           experimental_onFunctionCall,
           experimental_onToolCall,

@@ -21,6 +21,7 @@ export async function callChatApi({
   onUpdate,
   onFinish,
   generateId,
+  passDataToMessage,
 }: {
   api: string;
   messages: Omit<Message, 'id'>[];
@@ -34,6 +35,7 @@ export async function callChatApi({
   onUpdate: (merged: Message[], data: JSONValue[] | undefined) => void;
   onFinish?: (message: Message) => void;
   generateId: IdGenerator;
+  passDataToMessage?: boolean;
 }) {
   const response = await fetch(api, {
     method: 'POST',
@@ -86,6 +88,7 @@ export async function callChatApi({
         }
       },
       generateId,
+      passDataToMessage,
     });
   } else {
     const createdAt = new Date();
