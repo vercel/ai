@@ -78,36 +78,42 @@ describe('result.objectStream', () => {
             stream: convertArrayToReadableStream([
               {
                 type: 'tool-call-delta',
+                toolCallType: 'function',
                 toolCallId: 'tool-call-1',
                 toolName: 'json',
                 argsTextDelta: '{ ',
               },
               {
                 type: 'tool-call-delta',
+                toolCallType: 'function',
                 toolCallId: 'tool-call-1',
                 toolName: 'json',
                 argsTextDelta: '"content": ',
               },
               {
                 type: 'tool-call-delta',
+                toolCallType: 'function',
                 toolCallId: 'tool-call-1',
                 toolName: 'json',
                 argsTextDelta: `"Hello, `,
               },
               {
                 type: 'tool-call-delta',
+                toolCallType: 'function',
                 toolCallId: 'tool-call-1',
                 toolName: 'json',
                 argsTextDelta: `world`,
               },
               {
                 type: 'tool-call-delta',
+                toolCallType: 'function',
                 toolCallId: 'tool-call-1',
                 toolName: 'json',
                 argsTextDelta: `!"`,
               },
               {
                 type: 'tool-call-delta',
+                toolCallType: 'function',
                 toolCallId: 'tool-call-1',
                 toolName: 'json',
                 argsTextDelta: ' }',
