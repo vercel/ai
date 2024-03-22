@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
 import type OpenAI from 'openai';
+import * as React from 'react';
 import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
 
@@ -267,13 +267,30 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
   };
 }
 
-type Streamable = ReactNode | Promise<ReactNode>;
-type Renderer<T> = (
-  props: T,
+type Streamable = React.ReactNode | Promise<React.ReactNode>;
+
+type Renderer<TProps> = (
+  props: TProps,
 ) =>
   | Streamable
   | Generator<Streamable, Streamable, void>
   | AsyncGenerator<Streamable, Streamable, void>;
+
+type StreamableUI = ReturnType<typeof createStreamableUI>;
+
+interface StreamableUIContext {
+  ui: StreamableUI;
+  finished: Promise<void> | undefined;
+}
+
+interface StreamableFunctionUIContext extends StreamableUIContext {
+  name: string;
+}
+
+interface StreamableToolUIContext extends StreamableUIContext {
+  name: string;
+  id: string;
+}
 
 /**
  * `render` is a helper function to create a streamable UI from some LLMs.
@@ -302,6 +319,16 @@ export function render<
   messages: Parameters<
     typeof OpenAI.prototype.chat.completions.create
   >[0]['messages'];
+  /**
+   * Control how text, function calls, and tool calls are composed into a single UI.
+   *
+   * Per default, text, function and tool nodes are wrapped in a React Fragment.
+   */
+  compose?: Renderer<{
+    text: React.ReactNode;
+    functionCall: { name: keyof FS; node: React.ReactNode } | undefined;
+    toolCalls: { name: keyof TS; id: string; node: React.ReactNode }[];
+  }>;
   text?: Renderer<{
     /**
      * The full text content from the model so far.
@@ -310,7 +337,7 @@ export function render<
     /**
      * The new appended text content from the model since the last `text` call.
      */
-    delta: string;
+    delta?: string;
     /**
      * Whether the model is done generating text.
      * If `true`, the `content` will be the final output and this call will be the last.
@@ -321,6 +348,7 @@ export function render<
     [name in keyof TS]: {
       description?: string;
       parameters: TS[name];
+      initial?: React.ReactNode;
       render: Renderer<z.infer<TS[name]>>;
     };
   };
@@ -328,18 +356,40 @@ export function render<
     [name in keyof FS]: {
       description?: string;
       parameters: FS[name];
+      initial?: React.ReactNode;
       render: Renderer<z.infer<FS[name]>>;
     };
   };
-  initial?: ReactNode;
+  initial?: React.ReactNode;
   temperature?: number;
-}): ReactNode {
-  const ui = createStreamableUI(options.initial);
+}): React.ReactNode {
+  const composedUIContext: StreamableUIContext = {
+    ui: createStreamableUI(options.initial),
+    finished: undefined,
+  };
+
+  const textUIContext: StreamableUIContext = {
+    ui: createStreamableUI(),
+    finished: undefined,
+  };
+
+  let functionUIContext: StreamableFunctionUIContext | undefined;
+  const toolUIContexts: StreamableToolUIContext[] = [];
 
   // The default text renderer just returns the content as string.
-  const text = options.text
-    ? options.text
-    : ({ content }: { content: string }) => content;
+  const text = options.text ?? (({ content }: { content: string }) => content);
+
+  const compose =
+    options.compose ??
+    (({ text, functionCall, toolCalls }) => (
+      <>
+        {text}
+        {functionCall && functionCall.node}
+        {toolCalls.map(({ id, node }) => (
+          <React.Fragment key={id}>{node}</React.Fragment>
+        ))}
+      </>
+    ));
 
   const functions = options.functions
     ? Object.entries(options.functions).map(
@@ -377,21 +427,19 @@ export function render<
     );
   }
 
-  let finished: Promise<void> | undefined;
-
-  async function handleRender(
-    args: any,
-    renderer: undefined | Renderer<any>,
-    res: ReturnType<typeof createStreamableUI>,
+  async function handleRender<TProps>(
+    args: TProps,
+    renderer: Renderer<TProps>,
+    context: StreamableUIContext,
   ) {
     if (!renderer) return;
 
     const resolvable = createResolvablePromise<void>();
 
-    if (finished) {
-      finished = finished.then(() => resolvable.promise);
+    if (context.finished) {
+      context.finished = context.finished.then(() => resolvable.promise);
     } else {
-      finished = resolvable.promise;
+      context.finished = resolvable.promise;
     }
 
     const value = renderer(args);
@@ -403,7 +451,7 @@ export function render<
         typeof value.then === 'function')
     ) {
       const node = await (value as Promise<React.ReactNode>);
-      res.update(node);
+      context.ui.update(node);
       resolvable.resolve(void 0);
     } else if (
       value &&
@@ -417,7 +465,7 @@ export function render<
       >;
       while (true) {
         const { done, value } = await it.next();
-        res.update(value);
+        context.ui.update(value);
         if (done) break;
       }
       resolvable.resolve(void 0);
@@ -425,87 +473,139 @@ export function render<
       const it = value as Generator<React.ReactNode, React.ReactNode, void>;
       while (true) {
         const { done, value } = it.next();
-        res.update(value);
+        context.ui.update(value);
         if (done) break;
       }
       resolvable.resolve(void 0);
     } else {
-      res.update(value);
+      context.ui.update(value);
       resolvable.resolve(void 0);
     }
   }
 
+  function updateComposedUI() {
+    handleRender(
+      {
+        text: textUIContext.ui.value,
+        functionCall: functionUIContext
+          ? {
+              name: functionUIContext.name,
+              node: functionUIContext.ui.value,
+            }
+          : undefined,
+        toolCalls: toolUIContexts.map(toolUIContexts => ({
+          name: toolUIContexts.name,
+          id: toolUIContexts.id,
+          node: toolUIContexts.ui.value,
+        })),
+      },
+      compose,
+      composedUIContext,
+    );
+  }
+
   (async () => {
-    let hasFunction = false;
     let content = '';
 
     consumeStream(
       OpenAIStream(
-        (await options.provider.chat.completions.create({
+        await options.provider.chat.completions.create({
           model: options.model,
           messages: options.messages,
           temperature: options.temperature,
           stream: true,
-          ...(functions
-            ? {
-                functions,
-              }
-            : {}),
-          ...(tools
-            ? {
-                tools,
-              }
-            : {}),
-        })) as any,
+          ...(functions ? { functions } : {}),
+          ...(tools ? { tools } : {}),
+        }),
         {
           ...(functions
             ? {
                 async experimental_onFunctionCall(functionCallPayload) {
-                  hasFunction = true;
-                  handleRender(
-                    functionCallPayload.arguments,
-                    options.functions?.[functionCallPayload.name as any]
-                      ?.render,
-                    ui,
-                  );
+                  const functionConfig =
+                    options.functions?.[functionCallPayload.name];
+
+                  if (functionConfig) {
+                    functionUIContext = {
+                      name: functionCallPayload.name,
+                      ui: createStreamableUI(functionConfig.initial),
+                      finished: undefined,
+                    };
+
+                    handleRender(
+                      functionCallPayload.arguments,
+                      functionConfig.render,
+                      functionUIContext,
+                    );
+
+                    updateComposedUI();
+                  }
                 },
               }
             : {}),
           ...(tools
             ? {
-                async experimental_onToolCall(toolCallPayload: any) {
-                  hasFunction = true;
-
-                  // TODO: We might need Promise.all here?
+                async experimental_onToolCall(toolCallPayload) {
                   for (const tool of toolCallPayload.tools) {
-                    handleRender(
-                      tool.func.arguments,
-                      options.tools?.[tool.func.name as any]?.render,
-                      ui,
-                    );
+                    const toolConfig = options.tools?.[tool.func.name];
+
+                    if (toolConfig) {
+                      const toolUIContext: StreamableToolUIContext = {
+                        name: tool.func.name,
+                        id: tool.id,
+                        ui: createStreamableUI(toolConfig.initial),
+                        finished: undefined,
+                      };
+
+                      toolUIContexts.push(toolUIContext);
+
+                      handleRender(
+                        tool.func.arguments,
+                        toolConfig.render,
+                        toolUIContext,
+                      );
+
+                      updateComposedUI();
+                    }
                   }
                 },
               }
             : {}),
           onText(chunk) {
             content += chunk;
-            handleRender({ content, done: false, delta: chunk }, text, ui);
+
+            handleRender(
+              { content, done: false, delta: chunk },
+              text,
+              textUIContext,
+            );
+
+            // Update the composed UI when receiving the first text chunk. Until
+            // then, then initial UI is used.
+            if (content === chunk) {
+              updateComposedUI();
+            }
           },
           async onFinal() {
-            if (hasFunction) {
-              await finished;
-              ui.done();
-              return;
-            }
+            handleRender({ content, done: true }, text, textUIContext);
 
-            handleRender({ content, done: true }, text, ui);
-            await finished;
-            ui.done();
+            const contexts = [
+              composedUIContext,
+              textUIContext,
+              ...(functionUIContext ? [functionUIContext] : []),
+              ...toolUIContexts,
+            ];
+
+            await Promise.all(
+              contexts.map(async ({ ui, finished }) => {
+                await finished;
+                ui.done();
+              }),
+            );
           },
         },
       ),
     );
   })();
 
-  return ui.value;
+  return composedUIContext.ui.value;
 }

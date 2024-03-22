@@ -68,6 +68,15 @@ async function submitUserMessage(userInput: string): Promise<UIStateItem> {
       { role: 'user', content: userInput },
       ...aiState.get(),
     ],
+    compose: ({ text, functionCall, toolCalls }) => (
+      <div className="space-y-4">
+        {text}
+        {functionCall && functionCall.node}
+        {toolCalls.map(({ id, node }) => (
+          <div key={id}>{node}</div>
+        ))}
+      </div>
+    ),
     text: ({ content, done }) => {
       if (done) {
         aiState.done([...aiState.get(), { role: 'assistant', content }]);
