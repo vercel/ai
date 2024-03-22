@@ -1,5 +1,194 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`rsc - render() > should emit React Nodes for multiple tool calls with a compose render function 1`] = `
+{
+  "children": {
+    "children": {},
+    "props": {
+      "c": undefined,
+      "n": {
+        "done": false,
+        "next": {
+          "done": false,
+          "next": {
+            "done": true,
+            "value": <div
+              className="space-y-4"
+            >
+              <React.Suspense>
+                <Unknown
+                  n={
+                    {
+                      "done": false,
+                      "next": {
+                        "done": true,
+                        "value": "",
+                      },
+                      "value": "",
+                    }
+                  }
+                />
+              </React.Suspense>
+              <React.Fragment>
+                <React.Suspense>
+                  <Unknown
+                    n={
+                      {
+                        "done": false,
+                        "next": {
+                          "done": true,
+                          "value": <div>
+                            Flight 
+                            42
+                          </div>,
+                        },
+                        "value": <div>
+                          Flight 
+                          42
+                        </div>,
+                      }
+                    }
+                  />
+                </React.Suspense>
+              </React.Fragment>
+              <React.Fragment>
+                <React.Suspense>
+                  <Unknown
+                    n={
+                      {
+                        "done": false,
+                        "next": {
+                          "done": true,
+                          "value": <div>
+                            Flight 
+                            43
+                          </div>,
+                        },
+                        "value": <div>
+                          Flight 
+                          43
+                        </div>,
+                      }
+                    }
+                  />
+                </React.Suspense>
+              </React.Fragment>
+            </div>,
+          },
+          "value": <div
+            className="space-y-4"
+          >
+            <React.Suspense>
+              <Unknown
+                n={
+                  {
+                    "done": false,
+                    "next": {
+                      "done": true,
+                      "value": "",
+                    },
+                    "value": "",
+                  }
+                }
+              />
+            </React.Suspense>
+            <React.Fragment>
+              <React.Suspense>
+                <Unknown
+                  n={
+                    {
+                      "done": false,
+                      "next": {
+                        "done": true,
+                        "value": <div>
+                          Flight 
+                          42
+                        </div>,
+                      },
+                      "value": <div>
+                        Flight 
+                        42
+                      </div>,
+                    }
+                  }
+                />
+              </React.Suspense>
+            </React.Fragment>
+            <React.Fragment>
+              <React.Suspense>
+                <Unknown
+                  n={
+                    {
+                      "done": false,
+                      "next": {
+                        "done": true,
+                        "value": <div>
+                          Flight 
+                          43
+                        </div>,
+                      },
+                      "value": <div>
+                        Flight 
+                        43
+                      </div>,
+                    }
+                  }
+                />
+              </React.Suspense>
+            </React.Fragment>
+          </div>,
+        },
+        "value": <div
+          className="space-y-4"
+        >
+          <React.Suspense>
+            <Unknown
+              n={
+                {
+                  "done": false,
+                  "next": {
+                    "done": true,
+                    "value": "",
+                  },
+                  "value": "",
+                }
+              }
+            />
+          </React.Suspense>
+          <React.Fragment>
+            <React.Suspense>
+              <Unknown
+                n={
+                  {
+                    "done": false,
+                    "next": {
+                      "done": true,
+                      "value": <div>
+                        Flight 
+                        42
+                      </div>,
+                    },
+                    "value": <div>
+                      Flight 
+                      42
+                    </div>,
+                  }
+                }
+              />
+            </React.Suspense>
+          </React.Fragment>
+        </div>,
+      },
+    },
+    "type": "",
+  },
+  "props": {
+    "fallback": undefined,
+  },
+  "type": "Symbol(react.suspense)",
+}
+`;
+
 exports[`rsc - render() > should emit React Nodes with async render function 1`] = `
 {
   "children": {
