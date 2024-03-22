@@ -10,7 +10,7 @@ export type CallSettings = {
    *
    * It is recommended to set either `temperature` or `topP`, but not both.
    *
-   * Default: 0
+   * @default 0
    */
   temperature?: number;
 
@@ -31,7 +31,7 @@ export type CallSettings = {
    * The presence penalty is a number between -1 (increase repetition)
    * and 1 (maximum penalty, decrease repetition). 0 means no penalty.
    *
-   * Default: 0
+   * @default 0
    */
   presencePenalty?: number;
 
@@ -42,7 +42,7 @@ export type CallSettings = {
    * The frequency penalty is a number between -1 (increase repetition)
    * and 1 (maximum penalty, decrease repetition). 0 means no penalty.
    *
-   * Default: 0
+   * @default 0
    */
   frequencyPenalty?: number;
 
@@ -55,7 +55,7 @@ export type CallSettings = {
   /**
    * Maximum number of retries. Set to 0 to disable retries.
    *
-   * Default: 2.
+   * @default 2
    */
   maxRetries?: number;
 
