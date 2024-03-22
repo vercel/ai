@@ -43,12 +43,6 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      stream: true,
-      model: 'mistral-small-latest',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
-
     expect(await convertStreamToArray(stream)).toStrictEqual([
       { type: 'text-delta', textDelta: '' },
       { type: 'text-delta', textDelta: 'Hello' },
@@ -56,6 +50,24 @@ describe('doStream', () => {
       { type: 'text-delta', textDelta: 'world!' },
       { type: 'text-delta', textDelta: '' },
     ]);
+  });
+
+  it('should pass the messages', async () => {
+    server.responseChunks = ['data: [DONE]\n\n'];
+
+    const mistral = new Mistral({ apiKey: 'test-api-key' });
+
+    await mistral.chat('mistral-small-latest').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      stream: true,
+      model: 'mistral-small-latest',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
   });
 
   it('should pass the api key as Authorization header', async () => {

@@ -39,12 +39,6 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      stream: true,
-      model: 'gpt-3.5-turbo',
-      messages: TEST_PROMPT,
-    });
-
     // note: space moved to last chunk bc of trimming
     expect(await convertStreamToArray(stream)).toStrictEqual([
       { type: 'text-delta', textDelta: '' },
@@ -52,6 +46,22 @@ describe('doStream', () => {
       { type: 'text-delta', textDelta: '' },
       { type: 'text-delta', textDelta: 'B' },
     ]);
+  });
+
+  it('should pass the messages', async () => {
+    server.responseChunks = ['data: [DONE]\n\n'];
+
+    await openai.chat('gpt-3.5-turbo').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      stream: true,
+      model: 'gpt-3.5-turbo',
+      messages: TEST_PROMPT,
+    });
   });
 
   it('should scale the temperature', async () => {
