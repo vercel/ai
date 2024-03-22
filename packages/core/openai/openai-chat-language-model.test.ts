@@ -16,22 +16,24 @@ describe('doStream', () => {
 
   server.setupTestEnvironment();
 
-  it('should stream text deltas', async () => {
+  function prepareStreamResponse({ content }: { content: string[] }) {
     server.responseChunks = [
       `data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
         `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
-        `"system_fingerprint":null,"choices":[{"index":0,"delta":{"content":"A"},"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
-        `"system_fingerprint":null,"choices":[{"index":1,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
-        `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"B"},"finish_reason":null}]}\n\n`,
+      ...content.map(text => {
+        return (
+          `data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
+          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
+        );
+      }),
       `data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
         `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
-      `data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
-        `"system_fingerprint":null,"choices":[{"index":1,"delta":{},"finish_reason":"stop"}]}\n\n`,
       'data: [DONE]\n\n',
     ];
+  }
+
+  it('should stream text deltas', async () => {
+    prepareStreamResponse({ content: ['Hello', ', ', 'World!'] });
 
     const { stream } = await openai.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
@@ -42,14 +44,14 @@ describe('doStream', () => {
     // note: space moved to last chunk bc of trimming
     expect(await convertStreamToArray(stream)).toStrictEqual([
       { type: 'text-delta', textDelta: '' },
-      { type: 'text-delta', textDelta: 'A' },
-      { type: 'text-delta', textDelta: '' },
-      { type: 'text-delta', textDelta: 'B' },
+      { type: 'text-delta', textDelta: 'Hello' },
+      { type: 'text-delta', textDelta: ', ' },
+      { type: 'text-delta', textDelta: 'World!' },
     ]);
   });
 
   it('should pass the messages', async () => {
-    server.responseChunks = ['data: [DONE]\n\n'];
+    prepareStreamResponse({ content: [] });
 
     await openai.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
@@ -65,7 +67,7 @@ describe('doStream', () => {
   });
 
   it('should scale the temperature', async () => {
-    server.responseChunks = ['data: [DONE]\n\n'];
+    prepareStreamResponse({ content: [] });
 
     await openai.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
@@ -78,7 +80,7 @@ describe('doStream', () => {
   });
 
   it('should scale the frequency penalty', async () => {
-    server.responseChunks = ['data: [DONE]\n\n'];
+    prepareStreamResponse({ content: [] });
 
     await openai.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
@@ -94,7 +96,7 @@ describe('doStream', () => {
   });
 
   it('should scale the presence penalty', async () => {
-    server.responseChunks = ['data: [DONE]\n\n'];
+    prepareStreamResponse({ content: [] });
 
     await openai.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
@@ -110,7 +112,7 @@ describe('doStream', () => {
   });
 
   it('should pass the organization as OpenAI-Organization header', async () => {
-    server.responseChunks = ['data: [DONE]\n\n'];
+    prepareStreamResponse({ content: [] });
 
     const openai = new OpenAI({
       apiKey: 'test-api-key',
@@ -129,7 +131,7 @@ describe('doStream', () => {
   });
 
   it('should pass the api key as Authorization header', async () => {
-    server.responseChunks = ['data: [DONE]\n\n'];
+    prepareStreamResponse({ content: [] });
 
     const openai = new OpenAI({ apiKey: 'test-api-key' });
 

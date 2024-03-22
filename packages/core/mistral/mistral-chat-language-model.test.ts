@@ -98,7 +98,7 @@ describe('doStream', () => {
       `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
         `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
         `"delta":{"role":"assistant","content":""},"finish_reason":null,"logprobs":null}]}\n\n`,
-      ...content.map((text, index) => {
+      ...content.map(text => {
         return (
           `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
           `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
