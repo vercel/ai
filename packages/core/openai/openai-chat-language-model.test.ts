@@ -1,5 +1,6 @@
 import { LanguageModelV1Prompt } from '../ai-model-specification';
 import { convertStreamToArray } from '../ai-model-specification/test/convert-stream-to-array';
+import { JsonTestServer } from '../ai-model-specification/test/json-test-server';
 import { StreamingTestServer } from '../ai-model-specification/test/streaming-test-server';
 import { OpenAI } from './openai-facade';
 
@@ -7,7 +8,86 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const openai = new OpenAI({ apiKey: 'test-api-key' });
+const openai = new OpenAI({
+  apiKey: 'test-api-key',
+});
+
+describe('doGenerate', () => {
+  const server = new JsonTestServer(
+    'https://api.openai.com/v1/chat/completions',
+  );
+
+  server.setupTestEnvironment();
+
+  function prepareJsonResponse({ content = '' }: { content?: string }) {
+    server.responseBodyJson = {
+      id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+      object: 'chat.completion',
+      created: 1711115037,
+      model: 'gpt-3.5-turbo-0125',
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content,
+          },
+          logprobs: null,
+          finish_reason: 'stop',
+        },
+      ],
+      usage: {
+        prompt_tokens: 8,
+        completion_tokens: 9,
+        total_tokens: 17,
+      },
+      system_fingerprint: 'fp_3bc1b5746c',
+    };
+  }
+
+  it('should extract text response', async () => {
+    prepareJsonResponse({ content: 'Hello, World!' });
+
+    const { text } = await openai.chat('gpt-3.5-turbo').doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('Hello, World!');
+  });
+
+  it('should pass the model and the messages', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await openai.chat('gpt-3.5-turbo').doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+    });
+  });
+
+  it('should pass the api key as Authorization header', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const openai = new OpenAI({ apiKey: 'test-api-key' });
+
+    await openai.chat('gpt-3.5-turbo').doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.getRequestHeaders()).get('Authorization'),
+    ).toStrictEqual('Bearer test-api-key');
+  });
+});
 
 describe('doStream', () => {
   const server = new StreamingTestServer(
@@ -62,7 +142,7 @@ describe('doStream', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       stream: true,
       model: 'gpt-3.5-turbo',
-      messages: TEST_PROMPT,
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     });
   });
 

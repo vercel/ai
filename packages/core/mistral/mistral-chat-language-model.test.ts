@@ -51,7 +51,7 @@ describe('doGenerate', () => {
     expect(text).toStrictEqual('Hello, World!');
   });
 
-  it('should pass the messages', async () => {
+  it('should pass the model and the messages', async () => {
     prepareJsonResponse({ content: '' });
 
     await mistral.chat('mistral-small-latest').doGenerate({
