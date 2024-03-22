@@ -6,6 +6,7 @@ import { ZodSchema } from 'zod';
 import { APICallError } from '../errors';
 import { parseJSON, safeParseJSON } from './parse-json';
 import { ParsedChunk } from './parsed-chunk';
+import { NoResponseBodyError } from '../errors/no-response-body-error';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
@@ -72,7 +73,7 @@ export const createEventSourceResponseHandler =
   ): ResponseHandler<ReadableStream<ParsedChunk<T>>> =>
   async ({ response }: { response: Response }) => {
     if (response.body == null) {
-      throw new Error('No response body'); // TODO AI error
+      throw new NoResponseBodyError();
     }
 
     return response.body
