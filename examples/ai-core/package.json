@@ -1,0 +1,15 @@
+{
+  "name": "ai-core-examples",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "ai": "latest",
+    "dotenv": "16.4.5",
+    "zod": "3.22.4",
+    "zod-to-json-schema": "3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.20",
+    "tsx": "4.7.1"
+  }
+}

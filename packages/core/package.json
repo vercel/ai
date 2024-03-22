@@ -13,11 +13,14 @@
     "vue/dist/**/*",
     "solid/dist/**/*",
     "prompts/dist/**/*",
-    "rsc/dist/**/*"
+    "rsc/dist/**/*",
+    "ai-model-specification/dist/**/*",
+    "openai/dist/**/*",
+    "mistral/dist/**/*"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
-    "clean": "rm -rf dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist && rm -rf rsc/dist",
+    "clean": "rm -rf dist && rm -rf core/dist && rm -rf openai/dist && rm -rf mistral/dist && rm -rf ai-model-specification/dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist && rm -rf rsc/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -25,6 +28,9 @@
     "test": "pnpm test:node && pnpm test:edge && pnpm test:ui",
     "test:edge": "vitest --config vitest.edge.config.js --run --threads=false",
     "test:node": "vitest --config vitest.node.config.js --run --threads=false",
+    "test:node:core": "pnpm vitest --config vitest.node.config.js --run --threads=false ./core/",
+    "test:node:openai": "pnpm vitest --config vitest.node.config.js --run --threads=false ./openai/",
+    "test:node:mistral": "pnpm vitest --config vitest.node.config.js --run --threads=false ./mistral/",
     "test:ui": "pnpm test:ui:react && pnpm test:ui:vue && pnpm test:ui:solid",
     "test:ui:react": "vitest --config vitest.ui.react.config.js --run",
     "test:ui:solid": "vitest --config vitest.ui.solid.config.js --run",
@@ -41,6 +47,24 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./ai-model-specification": {
+      "types": "./ai-model-specification/dist/index.d.ts",
+      "import": "./ai-model-specification/dist/index.mjs",
+      "module": "./ai-model-specification/dist/index.mjs",
+      "require": "./ai-model-specification/dist/index.js"
+    },
+    "./openai": {
+      "types": "./openai/dist/index.d.ts",
+      "import": "./openai/dist/index.mjs",
+      "module": "./openai/dist/index.mjs",
+      "require": "./openai/dist/index.js"
+    },
+    "./mistral": {
+      "types": "./mistral/dist/index.d.ts",
+      "import": "./mistral/dist/index.mjs",
+      "module": "./mistral/dist/index.mjs",
+      "require": "./mistral/dist/index.js"
     },
     "./rsc": {
       "types": "./rsc/dist/index.d.ts",
@@ -75,7 +99,8 @@
     }
   },
   "dependencies": {
-    "eventsource-parser": "1.0.0",
+    "secure-json-parse": "2.7.0",
+    "eventsource-parser": "1.1.2",
     "jsondiffpatch": "^0.6.0",
     "nanoid": "3.3.6",
     "solid-swr-store": "0.10.7",
@@ -83,7 +108,8 @@
     "swr": "2.2.0",
     "swr-store": "0.10.6",
     "swrv": "1.0.4",
-    "zod-to-json-schema": "^3.22.4"
+    "zod-to-json-schema": "^3.22.4",
+    "type-fest": "4.10.3"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.18.0",
@@ -115,7 +141,8 @@
     "solid-js": "^1.8.7",
     "tsup": "^7.2.0",
     "typescript": "5.1.3",
-    "vite-plugin-solid": "2.7.2"
+    "vite-plugin-solid": "2.7.2",
+    "zod": "3.22.4"
   },
   "peerDependencies": {
     "react": "^18.2.0",

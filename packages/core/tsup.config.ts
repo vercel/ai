@@ -103,4 +103,28 @@ export default defineConfig([
       };
     },
   },
+
+  // AI Core: Providers
+  {
+    entry: ['openai/index.ts'],
+    format: ['cjs', 'esm'],
+    outDir: 'openai/dist',
+    dts: true,
+    sourcemap: true,
+  },
+  {
+    entry: ['mistral/index.ts'],
+    format: ['cjs', 'esm'],
+    outDir: 'mistral/dist',
+    dts: true,
+    sourcemap: true,
+  },
+  // AI Core: Model Specification
+  {
+    entry: ['ai-model-specification/index.ts'],
+    format: ['cjs', 'esm'],
+    outDir: 'ai-model-specification/dist',
+    dts: true,
+    sourcemap: true,
+  },
 ]);

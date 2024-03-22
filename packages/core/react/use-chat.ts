@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
 import { callChatApi } from '../shared/call-chat-api';
+import { generateId as generateIdFunc } from '../shared/generate-id';
 import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
@@ -11,7 +12,6 @@ import type {
   Message,
   UseChatOptions,
 } from '../shared/types';
-import { nanoid } from '../shared/utils';
 import type {
   ReactResponseRow,
   experimental_StreamingReactResponse,
@@ -212,7 +212,7 @@ export function useChat({
   credentials,
   headers,
   body,
-  generateId = nanoid,
+  generateId = generateIdFunc,
 }: Omit<UseChatOptions, 'api'> & {
   api?: string | StreamingReactResponseAction;
   key?: string;

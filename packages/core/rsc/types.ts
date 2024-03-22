@@ -87,9 +87,12 @@ export type MutableAIState<AIState> = {
   done: ((newState: AIState) => void) | (() => void);
 };
 
+export type StreamablePatch = undefined | [0, string]; // Append string.
+
 export type StreamableValue<T = any, E = any> = {
   type?: typeof STREAMABLE_VALUE_TYPE;
   curr?: T;
   error?: E;
+  diff?: StreamablePatch;
   next?: Promise<StreamableValue<T, E>>;
 };

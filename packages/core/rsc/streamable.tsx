@@ -15,7 +15,7 @@ import {
   createSuspensedChunk,
   consumeStream,
 } from './utils';
-import type { StreamableValue } from './types';
+import type { StreamablePatch, StreamableValue } from './types';
 
 /**
  * Create a piece of changable UI that can be streamed to the client.
@@ -48,7 +48,13 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
   warnUnclosedStream();
 
   return {
+    /**
+     * The value of the streamable UI. This can be returned from a Server Action and received by the client.
+     */
     value: row,
+    /**
+     * This method updates the current UI node. It takes a new UI node and replaces the old one.
+     */
     update(value: React.ReactNode) {
       assertStream('.update()');
 
@@ -67,6 +73,22 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
 
       warnUnclosedStream();
     },
+    /**
+     * This method is used to append a new UI node to the end of the old one.
+     * Once appended a new UI node, the previous UI node cannot be updated anymore.
+     *
+     * @example
+     * ```jsx
+     * const ui = createStreamableUI(<div>hello</div>)
+     * ui.append(<div>world</div>)
+     *
+     * // The UI node will be:
+     * // <>
+     * //   <div>hello</div>
+     * //   <div>world</div>
+     * // </>
+     * ```
+     */
     append(value: React.ReactNode) {
       assertStream('.append()');
 
@@ -79,6 +101,10 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
 
       warnUnclosedStream();
     },
+    /**
+     * This method is used to signal that there is an error in the UI stream.
+     * It will be thrown on the client side and caught by the nearest error boundary component.
+     */
     error(error: any) {
       assertStream('.error()');
 
@@ -88,6 +114,12 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       closed = true;
       reject(error);
     },
+    /**
+     * This method marks the UI node as finalized. You can either call it without any parameters or with a new UI node as the final state.
+     * Once called, the UI node cannot be updated or appended anymore.
+     *
+     * This method is always **required** to be called, otherwise the response will be stuck in a loading state.
+     */
     done(...args: [] | [React.ReactNode]) {
       assertStream('.done()');
 
@@ -116,6 +148,7 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
   let currentError: E | undefined;
   let currentPromise: typeof resolvable.promise | undefined =
     resolvable.promise;
+  let currentPatchValue: StreamablePatch;
 
   function assertStream(method: string) {
     if (closed) {
@@ -138,35 +171,63 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
   }
   warnUnclosedStream();
 
-  function createWrapped(withType?: boolean): StreamableValue<T, E> {
+  function createWrapped(initialChunk?: boolean): StreamableValue<T, E> {
     // This makes the payload much smaller if there're mutative updates before the first read.
-    const init: Partial<StreamableValue<T, E>> =
-      currentError === undefined
-        ? { curr: currentValue }
-        : { error: currentError };
+    let init: Partial<StreamableValue<T, E>>;
+
+    if (currentError !== undefined) {
+      init = { error: currentError };
+    } else {
+      if (currentPatchValue && !initialChunk) {
+        init = { diff: currentPatchValue };
+      } else {
+        init = { curr: currentValue };
+      }
+    }
 
     if (currentPromise) {
       init.next = currentPromise;
     }
 
-    if (withType) {
+    if (initialChunk) {
       init.type = STREAMABLE_VALUE_TYPE;
     }
 
     return init;
   }
 
+  // Update the internal `currentValue` and `currentPatchValue` if needed.
+  function updateValueStates(value: T) {
+    // If we can only send a patch over the wire, it's better to do so.
+    currentPatchValue = undefined;
+    if (typeof value === 'string') {
+      if (typeof currentValue === 'string') {
+        if (value.startsWith(currentValue)) {
+          currentPatchValue = [0, value.slice(currentValue.length)];
+        }
+      }
+    }
+
+    currentValue = value;
+  }
+
   return {
+    /**
+     * The value of the streamable. This can be returned from a Server Action and received by the client.
+     */
     get value() {
       return createWrapped(true);
     },
+    /**
+     * This method updates the current value with a new one.
+     */
     update(value: T) {
       assertStream('.update()');
 
       const resolvePrevious = resolvable.resolve;
       resolvable = createResolvablePromise();
 
-      currentValue = value;
+      updateValueStates(value);
       currentPromise = resolvable.promise;
       resolvePrevious(createWrapped());
 
@@ -194,8 +255,8 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
       currentPromise = undefined;
 
       if (args.length) {
-        currentValue = args[0];
-        resolvable.resolve({ curr: args[0] });
+        updateValueStates(args[0]);
+        resolvable.resolve(createWrapped());
         return;
       }
 

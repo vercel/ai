@@ -2,6 +2,7 @@ import { Accessor, Resource, Setter, createSignal } from 'solid-js';
 import { useSWRStore } from 'solid-swr-store';
 import { createSWRStore } from 'swr-store';
 import { callChatApi } from '../shared/call-chat-api';
+import { generateId as generateIdFunc } from '../shared/generate-id';
 import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
@@ -11,7 +12,6 @@ import type {
   Message,
   UseChatOptions,
 } from '../shared/types';
-import { nanoid } from '../shared/utils';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -82,7 +82,7 @@ export function useChat({
   credentials,
   headers,
   body,
-  generateId = nanoid,
+  generateId = generateIdFunc,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;

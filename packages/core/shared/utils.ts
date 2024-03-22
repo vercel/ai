@@ -1,15 +1,13 @@
-import { customAlphabet } from 'nanoid/non-secure';
 import {
   StreamPartType,
   StreamStringPrefixes,
   parseStreamPart,
 } from './stream-parts';
 
-// 7-character random string
-export const nanoid = customAlphabet(
-  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-  7,
-);
+export * from './generate-id';
+
+// TODO remove (breaking change)
+export { generateId as nanoid } from './generate-id';
 
 // simple decoder signatures:
 function createChunkDecoder(): (chunk: Uint8Array | undefined) => string;
