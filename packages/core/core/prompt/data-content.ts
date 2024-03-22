@@ -1,4 +1,5 @@
 import {
+  InvalidDataContentError,
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
 } from '../../ai-model-specification';
@@ -35,7 +36,5 @@ export function convertDataContentToUint8Array(
     return new Uint8Array(content);
   }
 
-  throw new Error(
-    `Invalid data content. Expected a string, Uint8Array, ArrayBuffer, or Buffer, but got ${typeof content}.`,
-  );
+  throw new InvalidDataContentError({ content });
 }
