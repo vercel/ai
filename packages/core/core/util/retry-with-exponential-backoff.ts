@@ -38,6 +38,10 @@ async function _retryWithExponentialBackoff<OUTPUT>(
   try {
     return await f();
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw error; // don't retry when the request was aborted
+    }
+
     if (maxRetries === 0) {
       throw error; // don't wrap the error when retries are disabled
     }
@@ -54,24 +58,18 @@ async function _retryWithExponentialBackoff<OUTPUT>(
       });
     }
 
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw error;
-      }
-
-      if (
-        // deal with bundling duplication by using names
-        APICallError.isAPICallError(error) &&
-        error.isRetryable === true &&
-        tryNumber <= maxRetries
-      ) {
-        await delay(delayInMs);
-        return _retryWithExponentialBackoff(
-          f,
-          { maxRetries, delayInMs: backoffFactor * delayInMs, backoffFactor },
-          newErrors,
-        );
-      }
+    if (
+      error instanceof Error &&
+      APICallError.isAPICallError(error) &&
+      error.isRetryable === true &&
+      tryNumber <= maxRetries
+    ) {
+      await delay(delayInMs);
+      return _retryWithExponentialBackoff(
+        f,
+        { maxRetries, delayInMs: backoffFactor * delayInMs, backoffFactor },
+        newErrors,
+      );
     }
 
     if (tryNumber === 1) {
