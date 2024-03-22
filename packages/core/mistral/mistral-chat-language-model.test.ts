@@ -49,7 +49,6 @@ describe('doStream', () => {
       messages: [{ role: 'user', content: 'Hello' }],
     });
 
-    // note: space moved to last chunk bc of trimming
     expect(await convertStreamToArray(stream)).toStrictEqual([
       { type: 'text-delta', textDelta: '' },
       { type: 'text-delta', textDelta: 'Hello' },
