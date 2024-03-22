@@ -11,8 +11,14 @@ export function loadApiKey({
   apiKeyParameterName?: string;
   description: string;
 }): string {
-  if (apiKey != null) {
+  if (typeof apiKey === 'string') {
     return apiKey;
+  }
+
+  if (apiKey != null) {
+    throw new LoadAPIKeyError({
+      message: `${description} API key must be a string.`,
+    });
   }
 
   if (typeof process === 'undefined') {
@@ -26,6 +32,12 @@ export function loadApiKey({
   if (apiKey == null) {
     throw new LoadAPIKeyError({
       message: `${description} API key is missing. Pass it using the '${apiKeyParameterName}' parameter or the ${environmentVariableName} environment variable.`,
+    });
+  }
+
+  if (typeof apiKey !== 'string') {
+    throw new LoadAPIKeyError({
+      message: `${description} API key must be a string. The value of the ${environmentVariableName} environment variable is not a string.`,
     });
   }
 
