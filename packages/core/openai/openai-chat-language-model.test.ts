@@ -19,7 +19,21 @@ describe('doGenerate', () => {
 
   server.setupTestEnvironment();
 
-  function prepareJsonResponse({ content = '' }: { content?: string }) {
+  function prepareJsonResponse({
+    content = '',
+    usage = {
+      prompt_tokens: 4,
+      total_tokens: 34,
+      completion_tokens: 30,
+    },
+  }: {
+    content?: string;
+    usage?: {
+      prompt_tokens: number;
+      total_tokens: number;
+      completion_tokens: number;
+    };
+  }) {
     server.responseBodyJson = {
       id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
       object: 'chat.completion',
@@ -36,11 +50,7 @@ describe('doGenerate', () => {
           finish_reason: 'stop',
         },
       ],
-      usage: {
-        prompt_tokens: 8,
-        completion_tokens: 9,
-        total_tokens: 17,
-      },
+      usage,
       system_fingerprint: 'fp_3bc1b5746c',
     };
   }
@@ -55,6 +65,24 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('Hello, World!');
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonResponse({
+      content: '',
+      usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
+    });
+
+    const { usage } = await openai.chat('gpt-3.5-turbo').doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toStrictEqual({
+      promptTokens: 20,
+      completionTokens: 5,
+    });
   });
 
   it('should pass the model and the messages', async () => {
