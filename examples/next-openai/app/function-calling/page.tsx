@@ -1,6 +1,6 @@
 'use client';
 
-import { FunctionCallHandler, nanoid } from 'ai';
+import { FunctionCallHandler, generateId } from 'ai';
 import { Message, useChat } from 'ai/react';
 
 export default function Chat() {
@@ -22,7 +22,7 @@ export default function Chat() {
           messages: [
             ...chatMessages,
             {
-              id: nanoid(),
+              id: generateId(),
               name: 'eval_code_in_browser',
               role: 'function' as const,
               content: parsedFunctionCallArguments.code,

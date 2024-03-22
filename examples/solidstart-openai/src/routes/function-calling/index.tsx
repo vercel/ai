@@ -1,4 +1,4 @@
-import { FunctionCallHandler, Message, nanoid } from 'ai';
+import { FunctionCallHandler, Message, generateId } from 'ai';
 import { useChat } from 'ai/solid';
 import { For, JSX } from 'solid-js';
 
@@ -19,7 +19,7 @@ export default function Chat() {
           messages: [
             ...chatMessages,
             {
-              id: nanoid(),
+              id: generateId(),
               name: 'eval_code_in_browser',
               role: 'function' as const,
               content: parsedFunctionCallArguments.code,

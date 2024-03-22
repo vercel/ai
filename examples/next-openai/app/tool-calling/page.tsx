@@ -1,6 +1,6 @@
 'use client';
 
-import { ChatRequest, ToolCallHandler, nanoid } from 'ai';
+import { ChatRequest, ToolCallHandler, generateId } from 'ai';
 import { Message, useChat } from 'ai/react';
 
 export default function Chat() {
@@ -24,7 +24,7 @@ export default function Chat() {
             handledFunction = true;
 
             chatMessages.push({
-              id: nanoid(),
+              id: generateId(),
               tool_call_id: tool.id,
               name: tool.function.name,
               role: 'tool' as const,
