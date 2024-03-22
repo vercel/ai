@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useChat } from 'ai/vue';
-import { nanoid } from 'ai';
+import { generateId } from 'ai';
 import type { FunctionCallHandler, Message } from 'ai';
 
 const functionCallHandler: FunctionCallHandler = async (
@@ -19,7 +19,7 @@ const functionCallHandler: FunctionCallHandler = async (
         messages: [
           ...chatMessages,
           {
-            id: nanoid(),
+            id: generateId(),
             name: 'eval_code_in_browser',
             role: 'function' as const,
             content: parsedFunctionCallArguments.code,
