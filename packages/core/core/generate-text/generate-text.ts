@@ -1,6 +1,7 @@
 import zodToJsonSchema from 'zod-to-json-schema';
 import {
   LanguageModelV1,
+  LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
 } from '../../ai-model-specification';
 import { CallSettings } from '../prompt/call-settings';
@@ -78,6 +79,7 @@ export async function experimental_generateText<
     toolResults,
     finishReason: modelResponse.finishReason,
     usage: calculateTokenUsage(modelResponse.usage),
+    warnings: modelResponse.warnings,
   });
 }
 
@@ -120,6 +122,7 @@ export class GenerateTextResult<
   readonly toolResults: ToToolResultArray<TOOLS>;
   readonly finishReason: LanguageModelV1FinishReason;
   readonly usage: TokenUsage;
+  readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
   constructor(options: {
     text: string;
@@ -127,11 +130,13 @@ export class GenerateTextResult<
     toolResults: ToToolResultArray<TOOLS>;
     finishReason: LanguageModelV1FinishReason;
     usage: TokenUsage;
+    warnings: LanguageModelV1CallWarning[] | undefined;
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
     this.toolResults = options.toolResults;
     this.finishReason = options.finishReason;
     this.usage = options.usage;
+    this.warnings = options.warnings;
   }
 }

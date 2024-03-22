@@ -4,6 +4,7 @@ import zodToJsonSchema from 'zod-to-json-schema';
 import {
   LanguageModelV1,
   LanguageModelV1CallOptions,
+  LanguageModelV1CallWarning,
   LanguageModelV1StreamPart,
 } from '../../ai-model-specification';
 import { CallSettings } from '../prompt/call-settings';
@@ -152,18 +153,28 @@ export async function experimental_streamObject<T>({
     }
   }
 
-  const { stream, warnings } = await retry(() => model.doStream(callOptions));
+  const result = await retry(() => model.doStream(callOptions));
 
-  return new StreamObjectResult(
-    stream.pipeThrough(new TransformStream(transformer)),
-  );
+  return new StreamObjectResult({
+    stream: result.stream.pipeThrough(new TransformStream(transformer)),
+    warnings: result.warnings,
+  });
 }
 
 export class StreamObjectResult<T> {
   private readonly originalStream: ReadableStream<string | ErrorStreamPart>;
 
-  constructor(stream: ReadableStream<string | ErrorStreamPart>) {
+  readonly warnings: LanguageModelV1CallWarning[] | undefined;
+
+  constructor({
+    stream,
+    warnings,
+  }: {
+    stream: ReadableStream<string | ErrorStreamPart>;
+    warnings: LanguageModelV1CallWarning[] | undefined;
+  }) {
     this.originalStream = stream;
+    this.warnings = warnings;
   }
 
   get objectStream(): AsyncIterableStream<

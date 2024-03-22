@@ -2,6 +2,7 @@ import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
 import {
   LanguageModelV1,
+  LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   NoTextGeneratedError,
   safeParseJSON,
@@ -45,6 +46,7 @@ export async function experimental_generateObject<T>({
   let result: string;
   let finishReason: LanguageModelV1FinishReason;
   let usage: Parameters<typeof calculateTokenUsage>[0];
+  let warnings: LanguageModelV1CallWarning[] | undefined;
 
   switch (mode) {
     case 'json': {
@@ -69,6 +71,7 @@ export async function experimental_generateObject<T>({
       result = generateResult.text;
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
+      warnings = generateResult.warnings;
 
       break;
     }
@@ -95,6 +98,7 @@ export async function experimental_generateObject<T>({
       result = generateResult.text;
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
+      warnings = generateResult.warnings;
 
       break;
     }
@@ -127,6 +131,7 @@ export async function experimental_generateObject<T>({
       result = functionArgs;
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
+      warnings = generateResult.warnings;
 
       break;
     }
@@ -151,6 +156,7 @@ export async function experimental_generateObject<T>({
     object: parseResult.value,
     finishReason,
     usage: calculateTokenUsage(usage),
+    warnings,
   });
 }
 
@@ -158,14 +164,17 @@ export class GenerateObjectResult<T> {
   readonly object: T;
   readonly finishReason: LanguageModelV1FinishReason;
   readonly usage: TokenUsage;
+  readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
   constructor(options: {
     object: T;
     finishReason: LanguageModelV1FinishReason;
     usage: TokenUsage;
+    warnings: LanguageModelV1CallWarning[] | undefined;
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
     this.usage = options.usage;
+    this.warnings = options.warnings;
   }
 }

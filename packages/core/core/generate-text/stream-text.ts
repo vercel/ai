@@ -1,5 +1,8 @@
 import zodToJsonSchema from 'zod-to-json-schema';
-import { LanguageModelV1 } from '../../ai-model-specification/index';
+import {
+  LanguageModelV1,
+  LanguageModelV1CallWarning,
+} from '../../ai-model-specification/index';
 import {
   AIStreamCallbacksAndOptions,
   createCallbacksTransformer,
@@ -66,12 +69,13 @@ export async function experimental_streamText<
     }),
   );
 
-  const toolStream = runToolsTransformation({
-    tools,
-    generatorStream: stream,
+  return new StreamTextResult({
+    stream: runToolsTransformation({
+      tools,
+      generatorStream: stream,
+    }),
+    warnings,
   });
-
-  return new StreamTextResult(toolStream);
 }
 
 export type TextStreamPart<TOOLS extends Record<string, ExperimentalTool>> =
@@ -93,8 +97,17 @@ export type TextStreamPart<TOOLS extends Record<string, ExperimentalTool>> =
 export class StreamTextResult<TOOLS extends Record<string, ExperimentalTool>> {
   private readonly originalStream: ReadableStream<TextStreamPart<TOOLS>>;
 
-  constructor(stream: ReadableStream<TextStreamPart<TOOLS>>) {
+  readonly warnings: LanguageModelV1CallWarning[] | undefined;
+
+  constructor({
+    stream,
+    warnings,
+  }: {
+    stream: ReadableStream<TextStreamPart<TOOLS>>;
+    warnings: LanguageModelV1CallWarning[] | undefined;
+  }) {
     this.originalStream = stream;
+    this.warnings = warnings;
   }
 
   get textStream(): AsyncIterableStream<string> {
