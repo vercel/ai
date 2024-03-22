@@ -1,8 +1,8 @@
 import { LanguageModelV1Prompt } from '../ai-model-specification';
+import { convertStreamToArray } from '../ai-model-specification/test/convert-stream-to-array';
+import { JsonTestServer } from '../ai-model-specification/test/json-test-server';
+import { StreamingTestServer } from '../ai-model-specification/test/streaming-test-server';
 import { Mistral } from './mistral-facade';
-import { convertStreamToArray } from './test/convert-stream-to-array';
-import { JsonTestServer } from './test/json-test-server';
-import { StreamingTestServer } from './test/streaming-test-server';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
