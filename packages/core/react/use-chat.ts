@@ -290,7 +290,6 @@ export function useChat({
   useEffect(() => {
     messagesRef.current = messages || [];
   }, [messages]);
-  const [files, setFiles] = useState<File[]>([]);
 
   // Abort controller to cancel the current API call.
   const abortControllerRef = useRef<AbortController | null>(null);
