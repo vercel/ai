@@ -61,16 +61,6 @@ export type UseChatHelpers = {
       | React.ChangeEvent<HTMLInputElement>
       | React.ChangeEvent<HTMLTextAreaElement>,
   ) => void;
-  /** The current value of the input multiple */
-  files: File[];
-  /** setState-powered method to update the files value */
-  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  /** An input-ready onChange handler to control the value of the files */
-  handleFilesChange: (
-    e:
-       React.ChangeEvent<HTMLInputElement>,
-  ) => void;
-
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
     e: React.FormEvent<HTMLFormElement>,
@@ -167,34 +157,62 @@ const getStreamedResponse = async (
 
     return responseMessage;
   }
-
+  const formData = new FormData();
+  let isFormData = false;
+  Object.entries({
+    data: chatRequest.data,
+    ...(extraMetadataRef.current.body instanceof FormData
+      ? { formData: extraMetadataRef.current.body }
+      : extraMetadataRef.current.body),
+    ...chatRequest.options?.body,
+    ...(chatRequest.functions !== undefined && {
+      functions: chatRequest.functions,
+    }),
+    ...(chatRequest.function_call !== undefined && {
+      function_call: chatRequest.function_call,
+    }),
+    ...(chatRequest.tools !== undefined && { tools: chatRequest.tools }),
+    ...(chatRequest.tool_choice !== undefined && {
+      tool_choice: chatRequest.tool_choice,
+    }),
+  }).forEach(([key, value]) => {
+    if (value instanceof FormData) {
+      isFormData = true;
+      value.forEach((entry, entryKey) => {
+        formData.append(entryKey, entry);
+      });
+    } else {
+      formData.append(key, JSON.stringify(value));
+    }
+  });
   return await callChatApi({
     api,
     messages: [
       ...constructedMessagesPayload,
       {
         ...constructedMessagesPayload.slice(-1)[0],
-        content:
-          `Files selected: ${chatRequest.data!.files}\nQuery:` + constructedMessagesPayload.slice(-1)[0].content,
+        content: constructedMessagesPayload.slice(-1)[0].content,
       } as Message,
     ],
-    body: {
-      data: chatRequest.data,
-      ...extraMetadataRef.current.body,
-      ...chatRequest.options?.body,
-      ...(chatRequest.functions !== undefined && {
-        functions: chatRequest.functions,
-      }),
-      ...(chatRequest.function_call !== undefined && {
-        function_call: chatRequest.function_call,
-      }),
-      ...(chatRequest.tools !== undefined && {
-        tools: chatRequest.tools,
-      }),
-      ...(chatRequest.tool_choice !== undefined && {
-        tool_choice: chatRequest.tool_choice,
-      }),
-    },
+    body: isFormData
+      ? { data: formData }
+      : {
+          data: chatRequest.data,
+          ...extraMetadataRef.current.body,
+          ...chatRequest.options?.body,
+          ...(chatRequest.functions !== undefined && {
+            functions: chatRequest.functions,
+          }),
+          ...(chatRequest.function_call !== undefined && {
+            function_call: chatRequest.function_call,
+          }),
+          ...(chatRequest.tools !== undefined && {
+            tools: chatRequest.tools,
+          }),
+          ...(chatRequest.tool_choice !== undefined && {
+            tool_choice: chatRequest.tool_choice,
+          }),
+        },
     credentials: extraMetadataRef.current.credentials,
     headers: {
       ...extraMetadataRef.current.headers,
@@ -470,12 +488,9 @@ export function useChat({
           },
           {
             ...options,
-            data: {
-              files: JSON.stringify(files.map((file) => ({name: file.name,url: URL.createObjectURL(file), type: file.type})))}, 
 
           }
         );
-      setFiles([]);
       setInput('');
     },
     [input, append],
@@ -483,11 +498,6 @@ export function useChat({
 
   const handleInputChange = (e: any) => {
     setInput(e.target.value);
-  };
-  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = e.target.files;
-    if (!fileList) return;
-    setFiles(Array.from(fileList));
   };
 
   return {
@@ -500,9 +510,6 @@ export function useChat({
     input,
     setInput,
     handleInputChange,
-    files,
-    setFiles,
-    handleFilesChange,
     handleSubmit,
     isLoading,
     data: streamData,
