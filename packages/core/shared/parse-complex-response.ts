@@ -1,6 +1,6 @@
 import { readDataStream } from './read-data-stream';
 import type { FunctionCall, JSONValue, Message, ToolCall } from './types';
-import { nanoid } from './utils';
+import { generateId as generateIdFunction } from './generate-id';
 
 type PrefixMap = {
   text?: Message;
@@ -28,7 +28,7 @@ export async function parseComplexResponse({
   abortControllerRef,
   update,
   onFinish,
-  generateId = nanoid,
+  generateId = generateIdFunction,
   getCurrentDate = () => new Date(),
 }: {
   reader: ReadableStreamDefaultReader<Uint8Array>;

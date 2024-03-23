@@ -145,7 +145,7 @@ const functionCallHandler: FunctionCallHandler = async (
       messages: [
         ...chatMessages,
         {
-          id: nanoid(),
+          id: generateId(),
           name: 'get_current_weather',
           role: 'function' as const,
           content: JSON.stringify({

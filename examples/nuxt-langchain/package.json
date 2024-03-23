@@ -24,10 +24,10 @@
     "unctx": "^2.3.1"
   },
   "dependencies": {
-    "ai": "^3.0.0",
+    "ai": "latest",
     "langchain": "^0.0.129",
     "nuxt-icon": "^0.5.0",
     "vue": "^3.3.4"
   },
-  "version": "0.0.0"
+  "version": "0.0.1-canary.2"
 }

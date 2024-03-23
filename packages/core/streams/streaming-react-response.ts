@@ -8,9 +8,10 @@
  * between the rows, but flushing the full payload on each row.
  */
 
+import { generateId } from '../shared/generate-id';
 import { parseComplexResponse } from '../shared/parse-complex-response';
 import { IdGenerator, JSONValue } from '../shared/types';
-import { createChunkDecoder, nanoid } from '../shared/utils';
+import { createChunkDecoder } from '../shared/utils';
 import { experimental_StreamData } from './stream-data';
 
 type UINode = string | JSX.Element | JSX.Element[] | null | undefined;
@@ -71,7 +72,7 @@ export class experimental_StreamingReactResponse {
 
           lastPayload = payload;
         },
-        generateId: options.generateId ?? nanoid,
+        generateId: options.generateId ?? generateId,
         onFinish: () => {
           // The last payload is resolved twice. This is necessary because we immediately
           // push out a payload, but we also need to forward the finish event with a payload.
