@@ -322,7 +322,7 @@ export function render<
   /**
    * Control how text, function calls, and tool calls are composed into a single UI.
    *
-   * Per default, text, function and tool nodes are wrapped in a React Fragment.
+   * Per default, the nodes of all three kinds are wrapped in a React Fragment.
    */
   compose?: Renderer<{
     text: React.ReactNode | undefined;
@@ -375,6 +375,7 @@ export function render<
   // The default text renderer just returns the content as string.
   const text = options.text ?? (({ content }: { content: string }) => content);
 
+  // The default compose renderer wraps the nodes of all three kinds in a React Fragment.
   const compose =
     options.compose ??
     (({ text, functionCall, toolCalls }) => (
