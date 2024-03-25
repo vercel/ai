@@ -1,4 +1,3 @@
-import { ValueOf } from 'type-fest';
 import { z } from 'zod';
 import {
   InvalidToolArgumentsError,
@@ -7,6 +6,7 @@ import {
   safeParseJSON,
 } from '../../ai-model-specification';
 import { ExperimentalTool } from '../tool';
+import { ValueOf } from '../util/value-of';
 
 export interface ToolCall<NAME extends string, ARGS> {
   toolCallId: string;
