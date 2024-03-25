@@ -41,7 +41,7 @@ describe('result.objectStream', () => {
     });
 
     assert.deepStrictEqual(
-      await convertAsyncIterableToArray(result.objectStream),
+      await convertAsyncIterableToArray(result.partialObjectStream),
       [
         {},
         { content: 'Hello, ' },
@@ -129,7 +129,7 @@ describe('result.objectStream', () => {
     });
 
     assert.deepStrictEqual(
-      await convertAsyncIterableToArray(result.objectStream),
+      await convertAsyncIterableToArray(result.partialObjectStream),
       [
         {},
         { content: 'Hello, ' },

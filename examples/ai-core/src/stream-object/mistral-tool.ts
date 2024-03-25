@@ -27,7 +27,7 @@ async function main() {
       'Generate 3 character descriptions for a fantasy role playing game.',
   });
 
-  for await (const partialObject of result.objectStream) {
+  for await (const partialObject of result.partialObjectStream) {
     console.clear();
     console.log(partialObject);
   }

@@ -108,8 +108,7 @@
     "swr": "2.2.0",
     "swr-store": "0.10.6",
     "swrv": "1.0.4",
-    "zod-to-json-schema": "^3.22.4",
-    "type-fest": "4.10.3"
+    "zod-to-json-schema": "^3.22.4"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.18.0",

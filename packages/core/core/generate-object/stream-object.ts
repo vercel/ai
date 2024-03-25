@@ -1,4 +1,3 @@
-import { PartialDeep } from 'type-fest';
 import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
 import {
@@ -16,6 +15,7 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { DeepPartial } from '../util/deep-partial';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
@@ -177,12 +177,9 @@ export class StreamObjectResult<T> {
     this.warnings = warnings;
   }
 
-  get objectStream(): AsyncIterableStream<
-    PartialDeep<T, { recurseIntoArrays: true }>
-  > {
+  get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
     let accumulatedText = '';
-    let latestObject: PartialDeep<T, { recurseIntoArrays: true }> | undefined =
-      undefined;
+    let latestObject: DeepPartial<T> | undefined = undefined;
 
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
@@ -191,7 +188,7 @@ export class StreamObjectResult<T> {
 
           const currentObject = parsePartialJson(
             accumulatedText,
-          ) as PartialDeep<T, { recurseIntoArrays: true }>;
+          ) as DeepPartial<T>;
 
           if (!isDeepEqualData(latestObject, currentObject)) {
             latestObject = currentObject;

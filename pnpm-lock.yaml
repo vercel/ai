@@ -1105,9 +1105,6 @@ importers:
       swrv:
         specifier: 1.0.4
         version: 1.0.4(vue@3.3.8)
-      type-fest:
-        specifier: 4.10.3
-        version: 4.10.3
       vue:
         specifier: ^3.3.4
         version: 3.3.8(typescript@5.1.3)
