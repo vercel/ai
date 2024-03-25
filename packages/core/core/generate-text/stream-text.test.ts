@@ -20,6 +20,11 @@ describe('result.textStream', () => {
               { type: 'text-delta', textDelta: 'Hello' },
               { type: 'text-delta', textDelta: ', ' },
               { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
@@ -50,6 +55,11 @@ describe('result.fullStream', () => {
               { type: 'text-delta', textDelta: 'Hello' },
               { type: 'text-delta', textDelta: ', ' },
               { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
@@ -64,6 +74,11 @@ describe('result.fullStream', () => {
         { type: 'text-delta', textDelta: 'Hello' },
         { type: 'text-delta', textDelta: ', ' },
         { type: 'text-delta', textDelta: 'world!' },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+        },
       ],
     );
   });
@@ -102,6 +117,11 @@ describe('result.fullStream', () => {
                 toolName: 'tool1',
                 args: `{ "value": "value" }`,
               },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
@@ -123,6 +143,11 @@ describe('result.fullStream', () => {
           toolCallId: 'call-1',
           toolName: 'tool1',
           args: { value: 'value' },
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
         },
       ],
     );
@@ -162,6 +187,11 @@ describe('result.fullStream', () => {
                 toolName: 'tool1',
                 args: `{ "value": "value" }`,
               },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
@@ -191,6 +221,11 @@ describe('result.fullStream', () => {
           toolName: 'tool1',
           args: { value: 'value' },
           result: 'value-result',
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
         },
       ],
     );
