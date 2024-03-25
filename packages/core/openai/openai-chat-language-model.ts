@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  InvalidResponseDataError,
   LanguageModelV1,
   LanguageModelV1StreamPart,
   ParseResult,
@@ -199,11 +200,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
 
     const toolCalls: Array<{
-      id?: string;
-      type?: 'function';
-      function?: {
-        name?: string;
-        arguments?: string;
+      id: string;
+      type: 'function';
+      function: {
+        name: string;
+        arguments: string;
       };
     }> = [];
 
@@ -238,9 +239,38 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               for (const toolCallDelta of delta.tool_calls) {
                 const index = toolCallDelta.index;
 
-                // new tool call, add to list
+                // Tool call start. OpenAI returns all information except the arguments in the first chunk.
                 if (toolCalls[index] == null) {
-                  toolCalls[index] = toolCallDelta;
+                  if (toolCallDelta.type !== 'function') {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'function' type.`,
+                    });
+                  }
+
+                  if (toolCallDelta.id == null) {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'id' to be a string.`,
+                    });
+                  }
+
+                  if (toolCallDelta.function?.name == null) {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'function.name' to be a string.`,
+                    });
+                  }
+
+                  toolCalls[index] = {
+                    id: toolCallDelta.id,
+                    type: 'function',
+                    function: {
+                      name: toolCallDelta.function.name,
+                      arguments: toolCallDelta.function.arguments ?? '',
+                    },
+                  };
+
                   continue;
                 }
 
@@ -256,9 +286,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 controller.enqueue({
                   type: 'tool-call-delta',
                   toolCallType: 'function',
-                  toolCallId: toolCall.id ?? '', // TODO empty?
-                  toolName: toolCall.function?.name ?? '', // TODO empty?
-                  argsTextDelta: toolCallDelta.function?.arguments ?? '', // TODO empty?
+                  toolCallId: toolCall.id,
+                  toolName: toolCall.function.name,
+                  argsTextDelta: toolCallDelta.function.arguments ?? '',
                 });
 
                 // check if tool call is complete
