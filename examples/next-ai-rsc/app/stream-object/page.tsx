@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useUIState } from 'ai/rsc';
+import { readStreamableValue, useUIState } from 'ai/rsc';
 import { useState } from 'react';
 import {
   GenerateItineraryAI,
@@ -13,9 +13,8 @@ import {
 export default function ItineraryPage() {
   const [destination, setDestination] = useState('');
   const [lengthOfStay, setLengthOfStay] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useUIState<typeof GenerateItineraryAI>();
-
-  const isGenerating = result.isGenerating?.curr ?? false;
 
   return (
     <div className="w-full max-w-2xl p-4 mx-auto md:p-6 lg:p-8">
@@ -34,6 +33,13 @@ export default function ItineraryPage() {
           });
 
           setResult(result);
+
+          const isGeneratingStream = readStreamableValue(result.isGenerating);
+          for await (const value of isGeneratingStream) {
+            if (value != null) {
+              setIsGenerating(value);
+            }
+          }
         }}
       >
         <div className="space-y-2">
