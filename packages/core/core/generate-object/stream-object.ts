@@ -177,7 +177,7 @@ export class StreamObjectResult<T> {
     this.warnings = warnings;
   }
 
-  get objectStream(): AsyncIterableStream<
+  get partialObjectStream(): AsyncIterableStream<
     PartialDeep<T, { recurseIntoArrays: true }>
   > {
     let accumulatedText = '';
