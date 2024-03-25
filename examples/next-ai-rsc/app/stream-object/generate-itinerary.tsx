@@ -25,7 +25,7 @@ export async function submitItineraryRequest({
 
   experimental_streamObject({
     model: openai.chat('gpt-4-1106-preview'),
-    maxRetries: 2500,
+    maxTokens: 2500,
     schema: itinerarySchema,
     system:
       `You help planning travel itineraries. ` +
