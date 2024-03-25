@@ -1,6 +1,6 @@
-import { ValueOf } from 'type-fest';
 import { z } from 'zod';
 import { ExperimentalTool } from '../tool';
+import { ValueOf } from '../util/value-of';
 
 export interface ToolResult<NAME extends string, ARGS, RESULT> {
   toolCallId: string;
