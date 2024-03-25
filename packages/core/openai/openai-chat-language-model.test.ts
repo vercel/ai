@@ -281,7 +281,7 @@ describe('doStream', () => {
     ]);
   });
 
-  it('should pass the messages', async () => {
+  it('should pass the messages and the model', async () => {
     prepareStreamResponse({ content: [] });
 
     await openai.chat('gpt-3.5-turbo').doStream({
