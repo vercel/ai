@@ -15,6 +15,8 @@ export default function ItineraryPage() {
   const [lengthOfStay, setLengthOfStay] = useState('');
   const [result, setResult] = useUIState<typeof GenerateItineraryAI>();
 
+  const isGenerating = result.isGenerating?.curr ?? false;
+
   return (
     <div className="w-full max-w-2xl p-4 mx-auto md:p-6 lg:p-8">
       <h1 className="mb-6 text-2xl font-bold text-center">
@@ -41,7 +43,7 @@ export default function ItineraryPage() {
             placeholder="Enter your destination"
             required
             value={destination}
-            disabled={result.isGenerating}
+            disabled={isGenerating}
             onChange={e => setDestination(e.target.value)}
           />
         </div>
@@ -55,11 +57,11 @@ export default function ItineraryPage() {
             min="1" // Minimum length of stay
             max="7" // Maximum length of stay
             value={lengthOfStay}
-            disabled={result.isGenerating}
+            disabled={isGenerating}
             onChange={e => setLengthOfStay(e.target.value)}
           />
         </div>
-        <Button className="w-full" type="submit" disabled={result.isGenerating}>
+        <Button className="w-full" type="submit" disabled={isGenerating}>
           Generate Itinerary
         </Button>
       </form>

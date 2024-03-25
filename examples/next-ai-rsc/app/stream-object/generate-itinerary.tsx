@@ -2,7 +2,12 @@
 
 import { experimental_streamObject } from 'ai';
 import { openai } from 'ai/openai';
-import { createAI, createStreamableUI } from 'ai/rsc';
+import {
+  StreamableValue,
+  createAI,
+  createStreamableUI,
+  createStreamableValue,
+} from 'ai/rsc';
 import { itinerarySchema } from './itinerary';
 import { ItineraryView } from './itinerary-view';
 
@@ -15,8 +20,8 @@ export async function submitItineraryRequest({
 }) {
   'use server';
 
-  const ui = createStreamableUI(<ItineraryView />);
-  let isGenerating = true;
+  const itineraryCompoent = createStreamableUI(<ItineraryView />);
+  const isGenerating = createStreamableValue(true);
 
   experimental_streamObject({
     model: openai.chat('gpt-4-1106-preview'),
@@ -34,17 +39,19 @@ export async function submitItineraryRequest({
     .then(async result => {
       try {
         for await (const partialItinerary of result.partialObjectStream) {
-          ui.update(<ItineraryView itinerary={partialItinerary} />);
+          itineraryCompoent.update(
+            <ItineraryView itinerary={partialItinerary} />,
+          );
         }
       } finally {
-        isGenerating = false;
-        ui.done();
+        isGenerating.done(false);
+        itineraryCompoent.done();
       }
     });
 
   return {
-    isGenerating,
-    itineraryComponent: ui.value,
+    isGenerating: isGenerating.value,
+    itineraryComponent: itineraryCompoent.value,
   };
 }
 
@@ -57,10 +64,10 @@ const initialAIState: {
 };
 
 const initialUIState: {
-  isGenerating: boolean;
+  isGenerating: StreamableValue<boolean>;
   itineraryComponent: React.ReactNode;
 } = {
-  isGenerating: false,
+  isGenerating: createStreamableValue(false).value,
   itineraryComponent: null,
 };
 
