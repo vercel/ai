@@ -136,7 +136,7 @@ export function runToolsTransformation<
         }
 
         // ignore
-        case 'finish-metadata':
+        case 'finish':
         case 'tool-call-delta': {
           break;
         }
