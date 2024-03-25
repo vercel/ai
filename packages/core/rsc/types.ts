@@ -89,6 +89,10 @@ export type MutableAIState<AIState> = {
 
 export type StreamablePatch = undefined | [0, string]; // Append string.
 
+/**
+ * StreamableValue is a value that can be streamed over the network via AI Actions.
+ * To read the streamed values, use the `readStreamableValue` API.
+ */
 export type StreamableValue<T = any, E = any> = {
   type?: typeof STREAMABLE_VALUE_TYPE;
   curr?: T;
