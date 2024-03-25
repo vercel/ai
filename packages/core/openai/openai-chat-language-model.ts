@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   InvalidResponseDataError,
   LanguageModelV1,
+  LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
   ParseResult,
   UnsupportedFunctionalityError,
@@ -208,6 +209,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       };
     }> = [];
 
+    let finishReason: LanguageModelV1FinishReason = 'other';
+    let usage: { promptTokens: number; completionTokens: number } = {
+      promptTokens: Number.NaN,
+      completionTokens: Number.NaN,
+    };
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -222,11 +229,24 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
             const value = chunk.value;
 
-            if (value.choices?.[0]?.delta == null) {
+            if (value.usage != null) {
+              usage = {
+                promptTokens: value.usage.prompt_tokens,
+                completionTokens: value.usage.completion_tokens,
+              };
+            }
+
+            const choice = value.choices[0];
+
+            if (choice?.finish_reason != null) {
+              finishReason = mapOpenAIFinishReason(choice.finish_reason);
+            }
+
+            if (choice?.delta == null) {
               return;
             }
 
-            const delta = value.choices[0].delta;
+            const delta = choice.delta;
 
             if (delta.content != null) {
               controller.enqueue({
@@ -310,6 +330,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               }
             }
           },
+
+          flush(controller) {
+            controller.enqueue({ type: 'finish', finishReason, usage });
+          },
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
@@ -377,4 +401,11 @@ const openaiChatChunkSchema = z.object({
       index: z.number(),
     }),
   ),
+  usage: z
+    .object({
+      prompt_tokens: z.number(),
+      completion_tokens: z.number(),
+    })
+    .optional()
+    .nullable(),
 });

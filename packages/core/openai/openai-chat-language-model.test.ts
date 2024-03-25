@@ -138,6 +138,8 @@ describe('doStream', () => {
       }),
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
         `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"completion_tokens":227,"total_tokens":244}}\n\n`,
       'data: [DONE]\n\n',
     ];
   }
@@ -157,6 +159,11 @@ describe('doStream', () => {
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
       { type: 'text-delta', textDelta: 'World!' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 17, completionTokens: 227 },
+      },
     ]);
   });
 
@@ -265,6 +272,11 @@ describe('doStream', () => {
         toolCallType: 'function',
         toolName: 'test-tool',
         args: '{"value":"Sparkle Day"}',
+      },
+      {
+        type: 'finish',
+        finishReason: 'tool-calls',
+        usage: { promptTokens: 53, completionTokens: 17 },
       },
     ]);
   });
