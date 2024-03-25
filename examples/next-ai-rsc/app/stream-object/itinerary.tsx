@@ -1,4 +1,4 @@
-import { PartialDeep } from 'type-fest';
+import { DeepPartial } from 'ai';
 import { z } from 'zod';
 
 export const itinerarySchema = z.object({
@@ -16,7 +16,4 @@ export const itinerarySchema = z.object({
   ),
 });
 
-export type PartialItinerary = PartialDeep<
-  z.infer<typeof itinerarySchema>,
-  { recurseIntoArrays: true }
->;
+export type PartialItinerary = DeepPartial<typeof itinerarySchema>;

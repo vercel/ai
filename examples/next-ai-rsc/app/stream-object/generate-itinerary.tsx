@@ -33,7 +33,7 @@ export async function submitItineraryRequest({
     // non-blocking: the generateItinerary call returns immediately
     .then(async result => {
       try {
-        for await (const partialItinerary of result.objectStream) {
+        for await (const partialItinerary of result.partialObjectStream) {
           ui.update(<ItineraryView itinerary={partialItinerary} />);
         }
       } finally {
