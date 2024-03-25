@@ -31,7 +31,7 @@ async function* asDeltaIterable(
   }
 }
 
-export function AWSBedrockAnthropicV3Stream(
+export function AWSBedrockAnthropicMessagesStream(
   response: AWSBedrockResponse,
   callbacks?: AIStreamCallbacksAndOptions,
 ): ReadableStream {

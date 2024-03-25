@@ -7,8 +7,8 @@ import {
 } from '../tests/snapshots/aws-bedrock';
 import { readAllChunks } from '../tests/utils/mock-client';
 import {
+  AWSBedrockAnthropicMessagesStream,
   AWSBedrockAnthropicStream,
-  AWSBedrockAnthropicV3Stream,
   AWSBedrockCohereStream,
   AWSBedrockLlama2Stream,
 } from './aws-bedrock-stream';
@@ -103,7 +103,7 @@ describe('AWS Bedrock', () => {
   describe('AnthropicV3', () => {
     it('should be able to parse SSE and receive the streamed response', async () => {
       const bedrockResponse = simulateBedrockResponse(bedrockAnthropicV3Chunks);
-      const stream = AWSBedrockAnthropicV3Stream(bedrockResponse);
+      const stream = AWSBedrockAnthropicMessagesStream(bedrockResponse);
       const response = new StreamingTextResponse(stream);
 
       expect(await readAllChunks(response)).toEqual([

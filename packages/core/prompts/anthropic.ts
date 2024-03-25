@@ -24,7 +24,7 @@ export function experimental_buildAnthropicPrompt(
  * Does not support message with image content
  * @see https://docs.anthropic.com/claude/reference/messages_post
  */
-export function experimental_buildAnthropicV3Messages(
+export function experimental_buildAnthropicMessages(
   messages: Pick<Message, 'content' | 'role'>[],
 ) {
   return messages.map(({ content, role }) => {
