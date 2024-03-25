@@ -1,12 +1,14 @@
 import { StreamingTextResponse, experimental_StreamData } from '.';
 import {
   bedrockAnthropicChunks,
+  bedrockAnthropicV3Chunks,
   bedrockCohereChunks,
   bedrockLlama2Chunks,
 } from '../tests/snapshots/aws-bedrock';
 import { readAllChunks } from '../tests/utils/mock-client';
 import {
   AWSBedrockAnthropicStream,
+  AWSBedrockAnthropicV3Stream,
   AWSBedrockCohereStream,
   AWSBedrockLlama2Stream,
 } from './aws-bedrock-stream';
@@ -95,6 +97,21 @@ describe('AWS Bedrock', () => {
           '0:"."\n',
         ]);
       });
+    });
+  });
+
+  describe('AnthropicV3', () => {
+    it('should be able to parse SSE and receive the streamed response', async () => {
+      const bedrockResponse = simulateBedrockResponse(bedrockAnthropicV3Chunks);
+      const stream = AWSBedrockAnthropicV3Stream(bedrockResponse);
+      const response = new StreamingTextResponse(stream);
+
+      expect(await readAllChunks(response)).toEqual([
+        ' Hello',
+        ',',
+        ' world',
+        '.',
+      ]);
     });
   });
 
