@@ -1,8 +1,5 @@
-// import { createStreamableValue } from '../streamable';
-// import { readStreamableValue } from './streamable';
-
-import { createStreamableValue } from '../dist';
-import { readStreamableValue } from '../dist';
+import { createStreamableValue } from '../streamable';
+import { readStreamableValue } from './streamable';
 
 function nextTick() {
   return Promise.resolve();
