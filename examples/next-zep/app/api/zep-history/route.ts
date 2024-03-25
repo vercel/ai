@@ -16,6 +16,7 @@ export async function POST(req: Request) {
   const lastMessage = messages[messages.length - 1];
 
   const zep = await ZepClient.init(process.env.ZEP_API_KEY);
+  // Add the user message to the memory
   await zep.memory.addMemory(
     sessionId,
     new Memory({
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
       ]
     })
   );
+  // Retrieve the memory and create a system message with conversation facts + most recent summary
   const memory = await zep.memory.getMemory(sessionId, 'perpetual');
   let systemContent = '';
   if (memory?.summary) {
@@ -40,6 +42,7 @@ export async function POST(req: Request) {
     content: systemContent,
     role: 'system'
   };
+  // Create a list of openai friendly memory messages
   const memoryMessages: ChatCompletionMessageParam[] = (memory?.messages ?? []).map((message) => ({
     content: message.content,
     role: message.role_type as 'assistant' | 'system' | 'user'
@@ -51,6 +54,7 @@ export async function POST(req: Request) {
   });
 
   const stream = OpenAIStream(response, {
+    // Add the completion to the memory
     async onFinal(completion: string) {
       await zep.memory.addMemory(
         sessionId,

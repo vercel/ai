@@ -35,18 +35,25 @@ export async function POST(req: Request) {
    */
   const outputParser = new BytesOutputParser();
 
+  // Create a simple chain that pipes the prompt to the model with a console callback (useful for debugging)
   const chain = prompt.pipe(model).withConfig({
     callbacks: [new ConsoleCallbackHandler()],
   });
 
+  // Add memory to our chain by wrapping it with a RunnableWithMessageHistory (using ZepChatMessageHistory as the history provider)
+  // This will add user and assistant messages to the chain as well as enrich model prompts with history and conversation facts
   const chainWithHistory = new RunnableWithMessageHistory({
     runnable: chain,
+    // Create a new ZepChatMessageHistory instance for each session. Relies on the sessionId passed as a configurable to the final chain
     getMessageHistory: (sessionId: string) => new ZepChatMessageHistory({
       client: zep,
       sessionId: sessionId,
+      // Recommended memory type to use, it will enrich the model prompts with conversation facts and the most recent summary
       memoryType: "perpetual",
     }),
+    // The key for the input messages in the prompt, must match the human message key in the prompt
     inputMessagesKey: "question",
+    // The key for the history messages in the prompt, must match the MessagesPlaceholder key in the prompt
     historyMessagesKey: "history",
   }).pipe(outputParser);
 
