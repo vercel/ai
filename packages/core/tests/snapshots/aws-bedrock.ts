@@ -5,6 +5,29 @@ export const bedrockAnthropicChunks = [
   { completion: '.', stop_reason: 'stop_sequence', stop: '\n\nHuman:' },
 ];
 
+export const bedrockAnthropicV3Chunks = [
+  {
+    type: 'content_block_delta',
+    index: 0,
+    delta: { type: 'text_delta', text: ' Hello' },
+  },
+  {
+    type: 'content_block_delta',
+    index: 0,
+    delta: { type: 'text_delta', text: ',' },
+  },
+  {
+    type: 'content_block_delta',
+    index: 0,
+    delta: { type: 'text_delta', text: ' world' },
+  },
+  {
+    type: 'content_block_delta',
+    index: 0,
+    delta: { type: 'text_delta', text: '.' },
+  },
+];
+
 export const bedrockCohereChunks = [
   {
     generations: [

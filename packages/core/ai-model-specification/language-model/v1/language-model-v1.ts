@@ -137,7 +137,7 @@ export type LanguageModelV1StreamPart =
   // the usage stats and finish reason should be the last part of the
   // stream:
   | {
-      type: 'finish-metadata';
+      type: 'finish';
       finishReason: LanguageModelV1FinishReason;
       usage: { promptTokens: number; completionTokens: number };
     }

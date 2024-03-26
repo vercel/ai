@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import {
+  InvalidResponseDataError,
   LanguageModelV1,
+  LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
   ParseResult,
   UnsupportedFunctionalityError,
@@ -199,13 +201,19 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
 
     const toolCalls: Array<{
-      id?: string;
-      type?: 'function';
-      function?: {
-        name?: string;
-        arguments?: string;
+      id: string;
+      type: 'function';
+      function: {
+        name: string;
+        arguments: string;
       };
     }> = [];
+
+    let finishReason: LanguageModelV1FinishReason = 'other';
+    let usage: { promptTokens: number; completionTokens: number } = {
+      promptTokens: Number.NaN,
+      completionTokens: Number.NaN,
+    };
 
     return {
       stream: response.pipeThrough(
@@ -221,11 +229,24 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
             const value = chunk.value;
 
-            if (value.choices?.[0]?.delta == null) {
+            if (value.usage != null) {
+              usage = {
+                promptTokens: value.usage.prompt_tokens,
+                completionTokens: value.usage.completion_tokens,
+              };
+            }
+
+            const choice = value.choices[0];
+
+            if (choice?.finish_reason != null) {
+              finishReason = mapOpenAIFinishReason(choice.finish_reason);
+            }
+
+            if (choice?.delta == null) {
               return;
             }
 
-            const delta = value.choices[0].delta;
+            const delta = choice.delta;
 
             if (delta.content != null) {
               controller.enqueue({
@@ -238,9 +259,38 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               for (const toolCallDelta of delta.tool_calls) {
                 const index = toolCallDelta.index;
 
-                // new tool call, add to list
+                // Tool call start. OpenAI returns all information except the arguments in the first chunk.
                 if (toolCalls[index] == null) {
-                  toolCalls[index] = toolCallDelta;
+                  if (toolCallDelta.type !== 'function') {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'function' type.`,
+                    });
+                  }
+
+                  if (toolCallDelta.id == null) {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'id' to be a string.`,
+                    });
+                  }
+
+                  if (toolCallDelta.function?.name == null) {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'function.name' to be a string.`,
+                    });
+                  }
+
+                  toolCalls[index] = {
+                    id: toolCallDelta.id,
+                    type: 'function',
+                    function: {
+                      name: toolCallDelta.function.name,
+                      arguments: toolCallDelta.function.arguments ?? '',
+                    },
+                  };
+
                   continue;
                 }
 
@@ -256,9 +306,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 controller.enqueue({
                   type: 'tool-call-delta',
                   toolCallType: 'function',
-                  toolCallId: toolCall.id ?? '', // TODO empty?
-                  toolName: toolCall.function?.name ?? '', // TODO empty?
-                  argsTextDelta: toolCallDelta.function?.arguments ?? '', // TODO empty?
+                  toolCallId: toolCall.id,
+                  toolName: toolCall.function.name,
+                  argsTextDelta: toolCallDelta.function.arguments ?? '',
                 });
 
                 // check if tool call is complete
@@ -279,6 +329,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 });
               }
             }
+          },
+
+          flush(controller) {
+            controller.enqueue({ type: 'finish', finishReason, usage });
           },
         }),
       ),
@@ -347,4 +401,11 @@ const openaiChatChunkSchema = z.object({
       index: z.number(),
     }),
   ),
+  usage: z
+    .object({
+      prompt_tokens: z.number(),
+      completion_tokens: z.number(),
+    })
+    .optional()
+    .nullable(),
 });

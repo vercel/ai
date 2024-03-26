@@ -66,6 +66,12 @@ async function main() {
         break;
       }
 
+      case 'finish': {
+        console.log('Finish reason:', part.finishReason);
+        console.log('Usage:', part.usage);
+        break;
+      }
+
       case 'error':
         console.error('Error:', part.error);
         break;
