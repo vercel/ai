@@ -2,15 +2,19 @@ import { startTransition, useLayoutEffect, useState } from 'react';
 import { STREAMABLE_VALUE_TYPE } from '../constants';
 import type { StreamableValue } from '../types';
 
+function hasReadableValueSignature(value: unknown): value is StreamableValue {
+  return !!(
+    value &&
+    typeof value === 'object' &&
+    'type' in value &&
+    value.type === STREAMABLE_VALUE_TYPE
+  );
+}
+
 function assertStreamableValue(
   value: unknown,
 ): asserts value is StreamableValue {
-  if (
-    !value ||
-    typeof value !== 'object' ||
-    !('type' in value) ||
-    value.type !== STREAMABLE_VALUE_TYPE
-  ) {
+  if (!hasReadableValueSignature(value)) {
     throw new Error(
       'Invalid value: this hook only accepts values created via `createStreamableValue`.',
     );
@@ -18,12 +22,7 @@ function assertStreamableValue(
 }
 
 function isStreamableValue(value: unknown): value is StreamableValue {
-  const hasSignature = !!(
-    value &&
-    typeof value === 'object' &&
-    'type' in value &&
-    value.type === STREAMABLE_VALUE_TYPE
-  );
+  const hasSignature = hasReadableValueSignature(value);
 
   if (!hasSignature && typeof value !== 'undefined') {
     throw new Error(
