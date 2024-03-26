@@ -213,7 +213,9 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
 
   return {
     /**
-     * The value of the streamable. This can be returned from a Server Action and received by the client.
+     * The value of the streamable. This can be returned from a Server Action and
+     * received by the client. To read the streamed values, use the
+     * `readStreamableValue` API.
      */
     get value() {
       return createWrapped(true);
