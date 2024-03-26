@@ -2,6 +2,7 @@
 
 export {
   readStreamableValue,
+  useStreamableValue,
   useUIState,
   useAIState,
   useActions,
