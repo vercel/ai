@@ -91,7 +91,7 @@ export type StreamablePatch = undefined | [0, string]; // Append string.
 
 /**
  * StreamableValue is a value that can be streamed over the network via AI Actions.
- * To read the streamed values, use the `readStreamableValue` API.
+ * To read the streamed values, use the `readStreamableValue` or `useStreamableValue` APIs.
  */
 export type StreamableValue<T = any, E = any> = {
   /**
