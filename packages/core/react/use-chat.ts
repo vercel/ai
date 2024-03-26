@@ -100,19 +100,19 @@ const getStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({ role, content, name, function_call, tool_calls, tool_call_id }) => ({
-          role,
-          content,
-          tool_call_id,
-          ...(name !== undefined && { name }),
-          ...(function_call !== undefined && {
-            function_call: function_call,
-          }),
-          ...(tool_calls !== undefined && {
-            tool_calls: tool_calls,
-          }),
+      ({ role, content, name, function_call, tool_calls, tool_call_id }) => ({
+        role,
+        content,
+        tool_call_id,
+        ...(name !== undefined && { name }),
+        ...(function_call !== undefined && {
+          function_call: function_call,
         }),
-      );
+        ...(tool_calls !== undefined && {
+          tool_calls: tool_calls,
+        }),
+      }),
+    );
 
   if (typeof api !== 'string') {
     // In this case, we are handling a Server Action. No complex mode handling needed.
@@ -209,6 +209,7 @@ export function useChat({
   sendExtraMessageFields,
   experimental_onFunctionCall,
   experimental_onToolCall,
+  experimental_onToolExecution,
   onResponse,
   onFinish,
   onError,
@@ -301,6 +302,7 @@ export function useChat({
             ),
           experimental_onFunctionCall,
           experimental_onToolCall,
+          experimental_onToolExecution,
           updateChatRequest: chatRequestParam => {
             chatRequest = chatRequestParam;
           },
