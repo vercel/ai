@@ -1,6 +1,32 @@
 import { Message } from '../shared/types';
 
 /**
+ * A prompt constructor for the HuggingFace Zephyr model.
+ *
+ * Does not support `function` messages.
+ * @see https://huggingface.co/HuggingFaceH4/zephyr-7b-beta
+ */
+export function experimental_buildZephyrPrompt(
+  messages: Pick<Message, 'content' | 'role'>[],
+) {
+  return (
+    messages
+      .map(({ content, role }, index) => {
+        if (role == 'user') {
+          return `<|user|>\n${content}<\s>\n`;
+        } else if (role == 'assistant') {
+          return `<|assistant|>\n${content}<\s>\n`;
+        } else if (role == 'system' && index == 0) {
+          return `<|system|>\n${content}<\s>\n`;
+        } else if (role == 'function') {
+          throw new Error('Zephyr does not support function calls.');
+        }
+      })
+      .join('') + `<|assistant|>\n`
+  );
+}
+
+/**
  * A prompt constructor for the HuggingFace StarChat Beta model.
  * Does not support `function` messages.
  * @see https://huggingface.co/HuggingFaceH4/starchat-beta
