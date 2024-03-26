@@ -185,9 +185,6 @@ const getStreamedResponse = async (
       ...chatRequest.options?.headers,
     },
     abortController: () => abortControllerRef.current,
-    appendMessage(message) {
-      mutate([...chatRequest.messages, message], false);
-    },
     restoreMessagesOnFailure() {
       mutate(previousMessages, false);
     },

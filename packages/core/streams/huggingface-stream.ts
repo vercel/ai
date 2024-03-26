@@ -42,7 +42,5 @@ export function HuggingFaceStream(
 ): ReadableStream {
   return createParser(res)
     .pipeThrough(createCallbacksTransformer(callbacks))
-    .pipeThrough(
-      createStreamDataTransformer(callbacks?.experimental_streamData),
-    );
+    .pipeThrough(createStreamDataTransformer());
 }

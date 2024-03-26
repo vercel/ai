@@ -171,9 +171,6 @@ export function useChat({
               mutate([...chatRequest.messages, message]);
               onFinish?.(message);
             },
-            appendMessage(message) {
-              mutate([...chatRequest.messages, message]);
-            },
             restoreMessagesOnFailure() {
               // Restore the previous messages if the request fails.
               mutate(previousMessages);

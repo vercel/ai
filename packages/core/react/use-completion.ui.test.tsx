@@ -5,7 +5,6 @@ import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
-  mockFetchTextStream,
 } from '../tests/utils/mock-fetch';
 import { useCompletion } from './use-completion';
 
@@ -43,18 +42,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   cleanup();
-});
-
-it('should render normal streamed stream', async () => {
-  mockFetchTextStream({
-    url: 'https://example.com/api/completion',
-    chunks: ['Hello', ',', ' world', '.'],
-  });
-
-  await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
-
-  await screen.findByTestId('completion');
-  expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
 });
 
 it('should render complex text stream', async () => {

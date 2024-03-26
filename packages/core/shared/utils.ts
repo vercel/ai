@@ -52,8 +52,3 @@ export const isStreamStringEqualToType = (
 
 export type StreamString =
   `${(typeof StreamStringPrefixes)[keyof typeof StreamStringPrefixes]}:${string}\n`;
-
-/**
- * A header sent to the client so it knows how to handle parsing the stream (as a deprecated text response or using the new prefixed protocol)
- */
-export const COMPLEX_HEADER = 'X-Experimental-Stream-Data';

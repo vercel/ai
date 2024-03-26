@@ -481,9 +481,7 @@ export function OpenAIStream(
     const functionCallTransformer = createFunctionCallTransformer(cb);
     return stream.pipeThrough(functionCallTransformer);
   } else {
-    return stream.pipeThrough(
-      createStreamDataTransformer(cb?.experimental_streamData),
-    );
+    return stream.pipeThrough(createStreamDataTransformer());
   }
 }
 
@@ -501,7 +499,6 @@ function createFunctionCallTransformer(
   let functionCallMessages: CreateMessage[] =
     callbacks[__internal__OpenAIFnMessagesSymbol] || [];
 
-  const isComplexMode = callbacks?.experimental_streamData;
   const decode = createChunkDecoder();
 
   return new TransformStream({
@@ -524,9 +521,7 @@ function createFunctionCallTransformer(
       // Stream as normal
       if (!isFunctionStreamingIn) {
         controller.enqueue(
-          isComplexMode
-            ? textEncoder.encode(formatStreamPart('text', message))
-            : chunk,
+          textEncoder.encode(formatStreamPart('text', message)),
         );
         return;
       } else {
@@ -667,22 +662,18 @@ function createFunctionCallTransformer(
             // so we just return the function call as a message
             controller.enqueue(
               textEncoder.encode(
-                isComplexMode
-                  ? formatStreamPart(
-                      payload.function_call ? 'function_call' : 'tool_calls',
-                      // parse to prevent double-encoding:
-                      JSON.parse(aggregatedResponse),
-                    )
-                  : aggregatedResponse,
+                formatStreamPart(
+                  payload.function_call ? 'function_call' : 'tool_calls',
+                  // parse to prevent double-encoding:
+                  JSON.parse(aggregatedResponse),
+                ),
               ),
             );
             return;
           } else if (typeof functionResponse === 'string') {
             // The user returned a string, so we just return it as a message
             controller.enqueue(
-              isComplexMode
-                ? textEncoder.encode(formatStreamPart('text', functionResponse))
-                : textEncoder.encode(functionResponse),
+              textEncoder.encode(formatStreamPart('text', functionResponse)),
             );
             aggregatedFinalCompletionResponse = functionResponse;
             return;

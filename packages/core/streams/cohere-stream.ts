@@ -93,14 +93,10 @@ export function CohereStream(
   if (Symbol.asyncIterator in reader) {
     return readableFromAsyncIterable(streamable(reader))
       .pipeThrough(createCallbacksTransformer(callbacks))
-      .pipeThrough(
-        createStreamDataTransformer(callbacks?.experimental_streamData),
-      );
+      .pipeThrough(createStreamDataTransformer());
   } else {
     return createParser(reader)
       .pipeThrough(createCallbacksTransformer(callbacks))
-      .pipeThrough(
-        createStreamDataTransformer(callbacks?.experimental_streamData),
-      );
+      .pipeThrough(createStreamDataTransformer());
   }
 }

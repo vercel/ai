@@ -74,7 +74,5 @@ export function AWSBedrockStream(
     asDeltaIterable(response, extractTextDeltaFromChunk),
   )
     .pipeThrough(createCallbacksTransformer(callbacks))
-    .pipeThrough(
-      createStreamDataTransformer(callbacks?.experimental_streamData),
-    );
+    .pipeThrough(createStreamDataTransformer());
 }

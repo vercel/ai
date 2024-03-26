@@ -170,9 +170,6 @@ export function useChat({
               setStreamData([...existingData, ...(data ?? [])]);
             },
             onFinish,
-            appendMessage(message) {
-              mutate([...chatRequest.messages, message]);
-            },
             restoreMessagesOnFailure() {
               // Restore the previous messages if the request fails.
               if (previousMessages.status === 'success') {

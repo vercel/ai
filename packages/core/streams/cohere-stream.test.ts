@@ -1,4 +1,3 @@
-import { CohereClient } from 'cohere-ai';
 import {
   CohereStream,
   StreamingTextResponse,
@@ -34,82 +33,46 @@ describe('CohereStream', () => {
     server.close();
   });
 
-  it('should be able to parse Chat Streaming API and receive the streamed response', async () => {
-    const co = new CohereClient({
-      token: 'cohere-token',
-    });
-    const cohereResponse = await co.chatStream({
-      message: 'hi there!',
+  it('should send text', async () => {
+    const data = new experimental_StreamData();
+
+    const stream = CohereStream(await fetch(DEFAULT_TEST_URL), {
+      onFinal() {
+        data.close();
+      },
     });
 
-    const stream = CohereStream(cohereResponse);
-    const response = new StreamingTextResponse(stream);
+    const response = new StreamingTextResponse(stream, {}, data);
+
     expect(await readAllChunks(response)).toEqual([
-      ' Hello',
-      ',',
-      ' world',
-      '.',
-      ' ',
+      '0:" Hello"\n',
+      '0:","\n',
+      '0:" world"\n',
+      '0:"."\n',
+      '0:" "\n',
     ]);
   });
 
-  it('should be able to parse SSE and receive the streamed response', async () => {
-    const stream = CohereStream(await fetch(DEFAULT_TEST_URL));
-    const response = new StreamingTextResponse(stream);
+  it('should send text and data', async () => {
+    const data = new experimental_StreamData();
+
+    data.append({ t1: 'v1' });
+
+    const stream = CohereStream(await fetch(DEFAULT_TEST_URL), {
+      onFinal() {
+        data.close();
+      },
+    });
+
+    const response = new StreamingTextResponse(stream, {}, data);
 
     expect(await readAllChunks(response)).toEqual([
-      ' Hello',
-      ',',
-      ' world',
-      '.',
-      ' ',
+      '2:[{"t1":"v1"}]\n',
+      '0:" Hello"\n',
+      '0:","\n',
+      '0:" world"\n',
+      '0:"."\n',
+      '0:" "\n',
     ]);
-  });
-
-  describe('StreamData protocol', () => {
-    it('should send text', async () => {
-      const data = new experimental_StreamData();
-
-      const stream = CohereStream(await fetch(DEFAULT_TEST_URL), {
-        onFinal() {
-          data.close();
-        },
-        experimental_streamData: true,
-      });
-
-      const response = new StreamingTextResponse(stream, {}, data);
-
-      expect(await readAllChunks(response)).toEqual([
-        '0:" Hello"\n',
-        '0:","\n',
-        '0:" world"\n',
-        '0:"."\n',
-        '0:" "\n',
-      ]);
-    });
-
-    it('should send text and data', async () => {
-      const data = new experimental_StreamData();
-
-      data.append({ t1: 'v1' });
-
-      const stream = CohereStream(await fetch(DEFAULT_TEST_URL), {
-        onFinal() {
-          data.close();
-        },
-        experimental_streamData: true,
-      });
-
-      const response = new StreamingTextResponse(stream, {}, data);
-
-      expect(await readAllChunks(response)).toEqual([
-        '2:[{"t1":"v1"}]\n',
-        '0:" Hello"\n',
-        '0:","\n',
-        '0:" world"\n',
-        '0:"."\n',
-        '0:" "\n',
-      ]);
-    });
   });
 });

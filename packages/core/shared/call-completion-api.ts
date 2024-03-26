@@ -1,6 +1,5 @@
 import { readDataStream } from './read-data-stream';
 import { JSONValue } from './types';
-import { COMPLEX_HEADER, createChunkDecoder } from './utils';
 
 export async function callCompletionApi({
   api,
@@ -78,40 +77,17 @@ export async function callCompletionApi({
     let result = '';
     const reader = res.body.getReader();
 
-    const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
-
-    if (isComplexMode) {
-      for await (const { type, value } of readDataStream(reader, {
-        isAborted: () => abortController === null,
-      })) {
-        switch (type) {
-          case 'text': {
-            result += value;
-            setCompletion(result);
-            break;
-          }
-          case 'data': {
-            onData?.(value);
-            break;
-          }
-        }
-      }
-    } else {
-      const decoder = createChunkDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
+    for await (const { type, value } of readDataStream(reader, {
+      isAborted: () => abortController === null,
+    })) {
+      switch (type) {
+        case 'text': {
+          result += value;
+          setCompletion(result);
           break;
         }
-
-        // Update the completion state with the new message tokens.
-        result += decoder(value);
-        setCompletion(result);
-
-        // The request has been aborted, stop reading the stream.
-        if (abortController === null) {
-          reader.cancel();
+        case 'data': {
+          onData?.(value);
           break;
         }
       }

@@ -68,7 +68,6 @@ export async function POST(req: Request) {
       }
       data.close();
     },
-    experimental_streamData: true,
   });
 
   return new StreamingTextResponse(stream, {}, data);

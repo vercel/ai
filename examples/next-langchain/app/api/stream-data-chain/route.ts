@@ -26,7 +26,6 @@ export async function POST(req: Request) {
       data.append(JSON.stringify({ key: 'value' })); // example
       data.close();
     },
-    experimental_streamData: true,
   });
 
   await chain.stream({ product: value }, { callbacks: [handlers] });

@@ -109,7 +109,6 @@ export async function POST({ request }) {
     onFinal() {
       data.close();
     },
-    experimental_streamData: true,
   });
 
   data.append({

@@ -85,7 +85,6 @@ export const POST = async (event: APIEvent) => {
     onFinal() {
       data.close();
     },
-    experimental_streamData: true,
   });
 
   data.append({

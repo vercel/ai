@@ -66,6 +66,6 @@ export function InkeepStream(
   };
 
   return AIStream(res, inkeepEventParser, passThroughCallbacks).pipeThrough(
-    createStreamDataTransformer(passThroughCallbacks?.experimental_streamData),
+    createStreamDataTransformer(),
   );
 }

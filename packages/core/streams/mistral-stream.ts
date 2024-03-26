@@ -25,7 +25,5 @@ export function MistralStream(
   const stream = readableFromAsyncIterable(streamable(response));
   return stream
     .pipeThrough(createCallbacksTransformer(callbacks))
-    .pipeThrough(
-      createStreamDataTransformer(callbacks?.experimental_streamData),
-    );
+    .pipeThrough(createStreamDataTransformer());
 }
