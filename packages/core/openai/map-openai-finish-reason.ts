@@ -8,10 +8,10 @@ export function mapOpenAIFinishReason(
       return 'stop';
     case 'length':
       return 'length';
-    case 'content-filter':
+    case 'content_filter':
       return 'content-filter';
     case 'function_call':
-    case 'tool-calls':
+    case 'tool_calls':
       return 'tool-calls';
     default:
       return 'other';

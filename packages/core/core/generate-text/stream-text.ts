@@ -1,4 +1,5 @@
 import zodToJsonSchema from 'zod-to-json-schema';
+import { LanguageModelV1FinishReason } from '../../ai-model-specification';
 import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
@@ -92,7 +93,16 @@ export type TextStreamPart<TOOLS extends Record<string, ExperimentalTool>> =
     }
   | ({
       type: 'tool-result';
-    } & ToToolResult<TOOLS>);
+    } & ToToolResult<TOOLS>)
+  | {
+      type: 'finish';
+      finishReason: LanguageModelV1FinishReason;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+    };
 
 export class StreamTextResult<TOOLS extends Record<string, ExperimentalTool>> {
   private readonly originalStream: ReadableStream<TextStreamPart<TOOLS>>;

@@ -1,8 +1,10 @@
+import zodToJsonSchema from 'zod-to-json-schema';
 import { LanguageModelV1Prompt } from '../ai-model-specification';
 import { convertStreamToArray } from '../ai-model-specification/test/convert-stream-to-array';
 import { JsonTestServer } from '../ai-model-specification/test/json-test-server';
 import { StreamingTestServer } from '../ai-model-specification/test/streaming-test-server';
 import { Mistral } from './mistral-facade';
+import { z } from 'zod';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -157,6 +159,69 @@ describe('doStream', () => {
       { type: 'text-delta', textDelta: ', ' },
       { type: 'text-delta', textDelta: 'world!' },
       { type: 'text-delta', textDelta: '' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 4, completionTokens: 32 },
+      },
+    ]);
+  });
+
+  it('should stream tool deltas', async () => {
+    server.responseChunks = [
+      `data: {"id":"ad6f7ce6543c4d0890280ae184fe4dd8","object":"chat.completion.chunk","created":1711365023,"model":"mistral-large-latest",` +
+        `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null,"logprobs":null}]}\n\n`,
+      `data: {"id":"ad6f7ce6543c4d0890280ae184fe4dd8","object":"chat.completion.chunk","created":1711365023,"model":"mistral-large-latest",` +
+        `"choices":[{"index":0,"delta":{"content":null,"tool_calls":[{"function":{"name":"test-tool","arguments":` +
+        `"{\\"value\\":\\"Sparkle Day\\"}"` +
+        `}}]},"finish_reason":"tool_calls","logprobs":null}],"usage":{"prompt_tokens":183,"total_tokens":316,"completion_tokens":133}}\n\n`,
+      'data: [DONE]\n\n',
+    ];
+
+    const { stream } = await new Mistral({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    })
+      .chat('mistral-large-latest')
+      .doStream({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'regular',
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              parameters: zodToJsonSchema(z.object({ value: z.string() })),
+            },
+          ],
+        },
+        prompt: TEST_PROMPT,
+      });
+
+    expect(await convertStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'text-delta',
+        textDelta: '',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'test-id',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '{"value":"Sparkle Day"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'test-id',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        args: '{"value":"Sparkle Day"}',
+      },
+      {
+        type: 'finish',
+        finishReason: 'tool-calls',
+        usage: { promptTokens: 183, completionTokens: 133 },
+      },
     ]);
   });
 

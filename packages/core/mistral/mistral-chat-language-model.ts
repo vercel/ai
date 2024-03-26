@@ -2,12 +2,12 @@ import { z } from 'zod';
 import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
+  LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
   ParseResult,
   UnsupportedFunctionalityError,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  generateId,
   postJsonToApi,
 } from '../ai-model-specification';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
@@ -22,6 +22,7 @@ type MistralChatConfig = {
   provider: string;
   baseUrl: string;
   headers: () => Record<string, string | undefined>;
+  generateId: () => string;
 };
 
 export class MistralChatLanguageModel implements LanguageModelV1 {
@@ -174,7 +175,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       text: choice.message.content ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
-        toolCallId: generateId(),
+        toolCallId: this.config.generateId(),
         toolName: toolCall.function.name,
         args: toolCall.function.arguments!,
       })),
@@ -209,6 +210,14 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
+    let finishReason: LanguageModelV1FinishReason = 'other';
+    let usage: { promptTokens: number; completionTokens: number } = {
+      promptTokens: Number.NaN,
+      completionTokens: Number.NaN,
+    };
+
+    const generateId = this.config.generateId;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -223,11 +232,24 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
             const value = chunk.value;
 
-            if (value.choices?.[0]?.delta == null) {
+            if (value.usage != null) {
+              usage = {
+                promptTokens: value.usage.prompt_tokens,
+                completionTokens: value.usage.completion_tokens,
+              };
+            }
+
+            const choice = value.choices[0];
+
+            if (choice?.finish_reason != null) {
+              finishReason = mapMistralFinishReason(choice.finish_reason);
+            }
+
+            if (choice?.delta == null) {
               return;
             }
 
-            const delta = value.choices[0].delta;
+            const delta = choice.delta;
 
             if (delta.content != null) {
               controller.enqueue({
@@ -257,6 +279,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
                 });
               }
             }
+          },
+
+          flush(controller) {
+            controller.enqueue({ type: 'finish', finishReason, usage });
           },
         }),
       ),
@@ -319,4 +345,11 @@ const mistralChatChunkSchema = z.object({
       index: z.number(),
     }),
   ),
+  usage: z
+    .object({
+      prompt_tokens: z.number(),
+      completion_tokens: z.number(),
+    })
+    .optional()
+    .nullable(),
 });

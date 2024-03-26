@@ -1,4 +1,4 @@
-import { loadApiKey } from '../ai-model-specification';
+import { generateId, loadApiKey } from '../ai-model-specification';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import {
   MistralChatModelId,
@@ -12,11 +12,19 @@ export class Mistral {
   readonly baseUrl?: string;
   readonly apiKey?: string;
 
+  private readonly generateId: () => string;
+
   constructor(
-    options: { baseUrl?: string; apiKey?: string; organization?: string } = {},
+    options: {
+      baseUrl?: string;
+      apiKey?: string;
+      organization?: string;
+      generateId?: () => string;
+    } = {},
   ) {
     this.baseUrl = options.baseUrl;
     this.apiKey = options.apiKey;
+    this.generateId = options.generateId ?? generateId;
   }
 
   private get baseConfig() {
@@ -36,6 +44,7 @@ export class Mistral {
     return new MistralChatLanguageModel(modelId, settings, {
       provider: 'mistral.chat',
       ...this.baseConfig,
+      generateId: this.generateId,
     });
   }
 }
