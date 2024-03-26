@@ -1,5 +1,14 @@
 # ai
 
+## 3.0.14
+
+### Patch Changes
+
+- 8088de8: fix(ai/rsc): improve typings for `StreamableValue`
+- 20007b9: feat(ai/rsc): support string diff and patch in streamable value
+- 6039460: Support Bedrock Anthropic Stream for Messages API.
+- e83bfe3: Added experimental ai/core functions (streamText, generateText, streamObject, generateObject). Add OpenAI and Mistral language model providers.
+
 ## 3.0.13
 
 ### Patch Changes
