@@ -29,5 +29,5 @@
     "nuxt-icon": "^0.5.0",
     "vue": "^3.3.4"
   },
-  "version": "0.0.1-canary.2"
+  "version": "0.0.0"
 }
