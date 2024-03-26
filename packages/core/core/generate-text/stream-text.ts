@@ -73,7 +73,14 @@ export async function experimental_streamText<
   ...settings
 }: CallSettings &
   Prompt & {
+    /**
+The language model to use.
+     */
     model: LanguageModelV1;
+
+    /**
+The tools that the model can call. The model needs to support calling tools.
+    */
     tools?: TOOLS;
   }): Promise<StreamTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
