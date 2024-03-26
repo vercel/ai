@@ -18,7 +18,7 @@ import { ToToolResultArray } from './tool-result';
 /**
 Generate a text and call tools for a given prompt using a language model.
 
-This function does not stream the output. If you want to stream the output, use `experimental_streamObject` instead.
+This function does not stream the output. If you want to stream the output, use `experimental_streamText` instead.
 
 @param model - The language model to use.
 @param tools - The tools that the model can call. The model needs to support calling tools.
@@ -148,38 +148,38 @@ async function executeTools<TOOLS extends Record<string, ExperimentalTool>>({
 }
 
 /**
- * The result of a text generation call.
+ The result of a text generation call.
  */
 export class GenerateTextResult<
   TOOLS extends Record<string, ExperimentalTool>,
 > {
   /**
-   * The generated text.
+The generated text.
    */
   readonly text: string;
 
   /**
-   * The tool calls that were made during the generation.
+The tool calls that were made during the generation.
    */
   readonly toolCalls: ToToolCallArray<TOOLS>;
 
   /**
-   * The results of the tool calls.
+The results of the tool calls.
    */
   readonly toolResults: ToToolResultArray<TOOLS>;
 
   /**
-   * The reason why the generation finished.
+The reason why the generation finished.
    */
   readonly finishReason: LanguageModelV1FinishReason;
 
   /**
-   * The token usage of the generated text.
+The token usage of the generated text.
    */
   readonly usage: TokenUsage;
 
   /**
-   * Warnings from the model provider (e.g. unsupported settings)
+Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
