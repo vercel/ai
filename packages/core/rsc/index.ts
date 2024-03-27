@@ -4,6 +4,7 @@ export type {
   createStreamableUI,
   createStreamableValue,
   render,
+  renderAzureOpenAI,
   createAI,
 } from './rsc-server';
 
