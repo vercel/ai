@@ -48,7 +48,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 
-@return
+@returns
 A result object that contains the generated text, the results of the tool calls, and additional information.
  */
 export async function experimental_generateText<
@@ -155,7 +155,8 @@ async function executeTools<TOOLS extends Record<string, ExperimentalTool>>({
 }
 
 /**
- The result of a text generation call.
+The result of a text generation call.
+It contains the generated text, the tool calls that were made during the generation, and the results of the tool calls.
  */
 export class GenerateTextResult<
   TOOLS extends Record<string, ExperimentalTool>,
