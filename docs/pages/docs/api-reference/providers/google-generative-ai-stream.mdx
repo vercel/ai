@@ -25,39 +25,52 @@ The `GoogleGenerativeAIStream` function can be coupled with a call to the Google
 Here's a step-by-step example of how to implement this in Next.js:
 
 ```js filename="app/api/completion/route.ts"
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GoogleGenerativeAIStream, Message, StreamingTextResponse } from 'ai';
+import {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+  GenerateContentRequest,
+} from "@google/generative-ai";
+import { ChatCompletionMessageParam } from "ai/prompts";
+import { GoogleGenerativeAIStream, Message, StreamingTextResponse } from "ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
-
-// IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+export const runtime = "edge";
 
 // convert messages from the Vercel AI SDK Format to the format
 // that is expected by the Google GenAI SDK
-const buildGoogleGenAIPrompt = (messages: Message[]) => ({
+const buildGoogleGeminiGenAI = (
+  messages: Message[]
+): GenerateContentRequest => ({
   contents: messages
-    .filter(message => message.role === 'user' || message.role === 'assistant')
-    .map(message => ({
-      role: message.role === 'user' ? 'user' : 'model',
+    .filter(
+      (message) => message.role === "user" || message.role === "assistant"
+    )
+    .map((message) => ({
+      role: message.role === "user" ? "user" : "model",
       parts: [{ text: message.content }],
     })),
 });
 
-export async function POST(req: Request) {
-  // Extract the `prompt` from the body of the request
-  const { messages } = await req.json();
+export const POST = async (req: Request) => {
+  try {
+    const { messages } = await req.json();
 
-  const geminiStream = await genAI
-    .getGenerativeModel({ model: 'gemini-pro' })
-    .generateContentStream(buildGoogleGenAIPrompt(messages));
+    const genAI = new GoogleGenerativeAI(
+      process.env.GOOGLE_GEMINI_API as string
+    );
+    console.log(genAI);
+    console.log(buildGoogleGeminiGenAI);
+    const model_access = await genAI
+      .getGenerativeModel({ model: "gemini-pro" })
+      .generateContentStream(buildGoogleGeminiGenAI(messages));
 
-  // Convert the response into a friendly text-stream
-  const stream = GoogleGenerativeAIStream(geminiStream);
+    const gemini_stream = GoogleGenerativeAIStream(model_access);
 
-  // Respond with the stream
-  return new StreamingTextResponse(stream);
-}
+    return new StreamingTextResponse(gemini_stream);
+  } catch (error) {
+    return Response.json({ error: "Iternal Server Error", status: 500 });
+  }
+};
 ```
 
 In this example, the `GoogleGenerativeAIStream` function transforms the text generation stream from the Google Generative AI SDK into a ReadableStream of parsed result. This allows clients to consume AI outputs in real-time as they're generated, instead of waiting for the complete response.
