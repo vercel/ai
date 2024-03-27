@@ -1,5 +1,12 @@
 # ai
 
+## 3.0.15
+
+### Patch Changes
+
+- 4aed2a5: Add JSDoc comments for ai/core functions.
+- cf8d12f: Export experimental language model specification under `ai/spec`.
+
 ## 3.0.14
 
 ### Patch Changes
