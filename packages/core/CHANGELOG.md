@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.16
+
+### Patch Changes
+
+- a54ea77: feat(ai/rsc): add `useStreamableValue`
+
 ## 3.0.15
 
 ### Patch Changes
