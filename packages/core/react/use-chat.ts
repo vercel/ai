@@ -37,9 +37,15 @@ export type UseChatHelpers = {
    * Reload the last AI chat response for the given chat history. If the last
    * message isn't from the assistant, it will request the API to generate a
    * new response.
+   *
+   * If the `transform` option is provided, it will be used to transform the
+   * messages before sending the request to the API.
+   *
    */
   reload: (
-    chatRequestOptions?: ChatRequestOptions,
+    chatRequestOptions?: ChatRequestOptions & {
+      transform?: (messages: Message[]) => Message[];
+    },
   ) => Promise<string | null | undefined>;
   /**
    * Abort the current request immediately, keep the generated tokens if any.
@@ -377,31 +383,32 @@ export function useChat({
 
   const reload = useCallback(
     async ({
+      transform,
       options,
       functions,
       function_call,
       tools,
       tool_choice,
-    }: ChatRequestOptions = {}) => {
-      if (messagesRef.current.length === 0) return null;
+    }: ChatRequestOptions & {
+      transform?: (messages: Message[]) => Message[];
+    } = {}) => {
+      let finalMessages = messagesRef.current;
 
-      // Remove last assistant message and retry last user message.
-      const lastMessage = messagesRef.current[messagesRef.current.length - 1];
-      if (lastMessage.role === 'assistant') {
-        const chatRequest: ChatRequest = {
-          messages: messagesRef.current.slice(0, -1),
-          options,
-          ...(functions !== undefined && { functions }),
-          ...(function_call !== undefined && { function_call }),
-          ...(tools !== undefined && { tools }),
-          ...(tool_choice !== undefined && { tool_choice }),
-        };
-
-        return triggerRequest(chatRequest);
+      // If transform is provided, use it directly on the current messages
+      if (transform) {
+        finalMessages = transform(messagesRef.current);
+      } else {
+        // If transform is not provided, continue with the existing logic
+        // Check if the last message is from the assistant and remove it if so
+        const lastMessage = messagesRef.current[messagesRef.current.length - 1];
+        if (lastMessage && lastMessage.role === 'assistant') {
+          finalMessages = messagesRef.current.slice(0, -1);
+        }
       }
 
+      // Construct the chat request with the final set of messages
       const chatRequest: ChatRequest = {
-        messages: messagesRef.current,
+        messages: finalMessages,
         options,
         ...(functions !== undefined && { functions }),
         ...(function_call !== undefined && { function_call }),
