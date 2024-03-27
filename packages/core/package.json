@@ -14,13 +14,13 @@
     "solid/dist/**/*",
     "prompts/dist/**/*",
     "rsc/dist/**/*",
-    "ai-model-specification/dist/**/*",
+    "spec/dist/**/*",
     "openai/dist/**/*",
     "mistral/dist/**/*"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
-    "clean": "rm -rf dist && rm -rf core/dist && rm -rf openai/dist && rm -rf mistral/dist && rm -rf ai-model-specification/dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist && rm -rf rsc/dist",
+    "clean": "rm -rf dist && rm -rf core/dist && rm -rf openai/dist && rm -rf mistral/dist && rm -rf spec/dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist && rm -rf rsc/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -48,11 +48,11 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
-    "./ai-model-specification": {
-      "types": "./ai-model-specification/dist/index.d.ts",
-      "import": "./ai-model-specification/dist/index.mjs",
-      "module": "./ai-model-specification/dist/index.mjs",
-      "require": "./ai-model-specification/dist/index.js"
+    "./spec": {
+      "types": "./spec/dist/index.d.ts",
+      "import": "./spec/dist/index.mjs",
+      "module": "./spec/dist/index.mjs",
+      "require": "./spec/dist/index.js"
     },
     "./openai": {
       "types": "./openai/dist/index.d.ts",

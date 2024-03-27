@@ -9,7 +9,7 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   scale,
-} from '../ai-model-specification';
+} from '../spec';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {

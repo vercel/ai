@@ -1,9 +1,6 @@
 import zodToJsonSchema from 'zod-to-json-schema';
-import { LanguageModelV1FinishReason } from '../../ai-model-specification';
-import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-} from '../../ai-model-specification/index';
+import { LanguageModelV1FinishReason } from '../../spec';
+import { LanguageModelV1, LanguageModelV1CallWarning } from '../../spec/index';
 import {
   AIStreamCallbacksAndOptions,
   createCallbacksTransformer,

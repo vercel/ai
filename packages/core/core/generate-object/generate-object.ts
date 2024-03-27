@@ -6,7 +6,7 @@ import {
   LanguageModelV1FinishReason,
   NoTextGeneratedError,
   safeParseJSON,
-} from '../../ai-model-specification';
+} from '../../spec';
 import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
