@@ -1,8 +1,11 @@
 import { ExperimentalMessage } from './message';
 
+/**
+Prompt part of the AI function options. It contains a system message, a simple text prompt, or a list of messages.
+ */
 export type Prompt = {
   /**
-System message to include in the prompt.
+System message to include in the prompt. Can be used with `prompt` or `messages`.
    */
   system?: string;
 

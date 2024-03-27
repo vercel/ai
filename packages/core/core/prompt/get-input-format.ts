@@ -5,11 +5,11 @@ export function getInputFormat({
   messages,
 }: Prompt): 'prompt' | 'messages' {
   if (prompt == null && messages == null) {
-    throw new Error('prompt or messages must be defined');
+    throw new Error('prompt or messages must be defined'); // TODO InvalidPromptError
   }
 
   if (prompt != null && messages != null) {
-    throw new Error('prompt and messages cannot be defined at the same time');
+    throw new Error('prompt and messages cannot be defined at the same time'); // TODO InvalidPromptError
   }
 
   return prompt != null ? 'prompt' : 'messages';
