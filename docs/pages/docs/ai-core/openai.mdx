@@ -4,9 +4,9 @@ layout:
   toc: false
 ---
 
-import { Callout } from 'nextra-theme-docs'
-import { OptionTable } from '@/components/table'
-import { Tabs, Tab } from 'nextra-theme-docs'
+import { Callout } from 'nextra-theme-docs';
+import { OptionTable } from '@/components/table';
+import { Tabs, Tab } from 'nextra-theme-docs';
 
 # OpenAI Provider
 
@@ -30,7 +30,7 @@ const openai = new OpenAI({
 The AI SDK also provides a shorthand `openai` import with an OpenAI provider instance that uses defaults:
 
 ```ts
-import { openai } from 'ai/openai'
+import { openai } from 'ai/openai';
 ```
 
 ## Chat Models
@@ -40,7 +40,7 @@ The first argument is the model id, e.g. `gpt-4`.
 The OpenAI chat models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = openai.chat('gpt-3.5-turbo')
+const model = openai.chat('gpt-3.5-turbo');
 ```
 
 OpenAI chat models support also some model specific settings that are not part of the standard call settings.
@@ -50,10 +50,10 @@ You can pass them as an options argument:
 const model = openai.chat('gpt-3.5-turbo', {
   logitBias: {
     // optional likelihood for specific tokens
-    '50256': -100
+    '50256': -100,
   },
-  user: 'test-user' // optional unique user identifier
-})
+  user: 'test-user', // optional unique user identifier
+});
 ```
 
 ## Completion Models
@@ -63,7 +63,7 @@ The first argument is the model id.
 Currently only `gpt-3.5-turbo-instruct` is supported.
 
 ```ts
-const model = openai.completion('gpt-3.5-turbo-instruct')
+const model = openai.completion('gpt-3.5-turbo-instruct');
 ```
 
 OpenAI completion models support also some model specific settings that are not part of the standard call settings.
@@ -74,9 +74,9 @@ const model = openai.chat('gpt-3.5-turbo', {
   echo: true, // optional, echo the prompt in addition to the completion
   logitBias: {
     // optional likelihood for specific tokens
-    '50256': -100
+    '50256': -100,
   },
   suffix: 'some text', // optional suffix that comes after a completion of inserted text
-  user: 'test-user' // optional unique user identifier
-})
+  user: 'test-user', // optional unique user identifier
+});
 ```
