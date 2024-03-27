@@ -155,7 +155,7 @@ async function executeTools<TOOLS extends Record<string, ExperimentalTool>>({
 }
 
 /**
-The result of a text generation call.
+The result of a `generateText` call.
 It contains the generated text, the tool calls that were made during the generation, and the results of the tool calls.
  */
 export class GenerateTextResult<
