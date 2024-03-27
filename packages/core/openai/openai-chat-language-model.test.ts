@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
-import { LanguageModelV1Prompt } from '../ai-model-specification';
-import { convertStreamToArray } from '../ai-model-specification/test/convert-stream-to-array';
-import { JsonTestServer } from '../ai-model-specification/test/json-test-server';
-import { StreamingTestServer } from '../ai-model-specification/test/streaming-test-server';
+import { LanguageModelV1Prompt } from '../spec';
+import { convertStreamToArray } from '../spec/test/convert-stream-to-array';
+import { JsonTestServer } from '../spec/test/json-test-server';
+import { StreamingTestServer } from '../spec/test/streaming-test-server';
 import { OpenAI } from './openai-facade';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [

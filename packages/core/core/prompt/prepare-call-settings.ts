@@ -1,5 +1,5 @@
 import { CallSettings } from './call-settings';
-import { InvalidArgumentError } from '../../ai-model-specification';
+import { InvalidArgumentError } from '../../spec';
 
 /**
  * Validates call settings and sets default values.

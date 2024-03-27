@@ -3,7 +3,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
-} from '../../ai-model-specification';
+} from '../../spec';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';

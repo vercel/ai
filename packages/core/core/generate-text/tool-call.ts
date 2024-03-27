@@ -4,7 +4,7 @@ import {
   LanguageModelV1FunctionToolCall,
   NoSuchToolError,
   safeParseJSON,
-} from '../../ai-model-specification';
+} from '../../spec';
 import { ExperimentalTool } from '../tool';
 import { ValueOf } from '../util/value-of';
 

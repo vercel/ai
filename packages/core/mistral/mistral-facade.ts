@@ -1,4 +1,4 @@
-import { generateId, loadApiKey } from '../ai-model-specification';
+import { generateId, loadApiKey } from '../spec';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import {
   MistralChatModelId,

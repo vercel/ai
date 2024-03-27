@@ -5,7 +5,7 @@ import {
   LanguageModelV1CallOptions,
   LanguageModelV1CallWarning,
   LanguageModelV1StreamPart,
-} from '../../ai-model-specification';
+} from '../../spec';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getInputFormat } from '../prompt/get-input-format';

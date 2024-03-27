@@ -12,7 +12,7 @@ import {
   isParseableJson,
   postJsonToApi,
   scale,
-} from '../ai-model-specification';
+} from '../spec';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';

@@ -3,7 +3,7 @@ import {
   LanguageModelV1Message,
   LanguageModelV1Prompt,
   LanguageModelV1TextPart,
-} from '../../ai-model-specification';
+} from '../../spec';
 import { convertDataContentToUint8Array } from './data-content';
 import { Prompt } from './prompt';
 

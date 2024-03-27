@@ -9,7 +9,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
-} from '../ai-model-specification';
+} from '../spec';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {

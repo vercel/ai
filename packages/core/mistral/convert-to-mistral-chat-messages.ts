@@ -1,7 +1,4 @@
-import {
-  LanguageModelV1Prompt,
-  UnsupportedFunctionalityError,
-} from '../ai-model-specification';
+import { LanguageModelV1Prompt, UnsupportedFunctionalityError } from '../spec';
 import { MistralChatPrompt } from './mistral-chat-prompt';
 
 export function convertToMistralChatMessages({
