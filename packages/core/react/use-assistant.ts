@@ -182,6 +182,9 @@ export function experimental_useAssistant({
           case 'text': {
             // text delta - add to last message:
             setMessages(messages => {
+              if (messages.length === 0) {
+                return messages;
+              }
               const lastMessage = messages[messages.length - 1];
               return [
                 ...messages.slice(0, messages.length - 1),
@@ -214,6 +217,9 @@ export function experimental_useAssistant({
 
             // set id of last message:
             setMessages(messages => {
+              if (messages.length === 0) {
+                return messages;
+              }
               const lastMessage = messages[messages.length - 1];
               lastMessage.id = value.messageId;
               return [...messages.slice(0, messages.length - 1), lastMessage];
