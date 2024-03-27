@@ -28,7 +28,7 @@ import { ToToolResult } from './tool-result';
 /**
 Generate a text and call tools for a given prompt using a language model.
 
-This function streams the output. If you want to stream the output, use `experimental_generateText` instead.
+This function streams the output. If you do not want to stream the output, use `experimental_generateText` instead.
 
 @param model - The language model to use.
 @param tools - The tools that the model can call. The model needs to support calling tools.
