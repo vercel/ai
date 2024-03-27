@@ -13,6 +13,27 @@ The Vercel AI SDK offers a unified way of calling large language models (LLMs) t
 - `generateObject`: Generate a structured object that matches a schema
 - `streamObject`: Stream a structured object that matches a schema
 
+The AI functions share the same prompt structure and the same settings.
+Here is a simple example for `generateText`:
+
+```ts
+import { experimental_generateText } from 'ai';
+
+const { text } = await experimental_generateText({
+  model,
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+The model is created using a langauge model provider, e.g. OpenAI:
+
+```ts
+import { OpenAI } from 'ai/openai';
+
+const openai = new OpenAI(); // optional, 'openai' can also be imported
+const model = openai.chat('gpt-3.5-turbo');
+```
+
 ## Language Model Interface
 
 Providers need to provide an implementation of the language model interface to be compatible with the AI SDK.
