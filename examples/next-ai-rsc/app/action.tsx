@@ -1,33 +1,30 @@
 import 'server-only';
 
+import { openai } from 'ai/openai';
 import { createAI, createStreamableUI, getMutableAIState } from 'ai/rsc';
-import OpenAI from 'openai';
 
 import {
-  spinner,
   BotCard,
   BotMessage,
-  SystemMessage,
-  Stock,
-  Purchase,
-  Stocks,
   Events,
+  Purchase,
+  Stock,
+  Stocks,
+  SystemMessage,
+  spinner,
 } from '@/components/llm-stocks';
 
-import {
-  runAsyncFnWithoutBlocking,
-  sleep,
-  formatNumber,
-  runOpenAICompletion,
-} from '@/lib/utils';
-import { z } from 'zod';
-import { StockSkeleton } from '@/components/llm-stocks/stock-skeleton';
 import { EventsSkeleton } from '@/components/llm-stocks/events-skeleton';
+import { StockSkeleton } from '@/components/llm-stocks/stock-skeleton';
 import { StocksSkeleton } from '@/components/llm-stocks/stocks-skeleton';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
+import { formatNumber, runAsyncFnWithoutBlocking, sleep } from '@/lib/utils';
+import {
+  ExperimentalMessage,
+  ToolCallPart,
+  ToolResultPart,
+  experimental_streamText,
+} from 'ai';
+import { z } from 'zod';
 
 async function confirmPurchase(symbol: string, price: number, amount: number) {
   'use server';
@@ -79,7 +76,7 @@ async function confirmPurchase(symbol: string, price: number, amount: number) {
     aiState.done([
       ...aiState.get(),
       {
-        role: 'system',
+        role: 'user',
         content: `[User has purchased ${amount} shares of ${symbol} at ${price}. Total cost = ${
           amount * price
         }]`,
@@ -112,13 +109,9 @@ async function submitUserMessage(content: string) {
     <BotMessage className="items-center">{spinner}</BotMessage>,
   );
 
-  const completion = runOpenAICompletion(openai, {
-    model: 'gpt-3.5-turbo',
-    stream: true,
-    messages: [
-      {
-        role: 'system',
-        content: `\
+  const resultPromise = experimental_streamText({
+    model: openai.chat('gpt-3.5-turbo'),
+    system: `\
 You are a stock trading conversation bot and you can help users buy stocks, step by step.
 You and the user can discuss stock prices and the user can adjust the amount of stocks they want to buy, or place an order, in the UI.
 
@@ -133,16 +126,9 @@ If you want to show events, call \`get_events\`.
 If the user wants to sell stock, or complete another impossible task, respond that you are a demo and cannot do that.
 
 Besides that, you can also chat with users and do some calculations if needed.`,
-      },
-      ...aiState.get().map((info: any) => ({
-        role: info.role,
-        content: info.content,
-        name: info.name,
-      })),
-    ],
-    functions: [
-      {
-        name: 'show_stock_price',
+    messages: aiState.get(),
+    tools: {
+      show_stock_price: {
         description:
           'Get the current stock price of a given stock or currency. Use this to show the price to the user.',
         parameters: z.object({
@@ -155,8 +141,7 @@ Besides that, you can also chat with users and do some calculations if needed.`,
           delta: z.number().describe('The change in price of the stock'),
         }),
       },
-      {
-        name: 'show_stock_purchase_ui',
+      show_stock_purchase_ui: {
         description:
           'Show price and the UI to purchase a stock or currency. Use this if the user wants to purchase a stock or currency.',
         parameters: z.object({
@@ -173,8 +158,7 @@ Besides that, you can also chat with users and do some calculations if needed.`,
             ),
         }),
       },
-      {
-        name: 'list_stocks',
+      list_stocks: {
         description: 'List three imaginary stocks that are trending.',
         parameters: z.object({
           stocks: z.array(
@@ -186,8 +170,7 @@ Besides that, you can also chat with users and do some calculations if needed.`,
           ),
         }),
       },
-      {
-        name: 'get_events',
+      get_events: {
         description:
           'List funny imaginary events between user highlighted dates that describe stock activity.',
         parameters: z.object({
@@ -202,141 +185,170 @@ Besides that, you can also chat with users and do some calculations if needed.`,
           ),
         }),
       },
-    ],
-    temperature: 0,
-  });
-
-  completion.onTextContent((content: string, isFinal: boolean) => {
-    reply.update(<BotMessage>{content}</BotMessage>);
-    if (isFinal) {
-      reply.done();
-      aiState.done([...aiState.get(), { role: 'assistant', content }]);
-    }
-  });
-
-  completion.onFunctionCall('list_stocks', async ({ stocks }) => {
-    reply.update(
-      <BotCard>
-        <StocksSkeleton />
-      </BotCard>,
-    );
-
-    await sleep(1000);
-
-    reply.done(
-      <BotCard>
-        <Stocks stocks={stocks} />
-      </BotCard>,
-    );
-
-    aiState.done([
-      ...aiState.get(),
-      {
-        role: 'function',
-        name: 'list_stocks',
-        content: JSON.stringify(stocks),
-      },
-    ]);
-  });
-
-  completion.onFunctionCall('get_events', async ({ events }) => {
-    reply.update(
-      <BotCard>
-        <EventsSkeleton />
-      </BotCard>,
-    );
-
-    await sleep(1000);
-
-    reply.done(
-      <BotCard>
-        <Events events={events} />
-      </BotCard>,
-    );
-
-    aiState.done([
-      ...aiState.get(),
-      {
-        role: 'function',
-        name: 'get_events',
-        content: JSON.stringify(events),
-      },
-    ]);
-  });
-
-  completion.onFunctionCall(
-    'show_stock_price',
-    async ({ symbol, price, delta }) => {
-      reply.update(
-        <BotCard>
-          <StockSkeleton />
-        </BotCard>,
-      );
-
-      await sleep(1000);
-
-      reply.done(
-        <BotCard>
-          <Stock name={symbol} price={price} delta={delta} />
-        </BotCard>,
-      );
-
-      aiState.done([
-        ...aiState.get(),
-        {
-          role: 'function',
-          name: 'show_stock_price',
-          content: `[Price of ${symbol} = ${price}]`,
-        },
-      ]);
     },
-  );
+  });
 
-  completion.onFunctionCall(
-    'show_stock_purchase_ui',
-    ({ symbol, price, numberOfShares = 100 }) => {
-      if (numberOfShares <= 0 || numberOfShares > 1000) {
-        reply.done(<BotMessage>Invalid amount</BotMessage>);
-        aiState.done([
-          ...aiState.get(),
-          {
-            role: 'function',
-            name: 'show_stock_purchase_ui',
-            content: `[Invalid amount]`,
-          },
-        ]);
-        return;
+  // run async
+  resultPromise.then(async result => {
+    const toolCalls: ToolCallPart[] = [];
+    const toolResponses: ToolResultPart[] = [];
+    let fullResponse = '';
+
+    for await (const part of result.fullStream) {
+      switch (part.type) {
+        case 'text-delta': {
+          fullResponse += part.textDelta;
+          reply.update(<BotMessage>{fullResponse}</BotMessage>);
+          break;
+        }
+
+        case 'tool-call': {
+          toolCalls.push(part);
+
+          switch (part.toolName) {
+            case 'list_stocks': {
+              const { stocks } = part.args;
+
+              reply.update(
+                <BotCard>
+                  <StocksSkeleton />
+                </BotCard>,
+              );
+
+              await sleep(1000);
+
+              reply.update(
+                <BotCard>
+                  <Stocks stocks={stocks} />
+                </BotCard>,
+              );
+
+              toolResponses.push({
+                ...part,
+                type: 'tool-result',
+                result: `[List stocks ${stocks.map(s => s.symbol).join(', ')}]`,
+              });
+
+              break;
+            }
+
+            case 'get_events': {
+              const { events } = part.args;
+
+              reply.update(
+                <BotCard>
+                  <EventsSkeleton />
+                </BotCard>,
+              );
+
+              await sleep(1000);
+
+              reply.update(
+                <BotCard>
+                  <Events events={events} />
+                </BotCard>,
+              );
+
+              toolResponses.push({
+                ...part,
+                type: 'tool-result',
+                result: `[Get events ${JSON.stringify(events)}]`,
+              });
+
+              break;
+            }
+
+            case 'show_stock_price': {
+              const { symbol, price, delta } = part.args;
+
+              reply.update(
+                <BotCard>
+                  <StockSkeleton />
+                </BotCard>,
+              );
+
+              await sleep(1000);
+
+              reply.update(
+                <BotCard>
+                  <Stock name={symbol} price={price} delta={delta} />
+                </BotCard>,
+              );
+
+              toolResponses.push({
+                ...part,
+                type: 'tool-result',
+                result: `[Price of ${symbol} = ${price}]`,
+              });
+
+              break;
+            }
+
+            case 'show_stock_purchase_ui': {
+              const { symbol, price, numberOfShares: number } = part.args;
+              const numberOfShares = number ?? 100;
+
+              if (numberOfShares <= 0 || numberOfShares > 1000) {
+                reply.done(<BotMessage>Invalid amount</BotMessage>);
+
+                toolResponses.push({
+                  ...part,
+                  type: 'tool-result',
+                  result: `[Invalid amount]`,
+                });
+
+                break;
+              }
+
+              reply.update(
+                <>
+                  <BotMessage>
+                    Sure!{' '}
+                    {typeof numberOfShares === 'number'
+                      ? `Click the button below to purchase ${numberOfShares} shares of $${symbol}:`
+                      : `How many $${symbol} would you like to purchase?`}
+                  </BotMessage>
+                  <BotCard showAvatar={false}>
+                    <Purchase
+                      defaultAmount={numberOfShares}
+                      name={symbol}
+                      price={+price}
+                    />
+                  </BotCard>
+                </>,
+              );
+
+              toolResponses.push({
+                ...part,
+                type: 'tool-result',
+                result: `[UI for purchasing ${numberOfShares} shares of ${symbol}. Current price = ${price}, total cost = ${
+                  numberOfShares * price
+                }]`,
+              });
+            }
+          }
+
+          break;
+        }
+
+        case 'error':
+          console.error('Error:', part.error);
+          break;
       }
+    }
 
-      reply.done(
-        <>
-          <BotMessage>
-            Sure!{' '}
-            {typeof numberOfShares === 'number'
-              ? `Click the button below to purchase ${numberOfShares} shares of $${symbol}:`
-              : `How many $${symbol} would you like to purchase?`}
-          </BotMessage>
-          <BotCard showAvatar={false}>
-            <Purchase
-              defaultAmount={numberOfShares}
-              name={symbol}
-              price={+price}
-            />
-          </BotCard>
-        </>,
-      );
-      aiState.done([
-        ...aiState.get(),
-        {
-          role: 'function',
-          name: 'show_stock_purchase_ui',
-          content: `[UI for purchasing ${numberOfShares} shares of ${symbol}. Current price = ${price}, total cost = ${
-            numberOfShares * price
-          }]`,
-        },
-      ]);
-    },
-  );
+    reply.done();
+    aiState.done([
+      ...aiState.get(),
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: fullResponse }, ...toolCalls],
+      },
+      ...(toolResponses.length > 0
+        ? [{ role: 'tool' as const, content: toolResponses }]
+        : []),
+    ]);
+  });
 
   return {
     id: Date.now(),
@@ -346,12 +358,9 @@ Besides that, you can also chat with users and do some calculations if needed.`,
 
 // Define necessary types and create the AI.
 
-const initialAIState: {
-  role: 'user' | 'assistant' | 'system' | 'function';
-  content: string;
+const initialAIState: (ExperimentalMessage & {
   id?: string;
-  name?: string;
-}[] = [];
+})[] = [];
 
 const initialUIState: {
   id: number;
