@@ -6,5 +6,6 @@
       "toc": false
     }
   },
-  "generate-text": "generateText"
+  "prompt": "Prompts",
+  "generate-text": "generateText API"
 }
