@@ -7,5 +7,6 @@
     }
   },
   "prompt": "Prompts",
+  "openai": "OpenAI Provider",
   "generate-text": "generateText API"
 }
