@@ -1,0 +1,10 @@
+{
+  "index": {
+    "title": "Overview",
+    "theme": {
+      "breadcrumb": false,
+      "toc": false
+    }
+  },
+  "generate-text": "generateText"
+}

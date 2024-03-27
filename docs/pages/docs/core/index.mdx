@@ -1,0 +1,24 @@
+---
+title: AI Core (experimental)
+layout:
+  toc: false
+---
+
+# AI Core (experimental)
+
+The Vercel AI SDK offers a unified way of calling large language models (LLMs) that can be used with any compatible provider:
+
+- `generateText`: Generate text and call tools
+- `streamText`: Stream text and call tools
+- `generateObject`: Generate a structured object that matches a schema
+- `streamObject`: Stream a structured object that matches a schema
+
+## Language Model Interface
+
+Providers need to provide an implementation of the language model interface to be compatible with the AI SDK.
+We provide implementations for:
+
+- OpenAI (`ai/openai`)
+- Mistral (`ai/mistral`)
+
+![AI SDK Diagram](/images/ai-sdk-diagram.png)

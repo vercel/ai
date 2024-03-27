@@ -1,0 +1,62 @@
+---
+title: generateText
+layout:
+  toc: false
+---
+
+import { Callout } from 'nextra-theme-docs'
+import { OptionTable } from '@/components/table'
+import { Tabs, Tab } from 'nextra-theme-docs'
+
+# experimental_generateText
+
+## `experimental_generateText(params)`
+
+Generate a text and call tools for a given prompt using a language model.
+
+This function does not stream the output. If you want to stream the output, use `experimental_streamText` instead.
+
+## Parameters
+
+The parameters are passed into `experimental_streamText` as a single options object.
+
+<OptionTable
+  options={[
+    ['model', 'LanguageModelV1', 'The language model to use.'],
+    [
+      'headers',
+      'Record<string, string>',
+      "Additional headers to set on the response. Defaults to `{ 'Content-Type': 'text/plain; charset=utf-8' }`."
+    ]
+  ]}
+/>
+
+## Example: Node.js HTTP Server
+
+Here is an example of using `streamToResponse` to pipe an AI stream to a Node.js HTTP server:
+
+```js
+import { createServer } from 'http'
+import OpenAI from 'openai'
+import { OpenAIStream, streamToResponse } from 'ai'
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+})
+
+const server = createServer((req, res) => {
+  const aiResponse = await openai.chat.completions.create({
+    model: 'gpt-4',
+    stream: true,
+    messages: /* ... */
+  })
+
+  // Transform the response into a readable stream
+  const stream = OpenAIStream(aiResponse)
+
+  // Pipe the stream to the response
+  streamToResponse(stream, res)
+})
+
+server.listen(3000)
+```
