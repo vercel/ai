@@ -1,0 +1,18 @@
+{
+  "index": {
+    "title": "Overview",
+    "theme": {
+      "breadcrumb": false
+    }
+  },
+  "prompt": "Prompts",
+  "settings": "Settings",
+  "tools": "Tools and Tool Calling",
+  "openai": "OpenAI Provider",
+  "mistral": "Mistral Provider",
+  "custom-provider": "Custom Providers",
+  "generate-text": "generateText API",
+  "stream-text": "streamText API",
+  "generate-object": "generateObject API",
+  "stream-object": "streamObject API"
+}

@@ -1,0 +1,101 @@
+---
+title: generateObject API
+---
+
+import { Callout } from 'nextra-theme-docs';
+
+# experimental_generateObject
+
+Generate a typed, structured object for a given prompt and [Zod](https://zod.dev/) schema using a language model.
+
+You can use `generateObject` to force the language model to return structured data, e.g. for information extraction,
+synthetic data generation, or classification tasks.
+
+```ts
+import { experimental_generateObject } from 'ai';
+
+const { object } = await experimental_generateObject({
+  model,
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(
+        z.object({
+          name: z.string(),
+          amount: z.string(),
+        }),
+      ),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+});
+```
+
+<Callout type="info">
+  `experimental_generateObject` does not stream the output. If you want to
+  stream the output, use
+  [`experimental_streamObject`](/docs/ai-core/stream-object).
+</Callout>
+
+## Parameters
+
+The parameters are passed into `experimental_streamText` as a single options object.
+
+- **model** - The language model to use.
+- **schema** - A [Zod](https://zod.dev/) schema that describes the expected output structure.
+- **mode** - The mode to use for object generation. Not all models support all modes. Defaults to 'auto'.
+- **system** - A system message that will be apart of the prompt.
+- **prompt** - A simple text prompt. You can either use `prompt` or `messages` but not both.
+- **messages** - A list of messages. You can either use `prompt` or `messages` but not both.
+- **maxTokens** - Maximum number of tokens to generate.
+- **temperature** - Temperature setting.
+  This is a number between 0 (almost no randomness) and 1 (very random).
+  It is recommended to set either `temperature` or `topP`, but not both.
+- **topP** - Nucleus sampling. This is a number between 0 and 1.
+  E.g. 0.1 would mean that only tokens with the top 10% probability mass are considered.
+  It is recommended to set either `temperature` or `topP`, but not both.
+- **presencePenalty** - Presence penalty setting.
+  It affects the likelihood of the model to repeat information that is already in the prompt.
+  The presence penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition).
+  0 means no penalty.
+- **frequencyPenalty** - Frequency penalty setting.
+  It affects the likelihood of the model to repeatedly use the same words or phrases.
+  The frequency penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition).
+  0 means no penalty.
+- **seed** - The seed (integer) to use for random sampling.
+  If set and supported by the model, calls will generate deterministic results.
+- **maxRetries** - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+- **abortSignal** - An optional abort signal that can be used to cancel the call.
+
+## Return Type
+
+`generateObject` returns a result object with several properties:
+
+- **object**: `T` - The generated object. Typed based on the schema parameter. The object is validated using Zod.
+- **finishReason**: `stop` | `length` | `content-filter` | `tool-calls` | `error` | `other` - The reason why the generation finished.
+- **usage**: `TokenUsage` - The token usage of the generated text. The object contains `promptTokens: number`, `completionTokens: number`, and `totalTokens: number`.
+- **warnings**: `Array<Warning> | undefined` - Warnings from the model provider (e.g., unsupported settings).
+
+## Examples
+
+### Basic call
+
+```ts
+const { object } = await experimental_generateObject({
+  model,
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(
+        z.object({
+          name: z.string(),
+          amount: z.string(),
+        }),
+      ),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+});
+```

@@ -21,7 +21,7 @@ export class InvalidDataContentError extends Error {
     return (
       error instanceof Error &&
       error.name === 'AI_InvalidDataContentError' &&
-      prompt != null
+      (error as InvalidDataContentError).content != null
     );
   }
 

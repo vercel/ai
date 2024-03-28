@@ -18,3 +18,22 @@ export function experimental_buildAnthropicPrompt(
     }) + '\n\nAssistant:'
   );
 }
+
+/**
+ * A prompt constructor for Anthropic V3 models which require Messages API.
+ * Does not support message with image content
+ * @see https://docs.anthropic.com/claude/reference/messages_post
+ */
+export function experimental_buildAnthropicMessages(
+  messages: Pick<Message, 'content' | 'role'>[],
+) {
+  return messages.map(({ content, role }) => {
+    if (!['assistant', 'user'].includes(role)) {
+      throw new Error(`Cannot use ${role} on Anthropic V3 Messages API`);
+    }
+    return {
+      role,
+      content: [{ type: 'text', text: content }],
+    };
+  });
+}

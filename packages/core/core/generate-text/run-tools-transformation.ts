@@ -1,7 +1,4 @@
-import {
-  LanguageModelV1StreamPart,
-  NoSuchToolError,
-} from '../../ai-model-specification';
+import { LanguageModelV1StreamPart, NoSuchToolError } from '../../spec';
 import { generateId } from '../../shared/generate-id';
 import { ExperimentalTool } from '../tool';
 import { TextStreamPart } from './stream-text';
@@ -48,7 +45,7 @@ export function runToolsTransformation<
           break;
         }
 
-        // process
+        // process tool call:
         case 'tool-call': {
           const toolName = chunk.toolName as keyof TOOLS & string;
 
@@ -135,8 +132,22 @@ export function runToolsTransformation<
           break;
         }
 
+        // process finish:
+        case 'finish': {
+          controller.enqueue({
+            type: 'finish',
+            finishReason: chunk.finishReason,
+            usage: {
+              promptTokens: chunk.usage.promptTokens,
+              completionTokens: chunk.usage.completionTokens,
+              totalTokens:
+                chunk.usage.promptTokens + chunk.usage.completionTokens,
+            },
+          });
+          break;
+        }
+
         // ignore
-        case 'finish-metadata':
         case 'tool-call-delta': {
           break;
         }

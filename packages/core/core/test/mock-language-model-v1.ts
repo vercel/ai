@@ -1,4 +1,4 @@
-import { LanguageModelV1 } from '../../ai-model-specification/index';
+import { LanguageModelV1 } from '../../spec/index';
 
 export class MockLanguageModelV1 implements LanguageModelV1 {
   readonly specificationVersion = 'v1';

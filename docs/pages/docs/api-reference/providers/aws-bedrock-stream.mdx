@@ -2,9 +2,10 @@
 
 The AWS Bedrock stream functions are utilties that transform the outputs from the [AWS Bedrock API](https://docs.aws.amazon.com/bedrock/latest/APIReference/welcome.html) into a `ReadableStream`. They use `AIStream` under the hood and handle parsing Bedrock's response.
 
-There are currently 3 AWS Bedrock stream wrappers:
+There are currently 4 AWS Bedrock stream wrappers:
 
 - `AWSBedrockAnthropicStream` for Anthropic models
+- `AWSBedrockAnthropicMessagesStream` for Anthropic models using Messages API
 - `AWSBedrockCohereStream` for Cohere models
 - `AWSBedrockLlama2Stream` for Llama 2 models
 
@@ -66,6 +67,59 @@ export async function POST(req: Request) {
 
   // Convert the response into a friendly text-stream
   const stream = AWSBedrockAnthropicStream(bedrockResponse);
+
+  // Respond with the stream
+  return new StreamingTextResponse(stream);
+}
+```
+
+In this example, the `AWSBedrockAnthropicStream` function transforms the text generation stream from the Bedrock into a ReadableStream of parsed result. This allows clients to consume AI outputs in real-time as they're generated, instead of waiting for the complete response.
+
+## Example: Anthropic Models using Messages API
+
+The `AWSBedrockAnthropicMessagesStream` function can be coupled with a call to an Anthropic model using the [Messages API](https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-anthropic-claude-messages.html). This stream can then facilitate the real-time consumption of AI outputs as they're being generated.
+
+Here's a step-by-step example of how to implement this in Next.js:
+
+```js filename="app/api/chat/route.ts"
+import {
+  BedrockRuntimeClient,
+  InvokeModelWithResponseStreamCommand,
+} from '@aws-sdk/client-bedrock-runtime';
+import { AWSBedrockAnthropicMessagesStream, StreamingTextResponse } from 'ai';
+import { experimental_buildAnthropicMessages } from 'ai/prompts';
+
+// IMPORTANT! Set the runtime to edge
+export const runtime = 'edge';
+
+const bedrockClient = new BedrockRuntimeClient({
+  region: process.env.AWS_REGION ?? 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
+  },
+});
+
+export async function POST(req: Request) {
+  // Extract the `prompt` from the body of the request
+  const { messages } = await req.json();
+
+  // Ask Claude for a streaming chat completion given the prompt
+  const bedrockResponse = await bedrockClient.send(
+    new InvokeModelWithResponseStreamCommand({
+      modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
+      contentType: 'application/json',
+      accept: 'application/json',
+      body: JSON.stringify({
+        anthropic_version: 'bedrock-2023-05-31',
+        message: experimental_buildAnthropicMessages(messages),
+        max_tokens: 300,
+      }),
+    }),
+  );
+
+  // Convert the response into a friendly text-stream
+  const stream = AWSBedrockAnthropicMessagesStream(bedrockResponse);
 
   // Respond with the stream
   return new StreamingTextResponse(stream);

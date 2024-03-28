@@ -121,9 +121,9 @@ export default defineConfig([
   },
   // AI Core: Model Specification
   {
-    entry: ['ai-model-specification/index.ts'],
+    entry: ['spec/index.ts'],
     format: ['cjs', 'esm'],
-    outDir: 'ai-model-specification/dist',
+    outDir: 'spec/dist',
     dts: true,
     sourcemap: true,
   },
