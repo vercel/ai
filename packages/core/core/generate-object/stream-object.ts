@@ -27,7 +27,9 @@ Generate a structured, typed object for a given prompt and schema using a langua
 This function streams the output. If you do not want to stream the output, use `experimental_generateObject` instead.
 
 @param model - The language model to use.
+
 @param schema - The schema of the object that the model should generate.
+@param mode - The mode to use for object generation. Not all models support all modes. Defaults to 'auto'.
 
 @param system - A system message that will be part of the prompt.
 @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.

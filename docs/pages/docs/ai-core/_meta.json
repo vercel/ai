@@ -2,8 +2,7 @@
   "index": {
     "title": "Overview",
     "theme": {
-      "breadcrumb": false,
-      "toc": false
+      "breadcrumb": false
     }
   },
   "prompt": "Prompts",
@@ -11,5 +10,6 @@
   "openai": "OpenAI Provider",
   "mistral": "Mistral Provider",
   "generate-text": "generateText API",
-  "stream-text": "streamText API"
+  "stream-text": "streamText API",
+  "generate-object": "generateObject API"
 }
