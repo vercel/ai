@@ -96,7 +96,6 @@ const getStreamedResponse = async (
   // immediately.
   const previousMessages = messagesRef.current;
   mutate(chatRequest.messages, false);
-
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
@@ -158,27 +157,62 @@ const getStreamedResponse = async (
 
     return responseMessage;
   }
-
+  const formData = new FormData();
+  let isFormData = false;
+  Object.entries({
+    data: chatRequest.data,
+    ...(extraMetadataRef.current.body instanceof FormData
+      ? { formData: extraMetadataRef.current.body }
+      : extraMetadataRef.current.body),
+    ...chatRequest.options?.body,
+    ...(chatRequest.functions !== undefined && {
+      functions: chatRequest.functions,
+    }),
+    ...(chatRequest.function_call !== undefined && {
+      function_call: chatRequest.function_call,
+    }),
+    ...(chatRequest.tools !== undefined && { tools: chatRequest.tools }),
+    ...(chatRequest.tool_choice !== undefined && {
+      tool_choice: chatRequest.tool_choice,
+    }),
+  }).forEach(([key, value]) => {
+    if (value instanceof FormData) {
+      isFormData = true;
+      value.forEach((entry, entryKey) => {
+        formData.append(entryKey, entry);
+      });
+    } else {
+      formData.append(key, JSON.stringify(value));
+    }
+  });
   return await callChatApi({
     api,
-    messages: constructedMessagesPayload,
-    body: {
-      data: chatRequest.data,
-      ...extraMetadataRef.current.body,
-      ...chatRequest.options?.body,
-      ...(chatRequest.functions !== undefined && {
-        functions: chatRequest.functions,
-      }),
-      ...(chatRequest.function_call !== undefined && {
-        function_call: chatRequest.function_call,
-      }),
-      ...(chatRequest.tools !== undefined && {
-        tools: chatRequest.tools,
-      }),
-      ...(chatRequest.tool_choice !== undefined && {
-        tool_choice: chatRequest.tool_choice,
-      }),
-    },
+    messages: [
+      ...constructedMessagesPayload,
+      {
+        ...constructedMessagesPayload.slice(-1)[0],
+        content: constructedMessagesPayload.slice(-1)[0].content,
+      } as Message,
+    ],
+    body: isFormData
+      ? { data: formData }
+      : {
+          data: chatRequest.data,
+          ...extraMetadataRef.current.body,
+          ...chatRequest.options?.body,
+          ...(chatRequest.functions !== undefined && {
+            functions: chatRequest.functions,
+          }),
+          ...(chatRequest.function_call !== undefined && {
+            function_call: chatRequest.function_call,
+          }),
+          ...(chatRequest.tools !== undefined && {
+            tools: chatRequest.tools,
+          }),
+          ...(chatRequest.tool_choice !== undefined && {
+            tool_choice: chatRequest.tool_choice,
+          }),
+        },
     credentials: extraMetadataRef.current.credentials,
     headers: {
       ...extraMetadataRef.current.headers,
@@ -279,10 +313,9 @@ export function useChat({
       try {
         mutateLoading(true);
         setError(undefined);
-
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
-
+        
         await processChatStream({
           getStreamedResponse: () =>
             getStreamedResponse(
@@ -359,7 +392,6 @@ export function useChat({
       if (!message.id) {
         message.id = generateId();
       }
-
       const chatRequest: ChatRequest = {
         messages: messagesRef.current.concat(message as Message),
         options,
@@ -443,19 +475,21 @@ export function useChat({
           ...extraMetadataRef.current,
           ...metadata,
         };
-      }
-
+      }   
       e.preventDefault();
       if (!input) return;
 
-      append(
-        {
-          content: input,
-          role: 'user',
-          createdAt: new Date(),
-        },
-        options,
-      );
+        append(
+          {
+            content: input,
+            role: 'user',
+            createdAt: new Date(),
+          },
+          {
+            ...options,
+
+          }
+        );
       setInput('');
     },
     [input, append],
