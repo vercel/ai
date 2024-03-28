@@ -20,7 +20,7 @@ It provides the following AI functions:
   You can use the `streamText` function for interactive use cases such as chat bots (with and without tool usage), and text and code diff streaming in UIs. You can also generate UI components with tools (see [Generative UI](/docs/concepts/ai-rsc)).
 - `generateObject` [ [API](/docs/ai-core/generate-object) ] - Generate a typed, structured object that matches a [Zod](https://zod.dev/) schema.
   You can use this function to force the language model to return structured data, e.g. for information extraction, synthetic data generation, or classification tasks.
-- `streamObject` - Stream a structured object that matches a schema.
+- `streamObject` [ [API](/docs/ai-core/stream-object) ] - Stream a structured object that matches a Zod schema.
   You can use this function to stream generated UIs in combination with React Server Components (see [Generative UI](/docs/concepts/ai-rsc)).
 
 The AI functions share the same [prompt structure](/docs/ai-core/prompt) and the same [common settings](/docs/ai-core/settings).

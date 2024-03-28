@@ -11,5 +11,6 @@
   "mistral": "Mistral Provider",
   "generate-text": "generateText API",
   "stream-text": "streamText API",
-  "generate-object": "generateObject API"
+  "generate-object": "generateObject API",
+  "stream-object": "streamObject API"
 }

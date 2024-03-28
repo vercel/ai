@@ -1,20 +1,19 @@
 ---
-title: generateObject API
+title: streamObject API
 ---
 
 import { Callout } from 'nextra-theme-docs';
 
-# experimental_generateObject
+# experimental_streamObject
 
-Generate a typed, structured object for a given prompt and [Zod](https://zod.dev/) schema using a language model.
+Streams a typed, structured object for a given prompt and [Zod](https://zod.dev/) schema using a language model.
 
-You can use `generateObject` to force the language model to return structured data, e.g. for information extraction,
-synthetic data generation, or classification tasks.
+You can use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](/docs/concepts/ai-rsc)).
 
 ```ts
 import { experimental_generateObject } from 'ai';
 
-const { object } = await experimental_generateObject({
+const { partialObjectStream } = await experimental_streamObject({
   model,
   schema: z.object({
     recipe: z.object({
@@ -33,9 +32,9 @@ const { object } = await experimental_generateObject({
 ```
 
 <Callout type="info">
-  `experimental_generateObject` does not stream the output. If you want to
-  stream the output, use
-  [`experimental_streamObject`](/docs/ai-core/stream-object).
+  `experimental_streamObject` streams the output. If you do not want to stream
+  the output, use
+  [`experimental_generateObject`](/docs/ai-core/generate-object).
 </Callout>
 
 ## Parameters
@@ -70,11 +69,17 @@ The parameters are passed into `experimental_streamText` as a single options obj
 
 ## Return Type
 
-`generateObject` returns a result object with several properties:
+`streamObject` returns a result object with several properties:
 
-- **object**: `T` - The generated object. Typed based on the schema parameter. The object is validated using Zod.
-- **finishReason**: `stop` | `length` | `content-filter` | `tool-calls` | `error` | `other` - The reason why the generation finished.
-- **usage**: `TokenUsage` - The token usage of the generated text. The object contains `promptTokens: number`, `completionTokens: number`, and `totalTokens: number`.
+- **partialObjectStream**: `AsyncIterable<DeepPartial<T>> & ReadableStream<DeepPartial<T>>` - A stream of partial objects.
+
+  <Callout type="info">
+    The `partialObjectStream` is typed with a deep partial type, but not
+    validated. If you want to be certain that the actual content matches your
+    schema, you need to implement your own validation for partial results, e.g.
+    using Zod.
+  </Callout>
+
 - **warnings**: `Array<Warning> | undefined` - Warnings from the model provider (e.g., unsupported settings).
 
 ## Examples
@@ -82,7 +87,7 @@ The parameters are passed into `experimental_streamText` as a single options obj
 ### Basic call
 
 ```ts
-const { object } = await experimental_generateObject({
+const { partialObjectStream } = await experimental_streamObject({
   model,
   schema: z.object({
     recipe: z.object({
