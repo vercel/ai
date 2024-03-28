@@ -82,3 +82,196 @@ const { textStream } = await experimental_streamText({
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 ```
+
+### API Route for useCompletion
+
+This example shows an [App router](https://nextjs.org/docs/app) API route that is used
+by the [`useCompletion`](/docs/api-reference/use-completion) hook.
+
+```ts
+import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { openai } from 'ai/openai';
+
+export const runtime = 'edge';
+
+export async function POST(req: Request) {
+  // Extract the `prompt` text from the body of the request
+  const { prompt }: { prompt: string } = await req.json();
+
+  const result = await experimental_streamText({
+    model: openai.chat('gpt-4'),
+    prompt,
+  });
+
+  return new StreamingTextResponse(result.toAIStream());
+}
+```
+
+### API Route for useChat
+
+This example shows an [App router](https://nextjs.org/docs/app) API route that is used
+by the [`useChat`](/docs/api-reference/use-chat) hook.
+
+```ts
+import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { openai } from 'ai/openai';
+
+export const runtime = 'edge';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await experimental_streamText({
+    model: openai.chat('gpt-4'),
+    system: 'You are a helpful assistant.',
+    messages,
+  });
+
+  return new StreamingTextResponse(result.toAIStream());
+}
+```
+
+### Terminal chatbot
+
+```ts
+import { ExperimentalMessage, experimental_streamText } from 'ai';
+import { openai } from 'ai/openai';
+import * as readline from 'node:readline/promises';
+
+const terminal = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+const messages: ExperimentalMessage[] = [];
+
+async function main() {
+  while (true) {
+    const userInput = await terminal.question('You: ');
+
+    messages.push({ role: 'user', content: userInput });
+
+    const result = await experimental_streamText({
+      model: openai.chat('gpt-3.5-turbo'),
+      system: `You are a helpful, respectful and honest assistant.`,
+      messages,
+    });
+
+    let fullResponse = '';
+    process.stdout.write('\nAssistant: ');
+    for await (const delta of result.textStream) {
+      fullResponse += delta;
+      process.stdout.write(delta);
+    }
+    process.stdout.write('\n\n');
+
+    messages.push({ role: 'assistant', content: fullResponse });
+  }
+}
+
+main().catch(console.error);
+```
+
+### Terminal chatbot with tools
+
+```ts
+import {
+  ExperimentalMessage,
+  ToolCallPart,
+  ToolResultPart,
+  experimental_streamText,
+} from 'ai';
+import { openai } from 'ai/openai';
+import * as readline from 'node:readline/promises';
+
+const terminal = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+const messages: ExperimentalMessage[] = [];
+
+async function main() {
+  let toolResponseAvailable = false;
+
+  while (true) {
+    if (!toolResponseAvailable) {
+      const userInput = await terminal.question('You: ');
+      messages.push({ role: 'user', content: userInput });
+    }
+
+    const result = await experimental_streamText({
+      model: openai.chat('gpt-3.5-turbo'),
+      tools: {
+        weatherTool: {
+          description: 'Get the weather in a location',
+          parameters: z.object({
+            location: z
+              .string()
+              .describe('The location to get the weather for'),
+          }),
+          execute: async ({ location }: { location: string }) => ({
+            location,
+            temperature: 72 + Math.floor(Math.random() * 21) - 10,
+          }),
+        },
+      },
+      system: `You are a helpful, respectful and honest assistant.`,
+      messages,
+    });
+
+    toolResponseAvailable = false;
+    let fullResponse = '';
+    const toolCalls: ToolCallPart[] = [];
+    const toolResponses: ToolResultPart[] = [];
+
+    for await (const delta of result.fullStream) {
+      switch (delta.type) {
+        case 'text-delta': {
+          if (fullResponse.length === 0) {
+            process.stdout.write('\nAssistant: ');
+          }
+
+          fullResponse += delta.textDelta;
+          process.stdout.write(delta.textDelta);
+          break;
+        }
+
+        case 'tool-call': {
+          toolCalls.push(delta);
+
+          process.stdout.write(
+            `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.args)}`,
+          );
+          break;
+        }
+
+        case 'tool-result': {
+          toolResponses.push(delta);
+
+          process.stdout.write(
+            `\nTool response: '${delta.toolName}' ${JSON.stringify(
+              delta.result,
+            )}`,
+          );
+          break;
+        }
+      }
+    }
+    process.stdout.write('\n\n');
+
+    messages.push({
+      role: 'assistant',
+      content: [{ type: 'text', text: fullResponse }, ...toolCalls],
+    });
+
+    if (toolResponses.length > 0) {
+      messages.push({ role: 'tool', content: toolResponses });
+    }
+
+    toolResponseAvailable = toolCalls.length > 0;
+  }
+}
+
+main().catch(console.error);
+```
