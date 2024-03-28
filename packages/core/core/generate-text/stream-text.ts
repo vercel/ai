@@ -9,7 +9,7 @@ import {
 } from '../../streams';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { getInputFormat } from '../prompt/get-input-format';
+import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { ExperimentalTool } from '../tool';
@@ -82,6 +82,7 @@ The tools that the model can call. The model needs to support calling tools.
     tools?: TOOLS;
   }): Promise<StreamTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
+  const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
   const { stream, warnings } = await retry(() =>
     model.doStream({
       mode: {
@@ -97,12 +98,8 @@ The tools that the model can call. The model needs to support calling tools.
               })),
       },
       ...prepareCallSettings(settings),
-      inputFormat: getInputFormat({ prompt, messages }),
-      prompt: convertToLanguageModelPrompt({
-        system,
-        prompt,
-        messages,
-      }),
+      inputFormat: validatedPrompt.type,
+      prompt: convertToLanguageModelPrompt(validatedPrompt),
       abortSignal,
     }),
   );
