@@ -691,3 +691,267 @@ export const chatCompletionChunksWithToolCall = [
     ],
   },
 ];
+
+export const chatCompletionChunksWithMultipleToolCalls = [
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: { role: 'assistant', content: null },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 0,
+              id: 'call_7xmmAK3oE6Pji28q3iomKf6k',
+              type: 'function',
+              function: { name: 'get_flight_info', arguments: '' },
+            },
+          ],
+        },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [{ index: 0, function: { arguments: '{"fl' } }],
+        },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [{ index: 0, function: { arguments: 'ightN' } }],
+        },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [{ index: 0, function: { arguments: 'umber"' } }],
+        },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [{ index: 0, function: { arguments: ': "4' } }],
+        },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [{ index: 0, function: { arguments: '2"}' } }],
+        },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [
+            {
+              index: 1,
+              id: 'call_mLzeoLUPXCQURZ102cKy3ZvM',
+              type: 'function',
+              function: { name: 'get_flight_info', arguments: '' },
+            },
+          ],
+        },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [{ index: 1, function: { arguments: '{"fl' } }],
+        },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [{ index: 1, function: { arguments: 'ightN' } }],
+        },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [{ index: 1, function: { arguments: 'umber"' } }],
+        },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [{ index: 1, function: { arguments: ': "4' } }],
+        },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {
+          tool_calls: [{ index: 1, function: { arguments: '3"}' } }],
+        },
+        logprobs: null,
+        finish_reason: null,
+      },
+    ],
+  },
+
+  {
+    id: 'chatcmpl-95UsCKxJcrGFnqNSXe1gHpT6fMf2A',
+    object: 'chat.completion.chunk',
+    created: 1711097344,
+    model: 'gpt-4-0125-preview',
+    system_fingerprint: 'fp_31c0f205d1',
+    choices: [
+      {
+        index: 0,
+        delta: {},
+        logprobs: null,
+        finish_reason: 'tool_calls',
+      },
+    ],
+  },
+];

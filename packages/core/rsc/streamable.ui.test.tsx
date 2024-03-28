@@ -1,12 +1,15 @@
 import {
+  chatCompletionChunksWithMultipleToolCalls,
   openaiChatCompletionChunks,
   openaiFunctionCallChunks,
 } from '../tests/snapshots/openai-chat';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 import { createStreamableUI, render } from './streamable';
+import * as React from 'react';
 import { z } from 'zod';
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
+const TOOL_CALLS_TEST_URL = DEFAULT_TEST_URL + 'mock-tool-calls';
 
 // This is a workaround to render the Flight response in a test environment.
 async function flightRender(node: React.ReactNode, byChunk?: boolean) {
@@ -58,6 +61,12 @@ const server = createMockServer([
   {
     url: FUNCTION_CALL_TEST_URL,
     chunks: openaiFunctionCallChunks,
+    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+    suffix: 'data: [DONE]',
+  },
+  {
+    url: TOOL_CALLS_TEST_URL,
+    chunks: chatCompletionChunksWithMultipleToolCalls,
     formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
     suffix: 'data: [DONE]',
   },
@@ -172,12 +181,12 @@ function getFinalValueFromResolved(node: any) {
   return node;
 }
 
-function createMockUpProvider() {
+function createMockUpProvider(url: string) {
   return {
     chat: {
       completions: {
         create: async () => {
-          return await fetch(FUNCTION_CALL_TEST_URL);
+          return await fetch(url);
         },
       },
     },
@@ -189,7 +198,7 @@ describe('rsc - render()', () => {
     const ui = render({
       model: 'gpt-3.5-turbo',
       messages: [],
-      provider: createMockUpProvider(),
+      provider: createMockUpProvider(FUNCTION_CALL_TEST_URL),
       functions: {
         get_current_weather: {
           description: 'Get the current weather',
@@ -209,7 +218,7 @@ describe('rsc - render()', () => {
     const ui = render({
       model: 'gpt-3.5-turbo',
       messages: [],
-      provider: createMockUpProvider(),
+      provider: createMockUpProvider(FUNCTION_CALL_TEST_URL),
       functions: {
         get_current_weather: {
           description: 'Get the current weather',
@@ -230,7 +239,7 @@ describe('rsc - render()', () => {
     const ui = render({
       model: 'gpt-3.5-turbo',
       messages: [],
-      provider: createMockUpProvider(),
+      provider: createMockUpProvider(FUNCTION_CALL_TEST_URL),
       functions: {
         get_current_weather: {
           description: 'Get the current weather',
@@ -239,6 +248,37 @@ describe('rsc - render()', () => {
             yield <div>Loading...</div>;
             await new Promise(resolve => setTimeout(resolve, 100));
             return <div>Weather</div>;
+          },
+        },
+      },
+    });
+
+    const rendered = await simulateFlightServerRender(ui as any);
+    expect(rendered).toMatchSnapshot();
+  });
+
+  it('should emit React Nodes for multiple tool calls with a compose render function', async () => {
+    const ui = render({
+      model: 'gpt-3.5-turbo',
+      messages: [],
+      provider: createMockUpProvider(TOOL_CALLS_TEST_URL),
+      compose: ({ text, functionCall, toolCalls }) => (
+        <div className="space-y-4">
+          {text}
+          {functionCall && functionCall.node}
+          {toolCalls.map(({ id, node }) => (
+            <React.Fragment key={id}>{node}</React.Fragment>
+          ))}
+        </div>
+      ),
+      tools: {
+        get_flight_info: {
+          description: 'Get the information for a flight',
+          parameters: z.object({
+            flightNumber: z.string().describe('the number of the flight'),
+          }),
+          render: ({ flightNumber }) => {
+            return <div>Flight {flightNumber}</div>;
           },
         },
       },

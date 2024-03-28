@@ -1,5 +1,152 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`rsc - render() > should emit React Nodes for multiple tool calls with a compose render function 1`] = `
+{
+  "children": {
+    "children": {},
+    "props": {
+      "c": undefined,
+      "n": {
+        "done": false,
+        "next": {
+          "done": false,
+          "next": {
+            "done": true,
+            "value": <div
+              className="space-y-4"
+            >
+              <React.Fragment>
+                <React.Suspense>
+                  <Unknown
+                    n={
+                      {
+                        "done": false,
+                        "next": {
+                          "done": true,
+                          "value": <div>
+                            Flight 
+                            42
+                          </div>,
+                        },
+                        "value": <div>
+                          Flight 
+                          42
+                        </div>,
+                      }
+                    }
+                  />
+                </React.Suspense>
+              </React.Fragment>
+              <React.Fragment>
+                <React.Suspense>
+                  <Unknown
+                    n={
+                      {
+                        "done": false,
+                        "next": {
+                          "done": true,
+                          "value": <div>
+                            Flight 
+                            43
+                          </div>,
+                        },
+                        "value": <div>
+                          Flight 
+                          43
+                        </div>,
+                      }
+                    }
+                  />
+                </React.Suspense>
+              </React.Fragment>
+            </div>,
+          },
+          "value": <div
+            className="space-y-4"
+          >
+            <React.Fragment>
+              <React.Suspense>
+                <Unknown
+                  n={
+                    {
+                      "done": false,
+                      "next": {
+                        "done": true,
+                        "value": <div>
+                          Flight 
+                          42
+                        </div>,
+                      },
+                      "value": <div>
+                        Flight 
+                        42
+                      </div>,
+                    }
+                  }
+                />
+              </React.Suspense>
+            </React.Fragment>
+            <React.Fragment>
+              <React.Suspense>
+                <Unknown
+                  n={
+                    {
+                      "done": false,
+                      "next": {
+                        "done": true,
+                        "value": <div>
+                          Flight 
+                          43
+                        </div>,
+                      },
+                      "value": <div>
+                        Flight 
+                        43
+                      </div>,
+                    }
+                  }
+                />
+              </React.Suspense>
+            </React.Fragment>
+          </div>,
+        },
+        "value": <div
+          className="space-y-4"
+        >
+          <React.Fragment>
+            <React.Suspense>
+              <Unknown
+                n={
+                  {
+                    "done": false,
+                    "next": {
+                      "done": true,
+                      "value": <div>
+                        Flight 
+                        42
+                      </div>,
+                    },
+                    "value": <div>
+                      Flight 
+                      42
+                    </div>,
+                  }
+                }
+              />
+            </React.Suspense>
+          </React.Fragment>
+        </div>,
+      },
+    },
+    "type": "",
+  },
+  "props": {
+    "fallback": undefined,
+  },
+  "type": "Symbol(react.suspense)",
+}
+`;
+
 exports[`rsc - render() > should emit React Nodes with async render function 1`] = `
 {
   "children": {
@@ -10,13 +157,47 @@ exports[`rsc - render() > should emit React Nodes with async render function 1`]
         "done": false,
         "next": {
           "done": true,
-          "value": <div>
-            Weather
-          </div>,
+          "value": <React.Fragment>
+            <React.Suspense>
+              <Unknown
+                n={
+                  {
+                    "done": false,
+                    "next": {
+                      "done": true,
+                      "value": <div>
+                        Weather
+                      </div>,
+                    },
+                    "value": <div>
+                      Weather
+                    </div>,
+                  }
+                }
+              />
+            </React.Suspense>
+          </React.Fragment>,
         },
-        "value": <div>
-          Weather
-        </div>,
+        "value": <React.Fragment>
+          <React.Suspense>
+            <Unknown
+              n={
+                {
+                  "done": false,
+                  "next": {
+                    "done": true,
+                    "value": <div>
+                      Weather
+                    </div>,
+                  },
+                  "value": <div>
+                    Weather
+                  </div>,
+                }
+              }
+            />
+          </React.Suspense>
+        </React.Fragment>,
       },
     },
     "type": "",
@@ -37,20 +218,60 @@ exports[`rsc - render() > should emit React Nodes with generator render function
       "n": {
         "done": false,
         "next": {
-          "done": false,
-          "next": {
-            "done": true,
-            "value": <div>
-              Weather
-            </div>,
-          },
-          "value": <div>
-            Weather
-          </div>,
+          "done": true,
+          "value": <React.Fragment>
+            <React.Suspense>
+              <Unknown
+                n={
+                  {
+                    "done": false,
+                    "next": {
+                      "done": false,
+                      "next": {
+                        "done": true,
+                        "value": <div>
+                          Weather
+                        </div>,
+                      },
+                      "value": <div>
+                        Weather
+                      </div>,
+                    },
+                    "value": <div>
+                      Loading...
+                    </div>,
+                  }
+                }
+              />
+            </React.Suspense>
+          </React.Fragment>,
         },
-        "value": <div>
-          Loading...
-        </div>,
+        "value": <React.Fragment>
+          <React.Suspense>
+            <Unknown
+              n={
+                {
+                  "done": false,
+                  "next": {
+                    "done": false,
+                    "next": {
+                      "done": true,
+                      "value": <div>
+                        Weather
+                      </div>,
+                    },
+                    "value": <div>
+                      Weather
+                    </div>,
+                  },
+                  "value": <div>
+                    Loading...
+                  </div>,
+                }
+              }
+            />
+          </React.Suspense>
+        </React.Fragment>,
       },
     },
     "type": "",
@@ -72,13 +293,47 @@ exports[`rsc - render() > should emit React Nodes with sync render function 1`] 
         "done": false,
         "next": {
           "done": true,
-          "value": <div>
-            Weather
-          </div>,
+          "value": <React.Fragment>
+            <React.Suspense>
+              <Unknown
+                n={
+                  {
+                    "done": false,
+                    "next": {
+                      "done": true,
+                      "value": <div>
+                        Weather
+                      </div>,
+                    },
+                    "value": <div>
+                      Weather
+                    </div>,
+                  }
+                }
+              />
+            </React.Suspense>
+          </React.Fragment>,
         },
-        "value": <div>
-          Weather
-        </div>,
+        "value": <React.Fragment>
+          <React.Suspense>
+            <Unknown
+              n={
+                {
+                  "done": false,
+                  "next": {
+                    "done": true,
+                    "value": <div>
+                      Weather
+                    </div>,
+                  },
+                  "value": <div>
+                    Weather
+                  </div>,
+                }
+              }
+            />
+          </React.Suspense>
+        </React.Fragment>,
       },
     },
     "type": "",
