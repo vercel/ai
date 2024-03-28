@@ -15,7 +15,7 @@ export default function Chat() {
     body: {
       sessionId: getQueryParam("sessionId"),
     },
-    api: "/api/langchain-zep-history"
+    api: "/api/chat"
   });
 
   return (
