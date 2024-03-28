@@ -10,6 +10,7 @@
   "tools": "Tools and Tool Calling",
   "openai": "OpenAI Provider",
   "mistral": "Mistral Provider",
+  "custom-provider": "Custom Providers",
   "generate-text": "generateText API",
   "stream-text": "streamText API",
   "generate-object": "generateObject API",
