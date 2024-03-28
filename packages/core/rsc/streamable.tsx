@@ -275,6 +275,10 @@ type Renderer<T> = (
   | Generator<Streamable, Streamable, void>
   | AsyncGenerator<Streamable, Streamable, void>;
 
+  type AdditionalParams = {
+    [key: string]: any;
+  };
+
 /**
  * `render` is a helper function to create a streamable UI from some LLMs.
  * Currently, it only supports OpenAI's GPT models with Function Calling and Assistants Tools.
@@ -333,6 +337,7 @@ export function render<
   };
   initial?: ReactNode;
   temperature?: number;
+  additionalParams?: AdditionalParams;
 }): ReactNode {
   const ui = createStreamableUI(options.initial);
 
