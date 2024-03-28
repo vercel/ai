@@ -6,7 +6,7 @@ import {
 } from '../../spec';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { getInputFormat } from '../prompt/get-input-format';
+import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { ExperimentalTool } from '../tool/tool';
@@ -75,8 +75,9 @@ The tools that the model can call. The model needs to support calling tools.
     tools?: TOOLS;
   }): Promise<GenerateTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
-  const modelResponse = await retry(() =>
-    model.doGenerate({
+  const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
+  const modelResponse = await retry(() => {
+    return model.doGenerate({
       mode: {
         type: 'regular',
         tools:
@@ -90,15 +91,11 @@ The tools that the model can call. The model needs to support calling tools.
               })),
       },
       ...prepareCallSettings(settings),
-      inputFormat: getInputFormat({ prompt, messages }),
-      prompt: convertToLanguageModelPrompt({
-        system,
-        prompt,
-        messages,
-      }),
+      inputFormat: validatedPrompt.type,
+      prompt: convertToLanguageModelPrompt(validatedPrompt),
       abortSignal,
-    }),
-  );
+    });
+  });
 
   // parse tool calls:
   const toolCalls: ToToolCallArray<TOOLS> = [];

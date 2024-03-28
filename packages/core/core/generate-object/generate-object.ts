@@ -10,7 +10,7 @@ import {
 import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { getInputFormat } from '../prompt/get-input-format';
+import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
@@ -96,19 +96,21 @@ Default and recommended: 'auto' (best mode for the model).
 
   switch (mode) {
     case 'json': {
-      const generateResult = await retry(() =>
-        model.doGenerate({
+      const validatedPrompt = getValidatedPrompt({
+        system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
+        prompt,
+        messages,
+      });
+
+      const generateResult = await retry(() => {
+        return model.doGenerate({
           mode: { type: 'object-json' },
           ...prepareCallSettings(settings),
-          inputFormat: getInputFormat({ prompt, messages }),
-          prompt: convertToLanguageModelPrompt({
-            system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-            prompt,
-            messages,
-          }),
+          inputFormat: validatedPrompt.type,
+          prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
-        }),
-      );
+        });
+      });
 
       if (generateResult.text === undefined) {
         throw new NoTextGeneratedError();
@@ -123,16 +125,18 @@ Default and recommended: 'auto' (best mode for the model).
     }
 
     case 'grammar': {
+      const validatedPrompt = getValidatedPrompt({
+        system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
+        prompt,
+        messages,
+      });
+
       const generateResult = await retry(() =>
         model.doGenerate({
           mode: { type: 'object-grammar', schema: jsonSchema },
           ...settings,
-          inputFormat: getInputFormat({ prompt, messages }),
-          prompt: convertToLanguageModelPrompt({
-            system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-            prompt,
-            messages,
-          }),
+          inputFormat: validatedPrompt.type,
+          prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
         }),
       );
@@ -150,6 +154,12 @@ Default and recommended: 'auto' (best mode for the model).
     }
 
     case 'tool': {
+      const validatedPrompt = getValidatedPrompt({
+        system,
+        prompt,
+        messages,
+      });
+
       const generateResult = await retry(() =>
         model.doGenerate({
           mode: {
@@ -162,8 +172,8 @@ Default and recommended: 'auto' (best mode for the model).
             },
           },
           ...settings,
-          inputFormat: getInputFormat({ prompt, messages }),
-          prompt: convertToLanguageModelPrompt({ system, prompt, messages }),
+          inputFormat: validatedPrompt.type,
+          prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
         }),
       );
