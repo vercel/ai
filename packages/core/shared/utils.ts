@@ -6,9 +6,6 @@ import {
 
 export * from './generate-id';
 
-// TODO remove (breaking change)
-export { generateId as nanoid } from './generate-id';
-
 // simple decoder signatures:
 function createChunkDecoder(): (chunk: Uint8Array | undefined) => string;
 function createChunkDecoder(
