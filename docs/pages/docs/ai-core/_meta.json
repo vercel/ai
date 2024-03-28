@@ -9,5 +9,6 @@
   "prompt": "Prompts",
   "settings": "Settings",
   "openai": "OpenAI Provider",
+  "mistral": "Mistral Provider",
   "generate-text": "generateText API"
 }
