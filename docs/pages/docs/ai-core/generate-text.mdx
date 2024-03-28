@@ -47,12 +47,12 @@ The parameters are passed into `experimental_streamText` as a single options obj
 
 `generateText` returns a result object wtih several properties:
 
-- **text** - The generated text. Type: `string`.
-- **toolCalls** - The tool calls that were made during the generation. Type: `ToToolCallArray<TOOLS>`.
-- **toolResults** - The results of the tool calls. Type: `ToToolResultArray<TOOLS>`.
-- **finishReason** - The reason why the generation finished. Type: `LanguageModelV1FinishReason`.
-- **usage** - The token usage of the generated text. Type: `TokenUsage`.
-- **warnings** - Warnings from the model provider (e.g., unsupported settings). Type: `string[]` (assumed type for warnings).
+- **text**: `string` - The generated text.
+- **toolCalls**: `Array<ToolCall>` - The tool calls that were made during the generation. Each tool call has a `toolCallId`, a `toolName`, and a typed `args` object.
+- **toolResults**: `Array<ToolResult>` - The results of the tool calls. Each tool result has a `toolCallId`, a `toolName`, a typed `args` object, and a typed `result` object.
+- **finishReason**: `stop` | `length` | `content-filter` | `tool-calls` | `error` | `other` - The reason why the generation finished.
+- **usage**: `TokenUsage` - The token usage of the generated text. The object contains `promptTokens: number`, `completionTokens: number`, and `totalTokens: number`.
+- **warnings**: `Array<Warning> | undefined` - Warnings from the model provider (e.g., unsupported settings).
 
 ## Examples
 
