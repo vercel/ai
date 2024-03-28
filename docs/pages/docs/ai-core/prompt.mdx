@@ -1,12 +1,8 @@
 ---
 title: Prompts
-layout:
-  toc: false
 ---
 
 import { Callout } from 'nextra-theme-docs';
-import { OptionTable } from '@/components/table';
-import { Tabs, Tab } from 'nextra-theme-docs';
 
 # Prompts
 
@@ -51,13 +47,14 @@ const result = await experimental_generateText({
 Message prompts are an array of user, assistant, and tool messages.
 They are great for chat interfaces and more complex, multi-modal prompts.
 
-<Callout>
-  Not all language models support all kinds of messages. For example, some
-  models might not be capable of handling multi-modal inputs or tool messages.
-</Callout>
-
 Each message has a role and a content. The content can be either a text
 (for user and assistant messages), or an array of parts for that message type.
+
+<Callout type="info">
+  Not all language models support all message and content types. For example,
+  some models might not be capable of handling multi-modal inputs or tool
+  messages.
+</Callout>
 
 ### Basic Example
 

@@ -1,12 +1,8 @@
 ---
 title: Settings
-layout:
-  toc: false
 ---
 
 import { Callout } from 'nextra-theme-docs';
-import { OptionTable } from '@/components/table';
-import { Tabs, Tab } from 'nextra-theme-docs';
 
 # Settings
 
@@ -31,3 +27,9 @@ All AI functions (`generateText`, `streamText`, `generateObject`, `streamObject`
   If set and supported by the model, calls will generate deterministic results.
 - **maxRetries** - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 - **abortSignal** - An optional abort signal that can be used to cancel the call.
+
+<Callout type="info">
+  Some providers do not support all common settings. If you use a setting with a
+  provider that does not support it, a warning will be included in the AI
+  function result object.
+</Callout>

@@ -1,27 +1,18 @@
 ---
-title: generateText API
+title: streamText API
 ---
 
 import { Callout } from 'nextra-theme-docs';
 
-# experimental_generateText
+# experimental_streamText
 
-Generate a text and call tools for a given prompt using a language model.
+Streams text and call tools for a given prompt using a language model.
 
-`experimental_generateText` is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
-
-```ts
-import { experimental_generateText } from 'ai';
-
-const { text } = await experimental_generateText({
-  model,
-  prompt: 'Invent a new holiday and describe its traditions.',
-});
-```
+You can use the `streamText` function for interactive use cases such as chat bots (with and without tool usage), and text and code diff streaming in UIs. You can also generate UI components with tools (see [Generative UI](/docs/concepts/ai-rsc)).
 
 <Callout type="info">
-  `experimental_generateText` does not stream the output. If you want to stream
-  the output, use [`experimental_streamText`](/docs/ai-core/stream-text).
+  `experimental_streamText` streams the output. If you do not want to stream the
+  output, use [`experimental_generateText`](/docs/ai-core/generate-text).
 </Callout>
 
 ## Parameters

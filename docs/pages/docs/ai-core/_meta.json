@@ -10,5 +10,6 @@
   "settings": "Settings",
   "openai": "OpenAI Provider",
   "mistral": "Mistral Provider",
-  "generate-text": "generateText API"
+  "generate-text": "generateText API",
+  "stream-text": "streamText API"
 }
