@@ -37,6 +37,36 @@ const { text } = await experimental_generateText({
 });
 ```
 
+## Schema Specification and Validation with Zod
+
+Tool usage and structured object generation require the specification of schemas.
+The AI SDK uses [Zod](https://zod.dev/), the most popular JavaScript schema validation library, for schema specification and validation.
+
+You can install Zod with
+
+```sh
+npm install zod
+```
+
+You can then easily specify schemas, for example:
+
+```ts
+const recipeSchema = z.object({
+  recipe: z.object({
+    name: z.string(),
+    ingredients: z.array(
+      z.object({
+        name: z.string(),
+        amount: z.string(),
+      }),
+    ),
+    steps: z.array(z.string()),
+  }),
+});
+```
+
+Such schemas can be used to define parameters for tool calls and to generated structured objects with `generateObject` and `streamObject`.
+
 ## Language Model Interface
 
 Providers need to provide an implementation of the language model interface to be compatible with the AI SDK.
