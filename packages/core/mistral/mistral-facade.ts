@@ -18,7 +18,6 @@ export class Mistral {
     options: {
       baseUrl?: string;
       apiKey?: string;
-      organization?: string;
       generateId?: () => string;
     } = {},
   ) {
