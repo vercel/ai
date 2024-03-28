@@ -33,3 +33,15 @@ All AI functions (`generateText`, `streamText`, `generateObject`, `streamObject`
   provider that does not support it, a warning will be included in the AI
   function result object.
 </Callout>
+
+## Example
+
+```ts {3-5}
+const result = await experimental_generateText({
+  model,
+  maxTokens: 512,
+  temperature: 0.3,
+  maxRetries: 5,
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```

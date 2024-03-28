@@ -46,75 +46,30 @@ The parameters are passed into `experimental_streamText` as a single options obj
 
 ## Return Type
 
-`generateText` returns a result object wtih several properties:
+`streamText` returns a result object with several properties and methods:
 
-- **text**: `string` - The generated text.
-- **toolCalls**: `Array<ToolCall>` - The tool calls that were made during the generation. Each tool call has a `toolCallId`, a `toolName`, and a typed `args` object.
-- **toolResults**: `Array<ToolResult>` - The results of the tool calls. Each tool result has a `toolCallId`, a `toolName`, a typed `args` object, and a typed `result` object.
-- **finishReason**: `stop` | `length` | `content-filter` | `tool-calls` | `error` | `other` - The reason why the generation finished.
-- **usage**: `TokenUsage` - The token usage of the generated text. The object contains `promptTokens: number`, `completionTokens: number`, and `totalTokens: number`.
+- **textStream**: `AsyncIterable<string> & ReadableStream<string>` - A stream of text deltas.
+- **fullStream**: `AsyncIterable<TextStreamPart> & ReadableStream<TextStreamPart>` - A stream of text stream parts:
+  - **text delta** stream part with `type = 'text-delta'` and a `textDelta` property.
+  - **tool call** stream part with `type = 'tool-call'` and `toolCallId`, `toolName`, and `args` properties.
+  - **tool result** stream part with `type = 'tool-result'` and `toolCallId`, `toolName`, `args`, and `result` properties.
+  - **finish** stream part with `type = 'finish'` and `finishReason` and `usage` properties. Sent as the last stream part.
+  - **error** stream part with `type = 'error'` and an `error` property.
+- **toAIStream(callbacks)**: convert the stream to an AI stream that is compatible with [`StreamingTextResponse`](/docs/api-reference/streaming-text-response).
 - **warnings**: `Array<Warning> | undefined` - Warnings from the model provider (e.g., unsupported settings).
+
+<Callout type="info">
+  You can only process one of the streams. Once it is processing, the other
+  stream properties will throw errors.
+</Callout>
 
 ## Examples
 
 ### Basic call
 
 ```ts
-const { text, usage, finishReason } = await experimental_generateText({
+const { textStream } = await experimental_streamText({
   model,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
-```
-
-### Tools
-
-```ts
-const result = await experimental_generateText({
-  model: openai.chat('gpt-3.5-turbo'),
-  maxTokens: 512,
-  tools: {
-    weather: {
-      description: 'Get the weather in a location',
-      parameters: z.object({
-        location: z.string().describe('The location to get the weather for'),
-      }),
-      execute: async ({ location }: { location: string }) => ({
-        location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10,
-      }),
-    },
-    cityAttractions: {
-      parameters: z.object({ city: z.string() }),
-    },
-  },
-  prompt:
-    'What is the weather in San Francisco and what attractions should I visit?',
-});
-
-// typed tool calls:
-for (const toolCall of result.toolCalls) {
-  switch (toolCall.toolName) {
-    case 'cityAttractions': {
-      toolCall.args.city; // string
-      break;
-    }
-
-    case 'weather': {
-      toolCall.args.location; // string
-      break;
-    }
-  }
-}
-
-// typed tool results for tools with execute method:
-for (const toolResult of result.toolResults) {
-  switch (toolResult.toolName) {
-    case 'weather': {
-      toolResult.args.location; // string
-      toolResult.result.location; // string
-      toolResult.result.temperature; // number
-      break;
-    }
-  }
-}
 ```

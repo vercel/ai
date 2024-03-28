@@ -24,7 +24,7 @@ You can structure the text in any way and inject variables, e.g. using a templat
 
 ### Basic Example
 
-```ts
+```ts {3}
 const result = await experimental_generateText({
   model,
   prompt: 'Invent a new holiday and describe its traditions.',
@@ -33,7 +33,7 @@ const result = await experimental_generateText({
 
 ### Template Literal Example
 
-```ts
+```ts {3-5}
 const result = await experimental_generateText({
   model,
   prompt:
@@ -58,7 +58,7 @@ Each message has a role and a content. The content can be either a text
 
 ### Basic Example
 
-```ts
+```ts {3-7}
 const result = await experimental_generateText({
   model,
   messages: [
@@ -74,7 +74,7 @@ const result = await experimental_generateText({
 The `image` can be a base64-encoded image (`string`), an `ArrayBuffer`, a `Uint8Array`,
 a `Buffer`, or a `URL` object. It is possible to mix text and multiple images.
 
-```ts
+```ts {3-11}
 const result = await experimental_generateText({
   model,
   messages: [
@@ -94,7 +94,7 @@ const result = await experimental_generateText({
 For models that support tool calls, assistant messages can contain tool call parts, and tool messages can contain tool result parts.
 A single assistant message can call multiple tools, and a single tool message can contain multiple tool results.
 
-```ts
+```ts {3-43}
 const result = await experimental_generateText({
   model,
   messages: [
@@ -148,7 +148,7 @@ System messages work with both the `prompt` and the `messages` properties.
 
 ### Example
 
-```ts
+```ts {3-6}
 const result = await experimental_generateText({
   model,
   system:
