@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type OpenAI from 'openai';
+import type AzureOpenAI from '@azure/openai';
 import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
 
@@ -507,5 +508,204 @@ export function render<
     );
   })();
 
+  return ui.value;
+}
+
+// render function for Azure OpenAI
+export function renderAzureOpenAI<
+  TS extends {
+    [name: string]: z.Schema;
+  } = {},
+  FS extends {
+    [name: string]: z.Schema;
+  } = {},
+>(options: {
+  // The deployment name to use. This is the name of the deployment in Azure OpenAI.
+  deploymentName: string;
+  provider: AzureOpenAI.OpenAIClient;
+  messages: Parameters<
+    typeof AzureOpenAI.OpenAIClient.prototype.streamChatCompletions
+  >[1];
+  text?: Renderer<{
+    content: string;
+    delta: string;
+    done: boolean;
+  }>;
+  tools?: {
+    [name in keyof TS]: {
+      description?: string;
+      parameters: TS[name];
+      render: Renderer<z.infer<TS[name]>>;
+    };
+  };
+  functions?: {
+    [name in keyof FS]: {
+      description?: string;
+      parameters: FS[name];
+      render: Renderer<z.infer<FS[name]>>;
+    };
+  };
+  initial?: ReactNode;
+  temperature?: number;
+}): ReactNode {
+  const ui = createStreamableUI(options.initial);
+
+  const text = options.text
+    ? options.text
+    : ({ content }: { content: string }) => content;
+
+  const functions = options.functions
+    ? Object.entries(options.functions).map(
+      ([name, { description, parameters }]) => {
+        return {
+          name,
+          description,
+          parameters: zodToJsonSchema(parameters) as Record<string, unknown>,
+        };
+      },
+    )
+    : undefined;
+
+  const tools = options.tools
+    ? Object.entries(options.tools).map(
+      ([name, { description, parameters }]) => {
+        return {
+          type: 'function' as const,
+          function: {
+            name,
+            description,
+            parameters: zodToJsonSchema(parameters) as Record<
+              string,
+              unknown
+            >,
+          },
+        };
+      },
+    )
+    : undefined;
+
+  if (functions && tools) {
+    throw new Error(
+      "You can't have both functions and tools defined. Please choose one or the other.",
+    );
+  }
+
+  let finished: Promise<void> | undefined;
+
+  async function handleRender(
+    args: any,
+    renderer: undefined | Renderer<any>,
+    res: ReturnType<typeof createStreamableUI>,
+  ) {
+    if (!renderer) return;
+
+    const resolvable = createResolvablePromise<void>();
+
+    if (finished) {
+      finished = finished.then(() => resolvable.promise);
+    } else {
+      finished = resolvable.promise;
+    }
+
+    const value = renderer(args);
+    if (
+      value instanceof Promise ||
+      (value &&
+        typeof value === 'object' &&
+        'then' in value &&
+        typeof value.then === 'function')
+    ) {
+      const node = await (value as Promise<React.ReactNode>);
+      res.update(node);
+      resolvable.resolve(void 0);
+    } else if (
+      value &&
+      typeof value === 'object' &&
+      Symbol.asyncIterator in value
+    ) {
+      const it = value as AsyncGenerator<
+        React.ReactNode,
+        React.ReactNode,
+        void
+      >;
+      while (true) {
+        const { done, value } = await it.next();
+        res.update(value);
+        if (done) break;
+      }
+      resolvable.resolve(void 0);
+    } else if (value && typeof value === 'object' && Symbol.iterator in value) {
+      const it = value as Generator<React.ReactNode, React.ReactNode, void>;
+      while (true) {
+        const { done, value } = it.next();
+        res.update(value);
+        if (done) break;
+      }
+      resolvable.resolve(void 0);
+    } else {
+      res.update(value);
+      resolvable.resolve(void 0);
+    }
+  }
+
+  (async () => {
+    let hasFunction = false;
+    let content = '';
+
+    consumeStream(
+      OpenAIStream(
+        (await options.provider.streamChatCompletions(
+          options.deploymentName,
+          options.messages,
+          {
+            temperature: options.temperature,
+            ...(functions ? { functions } : {}),
+            ...(tools ? { tools } : {}),
+          }
+        )) as any,
+        {
+          ...(functions
+            ? {
+              async experimental_onFunctionCall(functionCallPayload) {
+                hasFunction = true;
+                handleRender(
+                  functionCallPayload.arguments,
+                  options.functions?.[functionCallPayload.name as any]
+                    ?.render,
+                  ui,
+                );
+              },
+            } : {}),
+          ...(tools
+            ? {
+              async experimental_onToolCall(toolCallPayload: any) {
+                hasFunction = true;
+                for (const tool of toolCallPayload.tools) {
+                  handleRender(
+                    tool.func.arguments,
+                    options.tools?.[tool.func.name as any]?.render,
+                    ui,
+                  );
+                }
+              },
+            } : {}),
+          onText(chunk) {
+            content += chunk;
+            handleRender({ content, done: false, delta: chunk }, text, ui);
+          },
+          async onFinal() {
+            if (hasFunction) {
+              await finished;
+              ui.done();
+              return;
+            }
+            handleRender({ content, done: true }, text, ui);
+            await finished;
+            ui.done();
+          },
+        },
+      ),
+    );
+  })();
   return ui.value;
 }

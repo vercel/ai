@@ -3,7 +3,7 @@ import {
   openaiFunctionCallChunks,
 } from '../tests/snapshots/openai-chat';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
-import { createStreamableUI, render } from './streamable';
+import { createStreamableUI, render, renderAzureOpenAI } from './streamable';
 import { z } from 'zod';
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
@@ -231,6 +231,79 @@ describe('rsc - render()', () => {
       model: 'gpt-3.5-turbo',
       messages: [],
       provider: createMockUpProvider(),
+      functions: {
+        get_current_weather: {
+          description: 'Get the current weather',
+          parameters: z.object({}),
+          render: async function* () {
+            yield <div>Loading...</div>;
+            await new Promise(resolve => setTimeout(resolve, 100));
+            return <div>Weather</div>;
+          },
+        },
+      },
+    });
+
+    const rendered = await simulateFlightServerRender(ui as any);
+    expect(rendered).toMatchSnapshot();
+  });
+});
+
+function createAzureOpenAIMockUpProvider() {
+  return {
+    streamChatCompletions: async () => {
+      return await fetch(FUNCTION_CALL_TEST_URL);
+    },
+  } as any;
+}
+
+describe('rsc - renderAzureOpenAI()', () => {
+  it('should emit React Nodes with sync renderAzureOpenAI function', async () => {
+    const ui = renderAzureOpenAI({
+      deploymentName: 'gpt-3.5-turbo',
+      messages: [],
+      provider: createAzureOpenAIMockUpProvider(),
+      functions: {
+        get_current_weather: {
+          description: 'Get the current weather',
+          parameters: z.object({}),
+          render: () => {
+            return <div>Weather</div>;
+          },
+        },
+      },
+    });
+
+    const rendered = await simulateFlightServerRender(ui as any);
+    expect(rendered).toMatchSnapshot();
+  });
+
+  it('should emit React Nodes with async renderAzureOpenAI function', async () => {
+    const ui = renderAzureOpenAI({
+      deploymentName: 'gpt-3.5-turbo',
+      messages: [],
+      provider: createAzureOpenAIMockUpProvider(),
+      functions: {
+        get_current_weather: {
+          description: 'Get the current weather',
+          parameters: z.object({}),
+          render: async () => {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            return <div>Weather</div>;
+          },
+        },
+      },
+    });
+
+    const rendered = await simulateFlightServerRender(ui as any);
+    expect(rendered).toMatchSnapshot();
+  });
+
+  it('should emit React Nodes with generator renderAzureOpenAI function', async () => {
+    const ui = renderAzureOpenAI({
+      deploymentName: 'gpt-3.5-turbo',
+      messages: [],
+      provider: createAzureOpenAIMockUpProvider(),
       functions: {
         get_current_weather: {
           description: 'Get the current weather',
