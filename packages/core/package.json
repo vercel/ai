@@ -15,12 +15,13 @@
     "prompts/dist/**/*",
     "rsc/dist/**/*",
     "spec/dist/**/*",
+    "google/dist/**/*",
     "openai/dist/**/*",
     "mistral/dist/**/*"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
-    "clean": "rm -rf dist && rm -rf core/dist && rm -rf openai/dist && rm -rf mistral/dist && rm -rf spec/dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist && rm -rf rsc/dist",
+    "clean": "rm -rf dist && rm -rf core/dist && rm -rf google/dist && rm -rf openai/dist && rm -rf mistral/dist && rm -rf spec/dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist && rm -rf rsc/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -29,6 +30,7 @@
     "test:edge": "vitest --config vitest.edge.config.js --run --threads=false",
     "test:node": "vitest --config vitest.node.config.js --run --threads=false",
     "test:node:core": "pnpm vitest --config vitest.node.config.js --run --threads=false ./core/",
+    "test:node:google": "pnpm vitest --config vitest.node.config.js --run --threads=false ./google/",
     "test:node:openai": "pnpm vitest --config vitest.node.config.js --run --threads=false ./openai/",
     "test:node:mistral": "pnpm vitest --config vitest.node.config.js --run --threads=false ./mistral/",
     "test:ui": "pnpm test:ui:react && pnpm test:ui:vue && pnpm test:ui:solid",
@@ -53,6 +55,12 @@
       "import": "./spec/dist/index.mjs",
       "module": "./spec/dist/index.mjs",
       "require": "./spec/dist/index.js"
+    },
+    "./google": {
+      "types": "./google/dist/index.d.ts",
+      "import": "./google/dist/index.mjs",
+      "module": "./google/dist/index.mjs",
+      "require": "./google/dist/index.js"
     },
     "./openai": {
       "types": "./openai/dist/index.d.ts",

@@ -106,6 +106,13 @@ export default defineConfig([
 
   // AI Core: Providers
   {
+    entry: ['google/index.ts'],
+    format: ['cjs', 'esm'],
+    outDir: 'google/dist',
+    dts: true,
+    sourcemap: true,
+  },
+  {
     entry: ['openai/index.ts'],
     format: ['cjs', 'esm'],
     outDir: 'openai/dist',
