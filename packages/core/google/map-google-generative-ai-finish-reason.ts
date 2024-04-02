@@ -1,16 +1,18 @@
 import { LanguageModelV1FinishReason } from '../spec';
 
-export function mapMistralFinishReason(
+export function mapGoogleGenerativeAIFinishReason(
   finishReason: string | null | undefined,
 ): LanguageModelV1FinishReason {
   switch (finishReason) {
-    case 'stop':
+    case 'STOP':
       return 'stop';
-    case 'length':
-    case 'model_length':
+    case 'MAX_TOKENS':
       return 'length';
-    case 'tool_calls':
-      return 'tool-calls';
+    case 'RECITATION':
+    case 'SAFETY':
+      return 'content-filter';
+    case 'FINISH_REASON_UNSPECIFIED':
+    case 'OTHER':
     default:
       return 'other';
   }

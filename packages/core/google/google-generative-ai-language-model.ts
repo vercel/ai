@@ -17,6 +17,7 @@ import {
   GoogleGenerativeAIModelId,
   GoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
+import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
 type GoogleGenerativeAIConfig = {
   provider: string;
@@ -76,20 +77,25 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (seed != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'seed',
+      });
+    }
+
     const baseArgs = {
-      // model id:
-      model: this.modelId,
+      generationConfig: {
+        // model specific settings:
+        topK: this.settings.topK,
 
-      // model specific settings:
-      // TODO
+        // standardized settings:
+        maxOutputTokens: maxTokens,
+        temperature,
+        topP,
+      },
 
-      // standardized settings:
-      // max_tokens: maxTokens,
-      // temperature, // uses 0..1 scale
-      // top_p: topP,
-      // random_seed: seed,
-
-      // messages:
+      // prompt:
       contents: convertToGoogleGenerativeAIMessages({
         provider: this.provider,
         prompt,
@@ -167,11 +173,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         parts: candidate.content.parts,
         generateId: this.config.generateId,
       }),
-      // finishReason: mapMistralFinishReason(candidate.finish_reason),
-      finishReason: 'stop',
+      finishReason: mapGoogleGenerativeAIFinishReason(candidate.finishReason),
       usage: {
-        promptTokens: 1, // TODO response.usage.prompt_tokens,
-        completionTokens: 1, // TODO response.usage.completion_tokens,
+        promptTokens: NaN,
+        completionTokens: candidate.tokenCount ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
       warnings,
@@ -216,24 +221,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
             const value = chunk.value;
 
-            // if (value.usage != null) {
-            //   usage = {
-            //     promptTokens: value.usage.prompt_tokens,
-            //     completionTokens: value.usage.completion_tokens,
-            //   };
-            // }
-
             const candidate = value.candidates[0];
 
-            // if (candidate?.finish_reason != null) {
-            //   finishReason = mapMistralFinishReason(candidate.finish_reason);
-            // }
+            if (candidate?.finishReason != null) {
+              finishReason = mapGoogleGenerativeAIFinishReason(
+                candidate.finishReason,
+              );
+            }
 
-            // if (candidate?.delta == null) {
-            //   return;
-            // }
-
-            // const delta = candidate.delta;
+            if (candidate.tokenCount != null) {
+              usage = {
+                promptTokens: NaN,
+                completionTokens: candidate.tokenCount,
+              };
+            }
 
             const deltaText = getTextFromParts(candidate.content.parts);
             if (deltaText != null) {
@@ -356,14 +357,20 @@ const contentSchema = z.object({
   ),
 });
 
+const candidateSchema = z.object({
+  content: contentSchema,
+  finishReason: z.string().optional(),
+  tokenCount: z.number().optional(),
+});
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const responseSchema = z.object({
-  candidates: z.array(z.object({ content: contentSchema })),
+  candidates: z.array(candidateSchema),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const chunkSchema = z.object({
-  candidates: z.array(z.object({ content: contentSchema })),
+  candidates: z.array(candidateSchema),
 });

@@ -33,7 +33,7 @@ export class Google {
       headers: () => ({
         'x-goog-api-key': loadApiKey({
           apiKey: this.apiKey,
-          environmentVariableName: 'GOOGLE_GENAI_API_KEY',
+          environmentVariableName: 'GOOGLE_GENERATIVE_AI_API_KEY',
           description: 'Google Generative AI',
         }),
       }),

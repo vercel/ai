@@ -5,4 +5,6 @@ export type GoogleGenerativeAIModelId =
   | 'models/gemini-pro-vision'
   | (string & {});
 
-export interface GoogleGenerativeAISettings {}
+export interface GoogleGenerativeAISettings {
+  topK?: number;
+}
