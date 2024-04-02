@@ -1,4 +1,8 @@
-import { LanguageModelV1Prompt, UnsupportedFunctionalityError } from '../spec';
+import {
+  LanguageModelV1Prompt,
+  UnsupportedFunctionalityError,
+  convertUint8ArrayToBase64,
+} from '../spec';
 import { GoogleGenerativeAIPrompt } from './google-generative-ai-prompt';
 
 export function convertToGoogleGenerativeAIMessages({
@@ -29,10 +33,19 @@ export function convertToGoogleGenerativeAIMessages({
                 return { text: part.text };
               }
               case 'image': {
-                throw new UnsupportedFunctionalityError({
-                  provider,
-                  functionality: 'image-part',
-                });
+                if (part.image instanceof URL) {
+                  throw new UnsupportedFunctionalityError({
+                    provider,
+                    functionality: 'URL image parts',
+                  });
+                } else {
+                  return {
+                    inlineData: {
+                      mimeType: part.mimeType ?? 'image/jpeg',
+                      data: convertUint8ArrayToBase64(part.image),
+                    },
+                  };
+                }
               }
             }
           }),

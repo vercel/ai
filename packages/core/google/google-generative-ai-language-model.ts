@@ -11,12 +11,11 @@ import {
   postJsonToApi,
 } from '../spec';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
+import { googleFailedResponseHandler } from './google-error';
 import {
   GoogleGenerativeAIModelId,
   GoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
-import { mapMistralFinishReason } from './map-mistral-finish-reason';
-import { mistralFailedResponseHandler } from './mistral-error';
 
 type GoogleGenerativeAIConfig = {
   provider: string;
@@ -161,7 +160,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       url: `${this.config.baseUrl}/${this.modelId}:generateContent`,
       headers: this.config.headers(),
       body: args,
-      failedResponseHandler: mistralFailedResponseHandler,
+      failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         googleGenerativeAIResponseSchema,
       ),
@@ -199,7 +198,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       url: `${this.config.baseUrl}/${this.modelId}:streamGenerateContent?alt=sse`,
       headers: this.config.headers(),
       body: args,
-      failedResponseHandler: mistralFailedResponseHandler,
+      failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         googleGenerativeAIChunkSchema,
       ),
