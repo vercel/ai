@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.17
+
+### Patch Changes
+
+- 2b991c4: Add Google Generative AI provider for ai/core functions.
+
 ## 3.0.16
 
 ### Patch Changes
