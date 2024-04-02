@@ -163,7 +163,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       body: args,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        openAIChatResponseSchema,
+        mistralChatResponseSchema,
       ),
       abortSignal: options.abortSignal,
     });
@@ -294,7 +294,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openAIChatResponseSchema = z.object({
+const mistralChatResponseSchema = z.object({
   choices: z.array(
     z.object({
       message: z.object({
