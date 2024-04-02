@@ -3,7 +3,10 @@ import {
   UnsupportedFunctionalityError,
   convertUint8ArrayToBase64,
 } from '../spec';
-import { GoogleGenerativeAIPrompt } from './google-generative-ai-prompt';
+import {
+  GoogleGenerativeAIContentPart,
+  GoogleGenerativeAIPrompt,
+} from './google-generative-ai-prompt';
 
 export function convertToGoogleGenerativeAIMessages({
   prompt,
@@ -17,10 +20,12 @@ export function convertToGoogleGenerativeAIMessages({
   for (const { role, content } of prompt) {
     switch (role) {
       case 'system': {
-        throw new UnsupportedFunctionalityError({
-          provider,
-          functionality: 'system-message',
-        });
+        // system message becomes user message:
+        messages.push({ role: 'user', parts: [{ text: content }] });
+
+        // required for to ensure turn-taking:
+        messages.push({ role: 'model', parts: [{ text: '' }] });
+
         break;
       }
 
@@ -56,27 +61,40 @@ export function convertToGoogleGenerativeAIMessages({
       case 'assistant': {
         messages.push({
           role: 'model',
-          parts: content.map(part => {
-            switch (part.type) {
-              case 'text': {
-                return { text: part.text };
+          parts: content
+            .map(part => {
+              switch (part.type) {
+                case 'text': {
+                  return part.text.length === 0
+                    ? undefined
+                    : { text: part.text };
+                }
+                case 'tool-call': {
+                  return {
+                    functionCall: {
+                      name: part.toolName,
+                      args: part.args,
+                    },
+                  };
+                }
               }
-              case 'tool-call': {
-                throw new UnsupportedFunctionalityError({
-                  provider,
-                  functionality: 'tool-call',
-                });
-              }
-            }
-          }),
+            })
+            .filter(
+              part => part !== undefined,
+            ) as GoogleGenerativeAIContentPart[],
         });
         break;
       }
 
       case 'tool': {
-        throw new UnsupportedFunctionalityError({
-          provider,
-          functionality: 'tool-message',
+        messages.push({
+          role: 'user',
+          parts: content.map(part => ({
+            functionResponse: {
+              name: part.toolName,
+              response: part.result,
+            },
+          })),
         });
         break;
       }

@@ -27,7 +27,7 @@ type GoogleGenerativeAIConfig = {
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'json';
+  readonly defaultObjectGenerationMode = undefined;
 
   readonly modelId: GoogleGenerativeAIModelId;
   readonly settings: GoogleGenerativeAISettings;
@@ -235,8 +235,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
             // const delta = candidate.delta;
 
-            console.log(JSON.stringify(candidate, null, 2));
-
             const deltaText = getTextFromParts(candidate.content.parts);
             if (deltaText != null) {
               controller.enqueue({
@@ -245,27 +243,30 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               });
             }
 
-            // if (delta.tool_calls != null) {
-            //   for (const toolCall of delta.tool_calls) {
-            //     // mistral tool calls come in one piece
+            const toolCallDeltas = getToolCallsFromParts({
+              parts: candidate.content.parts,
+              generateId,
+            });
 
-            //     controller.enqueue({
-            //       type: 'tool-call-delta',
-            //       toolCallType: 'function',
-            //       toolCallId: generateId(),
-            //       toolName: toolCall.function.name,
-            //       argsTextDelta: toolCall.function.arguments,
-            //     });
+            if (toolCallDeltas != null) {
+              for (const toolCall of toolCallDeltas) {
+                controller.enqueue({
+                  type: 'tool-call-delta',
+                  toolCallType: 'function',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  argsTextDelta: toolCall.args,
+                });
 
-            //     controller.enqueue({
-            //       type: 'tool-call',
-            //       toolCallType: 'function',
-            //       toolCallId: generateId(),
-            //       toolName: toolCall.function.name,
-            //       args: toolCall.function.arguments,
-            //     });
-            //   }
-            // }
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  args: toolCall.args,
+                });
+              }
+            }
           },
 
           flush(controller) {
