@@ -12,5 +12,5 @@ Only sample from the top K options for each subsequent token.
 Used to remove "long tail" low probability responses. 
 Recommended for advanced use cases only. You usually only need to use temperature.
    */
-  topK: number;
+  topK?: number;
 }
