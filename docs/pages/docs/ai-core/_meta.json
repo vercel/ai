@@ -11,6 +11,7 @@
   "openai": "OpenAI Provider",
   "mistral": "Mistral Provider",
   "google": "Google Provider",
+  "anthropic": "Anthropic Provider",
   "custom-provider": "Custom Providers",
   "generate-text": "generateText API",
   "stream-text": "streamText API",
