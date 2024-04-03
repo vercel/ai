@@ -76,6 +76,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (seed != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'seed',
+      });
+    }
+
     const messagesPrompt = convertToAnthropicMessagesPrompt({
       provider: this.provider,
       prompt,
@@ -86,13 +93,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       model: this.modelId,
 
       // model specific settings:
-      // TODO
+      top_k: this.settings.topK,
 
       // standardized settings:
       max_tokens: maxTokens ?? 4096, // 4096: max model output tokens
       temperature, // uses 0..1 scale
       top_p: topP,
-      random_seed: seed,
 
       // prompt:
       system: messagesPrompt.system,
@@ -207,7 +213,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
 
     let finishReason: LanguageModelV1FinishReason = 'other';
-    let usage: { promptTokens: number; completionTokens: number } = {
+    const usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
