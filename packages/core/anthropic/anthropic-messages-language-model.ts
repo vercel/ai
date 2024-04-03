@@ -191,7 +191,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     const { args, warnings } = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/chat/completions`,
+      url: `${this.config.baseUrl}/messages`,
       headers: this.config.headers(),
       body: {
         ...args,
@@ -228,57 +228,93 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
             const value = chunk.value;
 
-            if (value.usage != null) {
-              usage = {
-                promptTokens: value.usage.prompt_tokens,
-                completionTokens: value.usage.completion_tokens,
-              };
-            }
+            switch (value.type) {
+              case 'ping':
+              case 'content_block_start':
+              case 'content_block_stop': {
+                return; // ignored
+              }
 
-            const choice = value.choices[0];
-
-            if (choice?.finish_reason != null) {
-              finishReason = mapAnthropicFinishReason(choice.finish_reason);
-            }
-
-            if (choice?.delta == null) {
-              return;
-            }
-
-            const delta = choice.delta;
-
-            if (delta.content != null) {
-              controller.enqueue({
-                type: 'text-delta',
-                textDelta: delta.content,
-              });
-            }
-
-            if (delta.tool_calls != null) {
-              for (const toolCall of delta.tool_calls) {
-                // mistral tool calls come in one piece
-
+              case 'content_block_delta': {
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: generateId(),
-                  toolName: toolCall.function.name,
-                  argsTextDelta: toolCall.function.arguments,
+                  type: 'text-delta',
+                  textDelta: value.delta.text,
                 });
+                return;
+              }
 
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: generateId(),
-                  toolName: toolCall.function.name,
-                  args: toolCall.function.arguments,
-                });
+              case 'message_start': {
+                usage.promptTokens = value.message.usage.input_tokens;
+                usage.completionTokens = value.message.usage.output_tokens;
+                return;
+              }
+
+              case 'message_delta': {
+                usage.completionTokens = value.usage.output_tokens;
+                finishReason = mapAnthropicFinishReason(
+                  value.delta.stop_reason,
+                );
+                return;
+              }
+
+              case 'message_stop': {
+                controller.enqueue({ type: 'finish', finishReason, usage });
+                return;
+              }
+
+              default: {
+                const _exhaustiveCheck: never = value;
+                throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
               }
             }
-          },
 
-          flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            // if (value.usage != null) {
+            //   usage = {
+            //     promptTokens: value.usage.prompt_tokens,
+            //     completionTokens: value.usage.completion_tokens,
+            //   };
+            // }
+
+            // const choice = value.choices[0];
+
+            // if (choice?.finish_reason != null) {
+            //   finishReason = mapAnthropicFinishReason(choice.finish_reason);
+            // }
+
+            // if (choice?.delta == null) {
+            //   return;
+            // }
+
+            // const delta = choice.delta;
+
+            // if (delta.content != null) {
+            //   controller.enqueue({
+            //     type: 'text-delta',
+            //     textDelta: delta.content,
+            //   });
+            // }
+
+            // if (delta.tool_calls != null) {
+            //   for (const toolCall of delta.tool_calls) {
+            //     // mistral tool calls come in one piece
+
+            //     controller.enqueue({
+            //       type: 'tool-call-delta',
+            //       toolCallType: 'function',
+            //       toolCallId: generateId(),
+            //       toolName: toolCall.function.name,
+            //       argsTextDelta: toolCall.function.arguments,
+            //     });
+
+            //     controller.enqueue({
+            //       type: 'tool-call',
+            //       toolCallType: 'function',
+            //       toolCallId: generateId(),
+            //       toolName: toolCall.function.name,
+            //       args: toolCall.function.arguments,
+            //     });
+            //   }
+            // }
           },
         }),
       ),
@@ -307,31 +343,45 @@ const anthropicMessagesResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const anthropicMessagesChunkSchema = z.object({
-  object: z.literal('chat.completion.chunk'),
-  choices: z.array(
-    z.object({
-      delta: z.object({
-        role: z.enum(['assistant']).optional(),
-        content: z.string().nullable().optional(),
-        tool_calls: z
-          .array(
-            z.object({
-              function: z.object({ name: z.string(), arguments: z.string() }),
-            }),
-          )
-          .optional()
-          .nullable(),
+const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('message_start'),
+    message: z.object({
+      usage: z.object({
+        input_tokens: z.number(),
+        output_tokens: z.number(),
       }),
-      finish_reason: z.string().nullable().optional(),
-      index: z.number(),
     }),
-  ),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      completion_tokens: z.number(),
-    })
-    .optional()
-    .nullable(),
-});
+  }),
+  z.object({
+    type: z.literal('content_block_start'),
+    index: z.number(),
+    content_block: z.object({
+      type: z.literal('text'),
+      text: z.string(),
+    }),
+  }),
+  z.object({
+    type: z.literal('content_block_delta'),
+    index: z.number(),
+    delta: z.object({
+      type: z.literal('text_delta'),
+      text: z.string(),
+    }),
+  }),
+  z.object({
+    type: z.literal('content_block_stop'),
+    index: z.number(),
+  }),
+  z.object({
+    type: z.literal('message_delta'),
+    delta: z.object({ stop_reason: z.string().optional().nullable() }),
+    usage: z.object({ output_tokens: z.number() }),
+  }),
+  z.object({
+    type: z.literal('message_stop'),
+  }),
+  z.object({
+    type: z.literal('ping'),
+  }),
+]);
