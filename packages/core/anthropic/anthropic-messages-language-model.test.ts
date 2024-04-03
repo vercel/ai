@@ -86,7 +86,7 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'claude-3-haiku-20240307',
       max_tokens: 4096, // default value
-      messages: [{ role: 'user', content: 'Hello' }],
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     });
   });
 
@@ -166,7 +166,7 @@ describe('doStream', () => {
       stream: true,
       model: 'claude-3-haiku-20240307',
       max_tokens: 4096, // default value
-      messages: [{ role: 'user', content: 'Hello' }],
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     });
   });
 

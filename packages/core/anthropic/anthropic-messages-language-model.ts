@@ -267,54 +267,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                 throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
               }
             }
-
-            // if (value.usage != null) {
-            //   usage = {
-            //     promptTokens: value.usage.prompt_tokens,
-            //     completionTokens: value.usage.completion_tokens,
-            //   };
-            // }
-
-            // const choice = value.choices[0];
-
-            // if (choice?.finish_reason != null) {
-            //   finishReason = mapAnthropicFinishReason(choice.finish_reason);
-            // }
-
-            // if (choice?.delta == null) {
-            //   return;
-            // }
-
-            // const delta = choice.delta;
-
-            // if (delta.content != null) {
-            //   controller.enqueue({
-            //     type: 'text-delta',
-            //     textDelta: delta.content,
-            //   });
-            // }
-
-            // if (delta.tool_calls != null) {
-            //   for (const toolCall of delta.tool_calls) {
-            //     // mistral tool calls come in one piece
-
-            //     controller.enqueue({
-            //       type: 'tool-call-delta',
-            //       toolCallType: 'function',
-            //       toolCallId: generateId(),
-            //       toolName: toolCall.function.name,
-            //       argsTextDelta: toolCall.function.arguments,
-            //     });
-
-            //     controller.enqueue({
-            //       type: 'tool-call',
-            //       toolCallType: 'function',
-            //       toolCallId: generateId(),
-            //       toolName: toolCall.function.name,
-            //       args: toolCall.function.arguments,
-            //     });
-            //   }
-            // }
           },
         }),
       ),

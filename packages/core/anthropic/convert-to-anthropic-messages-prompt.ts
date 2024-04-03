@@ -1,4 +1,8 @@
-import { LanguageModelV1Prompt, UnsupportedFunctionalityError } from '../spec';
+import {
+  LanguageModelV1Prompt,
+  UnsupportedFunctionalityError,
+  convertUint8ArrayToBase64,
+} from '../spec';
 import {
   AnthropicMessage,
   AnthropicMessagesPrompt,
@@ -24,21 +28,30 @@ export function convertToAnthropicMessagesPrompt({
       case 'user': {
         messages.push({
           role: 'user',
-          content: content
-            .map(part => {
-              switch (part.type) {
-                case 'text': {
-                  return part.text;
-                }
-                case 'image': {
+          content: content.map(part => {
+            switch (part.type) {
+              case 'text': {
+                return { type: 'text', text: part.text };
+              }
+              case 'image': {
+                if (part.image instanceof URL) {
                   throw new UnsupportedFunctionalityError({
                     provider,
-                    functionality: 'image-part',
+                    functionality: 'URL image parts',
                   });
+                } else {
+                  return {
+                    type: 'image',
+                    source: {
+                      type: 'base64',
+                      media_type: part.mimeType ?? 'image/jpeg',
+                      data: convertUint8ArrayToBase64(part.image),
+                    },
+                  };
                 }
               }
-            })
-            .join(''),
+            }
+          }),
         });
         break;
       }
