@@ -262,10 +262,12 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
               for (const toolCall of delta.tool_calls) {
                 // mistral tool calls come in one piece
 
+                const toolCallId = generateId(); // delta and tool call must have same id
+
                 controller.enqueue({
                   type: 'tool-call-delta',
                   toolCallType: 'function',
-                  toolCallId: generateId(),
+                  toolCallId,
                   toolName: toolCall.function.name,
                   argsTextDelta: toolCall.function.arguments,
                 });
@@ -273,7 +275,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallType: 'function',
-                  toolCallId: generateId(),
+                  toolCallId,
                   toolName: toolCall.function.name,
                   args: toolCall.function.arguments,
                 });

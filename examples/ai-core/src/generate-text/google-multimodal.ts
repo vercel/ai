@@ -1,26 +1,20 @@
 import { experimental_generateText } from 'ai';
-import { OpenAI } from 'ai/openai';
+import { google } from 'ai/google';
 import dotenv from 'dotenv';
+import fs from 'node:fs';
 
 dotenv.config();
 
-const openai = new OpenAI();
-
 async function main() {
   const result = await experimental_generateText({
-    model: openai.chat('gpt-4-vision-preview'),
+    model: google.generativeAI('models/gemini-pro-vision'),
     maxTokens: 512,
     messages: [
       {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
-          {
-            type: 'image',
-            image: new URL(
-              'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
-            ),
-          },
+          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
         ],
       },
     ],

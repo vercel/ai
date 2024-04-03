@@ -10,9 +10,7 @@ export class UnsupportedFunctionalityError extends Error {
     functionality: string;
   }) {
     super(
-      `Functionality not supported by the provider. ` +
-        `Provider: ${provider}.\n` +
-        `Functionality: ${functionality}`,
+      `'${functionality}' functionality not supported by the '${provider}' provider.`,
     );
 
     this.name = 'AI_UnsupportedFunctionalityError';
