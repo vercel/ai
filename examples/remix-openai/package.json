@@ -9,26 +9,26 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@remix-run/css-bundle": "^2.0.1",
-    "@remix-run/node": "^2.0.1",
-    "@remix-run/react": "^2.0.1",
-    "@remix-run/serve": "^2.0.1",
-    "@vercel/remix": "^2.0.1",
-    "ai": "2.2.13",
-    "openai": "4.2.0",
-    "isbot": "^3.6.8",
-    "react": "18.2.0",
-    "react-dom": "^18.2.0"
+    "@remix-run/css-bundle": "^2.8.1",
+    "@remix-run/node": "^2.8.1",
+    "@remix-run/react": "^2.8.1",
+    "@remix-run/serve": "^2.8.1",
+    "@vercel/remix": "^2.8.1",
+    "ai": "workspace:^",
+    "isbot": "^5.1.7",
+    "openai": "^4.47.1",
+    "react": "^18",
+    "react-dom": "^18"
   },
   "devDependencies": {
-    "@types/node": "^17.0.12",
-    "@types/react": "18.2.8",
-    "@types/react-dom": "18.2.4",
-    "@remix-run/dev": "^2.0.1",
-    "@remix-run/eslint-config": "^2.0.1",
-    "eslint": "^7.32.0",
-    "tailwindcss": "^3.3.3",
-    "typescript": "5.1.3"
+    "@remix-run/dev": "^2.8.1",
+    "@remix-run/eslint-config": "^2.8.1",
+    "@types/node": "^20.12.12",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^9.3.0",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5"
   },
   "type": "module"
 }
