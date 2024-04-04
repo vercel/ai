@@ -17,6 +17,7 @@ import {
 } from './anthropic-messages-settings';
 import { mapAnthropicFinishReason } from './map-anthropic-finish-reason';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
+import { generateToolsHeader } from './generate-tools-header';
 
 type AnthropicMessagesConfig = {
   provider: string;
@@ -107,21 +108,26 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        // when the tools array is empty, change it to undefined to prevent OpenAI errors:
-        const tools = mode.tools?.length ? mode.tools : undefined;
+        if (mode.tools == null || mode.tools.length === 0) {
+          return {
+            args: baseArgs,
+            warnings,
+          };
+        }
+
+        // inject a tools header into the system message:
+        const toolsHeader = generateToolsHeader({
+          tools: mode.tools,
+          provider: this.provider,
+        });
+
+        const system =
+          baseArgs.system != null
+            ? `${baseArgs.system}\n\n${toolsHeader}`
+            : toolsHeader;
 
         return {
-          args: {
-            ...baseArgs,
-            tools: tools?.map(tool => ({
-              type: 'function',
-              function: {
-                name: tool.name,
-                description: tool.description,
-                parameters: tool.parameters,
-              },
-            })),
-          },
+          args: { ...baseArgs, system },
           warnings,
         };
       }
