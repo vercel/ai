@@ -33,6 +33,7 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
 export type ToToolCall<TOOLS extends Record<string, ExperimentalTool>> =
   ValueOf<{
     [NAME in keyof TOOLS]: {
+      type: 'tool-call';
       toolCallId: string;
       toolName: NAME & string;
       args: z.infer<TOOLS[NAME]['parameters']>;
@@ -81,6 +82,7 @@ export function parseToolCall<TOOLS extends Record<string, ExperimentalTool>>({
   }
 
   return {
+    type: 'tool-call',
     toolCallId: toolCall.toolCallId,
     toolName,
     args: parseResult.value,

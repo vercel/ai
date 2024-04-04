@@ -80,10 +80,7 @@ export function runToolsTransformation<
               tools,
             });
 
-            controller.enqueue({
-              type: 'tool-call',
-              ...toolCall,
-            });
+            controller.enqueue(toolCall);
 
             if (tool.execute != null) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
@@ -95,8 +92,8 @@ export function runToolsTransformation<
               tool.execute(toolCall.args).then(
                 (result: any) => {
                   toolResultsStreamController!.enqueue({
-                    type: 'tool-result',
                     ...toolCall,
+                    type: 'tool-result',
                     result,
                   } as any);
 

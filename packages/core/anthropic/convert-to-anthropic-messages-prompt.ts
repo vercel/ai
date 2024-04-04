@@ -58,6 +58,7 @@ export function convertToAnthropicMessagesPrompt({
 
       case 'assistant': {
         let text = '';
+        const toolCalls: string[] = [];
 
         for (const part of content) {
           switch (part.type) {
@@ -66,10 +67,16 @@ export function convertToAnthropicMessagesPrompt({
               break;
             }
             case 'tool-call': {
-              throw new UnsupportedFunctionalityError({
-                provider,
-                functionality: 'tool-call-part',
-              });
+              toolCalls.push(`\
+<invoke>
+<tool_name>${part.toolName}</tool_name>
+<parameters>
+${Object.entries(part.args as Record<string, any>)
+  .map(([name, value]) => `<${name}>${value}</${name}>`)
+  .join('\n')}
+</parameters>
+</invoke>`);
+              break;
             }
             default: {
               const _exhaustiveCheck: never = part;
@@ -80,16 +87,39 @@ export function convertToAnthropicMessagesPrompt({
 
         messages.push({
           role: 'assistant',
-          content: text,
+          content:
+            text +
+            (toolCalls.length > 0
+              ? `<function_calls>\n${toolCalls.join('\n')}\n</function_calls>`
+              : ''),
         });
 
         break;
       }
       case 'tool': {
-        throw new UnsupportedFunctionalityError({
-          provider,
-          functionality: 'tool-role',
+        const results: string[] = [];
+
+        for (const { toolName, result } of content) {
+          results.push(`\
+<result>
+<tool_name>${toolName}</tool_name>
+<stdout>${JSON.stringify(result)}</stdout>
+</result>`);
+        }
+
+        messages.push({
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `<function_results>\n${results.join(
+                '\n',
+              )}\n</function_results>`,
+            },
+          ],
         });
+
+        break;
       }
       default: {
         const _exhaustiveCheck: never = role;
