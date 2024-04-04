@@ -1,6 +1,7 @@
 export * from './api-call-error';
 export * from './invalid-argument-error';
 export * from './invalid-data-content-error';
+export * from './invalid-json-schema-error';
 export * from './invalid-prompt-error';
 export * from './invalid-response-data-error';
 export * from './invalid-tool-arguments-error';
