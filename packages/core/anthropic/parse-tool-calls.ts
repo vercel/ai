@@ -21,6 +21,11 @@ export function parseToolCalls({
     const parser = new XMLParser();
 
     const startIndex = text.indexOf('<function_calls>');
+
+    if (startIndex === -1) {
+      throw new Error('No <function_calls> tag found in the text.');
+    }
+
     const xmlContent = `${text.substring(startIndex)}</function_calls>`;
 
     const rawFunctionCalls = parser.parse(xmlContent).function_calls;

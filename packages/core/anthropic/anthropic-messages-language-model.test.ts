@@ -9,12 +9,20 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const anthropic = new Anthropic({
+let anthropic: Anthropic = new Anthropic({
   apiKey: 'test-api-key',
   generateId: idCounter(),
 });
 
-const model = anthropic.messages('claude-3-haiku-20240307');
+let model = anthropic.messages('claude-3-haiku-20240307');
+
+beforeEach(() => {
+  anthropic = new Anthropic({
+    apiKey: 'test-api-key',
+    generateId: idCounter(),
+  });
+  model = anthropic.messages('claude-3-haiku-20240307');
+});
 
 describe('doGenerate', () => {
   const server = new JsonTestServer('https://api.anthropic.com/v1/messages');
@@ -124,6 +132,90 @@ You may call them like this:
 Here are the tools available:
 <tool_description>
 <tool_name>test-tool</tool_name>
+<parameters>
+<parameter>
+<name>value</name>
+<type>string</type>
+</parameter>
+</parameters>
+</tool_description>`);
+  });
+
+  it('should support object-tool mode', async () => {
+    prepareJsonResponse({
+      content: '<value>example value</value>\n</parameters>\n' + '</invoke>\n',
+      stopReason: 'stop_sequence',
+      stopSequence: '</function_calls>',
+    });
+
+    const { toolCalls, finishReason } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-tool',
+        tool: {
+          type: 'function',
+          name: 'json',
+          description: 'Respond with a JSON object.',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(toolCalls).toStrictEqual([
+      {
+        toolCallId: '0',
+        toolCallType: 'function',
+        toolName: 'json',
+        args: '{"value":"example value"}',
+      },
+    ]);
+    expect(finishReason).toStrictEqual('tool-calls');
+
+    // test enhanced system prompt and message injection
+    const bodyJson = await server.getRequestBodyJson();
+    expect(bodyJson.messages).toStrictEqual([
+      {
+        content: [
+          {
+            text: 'Hello',
+            type: 'text',
+          },
+        ],
+        role: 'user',
+      },
+      {
+        content: `<function_calls>
+<invoke>
+<tool_name>json</tool_name>
+<parameters>`,
+        role: 'assistant',
+      },
+    ]);
+    expect(bodyJson.system).toStrictEqual(`\
+In this environment you have access to a set of tools you can use to answer the user's question.
+
+You may call them like this:
+<function_calls>
+<invoke>
+<tool_name>$TOOL_NAME</tool_name>
+<parameters>
+<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>
+...
+</parameters>
+</invoke>
+</function_calls>
+
+Here are the tools available:
+<tool_description>
+<tool_name>json</tool_name>
+<description>Respond with a JSON object.</description>
 <parameters>
 <parameter>
 <name>value</name>

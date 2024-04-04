@@ -3,6 +3,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
+  LanguageModelV1FunctionTool,
   LanguageModelV1FunctionToolCall,
   LanguageModelV1StreamPart,
   ParseResult,
@@ -12,13 +13,14 @@ import {
   postJsonToApi,
 } from '../spec';
 import { anthropicFailedResponseHandler } from './anthropic-error';
+import { AnthropicMessage } from './anthropic-messages-prompt';
 import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
-import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { generateToolsHeader } from './generate-tools-header';
+import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { parseToolCalls } from './parse-tool-calls';
 
 type AnthropicMessagesConfig = {
@@ -30,7 +32,7 @@ type AnthropicMessagesConfig = {
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'json';
+  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: AnthropicMessagesModelId;
   readonly settings: AnthropicMessagesSettings;
@@ -110,52 +112,57 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        if (mode.tools == null || mode.tools.length === 0) {
+        const tools = mode.tools;
+
+        if (tools == null || tools.length === 0) {
           return {
             args: baseArgs,
             warnings,
+            prefix: '',
           };
         }
 
-        // inject a tools header into the system message:
-        const toolsHeader = generateToolsHeader({
-          tools: mode.tools,
-          provider: this.provider,
-        });
-
-        const system =
-          baseArgs.system != null
-            ? `${baseArgs.system}\n\n${toolsHeader}`
-            : toolsHeader;
-
         return {
-          args: {
-            ...baseArgs,
-            system,
-            stop_sequences: ['</function_calls>'],
-          },
+          args: injectToolsHeader({
+            baseArgs,
+            tools,
+            provider: this.provider,
+          }),
           warnings,
+          prefix: '',
         };
       }
 
       case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            response_format: { type: 'json_object' },
-          },
-          warnings,
-        };
+        throw new UnsupportedFunctionalityError({
+          functionality: 'object-json mode',
+          provider: this.provider,
+        });
       }
 
       case 'object-tool': {
+        const injected = injectToolsHeader({
+          baseArgs,
+          tools: [mode.tool],
+          provider: this.provider,
+        });
+
+        // provide the start of the assistant message to force the function call:
+        const prefix =
+          `<function_calls>\n<invoke>\n` +
+          `<tool_name>${mode.tool.name}</tool_name>\n` +
+          `<parameters>`;
+
         return {
           args: {
-            ...baseArgs,
-            tool_choice: 'any',
-            tools: [{ type: 'function', function: mode.tool }],
+            ...injected,
+            messages: [
+              ...injected.messages,
+              { role: 'assistant', content: prefix },
+            ],
           },
           warnings,
+          prefix,
         };
       }
 
@@ -176,7 +183,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings, prefix } = this.getArgs(options);
 
     const response = await postJsonToApi({
       url: `${this.config.baseUrl}/messages`,
@@ -192,17 +199,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       stopSequence: response.stop_sequence,
     });
 
-    let text = response.content.map(({ text }) => text).join('');
+    let text = prefix + response.content.map(({ text }) => text).join('');
     let toolCalls: LanguageModelV1FunctionToolCall[] | undefined = undefined;
 
     if (
       finishReason === 'tool-calls' &&
-      options.mode.type === 'regular' &&
-      options.mode.tools != null
+      ((options.mode.type === 'regular' && options.mode.tools != null) ||
+        options.mode.type === 'object-tool')
     ) {
       const parsedToolCalls = parseToolCalls({
         text,
-        tools: options.mode.tools,
+        tools:
+          options.mode.type === 'regular'
+            ? options.mode.tools!
+            : [options.mode.tool],
         generateId: this.config.generateId,
       });
 
@@ -386,3 +396,35 @@ const chunkSchema = z.discriminatedUnion('type', [
     type: z.literal('ping'),
   }),
 ]);
+
+function injectToolsHeader({
+  baseArgs,
+  tools,
+  provider,
+}: {
+  baseArgs: {
+    model: AnthropicMessagesModelId;
+    top_k: number | undefined;
+    max_tokens: number;
+    temperature: number | undefined;
+    top_p: number | undefined;
+    system: string | undefined;
+    messages: AnthropicMessage[];
+  };
+  tools: LanguageModelV1FunctionTool[];
+  provider: string;
+}) {
+  // inject a tools header into the system message:
+  const toolsHeader = generateToolsHeader({ tools, provider });
+
+  const system =
+    baseArgs.system != null
+      ? `${baseArgs.system}\n\n${toolsHeader}`
+      : toolsHeader;
+
+  return {
+    ...baseArgs,
+    system,
+    stop_sequences: ['</function_calls>'],
+  };
+}
