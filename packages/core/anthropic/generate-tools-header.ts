@@ -1,3 +1,4 @@
+import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import {
   LanguageModelV1FunctionTool,
   UnsupportedJSONSchemaError,
@@ -70,23 +71,48 @@ function generateToolXml({
 
   const properties = Object.entries(schema.properties);
   for (const [name, property] of properties) {
-    text += `<parameter>\n`;
-    text += `<name>${name}</name>\n`;
-
-    if (typeof property === 'boolean') {
-      throw new UnsupportedJSONSchemaError({
-        provider,
-        schema,
-        reason: 'Tool parameter properties must be objects.',
-      });
-    }
-
-    text += `<type>${property.type}</type>\n`;
-    text += `</parameter>\n`;
+    text += formatParameter({ name, property, provider, schema });
   }
 
   text += '</parameters>\n';
   text += '</tool_description>';
+
+  return text;
+}
+
+function formatParameter({
+  name,
+  property,
+  provider,
+  schema,
+}: {
+  name: string;
+  property: JSONSchema7Definition;
+  provider: string;
+  schema: JSONSchema7;
+}) {
+  let text = `<parameter>\n`;
+  text += `<name>${name}</name>\n`;
+
+  if (typeof property === 'boolean') {
+    throw new UnsupportedJSONSchemaError({
+      provider,
+      schema,
+      reason: 'Tool parameter properties must be objects.',
+    });
+  }
+
+  if (property.type === 'object') {
+    throw new UnsupportedJSONSchemaError({
+      provider,
+      schema,
+      reason: 'Nested objects are not supported.',
+    });
+  }
+
+  text += `<type>${property.type}</type>\n`;
+
+  text += `</parameter>\n`;
 
   return text;
 }

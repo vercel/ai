@@ -41,6 +41,42 @@ it('should generate tools header for a single tool with single string parameter'
   expect(toolsHeader).toMatchSnapshot();
 });
 
+it.skip('should generate tools header for a single tool with an object parameter', async () => {
+  const toolsHeader = generateToolsHeader({
+    provider: 'anthropic.messages',
+    tools: [
+      {
+        type: 'function',
+        name: 'my-function',
+        description: 'my function description.',
+        parameters: {
+          type: 'object',
+          properties: {
+            obj: {
+              type: 'object',
+              properties: {
+                value1: {
+                  type: 'string',
+                },
+                value2: {
+                  type: 'number',
+                },
+              },
+              required: ['value1', 'value2'],
+              additionalProperties: false,
+            },
+          },
+          required: ['obj'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+    ],
+  });
+
+  expect(toolsHeader).toMatchSnapshot();
+});
+
 it('should generate tools header for two tools with single parameter each', async () => {
   const toolsHeader = generateToolsHeader({
     provider: 'anthropic.messages',
