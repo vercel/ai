@@ -53,18 +53,15 @@ export function parseToolCall<TOOLS extends Record<string, ExperimentalTool>>({
   const toolName = toolCall.toolName as keyof TOOLS & string;
 
   if (tools == null) {
-    throw new NoSuchToolError({
-      message: `Tool ${toolCall.toolName} not found (no tools provided).`,
-      toolName: toolCall.toolName,
-    });
+    throw new NoSuchToolError({ toolName: toolCall.toolName });
   }
 
   const tool = tools[toolName];
 
   if (tool == null) {
     throw new NoSuchToolError({
-      message: `Tool ${toolCall.toolName} not found.`,
       toolName: toolCall.toolName,
+      availableTools: Object.keys(tools),
     });
   }
 
