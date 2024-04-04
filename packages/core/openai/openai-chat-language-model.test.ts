@@ -1,5 +1,3 @@
-import { z } from 'zod';
-import zodToJsonSchema from 'zod-to-json-schema';
 import { LanguageModelV1Prompt } from '../spec';
 import { convertStreamToArray } from '../spec/test/convert-stream-to-array';
 import { JsonTestServer } from '../spec/test/json-test-server';
@@ -209,7 +207,13 @@ describe('doStream', () => {
           {
             type: 'function',
             name: 'test-tool',
-            parameters: zodToJsonSchema(z.object({ value: z.string() })),
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
           },
         ],
       },
