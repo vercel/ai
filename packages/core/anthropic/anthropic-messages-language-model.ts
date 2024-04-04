@@ -3,6 +3,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
+  LanguageModelV1FunctionToolCall,
   LanguageModelV1StreamPart,
   ParseResult,
   UnsupportedFunctionalityError,
@@ -15,9 +16,10 @@ import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
-import { mapAnthropicFinishReason } from './map-anthropic-finish-reason';
+import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { generateToolsHeader } from './generate-tools-header';
+import { parseToolCalls } from './parse-tool-calls';
 
 type AnthropicMessagesConfig = {
   provider: string;
@@ -127,7 +129,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
             : toolsHeader;
 
         return {
-          args: { ...baseArgs, system },
+          args: {
+            ...baseArgs,
+            system,
+            stop_sequences: ['</function_calls>'],
+          },
           warnings,
         };
       }
@@ -177,22 +183,47 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        anthropicMessagesResponseSchema,
-      ),
+      successfulResponseHandler: createJsonResponseHandler(responseSchema),
       abortSignal: options.abortSignal,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
+    const finishReason = mapAnthropicStopReason({
+      stopReason: response.stop_reason,
+      stopSequence: response.stop_sequence,
+    });
+
+    let text = response.content.map(({ text }) => text).join('');
+    let toolCalls: LanguageModelV1FunctionToolCall[] | undefined = undefined;
+
+    if (
+      finishReason === 'tool-calls' &&
+      options.mode.type === 'regular' &&
+      options.mode.tools != null
+    ) {
+      const parsedToolCalls = parseToolCalls({
+        text,
+        tools: options.mode.tools,
+        generateId: this.config.generateId,
+      });
+
+      text = parsedToolCalls.modifiedText;
+      toolCalls = parsedToolCalls.toolCalls;
+    }
+
+    const { messages, system, ...rawSettings } = args;
 
     return {
-      text: response.content.map(({ text }) => text).join(''),
-      finishReason: mapAnthropicFinishReason(response.stop_reason),
+      text,
+      toolCalls,
+      finishReason,
       usage: {
         promptTokens: response.usage.input_tokens,
         completionTokens: response.usage.output_tokens,
       },
-      rawCall: { rawPrompt, rawSettings },
+      rawCall: {
+        rawPrompt: { system, messages },
+        rawSettings,
+      },
       warnings,
     };
   }
@@ -210,13 +241,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         stream: true,
       },
       failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(
-        anthropicMessagesChunkSchema,
-      ),
+      successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),
       abortSignal: options.abortSignal,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
+    const { messages, system, ...rawSettings } = args;
 
     let finishReason: LanguageModelV1FinishReason = 'other';
     const usage: { promptTokens: number; completionTokens: number } = {
@@ -229,7 +258,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof anthropicMessagesChunkSchema>>,
+          ParseResult<z.infer<typeof chunkSchema>>,
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
@@ -263,9 +292,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
               case 'message_delta': {
                 usage.completionTokens = value.usage.output_tokens;
-                finishReason = mapAnthropicFinishReason(
-                  value.delta.stop_reason,
-                );
+                finishReason = mapAnthropicStopReason({
+                  stopReason: value.delta.stop_reason,
+                  stopSequence: value.delta.stop_sequence,
+                });
                 return;
               }
 
@@ -282,7 +312,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
           },
         }),
       ),
-      rawCall: { rawPrompt, rawSettings },
+      rawCall: {
+        rawPrompt: { system, messages },
+        rawSettings,
+      },
       warnings,
     };
   }
@@ -290,7 +323,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const anthropicMessagesResponseSchema = z.object({
+const responseSchema = z.object({
   type: z.literal('message'),
   content: z.array(
     z.object({
@@ -299,6 +332,7 @@ const anthropicMessagesResponseSchema = z.object({
     }),
   ),
   stop_reason: z.string().optional().nullable(),
+  stop_sequence: z.string().optional().nullable(),
   usage: z.object({
     input_tokens: z.number(),
     output_tokens: z.number(),
@@ -307,7 +341,7 @@ const anthropicMessagesResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
+const chunkSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('message_start'),
     message: z.object({
@@ -339,7 +373,10 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('message_delta'),
-    delta: z.object({ stop_reason: z.string().optional().nullable() }),
+    delta: z.object({
+      stop_reason: z.string().optional().nullable(),
+      stop_sequence: z.string().optional().nullable(),
+    }),
     usage: z.object({ output_tokens: z.number() }),
   }),
   z.object({

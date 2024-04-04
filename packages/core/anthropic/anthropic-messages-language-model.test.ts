@@ -1,5 +1,6 @@
 import { LanguageModelV1Prompt } from '../spec';
 import { convertStreamToArray } from '../spec/test/convert-stream-to-array';
+import { idCounter } from '../spec/test/id-counter';
 import { JsonTestServer } from '../spec/test/json-test-server';
 import { StreamingTestServer } from '../spec/test/streaming-test-server';
 import { Anthropic } from './anthropic-facade';
@@ -10,6 +11,7 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
 
 const anthropic = new Anthropic({
   apiKey: 'test-api-key',
+  generateId: idCounter(),
 });
 
 const model = anthropic.messages('claude-3-haiku-20240307');
@@ -25,12 +27,16 @@ describe('doGenerate', () => {
       input_tokens: 4,
       output_tokens: 30,
     },
+    stopReason = 'end_turn',
+    stopSequence,
   }: {
     content?: string;
     usage?: {
       input_tokens: number;
       output_tokens: number;
     };
+    stopReason?: string;
+    stopSequence?: string;
   }) {
     server.responseBodyJson = {
       id: 'msg_017TfcQ4AgGxKyBduUpqYPZn',
@@ -38,8 +44,8 @@ describe('doGenerate', () => {
       role: 'assistant',
       content: [{ type: 'text', text: content }],
       model: 'claude-3-haiku-20240307',
-      stop_reason: 'end_turn',
-      stop_sequence: null,
+      stop_reason: stopReason,
+      stop_sequence: stopSequence ?? null,
       usage,
     };
   }
@@ -54,6 +60,77 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('Hello, World!');
+  });
+
+  it('should extract tool calls', async () => {
+    prepareJsonResponse({
+      content:
+        'Some text\n\n' +
+        '<function_calls>\n<invoke>\n' +
+        '<tool_name>test-tool</tool_name>\n' +
+        '<parameters>\n<value>example value</value>\n</parameters>\n' +
+        '</invoke>\n',
+      stopReason: 'stop_sequence',
+      stopSequence: '</function_calls>',
+    });
+
+    const { toolCalls, finishReason, text } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(toolCalls).toStrictEqual([
+      {
+        toolCallId: '0',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        args: '{"value":"example value"}',
+      },
+    ]);
+    expect(text).toStrictEqual('Some text\n\n');
+    expect(finishReason).toStrictEqual('tool-calls');
+
+    // test enhanced system prompt
+    expect((await server.getRequestBodyJson()).system).toStrictEqual(`\
+In this environment you have access to a set of tools you can use to answer the user's question.
+
+You may call them like this:
+<function_calls>
+<invoke>
+<tool_name>$TOOL_NAME</tool_name>
+<parameters>
+<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>
+...
+</parameters>
+</invoke>
+</function_calls>
+
+Here are the tools available:
+<tool_description>
+<tool_name>test-tool</tool_name>
+<parameters>
+<parameter>
+<name>value</name>
+<type>string</type>
+</parameter>
+</parameters>
+</tool_description>`);
   });
 
   it('should extract usage', async () => {
@@ -167,51 +244,6 @@ describe('doStream', () => {
       max_tokens: 4096, // default value
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     });
-  });
-
-  it.skip('should scale the temperature', async () => {
-    prepareStreamResponse({ content: [] });
-
-    await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      temperature: 0.5,
-    });
-
-    expect((await server.getRequestBodyJson()).temperature).toBeCloseTo(1, 5);
-  });
-
-  it.skip('should scale the frequency penalty', async () => {
-    prepareStreamResponse({ content: [] });
-
-    await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      frequencyPenalty: 0.2,
-    });
-
-    expect((await server.getRequestBodyJson()).frequency_penalty).toBeCloseTo(
-      0.4,
-      5,
-    );
-  });
-
-  it.skip('should scale the presence penalty', async () => {
-    prepareStreamResponse({ content: [] });
-
-    await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      presencePenalty: -0.9,
-    });
-
-    expect((await server.getRequestBodyJson()).presence_penalty).toBeCloseTo(
-      -1.8,
-      5,
-    );
   });
 
   it('should pass the api key as Authorization header', async () => {

@@ -118,7 +118,8 @@
     "@types/json-schema": "7.0.15",
     "secure-json-parse": "2.7.0",
     "eventsource-parser": "1.1.2",
-    "jsondiffpatch": "^0.6.0",
+    "fast-xml-parser": "4.3.6",
+    "jsondiffpatch": "0.6.0",
     "json-schema": "0.4.0",
     "nanoid": "3.3.6",
     "solid-swr-store": "0.10.7",
@@ -126,7 +127,7 @@
     "swr": "2.2.0",
     "swr-store": "0.10.6",
     "swrv": "1.0.4",
-    "zod-to-json-schema": "^3.22.4"
+    "zod-to-json-schema": "3.22.5"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.18.0",
