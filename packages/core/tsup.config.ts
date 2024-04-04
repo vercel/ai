@@ -106,6 +106,13 @@ export default defineConfig([
 
   // AI Core: Providers
   {
+    entry: ['anthropic/index.ts'],
+    format: ['cjs', 'esm'],
+    outDir: 'anthropic/dist',
+    dts: true,
+    sourcemap: true,
+  },
+  {
     entry: ['google/index.ts'],
     format: ['cjs', 'esm'],
     outDir: 'google/dist',

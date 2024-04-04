@@ -10,34 +10,34 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
 } from '../spec';
-import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
-import { mapMistralFinishReason } from './map-mistral-finish-reason';
+import { anthropicFailedResponseHandler } from './anthropic-error';
 import {
-  MistralChatModelId,
-  MistralChatSettings,
-} from './mistral-chat-settings';
-import { mistralFailedResponseHandler } from './mistral-error';
+  AnthropicMessagesModelId,
+  AnthropicMessagesSettings,
+} from './anthropic-messages-settings';
+import { mapAnthropicFinishReason } from './map-anthropic-finish-reason';
+import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 
-type MistralChatConfig = {
+type AnthropicMessagesConfig = {
   provider: string;
   baseUrl: string;
   headers: () => Record<string, string | undefined>;
   generateId: () => string;
 };
 
-export class MistralChatLanguageModel implements LanguageModelV1 {
+export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = 'json';
 
-  readonly modelId: MistralChatModelId;
-  readonly settings: MistralChatSettings;
+  readonly modelId: AnthropicMessagesModelId;
+  readonly settings: AnthropicMessagesSettings;
 
-  private readonly config: MistralChatConfig;
+  private readonly config: AnthropicMessagesConfig;
 
   constructor(
-    modelId: MistralChatModelId,
-    settings: MistralChatSettings,
-    config: MistralChatConfig,
+    modelId: AnthropicMessagesModelId,
+    settings: AnthropicMessagesSettings,
+    config: AnthropicMessagesConfig,
   ) {
     this.modelId = modelId;
     this.settings = settings;
@@ -76,24 +76,33 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (seed != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'seed',
+      });
+    }
+
+    const messagesPrompt = convertToAnthropicMessagesPrompt({
+      provider: this.provider,
+      prompt,
+    });
+
     const baseArgs = {
       // model id:
       model: this.modelId,
 
       // model specific settings:
-      safe_prompt: this.settings.safePrompt,
+      top_k: this.settings.topK,
 
       // standardized settings:
-      max_tokens: maxTokens,
+      max_tokens: maxTokens ?? 4096, // 4096: max model output tokens
       temperature, // uses 0..1 scale
       top_p: topP,
-      random_seed: seed,
 
-      // messages:
-      messages: convertToMistralChatMessages({
-        provider: this.provider,
-        prompt,
-      }),
+      // prompt:
+      system: messagesPrompt.system,
+      messages: messagesPrompt.messages,
     };
 
     switch (type) {
@@ -158,31 +167,24 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     const { args, warnings } = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/chat/completions`,
+      url: `${this.config.baseUrl}/messages`,
       headers: this.config.headers(),
       body: args,
-      failedResponseHandler: mistralFailedResponseHandler,
+      failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        mistralChatResponseSchema,
+        anthropicMessagesResponseSchema,
       ),
       abortSignal: options.abortSignal,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;
-    const choice = response.choices[0];
 
     return {
-      text: choice.message.content ?? undefined,
-      toolCalls: choice.message.tool_calls?.map(toolCall => ({
-        toolCallType: 'function',
-        toolCallId: this.config.generateId(),
-        toolName: toolCall.function.name,
-        args: toolCall.function.arguments!,
-      })),
-      finishReason: mapMistralFinishReason(choice.finish_reason),
+      text: response.content.map(({ text }) => text).join(''),
+      finishReason: mapAnthropicFinishReason(response.stop_reason),
       usage: {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
+        promptTokens: response.usage.input_tokens,
+        completionTokens: response.usage.output_tokens,
       },
       rawCall: { rawPrompt, rawSettings },
       warnings,
@@ -195,15 +197,15 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     const { args, warnings } = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/chat/completions`,
+      url: `${this.config.baseUrl}/messages`,
       headers: this.config.headers(),
       body: {
         ...args,
         stream: true,
       },
-      failedResponseHandler: mistralFailedResponseHandler,
+      failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
-        mistralChatChunkSchema,
+        anthropicMessagesChunkSchema,
       ),
       abortSignal: options.abortSignal,
     });
@@ -211,7 +213,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
 
     let finishReason: LanguageModelV1FinishReason = 'other';
-    let usage: { promptTokens: number; completionTokens: number } = {
+    const usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
@@ -221,7 +223,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof mistralChatChunkSchema>>,
+          ParseResult<z.infer<typeof anthropicMessagesChunkSchema>>,
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
@@ -232,59 +234,45 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
             const value = chunk.value;
 
-            if (value.usage != null) {
-              usage = {
-                promptTokens: value.usage.prompt_tokens,
-                completionTokens: value.usage.completion_tokens,
-              };
-            }
+            switch (value.type) {
+              case 'ping':
+              case 'content_block_start':
+              case 'content_block_stop': {
+                return; // ignored
+              }
 
-            const choice = value.choices[0];
-
-            if (choice?.finish_reason != null) {
-              finishReason = mapMistralFinishReason(choice.finish_reason);
-            }
-
-            if (choice?.delta == null) {
-              return;
-            }
-
-            const delta = choice.delta;
-
-            if (delta.content != null) {
-              controller.enqueue({
-                type: 'text-delta',
-                textDelta: delta.content,
-              });
-            }
-
-            if (delta.tool_calls != null) {
-              for (const toolCall of delta.tool_calls) {
-                // mistral tool calls come in one piece
-
-                const toolCallId = generateId(); // delta and tool call must have same id
-
+              case 'content_block_delta': {
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId,
-                  toolName: toolCall.function.name,
-                  argsTextDelta: toolCall.function.arguments,
+                  type: 'text-delta',
+                  textDelta: value.delta.text,
                 });
+                return;
+              }
 
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId,
-                  toolName: toolCall.function.name,
-                  args: toolCall.function.arguments,
-                });
+              case 'message_start': {
+                usage.promptTokens = value.message.usage.input_tokens;
+                usage.completionTokens = value.message.usage.output_tokens;
+                return;
+              }
+
+              case 'message_delta': {
+                usage.completionTokens = value.usage.output_tokens;
+                finishReason = mapAnthropicFinishReason(
+                  value.delta.stop_reason,
+                );
+                return;
+              }
+
+              case 'message_stop': {
+                controller.enqueue({ type: 'finish', finishReason, usage });
+                return;
+              }
+
+              default: {
+                const _exhaustiveCheck: never = value;
+                throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
               }
             }
-          },
-
-          flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
           },
         }),
       ),
@@ -296,62 +284,62 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const mistralChatResponseSchema = z.object({
-  choices: z.array(
+const anthropicMessagesResponseSchema = z.object({
+  type: z.literal('message'),
+  content: z.array(
     z.object({
-      message: z.object({
-        role: z.literal('assistant'),
-        content: z.string().nullable(),
-        tool_calls: z
-          .array(
-            z.object({
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .optional()
-          .nullable(),
-      }),
-      index: z.number(),
-      finish_reason: z.string().optional().nullable(),
+      type: z.literal('text'),
+      text: z.string(),
     }),
   ),
-  object: z.literal('chat.completion'),
+  stop_reason: z.string().optional().nullable(),
   usage: z.object({
-    prompt_tokens: z.number(),
-    completion_tokens: z.number(),
+    input_tokens: z.number(),
+    output_tokens: z.number(),
   }),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const mistralChatChunkSchema = z.object({
-  object: z.literal('chat.completion.chunk'),
-  choices: z.array(
-    z.object({
-      delta: z.object({
-        role: z.enum(['assistant']).optional(),
-        content: z.string().nullable().optional(),
-        tool_calls: z
-          .array(
-            z.object({
-              function: z.object({ name: z.string(), arguments: z.string() }),
-            }),
-          )
-          .optional()
-          .nullable(),
+const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('message_start'),
+    message: z.object({
+      usage: z.object({
+        input_tokens: z.number(),
+        output_tokens: z.number(),
       }),
-      finish_reason: z.string().nullable().optional(),
-      index: z.number(),
     }),
-  ),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      completion_tokens: z.number(),
-    })
-    .optional()
-    .nullable(),
-});
+  }),
+  z.object({
+    type: z.literal('content_block_start'),
+    index: z.number(),
+    content_block: z.object({
+      type: z.literal('text'),
+      text: z.string(),
+    }),
+  }),
+  z.object({
+    type: z.literal('content_block_delta'),
+    index: z.number(),
+    delta: z.object({
+      type: z.literal('text_delta'),
+      text: z.string(),
+    }),
+  }),
+  z.object({
+    type: z.literal('content_block_stop'),
+    index: z.number(),
+  }),
+  z.object({
+    type: z.literal('message_delta'),
+    delta: z.object({ stop_reason: z.string().optional().nullable() }),
+    usage: z.object({ output_tokens: z.number() }),
+  }),
+  z.object({
+    type: z.literal('message_stop'),
+  }),
+  z.object({
+    type: z.literal('ping'),
+  }),
+]);

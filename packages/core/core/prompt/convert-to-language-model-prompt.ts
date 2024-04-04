@@ -4,6 +4,7 @@ import {
   LanguageModelV1Prompt,
   LanguageModelV1TextPart,
 } from '../../spec';
+import { detectImageMimeType } from '../util/detect-image-mimetype';
 import { convertDataContentToUint8Array } from './data-content';
 import { ValidatedPrompt } from './get-validated-prompt';
 
@@ -49,13 +50,23 @@ export function convertToLanguageModelPrompt(
                       }
 
                       case 'image': {
+                        if (part.image instanceof URL) {
+                          return {
+                            type: 'image',
+                            image: part.image,
+                            mimeType: part.mimeType,
+                          };
+                        }
+
+                        const imageUint8 = convertDataContentToUint8Array(
+                          part.image,
+                        );
+
                         return {
                           type: 'image',
-                          image:
-                            part.image instanceof URL
-                              ? part.image
-                              : convertDataContentToUint8Array(part.image),
-                          mimeType: part.mimeType,
+                          image: imageUint8,
+                          mimeType:
+                            part.mimeType ?? detectImageMimeType(imageUint8),
                         };
                       }
                     }
