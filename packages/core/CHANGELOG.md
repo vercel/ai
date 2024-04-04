@@ -1,5 +1,12 @@
 # ai
 
+## 3.0.18
+
+### Patch Changes
+
+- 63d587e: Add Anthropic provider for ai/core functions (no tool calling).
+- 63d587e: Add automatic mime type detection for images in ai/core prompts.
+
 ## 3.0.17
 
 ### Patch Changes
