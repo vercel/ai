@@ -5,6 +5,7 @@ import { JsonTestServer } from '../spec/test/json-test-server';
 import { StreamingTestServer } from '../spec/test/streaming-test-server';
 import { Mistral } from './mistral-facade';
 import { z } from 'zod';
+import { convertZodToJSONSchema } from '../core/util/convert-zod-to-json-schema';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -191,7 +192,9 @@ describe('doStream', () => {
             {
               type: 'function',
               name: 'test-tool',
-              parameters: zodToJsonSchema(z.object({ value: z.string() })),
+              parameters: convertZodToJSONSchema(
+                z.object({ value: z.string() }),
+              ),
             },
           ],
         },
