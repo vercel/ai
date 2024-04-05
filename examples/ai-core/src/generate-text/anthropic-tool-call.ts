@@ -1,16 +1,14 @@
 import { experimental_generateText, tool } from 'ai';
-import { OpenAI } from 'ai/openai';
+import { anthropic } from 'ai/anthropic';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 dotenv.config();
 
-const openai = new OpenAI();
-
 async function main() {
   const result = await experimental_generateText({
-    model: openai.chat('gpt-3.5-turbo'),
+    model: anthropic.messages('claude-3-opus-20240229'),
     maxTokens: 512,
     tools: {
       weather: weatherTool,

@@ -1,15 +1,13 @@
 import { experimental_generateObject } from 'ai';
-import { Mistral } from 'ai/mistral';
+import { anthropic } from 'ai/anthropic';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
 dotenv.config();
 
-const mistral = new Mistral();
-
 async function main() {
   const result = await experimental_generateObject({
-    model: mistral.chat('open-mistral-7b'),
+    model: anthropic.messages('claude-3-opus-20240229'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),
@@ -25,7 +23,7 @@ async function main() {
     prompt: 'Generate a lasagna recipe.',
   });
 
-  console.log(JSON.stringify(result.object.recipe, null, 2));
+  console.log(JSON.stringify(result.object, null, 2));
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);

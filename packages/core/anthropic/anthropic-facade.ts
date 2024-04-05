@@ -1,4 +1,4 @@
-import { generateId, loadApiKey } from '../spec';
+import { loadApiKey } from '../spec';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import {
   AnthropicMessagesModelId,
@@ -12,8 +12,6 @@ export class Anthropic {
   readonly baseUrl?: string;
   readonly apiKey?: string;
 
-  private readonly generateId: () => string;
-
   constructor(
     options: {
       baseUrl?: string;
@@ -23,7 +21,6 @@ export class Anthropic {
   ) {
     this.baseUrl = options.baseUrl;
     this.apiKey = options.apiKey;
-    this.generateId = options.generateId ?? generateId;
   }
 
   private get baseConfig() {
@@ -31,6 +28,7 @@ export class Anthropic {
       baseUrl: this.baseUrl ?? 'https://api.anthropic.com/v1',
       headers: () => ({
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'tools-2024-04-04',
         'x-api-key': loadApiKey({
           apiKey: this.apiKey,
           environmentVariableName: 'ANTHROPIC_API_KEY',
@@ -47,7 +45,6 @@ export class Anthropic {
     return new AnthropicMessagesLanguageModel(modelId, settings, {
       provider: 'anthropic.messages',
       ...this.baseConfig,
-      generateId: this.generateId,
     });
   }
 }

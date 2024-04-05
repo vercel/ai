@@ -18,4 +18,4 @@ async function main() {
   console.log('Finish reason:', result.finishReason);
 }
 
-main();
+main().catch(console.error);
