@@ -51,25 +51,11 @@ async function main() {
 
     messages.push({
       role: 'assistant',
-      content: [
-        { type: 'text', text },
-        // TODO remove mapping
-        ...(toolCalls.map(toolCall => ({
-          type: 'tool-call' as const,
-          ...toolCall,
-        })) ?? []),
-      ],
+      content: [{ type: 'text', text }, ...(toolCalls ?? [])],
     });
 
     if (toolResults.length > 0) {
-      messages.push({
-        role: 'tool',
-        // TODO remove mapping
-        content: toolResults.map(result => ({
-          type: 'tool-result',
-          ...result,
-        })),
-      });
+      messages.push({ role: 'tool', content: toolResults });
     }
 
     toolResponseAvailable = toolCalls.length > 0;
