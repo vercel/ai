@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.19
+
+### Patch Changes
+
+- 4f4c7f5: ai/core: Anthropic tool call support
+
 ## 3.0.18
 
 ### Patch Changes
