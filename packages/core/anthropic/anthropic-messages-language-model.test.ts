@@ -3,6 +3,7 @@ import { convertStreamToArray } from '../spec/test/convert-stream-to-array';
 import { JsonTestServer } from '../spec/test/json-test-server';
 import { StreamingTestServer } from '../spec/test/streaming-test-server';
 import { Anthropic } from './anthropic-facade';
+import { AnthropicAssistantMessage } from './anthropic-messages-prompt';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -20,32 +21,34 @@ describe('doGenerate', () => {
   server.setupTestEnvironment();
 
   function prepareJsonResponse({
-    content = '',
+    content = [{ type: 'text', text: '' }],
     usage = {
       input_tokens: 4,
       output_tokens: 30,
     },
+    stopReason = 'end_turn',
   }: {
-    content?: string;
+    content?: AnthropicAssistantMessage['content'];
     usage?: {
       input_tokens: number;
       output_tokens: number;
     };
+    stopReason?: string;
   }) {
     server.responseBodyJson = {
       id: 'msg_017TfcQ4AgGxKyBduUpqYPZn',
       type: 'message',
       role: 'assistant',
-      content: [{ type: 'text', text: content }],
+      content,
       model: 'claude-3-haiku-20240307',
-      stop_reason: 'end_turn',
+      stop_reason: stopReason,
       stop_sequence: null,
       usage,
     };
   }
 
   it('should extract text response', async () => {
-    prepareJsonResponse({ content: 'Hello, World!' });
+    prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
     const { text } = await anthropic.messages('gpt-3.5-turbo').doGenerate({
       inputFormat: 'prompt',
@@ -56,9 +59,100 @@ describe('doGenerate', () => {
     expect(text).toStrictEqual('Hello, World!');
   });
 
+  it('should extract tool calls', async () => {
+    prepareJsonResponse({
+      content: [
+        { type: 'text', text: 'Some text\n\n' },
+        {
+          type: 'tool_use',
+          id: 'toolu_1',
+          name: 'test-tool',
+          input: { value: 'example value' },
+        },
+      ],
+      stopReason: 'tool_use',
+    });
+
+    const { toolCalls, finishReason, text } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(toolCalls).toStrictEqual([
+      {
+        toolCallId: 'toolu_1',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        args: '{"value":"example value"}',
+      },
+    ]);
+    expect(text).toStrictEqual('Some text\n\n');
+    expect(finishReason).toStrictEqual('tool-calls');
+  });
+
+  it('should support object-tool mode', async () => {
+    prepareJsonResponse({
+      content: [
+        { type: 'text', text: 'Some text\n\n' },
+        {
+          type: 'tool_use',
+          id: 'toolu_1',
+          name: 'json',
+          input: { value: 'example value' },
+        },
+      ],
+      stopReason: 'tool_use',
+    });
+
+    const { toolCalls, finishReason } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-tool',
+        tool: {
+          type: 'function',
+          name: 'json',
+          description: 'Respond with a JSON object.',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(toolCalls).toStrictEqual([
+      {
+        toolCallId: 'toolu_1',
+        toolCallType: 'function',
+        toolName: 'json',
+        args: '{"value":"example value"}',
+      },
+    ]);
+    expect(finishReason).toStrictEqual('tool-calls');
+  });
+
   it('should extract usage', async () => {
     prepareJsonResponse({
-      content: '',
       usage: { input_tokens: 20, output_tokens: 5 },
     });
 
@@ -75,7 +169,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass the model and the messages', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonResponse({});
 
     await model.doGenerate({
       inputFormat: 'prompt',
@@ -91,7 +185,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass the api key as Authorization header', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonResponse({});
 
     const anthropic = new Anthropic({
       apiKey: 'test-api-key',
@@ -167,51 +261,6 @@ describe('doStream', () => {
       max_tokens: 4096, // default value
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     });
-  });
-
-  it.skip('should scale the temperature', async () => {
-    prepareStreamResponse({ content: [] });
-
-    await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      temperature: 0.5,
-    });
-
-    expect((await server.getRequestBodyJson()).temperature).toBeCloseTo(1, 5);
-  });
-
-  it.skip('should scale the frequency penalty', async () => {
-    prepareStreamResponse({ content: [] });
-
-    await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      frequencyPenalty: 0.2,
-    });
-
-    expect((await server.getRequestBodyJson()).frequency_penalty).toBeCloseTo(
-      0.4,
-      5,
-    );
-  });
-
-  it.skip('should scale the presence penalty', async () => {
-    prepareStreamResponse({ content: [] });
-
-    await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      presencePenalty: -0.9,
-    });
-
-    expect((await server.getRequestBodyJson()).presence_penalty).toBeCloseTo(
-      -1.8,
-      5,
-    );
   });
 
   it('should pass the api key as Authorization header', async () => {
