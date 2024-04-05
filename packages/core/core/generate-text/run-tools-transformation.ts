@@ -52,10 +52,7 @@ export function runToolsTransformation<
           if (tools == null) {
             toolResultsStreamController!.enqueue({
               type: 'error',
-              error: new NoSuchToolError({
-                message: `Tool ${chunk.toolName} not found (no tools provided).`,
-                toolName: chunk.toolName,
-              }),
+              error: new NoSuchToolError({ toolName: chunk.toolName }),
             });
             break;
           }
@@ -66,8 +63,8 @@ export function runToolsTransformation<
             toolResultsStreamController!.enqueue({
               type: 'error',
               error: new NoSuchToolError({
-                message: `Tool ${chunk.toolName} not found.`,
                 toolName: chunk.toolName,
+                availableTools: Object.keys(tools),
               }),
             });
 
@@ -80,10 +77,7 @@ export function runToolsTransformation<
               tools,
             });
 
-            controller.enqueue({
-              type: 'tool-call',
-              ...toolCall,
-            });
+            controller.enqueue(toolCall);
 
             if (tool.execute != null) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
@@ -95,8 +89,8 @@ export function runToolsTransformation<
               tool.execute(toolCall.args).then(
                 (result: any) => {
                   toolResultsStreamController!.enqueue({
-                    type: 'tool-result',
                     ...toolCall,
+                    type: 'tool-result',
                     result,
                   } as any);
 

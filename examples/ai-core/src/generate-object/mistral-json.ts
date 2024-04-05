@@ -29,4 +29,4 @@ async function main() {
   console.log(JSON.stringify(result.object, null, 2));
 }
 
-main();
+main().catch(console.error);

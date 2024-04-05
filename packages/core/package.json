@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "3.0.15",
+  "version": "3.0.19",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -15,12 +15,14 @@
     "prompts/dist/**/*",
     "rsc/dist/**/*",
     "spec/dist/**/*",
+    "google/dist/**/*",
     "openai/dist/**/*",
+    "anthropic/dist/**/*",
     "mistral/dist/**/*"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
-    "clean": "rm -rf dist && rm -rf core/dist && rm -rf openai/dist && rm -rf mistral/dist && rm -rf spec/dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist && rm -rf rsc/dist",
+    "clean": "rm -rf dist && rm -rf core/dist && rm -rf google/dist && rm -rf anthropic/dist && rm -rf openai/dist && rm -rf mistral/dist && rm -rf spec/dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist && rm -rf rsc/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -29,6 +31,8 @@
     "test:edge": "vitest --config vitest.edge.config.js --run --threads=false",
     "test:node": "vitest --config vitest.node.config.js --run --threads=false",
     "test:node:core": "pnpm vitest --config vitest.node.config.js --run --threads=false ./core/",
+    "test:node:anthropic": "pnpm vitest --config vitest.node.config.js --run --threads=false ./anthropic/",
+    "test:node:google": "pnpm vitest --config vitest.node.config.js --run --threads=false ./google/",
     "test:node:openai": "pnpm vitest --config vitest.node.config.js --run --threads=false ./openai/",
     "test:node:mistral": "pnpm vitest --config vitest.node.config.js --run --threads=false ./mistral/",
     "test:ui": "pnpm test:ui:react && pnpm test:ui:vue && pnpm test:ui:solid",
@@ -53,6 +57,18 @@
       "import": "./spec/dist/index.mjs",
       "module": "./spec/dist/index.mjs",
       "require": "./spec/dist/index.js"
+    },
+    "./anthropic": {
+      "types": "./anthropic/dist/index.d.ts",
+      "import": "./anthropic/dist/index.mjs",
+      "module": "./anthropic/dist/index.mjs",
+      "require": "./anthropic/dist/index.js"
+    },
+    "./google": {
+      "types": "./google/dist/index.d.ts",
+      "import": "./google/dist/index.mjs",
+      "module": "./google/dist/index.mjs",
+      "require": "./google/dist/index.js"
     },
     "./openai": {
       "types": "./openai/dist/index.d.ts",
@@ -99,16 +115,18 @@
     }
   },
   "dependencies": {
+    "@types/json-schema": "7.0.15",
     "secure-json-parse": "2.7.0",
     "eventsource-parser": "1.1.2",
-    "jsondiffpatch": "^0.6.0",
+    "jsondiffpatch": "0.6.0",
+    "json-schema": "0.4.0",
     "nanoid": "3.3.6",
     "solid-swr-store": "0.10.7",
     "sswr": "2.0.0",
     "swr": "2.2.0",
     "swr-store": "0.10.6",
     "swrv": "1.0.4",
-    "zod-to-json-schema": "^3.22.4"
+    "zod-to-json-schema": "3.22.5"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.18.0",

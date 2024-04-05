@@ -102,6 +102,7 @@ describe('result.toolCalls', () => {
 
     assert.deepStrictEqual(result.toolCalls, [
       {
+        type: 'tool-call',
         toolCallId: 'call-1',
         toolName: 'tool1',
         args: { value: 'value' },

@@ -1,4 +1,4 @@
-import { JsonSchema } from '../../util/json-schema';
+import { JSONSchema7 } from 'json-schema';
 import { LanguageModelV1CallSettings } from './language-model-v1-call-settings';
 import { LanguageModelV1FunctionTool } from './language-model-v1-function-tool';
 import { LanguageModelV1Prompt } from './language-model-v1-prompt';
@@ -33,7 +33,7 @@ export type LanguageModelV1CallOptions = LanguageModelV1CallSettings & {
     | {
         // object generation with grammar enabled (streaming: text delta)
         type: 'object-grammar';
-        schema: JsonSchema;
+        schema: JSONSchema7;
       }
     | {
         // object generation with tool mode enabled (streaming: tool call deltas)

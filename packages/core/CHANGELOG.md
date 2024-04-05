@@ -1,5 +1,30 @@
 # ai
 
+## 3.0.19
+
+### Patch Changes
+
+- 4f4c7f5: ai/core: Anthropic tool call support
+
+## 3.0.18
+
+### Patch Changes
+
+- 63d587e: Add Anthropic provider for ai/core functions (no tool calling).
+- 63d587e: Add automatic mime type detection for images in ai/core prompts.
+
+## 3.0.17
+
+### Patch Changes
+
+- 2b991c4: Add Google Generative AI provider for ai/core functions.
+
+## 3.0.16
+
+### Patch Changes
+
+- a54ea77: feat(ai/rsc): add `useStreamableValue`
+
 ## 3.0.15
 
 ### Patch Changes
