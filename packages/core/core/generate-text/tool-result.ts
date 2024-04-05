@@ -45,6 +45,7 @@ type ToToolsWithDefinedExecute<TOOLS extends Record<string, ExperimentalTool>> =
 type ToToolResultObject<TOOLS extends Record<string, ExperimentalTool>> =
   ValueOf<{
     [NAME in keyof TOOLS]: {
+      type: 'tool-result';
       toolCallId: string;
       toolName: NAME & string;
       args: z.infer<TOOLS[NAME]['parameters']>;

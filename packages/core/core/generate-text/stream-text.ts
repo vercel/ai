@@ -1,4 +1,3 @@
-import zodToJsonSchema from 'zod-to-json-schema';
 import { LanguageModelV1FinishReason } from '../../spec';
 import { LanguageModelV1, LanguageModelV1CallWarning } from '../../spec/index';
 import {
@@ -17,6 +16,7 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
 import { ToToolCall } from './tool-call';
@@ -94,7 +94,7 @@ The tools that the model can call. The model needs to support calling tools.
                 type: 'function',
                 name,
                 description: tool.description,
-                parameters: zodToJsonSchema(tool.parameters),
+                parameters: convertZodToJSONSchema(tool.parameters),
               })),
       },
       ...prepareCallSettings(settings),

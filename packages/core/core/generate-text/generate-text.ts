@@ -1,4 +1,3 @@
-import zodToJsonSchema from 'zod-to-json-schema';
 import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
@@ -10,6 +9,7 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { ExperimentalTool } from '../tool/tool';
+import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { TokenUsage, calculateTokenUsage } from './token-usage';
 import { ToToolCallArray, parseToolCall } from './tool-call';
@@ -87,7 +87,7 @@ The tools that the model can call. The model needs to support calling tools.
                 type: 'function',
                 name,
                 description: tool.description,
-                parameters: zodToJsonSchema(tool.parameters),
+                parameters: convertZodToJSONSchema(tool.parameters),
               })),
       },
       ...prepareCallSettings(settings),

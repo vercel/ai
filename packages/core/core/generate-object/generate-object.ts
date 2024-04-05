@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import zodToJsonSchema from 'zod-to-json-schema';
 import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
@@ -13,6 +12,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
+import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 
@@ -84,7 +84,7 @@ Default and recommended: 'auto' (best mode for the model).
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
   }): Promise<GenerateObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
-  const jsonSchema = zodToJsonSchema(schema);
+  const jsonSchema = convertZodToJSONSchema(schema);
 
   // use the default provider mode when the mode is set to 'auto' or unspecified
   if (mode === 'auto' || mode == null) {
