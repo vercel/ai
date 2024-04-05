@@ -3,6 +3,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
+  LanguageModelV1FunctionToolCall,
   LanguageModelV1StreamPart,
   ParseResult,
   UnsupportedFunctionalityError,
@@ -15,8 +16,8 @@ import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
-import { mapAnthropicFinishReason } from './map-anthropic-finish-reason';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
+import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 type AnthropicMessagesConfig = {
   provider: string;
@@ -114,12 +115,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
           args: {
             ...baseArgs,
             tools: tools?.map(tool => ({
-              type: 'function',
-              function: {
-                name: tool.name,
-                description: tool.description,
-                parameters: tool.parameters,
-              },
+              name: tool.name,
+              description: tool.description,
+              input_schema: tool.parameters,
             })),
           },
           warnings,
@@ -127,21 +125,23 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            response_format: { type: 'json_object' },
-          },
-          warnings,
-        };
+        throw new UnsupportedFunctionalityError({
+          functionality: 'object-json mode',
+          provider: this.provider,
+        });
       }
 
       case 'object-tool': {
         return {
           args: {
             ...baseArgs,
-            tool_choice: 'any',
-            tools: [{ type: 'function', function: mode.tool }],
+            tools: [
+              {
+                name: mode.tool.name,
+                description: mode.tool.description,
+                input_schema: mode.tool.parameters,
+              },
+            ],
           },
           warnings,
         };
@@ -179,9 +179,34 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
+    // extract text
+    let text = '';
+    for (const content of response.content) {
+      if (content.type === 'text') {
+        text += content.text;
+      }
+    }
+
+    // extract tool calls
+    let toolCalls: LanguageModelV1FunctionToolCall[] | undefined = undefined;
+    if (response.content.some(content => content.type === 'tool_use')) {
+      toolCalls = [];
+      for (const toolUse of response.content) {
+        if (toolUse.type === 'tool_use') {
+          toolCalls.push({
+            toolCallType: 'function',
+            toolCallId: toolUse.id,
+            toolName: toolUse.name,
+            args: JSON.stringify(toolUse.input),
+          });
+        }
+      }
+    }
+
     return {
-      text: response.content.map(({ text }) => text).join(''),
-      finishReason: mapAnthropicFinishReason(response.stop_reason),
+      text,
+      toolCalls,
+      finishReason: mapAnthropicStopReason(response.stop_reason),
       usage: {
         promptTokens: response.usage.input_tokens,
         completionTokens: response.usage.output_tokens,
@@ -257,9 +282,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
               case 'message_delta': {
                 usage.completionTokens = value.usage.output_tokens;
-                finishReason = mapAnthropicFinishReason(
-                  value.delta.stop_reason,
-                );
+                finishReason = mapAnthropicStopReason(value.delta.stop_reason);
                 return;
               }
 
@@ -287,10 +310,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 const anthropicMessagesResponseSchema = z.object({
   type: z.literal('message'),
   content: z.array(
-    z.object({
-      type: z.literal('text'),
-      text: z.string(),
-    }),
+    z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('text'),
+        text: z.string(),
+      }),
+      z.object({
+        type: z.literal('tool_use'),
+        id: z.string(),
+        name: z.string(),
+        input: z.unknown(),
+      }),
+    ]),
   ),
   stop_reason: z.string().optional().nullable(),
   usage: z.object({

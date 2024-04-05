@@ -31,6 +31,7 @@ export class Anthropic {
       baseUrl: this.baseUrl ?? 'https://api.anthropic.com/v1',
       headers: () => ({
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'tools-2024-04-04',
         'x-api-key': loadApiKey({
           apiKey: this.apiKey,
           environmentVariableName: 'ANTHROPIC_API_KEY',
