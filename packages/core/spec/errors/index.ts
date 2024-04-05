@@ -10,5 +10,7 @@ export * from './no-object-generated-error';
 export * from './no-response-body-error';
 export * from './no-such-tool-error';
 export * from './retry-error';
+export * from './tool-call-parse-error';
 export * from './type-validation-error';
 export * from './unsupported-functionality-error';
+export * from './unsupported-json-schema-error';

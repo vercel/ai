@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import zodToJsonSchema from 'zod-to-json-schema';
 import {
   LanguageModelV1,
   LanguageModelV1CallOptions,
@@ -15,6 +14,7 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { DeepPartial } from '../util/deep-partial';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { parsePartialJson } from '../util/parse-partial-json';
@@ -89,7 +89,7 @@ Default and recommended: 'auto' (best mode for the model).
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
   }): Promise<StreamObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
-  const jsonSchema = zodToJsonSchema(schema);
+  const jsonSchema = convertZodToJSONSchema(schema);
 
   // use the default provider mode when the mode is set to 'auto' or unspecified
   if (mode === 'auto' || mode == null) {

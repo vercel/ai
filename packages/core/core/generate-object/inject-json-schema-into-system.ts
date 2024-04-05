@@ -1,3 +1,5 @@
+import { JSONSchema7 } from 'json-schema';
+
 const DEFAULT_SCHEMA_PREFIX = 'JSON schema:';
 const DEFAULT_SCHEMA_SUFFIX =
   'You MUST answer with a JSON object that matches the JSON schema above.';
@@ -9,7 +11,7 @@ export function injectJsonSchemaIntoSystem({
   schemaSuffix = DEFAULT_SCHEMA_SUFFIX,
 }: {
   system?: string;
-  schema: Record<string, unknown>;
+  schema: JSONSchema7;
   schemaPrefix?: string;
   schemaSuffix?: string;
 }): string {
