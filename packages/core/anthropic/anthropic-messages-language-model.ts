@@ -28,7 +28,7 @@ type AnthropicMessagesConfig = {
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'json';
+  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: AnthropicMessagesModelId;
   readonly settings: AnthropicMessagesSettings;
@@ -126,7 +126,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
       case 'object-json': {
         throw new UnsupportedFunctionalityError({
-          functionality: 'object-json mode',
+          functionality: 'json-mode object generation',
           provider: this.provider,
         });
       }
@@ -149,7 +149,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
       case 'object-grammar': {
         throw new UnsupportedFunctionalityError({
-          functionality: 'object-grammar mode',
+          functionality: 'grammar-mode object generation',
           provider: this.provider,
         });
       }
