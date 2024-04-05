@@ -55,7 +55,7 @@ For this example, create a route handler at `app/api/chat/route.ts` that calls G
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 import { Portkey } from 'portkey-ai';
 
-// Create an Portkey API client
+// Create a Portkey API client
 const portkey = new Portkey({
   apiKey: process.env.PORTKEY_API_KEY,
   virtualKey: process.env.OPENAI_VIRTUAL_KEY
@@ -101,8 +101,8 @@ Let’s see it in action:
 // Set the runtime to edge for best performance
 export const runtime = 'edge';
 
-// Create an Portkey API client
-const client = new Portkey({
+// Create a Portkey API client
+const portkey = new Portkey({
   apiKey: process.env.PORTKEY_API_KEY,
   virtualKey: process.env.ANTHROPIC_VIRTUAL_KEY
 });
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   // Switch from GPT-4 to Claude-3-Opus
-  const response = await client.chat.completions.create({
+  const response = await portkey.chat.completions.create({
     model: 'claude-3-opus-20240229',
     max_tokens: 512
     stream: true,
@@ -125,7 +125,7 @@ export async function POST(req: Request) {
 
 ### Switch to Gemini 1.5
 
-Similarly, you can just add [Google AI Studio](https://aistudio.google.com/app/) API key to Portkey and call Gemini:
+Similarly, you can just add your [Google AI Studio API key](https://aistudio.google.com/app/) to Portkey and call Gemini 1.5:
 
 ```tsx
 const portkey = new Portkey({
@@ -139,7 +139,7 @@ const portkey = new Portkey({
   });
 ```
 
-This will work similarly for **Azure**, **Mistral**, **Anyscale**, **Together**, etc.. you get the gist? :)
+The same will follow for all the other providers like **Azure**, **Mistral**, **Anyscale**, **Together**, and more.
 
 ### Wire up the UI
 
@@ -180,28 +180,22 @@ Portkey logs all the requests you’re sending to help you debug errors, and get
 
 You can enhance the logging by tracing certain requests, passing custom metadata or user feedback.
 
-![rolling logs and cachescreents](https://raw.githubusercontent.com/Portkey-AI/portkey-cookbook/a358363e2102df4ff7657e56cc592f4e861f9d6c/integrations/images/vercel-portkey-guide/1-vercel-portkey-guide.gif)
+![rolling logs and cachescreents](https://portkey.ai/blog/content/images/2024/04/logs.gif)
 
 **Segmenting Requests with Metadata**
 
-On Portkey, while making a `chat.completions` call, you can pass any `{"key":"value"} `pairs. Portkey segments the requests based on the metadata to give you granular insights.
+On Portkey, while making a `chat.completions` call, you can pass any `{"key":"value"}` pairs. Portkey segments the requests based on the metadata to give you granular insights.
 
 ```tsx
-const response = await portkey.chat.completions.create(
-  {
-    model: 'gpt-4',
-    messages: [{
-      role: 'user',
-      content: 'How do I optimise auditorium for maximum occupancy?'
-      }]
-  },
-  {
-    metadata: {
-      user_name: 'john doe',
-      organization_name: 'acme'
-    }
+const response = await portkey.chat.completions.create({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'How do I optimise auditorium for maximum occupancy?'}]
+},{
+  metadata: {
+    user_name: 'john doe',
+    organization_name: 'acme'
   }
-);
+});
 ```
 Learn more about [tracing](https://portkey.ai/docs/product/observability-modern-monitoring-for-llms/traces) and [feedback](https://portkey.ai/docs/product/observability-modern-monitoring-for-llms/feedback).
 
@@ -214,7 +208,8 @@ Learn more about [tracing](https://portkey.ai/docs/product/observability-modern-
 
 ### Solve 5xx, 4xx Errors
 
-Portkey helps you automatically trigger a call to any other LLM/provider in case of primary failures. [Create](https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/configs) a fallback logic with Portkey’s Gateway Config:
+Portkey helps you automatically trigger a call to any other LLM/provider in case of primary failures.<br>
+[Create](https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/configs) a fallback logic with Portkey’s Gateway Config.
 
 For example, for setting up a fallback from OpenAI to Anthropic, the Gateway Config would be:
 
@@ -228,15 +223,35 @@ For example, for setting up a fallback from OpenAI to Anthropic, the Gateway Con
 }
 ```
 
-You can save this Config in Portkey app and get an associated Config ID that you can pass while instantiating your Portkey client.
+You can save this Config in Portkey app and get an associated Config ID that you can pass while instantiating your Portkey client:
 
+### Apply Config to the Route Handler
+
+```tsx
+const portkey = new Portkey({
+  apiKey: process.env.PORTKEY_API_KEY,
+  config: 'CONFIG_ID'
+});
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const response = await portkey.chat.completions.create({
+    model: 'gpt-4',
+    stream: true,
+    messages
+  });
+
+  const stream = OpenAIStream(response);
+  return new StreamingTextResponse(stream);
+}
+```
 
 ### Handle Rate Limit Errors
 
 You can loadbalance your requests against multiple LLMs or accounts and prevent any one account from hitting rate limit thresholds.
 
 For example, to route your requests between 1 OpenAI and 2 Azure OpenAI accounts:
-
 
 ```json
 {
@@ -249,33 +264,10 @@ For example, to route your requests between 1 OpenAI and 2 Azure OpenAI accounts
 }
 ```
 
-
-Save this Config in the Portkey app and pass it while instantiating the Portkey client.
+Save this Config in the Portkey app and pass it while instantiating the Portkey client, just like we did above.
 
 Portkey can also trigger [automatic retries](https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/automatic-retries), set [request timeouts](https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/request-timeouts), and more.
 
-### Apply Config to the Route Handler
-
-```tsx
-const portkey = new Portkey({
-  apiKey: process.env.PORTKEY_API_KEY,
-  virtualKey: process.env.GOOGLE_VIRTUAL_KEY,
-  config: 'CONFIG_ID'
-});
-
-export async function POST(req: Request) {
-  const { messages } = await req.json();
-
-  const response = await portkey.chat.completions.create({
-    model: 'gemini-pro',
-    stream: true,
-    messages
-  });
-
-  const stream = OpenAIStream(response);
-  return new StreamingTextResponse(stream);
-}
-```
 
 </Steps>
 
@@ -298,7 +290,7 @@ Same as above, you can save your cache Config in the Portkey app, and reference 
 
 Moreover, you can set the `max-age` of the cache and force refresh a cache. See the [docs](https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/cache-simple-and-semantic) for more information.
 
-## Guide: Manage Prompts Independently
+## Guide: Manage Prompts Separately
 
 Storing prompt templates and instructions in code is messy. Using Portkey, you can create and manage all of your app’s prompts in a single place and directly hit our prompts API to get responses. Here’s more on [what Prompts on Portkey can do](https://portkey.ai/docs/product/prompt-library).
 
@@ -335,4 +327,6 @@ export async function POST(req: Request) {
 
 See [docs](https://portkey.ai/docs/api-reference/prompts/prompt-completion) for more information.
 
-Meet other practitioners using Vercel AI + Portkey on the [LLMs in Prod](https://discord.gg/g2DhAMYFKm) Discord server.
+## Talk to the Developers
+
+If you have any questions or issues, reach out to us on [Discord here](https://portkey.ai/community). On Discord, you will also meet many other practitioners who are putting their Vercel AI + Portkey app to production.
