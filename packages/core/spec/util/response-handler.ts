@@ -3,8 +3,8 @@ import {
   ParsedEvent,
 } from 'eventsource-parser/stream';
 import { ZodSchema } from 'zod';
-import { APICallError } from '../errors';
-import { NoResponseBodyError } from '../errors/no-response-body-error';
+import { APICallAIError } from '../errors';
+import { NoResponseBodyAIError } from '../errors/no-response-body-ai-error';
 import { ParseResult, parseJSON, safeParseJSON } from './parse-json';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
@@ -22,13 +22,13 @@ export const createJsonErrorResponseHandler =
     errorSchema: ZodSchema<T>;
     errorToMessage: (error: T) => string;
     isRetryable?: (response: Response, error?: T) => boolean;
-  }): ResponseHandler<APICallError> =>
+  }): ResponseHandler<APICallAIError> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
 
     // Some providers return an empty response body for some errors:
     if (responseBody.trim() === '') {
-      return new APICallError({
+      return new APICallAIError({
         message: response.statusText,
         url,
         requestBodyValues,
@@ -45,7 +45,7 @@ export const createJsonErrorResponseHandler =
         schema: errorSchema,
       });
 
-      return new APICallError({
+      return new APICallAIError({
         message: errorToMessage(parsedError),
         url,
         requestBodyValues,
@@ -55,7 +55,7 @@ export const createJsonErrorResponseHandler =
         isRetryable: isRetryable?.(response, parsedError),
       });
     } catch (parseError) {
-      return new APICallError({
+      return new APICallAIError({
         message: response.statusText,
         url,
         requestBodyValues,
@@ -72,7 +72,7 @@ export const createEventSourceResponseHandler =
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
     if (response.body == null) {
-      throw new NoResponseBodyError();
+      throw new NoResponseBodyAIError();
     }
 
     return response.body
@@ -108,7 +108,7 @@ export const createJsonResponseHandler =
     });
 
     if (!parsedResult.success) {
-      throw new APICallError({
+      throw new APICallAIError({
         message: 'Invalid JSON response',
         cause: parsedResult.error,
         statusCode: response.status,

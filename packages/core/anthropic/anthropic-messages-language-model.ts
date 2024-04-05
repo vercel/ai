@@ -6,7 +6,7 @@ import {
   LanguageModelV1FunctionToolCall,
   LanguageModelV1StreamPart,
   ParseResult,
-  UnsupportedFunctionalityError,
+  UnsupportedFunctionalityAIError,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
@@ -124,7 +124,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
-        throw new UnsupportedFunctionalityError({
+        throw new UnsupportedFunctionalityAIError({
           functionality: 'json-mode object generation',
           provider: this.provider,
         });
@@ -147,7 +147,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
+        throw new UnsupportedFunctionalityAIError({
           functionality: 'grammar-mode object generation',
           provider: this.provider,
         });

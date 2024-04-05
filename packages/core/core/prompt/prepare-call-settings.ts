@@ -1,5 +1,5 @@
 import { CallSettings } from './call-settings';
-import { InvalidArgumentError } from '../../spec';
+import { InvalidArgumentAIError } from '../../spec';
 
 /**
  * Validates call settings and sets default values.
@@ -15,7 +15,7 @@ export function prepareCallSettings({
 }: CallSettings): CallSettings {
   if (maxTokens != null) {
     if (!Number.isInteger(maxTokens)) {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'maxTokens',
         value: maxTokens,
         message: 'maxTokens must be an integer',
@@ -23,7 +23,7 @@ export function prepareCallSettings({
     }
 
     if (maxTokens < 1) {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'maxTokens',
         value: maxTokens,
         message: 'maxTokens must be >= 1',
@@ -33,7 +33,7 @@ export function prepareCallSettings({
 
   if (temperature != null) {
     if (typeof temperature !== 'number') {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'temperature',
         value: temperature,
         message: 'temperature must be a number',
@@ -41,7 +41,7 @@ export function prepareCallSettings({
     }
 
     if (temperature < 0 || temperature > 1) {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'temperature',
         value: temperature,
         message: 'temperature must be between 0 and 1 (inclusive)',
@@ -51,7 +51,7 @@ export function prepareCallSettings({
 
   if (topP != null) {
     if (typeof topP !== 'number') {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'topP',
         value: topP,
         message: 'topP must be a number',
@@ -59,7 +59,7 @@ export function prepareCallSettings({
     }
 
     if (topP < 0 || topP > 1) {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'topP',
         value: topP,
         message: 'topP must be between 0 and 1 (inclusive)',
@@ -69,7 +69,7 @@ export function prepareCallSettings({
 
   if (presencePenalty != null) {
     if (typeof presencePenalty !== 'number') {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'presencePenalty',
         value: presencePenalty,
         message: 'presencePenalty must be a number',
@@ -77,7 +77,7 @@ export function prepareCallSettings({
     }
 
     if (presencePenalty < -1 || presencePenalty > 1) {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'presencePenalty',
         value: presencePenalty,
         message: 'presencePenalty must be between -1 and 1 (inclusive)',
@@ -87,7 +87,7 @@ export function prepareCallSettings({
 
   if (frequencyPenalty != null) {
     if (typeof frequencyPenalty !== 'number') {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'frequencyPenalty',
         value: frequencyPenalty,
         message: 'frequencyPenalty must be a number',
@@ -95,7 +95,7 @@ export function prepareCallSettings({
     }
 
     if (frequencyPenalty < -1 || frequencyPenalty > 1) {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'frequencyPenalty',
         value: frequencyPenalty,
         message: 'frequencyPenalty must be between -1 and 1 (inclusive)',
@@ -105,7 +105,7 @@ export function prepareCallSettings({
 
   if (seed != null) {
     if (!Number.isInteger(seed)) {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'seed',
         value: seed,
         message: 'seed must be an integer',
@@ -115,7 +115,7 @@ export function prepareCallSettings({
 
   if (maxRetries != null) {
     if (!Number.isInteger(maxRetries)) {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'maxRetries',
         value: maxRetries,
         message: 'maxRetries must be an integer',
@@ -123,7 +123,7 @@ export function prepareCallSettings({
     }
 
     if (maxRetries < 0) {
-      throw new InvalidArgumentError({
+      throw new InvalidArgumentAIError({
         parameter: 'maxRetries',
         value: maxRetries,
         message: 'maxRetries must be >= 0',

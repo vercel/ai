@@ -1,4 +1,4 @@
-export class APICallError extends Error {
+export class APICallAIError extends Error {
   readonly url: string;
   readonly requestBodyValues: unknown;
   readonly statusCode?: number;
@@ -32,7 +32,7 @@ export class APICallError extends Error {
   }) {
     super(message);
 
-    this.name = 'AI_APICallError';
+    this.name = 'APICallAIError';
 
     this.url = url;
     this.requestBodyValues = requestBodyValues;
@@ -43,21 +43,22 @@ export class APICallError extends Error {
     this.data = data;
   }
 
-  static isAPICallError(error: unknown): error is APICallError {
+  static isAPICallAIError(error: unknown): error is APICallAIError {
     return (
       error instanceof Error &&
-      error.name === 'AI_APICallError' &&
-      typeof (error as APICallError).url === 'string' &&
-      typeof (error as APICallError).requestBodyValues === 'object' &&
-      ((error as APICallError).statusCode == null ||
-        typeof (error as APICallError).statusCode === 'number') &&
-      ((error as APICallError).responseBody == null ||
-        typeof (error as APICallError).responseBody === 'string') &&
-      ((error as APICallError).cause == null ||
-        typeof (error as APICallError).cause === 'object') &&
-      typeof (error as APICallError).isRetryable === 'boolean' &&
-      ((error as APICallError).data == null ||
-        typeof (error as APICallError).data === 'object')
+      error.name === 'APICallAIError' &&
+      'url' in error &&
+      typeof error.url === 'string' &&
+      typeof (error as APICallAIError).requestBodyValues === 'object' &&
+      ((error as APICallAIError).statusCode == null ||
+        typeof (error as APICallAIError).statusCode === 'number') &&
+      ((error as APICallAIError).responseBody == null ||
+        typeof (error as APICallAIError).responseBody === 'string') &&
+      ((error as APICallAIError).cause == null ||
+        typeof (error as APICallAIError).cause === 'object') &&
+      typeof (error as APICallAIError).isRetryable === 'boolean' &&
+      ((error as APICallAIError).data == null ||
+        typeof (error as APICallAIError).data === 'object')
     );
   }
 

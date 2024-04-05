@@ -5,7 +5,7 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
   ParseResult,
-  UnsupportedFunctionalityError,
+  UnsupportedFunctionalityAIError,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
@@ -139,7 +139,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
+        throw new UnsupportedFunctionalityAIError({
           functionality: 'object-grammar mode',
           provider: this.provider,
         });

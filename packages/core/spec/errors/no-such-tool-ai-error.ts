@@ -1,4 +1,4 @@
-export class NoSuchToolError extends Error {
+export class NoSuchToolAIError extends Error {
   readonly toolName: string;
   readonly availableTools: string[] | undefined;
 
@@ -17,16 +17,16 @@ export class NoSuchToolError extends Error {
   }) {
     super(message);
 
-    this.name = 'AI_NoSuchToolError';
+    this.name = 'NoSuchToolAIError';
 
     this.toolName = toolName;
     this.availableTools = availableTools;
   }
 
-  static isNoSuchToolError(error: unknown): error is NoSuchToolError {
+  static isNoSuchToolAIError(error: unknown): error is NoSuchToolAIError {
     return (
       error instanceof Error &&
-      error.name === 'AI_NoSuchToolError' &&
+      error.name === 'NoSuchToolAIError' &&
       'toolName' in error &&
       error.toolName != undefined &&
       typeof error.name === 'string'

@@ -3,7 +3,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
-  NoTextGeneratedError,
+  NoTextGeneratedAIError,
   safeParseJSON,
 } from '../../spec';
 import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
@@ -115,7 +115,7 @@ Default and recommended: 'auto' (best mode for the model).
       });
 
       if (generateResult.text === undefined) {
-        throw new NoTextGeneratedError();
+        throw new NoTextGeneratedAIError();
       }
 
       result = generateResult.text;
@@ -144,7 +144,7 @@ Default and recommended: 'auto' (best mode for the model).
       );
 
       if (generateResult.text === undefined) {
-        throw new NoTextGeneratedError();
+        throw new NoTextGeneratedAIError();
       }
 
       result = generateResult.text;
@@ -183,7 +183,7 @@ Default and recommended: 'auto' (best mode for the model).
       const functionArgs = generateResult.toolCalls?.[0]?.args;
 
       if (functionArgs === undefined) {
-        throw new NoTextGeneratedError();
+        throw new NoTextGeneratedAIError();
       }
 
       result = functionArgs;

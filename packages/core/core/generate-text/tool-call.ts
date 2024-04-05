@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import {
-  InvalidToolArgumentsError,
+  InvalidToolArgumentsAIError,
   LanguageModelV1FunctionToolCall,
-  NoSuchToolError,
+  NoSuchToolAIError,
   safeParseJSON,
 } from '../../spec';
 import { ExperimentalTool } from '../tool';
@@ -53,13 +53,13 @@ export function parseToolCall<TOOLS extends Record<string, ExperimentalTool>>({
   const toolName = toolCall.toolName as keyof TOOLS & string;
 
   if (tools == null) {
-    throw new NoSuchToolError({ toolName: toolCall.toolName });
+    throw new NoSuchToolAIError({ toolName: toolCall.toolName });
   }
 
   const tool = tools[toolName];
 
   if (tool == null) {
-    throw new NoSuchToolError({
+    throw new NoSuchToolAIError({
       toolName: toolCall.toolName,
       availableTools: Object.keys(tools),
     });
@@ -71,7 +71,7 @@ export function parseToolCall<TOOLS extends Record<string, ExperimentalTool>>({
   });
 
   if (parseResult.success === false) {
-    throw new InvalidToolArgumentsError({
+    throw new InvalidToolArgumentsAIError({
       toolName,
       toolArgs: toolCall.args,
       cause: parseResult.error,

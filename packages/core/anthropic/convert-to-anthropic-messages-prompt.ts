@@ -1,6 +1,6 @@
 import {
   LanguageModelV1Prompt,
-  UnsupportedFunctionalityError,
+  UnsupportedFunctionalityAIError,
   convertUint8ArrayToBase64,
 } from '../spec';
 import {
@@ -35,7 +35,7 @@ export function convertToAnthropicMessagesPrompt({
               }
               case 'image': {
                 if (part.image instanceof URL) {
-                  throw new UnsupportedFunctionalityError({
+                  throw new UnsupportedFunctionalityAIError({
                     provider,
                     functionality: 'URL image parts',
                   });

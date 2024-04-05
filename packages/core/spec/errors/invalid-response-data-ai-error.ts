@@ -2,7 +2,7 @@
  * Server returned a response with invalid data content. This should be thrown by providers when they
  * cannot parse the response from the API.
  */
-export class InvalidResponseDataError extends Error {
+export class InvalidResponseDataAIError extends Error {
   readonly data: unknown;
 
   constructor({
@@ -14,18 +14,18 @@ export class InvalidResponseDataError extends Error {
   }) {
     super(message);
 
-    this.name = 'AI_InvalidResponseDataError';
+    this.name = 'InvalidResponseDataAIError';
 
     this.data = data;
   }
 
-  static isInvalidResponseDataError(
+  static isInvalidResponseDataAIError(
     error: unknown,
-  ): error is InvalidResponseDataError {
+  ): error is InvalidResponseDataAIError {
     return (
       error instanceof Error &&
-      error.name === 'AI_InvalidResponseDataError' &&
-      (error as InvalidResponseDataError).data != null
+      error.name === 'InvalidResponseDataAIError' &&
+      (error as InvalidResponseDataAIError).data != null
     );
   }
 

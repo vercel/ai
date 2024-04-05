@@ -1,14 +1,14 @@
 import { ZodSchema } from 'zod';
-import { TypeValidationError } from '../errors/type-validation-error';
+import { TypeValidationAIError } from '../errors/type-validation-ai-error';
 
 /**
- * Validates the types of an unknown object using a schema and
- * return a strongly-typed object.
- *
- * @template T - The type of the object to validate.
- * @param {string} options.value - The object to validate.
- * @param {Schema<T>} options.schema - The schema to use for validating the JSON.
- * @returns {T} - The typed object.
+Validates the types of an unknown object using a schema and
+return a strongly-typed object.
+
+@template T - The type of the object to validate.
+@param {string} options.value - The object to validate.
+@param {Schema<T>} options.schema - The schema to use for validating the JSON.
+@returns {T} - The typed object.
  */
 export function validateTypes<T>({
   value,
@@ -20,18 +20,18 @@ export function validateTypes<T>({
   try {
     return schema.parse(value);
   } catch (error) {
-    throw new TypeValidationError({ value, cause: error });
+    throw new TypeValidationAIError({ value, cause: error });
   }
 }
 
 /**
- * Safely validates the types of an unknown object using a schema and
- * return a strongly-typed object.
- *
- * @template T - The type of the object to validate.
- * @param {string} options.value - The JSON object to validate.
- * @param {Schema<T>} options.schema - The schema to use for validating the JSON.
- * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
+Safely validates the types of an unknown object using a schema and
+return a strongly-typed object.
+
+@template T - The type of the object to validate.
+@param {string} options.value - The JSON object to validate.
+@param {Schema<T>} options.schema - The schema to use for validating the JSON.
+@returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
 export function safeValidateTypes<T>({
   value,
@@ -41,7 +41,7 @@ export function safeValidateTypes<T>({
   schema: ZodSchema<T>;
 }):
   | { success: true; value: T }
-  | { success: false; error: TypeValidationError } {
+  | { success: false; error: TypeValidationAIError } {
   try {
     const validationResult = schema.safeParse(value);
 
@@ -54,7 +54,7 @@ export function safeValidateTypes<T>({
 
     return {
       success: false,
-      error: new TypeValidationError({
+      error: new TypeValidationAIError({
         value,
         cause: validationResult.error,
       }),
@@ -62,9 +62,9 @@ export function safeValidateTypes<T>({
   } catch (error) {
     return {
       success: false,
-      error: TypeValidationError.isTypeValidationError(error)
+      error: TypeValidationAIError.isTypeValidationAIError(error)
         ? error
-        : new TypeValidationError({ value, cause: error }),
+        : new TypeValidationAIError({ value, cause: error }),
     };
   }
 }

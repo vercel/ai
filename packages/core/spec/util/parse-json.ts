@@ -1,23 +1,23 @@
 import SecureJSON from 'secure-json-parse';
 import { ZodSchema } from 'zod';
-import { JSONParseError } from '../errors/json-parse-error';
-import { TypeValidationError } from '../errors/type-validation-error';
+import { JSONParseAIError } from '../errors/json-parse-ai-error';
+import { TypeValidationAIError } from '../errors/type-validation-ai-error';
 import { safeValidateTypes, validateTypes } from './validate-types';
 
 /**
- * Parses a JSON string into an unknown object.
- *
- * @param text - The JSON string to parse.
- * @returns {unknown} - The parsed JSON object.
+Parses a JSON string into an unknown object.
+
+@param text - The JSON string to parse.
+@returns {unknown} - The parsed JSON object.
  */
 export function parseJSON({ text }: { text: string }): unknown;
 /**
- * Parses a JSON string into a strongly-typed object using the provided schema.
- *
- * @template T - The type of the object to parse the JSON into.
- * @param {string} text - The JSON string to parse.
- * @param {Schema<T>} schema - The schema to use for parsing the JSON.
- * @returns {T} - The parsed object.
+Parses a JSON string into a strongly-typed object using the provided schema.
+
+@template T - The type of the object to parse the JSON into.
+@param {string} text - The JSON string to parse.
+@param {Schema<T>} schema - The schema to use for parsing the JSON.
+@returns {T} - The parsed object.
  */
 export function parseJSON<T>({
   text,
@@ -43,34 +43,34 @@ export function parseJSON<T>({
     return validateTypes({ value, schema });
   } catch (error) {
     if (
-      JSONParseError.isJSONParseError(error) ||
-      TypeValidationError.isTypeValidationError(error)
+      JSONParseAIError.isJSONParseAIError(error) ||
+      TypeValidationAIError.isTypeValidationAIError(error)
     ) {
       throw error;
     }
 
-    throw new JSONParseError({ text, cause: error });
+    throw new JSONParseAIError({ text, cause: error });
   }
 }
 
 export type ParseResult<T> =
   | { success: true; value: T }
-  | { success: false; error: JSONParseError | TypeValidationError };
+  | { success: false; error: JSONParseAIError | TypeValidationAIError };
 
 /**
- * Safely parses a JSON string and returns the result as an object of type `unknown`.
- *
- * @param text - The JSON string to parse.
- * @returns {object} Either an object with `success: true` and the parsed data, or an object with `success: false` and the error that occurred.
+Safely parses a JSON string and returns the result as an object of type `unknown`.
+
+@param text - The JSON string to parse.
+@returns {object} Either an object with `success: true` and the parsed data, or an object with `success: false` and the error that occurred.
  */
 export function safeParseJSON({ text }: { text: string }): ParseResult<unknown>;
 /**
- * Safely parses a JSON string into a strongly-typed object, using a provided schema to validate the object.
- *
- * @template T - The type of the object to parse the JSON into.
- * @param {string} text - The JSON string to parse.
- * @param {Schema<T>} schema - The schema to use for parsing the JSON.
- * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
+Safely parses a JSON string into a strongly-typed object, using a provided schema to validate the object.
+
+@template T - The type of the object to parse the JSON into.
+@param {string} text - The JSON string to parse.
+@param {Schema<T>} schema - The schema to use for parsing the JSON.
+@returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
 export function safeParseJSON<T>({
   text,
@@ -87,7 +87,7 @@ export function safeParseJSON<T>({
   schema?: ZodSchema<T>;
 }):
   | { success: true; value: T }
-  | { success: false; error: JSONParseError | TypeValidationError } {
+  | { success: false; error: JSONParseAIError | TypeValidationAIError } {
   try {
     const value = SecureJSON.parse(text);
 
@@ -102,9 +102,9 @@ export function safeParseJSON<T>({
   } catch (error) {
     return {
       success: false,
-      error: JSONParseError.isJSONParseError(error)
+      error: JSONParseAIError.isJSONParseAIError(error)
         ? error
-        : new JSONParseError({ text, cause: error }),
+        : new JSONParseAIError({ text, cause: error }),
     };
   }
 }

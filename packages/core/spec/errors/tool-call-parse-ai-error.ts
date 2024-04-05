@@ -1,7 +1,7 @@
 import { LanguageModelV1FunctionTool } from '../language-model/v1/language-model-v1-function-tool';
 import { getErrorMessage } from '../util/get-error-message';
 
-export class ToolCallParseError extends Error {
+export class ToolCallParseAIError extends Error {
   readonly cause: unknown;
   readonly text: string;
   readonly tools: LanguageModelV1FunctionTool[];
@@ -19,17 +19,17 @@ export class ToolCallParseError extends Error {
   }) {
     super(message);
 
-    this.name = 'AI_ToolCallParseError';
+    this.name = 'ToolCallParseAIError';
 
     this.cause = cause;
     this.text = text;
     this.tools = tools;
   }
 
-  static isToolCallParseError(error: unknown): error is ToolCallParseError {
+  static isToolCallParseAIError(error: unknown): error is ToolCallParseAIError {
     return (
       error instanceof Error &&
-      error.name === 'AI_ToolCallParseError' &&
+      error.name === 'ToolCallParseAIError' &&
       'cause' in error &&
       error.cause != undefined &&
       'text' in error &&

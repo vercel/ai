@@ -1,6 +1,6 @@
 import { getErrorMessage } from '../util';
 
-export class InvalidToolArgumentsError extends Error {
+export class InvalidToolArgumentsAIError extends Error {
   readonly toolName: string;
   readonly toolArgs: string;
   readonly cause: unknown;
@@ -20,7 +20,7 @@ export class InvalidToolArgumentsError extends Error {
   }) {
     super(message);
 
-    this.name = 'AI_InvalidToolArgumentsError';
+    this.name = 'InvalidToolArgumentsAIError';
 
     this.toolArgs = toolArgs;
     this.toolName = toolName;
@@ -29,12 +29,12 @@ export class InvalidToolArgumentsError extends Error {
 
   static isInvalidToolArgumentsError(
     error: unknown,
-  ): error is InvalidToolArgumentsError {
+  ): error is InvalidToolArgumentsAIError {
     return (
       error instanceof Error &&
-      error.name === 'AI_InvalidToolArgumentsError' &&
-      typeof (error as InvalidToolArgumentsError).toolName === 'string' &&
-      typeof (error as InvalidToolArgumentsError).toolArgs === 'string'
+      error.name === 'InvalidToolArgumentsAIError' &&
+      typeof (error as InvalidToolArgumentsAIError).toolName === 'string' &&
+      typeof (error as InvalidToolArgumentsAIError).toolArgs === 'string'
     );
   }
 

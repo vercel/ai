@@ -1,4 +1,7 @@
-import { LanguageModelV1Prompt, UnsupportedFunctionalityError } from '../spec';
+import {
+  LanguageModelV1Prompt,
+  UnsupportedFunctionalityAIError,
+} from '../spec';
 import { MistralChatPrompt } from './mistral-chat-prompt';
 
 export function convertToMistralChatMessages({
@@ -27,7 +30,7 @@ export function convertToMistralChatMessages({
                   return part.text;
                 }
                 case 'image': {
-                  throw new UnsupportedFunctionalityError({
+                  throw new UnsupportedFunctionalityAIError({
                     provider,
                     functionality: 'image-part',
                   });

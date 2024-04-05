@@ -1,4 +1,4 @@
-import { InvalidPromptError } from '../../spec';
+import { InvalidPromptAIError } from '../../spec';
 import { ExperimentalMessage } from './message';
 import { Prompt } from './prompt';
 
@@ -18,14 +18,14 @@ export type ValidatedPrompt =
 
 export function getValidatedPrompt(prompt: Prompt): ValidatedPrompt {
   if (prompt.prompt == null && prompt.messages == null) {
-    throw new InvalidPromptError({
+    throw new InvalidPromptAIError({
       prompt,
       message: 'prompt or messages must be defined',
     });
   }
 
   if (prompt.prompt != null && prompt.messages != null) {
-    throw new InvalidPromptError({
+    throw new InvalidPromptAIError({
       prompt,
       message: 'prompt and messages cannot be defined at the same time',
     });

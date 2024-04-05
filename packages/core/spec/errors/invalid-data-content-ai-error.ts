@@ -1,4 +1,4 @@
-export class InvalidDataContentError extends Error {
+export class InvalidDataContentAIError extends Error {
   readonly content: unknown;
 
   constructor({
@@ -10,18 +10,18 @@ export class InvalidDataContentError extends Error {
   }) {
     super(message);
 
-    this.name = 'AI_InvalidDataContentError';
+    this.name = 'InvalidDataContentAIError';
 
     this.content = content;
   }
 
-  static isInvalidDataContentError(
+  static isInvalidDataContentAIError(
     error: unknown,
-  ): error is InvalidDataContentError {
+  ): error is InvalidDataContentAIError {
     return (
       error instanceof Error &&
-      error.name === 'AI_InvalidDataContentError' &&
-      (error as InvalidDataContentError).content != null
+      error.name === 'InvalidDataContentAIError' &&
+      (error as InvalidDataContentAIError).content != null
     );
   }
 

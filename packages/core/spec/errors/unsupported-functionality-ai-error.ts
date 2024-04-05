@@ -1,4 +1,4 @@
-export class UnsupportedFunctionalityError extends Error {
+export class UnsupportedFunctionalityAIError extends Error {
   readonly functionality: string;
   readonly provider: string;
 
@@ -13,20 +13,21 @@ export class UnsupportedFunctionalityError extends Error {
       `'${functionality}' functionality not supported by the '${provider}' provider.`,
     );
 
-    this.name = 'AI_UnsupportedFunctionalityError';
+    this.name = 'UnsupportedFunctionalityAIError';
 
     this.provider = provider;
     this.functionality = functionality;
   }
 
-  static isUnsupportedFunctionalityError(
+  static isUnsupportedFunctionalityAIError(
     error: unknown,
-  ): error is UnsupportedFunctionalityError {
+  ): error is UnsupportedFunctionalityAIError {
     return (
       error instanceof Error &&
-      error.name === 'AI_UnsupportedFunctionalityError' &&
-      typeof (error as UnsupportedFunctionalityError).provider === 'string' &&
-      typeof (error as UnsupportedFunctionalityError).functionality === 'string'
+      error.name === 'UnsupportedFunctionalityAIError' &&
+      typeof (error as UnsupportedFunctionalityAIError).provider === 'string' &&
+      typeof (error as UnsupportedFunctionalityAIError).functionality ===
+        'string'
     );
   }
 

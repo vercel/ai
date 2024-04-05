@@ -1,7 +1,7 @@
 import {
-  InvalidPromptError,
+  InvalidPromptAIError,
   LanguageModelV1Prompt,
-  UnsupportedFunctionalityError,
+  UnsupportedFunctionalityAIError,
 } from '../spec';
 
 export function convertToOpenAICompletionPrompt({
@@ -43,7 +43,7 @@ export function convertToOpenAICompletionPrompt({
   for (const { role, content } of prompt) {
     switch (role) {
       case 'system': {
-        throw new InvalidPromptError({
+        throw new InvalidPromptAIError({
           message: 'Unexpected system message in prompt: ${content}',
           prompt,
         });
@@ -57,7 +57,7 @@ export function convertToOpenAICompletionPrompt({
                 return part.text;
               }
               case 'image': {
-                throw new UnsupportedFunctionalityError({
+                throw new UnsupportedFunctionalityAIError({
                   provider,
                   functionality: 'images',
                 });
@@ -78,7 +78,7 @@ export function convertToOpenAICompletionPrompt({
                 return part.text;
               }
               case 'tool-call': {
-                throw new UnsupportedFunctionalityError({
+                throw new UnsupportedFunctionalityAIError({
                   provider,
                   functionality: 'tool-call messages',
                 });
@@ -92,7 +92,7 @@ export function convertToOpenAICompletionPrompt({
       }
 
       case 'tool': {
-        throw new UnsupportedFunctionalityError({
+        throw new UnsupportedFunctionalityAIError({
           provider,
           functionality: 'tool messages',
         });

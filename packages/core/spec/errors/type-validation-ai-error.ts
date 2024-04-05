@@ -1,6 +1,6 @@
 import { getErrorMessage } from '../util/get-error-message';
 
-export class TypeValidationError extends Error {
+export class TypeValidationAIError extends Error {
   readonly value: unknown;
   readonly cause: unknown;
 
@@ -11,18 +11,20 @@ export class TypeValidationError extends Error {
         `Error message: ${getErrorMessage(cause)}`,
     );
 
-    this.name = 'AI_TypeValidationError';
+    this.name = 'TypeValidationAIError';
 
     this.cause = cause;
     this.value = value;
   }
 
-  static isTypeValidationError(error: unknown): error is TypeValidationError {
+  static isTypeValidationAIError(
+    error: unknown,
+  ): error is TypeValidationAIError {
     return (
       error instanceof Error &&
-      error.name === 'AI_TypeValidationError' &&
-      typeof (error as TypeValidationError).value === 'string' &&
-      typeof (error as TypeValidationError).cause === 'string'
+      error.name === 'TypeValidationAIError' &&
+      typeof (error as TypeValidationAIError).value === 'string' &&
+      typeof (error as TypeValidationAIError).cause === 'string'
     );
   }
 

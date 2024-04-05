@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import {
-  InvalidResponseDataError,
+  InvalidResponseDataAIError,
   LanguageModelV1,
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
   ParseResult,
-  UnsupportedFunctionalityError,
+  UnsupportedFunctionalityAIError,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
@@ -129,7 +129,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
+        throw new UnsupportedFunctionalityAIError({
           functionality: 'object-grammar mode',
           provider: this.provider,
         });
@@ -262,21 +262,21 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 // Tool call start. OpenAI returns all information except the arguments in the first chunk.
                 if (toolCalls[index] == null) {
                   if (toolCallDelta.type !== 'function') {
-                    throw new InvalidResponseDataError({
+                    throw new InvalidResponseDataAIError({
                       data: toolCallDelta,
                       message: `Expected 'function' type.`,
                     });
                   }
 
                   if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
+                    throw new InvalidResponseDataAIError({
                       data: toolCallDelta,
                       message: `Expected 'id' to be a string.`,
                     });
                   }
 
                   if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
+                    throw new InvalidResponseDataAIError({
                       data: toolCallDelta,
                       message: `Expected 'function.name' to be a string.`,
                     });

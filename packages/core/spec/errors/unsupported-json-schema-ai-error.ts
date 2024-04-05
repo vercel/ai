@@ -1,4 +1,4 @@
-export class UnsupportedJSONSchemaError extends Error {
+export class UnsupportedJSONSchemaAIError extends Error {
   readonly provider: string;
   readonly reason: string;
   readonly schema: unknown;
@@ -16,19 +16,19 @@ export class UnsupportedJSONSchemaError extends Error {
   }) {
     super(message);
 
-    this.name = 'AI_UnsupportedJSONSchemaError';
+    this.name = 'UnsupportedJSONSchemaAIError';
 
     this.provider = provider;
     this.reason = reason;
     this.schema = schema;
   }
 
-  static isUnsupportedJSONSchemaError(
+  static isUnsupportedJSONSchemaAIError(
     error: unknown,
-  ): error is UnsupportedJSONSchemaError {
+  ): error is UnsupportedJSONSchemaAIError {
     return (
       error instanceof Error &&
-      error.name === 'AI_UnsupportedJSONSchemaError' &&
+      error.name === 'UnsupportedJSONSchemaAIError' &&
       'provider' in error &&
       error.provider != undefined &&
       'reason' in error &&

@@ -3,7 +3,7 @@ export type RetryErrorReason =
   | 'errorNotRetryable'
   | 'abort';
 
-export class RetryError extends Error {
+export class RetryAIError extends Error {
   // note: property order determines debugging output
   readonly reason: RetryErrorReason;
   readonly lastError: unknown;
@@ -20,7 +20,7 @@ export class RetryError extends Error {
   }) {
     super(message);
 
-    this.name = 'AI_RetryError';
+    this.name = 'RetryAIError';
     this.reason = reason;
     this.errors = errors;
 
@@ -28,12 +28,12 @@ export class RetryError extends Error {
     this.lastError = errors[errors.length - 1];
   }
 
-  static isRetryError(error: unknown): error is RetryError {
+  static isRetryAIError(error: unknown): error is RetryAIError {
     return (
       error instanceof Error &&
-      error.name === 'AI_RetryError' &&
-      typeof (error as RetryError).reason === 'string' &&
-      Array.isArray((error as RetryError).errors)
+      error.name === 'RetryAIError' &&
+      typeof (error as RetryAIError).reason === 'string' &&
+      Array.isArray((error as RetryAIError).errors)
     );
   }
 

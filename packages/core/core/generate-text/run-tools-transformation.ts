@@ -1,5 +1,5 @@
-import { LanguageModelV1StreamPart, NoSuchToolError } from '../../spec';
 import { generateId } from '../../shared/generate-id';
+import { LanguageModelV1StreamPart, NoSuchToolAIError } from '../../spec';
 import { ExperimentalTool } from '../tool';
 import { TextStreamPart } from './stream-text';
 import { parseToolCall } from './tool-call';
@@ -52,7 +52,7 @@ export function runToolsTransformation<
           if (tools == null) {
             toolResultsStreamController!.enqueue({
               type: 'error',
-              error: new NoSuchToolError({ toolName: chunk.toolName }),
+              error: new NoSuchToolAIError({ toolName: chunk.toolName }),
             });
             break;
           }
@@ -62,7 +62,7 @@ export function runToolsTransformation<
           if (tool == null) {
             toolResultsStreamController!.enqueue({
               type: 'error',
-              error: new NoSuchToolError({
+              error: new NoSuchToolAIError({
                 toolName: chunk.toolName,
                 availableTools: Object.keys(tools),
               }),

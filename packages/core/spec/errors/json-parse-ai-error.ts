@@ -1,6 +1,6 @@
 import { getErrorMessage } from '../util/get-error-message';
 
-export class JSONParseError extends Error {
+export class JSONParseAIError extends Error {
   // note: property order determines debugging output
   readonly text: string;
   readonly cause: unknown;
@@ -12,18 +12,18 @@ export class JSONParseError extends Error {
         `Error message: ${getErrorMessage(cause)}`,
     );
 
-    this.name = 'AI_JSONParseError';
+    this.name = 'JSONParseAIError';
 
     this.cause = cause;
     this.text = text;
   }
 
-  static isJSONParseError(error: unknown): error is JSONParseError {
+  static isJSONParseAIError(error: unknown): error is JSONParseAIError {
     return (
       error instanceof Error &&
-      error.name === 'AI_JSONParseError' &&
-      typeof (error as JSONParseError).text === 'string' &&
-      typeof (error as JSONParseError).cause === 'string'
+      error.name === 'JSONParseAIError' &&
+      typeof (error as JSONParseAIError).text === 'string' &&
+      typeof (error as JSONParseAIError).cause === 'string'
     );
   }
 

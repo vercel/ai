@@ -1,5 +1,5 @@
 import {
-  InvalidDataContentError,
+  InvalidDataContentAIError,
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
 } from '../../spec';
@@ -48,5 +48,5 @@ export function convertDataContentToUint8Array(
     return new Uint8Array(content);
   }
 
-  throw new InvalidDataContentError({ content });
+  throw new InvalidDataContentAIError({ content });
 }

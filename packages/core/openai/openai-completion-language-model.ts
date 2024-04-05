@@ -4,7 +4,7 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
   ParseResult,
-  UnsupportedFunctionalityError,
+  UnsupportedFunctionalityAIError,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
@@ -110,7 +110,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     switch (type) {
       case 'regular': {
         if (mode.tools?.length) {
-          throw new UnsupportedFunctionalityError({
+          throw new UnsupportedFunctionalityAIError({
             functionality: 'tools',
             provider: this.provider,
           });
@@ -120,21 +120,21 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
-        throw new UnsupportedFunctionalityError({
+        throw new UnsupportedFunctionalityAIError({
           functionality: 'object-json mode',
           provider: this.provider,
         });
       }
 
       case 'object-tool': {
-        throw new UnsupportedFunctionalityError({
+        throw new UnsupportedFunctionalityAIError({
           functionality: 'object-tool mode',
           provider: this.provider,
         });
       }
 
       case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
+        throw new UnsupportedFunctionalityAIError({
           functionality: 'object-grammar mode',
           provider: this.provider,
         });
