@@ -1078,9 +1078,6 @@ importers:
       eventsource-parser:
         specifier: 1.1.2
         version: 1.1.2
-      fast-xml-parser:
-        specifier: 4.3.6
-        version: 4.3.6
       json-schema:
         specifier: 0.4.0
         version: 0.4.0
@@ -1186,7 +1183,7 @@ importers:
         version: 23.0.0
       langchain:
         specifier: 0.0.196
-        version: 0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(cohere-ai@7.6.2)(fast-xml-parser@4.3.6)(jsdom@23.0.0)
+        version: 0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(cohere-ai@7.6.2)(jsdom@23.0.0)
       msw:
         specifier: 2.0.9
         version: 2.0.9(typescript@5.1.3)
@@ -10104,12 +10101,6 @@ packages:
     dependencies:
       strnum: 1.0.5
 
-  /fast-xml-parser@4.3.6:
-    resolution: {integrity: sha512-M2SovcRxD4+vC493Uc2GZVcZaj66CCJhWurC4viynVSTvrpErCShNcDz1lAho6n9REQKvL/ll4A4/fw6Y9z8nw==}
-    hasBin: true
-    dependencies:
-      strnum: 1.0.5
-
   /fastq@1.15.0:
     resolution: {integrity: sha512-wBrocU2LCXXa+lWBt8RoIRD89Fi8OdABODa/kEnyeyjS5aZO5/GNvI5sEINADqP/h8M29UHTHUb53sUu5Ihqdw==}
     dependencies:
@@ -12241,7 +12232,7 @@ packages:
       - encoding
     dev: false
 
-  /langchain@0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(cohere-ai@7.6.2)(fast-xml-parser@4.3.6)(jsdom@23.0.0):
+  /langchain@0.0.196(@aws-sdk/client-bedrock-runtime@3.451.0)(@huggingface/inference@2.6.4)(cohere-ai@7.6.2)(jsdom@23.0.0):
     resolution: {integrity: sha512-kt17GGTDFWHNv3jJOIXymsQxfa+h9UQ6hrHbhur+V2pV6RBKO5E+RRCvnCqBzbnOPtrlkENF6Wl3Ezmsfo21dg==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -12547,7 +12538,6 @@ packages:
       binary-extensions: 2.2.0
       cohere-ai: 7.6.2
       expr-eval: 2.0.2
-      fast-xml-parser: 4.3.6
       flat: 5.0.2
       js-tiktoken: 1.0.7
       js-yaml: 4.1.0
