@@ -57,39 +57,38 @@ export function convertToAnthropicMessagesPrompt({
       }
 
       case 'assistant': {
-        let text = '';
-
-        for (const part of content) {
-          switch (part.type) {
-            case 'text': {
-              text += part.text;
-              break;
-            }
-            case 'tool-call': {
-              throw new UnsupportedFunctionalityError({
-                provider,
-                functionality: 'tool-call-part',
-              });
-            }
-            default: {
-              const _exhaustiveCheck: never = part;
-              throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
-            }
-          }
-        }
-
         messages.push({
           role: 'assistant',
-          content: text,
+          content: content.map(part => {
+            switch (part.type) {
+              case 'text': {
+                return { type: 'text', text: part.text };
+              }
+              case 'tool-call': {
+                return {
+                  type: 'tool_use',
+                  id: part.toolCallId,
+                  name: part.toolName,
+                  input: part.args,
+                };
+              }
+            }
+          }),
         });
 
         break;
       }
       case 'tool': {
-        throw new UnsupportedFunctionalityError({
-          provider,
-          functionality: 'tool-role',
+        messages.push({
+          role: 'user',
+          content: content.map(part => ({
+            type: 'tool_result',
+            tool_use_id: part.toolCallId,
+            content: JSON.stringify(part.result),
+          })),
         });
+
+        break;
       }
       default: {
         const _exhaustiveCheck: never = role;

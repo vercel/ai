@@ -7,19 +7,22 @@ export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
 
 export interface AnthropicUserMessage {
   role: 'user';
-  content: Array<AnthropicUserContent>;
+  content: Array<
+    AnthropicTextContent | AnthropicImageContent | AnthropicToolResultContent
+  >;
 }
 
-export type AnthropicUserContent =
-  | AnthropicUserTextContent
-  | AnthropicUserImageContent;
+export interface AnthropicAssistantMessage {
+  role: 'assistant';
+  content: Array<AnthropicTextContent | AnthropicToolCallContent>;
+}
 
-export interface AnthropicUserTextContent {
+export interface AnthropicTextContent {
   type: 'text';
   text: string;
 }
 
-export interface AnthropicUserImageContent {
+export interface AnthropicImageContent {
   type: 'image';
   source: {
     type: 'base64';
@@ -28,7 +31,16 @@ export interface AnthropicUserImageContent {
   };
 }
 
-export interface AnthropicAssistantMessage {
-  role: 'assistant';
-  content: string;
+export interface AnthropicToolCallContent {
+  type: 'tool_use';
+  id: string;
+  name: string;
+  input: unknown;
+}
+
+export interface AnthropicToolResultContent {
+  type: 'tool_result';
+  tool_use_id: string;
+  content: unknown;
+  is_error?: boolean;
 }

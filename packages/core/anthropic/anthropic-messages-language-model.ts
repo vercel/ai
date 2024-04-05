@@ -191,13 +191,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     let toolCalls: LanguageModelV1FunctionToolCall[] | undefined = undefined;
     if (response.content.some(content => content.type === 'tool_use')) {
       toolCalls = [];
-      for (const toolUse of response.content) {
-        if (toolUse.type === 'tool_use') {
+      for (const content of response.content) {
+        if (content.type === 'tool_use') {
           toolCalls.push({
             toolCallType: 'function',
-            toolCallId: toolUse.id,
-            toolName: toolUse.name,
-            args: JSON.stringify(toolUse.input),
+            toolCallId: content.id,
+            toolName: content.name,
+            args: JSON.stringify(content.input),
           });
         }
       }
