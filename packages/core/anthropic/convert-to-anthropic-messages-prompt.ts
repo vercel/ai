@@ -85,6 +85,7 @@ export function convertToAnthropicMessagesPrompt({
             type: 'tool_result',
             tool_use_id: part.toolCallId,
             content: JSON.stringify(part.result),
+            is_error: part.isError,
           })),
         });
 
