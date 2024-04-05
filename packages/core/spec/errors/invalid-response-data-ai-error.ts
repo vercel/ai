@@ -1,6 +1,6 @@
 /**
- * Server returned a response with invalid data content. This should be thrown by providers when they
- * cannot parse the response from the API.
+Server returned a response with invalid data content. This should be thrown by providers when they
+cannot parse the response from the API.
  */
 export class InvalidResponseDataAIError extends Error {
   readonly data: unknown;

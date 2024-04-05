@@ -131,7 +131,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       case 'object-grammar': {
         throw new UnsupportedFunctionalityAIError({
           functionality: 'object-grammar mode',
-          provider: this.provider,
         });
       }
 

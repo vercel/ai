@@ -126,7 +126,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       case 'object-json': {
         throw new UnsupportedFunctionalityAIError({
           functionality: 'json-mode object generation',
-          provider: this.provider,
         });
       }
 
@@ -149,7 +148,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       case 'object-grammar': {
         throw new UnsupportedFunctionalityAIError({
           functionality: 'grammar-mode object generation',
-          provider: this.provider,
         });
       }
 
