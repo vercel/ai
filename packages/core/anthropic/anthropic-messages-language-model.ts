@@ -3,8 +3,6 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
-  LanguageModelV1FunctionTool,
-  LanguageModelV1FunctionToolCall,
   LanguageModelV1StreamPart,
   ParseResult,
   UnsupportedFunctionalityError,
@@ -13,15 +11,12 @@ import {
   postJsonToApi,
 } from '../spec';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import { AnthropicMessage } from './anthropic-messages-prompt';
 import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
+import { mapAnthropicFinishReason } from './map-anthropic-finish-reason';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
-import { generateToolsHeader } from './generate-tools-header';
-import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
-import { parseToolCalls } from './parse-tool-calls';
 
 type AnthropicMessagesConfig = {
   provider: string;
@@ -32,7 +27,7 @@ type AnthropicMessagesConfig = {
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'tool';
+  readonly defaultObjectGenerationMode = 'json';
 
   readonly modelId: AnthropicMessagesModelId;
   readonly settings: AnthropicMessagesSettings;
@@ -112,57 +107,43 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const tools = mode.tools;
-
-        if (tools == null || tools.length === 0) {
-          return {
-            args: baseArgs,
-            warnings,
-            prefix: '',
-          };
-        }
+        // when the tools array is empty, change it to undefined to prevent OpenAI errors:
+        const tools = mode.tools?.length ? mode.tools : undefined;
 
         return {
-          args: injectToolsHeader({
-            baseArgs,
-            tools,
-            provider: this.provider,
-          }),
+          args: {
+            ...baseArgs,
+            tools: tools?.map(tool => ({
+              type: 'function',
+              function: {
+                name: tool.name,
+                description: tool.description,
+                parameters: tool.parameters,
+              },
+            })),
+          },
           warnings,
-          prefix: '',
         };
       }
 
       case 'object-json': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-json mode',
-          provider: this.provider,
-        });
+        return {
+          args: {
+            ...baseArgs,
+            response_format: { type: 'json_object' },
+          },
+          warnings,
+        };
       }
 
       case 'object-tool': {
-        const injected = injectToolsHeader({
-          baseArgs,
-          tools: [mode.tool],
-          provider: this.provider,
-        });
-
-        // provide the start of the assistant message to force the function call:
-        const prefix =
-          `<function_calls>\n<invoke>\n` +
-          `<tool_name>${mode.tool.name}</tool_name>\n` +
-          `<parameters>`;
-
         return {
           args: {
-            ...injected,
-            messages: [
-              ...injected.messages,
-              { role: 'assistant', content: prefix },
-            ],
+            ...baseArgs,
+            tool_choice: 'any',
+            tools: [{ type: 'function', function: mode.tool }],
           },
           warnings,
-          prefix,
         };
       }
 
@@ -183,57 +164,29 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings, prefix } = this.getArgs(options);
+    const { args, warnings } = this.getArgs(options);
 
     const response = await postJsonToApi({
       url: `${this.config.baseUrl}/messages`,
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(responseSchema),
+      successfulResponseHandler: createJsonResponseHandler(
+        anthropicMessagesResponseSchema,
+      ),
       abortSignal: options.abortSignal,
     });
 
-    const finishReason = mapAnthropicStopReason({
-      stopReason: response.stop_reason,
-      stopSequence: response.stop_sequence,
-    });
-
-    let text = prefix + response.content.map(({ text }) => text).join('');
-    let toolCalls: LanguageModelV1FunctionToolCall[] | undefined = undefined;
-
-    if (
-      finishReason === 'tool-calls' &&
-      ((options.mode.type === 'regular' && options.mode.tools != null) ||
-        options.mode.type === 'object-tool')
-    ) {
-      const parsedToolCalls = parseToolCalls({
-        text,
-        tools:
-          options.mode.type === 'regular'
-            ? options.mode.tools!
-            : [options.mode.tool],
-        generateId: this.config.generateId,
-      });
-
-      text = parsedToolCalls.modifiedText;
-      toolCalls = parsedToolCalls.toolCalls;
-    }
-
-    const { messages, system, ...rawSettings } = args;
+    const { messages: rawPrompt, ...rawSettings } = args;
 
     return {
-      text,
-      toolCalls,
-      finishReason,
+      text: response.content.map(({ text }) => text).join(''),
+      finishReason: mapAnthropicFinishReason(response.stop_reason),
       usage: {
         promptTokens: response.usage.input_tokens,
         completionTokens: response.usage.output_tokens,
       },
-      rawCall: {
-        rawPrompt: { system, messages },
-        rawSettings,
-      },
+      rawCall: { rawPrompt, rawSettings },
       warnings,
     };
   }
@@ -251,11 +204,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         stream: true,
       },
       failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),
+      successfulResponseHandler: createEventSourceResponseHandler(
+        anthropicMessagesChunkSchema,
+      ),
       abortSignal: options.abortSignal,
     });
 
-    const { messages, system, ...rawSettings } = args;
+    const { messages: rawPrompt, ...rawSettings } = args;
 
     let finishReason: LanguageModelV1FinishReason = 'other';
     const usage: { promptTokens: number; completionTokens: number } = {
@@ -268,7 +223,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof chunkSchema>>,
+          ParseResult<z.infer<typeof anthropicMessagesChunkSchema>>,
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
@@ -302,10 +257,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
               case 'message_delta': {
                 usage.completionTokens = value.usage.output_tokens;
-                finishReason = mapAnthropicStopReason({
-                  stopReason: value.delta.stop_reason,
-                  stopSequence: value.delta.stop_sequence,
-                });
+                finishReason = mapAnthropicFinishReason(
+                  value.delta.stop_reason,
+                );
                 return;
               }
 
@@ -322,10 +276,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
           },
         }),
       ),
-      rawCall: {
-        rawPrompt: { system, messages },
-        rawSettings,
-      },
+      rawCall: { rawPrompt, rawSettings },
       warnings,
     };
   }
@@ -333,7 +284,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const responseSchema = z.object({
+const anthropicMessagesResponseSchema = z.object({
   type: z.literal('message'),
   content: z.array(
     z.object({
@@ -342,7 +293,6 @@ const responseSchema = z.object({
     }),
   ),
   stop_reason: z.string().optional().nullable(),
-  stop_sequence: z.string().optional().nullable(),
   usage: z.object({
     input_tokens: z.number(),
     output_tokens: z.number(),
@@ -351,7 +301,7 @@ const responseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const chunkSchema = z.discriminatedUnion('type', [
+const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('message_start'),
     message: z.object({
@@ -383,10 +333,7 @@ const chunkSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('message_delta'),
-    delta: z.object({
-      stop_reason: z.string().optional().nullable(),
-      stop_sequence: z.string().optional().nullable(),
-    }),
+    delta: z.object({ stop_reason: z.string().optional().nullable() }),
     usage: z.object({ output_tokens: z.number() }),
   }),
   z.object({
@@ -396,35 +343,3 @@ const chunkSchema = z.discriminatedUnion('type', [
     type: z.literal('ping'),
   }),
 ]);
-
-function injectToolsHeader({
-  baseArgs,
-  tools,
-  provider,
-}: {
-  baseArgs: {
-    model: AnthropicMessagesModelId;
-    top_k: number | undefined;
-    max_tokens: number;
-    temperature: number | undefined;
-    top_p: number | undefined;
-    system: string | undefined;
-    messages: AnthropicMessage[];
-  };
-  tools: LanguageModelV1FunctionTool[];
-  provider: string;
-}) {
-  // inject a tools header into the system message:
-  const toolsHeader = generateToolsHeader({ tools, provider });
-
-  const system =
-    baseArgs.system != null
-      ? `${baseArgs.system}\n\n${toolsHeader}`
-      : toolsHeader;
-
-  return {
-    ...baseArgs,
-    system,
-    stop_sequences: ['</function_calls>'],
-  };
-}
