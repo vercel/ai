@@ -8,13 +8,9 @@ import {
   GoogleGenerativeAIPrompt,
 } from './google-generative-ai-prompt';
 
-export function convertToGoogleGenerativeAIMessages({
-  prompt,
-  provider,
-}: {
-  prompt: LanguageModelV1Prompt;
-  provider: string;
-}): GoogleGenerativeAIPrompt {
+export function convertToGoogleGenerativeAIMessages(
+  prompt: LanguageModelV1Prompt,
+): GoogleGenerativeAIPrompt {
   const messages: GoogleGenerativeAIPrompt = [];
 
   for (const { role, content } of prompt) {
@@ -40,7 +36,6 @@ export function convertToGoogleGenerativeAIMessages({
               case 'image': {
                 if (part.image instanceof URL) {
                   throw new UnsupportedFunctionalityAIError({
-                    provider,
                     functionality: 'URL image parts',
                   });
                 } else {

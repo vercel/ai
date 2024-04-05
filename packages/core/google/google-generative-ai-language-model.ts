@@ -96,10 +96,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       },
 
       // prompt:
-      contents: convertToGoogleGenerativeAIMessages({
-        provider: this.provider,
-        prompt,
-      }),
+      contents: convertToGoogleGenerativeAIMessages(prompt),
     };
 
     switch (type) {
