@@ -23,7 +23,6 @@ type AnthropicMessagesConfig = {
   provider: string;
   baseUrl: string;
   headers: () => Record<string, string | undefined>;
-  generateId: () => string;
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
@@ -242,8 +241,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
-
-    const generateId = this.config.generateId;
 
     return {
       stream: response.pipeThrough(
