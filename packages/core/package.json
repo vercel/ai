@@ -118,7 +118,6 @@
     "@types/json-schema": "7.0.15",
     "secure-json-parse": "2.7.0",
     "eventsource-parser": "1.1.2",
-    "fast-xml-parser": "4.3.6",
     "jsondiffpatch": "0.6.0",
     "json-schema": "0.4.0",
     "nanoid": "3.3.6",
