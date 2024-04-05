@@ -167,13 +167,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { contents: rawPrompt, ...rawSettings } = args;
     const candidate = response.candidates[0];
 
+    const toolCalls = getToolCallsFromParts({
+      parts: candidate.content.parts,
+      generateId: this.config.generateId,
+    });
+
     return {
       text: getTextFromParts(candidate.content.parts),
-      toolCalls: getToolCallsFromParts({
-        parts: candidate.content.parts,
-        generateId: this.config.generateId,
+      toolCalls,
+      finishReason: mapGoogleGenerativeAIFinishReason({
+        finishReason: candidate.finishReason,
+        hasToolCalls: toolCalls != null && toolCalls.length > 0,
       }),
-      finishReason: mapGoogleGenerativeAIFinishReason(candidate.finishReason),
       usage: {
         promptTokens: NaN,
         completionTokens: candidate.tokenCount ?? NaN,
@@ -206,6 +211,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     };
 
     const generateId = this.config.generateId;
+    let hasToolCalls = false;
 
     return {
       stream: response.pipeThrough(
@@ -224,9 +230,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
             const candidate = value.candidates[0];
 
             if (candidate?.finishReason != null) {
-              finishReason = mapGoogleGenerativeAIFinishReason(
-                candidate.finishReason,
-              );
+              finishReason = mapGoogleGenerativeAIFinishReason({
+                finishReason: candidate.finishReason,
+                hasToolCalls,
+              });
             }
 
             if (candidate.tokenCount != null) {
@@ -236,7 +243,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               };
             }
 
-            const deltaText = getTextFromParts(candidate.content.parts);
+            const content = candidate.content;
+
+            if (content == null) {
+              return;
+            }
+
+            const deltaText = getTextFromParts(content.parts);
             if (deltaText != null) {
               controller.enqueue({
                 type: 'text-delta',
@@ -245,7 +258,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
             }
 
             const toolCallDeltas = getToolCallsFromParts({
-              parts: candidate.content.parts,
+              parts: content.parts,
               generateId,
             });
 
@@ -266,6 +279,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                   toolName: toolCall.toolName,
                   args: toolCall.args,
                 });
+
+                hasToolCalls = true;
               }
             }
           },
@@ -357,20 +372,26 @@ const contentSchema = z.object({
   ),
 });
 
-const candidateSchema = z.object({
-  content: contentSchema,
-  finishReason: z.string().optional(),
-  tokenCount: z.number().optional(),
-});
-
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const responseSchema = z.object({
-  candidates: z.array(candidateSchema),
+  candidates: z.array(
+    z.object({
+      content: contentSchema,
+      finishReason: z.string().optional(),
+      tokenCount: z.number().optional(),
+    }),
+  ),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const chunkSchema = z.object({
-  candidates: z.array(candidateSchema),
+  candidates: z.array(
+    z.object({
+      content: contentSchema.optional(),
+      finishReason: z.string().optional(),
+      tokenCount: z.number().optional(),
+    }),
+  ),
 });
