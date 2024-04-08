@@ -74,4 +74,9 @@ Name of the tool that generated this result.
 Result of the tool call. This is a JSON-serializable object.
    */
   result: unknown;
+
+  /**
+Optional flag if the result is an error or an error message.
+   */
+  isError?: boolean;
 }
