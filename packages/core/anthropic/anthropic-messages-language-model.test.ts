@@ -149,6 +149,17 @@ describe('doGenerate', () => {
       },
     ]);
     expect(finishReason).toStrictEqual('tool-calls');
+
+    // check injection of tool use instruction:
+    expect((await server.getRequestBodyJson()).messages).toStrictEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          { type: 'text', text: `\n\nUse the 'json' tool.` },
+        ],
+      },
+    ]);
   });
 
   it('should extract usage', async () => {

@@ -131,16 +131,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-tool': {
+        const { name, description, parameters } = mode.tool;
+
+        // add instruction to use tool:
+        baseArgs.messages[baseArgs.messages.length - 1].content.push({
+          type: 'text',
+          text: `\n\nUse the '${name}' tool.`,
+        });
+
         return {
           args: {
             ...baseArgs,
-            tools: [
-              {
-                name: mode.tool.name,
-                description: mode.tool.description,
-                input_schema: mode.tool.parameters,
-              },
-            ],
+            tools: [{ name, description, input_schema: parameters }],
           },
           warnings,
         };
