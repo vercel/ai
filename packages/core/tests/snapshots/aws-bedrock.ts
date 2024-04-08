@@ -32,12 +32,12 @@ export const bedrockCohereChunks = [
   { is_finished: false, text: ' Hello' },
   { is_finished: false, text: '!' },
   { is_finished: false, text: ' How' },
-  { is_finished: true, text: ' can' },
-  { is_finished: true, text: ' I' },
-  { is_finished: true, text: ' help' },
-  { is_finished: true, text: ' you' },
-  { is_finished: true, text: ' today' },
-  { is_finished: true, text: '?' },
+  { is_finished: false, text: ' can' },
+  { is_finished: false, text: ' I' },
+  { is_finished: false, text: ' help' },
+  { is_finished: false, text: ' you' },
+  { is_finished: false, text: ' today' },
+  { is_finished: false, text: '?' },
 ];
 
 export const bedrockLlama2Chunks = [
