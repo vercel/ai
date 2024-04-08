@@ -60,11 +60,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     const type = mode.type;
 
     const { prompt: completionPrompt, stopSequences } =
-      convertToOpenAICompletionPrompt({
-        prompt,
-        inputFormat,
-        provider: this.provider,
-      });
+      convertToOpenAICompletionPrompt({ prompt, inputFormat });
 
     const baseArgs = {
       // model id:
