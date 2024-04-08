@@ -8,13 +8,9 @@ import {
   AnthropicMessagesPrompt,
 } from './anthropic-messages-prompt';
 
-export function convertToAnthropicMessagesPrompt({
-  prompt,
-  provider,
-}: {
-  prompt: LanguageModelV1Prompt;
-  provider: string;
-}): AnthropicMessagesPrompt {
+export function convertToAnthropicMessagesPrompt(
+  prompt: LanguageModelV1Prompt,
+): AnthropicMessagesPrompt {
   let system: string | undefined;
   const messages: AnthropicMessage[] = [];
 
@@ -36,7 +32,6 @@ export function convertToAnthropicMessagesPrompt({
               case 'image': {
                 if (part.image instanceof URL) {
                   throw new UnsupportedFunctionalityError({
-                    provider,
                     functionality: 'URL image parts',
                   });
                 } else {
