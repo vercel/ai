@@ -330,7 +330,7 @@ function chunkToText(): (
         isFunctionStreamingIn = true;
         return {
           isText: false,
-          content: `{"function_call": {"name": "${delta.function_call.name}", "arguments": "`,
+          content: `\n{"function_call": {"name": "${delta.function_call.name}", "arguments": "`,
         };
       } else if (delta.tool_calls?.[0]?.function?.name) {
         isFunctionStreamingIn = true;
@@ -338,7 +338,7 @@ function chunkToText(): (
         if (toolCall.index === 0) {
           return {
             isText: false,
-            content: `{"tool_calls":[ {"id": "${toolCall.id}", "type": "function", "function": {"name": "${toolCall.function?.name}", "arguments": "`,
+            content: `\n{"tool_calls":[ {"id": "${toolCall.id}", "type": "function", "function": {"name": "${toolCall.function?.name}", "arguments": "`,
           };
         } else {
           return {
@@ -511,8 +511,8 @@ function createFunctionCallTransformer(
 
       const shouldHandleAsFunction =
         isFirstChunk &&
-        (message.startsWith('{"function_call":') ||
-          message.startsWith('{"tool_calls":'));
+        (message.startsWith('\n{"function_call":') ||
+          message.startsWith('\n{"tool_calls":'));
 
       if (shouldHandleAsFunction) {
         isFunctionStreamingIn = true;

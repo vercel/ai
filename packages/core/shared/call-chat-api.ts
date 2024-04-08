@@ -93,6 +93,7 @@ export async function callChatApi({
 
     // TODO-STREAMDATA: Remove this once Stream Data is not experimental
     let streamedResponse = '';
+    let currentLine = '';
     const replyId = generateId();
     let responseMessage: Message = {
       id: replyId,
@@ -100,6 +101,9 @@ export async function callChatApi({
       content: '',
       role: 'assistant',
     };
+
+    const functionCallStartId = '{"function_call":';
+    const toolCallStartId = '{"tool_calls":';
 
     // TODO-STREAMDATA: Remove this once Stream Data is not experimental
     while (true) {
@@ -110,16 +114,17 @@ export async function callChatApi({
       // Update the chat state with the new message tokens.
       streamedResponse += decode(value);
 
-      if (streamedResponse.startsWith('{"function_call":')) {
+
+      if (streamedResponse.startsWith(functionCallStartId)) {
         // While the function call is streaming, it will be a string.
         responseMessage['function_call'] = streamedResponse;
-      } else if (streamedResponse.startsWith('{"tool_calls":')) {
+      } else if (streamedResponse.startsWith(toolCallStartId)) {
         // While the tool calls are streaming, it will be a string.
         responseMessage['tool_calls'] = streamedResponse;
       } else {
         responseMessage['content'] = streamedResponse;
       }
-
+      responseMessage['content'] = streamedResponse.split("\n").filter(line => !line.startsWith(functionCallStartId)&&!line.startsWith(toolCallStartId)).join("\n")
       appendMessage({ ...responseMessage });
 
       // The request has been aborted, stop reading the stream.
@@ -128,20 +133,23 @@ export async function callChatApi({
         break;
       }
     }
+    const lines = streamedResponse.split("\n")
+    const functionCallLine = lines.find(line => line.startsWith(functionCallStartId))
+    const toolCallLine = lines.find(line => line.startsWith(toolCallStartId))
 
-    if (streamedResponse.startsWith('{"function_call":')) {
+    if (functionCallLine) {
       // Once the stream is complete, the function call is parsed into an object.
       const parsedFunctionCall: FunctionCall =
-        JSON.parse(streamedResponse).function_call;
+        JSON.parse(functionCallLine).function_call;
 
       responseMessage['function_call'] = parsedFunctionCall;
 
       appendMessage({ ...responseMessage });
     }
-    if (streamedResponse.startsWith('{"tool_calls":')) {
+    if (toolCallLine) {
       // Once the stream is complete, the tool calls are parsed into an array.
       const parsedToolCalls: ToolCall[] =
-        JSON.parse(streamedResponse).tool_calls;
+        JSON.parse(toolCallLine).tool_calls;
 
       responseMessage['tool_calls'] = parsedToolCalls;
 
