@@ -90,10 +90,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       random_seed: seed,
 
       // messages:
-      messages: convertToMistralChatMessages({
-        provider: this.provider,
-        prompt,
-      }),
+      messages: convertToMistralChatMessages(prompt),
     };
 
     switch (type) {
@@ -141,7 +138,6 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       case 'object-grammar': {
         throw new UnsupportedFunctionalityError({
           functionality: 'object-grammar mode',
-          provider: this.provider,
         });
       }
 

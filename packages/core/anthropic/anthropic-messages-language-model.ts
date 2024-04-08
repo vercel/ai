@@ -83,10 +83,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const messagesPrompt = convertToAnthropicMessagesPrompt({
-      provider: this.provider,
-      prompt,
-    });
+    const messagesPrompt = convertToAnthropicMessagesPrompt(prompt);
 
     const baseArgs = {
       // model id:
@@ -126,7 +123,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       case 'object-json': {
         throw new UnsupportedFunctionalityError({
           functionality: 'json-mode object generation',
-          provider: this.provider,
         });
       }
 
@@ -151,7 +147,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       case 'object-grammar': {
         throw new UnsupportedFunctionalityError({
           functionality: 'grammar-mode object generation',
-          provider: this.provider,
         });
       }
 

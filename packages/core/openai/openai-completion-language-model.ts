@@ -112,7 +112,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         if (mode.tools?.length) {
           throw new UnsupportedFunctionalityError({
             functionality: 'tools',
-            provider: this.provider,
           });
         }
 
@@ -122,21 +121,18 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       case 'object-json': {
         throw new UnsupportedFunctionalityError({
           functionality: 'object-json mode',
-          provider: this.provider,
         });
       }
 
       case 'object-tool': {
         throw new UnsupportedFunctionalityError({
           functionality: 'object-tool mode',
-          provider: this.provider,
         });
       }
 
       case 'object-grammar': {
         throw new UnsupportedFunctionalityError({
           functionality: 'object-grammar mode',
-          provider: this.provider,
         });
       }
 

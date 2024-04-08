@@ -1,15 +1,12 @@
 export class UnsupportedJSONSchemaError extends Error {
-  readonly provider: string;
   readonly reason: string;
   readonly schema: unknown;
 
   constructor({
-    provider,
     schema,
     reason,
     message = `Unsupported JSON schema: ${reason}`,
   }: {
-    provider: string;
     schema: unknown;
     reason: string;
     message?: string;
@@ -18,7 +15,6 @@ export class UnsupportedJSONSchemaError extends Error {
 
     this.name = 'AI_UnsupportedJSONSchemaError';
 
-    this.provider = provider;
     this.reason = reason;
     this.schema = schema;
   }
@@ -29,8 +25,6 @@ export class UnsupportedJSONSchemaError extends Error {
     return (
       error instanceof Error &&
       error.name === 'AI_UnsupportedJSONSchemaError' &&
-      'provider' in error &&
-      error.provider != undefined &&
       'reason' in error &&
       error.reason != undefined &&
       'schema' in error &&
@@ -44,7 +38,6 @@ export class UnsupportedJSONSchemaError extends Error {
       message: this.message,
       stack: this.stack,
 
-      provider: this.provider,
       reason: this.reason,
       schema: this.schema,
     };

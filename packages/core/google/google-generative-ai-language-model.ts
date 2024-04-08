@@ -96,10 +96,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       },
 
       // prompt:
-      contents: convertToGoogleGenerativeAIMessages({
-        provider: this.provider,
-        prompt,
-      }),
+      contents: convertToGoogleGenerativeAIMessages(prompt),
     };
 
     switch (type) {
@@ -125,21 +122,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       case 'object-json': {
         throw new UnsupportedFunctionalityError({
           functionality: 'object-json mode',
-          provider: this.provider,
         });
       }
 
       case 'object-tool': {
         throw new UnsupportedFunctionalityError({
           functionality: 'object-tool mode',
-          provider: this.provider,
         });
       }
 
       case 'object-grammar': {
         throw new UnsupportedFunctionalityError({
           functionality: 'object-grammar mode',
-          provider: this.provider,
         });
       }
 
