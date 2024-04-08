@@ -29,15 +29,15 @@ export const bedrockAnthropicV3Chunks = [
 ];
 
 export const bedrockCohereChunks = [
-  {
-    generations: [
-      {
-        finish_reason: 'COMPLETE',
-        id: '0c72c609-c8ac-4601-a323-653db56c8d80',
-        text: ' Hi! How can I help you today?',
-      },
-    ],
-  },
+  { is_finished: false, text: ' Hello' },
+  { is_finished: false, text: '!' },
+  { is_finished: false, text: ' How' },
+  { is_finished: true, text: ' can' },
+  { is_finished: true, text: ' I' },
+  { is_finished: true, text: ' help' },
+  { is_finished: true, text: ' you' },
+  { is_finished: true, text: ' today' },
+  { is_finished: true, text: '?' },
 ];
 
 export const bedrockLlama2Chunks = [

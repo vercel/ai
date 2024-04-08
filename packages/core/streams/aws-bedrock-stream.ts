@@ -52,9 +52,7 @@ export function AWSBedrockCohereStream(
   return AWSBedrockStream(
     response,
     callbacks,
-    // As of 2023-11-17, Bedrock does not support streaming for Cohere,
-    // so we take the full generation:
-    chunk => chunk.generations?.[0]?.text,
+    chunk => chunk?.text,
   );
 }
 
