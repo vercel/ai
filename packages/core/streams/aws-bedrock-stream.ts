@@ -49,11 +49,7 @@ export function AWSBedrockCohereStream(
   response: AWSBedrockResponse,
   callbacks?: AIStreamCallbacksAndOptions,
 ): ReadableStream {
-  return AWSBedrockStream(
-    response,
-    callbacks,
-    chunk => chunk?.text,
-  );
+  return AWSBedrockStream(response, callbacks, chunk => chunk?.text);
 }
 
 export function AWSBedrockLlama2Stream(
