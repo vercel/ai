@@ -1,11 +1,15 @@
 import { LanguageModelV1FinishReason } from '../spec';
 
-export function mapGoogleGenerativeAIFinishReason(
-  finishReason: string | null | undefined,
-): LanguageModelV1FinishReason {
+export function mapGoogleGenerativeAIFinishReason({
+  finishReason,
+  hasToolCalls,
+}: {
+  finishReason: string | null | undefined;
+  hasToolCalls: boolean;
+}): LanguageModelV1FinishReason {
   switch (finishReason) {
     case 'STOP':
-      return 'stop';
+      return hasToolCalls ? 'tool-calls' : 'stop';
     case 'MAX_TOKENS':
       return 'length';
     case 'RECITATION':
