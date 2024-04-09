@@ -49,13 +49,7 @@ export function AWSBedrockCohereStream(
   response: AWSBedrockResponse,
   callbacks?: AIStreamCallbacksAndOptions,
 ): ReadableStream {
-  return AWSBedrockStream(
-    response,
-    callbacks,
-    // As of 2023-11-17, Bedrock does not support streaming for Cohere,
-    // so we take the full generation:
-    chunk => chunk.generations?.[0]?.text,
-  );
+  return AWSBedrockStream(response, callbacks, chunk => chunk?.text);
 }
 
 export function AWSBedrockLlama2Stream(

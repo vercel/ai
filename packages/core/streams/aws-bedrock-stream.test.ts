@@ -122,7 +122,15 @@ describe('AWS Bedrock', () => {
       const response = new StreamingTextResponse(stream);
 
       expect(await readAllChunks(response)).toEqual([
-        ' Hi! How can I help you today?',
+        ' Hello',
+        '!',
+        ' How',
+        ' can',
+        ' I',
+        ' help',
+        ' you',
+        ' today',
+        '?',
       ]);
     });
 
@@ -141,7 +149,15 @@ describe('AWS Bedrock', () => {
         const response = new StreamingTextResponse(stream, {}, data);
 
         expect(await readAllChunks(response)).toEqual([
-          '0:" Hi! How can I help you today?"\n',
+          '0:" Hello"\n',
+          '0:"!"\n',
+          '0:" How"\n',
+          '0:" can"\n',
+          '0:" I"\n',
+          '0:" help"\n',
+          '0:" you"\n',
+          '0:" today"\n',
+          '0:"?"\n',
         ]);
       });
 
@@ -162,7 +178,15 @@ describe('AWS Bedrock', () => {
 
         expect(await readAllChunks(response)).toEqual([
           '2:[{"t1":"v1"}]\n',
-          '0:" Hi! How can I help you today?"\n',
+          '0:" Hello"\n',
+          '0:"!"\n',
+          '0:" How"\n',
+          '0:" can"\n',
+          '0:" I"\n',
+          '0:" help"\n',
+          '0:" you"\n',
+          '0:" today"\n',
+          '0:"?"\n',
         ]);
       });
     });
