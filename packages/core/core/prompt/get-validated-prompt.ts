@@ -1,4 +1,4 @@
-import { InvalidPromptError } from '@ai-sdk/specification';
+import { InvalidPromptError } from '@ai-sdk/provider';
 import { ExperimentalMessage } from './message';
 import { Prompt } from './prompt';
 

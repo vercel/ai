@@ -1072,9 +1072,9 @@ importers:
 
   packages/core:
     dependencies:
-      '@ai-sdk/specification':
+      '@ai-sdk/provider':
         specifier: 0.1.0
-        version: link:../specification
+        version: link:../provider
       eventsource-parser:
         specifier: 1.1.2
         version: 1.1.2
@@ -1215,7 +1215,7 @@ importers:
         specifier: 3.22.4
         version: 3.22.4
 
-  packages/specification:
+  packages/provider:
     dependencies:
       json-schema:
         specifier: 0.4.0
@@ -1232,7 +1232,10 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8
-        version: 8.0.2
+        version: 8.0.2(typescript@5.1.3)
+      typescript:
+        specifier: 5.1.3
+        version: 5.1.3
 
   tools/eslint-config:
     dependencies:
@@ -16808,7 +16811,7 @@ packages:
       - ts-node
     dev: true
 
-  /tsup@8.0.2:
+  /tsup@8.0.2(typescript@5.1.3):
     resolution: {integrity: sha512-NY8xtQXdH7hDUAZwcQdY/Vzlw9johQsaqf7iwZ6g1DOUlFYQ5/AtVAjTvihhEyeRlGo4dLRVHtrRaL35M1daqQ==}
     engines: {node: '>=18'}
     hasBin: true
@@ -16841,6 +16844,7 @@ packages:
       source-map: 0.8.0-beta.0
       sucrase: 3.34.0
       tree-kill: 1.2.2
+      typescript: 5.1.3
     transitivePeerDependencies:
       - supports-color
       - ts-node

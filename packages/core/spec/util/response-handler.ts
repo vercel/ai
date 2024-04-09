@@ -1,4 +1,4 @@
-import { APICallError, NoResponseBodyError } from '@ai-sdk/specification';
+import { APICallError, NoResponseBodyError } from '@ai-sdk/provider';
 import {
   EventSourceParserStream,
   ParsedEvent,

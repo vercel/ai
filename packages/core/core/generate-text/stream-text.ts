@@ -2,7 +2,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
-} from '@ai-sdk/specification';
+} from '@ai-sdk/provider';
 import {
   AIStreamCallbacksAndOptions,
   createCallbacksTransformer,

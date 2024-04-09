@@ -1,4 +1,4 @@
-import { JSONParseError, TypeValidationError } from '@ai-sdk/specification';
+import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 import SecureJSON from 'secure-json-parse';
 import { ZodSchema } from 'zod';
 import { safeValidateTypes, validateTypes } from './validate-types';

@@ -1,4 +1,4 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/specification';
+import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '../spec';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 
