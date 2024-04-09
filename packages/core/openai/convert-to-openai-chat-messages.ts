@@ -1,4 +1,5 @@
-import { LanguageModelV1Prompt, convertUint8ArrayToBase64 } from '../spec';
+import { LanguageModelV1Prompt } from '@ai-sdk/specification';
+import { convertUint8ArrayToBase64 } from '../spec';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 
 export function convertToOpenAIChatMessages(

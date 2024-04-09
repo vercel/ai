@@ -1151,6 +1151,9 @@ importers:
       '@testing-library/vue':
         specifier: ^8.0.1
         version: 8.0.1(@vue/compiler-sfc@3.3.8)(vue@3.3.8)
+      '@types/json-schema':
+        specifier: 7.0.15
+        version: 7.0.15
       '@types/node':
         specifier: ^17.0.12
         version: 17.0.45

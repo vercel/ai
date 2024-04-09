@@ -1,4 +1,4 @@
-import { LanguageModelV1Prompt } from '../spec';
+import { LanguageModelV1Prompt } from '@ai-sdk/specification';
 import { convertStreamToArray } from '../spec/test/convert-stream-to-array';
 import { JsonTestServer } from '../spec/test/json-test-server';
 import { StreamingTestServer } from '../spec/test/streaming-test-server';

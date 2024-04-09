@@ -133,6 +133,7 @@
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.5.1",
     "@testing-library/vue": "^8.0.1",
+    "@types/json-schema": "7.0.15",
     "@types/node": "^17.0.12",
     "@types/react": "^18.2.8",
     "@types/react-dom": "^18.2.0",

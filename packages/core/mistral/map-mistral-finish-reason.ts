@@ -1,4 +1,4 @@
-import { LanguageModelV1FinishReason } from '../spec';
+import { LanguageModelV1FinishReason } from '@ai-sdk/specification';
 
 export function mapMistralFinishReason(
   finishReason: string | null | undefined,

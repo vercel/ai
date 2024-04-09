@@ -3,7 +3,7 @@ import {
   LanguageModelV1Message,
   LanguageModelV1Prompt,
   LanguageModelV1TextPart,
-} from '../../spec';
+} from '@ai-sdk/specification';
 import { detectImageMimeType } from '../util/detect-image-mimetype';
 import { convertDataContentToUint8Array } from './data-content';
 import { ValidatedPrompt } from './get-validated-prompt';
