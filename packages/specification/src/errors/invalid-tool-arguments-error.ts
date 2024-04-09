@@ -1,4 +1,4 @@
-import { getErrorMessage } from '../util';
+import { getErrorMessage } from './get-error-message';
 
 export class InvalidToolArgumentsError extends Error {
   readonly toolName: string;

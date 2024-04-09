@@ -1,8 +1,8 @@
 import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
-  convertUint8ArrayToBase64,
-} from '../spec';
+} from '@ai-sdk/specification';
+import { convertUint8ArrayToBase64 } from '../spec';
 import {
   AnthropicMessage,
   AnthropicMessagesPrompt,

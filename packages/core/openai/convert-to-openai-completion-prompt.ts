@@ -2,7 +2,7 @@ import {
   InvalidPromptError,
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
-} from '../spec';
+} from '@ai-sdk/specification';
 
 export function convertToOpenAICompletionPrompt({
   prompt,

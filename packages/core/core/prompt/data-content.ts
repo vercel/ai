@@ -1,5 +1,5 @@
+import { InvalidDataContentError } from '@ai-sdk/specification';
 import {
-  InvalidDataContentError,
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
 } from '../../spec';

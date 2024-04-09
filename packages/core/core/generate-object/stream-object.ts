@@ -1,10 +1,10 @@
-import { z } from 'zod';
 import {
   LanguageModelV1,
   LanguageModelV1CallOptions,
   LanguageModelV1CallWarning,
   LanguageModelV1StreamPart,
-} from '../../spec';
+} from '@ai-sdk/specification';
+import { z } from 'zod';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
