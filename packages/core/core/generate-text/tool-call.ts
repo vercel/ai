@@ -1,10 +1,10 @@
-import { z } from 'zod';
 import {
   InvalidToolArgumentsError,
   LanguageModelV1FunctionToolCall,
   NoSuchToolError,
-  safeParseJSON,
-} from '../../spec';
+} from '@ai-sdk/specification';
+import { z } from 'zod';
+import { safeParseJSON } from '../../spec';
 import { ExperimentalTool } from '../tool';
 import { ValueOf } from '../util/value-of';
 

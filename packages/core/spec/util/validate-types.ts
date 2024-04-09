@@ -1,5 +1,5 @@
+import { TypeValidationError } from '@ai-sdk/specification';
 import { ZodSchema } from 'zod';
-import { TypeValidationError } from '../errors/type-validation-error';
 
 /**
  * Validates the types of an unknown object using a schema and

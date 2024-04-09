@@ -1,4 +1,7 @@
-import { LanguageModelV1StreamPart, NoSuchToolError } from '../../spec';
+import {
+  LanguageModelV1StreamPart,
+  NoSuchToolError,
+} from '@ai-sdk/specification';
 import { generateId } from '../../shared/generate-id';
 import { ExperimentalTool } from '../tool';
 import { TextStreamPart } from './stream-text';

@@ -1,5 +1,5 @@
 import { LanguageModelV1FunctionTool } from '../language-model/v1/language-model-v1-function-tool';
-import { getErrorMessage } from '../util/get-error-message';
+import { getErrorMessage } from './get-error-message';
 
 export class ToolCallParseError extends Error {
   readonly cause: unknown;

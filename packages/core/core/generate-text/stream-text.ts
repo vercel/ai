@@ -1,5 +1,8 @@
-import { LanguageModelV1FinishReason } from '../../spec';
-import { LanguageModelV1, LanguageModelV1CallWarning } from '../../spec/index';
+import {
+  LanguageModelV1,
+  LanguageModelV1CallWarning,
+  LanguageModelV1FinishReason,
+} from '@ai-sdk/specification';
 import {
   AIStreamCallbacksAndOptions,
   createCallbacksTransformer,

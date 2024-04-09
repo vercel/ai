@@ -14,7 +14,6 @@
     "solid/dist/**/*",
     "prompts/dist/**/*",
     "rsc/dist/**/*",
-    "spec/dist/**/*",
     "google/dist/**/*",
     "openai/dist/**/*",
     "anthropic/dist/**/*",
@@ -22,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
-    "clean": "rm -rf dist && rm -rf core/dist && rm -rf google/dist && rm -rf anthropic/dist && rm -rf openai/dist && rm -rf mistral/dist && rm -rf spec/dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist && rm -rf rsc/dist",
+    "clean": "rm -rf dist && rm -rf core/dist && rm -rf google/dist && rm -rf anthropic/dist && rm -rf openai/dist && rm -rf mistral/dist && rm -rf react/dist && rm -rf svelte/dist && rm -rf vue/dist && rm -rf solid/dist && rm -rf rsc/dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -51,12 +50,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    },
-    "./spec": {
-      "types": "./spec/dist/index.d.ts",
-      "import": "./spec/dist/index.mjs",
-      "module": "./spec/dist/index.mjs",
-      "require": "./spec/dist/index.js"
     },
     "./anthropic": {
       "types": "./anthropic/dist/index.d.ts",
@@ -115,7 +108,7 @@
     }
   },
   "dependencies": {
-    "@types/json-schema": "7.0.15",
+    "@ai-sdk/specification": "0.1.0",
     "secure-json-parse": "2.7.0",
     "eventsource-parser": "1.1.2",
     "jsondiffpatch": "0.6.0",

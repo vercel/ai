@@ -1,4 +1,4 @@
-import { APICallError } from '../errors/api-call-error';
+import { APICallError } from '@ai-sdk/specification';
 import { ResponseHandler } from './response-handler';
 
 export const postJsonToApi = async <T>({

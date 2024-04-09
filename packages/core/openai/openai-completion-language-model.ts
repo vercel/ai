@@ -1,10 +1,12 @@
-import { z } from 'zod';
 import {
   LanguageModelV1,
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
-  ParseResult,
   UnsupportedFunctionalityError,
+} from '@ai-sdk/specification';
+import { z } from 'zod';
+import {
+  ParseResult,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,

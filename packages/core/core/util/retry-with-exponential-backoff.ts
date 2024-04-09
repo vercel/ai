@@ -1,4 +1,5 @@
-import { APICallError, RetryError, getErrorMessage } from '../../spec';
+import { APICallError, RetryError } from '@ai-sdk/specification';
+import { getErrorMessage } from '../../spec';
 import { delay } from './delay';
 
 export type RetryFunction = <OUTPUT>(

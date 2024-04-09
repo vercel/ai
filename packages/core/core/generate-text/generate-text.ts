@@ -2,7 +2,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
-} from '../../spec';
+} from '@ai-sdk/specification';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';

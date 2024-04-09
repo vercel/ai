@@ -1,10 +1,9 @@
+import { APICallError, NoResponseBodyError } from '@ai-sdk/specification';
 import {
   EventSourceParserStream,
   ParsedEvent,
 } from 'eventsource-parser/stream';
 import { ZodSchema } from 'zod';
-import { APICallError } from '../errors';
-import { NoResponseBodyError } from '../errors/no-response-body-error';
 import { ParseResult, parseJSON, safeParseJSON } from './parse-json';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
