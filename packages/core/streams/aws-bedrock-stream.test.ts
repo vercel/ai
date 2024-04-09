@@ -1,4 +1,4 @@
-import { StreamingTextResponse, experimental_StreamData } from '.';
+import { StreamingTextResponse, StreamData } from '.';
 import {
   bedrockAnthropicChunks,
   bedrockAnthropicV3Chunks,
@@ -40,7 +40,7 @@ function simulateBedrockResponse(chunks: any[]) {
 describe('AWS Bedrock', () => {
   describe('Anthropic', () => {
     it('should send text', async () => {
-      const data = new experimental_StreamData();
+      const data = new StreamData();
 
       const bedrockResponse = simulateBedrockResponse(bedrockAnthropicChunks);
       const stream = AWSBedrockAnthropicStream(bedrockResponse, {
@@ -60,7 +60,7 @@ describe('AWS Bedrock', () => {
     });
 
     it('should send text and data', async () => {
-      const data = new experimental_StreamData();
+      const data = new StreamData();
 
       data.append({ t1: 'v1' });
 
@@ -100,7 +100,7 @@ describe('AWS Bedrock', () => {
 
   describe('Cohere', () => {
     it('should send text', async () => {
-      const data = new experimental_StreamData();
+      const data = new StreamData();
 
       const bedrockResponse = simulateBedrockResponse(bedrockCohereChunks);
       const stream = AWSBedrockCohereStream(bedrockResponse, {
@@ -125,7 +125,7 @@ describe('AWS Bedrock', () => {
     });
 
     it('should send text and data', async () => {
-      const data = new experimental_StreamData();
+      const data = new StreamData();
 
       data.append({ t1: 'v1' });
 
@@ -155,7 +155,7 @@ describe('AWS Bedrock', () => {
 
   describe('Llama2', () => {
     it('should send text', async () => {
-      const data = new experimental_StreamData();
+      const data = new StreamData();
 
       const bedrockResponse = simulateBedrockResponse(bedrockLlama2Chunks);
       const stream = AWSBedrockLlama2Stream(bedrockResponse, {
@@ -177,7 +177,7 @@ describe('AWS Bedrock', () => {
     });
 
     it('should send text and data', async () => {
-      const data = new experimental_StreamData();
+      const data = new StreamData();
 
       data.append({ t1: 'v1' });
 

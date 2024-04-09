@@ -4,7 +4,7 @@ import { JSONValue } from '../shared/types';
 /**
  * A stream wrapper to send custom JSON-encoded data back to the client.
  */
-export class experimental_StreamData {
+export class StreamData {
   private encoder = new TextEncoder();
 
   private controller: TransformStreamDefaultController<Uint8Array> | null =
@@ -129,3 +129,8 @@ export function createStreamDataTransformer() {
     },
   });
 }
+
+/**
+@deprecated Use `StreamData` instead.
+ */
+export class experimental_StreamData extends StreamData {}

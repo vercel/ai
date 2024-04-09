@@ -1,8 +1,4 @@
-import {
-  StreamingTextResponse,
-  experimental_StreamData,
-  experimental_streamText,
-} from 'ai';
+import { StreamingTextResponse, StreamData, experimental_streamText } from 'ai';
 import { openai } from 'ai/openai';
 
 export const runtime = 'edge';
@@ -18,7 +14,7 @@ export async function POST(req: Request) {
   });
 
   // optional: use stream data
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   data.append({ test: 'value' });
 

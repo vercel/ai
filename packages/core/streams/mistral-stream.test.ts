@@ -1,5 +1,5 @@
 import MistralClient from '@mistralai/mistralai';
-import { StreamingTextResponse, experimental_StreamData } from '.';
+import { StreamingTextResponse, StreamData } from '.';
 import { mistralChunks } from '../tests/snapshots/mistral';
 import { readAllChunks } from '../tests/utils/mock-client';
 import { createMockServer } from '../tests/utils/mock-server';
@@ -28,7 +28,7 @@ describe('MistralStream', () => {
   });
 
   it('should send text', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const client = new MistralClient('api-key', 'http://localhost:3030');
 
@@ -56,7 +56,7 @@ describe('MistralStream', () => {
   });
 
   it('should send text and data', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     data.append({ t1: 'v1' });
 

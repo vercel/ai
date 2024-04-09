@@ -2,7 +2,7 @@ import {
   InkeepOnFinalMetadata,
   InkeepStream,
   StreamingTextResponse,
-  experimental_StreamData,
+  StreamData,
 } from '.';
 import { InkeepEventStream } from '../tests/snapshots/inkeep';
 import { readAllChunks } from '../tests/utils/mock-client';
@@ -34,7 +34,7 @@ describe('InkeepStream', () => {
     '"records_cited":{"citations":[{"number":1,"record":{"url":"https://inkeep.com","title":"Inkeep","breadcrumbs":["Home","About"]}}]}';
 
   it('should receive and send Inkeep onFinal metadata with chat_session_id', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const response = await fetch(DEFAULT_TEST_URL);
 
@@ -60,7 +60,7 @@ describe('InkeepStream', () => {
   });
 
   it('should receive and send Inkeep records_cited data as message annotation', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const response = await fetch(DEFAULT_TEST_URL);
 

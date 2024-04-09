@@ -1,9 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import {
-  AnthropicStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from '.';
+import { AnthropicStream, StreamingTextResponse, StreamData } from '.';
 import {
   anthropicMessageChunks,
   anthropicCompletionChunks,
@@ -46,7 +42,7 @@ describe('Anthropic completion', () => {
       apiKey: 'sk-doesnt-matter',
     });
 
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const anthropicResponse = await anthropic.completions.create({
       prompt: '',
@@ -77,7 +73,7 @@ describe('Anthropic completion', () => {
       apiKey: 'sk-doesnt-matter',
     });
 
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     data.append({ t1: 'v1' });
 
@@ -113,7 +109,7 @@ describe('Anthropic message', () => {
       apiKey: 'sk-doesnt-matter',
     });
 
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const anthropicResponse = await anthropic.messages.create({
       messages: [{ role: 'user', content: 'Hello' }],
@@ -144,7 +140,7 @@ describe('Anthropic message', () => {
       apiKey: 'sk-doesnt-matter',
     });
 
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     data.append({ t1: 'v1' });
 

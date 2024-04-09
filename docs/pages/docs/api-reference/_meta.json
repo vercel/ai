@@ -5,7 +5,7 @@
   "use-chat": "useChat",
   "use-completion": "useCompletion",
   "ai-stream": "AIStream",
-  "stream-data": "experimental_StreamData",
+  "stream-data": "StreamData",
   "streaming-text-response": "StreamingTextResponse",
   "stream-to-response": "streamToResponse",
   "tokens": "<Tokens />"

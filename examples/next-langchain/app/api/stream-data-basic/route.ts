@@ -2,7 +2,7 @@ import {
   StreamingTextResponse,
   LangChainStream,
   Message,
-  experimental_StreamData,
+  StreamData,
 } from 'ai';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
 import { AIMessage, HumanMessage } from 'langchain/schema';
@@ -12,7 +12,7 @@ export const runtime = 'edge';
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   // important: use LangChainStream from the AI SDK:
   const { stream, handlers } = LangChainStream({

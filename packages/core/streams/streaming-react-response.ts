@@ -11,7 +11,7 @@
 import { parseComplexResponse } from '../shared/parse-complex-response';
 import { IdGenerator, JSONValue } from '../shared/types';
 import { nanoid } from '../shared/utils';
-import { experimental_StreamData } from './stream-data';
+import { StreamData } from './stream-data';
 
 type UINode = string | JSX.Element | JSX.Element[] | null | undefined;
 
@@ -35,7 +35,7 @@ export class experimental_StreamingReactResponse {
         content: string;
         data?: JSONValue[];
       }) => UINode | Promise<UINode>;
-      data?: experimental_StreamData;
+      data?: StreamData;
       generateId?: IdGenerator;
     },
   ) {

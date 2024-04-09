@@ -1,9 +1,5 @@
 import { HfInference } from '@huggingface/inference';
-import {
-  HuggingFaceStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from '.';
+import { HuggingFaceStream, StreamingTextResponse, StreamData } from '.';
 import { huggingfaceChunks } from '../tests/snapshots/huggingface';
 import { createClient } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
@@ -36,7 +32,7 @@ describe('HuggingFace stream', () => {
   }
 
   it('should send text', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = HuggingFaceStream(
       Hf.textGenerationStream(
@@ -61,7 +57,7 @@ describe('HuggingFace stream', () => {
   });
 
   it('should send text and data', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     data.append({ t1: 'v1' });
 

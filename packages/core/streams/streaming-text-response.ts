@@ -1,15 +1,11 @@
 import type { ServerResponse } from 'node:http';
-import { experimental_StreamData } from './stream-data';
+import { StreamData } from './stream-data';
 
 /**
  * A utility class for streaming text responses.
  */
 export class StreamingTextResponse extends Response {
-  constructor(
-    res: ReadableStream,
-    init?: ResponseInit,
-    data?: experimental_StreamData,
-  ) {
+  constructor(res: ReadableStream, init?: ResponseInit, data?: StreamData) {
     let processedStream = res;
 
     if (data) {

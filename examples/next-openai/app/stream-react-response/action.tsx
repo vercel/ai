@@ -3,7 +3,7 @@
 import {
   Message,
   OpenAIStream,
-  experimental_StreamData,
+  StreamData,
   experimental_StreamingReactResponse,
 } from 'ai';
 import { experimental_buildOpenAIMessages } from 'ai/prompts';
@@ -48,7 +48,7 @@ const functions: ChatCompletionCreateParams.Function[] = [
 ];
 
 export async function handler({ messages }: { messages: Message[] }) {
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY!,

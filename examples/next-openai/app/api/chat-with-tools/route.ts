@@ -3,7 +3,7 @@ import {
   StreamingTextResponse,
   Tool,
   ToolCallPayload,
-  experimental_StreamData,
+  StreamData,
 } from 'ai';
 import OpenAI from 'openai';
 
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     tool_choice: 'auto',
   });
 
-  const data = new experimental_StreamData();
+  const data = new StreamData();
   const stream = OpenAIStream(response, {
     experimental_onToolCall: async (
       call: ToolCallPayload,

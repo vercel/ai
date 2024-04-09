@@ -1,9 +1,5 @@
 import OpenAI from 'openai';
-import {
-  OpenAIStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from 'ai';
+import { OpenAIStream, StreamingTextResponse, StreamData } from 'ai';
 
 import { env } from '$env/dynamic/private';
 // You may want to replace the above with a static private env variable
@@ -29,7 +25,7 @@ export const POST = (async ({ request }) => {
   });
 
   // optional: use stream data
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   data.append({ test: 'value' });
 
