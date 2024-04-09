@@ -88,7 +88,6 @@ export default defineLazyEventHandler(async () => {
       onFinal(completion) {
         data.close();
       },
-      experimental_streamData: true,
     });
 
     data.append({

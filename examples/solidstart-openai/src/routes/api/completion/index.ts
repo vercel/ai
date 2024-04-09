@@ -33,7 +33,6 @@ export const POST = async (event: APIEvent) => {
     onFinal(completion) {
       data.close();
     },
-    experimental_streamData: true,
   });
 
   // Respond with the stream

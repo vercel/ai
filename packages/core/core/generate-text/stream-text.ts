@@ -214,8 +214,6 @@ Stream callbacks that will be called when the stream emits events.
     // TODO add support for tool calls
     return readableFromAsyncIterable(this.textStream)
       .pipeThrough(createCallbacksTransformer(callbacks))
-      .pipeThrough(
-        createStreamDataTransformer(callbacks?.experimental_streamData),
-      );
+      .pipeThrough(createStreamDataTransformer());
   }
 }

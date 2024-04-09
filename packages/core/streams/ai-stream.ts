@@ -37,10 +37,8 @@ export interface AIStreamCallbacksAndOptions {
   /** `onText`: Called for each text chunk. */
   onText?: (text: string) => Promise<void> | void;
   /**
-   * A flag for enabling the experimental_StreamData class and the new protocol.
-   * @see https://github.com/vercel-labs/ai/pull/425
-   *
-   * When StreamData is rolled out, this will be removed and the new protocol will be used by default.
+   * @deprecated This flag is no longer used and only retained for backwards compatibility.
+   * You can remove it from your code.
    */
   experimental_streamData?: boolean;
 }
