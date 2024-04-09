@@ -1,5 +1,15 @@
 # ai
 
+## 3.0.20
+
+### Patch Changes
+
+- f42bbb5: Remove experimental from useAssistant and AssistantResponse.
+- 149fe26: Deprecate <Tokens/>
+- 2eb4b55: Remove experimental\_ prefix from StreamData.
+- e45fa96: Add stream support for Bedrock/Cohere.
+- a6b2500: Deprecated the `experimental_streamData: true` setting from AIStreamCallbacksAndOptions. You can delete occurrences in your code. The stream data protocol is now used by default.
+
 ## 3.0.19
 
 ### Patch Changes
