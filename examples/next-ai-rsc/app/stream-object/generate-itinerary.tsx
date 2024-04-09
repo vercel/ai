@@ -20,7 +20,7 @@ export async function submitItineraryRequest({
 }) {
   'use server';
 
-  const itineraryCompoent = createStreamableUI(<ItineraryView />);
+  const itineraryComponent = createStreamableUI(<ItineraryView />);
   const isGenerating = createStreamableValue(true);
 
   experimental_streamObject({
@@ -39,19 +39,19 @@ export async function submitItineraryRequest({
     .then(async result => {
       try {
         for await (const partialItinerary of result.partialObjectStream) {
-          itineraryCompoent.update(
+          itineraryComponent.update(
             <ItineraryView itinerary={partialItinerary} />,
           );
         }
       } finally {
         isGenerating.done(false);
-        itineraryCompoent.done();
+        itineraryComponent.done();
       }
     });
 
   return {
     isGenerating: isGenerating.value,
-    itineraryComponent: itineraryCompoent.value,
+    itineraryComponent: itineraryComponent.value,
   };
 }
 
