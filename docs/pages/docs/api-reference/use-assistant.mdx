@@ -1,13 +1,13 @@
 ---
-title: experimental_useAssistant
+title: useAssistant
 ---
 
 import { OptionTable } from '@/components/table';
 import { FrameworkTabs, Tab } from '@/components/framework-tabs';
 
-# experimental_useAssistant
+# useAssistant
 
-## `experimental_useAssistant(options: UseAssistantOptions): UseAssistantHelpers` [#experimental_useAssistant]
+## `useAssistant(options: UseAssistantOptions): UseAssistantHelpers` [#useAssistant]
 
 `useAssistant` is a utility designed to handle the UI state of interacting with an OpenAI-compatible assistant API.
 This tool is useful when you need to integrate assistant capabilities into your application,
@@ -16,17 +16,13 @@ It works in conjunction with `AssistantResponse` in the backend.
 
 <FrameworkTabs>
   <Tab>
-To use `experimental_useAssistant` in React projects, you can import it from the `ai/react` subpath. 
-Here's an example demonstrating the use of `experimental_useAssistant` in a chat interface:
+To use `useAssistant` in React projects, you can import it from the `ai/react` subpath. 
+Here's an example demonstrating the use of `useAssistant` in a chat interface:
 
 ```tsx filename="app/assistant.tsx"
 'use client';
 
-import {
-  Message,
-  // import as useAssistant:
-  experimental_useAssistant as useAssistant,
-} from 'ai/react';
+import { Message, useAssistant } from 'ai/react';
 
 const roleToColorMap: Record<Message['role'], string> = {
   system: 'red',
@@ -124,7 +120,7 @@ export default function Chat() {
 
 ### `UseAssistantHelpers`
 
-The `experimental_useAssistant` hook returns an object with several helper methods and variables to manage the assistant state in the UI:
+The `useAssistant` hook returns an object with several helper methods and variables to manage the assistant state in the UI:
 
 <OptionTable
   options={[

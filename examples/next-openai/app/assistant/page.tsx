@@ -1,6 +1,6 @@
 'use client';
 
-import { Message, experimental_useAssistant as useAssistant } from 'ai/react';
+import { Message, useAssistant as useAssistant } from 'ai/react';
 import { useEffect, useRef } from 'react';
 
 const roleToColorMap: Record<Message['role'], string> = {
@@ -29,7 +29,7 @@ export default function Chat() {
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {error != null && (
-        <div className="relative bg-red-500 text-white px-6 py-4 rounded-md">
+        <div className="relative px-6 py-4 text-white bg-red-500 rounded-md">
           <span className="block sm:inline">
             Error: {(error as any).toString()}
           </span>
@@ -59,7 +59,7 @@ export default function Chat() {
       ))}
 
       {status === 'in_progress' && (
-        <div className="h-8 w-full max-w-md p-2 mb-8 bg-gray-300 dark:bg-gray-600 rounded-lg animate-pulse" />
+        <div className="w-full h-8 max-w-md p-2 mb-8 bg-gray-300 rounded-lg dark:bg-gray-600 animate-pulse" />
       )}
 
       <form onSubmit={submitMessage}>

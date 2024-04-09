@@ -1,30 +1,25 @@
 ---
-title: experimental_AssistantResponse
+title: AssistantResponse
 layout:
   toc: false
 ---
 
 import { Callout } from 'nextra-theme-docs';
 
-# `experimental_AssistantResponse`
+# `AssistantResponse`
 
-The `experimental_AssistantResponse` class allows you to send a stream of assistant update to `experimental_useAssistant`.
+The `AssistantResponse` allows you to send a stream of assistant update to `useAssistant`.
 
-<Callout>
-  The `experimental_` prefix indicates that the API is not yet stable and may
-  change in the future without a major version bump.
-</Callout>
+## `AssistantResponse(settings: AssistantResponseSettings, process: AssistantResponseCallback): Response` [#assistantresponse]
 
-## `experimental_AssistantResponse(settings: AssistantResponseSettings, process: AssistantResponseCallback): Response` [#assistantresponse]
-
-The `experimental_AssistantResponse` class is designed to facilitate streaming assistant responses to the `useAssistant` hook.
+The `AssistantResponse` is designed to facilitate streaming assistant responses to the `useAssistant` hook.
 It receives an assistant thread and a current message, and can send messages and data messages to the client.
 
 ## Parameters
 
 ### `settings: {threadId: string, messageId: string}`
 
-You can pass the thread and the latest message into the `experimental_AssistantResponse`. This establishes the context for the response.
+You can pass the thread and the latest message into the `AssistantResponse`. This establishes the context for the response.
 
 - `threadId: string`: The thread ID that the response is associated with.
 - `messageId: string`: The ID of the latest message that the response is associated with.
@@ -42,13 +37,13 @@ It gets invoked with the following functions that you can use to send messages a
 
 ### Server-Side Implementation
 
-This example highlights the usage of `experimental_AssistantResponse`
+This example highlights the usage of `AssistantResponse`
 for an OpenAI assistant within a Next.js environment.
 
 Server:
 
 ```tsx filename="app/api/assistant/route.ts"
-import { experimental_AssistantResponse } from 'ai';
+import { AssistantResponse } from 'ai';
 import OpenAI from 'openai';
 
 // Create an OpenAI API client (that's edge friendly!)
@@ -83,7 +78,7 @@ export async function POST(req: Request) {
     content: input.message,
   });
 
-  return experimental_AssistantResponse(
+  return AssistantResponse(
     { threadId, messageId: createdMessage.id },
     async ({ forwardStream, sendDataMessage }) => {
       // Run the assistant on the thread

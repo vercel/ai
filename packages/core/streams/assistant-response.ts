@@ -1,22 +1,59 @@
 import { AssistantStream } from 'openai/lib/AssistantStream';
+import { Run } from 'openai/resources/beta/threads/runs/runs';
 import { formatStreamPart } from '../shared/stream-parts';
 import { AssistantMessage, DataMessage } from '../shared/types';
-import { Run } from 'openai/resources/beta/threads/runs/runs';
 
+/**
+You can pass the thread and the latest message into the `AssistantResponse`. This establishes the context for the response.
+ */
 type AssistantResponseSettings = {
+  /**
+The thread ID that the response is associated with.
+   */
   threadId: string;
+
+  /**
+The ID of the latest message that the response is associated with.
+ */
   messageId: string;
 };
 
+/**
+The process parameter is a callback in which you can run the assistant on threads, and send messages and data messages to the client.
+ */
 type AssistantResponseCallback = (options: {
+  /**
+@deprecated use variable from outer scope instead.
+   */
   threadId: string;
+
+  /**
+@deprecated use variable from outer scope instead.
+   */
   messageId: string;
+
+  /**
+Forwards an assistant message (non-streaming) to the client.
+   */
   sendMessage: (message: AssistantMessage) => void;
+
+  /**
+Send a data message to the client. You can use this to provide information for rendering custom UIs while the assistant is processing the thread.
+ */
   sendDataMessage: (message: DataMessage) => void;
+
+  /**
+Forwards the assistant response stream to the client. Returns the `Run` object after it completes, or when it requires an action.
+   */
   forwardStream: (stream: AssistantStream) => Promise<Run | undefined>;
 }) => Promise<void>;
 
-export function experimental_AssistantResponse(
+/**
+The `AssistantResponse` allows you to send a stream of assistant update to `useAssistant`.
+It is designed to facilitate streaming assistant responses to the `useAssistant` hook.
+It receives an assistant thread and a current message, and can send messages and data messages to the client.
+ */
+export function AssistantResponse(
   { threadId, messageId }: AssistantResponseSettings,
   process: AssistantResponseCallback,
 ): Response {
@@ -120,3 +157,8 @@ export function experimental_AssistantResponse(
     },
   });
 }
+
+/**
+@deprecated Use `AssistantResponse` instead.
+ */
+export const experimental_AssistantResponse = AssistantResponse;

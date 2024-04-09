@@ -1,4 +1,4 @@
-import { experimental_AssistantResponse } from 'ai';
+import { AssistantResponse } from 'ai';
 import OpenAI from 'openai';
 
 // Create an OpenAI API client (that's edge friendly!)
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     content: input.message,
   });
 
-  return experimental_AssistantResponse(
+  return AssistantResponse(
     { threadId, messageId: createdMessage.id },
     async ({ forwardStream, sendDataMessage }) => {
       // Run the assistant on the thread
