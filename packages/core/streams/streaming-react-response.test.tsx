@@ -2,7 +2,7 @@ import ReactDOMServer from 'react-dom/server';
 import {
   OpenAIStream,
   ReactResponseRow,
-  experimental_StreamData,
+  StreamData,
   experimental_StreamingReactResponse,
 } from '.';
 import {
@@ -85,7 +85,7 @@ describe('without ui', () => {
   });
 
   it('should stream text response as React rows from data stream', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL), {
       onFinal() {
@@ -128,7 +128,7 @@ describe('with ui: sync jsx for content', () => {
   });
 
   it('should stream React response as React rows from data stream', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL), {
       onFinal() {
@@ -172,7 +172,7 @@ describe('with ui: async sync jsx for content', () => {
   });
 
   it('should stream React response as React rows from data stream', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL), {
       onFinal() {
@@ -199,7 +199,7 @@ describe('with ui: async sync jsx for content', () => {
 
 describe('with ui: sync jsx for content and data', () => {
   it('should stream React response as React rows from data stream when data is appended', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
       onFinal() {
@@ -243,7 +243,7 @@ describe('with ui: sync jsx for content and data', () => {
 
 describe('with ui: async jsx for content and data', () => {
   it('should stream React response as React rows from data stream when data is appended', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
       onFinal() {

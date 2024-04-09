@@ -1,32 +1,22 @@
 ---
-title: experimental_StreamData
+title: StreamData
 layout:
   toc: false
 ---
 
 import { Callout } from 'nextra-theme-docs';
 
-# `experimental_StreamData`
+# `StreamData`
 
-The `experimental_StreamData` class allows you to stream arbitrary data to the client alongside your LLM response.
+The `StreamData` class allows you to stream arbitrary data to the client alongside your LLM response.
 For information on the implementation, see the associated [pull request](https://github.com/vercel/ai/pull/425).
-
-<Callout>
-  The `experimental_` prefix indicates that the API is not yet stable and may
-  change in the future without a major version bump.
-
-</Callout>
 
 ## Usage
 
 ### On the Server
 
 ```jsx filename="app/api/chat/route.ts" {24-25,39-40,58-59,62-63,66-67}
-import {
-  OpenAIStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from 'ai';
+import { OpenAIStream, StreamingTextResponse, StreamData } from 'ai';
 import OpenAI from 'openai';
 import type { ChatCompletionCreateParams } from 'openai/resources/chat';
 
@@ -46,7 +36,7 @@ export async function POST(req: Request) {
   });
 
   // Instantiate the StreamData. It works with all API providers.
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   const stream = OpenAIStream(response, {
     experimental_onFunctionCall: async (

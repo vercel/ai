@@ -1,9 +1,5 @@
 import OpenAI from 'openai';
-import {
-  OpenAIStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from '.';
+import { OpenAIStream, StreamingTextResponse, StreamData } from '.';
 import {
   chatCompletionChunksWithToolCall,
   openaiChatCompletionChunks,
@@ -70,7 +66,7 @@ describe('OpenAIStream', () => {
   });
 
   it('should send text', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL), {
       onFinal() {
@@ -92,7 +88,7 @@ describe('OpenAIStream', () => {
   });
 
   it('should send function response as text stream when onFunctionCall is not defined', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
       onFinal() {
@@ -131,7 +127,7 @@ describe('OpenAIStream', () => {
   });
 
   it('should send function response when onFunctionCall is defined and returns undefined', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
       onFinal() {
@@ -153,7 +149,7 @@ describe('OpenAIStream', () => {
   });
 
   it('should not call onText for function calls', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
       onFinal() {
@@ -175,7 +171,7 @@ describe('OpenAIStream', () => {
   });
 
   it('should send function response and data when onFunctionCall is defined, returns undefined, and data is added', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
       onFinal() {
@@ -200,7 +196,7 @@ describe('OpenAIStream', () => {
   });
 
   it('should send return value when onFunctionCall is defined and returns value', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
       onFinal() {
@@ -220,7 +216,7 @@ describe('OpenAIStream', () => {
   });
 
   it('should send return value and data when onFunctionCall is defined, returns value and data is added', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
       onFinal() {
@@ -244,7 +240,7 @@ describe('OpenAIStream', () => {
   });
 
   it('should send text and data', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     data.append({ t1: 'v1' });
 
@@ -335,7 +331,7 @@ describe('OpenAIStream', () => {
     }
 
     it('should send text', async () => {
-      const data = new experimental_StreamData();
+      const data = new StreamData();
 
       const stream = OpenAIStream(
         asyncIterableFromArray(azureOpenaiChatCompletionChunks),

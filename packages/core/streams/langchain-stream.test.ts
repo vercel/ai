@@ -2,7 +2,7 @@ import {
   LangChainStream,
   StreamingTextResponse,
   createStreamDataTransformer,
-  experimental_StreamData,
+  StreamData,
 } from '.';
 import { openaiChatCompletionChunks } from '../tests/snapshots/openai-chat';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
@@ -39,7 +39,7 @@ describe('LangchainStream', () => {
   });
 
   it('should send text', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const model = new ChatOpenAI({
       streaming: true,
@@ -83,7 +83,7 @@ describe('LangchainStream', () => {
   });
 
   it('should send text and data', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     data.append({ t1: 'v1' });
 
@@ -131,7 +131,7 @@ describe('LangchainStream', () => {
 
   describe('LangChain LLM call', () => {
     it('should send text', async () => {
-      const data = new experimental_StreamData();
+      const data = new StreamData();
 
       const { stream, handlers } = LangChainStream({
         onFinal() {
@@ -162,7 +162,7 @@ describe('LangchainStream', () => {
     });
 
     it('should send text and data', async () => {
-      const data = new experimental_StreamData();
+      const data = new StreamData();
 
       data.append({ t1: 'v1' });
 

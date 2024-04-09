@@ -28,14 +28,14 @@ The `experimental_StreamingReactResponse` class is designed to facilitate stream
 
 This parameter should be a `ReadableStream`, which encapsulates the HTTP response's content. It represents the stream from which the response is read and processed.
 
-### `options?: {ui?: Function, data?: experimental_StreamData}`
+### `options?: {ui?: Function, data?: StreamData}`
 
 This optional parameter allows additional configurations for rendering React components and handling streamed data.
 
 The options object can include:
 
 - `ui?: (message: {content: string, data?: JSONValue[] | undefined}) => UINode | Promise<UINode>`: A function that receives a message object with `content` and optional `data` fields. This function should return a React component (as `UINode`) for each chunk in the stream. The `data` attribute in the message is available when the `data` option is configured to include stream data.
-- `data?: experimental_StreamData`: An instance of `experimental_StreamData` used to process and stream data along with the response.
+- `data?: StreamData`: An instance of `StreamData` used to process and stream data along with the response.
 
 ## Returns
 

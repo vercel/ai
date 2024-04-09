@@ -1,8 +1,4 @@
-import {
-  GoogleGenerativeAIStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from '.';
+import { GoogleGenerativeAIStream, StreamingTextResponse, StreamData } from '.';
 import { readAllChunks } from '../tests/utils/mock-client';
 
 function simulateGenerativeAIResponse(chunks: any[]) {
@@ -68,7 +64,7 @@ export const googleGenerativeAIChunks = [
 ];
 
 it('should send text', async () => {
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   const aiResponse = simulateGenerativeAIResponse(googleGenerativeAIChunks);
   const stream = GoogleGenerativeAIStream(aiResponse, {
@@ -88,7 +84,7 @@ it('should send text', async () => {
 });
 
 it('should send text and data', async () => {
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   data.append({ t1: 'v1' });
 

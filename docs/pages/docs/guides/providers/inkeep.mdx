@@ -57,7 +57,7 @@ import {
   InkeepStream,
   InkeepOnFinalMetadata,
   StreamingTextResponse,
-  experimental_StreamData,
+  StreamData,
 } from 'ai';
 import { InkeepAI } from '@inkeep/ai-api';
 import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
   }
 
   // used to pass custom metadata to the client
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   if (!response?.body) {
     throw new Error('Response body is null');
@@ -140,7 +140,7 @@ This example leverages a few utilities provided by the Vercel AI SDK:
    class with the default headers you probably want (hint: `'Content-Type':
 'text/plain; charset=utf-8'` is already set for you). This will provide the streamed content to the client.
 
-3. Lastly, we use the [experimental_StreamData](/docs/api-reference/stream-data) and callback methods of the `InkeepStream` to attach metadata to the response like `onFinalMetadata.chat_session_id` and `records_cited.citations` for use by the client.
+3. Lastly, we use the [StreamData](/docs/api-reference/stream-data) and callback methods of the `InkeepStream` to attach metadata to the response like `onFinalMetadata.chat_session_id` and `records_cited.citations` for use by the client.
 
 <Callout>
   It's common to save a chat to a database. To do so, you can leverage the

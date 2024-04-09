@@ -1,8 +1,4 @@
-import {
-  CohereStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from '.';
+import { CohereStream, StreamingTextResponse, StreamData } from '.';
 import { cohereChatChunks, cohereChunks } from '../tests/snapshots/cohere';
 import { readAllChunks } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
@@ -34,7 +30,7 @@ describe('CohereStream', () => {
   });
 
   it('should send text', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = CohereStream(await fetch(DEFAULT_TEST_URL), {
       onFinal() {
@@ -54,7 +50,7 @@ describe('CohereStream', () => {
   });
 
   it('should send text and data', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     data.append({ t1: 'v1' });
 

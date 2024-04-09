@@ -1,8 +1,4 @@
-import {
-  ReplicateStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from '.';
+import { ReplicateStream, StreamingTextResponse, StreamData } from '.';
 import { replicateTextChunks } from '../tests/snapshots/replicate';
 import { readAllChunks } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
@@ -29,7 +25,7 @@ describe('ReplicateStream', () => {
   });
 
   it('should send text', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = await ReplicateStream(
       {
@@ -58,7 +54,7 @@ describe('ReplicateStream', () => {
   });
 
   it('should send text and data', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     data.append({ t1: 'v1' });
 
