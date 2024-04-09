@@ -100,7 +100,7 @@ export type UseAssistantOptions = {
   onError?: (error: Error) => void;
 };
 
-export function experimental_useAssistant({
+export function useAssistant({
   api,
   threadId: threadIdParam,
   credentials,
@@ -252,3 +252,8 @@ export function experimental_useAssistant({
     error,
   };
 }
+
+/**
+@deprecated Use `useAssistant` instead.
+ */
+export const experimental_useAssistant = useAssistant;

@@ -1,7 +1,7 @@
 {
   "generative-ui": "Generative UI",
   "providers": "Providers",
-  "use-assistant": "experimental_useAssistant",
+  "use-assistant": "useAssistant",
   "use-chat": "useChat",
   "use-completion": "useCompletion",
   "ai-stream": "AIStream",

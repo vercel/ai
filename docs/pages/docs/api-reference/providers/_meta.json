@@ -9,5 +9,5 @@
   "mistral-stream": "MistralStream",
   "replicate-stream": "ReplicateStream",
   "inkeep-stream": "InkeepStream",
-  "assistant-response": "experimental_AssistantResponse"
+  "assistant-response": "AssistantResponse"
 }
