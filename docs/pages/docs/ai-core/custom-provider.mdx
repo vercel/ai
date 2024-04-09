@@ -14,7 +14,7 @@ import { Callout } from 'nextra-theme-docs';
 The AI SDK provides a language model specification.
 You can write your own providers that adhere to the AI SDK language model specification and they will be compatible with the AI Core functions.
 
-You can find the Language Model Specification in the [AI SDK repository](https://github.com/vercel/ai/tree/main/packages/core/spec/language-model/v1).
+You can find the Language Model Specification in the [AI SDK repository](https://github.com/vercel/ai/tree/main/packages/specification/src/language-model/v1).
 It can be imported from `ai/spec`.
 
 We provide an [OpenAI reference implementation](https://github.com/vercel/ai/tree/main/packages/core/openai)
@@ -76,14 +76,14 @@ export const customprovider = new CustomProvider();
 
 ## Language Model Implementation
 
-Please refer to the Language Model Specification in the [AI SDK repository](https://github.com/vercel/ai/tree/main/packages/core/spec/language-model/v1).
+Please refer to the Language Model Specification in the [AI SDK repository](https://github.com/vercel/ai/tree/main/packages/specification/src/language-model/v1).
 
 We provide an [OpenAI reference implementation](https://github.com/vercel/ai/tree/main/packages/core/openai)
 and a [Mistral reference implementation](https://github.com/vercel/ai/tree/main/packages/core/mistral).
 
 ### Errors
 
-The AI SDK provides [standardized errors](https://github.com/vercel/ai/tree/main/packages/core/spec/errors) that should be used by providers where possible.
+The AI SDK provides [standardized errors](https://github.com/vercel/ai/tree/main/packages/specification/src/errors) that should be used by providers where possible.
 This will make it easy for user to debug them.
 
 ### Retries, timeouts, and abort signals
