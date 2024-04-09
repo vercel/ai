@@ -3,7 +3,7 @@ import {
   LanguageModelV1CallOptions,
   LanguageModelV1CallWarning,
   LanguageModelV1StreamPart,
-} from '@ai-sdk/specification';
+} from '@ai-sdk/provider';
 import { z } from 'zod';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';

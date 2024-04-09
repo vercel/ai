@@ -1,7 +1,7 @@
 import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
-} from '@ai-sdk/specification';
+} from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '../spec';
 import {
   GoogleGenerativeAIContentPart,

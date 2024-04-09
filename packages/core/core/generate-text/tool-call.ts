@@ -2,7 +2,7 @@ import {
   InvalidToolArgumentsError,
   LanguageModelV1FunctionToolCall,
   NoSuchToolError,
-} from '@ai-sdk/specification';
+} from '@ai-sdk/provider';
 import { z } from 'zod';
 import { safeParseJSON } from '../../spec';
 import { ExperimentalTool } from '../tool';

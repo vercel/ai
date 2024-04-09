@@ -1,4 +1,4 @@
-import { APICallError, RetryError } from '@ai-sdk/specification';
+import { APICallError, RetryError } from '@ai-sdk/provider';
 import { getErrorMessage } from '../../spec';
 import { delay } from './delay';
 

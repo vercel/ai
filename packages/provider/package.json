@@ -1,5 +1,5 @@
 {
-  "name": "@ai-sdk/specification",
+  "name": "@ai-sdk/provider",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -32,7 +32,8 @@
     "@types/json-schema": "7.0.15",
     "@types/node": "^20",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8"
+    "tsup": "^8",
+    "typescript": "5.1.3"
   },
   "engines": {
     "node": ">=20"

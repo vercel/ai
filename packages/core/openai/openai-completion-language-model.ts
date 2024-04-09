@@ -3,7 +3,7 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
-} from '@ai-sdk/specification';
+} from '@ai-sdk/provider';
 import { z } from 'zod';
 import {
   ParseResult,

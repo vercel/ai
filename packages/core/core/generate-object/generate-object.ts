@@ -3,7 +3,7 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   NoTextGeneratedError,
-} from '@ai-sdk/specification';
+} from '@ai-sdk/provider';
 import { z } from 'zod';
 import { safeParseJSON } from '../../spec';
 import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
