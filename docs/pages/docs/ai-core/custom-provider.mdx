@@ -1,0 +1,94 @@
+---
+title: Custom Providers
+---
+
+import { Callout } from 'nextra-theme-docs';
+
+# Custom Providers
+
+<Callout>
+  The AI SDK Language Model Specification is experimental. It may change in the
+  future without a major version bump.
+</Callout>
+
+The AI SDK provides a language model specification.
+You can write your own providers that adhere to the AI SDK language model specification and they will be compatible with the AI Core functions.
+
+You can find the Language Model Specification in the [AI SDK repository](https://github.com/vercel/ai/tree/main/packages/core/spec/language-model/v1).
+It can be imported from `ai/spec`.
+
+We provide an [OpenAI reference implementation](https://github.com/vercel/ai/tree/main/packages/core/openai)
+and a [Mistral reference implementation](https://github.com/vercel/ai/tree/main/packages/core/mistral).
+
+## Provider Facade
+
+A custom provider should follow the pattern of using a provider facade with factory methods for the specific providers.
+An instance of the custom provider class with default settings can be exported for convenience.
+
+```ts filename="custom-provider-facade.ts"
+import { generateId, loadApiKey } from 'ai/spec';
+import { CustomChatLanguageModel } from './custom-chat-language-model';
+import { CustomChatModelId, CustomChatSettings } from './mistral-chat-settings';
+
+/**
+ * Custom provider facade.
+ */
+export class CustomProvider {
+  readonly baseUrl?: string;
+  readonly apiKey?: string;
+
+  constructor(
+    options: {
+      baseUrl?: string;
+      apiKey?: string;
+    } = {},
+  ) {
+    this.baseUrl = options.baseUrl;
+    this.apiKey = options.apiKey;
+  }
+
+  private get baseConfig() {
+    return {
+      baseUrl: this.baseUrl ?? 'https://custom.ai/v1',
+      headers: () => ({
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: this.apiKey,
+          environmentVariableName: 'CUSTOM_API_KEY',
+          description: 'Custom Provider',
+        })}`,
+      }),
+    };
+  }
+
+  chat(modelId: CustomChatModelId, settings: CustomChatSettings = {}) {
+    return new CustomChatLanguageModel(modelId, settings, {
+      provider: 'custom.chat',
+      ...this.baseConfig,
+    });
+  }
+}
+
+/**
+ * Default custom provider instance.
+ */
+export const customprovider = new CustomProvider();
+```
+
+## Language Model Implementation
+
+Please refer to the Language Model Specification in the [AI SDK repository](https://github.com/vercel/ai/tree/main/packages/core/spec/language-model/v1).
+
+We provide an [OpenAI reference implementation](https://github.com/vercel/ai/tree/main/packages/core/openai)
+and a [Mistral reference implementation](https://github.com/vercel/ai/tree/main/packages/core/mistral).
+
+### Errors
+
+The AI SDK provides [standardized errors](https://github.com/vercel/ai/tree/main/packages/core/spec/errors) that should be used by providers where possible.
+This will make it easy for user to debug them.
+
+### Retries, timeouts, and abort signals
+
+The AI SDK will handle retries, timeouts, and aborting requests in a unified way.
+The model classes should not implement retries or timeouts themselves.
+Instead, they should use the abortSignal parameter to determine when the call should be aborted, and they should throw `ApiCallErrors` (or similar)
+with a correct `isRetryable` flag when errors such as network errors occur.

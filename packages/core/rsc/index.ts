@@ -9,6 +9,7 @@ export type {
 
 export type {
   readStreamableValue,
+  useStreamableValue,
   useUIState,
   useAIState,
   useActions,

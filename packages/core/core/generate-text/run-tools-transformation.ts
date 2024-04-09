@@ -1,7 +1,4 @@
-import {
-  LanguageModelV1StreamPart,
-  NoSuchToolError,
-} from '../../ai-model-specification';
+import { LanguageModelV1StreamPart, NoSuchToolError } from '../../spec';
 import { generateId } from '../../shared/generate-id';
 import { ExperimentalTool } from '../tool';
 import { TextStreamPart } from './stream-text';
@@ -48,17 +45,14 @@ export function runToolsTransformation<
           break;
         }
 
-        // process
+        // process tool call:
         case 'tool-call': {
           const toolName = chunk.toolName as keyof TOOLS & string;
 
           if (tools == null) {
             toolResultsStreamController!.enqueue({
               type: 'error',
-              error: new NoSuchToolError({
-                message: `Tool ${chunk.toolName} not found (no tools provided).`,
-                toolName: chunk.toolName,
-              }),
+              error: new NoSuchToolError({ toolName: chunk.toolName }),
             });
             break;
           }
@@ -69,8 +63,8 @@ export function runToolsTransformation<
             toolResultsStreamController!.enqueue({
               type: 'error',
               error: new NoSuchToolError({
-                message: `Tool ${chunk.toolName} not found.`,
                 toolName: chunk.toolName,
+                availableTools: Object.keys(tools),
               }),
             });
 
@@ -83,10 +77,7 @@ export function runToolsTransformation<
               tools,
             });
 
-            controller.enqueue({
-              type: 'tool-call',
-              ...toolCall,
-            });
+            controller.enqueue(toolCall);
 
             if (tool.execute != null) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
@@ -98,8 +89,8 @@ export function runToolsTransformation<
               tool.execute(toolCall.args).then(
                 (result: any) => {
                   toolResultsStreamController!.enqueue({
-                    type: 'tool-result',
                     ...toolCall,
+                    type: 'tool-result',
                     result,
                   } as any);
 
@@ -135,8 +126,22 @@ export function runToolsTransformation<
           break;
         }
 
+        // process finish:
+        case 'finish': {
+          controller.enqueue({
+            type: 'finish',
+            finishReason: chunk.finishReason,
+            usage: {
+              promptTokens: chunk.usage.promptTokens,
+              completionTokens: chunk.usage.completionTokens,
+              totalTokens:
+                chunk.usage.promptTokens + chunk.usage.completionTokens,
+            },
+          });
+          break;
+        }
+
         // ignore
-        case 'finish-metadata':
         case 'tool-call-delta': {
           break;
         }

@@ -1,0 +1,62 @@
+---
+title: Tools and Tool Calling
+---
+
+import { Callout } from 'nextra-theme-docs';
+import { Steps } from 'nextra/components';
+
+# Tools and Tool Calling
+
+The `generateObject` and `streamObject` AI functions support tool calls for models with such a capability.
+The tool call and tool results objects are typed.
+Tool calling works as follows:
+
+<Steps>
+### Add tools to `generateText` or `streamText`
+
+You define the tools and pass them into `generateText` or `streamText` using the `tools` parameter.
+
+AI Core tools are objects that implement the `ExperimentalTool<PARAMETERS, RESULT>` interface with the following properties:
+
+- **description**: An optional description of the tool. This information is provided to the language model and can influence when the tool is picked.
+- **parameters**: A [Zod](https://zod.dev/) schema that defines the parameters. It is converted to a JSON schema that is consumed by the LLM, and also used to validate the LLM tool calls.
+- **execute**: An optional async function that is called with the arguments from the tool call and produces a value of type `RESULT`.
+
+The `tools` parameter is an object that has the tool names as keys and the tools as values:
+
+```ts {3-17}
+const result = await experimental_generateText({
+  model: openai.chat('gpt-3.5-turbo'),
+  tools: {
+    weather: {
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }: { location: string }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    },
+    cityAttractions: {
+      parameters: z.object({ city: z.string() }),
+    },
+  },
+  prompt:
+    'What is the weather in San Francisco and what attractions should I visit?',
+});
+```
+
+### The language model generates tool calls
+
+The language model will invoke the tools when it makes sense.
+The tool calls are provided as tool call objects.
+Each tool call has a `toolCallId`, a `toolName`, and a typed `args` object.
+
+### Tools are executed
+
+Tools which have an `execute` function are run automatically when corresponding tool calls are generated.
+The results of the tool executions are provided using tool result objects.
+Each tool result object has a `toolCallId`, a `toolName`, a typed `args` object, and a typed `result`.
+
+</Steps>

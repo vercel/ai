@@ -1,5 +1,46 @@
 # ai
 
+## 3.0.19
+
+### Patch Changes
+
+- 4f4c7f5: ai/core: Anthropic tool call support
+
+## 3.0.18
+
+### Patch Changes
+
+- 63d587e: Add Anthropic provider for ai/core functions (no tool calling).
+- 63d587e: Add automatic mime type detection for images in ai/core prompts.
+
+## 3.0.17
+
+### Patch Changes
+
+- 2b991c4: Add Google Generative AI provider for ai/core functions.
+
+## 3.0.16
+
+### Patch Changes
+
+- a54ea77: feat(ai/rsc): add `useStreamableValue`
+
+## 3.0.15
+
+### Patch Changes
+
+- 4aed2a5: Add JSDoc comments for ai/core functions.
+- cf8d12f: Export experimental language model specification under `ai/spec`.
+
+## 3.0.14
+
+### Patch Changes
+
+- 8088de8: fix(ai/rsc): improve typings for `StreamableValue`
+- 20007b9: feat(ai/rsc): support string diff and patch in streamable value
+- 6039460: Support Bedrock Anthropic Stream for Messages API.
+- e83bfe3: Added experimental ai/core functions (streamText, generateText, streamObject, generateObject). Add OpenAI and Mistral language model providers.
+
 ## 3.0.13
 
 ### Patch Changes

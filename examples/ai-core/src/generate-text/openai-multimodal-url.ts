@@ -18,7 +18,7 @@ async function main() {
           {
             type: 'image',
             image: new URL(
-              'https://raw.githubusercontent.com/vercel/ai/v3.1-canary/examples/ai-core/data/comic-cat.png',
+              'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
             ),
           },
         ],
@@ -29,4 +29,4 @@ async function main() {
   console.log(result.text);
 }
 
-main();
+main().catch(console.error);

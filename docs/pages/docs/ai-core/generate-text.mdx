@@ -1,0 +1,129 @@
+---
+title: generateText API
+---
+
+import { Callout } from 'nextra-theme-docs';
+
+# experimental_generateText
+
+Generate a text and call tools for a given prompt using a language model.
+
+`experimental_generateText` is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
+
+```ts
+import { experimental_generateText } from 'ai';
+
+const { text } = await experimental_generateText({
+  model,
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+<Callout type="info">
+  `experimental_generateText` does not stream the output. If you want to stream
+  the output, use [`experimental_streamText`](/docs/ai-core/stream-text).
+</Callout>
+
+## Parameters
+
+The parameters are passed into `experimental_streamText` as a single options object.
+
+- **model** - The language model to use.
+- **tools** - The tools that the model can call. The model needs to support calling tools.
+- **system** - A system message that will be apart of the prompt.
+- **prompt** - A simple text prompt. You can either use `prompt` or `messages` but not both.
+- **messages** - A list of messages. You can either use `prompt` or `messages` but not both.
+- **maxTokens** - Maximum number of tokens to generate.
+- **temperature** - Temperature setting.
+  This is a number between 0 (almost no randomness) and 1 (very random).
+  It is recommended to set either `temperature` or `topP`, but not both.
+- **topP** - Nucleus sampling. This is a number between 0 and 1.
+  E.g. 0.1 would mean that only tokens with the top 10% probability mass are considered.
+  It is recommended to set either `temperature` or `topP`, but not both.
+- **presencePenalty** - Presence penalty setting.
+  It affects the likelihood of the model to repeat information that is already in the prompt.
+  The presence penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition).
+  0 means no penalty.
+- **frequencyPenalty** - Frequency penalty setting.
+  It affects the likelihood of the model to repeatedly use the same words or phrases.
+  The frequency penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition).
+  0 means no penalty.
+- **seed** - The seed (integer) to use for random sampling.
+  If set and supported by the model, calls will generate deterministic results.
+- **maxRetries** - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+- **abortSignal** - An optional abort signal that can be used to cancel the call.
+
+## Return Type
+
+`generateText` returns a result object with several properties:
+
+- **text**: `string` - The generated text.
+- **toolCalls**: `Array<ToolCall>` - The tool calls that were made during the generation. Each tool call has a `toolCallId`, a `toolName`, and a typed `args` object.
+- **toolResults**: `Array<ToolResult>` - The results of the tool calls. Each tool result has a `toolCallId`, a `toolName`, a typed `args` object, and a typed `result` object.
+- **finishReason**: `stop` | `length` | `content-filter` | `tool-calls` | `error` | `other` - The reason why the generation finished.
+- **usage**: `TokenUsage` - The token usage of the generated text. The object contains `promptTokens: number`, `completionTokens: number`, and `totalTokens: number`.
+- **warnings**: `Array<Warning> | undefined` - Warnings from the model provider (e.g., unsupported settings).
+
+## Examples
+
+### Basic call
+
+```ts
+const { text, usage, finishReason } = await experimental_generateText({
+  model,
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+### Tool Usage
+
+```ts
+const result = await experimental_generateText({
+  model: openai.chat('gpt-3.5-turbo'),
+  maxTokens: 512,
+  tools: {
+    weather: {
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }: { location: string }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    },
+    cityAttractions: {
+      parameters: z.object({ city: z.string() }),
+    },
+  },
+  prompt:
+    'What is the weather in San Francisco and what attractions should I visit?',
+});
+
+// typed tool calls:
+for (const toolCall of result.toolCalls) {
+  switch (toolCall.toolName) {
+    case 'cityAttractions': {
+      toolCall.args.city; // string
+      break;
+    }
+
+    case 'weather': {
+      toolCall.args.location; // string
+      break;
+    }
+  }
+}
+
+// typed tool results for tools with execute method:
+for (const toolResult of result.toolResults) {
+  switch (toolResult.toolName) {
+    case 'weather': {
+      toolResult.args.location; // string
+      toolResult.result.location; // string
+      toolResult.result.temperature; // number
+      break;
+    }
+  }
+}
+```

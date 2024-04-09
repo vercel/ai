@@ -1,16 +1,9 @@
-import {
-  LanguageModelV1Prompt,
-  UnsupportedFunctionalityError,
-} from '../ai-model-specification';
+import { LanguageModelV1Prompt, UnsupportedFunctionalityError } from '../spec';
 import { MistralChatPrompt } from './mistral-chat-prompt';
 
-export function convertToMistralChatMessages({
-  prompt,
-  provider,
-}: {
-  prompt: LanguageModelV1Prompt;
-  provider: string;
-}): MistralChatPrompt {
+export function convertToMistralChatMessages(
+  prompt: LanguageModelV1Prompt,
+): MistralChatPrompt {
   const messages: MistralChatPrompt = [];
 
   for (const { role, content } of prompt) {
@@ -31,7 +24,6 @@ export function convertToMistralChatMessages({
                 }
                 case 'image': {
                   throw new UnsupportedFunctionalityError({
-                    provider,
                     functionality: 'image-part',
                   });
                 }

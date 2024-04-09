@@ -1,16 +1,31 @@
-import { ValueOf } from 'type-fest';
 import { z } from 'zod';
 import {
   InvalidToolArgumentsError,
   LanguageModelV1FunctionToolCall,
   NoSuchToolError,
   safeParseJSON,
-} from '../../ai-model-specification';
+} from '../../spec';
 import { ExperimentalTool } from '../tool';
+import { ValueOf } from '../util/value-of';
 
+/**
+Typed tool call that is returned by generateText and streamText. 
+It contains the tool call ID, the tool name, and the tool arguments. 
+ */
 export interface ToolCall<NAME extends string, ARGS> {
+  /**
+ID of the tool call. This ID is used to match the tool call with the tool result.
+ */
   toolCallId: string;
+
+  /**
+Name of the tool that is being called.
+ */
   toolName: NAME;
+
+  /**
+Arguments of the tool call. This is a JSON-serializable object that matches the tool's input schema.
+   */
   args: ARGS;
 }
 
@@ -18,6 +33,7 @@ export interface ToolCall<NAME extends string, ARGS> {
 export type ToToolCall<TOOLS extends Record<string, ExperimentalTool>> =
   ValueOf<{
     [NAME in keyof TOOLS]: {
+      type: 'tool-call';
       toolCallId: string;
       toolName: NAME & string;
       args: z.infer<TOOLS[NAME]['parameters']>;
@@ -37,18 +53,15 @@ export function parseToolCall<TOOLS extends Record<string, ExperimentalTool>>({
   const toolName = toolCall.toolName as keyof TOOLS & string;
 
   if (tools == null) {
-    throw new NoSuchToolError({
-      message: `Tool ${toolCall.toolName} not found (no tools provided).`,
-      toolName: toolCall.toolName,
-    });
+    throw new NoSuchToolError({ toolName: toolCall.toolName });
   }
 
   const tool = tools[toolName];
 
   if (tool == null) {
     throw new NoSuchToolError({
-      message: `Tool ${toolCall.toolName} not found.`,
       toolName: toolCall.toolName,
+      availableTools: Object.keys(tools),
     });
   }
 
@@ -66,6 +79,7 @@ export function parseToolCall<TOOLS extends Record<string, ExperimentalTool>>({
   }
 
   return {
+    type: 'tool-call',
     toolCallId: toolCall.toolCallId,
     toolName,
     args: parseResult.value,

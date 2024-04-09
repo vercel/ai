@@ -41,6 +41,7 @@ export async function POST(req: Request) {
       accept: 'application/json',
       body: JSON.stringify({
         prompt: buildPrompt(messages),
+        stream: true,
         max_tokens: 300,
       }),
     }),

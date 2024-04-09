@@ -1,11 +1,13 @@
 import { StreamingTextResponse, experimental_StreamData } from '.';
 import {
   bedrockAnthropicChunks,
+  bedrockAnthropicV3Chunks,
   bedrockCohereChunks,
   bedrockLlama2Chunks,
 } from '../tests/snapshots/aws-bedrock';
 import { readAllChunks } from '../tests/utils/mock-client';
 import {
+  AWSBedrockAnthropicMessagesStream,
   AWSBedrockAnthropicStream,
   AWSBedrockCohereStream,
   AWSBedrockLlama2Stream,
@@ -81,6 +83,21 @@ describe('AWS Bedrock', () => {
     });
   });
 
+  describe('AnthropicV3', () => {
+    it('should be able to parse SSE and receive the streamed response', async () => {
+      const bedrockResponse = simulateBedrockResponse(bedrockAnthropicV3Chunks);
+      const stream = AWSBedrockAnthropicMessagesStream(bedrockResponse);
+      const response = new StreamingTextResponse(stream);
+
+      expect(await readAllChunks(response)).toEqual([
+        ' Hello',
+        ',',
+        ' world',
+        '.',
+      ]);
+    });
+  });
+
   describe('Cohere', () => {
     it('should send text', async () => {
       const data = new experimental_StreamData();
@@ -95,7 +112,15 @@ describe('AWS Bedrock', () => {
       const response = new StreamingTextResponse(stream, {}, data);
 
       expect(await readAllChunks(response)).toEqual([
-        '0:" Hi! How can I help you today?"\n',
+        ' Hello',
+        '!',
+        ' How',
+        ' can',
+        ' I',
+        ' help',
+        ' you',
+        ' today',
+        '?',
       ]);
     });
 
@@ -104,19 +129,48 @@ describe('AWS Bedrock', () => {
 
       data.append({ t1: 'v1' });
 
-      const bedrockResponse = simulateBedrockResponse(bedrockCohereChunks);
-      const stream = AWSBedrockCohereStream(bedrockResponse, {
-        onFinal() {
-          data.close();
-        },
+        const response = new StreamingTextResponse(stream, {}, data);
+
+        expect(await readAllChunks(response)).toEqual([
+          '0:" Hello"\n',
+          '0:"!"\n',
+          '0:" How"\n',
+          '0:" can"\n',
+          '0:" I"\n',
+          '0:" help"\n',
+          '0:" you"\n',
+          '0:" today"\n',
+          '0:"?"\n',
+        ]);
       });
 
       const response = new StreamingTextResponse(stream, {}, data);
 
-      expect(await readAllChunks(response)).toEqual([
-        '2:[{"t1":"v1"}]\n',
-        '0:" Hi! How can I help you today?"\n',
-      ]);
+        data.append({ t1: 'v1' });
+
+        const bedrockResponse = simulateBedrockResponse(bedrockCohereChunks);
+        const stream = AWSBedrockCohereStream(bedrockResponse, {
+          onFinal() {
+            data.close();
+          },
+          experimental_streamData: true,
+        });
+
+        const response = new StreamingTextResponse(stream, {}, data);
+
+        expect(await readAllChunks(response)).toEqual([
+          '2:[{"t1":"v1"}]\n',
+          '0:" Hello"\n',
+          '0:"!"\n',
+          '0:" How"\n',
+          '0:" can"\n',
+          '0:" I"\n',
+          '0:" help"\n',
+          '0:" you"\n',
+          '0:" today"\n',
+          '0:"?"\n',
+        ]);
+      });
     });
   });
 

@@ -1,22 +1,55 @@
-import zodToJsonSchema from 'zod-to-json-schema';
 import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
-} from '../../ai-model-specification';
+} from '../../spec';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { getInputFormat } from '../prompt/get-input-format';
+import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { ExperimentalTool } from '../tool/tool';
+import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { TokenUsage, calculateTokenUsage } from './token-usage';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
 
 /**
- * Generate a text and call tools using a language model.
+Generate a text and call tools for a given prompt using a language model.
+
+This function does not stream the output. If you want to stream the output, use `experimental_streamText` instead.
+
+@param model - The language model to use.
+@param tools - The tools that the model can call. The model needs to support calling tools.
+
+@param system - A system message that will be part of the prompt.
+@param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
+@param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+
+@param maxTokens - Maximum number of tokens to generate.
+@param temperature - Temperature setting. 
+This is a number between 0 (almost no randomness) and 1 (very random).
+It is recommended to set either `temperature` or `topP`, but not both.
+@param topP - Nucleus sampling. This is a number between 0 and 1.
+E.g. 0.1 would mean that only tokens with the top 10% probability mass are considered.
+It is recommended to set either `temperature` or `topP`, but not both.
+@param presencePenalty - Presence penalty setting. 
+It affects the likelihood of the model to repeat information that is already in the prompt.
+The presence penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition). 
+0 means no penalty.
+@param frequencyPenalty - Frequency penalty setting.
+It affects the likelihood of the model to repeatedly use the same words or phrases.
+The frequency penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition).
+0 means no penalty.
+@param seed - The seed (integer) to use for random sampling.
+If set and supported by the model, calls will generate deterministic results.
+
+@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+@param abortSignal - An optional abort signal that can be used to cancel the call.
+
+@returns
+A result object that contains the generated text, the results of the tool calls, and additional information.
  */
 export async function experimental_generateText<
   TOOLS extends Record<string, ExperimentalTool>,
@@ -31,12 +64,20 @@ export async function experimental_generateText<
   ...settings
 }: CallSettings &
   Prompt & {
+    /**
+The language model to use.
+     */
     model: LanguageModelV1;
+
+    /**
+The tools that the model can call. The model needs to support calling tools.
+*/
     tools?: TOOLS;
   }): Promise<GenerateTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
-  const modelResponse = await retry(() =>
-    model.doGenerate({
+  const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
+  const modelResponse = await retry(() => {
+    return model.doGenerate({
       mode: {
         type: 'regular',
         tools:
@@ -46,19 +87,15 @@ export async function experimental_generateText<
                 type: 'function',
                 name,
                 description: tool.description,
-                parameters: zodToJsonSchema(tool.parameters),
+                parameters: convertZodToJSONSchema(tool.parameters),
               })),
       },
       ...prepareCallSettings(settings),
-      inputFormat: getInputFormat({ prompt, messages }),
-      prompt: convertToLanguageModelPrompt({
-        system,
-        prompt,
-        messages,
-      }),
+      inputFormat: validatedPrompt.type,
+      prompt: convertToLanguageModelPrompt(validatedPrompt),
       abortSignal,
-    }),
-  );
+    });
+  });
 
   // parse tool calls:
   const toolCalls: ToToolCallArray<TOOLS> = [];
@@ -114,14 +151,41 @@ async function executeTools<TOOLS extends Record<string, ExperimentalTool>>({
   );
 }
 
+/**
+The result of a `generateText` call.
+It contains the generated text, the tool calls that were made during the generation, and the results of the tool calls.
+ */
 export class GenerateTextResult<
   TOOLS extends Record<string, ExperimentalTool>,
 > {
+  /**
+The generated text.
+   */
   readonly text: string;
+
+  /**
+The tool calls that were made during the generation.
+   */
   readonly toolCalls: ToToolCallArray<TOOLS>;
+
+  /**
+The results of the tool calls.
+   */
   readonly toolResults: ToToolResultArray<TOOLS>;
+
+  /**
+The reason why the generation finished.
+   */
   readonly finishReason: LanguageModelV1FinishReason;
+
+  /**
+The token usage of the generated text.
+   */
   readonly usage: TokenUsage;
+
+  /**
+Warnings from the model provider (e.g. unsupported settings)
+   */
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
   constructor(options: {

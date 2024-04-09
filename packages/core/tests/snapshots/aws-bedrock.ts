@@ -5,16 +5,39 @@ export const bedrockAnthropicChunks = [
   { completion: '.', stop_reason: 'stop_sequence', stop: '\n\nHuman:' },
 ];
 
-export const bedrockCohereChunks = [
+export const bedrockAnthropicV3Chunks = [
   {
-    generations: [
-      {
-        finish_reason: 'COMPLETE',
-        id: '0c72c609-c8ac-4601-a323-653db56c8d80',
-        text: ' Hi! How can I help you today?',
-      },
-    ],
+    type: 'content_block_delta',
+    index: 0,
+    delta: { type: 'text_delta', text: ' Hello' },
   },
+  {
+    type: 'content_block_delta',
+    index: 0,
+    delta: { type: 'text_delta', text: ',' },
+  },
+  {
+    type: 'content_block_delta',
+    index: 0,
+    delta: { type: 'text_delta', text: ' world' },
+  },
+  {
+    type: 'content_block_delta',
+    index: 0,
+    delta: { type: 'text_delta', text: '.' },
+  },
+];
+
+export const bedrockCohereChunks = [
+  { is_finished: false, text: ' Hello' },
+  { is_finished: false, text: '!' },
+  { is_finished: false, text: ' How' },
+  { is_finished: false, text: ' can' },
+  { is_finished: false, text: ' I' },
+  { is_finished: false, text: ' help' },
+  { is_finished: false, text: ' you' },
+  { is_finished: false, text: ' today' },
+  { is_finished: false, text: '?' },
 ];
 
 export const bedrockLlama2Chunks = [

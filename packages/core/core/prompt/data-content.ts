@@ -2,13 +2,19 @@ import {
   InvalidDataContentError,
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
-} from '../../ai-model-specification';
+} from '../../spec';
 
 /**
- * Data content. Can either be a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer.
+Data content. Can either be a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer.
  */
 export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
 
+/**
+Converts data content to a base64-encoded string.
+
+@param content - Data content to convert.
+@returns Base64-encoded string.
+*/
 export function convertDataContentToBase64String(content: DataContent): string {
   if (typeof content === 'string') {
     return content;
@@ -21,6 +27,12 @@ export function convertDataContentToBase64String(content: DataContent): string {
   return convertUint8ArrayToBase64(content);
 }
 
+/**
+Converts data content to a Uint8Array.
+
+@param content - Data content to convert.
+@returns Uint8Array.
+ */
 export function convertDataContentToUint8Array(
   content: DataContent,
 ): Uint8Array {

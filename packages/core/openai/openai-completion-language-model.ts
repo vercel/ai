@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   LanguageModelV1,
+  LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
   ParseResult,
   UnsupportedFunctionalityError,
@@ -8,7 +9,7 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   scale,
-} from '../ai-model-specification';
+} from '../spec';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
@@ -59,11 +60,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     const type = mode.type;
 
     const { prompt: completionPrompt, stopSequences } =
-      convertToOpenAICompletionPrompt({
-        prompt,
-        inputFormat,
-        provider: this.provider,
-      });
+      convertToOpenAICompletionPrompt({ prompt, inputFormat });
 
     const baseArgs = {
       // model id:
@@ -111,7 +108,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         if (mode.tools?.length) {
           throw new UnsupportedFunctionalityError({
             functionality: 'tools',
-            provider: this.provider,
           });
         }
 
@@ -121,21 +117,18 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       case 'object-json': {
         throw new UnsupportedFunctionalityError({
           functionality: 'object-json mode',
-          provider: this.provider,
         });
       }
 
       case 'object-tool': {
         throw new UnsupportedFunctionalityError({
           functionality: 'object-tool mode',
-          provider: this.provider,
         });
       }
 
       case 'object-grammar': {
         throw new UnsupportedFunctionalityError({
           functionality: 'object-grammar mode',
-          provider: this.provider,
         });
       }
 
@@ -198,6 +191,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
 
     const { prompt: rawPrompt, ...rawSettings } = args;
 
+    let finishReason: LanguageModelV1FinishReason = 'other';
+    let usage: { promptTokens: number; completionTokens: number } = {
+      promptTokens: Number.NaN,
+      completionTokens: Number.NaN,
+    };
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -212,12 +211,29 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
 
             const value = chunk.value;
 
-            if (value.choices?.[0]?.text != null) {
+            if (value.usage != null) {
+              usage = {
+                promptTokens: value.usage.prompt_tokens,
+                completionTokens: value.usage.completion_tokens,
+              };
+            }
+
+            const choice = value.choices[0];
+
+            if (choice?.finish_reason != null) {
+              finishReason = mapOpenAIFinishReason(choice.finish_reason);
+            }
+
+            if (choice?.text != null) {
               controller.enqueue({
                 type: 'text-delta',
-                textDelta: value.choices[0].text,
+                textDelta: choice.text,
               });
             }
+          },
+
+          flush(controller) {
+            controller.enqueue({ type: 'finish', finishReason, usage });
           },
         }),
       ),
@@ -256,4 +272,11 @@ const openaiCompletionChunkSchema = z.object({
       index: z.number(),
     }),
   ),
+  usage: z
+    .object({
+      prompt_tokens: z.number(),
+      completion_tokens: z.number(),
+    })
+    .optional()
+    .nullable(),
 });

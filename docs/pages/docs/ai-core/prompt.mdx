@@ -1,0 +1,162 @@
+---
+title: Prompts
+---
+
+import { Callout } from 'nextra-theme-docs';
+
+# Prompts
+
+All AI functions (`generateText`, `streamText`, `generateObject`, `streamObject`) support the same prompt types.
+You can use either a text prompt or a more elaborate message prompt.
+Both prompt types support system messages.
+
+The prompts get translated by the model that you use to a value that works for the provider API,
+e.g. a text prompt could become a provider user message to match a provider chat API.
+
+## Text Prompts
+
+Text prompts are just that: a simple string.
+They are ideal for simpler generation use cases,
+e.g. when you want to repeatedly generate content for variants of the same prompt text.
+
+You can set text prompts using the `prompt` property.
+You can structure the text in any way and inject variables, e.g. using a template literal.
+
+### Basic Example
+
+```ts {3}
+const result = await experimental_generateText({
+  model,
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+### Template Literal Example
+
+```ts {3-5}
+const result = await experimental_generateText({
+  model,
+  prompt:
+    `I am planning a trip to ${destination} for ${lengthOfStay} days. ` +
+    `Please suggest the best tourist activities for me to do.`,
+});
+```
+
+## Message Prompts
+
+Message prompts are an array of user, assistant, and tool messages.
+They are great for chat interfaces and more complex, multi-modal prompts.
+
+Each message has a role and a content. The content can be either a text
+(for user and assistant messages), or an array of parts for that message type.
+
+<Callout type="info">
+  Not all language models support all message and content types. For example,
+  some models might not be capable of handling multi-modal inputs or tool
+  messages.
+</Callout>
+
+### Basic Example
+
+```ts {3-7}
+const result = await experimental_generateText({
+  model,
+  messages: [
+    { role: 'user', content: 'Hi!' },
+    { role: 'assistant', content: 'Hello, how can I help?' },
+    { role: 'user', content: 'Where can I buy the best Currywurst in Berlin?' },
+  ],
+});
+```
+
+### Multi-modal Messages
+
+The `image` can be a base64-encoded image (`string`), an `ArrayBuffer`, a `Uint8Array`,
+a `Buffer`, or a `URL` object. It is possible to mix text and multiple images.
+
+```ts {3-11}
+const result = await experimental_generateText({
+  model,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe the image in detail.' },
+        { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+      ],
+    },
+  ],
+});
+```
+
+### Tool Messages
+
+For models that support tool calls, assistant messages can contain tool call parts, and tool messages can contain tool result parts.
+A single assistant message can call multiple tools, and a single tool message can contain multiple tool results.
+
+```ts {3-43}
+const result = await experimental_generateText({
+  model,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'How many calories are in this block of cheese?',
+        },
+        { type: 'image', image: fs.readFileSync('./data/roquefort.jpg') },
+      ],
+    },
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: '12345',
+          toolName: 'get-nutrition-data',
+          args: { cheese: 'Roquefort' },
+        },
+        // there could be more tool calls here (parallel calling)
+      ],
+    },
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: '12345', // needs to match the tool call id
+          toolName: 'get-nutrition-data',
+          result: {
+            name: 'Cheese, roquefort',
+            calories: 369,
+            fat: 31,
+            protein: 22,
+          },
+        },
+        // there could be more tool results here (parallel calling)
+      ],
+    },
+  ],
+});
+```
+
+## System Messages
+
+You can set system prompts using the separate `system` property.
+System messages work with both the `prompt` and the `messages` properties.
+
+### Example
+
+```ts {3-6}
+const result = await experimental_generateText({
+  model,
+  system:
+    `You help planning travel itineraries. ` +
+    `Respond to the users' request with a list ` +
+    `of the best stops to make in their destination.`,
+  prompt:
+    `I am planning a trip to ${destination} for ${lengthOfStay} days. ` +
+    `Please suggest the best tourist activities for me to do.`,
+});
+```

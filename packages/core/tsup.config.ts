@@ -106,6 +106,20 @@ export default defineConfig([
 
   // AI Core: Providers
   {
+    entry: ['anthropic/index.ts'],
+    format: ['cjs', 'esm'],
+    outDir: 'anthropic/dist',
+    dts: true,
+    sourcemap: true,
+  },
+  {
+    entry: ['google/index.ts'],
+    format: ['cjs', 'esm'],
+    outDir: 'google/dist',
+    dts: true,
+    sourcemap: true,
+  },
+  {
     entry: ['openai/index.ts'],
     format: ['cjs', 'esm'],
     outDir: 'openai/dist',
@@ -121,9 +135,9 @@ export default defineConfig([
   },
   // AI Core: Model Specification
   {
-    entry: ['ai-model-specification/index.ts'],
+    entry: ['spec/index.ts'],
     format: ['cjs', 'esm'],
-    outDir: 'ai-model-specification/dist',
+    outDir: 'spec/dist',
     dts: true,
     sourcemap: true,
   },

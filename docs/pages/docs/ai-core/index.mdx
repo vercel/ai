@@ -1,0 +1,82 @@
+---
+title: AI Core (experimental)
+---
+
+import { Callout } from 'nextra-theme-docs';
+
+# AI Core (experimental)
+
+<Callout>
+  AI Core is an experimental API. The API is not yet stable and may change in
+  the future without a major version bump.
+</Callout>
+
+The Vercel AI SDK offers a unified way of calling large language models (LLMs) that can be used with any [AI Core-compatible provider](/docs/ai-core#language-model-interface).
+It provides the following AI functions:
+
+- `generateText` [ [API](/docs/ai-core/generate-text) ] - Generate text and [call tools](/docs/ai-core/tools).
+  This function is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
+- `streamText` [ [API](/docs/ai-core/stream-text) ] - Stream text and call tools.
+  You can use the `streamText` function for interactive use cases such as chat bots (with and without tool usage), and text and code diff streaming in UIs. You can also generate UI components with tools (see [Generative UI](/docs/concepts/ai-rsc)).
+- `generateObject` [ [API](/docs/ai-core/generate-object) ] - Generate a typed, structured object that matches a [Zod](https://zod.dev/) schema.
+  You can use this function to force the language model to return structured data, e.g. for information extraction, synthetic data generation, or classification tasks.
+- `streamObject` [ [API](/docs/ai-core/stream-object) ] - Stream a structured object that matches a Zod schema.
+  You can use this function to stream generated UIs in combination with React Server Components (see [Generative UI](/docs/concepts/ai-rsc)).
+
+The AI functions share the same [prompt structure](/docs/ai-core/prompt) and the same [common settings](/docs/ai-core/settings).
+The model is created using a language model provider, e.g. the [OpenAI provider](/docs/ai-core/openai) .
+Here is a simple example for `generateText`:
+
+```ts
+import { experimental_generateText } from 'ai';
+import { openai } from 'ai/openai';
+
+const { text } = await experimental_generateText({
+  model: openai.chat('gpt-3.5-turbo'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+## Schema Specification and Validation with Zod
+
+Tool usage and structured object generation require the specification of schemas.
+The AI SDK uses [Zod](https://zod.dev/), the most popular JavaScript schema validation library, for schema specification and validation.
+
+You can install Zod with
+
+```sh
+npm install zod
+```
+
+You can then easily specify schemas, for example:
+
+```ts
+const recipeSchema = z.object({
+  recipe: z.object({
+    name: z.string(),
+    ingredients: z.array(
+      z.object({
+        name: z.string(),
+        amount: z.string(),
+      }),
+    ),
+    steps: z.array(z.string()),
+  }),
+});
+```
+
+Such schemas can be used to define parameters for tool calls and to generated structured objects with `generateObject` and `streamObject`.
+
+## Language Model Interface
+
+Providers need to provide an implementation of the language model interface to be compatible with the AI SDK.
+The AI SDK contains the following providers:
+
+- [OpenAI Provider](/docs/ai-core/openai) (`ai/openai`)
+- [Mistral Provider](/docs/ai-core/mistral) (`ai/mistral`)
+- [Google Provider](/docs/ai-core/google) (`ai/google`)
+- [Anthropic Provider](/docs/ai-core/anthropic) (`ai/anthropic`)
+
+The AI SDK also provides a [language model specification](https://github.com/vercel/ai/tree/main/packages/core/spec/language-model/v1) that you can use to implement [custom providers](/docs/ai-core/custom-provider).
+
+![AI SDK Diagram](/images/ai-sdk-diagram.png)

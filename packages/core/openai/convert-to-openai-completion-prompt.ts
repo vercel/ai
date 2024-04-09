@@ -2,18 +2,16 @@ import {
   InvalidPromptError,
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
-} from '../ai-model-specification';
+} from '../spec';
 
 export function convertToOpenAICompletionPrompt({
   prompt,
   inputFormat,
-  provider,
   user = 'user',
   assistant = 'assistant',
 }: {
   prompt: LanguageModelV1Prompt;
   inputFormat: 'prompt' | 'messages';
-  provider: string;
   user?: string;
   assistant?: string;
 }): {
@@ -58,7 +56,6 @@ export function convertToOpenAICompletionPrompt({
               }
               case 'image': {
                 throw new UnsupportedFunctionalityError({
-                  provider,
                   functionality: 'images',
                 });
               }
@@ -79,7 +76,6 @@ export function convertToOpenAICompletionPrompt({
               }
               case 'tool-call': {
                 throw new UnsupportedFunctionalityError({
-                  provider,
                   functionality: 'tool-call messages',
                 });
               }
@@ -93,7 +89,6 @@ export function convertToOpenAICompletionPrompt({
 
       case 'tool': {
         throw new UnsupportedFunctionalityError({
-          provider,
           functionality: 'tool messages',
         });
       }
