@@ -36,6 +36,11 @@ export interface AIStreamCallbacksAndOptions {
   onToken?: (token: string) => Promise<void> | void;
   /** `onText`: Called for each text chunk. */
   onText?: (text: string) => Promise<void> | void;
+  /**
+   * @deprecated This flag is no longer used and only retained for backwards compatibility.
+   * You can remove it from your code.
+   */
+  experimental_streamData?: boolean;
 }
 
 /**
