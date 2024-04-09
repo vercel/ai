@@ -1,5 +1,12 @@
 # ai
 
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [1d38d2a]
+  - @ai-sdk/specification@0.2.0
+
 ## 3.0.20
 
 ### Patch Changes
