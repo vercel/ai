@@ -1,5 +1,14 @@
 # ai
 
+## 3.0.21
+
+### Patch Changes
+
+- e6ac755: Use separate provider package.
+- Updated dependencies [e6ac755]
+- Updated dependencies [8e034bd]
+  - @ai-sdk/provider@0.1.0
+
 ## 3.0.20
 
 ### Patch Changes
