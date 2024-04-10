@@ -219,4 +219,30 @@ Stream callbacks that will be called when the stream emits events.
       .pipeThrough(createCallbacksTransformer(callbacks))
       .pipeThrough(createStreamDataTransformer());
   }
+
+  /**
+Creates a simple text stream response.
+Each text delta is encoded as UTF-8 and sent as a separate chunk.
+Non-text-delta events are ignored.
+   */
+  toTextStreamResponse(init?: ResponseInit): Response {
+    const encoder = new TextEncoder();
+    return new Response(
+      this.textStream.pipeThrough(
+        new TransformStream({
+          transform(chunk, controller) {
+            controller.enqueue(encoder.encode(chunk));
+          },
+        }),
+      ),
+      {
+        ...init,
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          ...init?.headers,
+        },
+      },
+    );
+  }
 }

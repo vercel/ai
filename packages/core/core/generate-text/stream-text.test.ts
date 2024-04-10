@@ -231,3 +231,42 @@ describe('result.fullStream', () => {
     );
   });
 });
+
+describe('result.toTextStreamResponse', () => {
+  it('should create a Response with a text stream', async () => {
+    const result = await experimental_streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: 'world!' },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    const response = result.toTextStreamResponse();
+
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual(
+      response.headers.get('Content-Type'),
+      'text/plain; charset=utf-8',
+    );
+
+    // Read the chunks into an array
+    const reader = response.body!.getReader();
+    const chunks = [];
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      chunks.push(new TextDecoder().decode(value));
+    }
+
+    assert.deepStrictEqual(chunks, ['Hello', ', ', 'world!']);
+  });
+});
