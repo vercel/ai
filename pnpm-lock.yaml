@@ -1225,8 +1225,8 @@ importers:
         specifier: 7.0.15
         version: 7.0.15
       '@types/node':
-        specifier: ^20
-        version: 20.11.20
+        specifier: ^18
+        version: 18.18.9
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
