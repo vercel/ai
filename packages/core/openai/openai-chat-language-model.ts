@@ -126,7 +126,16 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         return {
           ...baseArgs,
           tool_choice: { type: 'function', function: { name: mode.tool.name } },
-          tools: [{ type: 'function', function: mode.tool }],
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: mode.tool.name,
+                description: mode.tool.description,
+                parameters: mode.tool.parameters,
+              },
+            },
+          ],
         };
       }
 
