@@ -1073,7 +1073,7 @@ importers:
   packages/core:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.1.0
+        specifier: 0.0.0
         version: link:../provider
       eventsource-parser:
         specifier: 1.1.2
@@ -1225,8 +1225,8 @@ importers:
         specifier: 7.0.15
         version: 7.0.15
       '@types/node':
-        specifier: ^20
-        version: 20.11.20
+        specifier: ^18
+        version: 18.18.9
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
