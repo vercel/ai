@@ -8,6 +8,8 @@ import type {
   UseCompletionOptions,
 } from '../shared/types';
 
+export type { UseCompletionOptions };
+
 export type UseCompletionHelpers = {
   /** The current completion result */
   completion: Ref<string>;
