@@ -1,5 +1,13 @@
 # ai
 
+## 3.0.21
+
+### Patch Changes
+
+- 87d3db5: Extracted @ai-sdk/provider package
+- 8c40f8c: ai/core: Fix openai provider streamObject for gpt-4-turbo
+- 5cd29bd: ai/core: add toTextStreamResponse() method to streamText result
+
 ## 3.0.20
 
 ### Patch Changes
