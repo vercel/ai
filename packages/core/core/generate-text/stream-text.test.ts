@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { convertArrayToReadableStream } from '../test/convert-array-to-readable-stream';
 import { convertAsyncIterableToArray } from '../test/convert-async-iterable-to-array';
+import { convertReadableStreamToArray } from '../test/convert-readable-stream-to-array';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { experimental_streamText } from './stream-text';
 
@@ -228,6 +229,33 @@ describe('result.fullStream', () => {
           usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
         },
       ],
+    );
+  });
+});
+
+describe('result.toAIStream', () => {
+  it('should transform textStream through callbacks and data transformers', async () => {
+    const result = await experimental_streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: 'world!' },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    assert.deepStrictEqual(
+      await convertReadableStreamToArray(
+        result.toAIStream().pipeThrough(new TextDecoderStream()),
+      ),
+      ['0:"Hello"\n', '0:", "\n', '0:"world!"\n'],
     );
   });
 });

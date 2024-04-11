@@ -7,7 +7,6 @@ import {
   AIStreamCallbacksAndOptions,
   createCallbacksTransformer,
   createStreamDataTransformer,
-  readableFromAsyncIterable,
 } from '../../streams';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -214,8 +213,7 @@ Stream callbacks that will be called when the stream emits events.
 @returns an `AIStream` object.
    */
   toAIStream(callbacks?: AIStreamCallbacksAndOptions) {
-    // TODO add support for tool calls
-    return readableFromAsyncIterable(this.textStream)
+    return this.textStream
       .pipeThrough(createCallbacksTransformer(callbacks))
       .pipeThrough(createStreamDataTransformer());
   }
