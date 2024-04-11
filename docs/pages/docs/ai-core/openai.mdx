@@ -14,7 +14,7 @@ It creates language model objects that can be used with the `generateText`, `str
 You can import `OpenAI` from `ai/openai` and initialize a provider instance with various settings:
 
 ```ts
-import { OpenAI } from 'ai/openai'
+import { OpenAI } from '@ai-sdk/openai'
 
 const openai = new OpenAI({
   baseUrl: '', // optional base URL for proxies etc.
@@ -26,7 +26,7 @@ const openai = new OpenAI({
 The AI SDK also provides a shorthand `openai` import with an OpenAI provider instance that uses defaults:
 
 ```ts
-import { openai } from 'ai/openai';
+import { openai } from '@ai-sdk/openai';
 ```
 
 ## Chat Models

@@ -1,5 +1,5 @@
 import { experimental_streamObject } from 'ai';
-import { Mistral } from 'ai/mistral';
+import { Mistral } from '@ai-sdk/mistral';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 

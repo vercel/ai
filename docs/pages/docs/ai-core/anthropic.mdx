@@ -16,7 +16,7 @@ It creates language model objects that can be used with the `generateText` and `
 You can import `Anthropic` from `ai/anthropic` and initialize a provider instance with various settings:
 
 ```ts
-import { Anthropic } from 'ai/anthropic';
+import { Anthropic } from '@ai-sdk/anthropic';
 
 const anthropic = new Anthropic({
   baseUrl: '', // optional base URL for proxies etc.
@@ -27,7 +27,7 @@ const anthropic = new Anthropic({
 The AI SDK also provides a shorthand `anthropic` import with a Anthropic provider instance that uses defaults:
 
 ```ts
-import { anthropic } from 'ai/anthropic';
+import { anthropic } from '@ai-sdk/anthropic';
 ```
 
 ## Messages Models

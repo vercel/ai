@@ -90,7 +90,7 @@ by the [`useCompletion`](/docs/api-reference/use-completion) hook.
 
 ```ts
 import { StreamingTextResponse, experimental_streamText } from 'ai';
-import { openai } from 'ai/openai';
+import { openai } from '@ai-sdk/openai';
 
 export const runtime = 'edge';
 
@@ -114,7 +114,7 @@ by the [`useChat`](/docs/api-reference/use-chat) hook.
 
 ```ts
 import { StreamingTextResponse, experimental_streamText } from 'ai';
-import { openai } from 'ai/openai';
+import { openai } from '@ai-sdk/openai';
 
 export const runtime = 'edge';
 
@@ -135,7 +135,7 @@ export async function POST(req: Request) {
 
 ```ts
 import { ExperimentalMessage, experimental_streamText } from 'ai';
-import { openai } from 'ai/openai';
+import { openai } from '@ai-sdk/openai';
 import * as readline from 'node:readline/promises';
 
 const terminal = readline.createInterface({
@@ -181,7 +181,7 @@ import {
   ToolResultPart,
   experimental_streamText,
 } from 'ai';
-import { openai } from 'ai/openai';
+import { openai } from '@ai-sdk/openai';
 import * as readline from 'node:readline/promises';
 
 const terminal = readline.createInterface({

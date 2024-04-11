@@ -14,7 +14,7 @@ It creates language model objects that can be used with the `generateText`, `str
 You can import `Mistral` from `ai/mistral` and initialize a provider instance with various settings:
 
 ```ts
-import { Mistral } from 'ai/mistral';
+import { Mistral } from '@ai-sdk/mistral';
 
 const mistral = new Mistral({
   baseUrl: '', // optional base URL for proxies etc.
@@ -25,7 +25,7 @@ const mistral = new Mistral({
 The AI SDK also provides a shorthand `mistral` import with a Mistral provider instance that uses defaults:
 
 ```ts
-import { mistral } from 'ai/mistral';
+import { mistral } from '@ai-sdk/mistral';
 ```
 
 ## Chat Models

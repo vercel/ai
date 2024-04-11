@@ -1,5 +1,5 @@
 import { APICallError, RetryError } from '@ai-sdk/provider';
-import { getErrorMessage } from '../../spec';
+import { getErrorMessage } from '@ai-sdk/provider-utils';
 import { delay } from './delay';
 
 export type RetryFunction = <OUTPUT>(
@@ -7,8 +7,8 @@ export type RetryFunction = <OUTPUT>(
 ) => PromiseLike<OUTPUT>;
 
 /**
- * The `retryWithExponentialBackoff` strategy retries a failed API call with an exponential backoff.
- * You can configure the maximum number of retries, the initial delay, and the backoff factor.
+The `retryWithExponentialBackoff` strategy retries a failed API call with an exponential backoff.
+You can configure the maximum number of retries, the initial delay, and the backoff factor.
  */
 export const retryWithExponentialBackoff =
   ({
@@ -49,7 +49,7 @@ async function _retryWithExponentialBackoff<OUTPUT>(
 
     if (tryNumber > maxRetries) {
       throw new RetryError({
-        message: `Failed after ${tryNumber} attemps. Last error: ${errorMessage}`,
+        message: `Failed after ${tryNumber} attempts. Last error: ${errorMessage}`,
         reason: 'maxRetriesExceeded',
         errors: newErrors,
       });
@@ -74,7 +74,7 @@ async function _retryWithExponentialBackoff<OUTPUT>(
     }
 
     throw new RetryError({
-      message: `Failed after ${tryNumber} attemps with non-retryable error: '${errorMessage}'`,
+      message: `Failed after ${tryNumber} attempts with non-retryable error: '${errorMessage}'`,
       reason: 'errorNotRetryable',
       errors: newErrors,
     });

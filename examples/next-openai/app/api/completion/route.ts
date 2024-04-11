@@ -1,5 +1,5 @@
-import { StreamingTextResponse, StreamData, experimental_streamText } from 'ai';
-import { openai } from 'ai/openai';
+import { openai } from '@ai-sdk/openai';
+import { StreamData, StreamingTextResponse, experimental_streamText } from 'ai';
 
 export const runtime = 'edge';
 

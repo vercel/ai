@@ -1,5 +1,5 @@
 import { experimental_generateText } from 'ai';
-import { anthropic } from 'ai/anthropic';
+import { anthropic } from '@ai-sdk/anthropic';
 import dotenv from 'dotenv';
 import fs from 'node:fs';
 

@@ -1,5 +1,5 @@
 import { DeepPartial, experimental_streamObject } from 'ai';
-import { OpenAI } from 'ai/openai';
+import { OpenAI } from '@ai-sdk/openai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 

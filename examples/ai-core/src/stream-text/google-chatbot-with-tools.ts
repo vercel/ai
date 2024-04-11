@@ -4,7 +4,7 @@ import {
   ToolResultPart,
   experimental_streamText,
 } from 'ai';
-import { google } from 'ai/google';
+import { google } from '@ai-sdk/google';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';

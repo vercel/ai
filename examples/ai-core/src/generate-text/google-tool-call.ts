@@ -1,5 +1,5 @@
 import { experimental_generateText, tool } from 'ai';
-import { google } from 'ai/google';
+import { google } from '@ai-sdk/google';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';

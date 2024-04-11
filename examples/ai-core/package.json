@@ -3,13 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
+    "@ai-sdk/anthropic": "latest",
+    "@ai-sdk/google": "latest",
+    "@ai-sdk/mistral": "latest",
+    "@ai-sdk/openai": "latest",
     "ai": "latest",
     "dotenv": "16.4.5",
     "zod": "3.22.4",
     "zod-to-json-schema": "3.22.4"
   },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
   "devDependencies": {
     "@types/node": "20.11.20",
-    "tsx": "4.7.1"
+    "tsx": "4.7.1",
+    "typescript": "5.1.3"
   }
 }

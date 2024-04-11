@@ -1,5 +1,5 @@
 import { experimental_generateText } from 'ai';
-import { google } from 'ai/google';
+import { google } from '@ai-sdk/google';
 import dotenv from 'dotenv';
 import fs from 'node:fs';
 

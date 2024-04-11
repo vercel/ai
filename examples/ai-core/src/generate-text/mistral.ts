@@ -1,5 +1,5 @@
 import { experimental_generateText } from 'ai';
-import { Mistral } from 'ai/mistral';
+import { Mistral } from '@ai-sdk/mistral';
 import dotenv from 'dotenv';
 
 dotenv.config();
