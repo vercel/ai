@@ -1,5 +1,5 @@
 import { experimental_generateObject } from 'ai';
-import { openai } from 'ai/openai';
+import { openai } from '@ai-sdk/openai';
 import dotenv from 'dotenv';
 import fs from 'node:fs';
 import { z } from 'zod';

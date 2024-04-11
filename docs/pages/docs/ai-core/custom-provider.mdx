@@ -14,11 +14,13 @@ import { Callout } from 'nextra-theme-docs';
 The AI SDK provides a language model specification.
 You can write your own providers that adhere to the AI SDK language model specification and they will be compatible with the AI Core functions.
 
-You can find the Language Model Specification in the [AI SDK repository](https://github.com/vercel/ai/tree/main/packages/specification/src/language-model/v1).
-It can be imported from `ai/spec`.
+You can find the Language Model Specification in the [AI SDK repository](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v1).
+It can be imported from `'@ai-sdk/provider'`.
 
-We provide an [OpenAI reference implementation](https://github.com/vercel/ai/tree/main/packages/core/openai)
-and a [Mistral reference implementation](https://github.com/vercel/ai/tree/main/packages/core/mistral).
+We also provide utilities that make it easier to implement a custom provider. You can find them in the `@ai-sdk/provider-utils` package ([source code](https://github.com/vercel/ai/tree/main/packages/provider-utils)).
+
+There are several reference implementations, e.g. a [OpenAI reference implementation](https://github.com/vercel/ai/tree/main/packages/openai)
+and a [Mistral reference implementation](https://github.com/vercel/ai/tree/main/packages/mistral).
 
 ## Provider Facade
 
@@ -26,7 +28,7 @@ A custom provider should follow the pattern of using a provider facade with fact
 An instance of the custom provider class with default settings can be exported for convenience.
 
 ```ts filename="custom-provider-facade.ts"
-import { generateId, loadApiKey } from 'ai/spec';
+import { generateId, loadApiKey } from ''@ai-sdk/provider-utils'';
 import { CustomChatLanguageModel } from './custom-chat-language-model';
 import { CustomChatModelId, CustomChatSettings } from './mistral-chat-settings';
 
@@ -76,14 +78,16 @@ export const customprovider = new CustomProvider();
 
 ## Language Model Implementation
 
-Please refer to the Language Model Specification in the [AI SDK repository](https://github.com/vercel/ai/tree/main/packages/specification/src/language-model/v1).
+Please refer to the Language Model Specification in the [AI SDK repository](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v1).
 
-We provide an [OpenAI reference implementation](https://github.com/vercel/ai/tree/main/packages/core/openai)
-and a [Mistral reference implementation](https://github.com/vercel/ai/tree/main/packages/core/mistral).
+We also provide utilities that make it easier to implement a custom provider. You can find them in the `@ai-sdk/provider-utils` package ([source code](https://github.com/vercel/ai/tree/main/packages/provider-utils)).
+
+There are several reference implementations, e.g. a [OpenAI reference implementation](https://github.com/vercel/ai/tree/main/packages/openai)
+and a [Mistral reference implementation](https://github.com/vercel/ai/tree/main/packages/mistral).
 
 ### Errors
 
-The AI SDK provides [standardized errors](https://github.com/vercel/ai/tree/main/packages/specification/src/errors) that should be used by providers where possible.
+The AI SDK provides [standardized errors](https://github.com/vercel/ai/tree/main/packages/provider/src/errors) that should be used by providers where possible.
 This will make it easy for user to debug them.
 
 ### Retries, timeouts, and abort signals

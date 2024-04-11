@@ -1,5 +1,5 @@
 import { ExperimentalMessage, experimental_streamText } from 'ai';
-import { Mistral } from 'ai/mistral';
+import { Mistral } from '@ai-sdk/mistral';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 

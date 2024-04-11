@@ -2,7 +2,7 @@ import { InvalidDataContentError } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
-} from '../../spec';
+} from '@ai-sdk/provider-utils';
 
 /**
 Data content. Can either be a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer.

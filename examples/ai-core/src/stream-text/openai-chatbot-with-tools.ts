@@ -4,7 +4,7 @@ import {
   ToolResultPart,
   experimental_streamText,
 } from 'ai';
-import { OpenAI } from 'ai/openai';
+import { OpenAI } from '@ai-sdk/openai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';

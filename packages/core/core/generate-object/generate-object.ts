@@ -4,8 +4,8 @@ import {
   LanguageModelV1FinishReason,
   NoTextGeneratedError,
 } from '@ai-sdk/provider';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { safeParseJSON } from '../../spec';
 import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';

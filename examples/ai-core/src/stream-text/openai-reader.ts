@@ -1,5 +1,5 @@
 import { experimental_streamText } from 'ai';
-import { OpenAI } from 'ai/openai';
+import { OpenAI } from '@ai-sdk/openai';
 import dotenv from 'dotenv';
 
 dotenv.config();

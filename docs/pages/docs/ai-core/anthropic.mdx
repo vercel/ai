@@ -2,7 +2,7 @@
 title: Anthropic Provider
 ---
 
-import { Callout } from 'nextra-theme-docs';
+import { Callout, Tabs, Tab } from 'nextra-theme-docs';
 
 # Anthropic Provider
 
@@ -11,12 +11,40 @@ import { Callout } from 'nextra-theme-docs';
 The Anthropic provider contains language model support for the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post).
 It creates language model objects that can be used with the `generateText` and `streamText`AI functions.
 
+## Setup
+
+The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+
+```bash
+pnpm add @ai-sdk/anthropic
+```
+
+   </Tab>
+  <Tab>
+  
+```bash 
+npm i @ai-sdk/anthropic
+```
+  
+  </Tab>
+  <Tab>
+  
+```bash 
+yarn add @ai-sdk/anthropic 
+```
+  
+  </Tab>
+</Tabs>
+
 ## Provider Instance
 
 You can import `Anthropic` from `ai/anthropic` and initialize a provider instance with various settings:
 
 ```ts
-import { Anthropic } from 'ai/anthropic';
+import { Anthropic } from '@ai-sdk/anthropic';
 
 const anthropic = new Anthropic({
   baseUrl: '', // optional base URL for proxies etc.
@@ -27,7 +55,7 @@ const anthropic = new Anthropic({
 The AI SDK also provides a shorthand `anthropic` import with a Anthropic provider instance that uses defaults:
 
 ```ts
-import { anthropic } from 'ai/anthropic';
+import { anthropic } from '@ai-sdk/anthropic';
 ```
 
 ## Messages Models

@@ -29,7 +29,7 @@ Here is a simple example for `generateText`:
 
 ```ts
 import { experimental_generateText } from 'ai';
-import { openai } from 'ai/openai';
+import { openai } from '@ai-sdk/openai';
 
 const { text } = await experimental_generateText({
   model: openai.chat('gpt-3.5-turbo'),

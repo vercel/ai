@@ -1,7 +1,7 @@
 'use server';
 
+import { openai } from '@ai-sdk/openai';
 import { experimental_streamObject } from 'ai';
-import { openai } from 'ai/openai';
 import {
   StreamableValue,
   createAI,
