@@ -2,12 +2,40 @@
 title: OpenAI Provider
 ---
 
-import { Callout } from 'nextra-theme-docs';
+import { Callout, Tabs, Tab } from 'nextra-theme-docs';
 
 # OpenAI Provider
 
 The OpenAI provider contains language model support for the OpenAI chat and completion APIs.
 It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` AI functions.
+
+## Setup
+
+The Google provider is available in the `@ai-sdk/openai` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+
+```bash
+pnpm add @ai-sdk/openai
+```
+
+   </Tab>
+  <Tab>
+  
+```bash 
+npm i @ai-sdk/openai
+```
+  
+  </Tab>
+  <Tab>
+  
+```bash 
+yarn add @ai-sdk/openai 
+```
+  
+  </Tab>
+</Tabs>
 
 ## Provider Instance
 

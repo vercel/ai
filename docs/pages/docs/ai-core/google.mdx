@@ -2,12 +2,40 @@
 title: Google Provider
 ---
 
-import { Callout } from 'nextra-theme-docs';
+import { Callout, Tabs, Tab } from 'nextra-theme-docs';
 
 # Google Provider
 
 The Google provider contains language model support for the [Google Generative AI](https://ai.google/discover/generativeai/) APIs.
 It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` AI functions.
+
+## Setup
+
+The Google provider is available in the `@ai-sdk/google` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+
+```bash
+pnpm add @ai-sdk/google
+```
+
+   </Tab>
+  <Tab>
+  
+```bash 
+npm i @ai-sdk/google
+```
+  
+  </Tab>
+  <Tab>
+  
+```bash 
+yarn add @ai-sdk/google 
+```
+  
+  </Tab>
+</Tabs>
 
 ## Provider Instance
 

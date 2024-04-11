@@ -2,12 +2,40 @@
 title: Mistral Provider
 ---
 
-import { Callout } from 'nextra-theme-docs';
+import { Callout, Tabs, Tab } from 'nextra-theme-docs';
 
 # Mistral Provider
 
 The Mistral provider contains language model support for the Mistral chat API.
 It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` AI functions.
+
+## Setup
+
+The Google provider is available in the `@ai-sdk/mistral` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+
+```bash
+pnpm add @ai-sdk/mistral
+```
+
+   </Tab>
+  <Tab>
+  
+```bash 
+npm i @ai-sdk/mistral
+```
+  
+  </Tab>
+  <Tab>
+  
+```bash 
+yarn add @ai-sdk/mistral 
+```
+  
+  </Tab>
+</Tabs>
 
 ## Provider Instance
 
