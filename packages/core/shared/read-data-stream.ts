@@ -16,6 +16,17 @@ function concatChunks(chunks: Uint8Array[], totalLength: number) {
   return concatenatedChunks;
 }
 
+/**
+Converts a ReadableStreamDefaultReader into an async generator that yields
+StreamPart objects.
+
+@param reader 
+       Reader for the stream to read from.
+@param isAborted
+       Optional function that returns true if the request has been aborted.
+       If the function returns true, the generator will stop reading the stream.
+       If the function is not provided, the generator will not stop reading the stream.
+ */
 export async function* readDataStream(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   {

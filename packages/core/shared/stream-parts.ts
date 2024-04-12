@@ -328,11 +328,11 @@ export const StreamStringPrefixes = {
 export const validCodes = streamParts.map(part => part.code);
 
 /**
- * Parses a stream part from a string.
- *
- * @param line The string to parse.
- * @returns The parsed stream part.
- * @throws An error if the string cannot be parsed.
+Parses a stream part from a string.
+
+@param line The string to parse.
+@returns The parsed stream part.
+@throws An error if the string cannot be parsed.
  */
 export const parseStreamPart = (line: string): StreamPartType => {
   const firstSeparatorIndex = line.indexOf(':');
@@ -356,10 +356,10 @@ export const parseStreamPart = (line: string): StreamPartType => {
 };
 
 /**
- * Prepends a string with a prefix from the `StreamChunkPrefixes`, JSON-ifies it,
- * and appends a new line.
- *
- * It ensures type-safety for the part type and value.
+Prepends a string with a prefix from the `StreamChunkPrefixes`, JSON-ifies it,
+and appends a new line.
+
+It ensures type-safety for the part type and value.
  */
 export function formatStreamPart<T extends keyof StreamPartValueType>(
   type: T,
