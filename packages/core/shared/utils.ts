@@ -9,6 +9,12 @@ export * from './generate-id';
 // TODO remove (breaking change)
 export { generateId as nanoid } from './generate-id';
 
+// Export stream data utilities for custom stream implementations,
+// both on the client and server side.
+export type { StreamPart } from './stream-parts';
+export { formatStreamPart, parseStreamPart } from './stream-parts';
+export { readDataStream } from './read-data-stream';
+
 // simple decoder signatures:
 function createChunkDecoder(): (chunk: Uint8Array | undefined) => string;
 function createChunkDecoder(
