@@ -1,5 +1,12 @@
 # ai
 
+## 3.0.22
+
+### Patch Changes
+
+- d544886: Breaking change: extract experimental AI core provider packages. They can now be imported with e.g. import { openai } from '@ai-sdk/openai' after adding them to a project.
+- ea6b0e1: Expose formatStreamPart, parseStreamPart, and readDataStream helpers.
+
 ## 3.0.21
 
 ### Patch Changes
