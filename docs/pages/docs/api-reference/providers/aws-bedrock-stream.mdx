@@ -112,7 +112,7 @@ export async function POST(req: Request) {
       accept: 'application/json',
       body: JSON.stringify({
         anthropic_version: 'bedrock-2023-05-31',
-        message: experimental_buildAnthropicMessages(messages),
+        messages: experimental_buildAnthropicMessages(messages),
         max_tokens: 300,
       }),
     }),
