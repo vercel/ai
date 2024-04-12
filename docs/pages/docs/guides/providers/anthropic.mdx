@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   // Ask Claude for a streaming chat completion given the prompt
   const response = await anthropic.messages.create({
     messages,
-    model: 'claude-2.1',
+    model: 'claude-3-haiku-20240307',
     stream: true,
     max_tokens: 300,
   });
@@ -141,7 +141,7 @@ export async function POST(req: Request) {
   // Ask Claude for a streaming chat completion given the prompt
   const response = await anthropic.completions.create({
     prompt: `Human: ${prompt}\n\nAssistant:`,
-    model: 'claude-2',
+    model: 'claude-3-haiku-20240307',
     stream: true,
     max_tokens_to_sample: 300,
   });
