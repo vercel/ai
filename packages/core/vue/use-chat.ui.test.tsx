@@ -19,7 +19,7 @@ describe('stream data stream', () => {
     cleanup();
   });
 
-  it('should show streamed complex text response', async () => {
+  it('should show streamed response', async () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
@@ -36,7 +36,7 @@ describe('stream data stream', () => {
     );
   });
 
-  it('should show streamed complex text response with data', async () => {
+  it('should show streamed response with data', async () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
@@ -113,7 +113,7 @@ describe('text stream', () => {
     cleanup();
   });
 
-  it('should show streamed complex text response', async () => {
+  it('should show streamed response', async () => {
     mockFetchDataStream({
       url: 'https://example.com/api/chat',
       chunks: ['Hello', ',', ' world', '.'],
