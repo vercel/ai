@@ -13,7 +13,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { ExperimentalTool } from '../tool';
+import { CoreTool } from '../tool';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -60,9 +60,7 @@ If set and supported by the model, calls will generate deterministic results.
 @return
 A result object for accessing different stream types and additional information.
  */
-export async function streamText<
-  TOOLS extends Record<string, ExperimentalTool>,
->({
+export async function streamText<TOOLS extends Record<string, CoreTool>>({
   model,
   tools,
   system,
@@ -115,7 +113,7 @@ The tools that the model can call. The model needs to support calling tools.
   });
 }
 
-export type TextStreamPart<TOOLS extends Record<string, ExperimentalTool>> =
+export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
   | {
       type: 'text-delta';
       textDelta: string;
@@ -143,7 +141,7 @@ export type TextStreamPart<TOOLS extends Record<string, ExperimentalTool>> =
 /**
 A result object for accessing different stream types and additional information.
  */
-export class StreamTextResult<TOOLS extends Record<string, ExperimentalTool>> {
+export class StreamTextResult<TOOLS extends Record<string, CoreTool>> {
   private readonly originalStream: ReadableStream<TextStreamPart<TOOLS>>;
 
   /**

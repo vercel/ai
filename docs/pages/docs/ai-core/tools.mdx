@@ -16,7 +16,7 @@ Tool calling works as follows:
 
 You define the tools and pass them into `generateText` or `streamText` using the `tools` parameter.
 
-AI Core tools are objects that implement the `ExperimentalTool<PARAMETERS, RESULT>` interface with the following properties:
+AI Core tools are objects that implement the `CoreTool<PARAMETERS, RESULT>` interface with the following properties:
 
 - **description**: An optional description of the tool. This information is provided to the language model and can influence when the tool is picked.
 - **parameters**: A [Zod](https://zod.dev/) schema that defines the parameters. It is converted to a JSON schema that is consumed by the LLM, and also used to validate the LLM tool calls.

@@ -1,4 +1,4 @@
-import { ExperimentalMessage, streamText } from 'ai';
+import { CoreMessage, streamText } from 'ai';
 import { google } from '@ai-sdk/google';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
@@ -10,7 +10,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: ExperimentalMessage[] = [];
+const messages: CoreMessage[] = [];
 
 async function main() {
   while (true) {

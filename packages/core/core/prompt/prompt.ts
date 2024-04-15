@@ -1,4 +1,4 @@
-import { ExperimentalMessage } from './message';
+import { CoreMessage } from './message';
 
 /**
 Prompt part of the AI function options. It contains a system message, a simple text prompt, or a list of messages.
@@ -17,5 +17,5 @@ A simple text prompt. You can either use `prompt` or `messages` but not both.
   /**
 A list of messsages. You can either use `prompt` or `messages` but not both.
    */
-  messages?: Array<ExperimentalMessage>;
+  messages?: Array<CoreMessage>;
 };

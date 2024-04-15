@@ -1,9 +1,4 @@
-import {
-  ExperimentalMessage,
-  ToolCallPart,
-  ToolResultPart,
-  streamText,
-} from 'ai';
+import { CoreMessage, ToolCallPart, ToolResultPart, streamText } from 'ai';
 import { Mistral } from '@ai-sdk/mistral';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
@@ -18,7 +13,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: ExperimentalMessage[] = [];
+const messages: CoreMessage[] = [];
 
 async function main() {
   let toolResponseAvailable = false;

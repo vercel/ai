@@ -1,12 +1,10 @@
 import { LanguageModelV1StreamPart, NoSuchToolError } from '@ai-sdk/provider';
 import { generateId } from '../../shared/generate-id';
-import { ExperimentalTool } from '../tool';
+import { CoreTool } from '../tool';
 import { TextStreamPart } from './stream-text';
 import { parseToolCall } from './tool-call';
 
-export function runToolsTransformation<
-  TOOLS extends Record<string, ExperimentalTool>,
->({
+export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   tools,
   generatorStream,
 }: {
