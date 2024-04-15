@@ -24,7 +24,7 @@ import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
 
-This function streams the output. If you do not want to stream the output, use `experimental_generateObject` instead.
+This function streams the output. If you do not want to stream the output, use `generateObject` instead.
 
 @param model - The language model to use.
 
@@ -59,7 +59,7 @@ If set and supported by the model, calls will generate deterministic results.
 @return
 A result object for accessing the partial object stream and additional information.
  */
-export async function experimental_streamObject<T>({
+export async function streamObject<T>({
   model,
   schema,
   mode,
@@ -270,3 +270,8 @@ Warnings from the model provider (e.g. unsupported settings)
 }
 
 export type ErrorStreamPart = { type: 'error'; error: unknown };
+
+/**
+ * @deprecated Use `streamObject` instead.
+ */
+export const experimental_streamObject = streamObject;

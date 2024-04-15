@@ -1,4 +1,4 @@
-import { experimental_generateObject } from 'ai';
+import { generateObject } from 'ai';
 import { Mistral } from '@ai-sdk/mistral';
 import dotenv from 'dotenv';
 import { z } from 'zod';
@@ -8,7 +8,7 @@ dotenv.config();
 const mistral = new Mistral();
 
 async function main() {
-  const result = await experimental_generateObject({
+  const result = await generateObject({
     model: mistral.chat('open-mistral-7b'),
     schema: z.object({
       characters: z.array(
