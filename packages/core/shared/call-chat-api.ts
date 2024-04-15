@@ -85,11 +85,13 @@ export async function callChatApi({
         }
 
         resultMessage.content += decoder(value);
+        resultMessage.id = generateId();
 
-        onUpdate([resultMessage], undefined);
+        // note: creating a new message object is required for Solid.js streaming
+        onUpdate([{ ...resultMessage }], []);
 
         // The request has been aborted, stop reading the stream.
-        if (abortController === null) {
+        if (abortController?.() === null) {
           reader.cancel();
           break;
         }
