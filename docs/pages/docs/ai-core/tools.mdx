@@ -25,7 +25,7 @@ AI Core tools are objects that implement the `ExperimentalTool<PARAMETERS, RESUL
 The `tools` parameter is an object that has the tool names as keys and the tools as values:
 
 ```ts {3-17}
-const result = await experimental_generateText({
+const result = await generateText({
   model: openai.chat('gpt-3.5-turbo'),
   tools: {
     weather: {

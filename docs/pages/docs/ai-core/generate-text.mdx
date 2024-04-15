@@ -4,29 +4,29 @@ title: generateText API
 
 import { Callout } from 'nextra-theme-docs';
 
-# experimental_generateText
+# generateText
 
 Generate a text and call tools for a given prompt using a language model.
 
-`experimental_generateText` is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
+`generateText` is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
 
 ```ts
-import { experimental_generateText } from 'ai';
+import { generateText } from 'ai';
 
-const { text } = await experimental_generateText({
+const { text } = await generateText({
   model,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 ```
 
 <Callout type="info">
-  `experimental_generateText` does not stream the output. If you want to stream
-  the output, use [`experimental_streamText`](/docs/ai-core/stream-text).
+  `generateText` does not stream the output. If you want to stream the output,
+  use [`streamText`](/docs/ai-core/stream-text).
 </Callout>
 
 ## Parameters
 
-The parameters are passed into `experimental_generateText` as a single options object.
+The parameters are passed into `generateText` as a single options object.
 
 - **model** - The language model to use.
 - **tools** - The tools that the model can call. The model needs to support calling tools.
@@ -69,7 +69,7 @@ The parameters are passed into `experimental_generateText` as a single options o
 ### Basic call
 
 ```ts
-const { text, usage, finishReason } = await experimental_generateText({
+const { text, usage, finishReason } = await generateText({
   model,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
@@ -78,7 +78,7 @@ const { text, usage, finishReason } = await experimental_generateText({
 ### Tool Usage
 
 ```ts
-const result = await experimental_generateText({
+const result = await generateText({
   model: openai.chat('gpt-3.5-turbo'),
   maxTokens: 512,
   tools: {

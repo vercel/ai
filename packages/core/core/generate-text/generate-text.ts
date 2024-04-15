@@ -18,7 +18,7 @@ import { ToToolResultArray } from './tool-result';
 /**
 Generate a text and call tools for a given prompt using a language model.
 
-This function does not stream the output. If you want to stream the output, use `experimental_streamText` instead.
+This function does not stream the output. If you want to stream the output, use `streamText` instead.
 
 @param model - The language model to use.
 @param tools - The tools that the model can call. The model needs to support calling tools.
@@ -51,7 +51,7 @@ If set and supported by the model, calls will generate deterministic results.
 @returns
 A result object that contains the generated text, the results of the tool calls, and additional information.
  */
-export async function experimental_generateText<
+export async function generateText<
   TOOLS extends Record<string, ExperimentalTool>,
 >({
   model,
@@ -204,3 +204,8 @@ Warnings from the model provider (e.g. unsupported settings)
     this.warnings = options.warnings;
   }
 }
+
+/**
+ * @deprecated Use `generateText` instead.
+ */
+export const experimental_generateText = generateText;

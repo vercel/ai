@@ -1,4 +1,4 @@
-import { ExperimentalMessage, experimental_generateText } from 'ai';
+import { ExperimentalMessage, generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
@@ -22,7 +22,7 @@ async function main() {
       messages.push({ role: 'user', content: userInput });
     }
 
-    const { text, toolCalls, toolResults } = await experimental_generateText({
+    const { text, toolCalls, toolResults } = await generateText({
       model: anthropic.messages('claude-3-opus-20240229'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,

@@ -2,7 +2,7 @@ import {
   ExperimentalMessage,
   ToolCallPart,
   ToolResultPart,
-  experimental_streamText,
+  streamText,
 } from 'ai';
 import { Mistral } from '@ai-sdk/mistral';
 import dotenv from 'dotenv';
@@ -29,7 +29,7 @@ async function main() {
       messages.push({ role: 'user', content: userInput });
     }
 
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: mistral.chat('mistral-large-latest'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,

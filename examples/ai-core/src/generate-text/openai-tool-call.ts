@@ -1,4 +1,4 @@
-import { experimental_generateText, tool } from 'ai';
+import { generateText, tool } from 'ai';
 import { OpenAI } from '@ai-sdk/openai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
@@ -9,7 +9,7 @@ dotenv.config();
 const openai = new OpenAI();
 
 async function main() {
-  const result = await experimental_generateText({
+  const result = await generateText({
     model: openai.chat('gpt-3.5-turbo'),
     maxTokens: 512,
     tools: {

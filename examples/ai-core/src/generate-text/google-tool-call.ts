@@ -1,4 +1,4 @@
-import { experimental_generateText, tool } from 'ai';
+import { generateText, tool } from 'ai';
 import { google } from '@ai-sdk/google';
 import dotenv from 'dotenv';
 import { z } from 'zod';
@@ -7,7 +7,7 @@ import { weatherTool } from '../tools/weather-tool';
 dotenv.config();
 
 async function main() {
-  const result = await experimental_generateText({
+  const result = await generateText({
     model: google.generativeAI('models/gemini-pro'),
     maxTokens: 512,
     tools: {

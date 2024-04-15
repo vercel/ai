@@ -2,7 +2,7 @@ import {
   ExperimentalMessage,
   ToolCallPart,
   ToolResultPart,
-  experimental_streamText,
+  streamText,
 } from 'ai';
 import { google } from '@ai-sdk/google';
 import dotenv from 'dotenv';
@@ -27,7 +27,7 @@ async function main() {
       messages.push({ role: 'user', content: userInput });
     }
 
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: google.generativeAI('models/gemini-pro'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,

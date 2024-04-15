@@ -2,7 +2,7 @@ import {
   ExperimentalMessage,
   ToolCallPart,
   ToolResultPart,
-  experimental_streamText,
+  streamText,
 } from 'ai';
 import { OpenAI } from '@ai-sdk/openai';
 import dotenv from 'dotenv';
@@ -29,7 +29,7 @@ async function main() {
       messages.push({ role: 'user', content: userInput });
     }
 
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: openai.chat('gpt-3.5-turbo'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
