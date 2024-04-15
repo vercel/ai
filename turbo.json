@@ -24,6 +24,9 @@
       ],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
+    "api-docs": {
+      "dependsOn": ["^api-docs"]
+    },
     "lint": {
       "dependsOn": ["^lint"]
     },

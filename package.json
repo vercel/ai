@@ -1,6 +1,7 @@
 {
   "private": true,
   "scripts": {
+    "api-docs": "turbo api-docs",
     "build": "turbo build",
     "changeset": "changeset",
     "clean": "turbo clean",
