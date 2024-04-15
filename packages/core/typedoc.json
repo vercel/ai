@@ -1,0 +1,13 @@
+{
+  "entryPoints": [
+    "./streams/index.ts",
+    "./rsc/index.ts",
+    "./prompts/index.ts",
+    "./react/index.ts",
+    "./solid/index.ts",
+    "./svelte/index.ts",
+    "./vue/index.ts"
+  ],
+  "plugin": ["typedoc-plugin-markdown"],
+  "out": "api-docs"
+}
