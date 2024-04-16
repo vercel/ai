@@ -11,7 +11,11 @@ import {
  * OpenAI provider.
  */
 export class OpenAI {
+  /**
+   * Base URL for the OpenAI API calls.
+   */
   readonly baseURL: string;
+
   readonly apiKey?: string;
   readonly organization?: string;
 
@@ -21,7 +25,7 @@ export class OpenAI {
   constructor(
     options: {
       /**
-       * Base URL of the OpenAI API.
+       * Base URL for the OpenAI API calls.
        */
       baseURL?: string;
 

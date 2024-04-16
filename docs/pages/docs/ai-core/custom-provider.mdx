@@ -28,7 +28,7 @@ A custom provider should follow the pattern of using a provider facade with fact
 An instance of the custom provider class with default settings can be exported for convenience.
 
 ```ts filename="custom-provider-facade.ts"
-import { generateId, loadApiKey } from ''@ai-sdk/provider-utils'';
+import { generateId, loadApiKey, withoutTrailingSlash } from ''@ai-sdk/provider-utils'';
 import { CustomChatLanguageModel } from './custom-chat-language-model';
 import { CustomChatModelId, CustomChatSettings } from './mistral-chat-settings';
 
@@ -36,22 +36,23 @@ import { CustomChatModelId, CustomChatSettings } from './mistral-chat-settings';
  * Custom provider facade.
  */
 export class CustomProvider {
-  readonly baseUrl?: string;
+  readonly baseURL: string;
   readonly apiKey?: string;
 
   constructor(
     options: {
-      baseUrl?: string;
+      baseURL?: string;
       apiKey?: string;
     } = {},
   ) {
-    this.baseUrl = options.baseUrl;
+    this.baseURL = withoutTrailingSlash(options.baseURL) ??
+      'https://api.custom.ai/v1';
     this.apiKey = options.apiKey;
   }
 
   private get baseConfig() {
     return {
-      baseUrl: this.baseUrl ?? 'https://custom.ai/v1',
+      baseURL: this.baseURL,
       headers: () => ({
         Authorization: `Bearer ${loadApiKey({
           apiKey: this.apiKey,
