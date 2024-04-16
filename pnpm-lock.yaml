@@ -1053,12 +1053,12 @@ importers:
 
   examples/sveltekit-openai:
     dependencies:
+      '@ai-sdk/openai':
+        specifier: latest
+        version: link:../../packages/openai
       ai:
         specifier: latest
         version: link:../../packages/core
-      openai:
-        specifier: 4.16.1
-        version: 4.16.1
     devDependencies:
       '@fontsource/fira-mono':
         specifier: ^4.5.10
