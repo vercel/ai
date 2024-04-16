@@ -22,7 +22,7 @@ import { openaiFailedResponseHandler } from './openai-error';
 
 type OpenAIChatConfig = {
   provider: string;
-  baseUrl: string;
+  baseURL: string;
   headers: () => Record<string, string | undefined>;
 };
 
@@ -158,7 +158,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/chat/completions`,
+      url: `${this.config.baseURL}/chat/completions`,
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -195,7 +195,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/chat/completions`,
+      url: `${this.config.baseURL}/chat/completions`,
       headers: this.config.headers(),
       body: {
         ...args,
@@ -387,7 +387,10 @@ const openAIChatResponseSchema = z.object({
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiChatChunkSchema = z.object({
-  object: z.literal('chat.completion.chunk'),
+  object: z.enum([
+    'chat.completion.chunk',
+    'chat.completion', // support for OpenAI-compatible providers such as Perplexity
+  ]),
   choices: z.array(
     z.object({
       delta: z.object({
