@@ -1059,6 +1059,9 @@ importers:
       ai:
         specifier: latest
         version: link:../../packages/core
+      openai:
+        specifier: 4.16.1
+        version: 4.16.1
     devDependencies:
       '@fontsource/fira-mono':
         specifier: ^4.5.10
