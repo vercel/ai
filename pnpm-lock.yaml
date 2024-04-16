@@ -1053,6 +1053,9 @@ importers:
 
   examples/sveltekit-openai:
     dependencies:
+      '@ai-sdk/openai':
+        specifier: latest
+        version: link:../../packages/openai
       ai:
         specifier: latest
         version: link:../../packages/core
