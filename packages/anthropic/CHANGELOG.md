@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.2
+
+### Patch Changes
+
+- 2bff460: Fix build for release.
+
 ## 0.0.1
 
 ### Patch Changes
