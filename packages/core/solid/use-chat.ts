@@ -82,6 +82,7 @@ export function useChat({
   credentials,
   headers,
   body,
+  streamMode,
   generateId = generateIdFunc,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
@@ -158,6 +159,7 @@ export function useChat({
               ...body,
               ...options?.body,
             },
+            streamMode,
             headers: {
               ...headers,
               ...options?.headers,
