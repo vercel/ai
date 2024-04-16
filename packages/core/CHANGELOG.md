@@ -1,5 +1,13 @@
 # ai
 
+## 3.0.23
+
+### Patch Changes
+
+- 66b5892: Add streamMode parameter to useChat and useCompletion.
+- Updated dependencies [7b8791d]
+  - @ai-sdk/provider-utils@0.0.1
+
 ## 3.0.22
 
 ### Patch Changes
