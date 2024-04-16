@@ -1,32 +1,29 @@
-import OpenAI from 'openai';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { OpenAI } from '@ai-sdk/openai';
+import { StreamingTextResponse, experimental_streamText } from 'ai';
 
-// Create an OpenAI API client (that's edge friendly!)
-// but configure it to point to perplexity.ai
+export const runtime = 'edge';
+
 const perplexity = new OpenAI({
-  apiKey: process.env.PERPLEXITY_API_KEY || '',
+  apiKey: process.env.PERPLEXITY_API_KEY ?? '',
   baseURL: 'https://api.perplexity.ai/',
 });
 
-// IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
-
 export async function POST(req: Request) {
-  // Extract the `messages` from the body of the request
-  const { messages } = await req.json();
+  try {
+    // Extract the `messages` from the body of the request
+    const { messages } = await req.json();
 
-  // Ask Perplexity for a streaming chat completion using PPLX 70B online model
-  // @see https://blog.perplexity.ai/blog/introducing-pplx-online-llms
-  const response = await perplexity.chat.completions.create({
-    model: 'pplx-70b-online',
-    stream: true,
-    max_tokens: 1000,
-    messages,
-  });
+    // Call the language model
+    const result = await experimental_streamText({
+      // see https://docs.perplexity.ai/docs/model-cards for models
+      model: perplexity.chat('sonar-medium-chat'),
+      messages,
+    });
 
-  // Convert the response into a friendly text-stream.
-  const stream = OpenAIStream(response);
-
-  // Respond with the stream
-  return new StreamingTextResponse(stream);
+    // Respond with the stream
+    return new StreamingTextResponse(result.toAIStream());
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
 }

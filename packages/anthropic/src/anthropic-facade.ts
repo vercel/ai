@@ -1,4 +1,4 @@
-import { loadApiKey } from '@ai-sdk/provider-utils';
+import { loadApiKey, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import {
   AnthropicMessagesModelId,
@@ -9,23 +9,45 @@ import {
  * Anthropic provider.
  */
 export class Anthropic {
-  readonly baseUrl?: string;
+  /**
+   * Base URL for the Anthropic API calls.
+   */
+  readonly baseURL: string;
+
   readonly apiKey?: string;
 
+  /**
+   * Creates a new Anthropic provider instance.
+   */
   constructor(
     options: {
+      /**
+       * Base URL for the Anthropic API calls.
+       */
+      baseURL?: string;
+
+      /**
+       * @deprecated Use `baseURL` instead.
+       */
       baseUrl?: string;
+
+      /**
+       * API key for authenticating requests.
+       */
       apiKey?: string;
+
       generateId?: () => string;
     } = {},
   ) {
-    this.baseUrl = options.baseUrl;
+    this.baseURL =
+      withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
+      'https://api.anthropic.com/v1';
     this.apiKey = options.apiKey;
   }
 
   private get baseConfig() {
     return {
-      baseUrl: this.baseUrl ?? 'https://api.anthropic.com/v1',
+      baseURL: this.baseURL,
       headers: () => ({
         'anthropic-version': '2023-06-01',
         'anthropic-beta': 'tools-2024-04-04',

@@ -23,7 +23,7 @@ import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-fi
 
 type GoogleGenerativeAIConfig = {
   provider: string;
-  baseUrl: string;
+  baseURL: string;
   headers: () => Record<string, string | undefined>;
   generateId: () => string;
 };
@@ -152,7 +152,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/${this.modelId}:generateContent`,
+      url: `${this.config.baseURL}/${this.modelId}:generateContent`,
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
@@ -190,7 +190,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/${this.modelId}:streamGenerateContent?alt=sse`,
+      url: `${this.config.baseURL}/${this.modelId}:streamGenerateContent?alt=sse`,
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,

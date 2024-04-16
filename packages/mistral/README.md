@@ -19,7 +19,7 @@ You can import `Mistral` from `ai/mistral` and initialize a provider instance wi
 import { Mistral } from '@ai-sdk/mistral';
 
 const mistral = new Mistral({
-  baseUrl: '', // optional base URL for proxies etc.
+  baseURL: '', // optional base URL for proxies etc.
   apiKey: '', // optional API key, default to env property MISTRAL_API_KEY
 });
 ```
