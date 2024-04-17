@@ -248,6 +248,9 @@ export type UseChatOptions = {
    * handle the extra fields before forwarding the request to the AI service.
    */
   sendExtraMessageFields?: boolean;
+
+  /** Stream mode (default to "stream-data") */
+  streamMode?: 'stream-data' | 'text';
 };
 
 export type UseCompletionOptions = {
@@ -313,6 +316,9 @@ export type UseCompletionOptions = {
    * ```
    */
   body?: object;
+
+  /** Stream mode (default to "stream-data") */
+  streamMode?: 'stream-data' | 'text';
 };
 
 export type JSONValue =

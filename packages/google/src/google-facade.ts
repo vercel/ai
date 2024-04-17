@@ -1,4 +1,8 @@
-import { generateId, loadApiKey } from '@ai-sdk/provider-utils';
+import {
+  generateId,
+  loadApiKey,
+  withoutTrailingSlash,
+} from '@ai-sdk/provider-utils';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import {
   GoogleGenerativeAIModelId,
@@ -9,27 +13,48 @@ import {
  * Google provider.
  */
 export class Google {
-  readonly baseUrl?: string;
+  /**
+   * Base URL for the Google API calls.
+   */
+  readonly baseURL: string;
+
   readonly apiKey?: string;
 
   private readonly generateId: () => string;
 
+  /**
+   * Creates a new Google provider instance.
+   */
   constructor(
     options: {
+      /**
+       * Base URL for the Google API calls.
+       */
+      baseURL?: string;
+
+      /**
+       * @deprecated Use `baseURL` instead.
+       */
       baseUrl?: string;
+
+      /**
+       * API key for authenticating requests.
+       */
       apiKey?: string;
+
       generateId?: () => string;
     } = {},
   ) {
-    this.baseUrl = options.baseUrl;
+    this.baseURL =
+      withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
+      'https://generativelanguage.googleapis.com/v1beta';
     this.apiKey = options.apiKey;
     this.generateId = options.generateId ?? generateId;
   }
 
   private get baseConfig() {
     return {
-      baseUrl:
-        this.baseUrl ?? 'https://generativelanguage.googleapis.com/v1beta',
+      baseURL: this.baseURL,
       headers: () => ({
         'x-goog-api-key': loadApiKey({
           apiKey: this.apiKey,

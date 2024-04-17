@@ -70,6 +70,7 @@ export function useChat({
   initialInput = '',
   sendExtraMessageFields,
   experimental_onFunctionCall,
+  streamMode,
   onResponse,
   onFinish,
   onError,
@@ -154,6 +155,7 @@ export function useChat({
               ...unref(body), // Use unref to unwrap the ref value
               ...options?.body,
             },
+            streamMode,
             headers: {
               ...headers,
               ...options?.headers,

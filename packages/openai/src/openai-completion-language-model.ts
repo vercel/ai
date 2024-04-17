@@ -22,9 +22,10 @@ import { openaiFailedResponseHandler } from './openai-error';
 
 type OpenAICompletionConfig = {
   provider: string;
-  baseUrl: string;
+  baseURL: string;
   headers: () => Record<string, string | undefined>;
 };
+
 export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = undefined;
@@ -147,7 +148,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/completions`,
+      url: `${this.config.baseURL}/completions`,
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -178,7 +179,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/completions`,
+      url: `${this.config.baseURL}/completions`,
       headers: this.config.headers(),
       body: {
         ...this.getArgs(options),

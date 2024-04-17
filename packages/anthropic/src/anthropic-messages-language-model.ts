@@ -23,7 +23,7 @@ import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 type AnthropicMessagesConfig = {
   provider: string;
-  baseUrl: string;
+  baseURL: string;
   headers: () => Record<string, string | undefined>;
 };
 
@@ -165,7 +165,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     const { args, warnings } = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/messages`,
+      url: `${this.config.baseURL}/messages`,
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: anthropicFailedResponseHandler,
@@ -220,7 +220,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     const { args, warnings } = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/messages`,
+      url: `${this.config.baseURL}/messages`,
       headers: this.config.headers(),
       body: {
         ...args,

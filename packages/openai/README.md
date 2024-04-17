@@ -19,7 +19,7 @@ You can import `OpenAI` from `ai/openai` and initialize a provider instance with
 import { OpenAI } from '@ai-sdk/openai'
 
 const openai = new OpenAI({
-  baseUrl: '', // optional base URL for proxies etc.
+  baseURL: '', // optional base URL for proxies etc.
   apiKey: '' // optional API key, default to env property OPENAI_API_KEY
   organization: '' // optional organization
 })
