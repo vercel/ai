@@ -1,5 +1,5 @@
 import { OpenAI } from '@ai-sdk/openai';
-import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { StreamingTextResponse, streamText } from 'ai';
 import type { RequestHandler } from './$types';
 
 import { env } from '$env/dynamic/private';
@@ -18,7 +18,7 @@ export const POST = (async ({ request }) => {
   const { messages } = await request.json();
 
   // Ask OpenAI for a streaming chat completion given the prompt
-  const result = await experimental_streamText({
+  const result = await streamText({
     model: openai.chat('gpt-4-turbo-preview'),
     messages,
   });
