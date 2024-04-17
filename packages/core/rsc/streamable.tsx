@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import type OpenAI from 'openai';
+import OpenAI from 'openai';
+import MistralClient from '@mistralai/mistralai';
 import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
 
 // TODO: This needs to be externalized.
-import { OpenAIStream } from '../streams';
+import { MistralStream, OpenAIStream } from '../streams';
 
 import {
   STREAMABLE_VALUE_TYPE,
@@ -286,54 +287,61 @@ export function render<
   FS extends {
     [name: string]: z.Schema;
   } = {},
->(options: {
-  /**
-   * The model name to use. Must be OpenAI SDK compatible. Tools and Functions are only supported
-   * GPT models (3.5/4), OpenAI Assistants, Mistral small and large, and Fireworks firefunction-v1.
-   *
-   * @example "gpt-3.5-turbo"
-   */
-  model: string;
-  /**
-   * The provider instance to use. Currently the only provider available is OpenAI.
-   * This needs to match the model name.
-   */
-  provider: OpenAI;
-  messages: Parameters<
-    typeof OpenAI.prototype.chat.completions.create
-  >[0]['messages'];
-  text?: Renderer<{
+  PV extends OpenAI | MistralClient = OpenAI | MistralClient,
+>(
+  options: {
     /**
-     * The full text content from the model so far.
+     * The model name to use. Must be OpenAI SDK compatible. Tools and Functions are only supported
+     * GPT models (3.5/4), OpenAI Assistants, Mistral small and large, and Fireworks firefunction-v1.
+     *
+     * @example "gpt-3.5-turbo"
      */
-    content: string;
-    /**
-     * The new appended text content from the model since the last `text` call.
-     */
-    delta: string;
-    /**
-     * Whether the model is done generating text.
-     * If `true`, the `content` will be the final output and this call will be the last.
-     */
-    done: boolean;
-  }>;
-  tools?: {
-    [name in keyof TS]: {
-      description?: string;
-      parameters: TS[name];
-      render: Renderer<z.infer<TS[name]>>;
+    model: string;
+    text?: Renderer<{
+      /**
+       * The full text content from the model so far.
+       */
+      content: string;
+      /**
+       * The new appended text content from the model since the last `text` call.
+       */
+      delta: string;
+      /**
+       * Whether the model is done generating text.
+       * If `true`, the `content` will be the final output and this call will be the last.
+       */
+      done: boolean;
+    }>;
+    tools?: {
+      [name in keyof TS]: {
+        description?: string;
+        parameters: TS[name];
+        render: Renderer<z.infer<TS[name]>>;
+      };
     };
-  };
-  functions?: {
-    [name in keyof FS]: {
-      description?: string;
-      parameters: FS[name];
-      render: Renderer<z.infer<FS[name]>>;
+    functions?: {
+      [name in keyof FS]: {
+        description?: string;
+        parameters: FS[name];
+        render: Renderer<z.infer<FS[name]>>;
+      };
     };
-  };
-  initial?: ReactNode;
-  temperature?: number;
-}): ReactNode {
+    initial?: ReactNode;
+    temperature?: number;
+  } & (PV extends OpenAI
+    ? {
+        provider: OpenAI;
+        messages: Parameters<
+          typeof OpenAI.prototype.chat.completions.create
+        >[0]['messages'];
+      }
+    : {
+        provider: MistralClient;
+        messages: Parameters<
+          typeof MistralClient.prototype.chatStream
+        >[0]['messages'];
+      }),
+): ReactNode {
   const ui = createStreamableUI(options.initial);
 
   // The default text renderer just returns the content as string.
@@ -439,72 +447,108 @@ export function render<
     let hasFunction = false;
     let content = '';
 
-    consumeStream(
-      OpenAIStream(
-        (await options.provider.chat.completions.create({
-          model: options.model,
-          messages: options.messages,
-          temperature: options.temperature,
-          stream: true,
-          ...(functions
-            ? {
-                functions,
-              }
-            : {}),
-          ...(tools
-            ? {
-                tools,
-              }
-            : {}),
-        })) as any,
-        {
-          ...(functions
-            ? {
-                async experimental_onFunctionCall(functionCallPayload) {
-                  hasFunction = true;
-                  handleRender(
-                    functionCallPayload.arguments,
-                    options.functions?.[functionCallPayload.name as any]
-                      ?.render,
-                    ui,
-                  );
-                },
-              }
-            : {}),
-          ...(tools
-            ? {
-                async experimental_onToolCall(toolCallPayload: any) {
-                  hasFunction = true;
+    const experimental_onToolCall = async (toolCallPayload: any) => {
+      hasFunction = true;
 
-                  // TODO: We might need Promise.all here?
-                  for (const tool of toolCallPayload.tools) {
+      // TODO: We might need Promise.all here?
+      for (const tool of toolCallPayload.tools) {
+        handleRender(
+          tool.func.arguments,
+          options.tools?.[tool.func.name as any]?.render,
+          ui,
+        );
+      }
+    };
+
+    const onText = (chunk: string) => {
+      content += chunk;
+      handleRender({ content, done: false, delta: chunk }, text, ui);
+    };
+
+    const onFinal = async () => {
+      if (hasFunction) {
+        await finished;
+        ui.done();
+        return;
+      }
+
+      handleRender({ content, done: true }, text, ui);
+      await finished;
+      ui.done();
+    };
+
+    if (options.provider instanceof OpenAI) {
+      consumeStream(
+        OpenAIStream(
+          (await options.provider.chat.completions.create({
+            model: options.model,
+            messages: options.messages as any,
+            temperature: options.temperature,
+            stream: true,
+            ...(functions
+              ? {
+                  functions,
+                }
+              : {}),
+            ...(tools
+              ? {
+                  tools,
+                }
+              : {}),
+          })) as any,
+          {
+            ...(functions
+              ? {
+                  async experimental_onFunctionCall(functionCallPayload) {
+                    hasFunction = true;
                     handleRender(
-                      tool.func.arguments,
-                      options.tools?.[tool.func.name as any]?.render,
+                      functionCallPayload.arguments,
+                      options.functions?.[functionCallPayload.name as any]
+                        ?.render,
                       ui,
                     );
-                  }
-                },
-              }
-            : {}),
-          onText(chunk) {
-            content += chunk;
-            handleRender({ content, done: false, delta: chunk }, text, ui);
+                  },
+                }
+              : {}),
+            ...(tools
+              ? {
+                  experimental_onToolCall,
+                }
+              : {}),
+            onText,
+            onFinal,
           },
-          async onFinal() {
-            if (hasFunction) {
-              await finished;
-              ui.done();
-              return;
-            }
-
-            handleRender({ content, done: true }, text, ui);
-            await finished;
-            ui.done();
+        ),
+      );
+    } else {
+      consumeStream(
+        MistralStream(
+          options.provider.chatStream({
+            model: options.model,
+            messages: options.messages.map(message => ({
+              ...message,
+              // Mistral does not accept "fucntion" or "tool" as role
+              role: message.role === 'function' ? 'assistant' : message.role,
+            })) as any,
+            temperature: options.temperature,
+            ...(tools
+              ? {
+                  tools,
+                }
+              : {}),
+          }),
+          {
+            ...(tools
+              ? {
+                  experimental_onToolCall,
+                }
+              : {}),
+            onText,
+            onFinal,
           },
-        },
-      ),
-    );
+        ),
+      );
+    }
   })();
 
   return ui.value;
