@@ -135,8 +135,8 @@ export function prepareCallSettings({
     maxTokens,
     temperature: temperature ?? 0,
     topP,
-    presencePenalty: presencePenalty ?? 0,
-    frequencyPenalty: frequencyPenalty ?? 0,
+    presencePenalty,
+    frequencyPenalty,
     seed,
     maxRetries: maxRetries ?? 2,
   };

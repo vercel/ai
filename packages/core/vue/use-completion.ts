@@ -63,6 +63,7 @@ export function useCompletion({
   credentials,
   headers,
   body,
+  streamMode,
   onResponse,
   onFinish,
   onError,
@@ -116,6 +117,7 @@ export function useCompletion({
         ...unref(body),
         ...options?.body,
       },
+      streamMode,
       setCompletion: mutate,
       setLoading: loading => mutateLoading(() => loading),
       setError: err => {

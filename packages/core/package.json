@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "3.0.22",
+  "version": "3.0.23",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -79,7 +79,7 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "0.0.0",
-    "@ai-sdk/provider-utils": "0.0.0",
+    "@ai-sdk/provider-utils": "0.0.1",
     "secure-json-parse": "2.7.0",
     "eventsource-parser": "1.1.2",
     "jsondiffpatch": "0.6.0",

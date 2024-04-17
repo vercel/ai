@@ -1,16 +1,16 @@
-import OpenAI from 'openai';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { OpenAI } from '@ai-sdk/openai';
+import { StreamingTextResponse, experimental_streamText } from 'ai';
+import type { RequestHandler } from './$types';
 
 import { env } from '$env/dynamic/private';
+
 // You may want to replace the above with a static private env variable
 // for dead-code elimination and build-time type-checking:
 // import { OPENAI_API_KEY } from '$env/static/private'
 
-import type { RequestHandler } from './$types';
-
-// Create an OpenAI API client
+// Create an OpenAI Provider instance
 const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY || '',
+  apiKey: env.OPENAI_API_KEY ?? '',
 });
 
 export const POST = (async ({ request }) => {
@@ -18,17 +18,11 @@ export const POST = (async ({ request }) => {
   const { messages } = await request.json();
 
   // Ask OpenAI for a streaming chat completion given the prompt
-  const response = await openai.chat.completions.create({
-    model: 'gpt-3.5-turbo',
-    stream: true,
-    messages: messages.map((message: any) => ({
-      content: message.content,
-      role: message.role,
-    })),
+  const result = await experimental_streamText({
+    model: openai.chat('gpt-4-turbo-preview'),
+    messages,
   });
 
-  // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response);
   // Respond with the stream
-  return new StreamingTextResponse(stream);
+  return new StreamingTextResponse(result.toAIStream());
 }) satisfies RequestHandler;

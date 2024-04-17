@@ -22,7 +22,7 @@ import { mistralFailedResponseHandler } from './mistral-error';
 
 type MistralChatConfig = {
   provider: string;
-  baseUrl: string;
+  baseURL: string;
   headers: () => Record<string, string | undefined>;
   generateId: () => string;
 };
@@ -156,7 +156,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     const { args, warnings } = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/chat/completions`,
+      url: `${this.config.baseURL}/chat/completions`,
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: mistralFailedResponseHandler,
@@ -193,7 +193,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     const { args, warnings } = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseUrl}/chat/completions`,
+      url: `${this.config.baseURL}/chat/completions`,
       headers: this.config.headers(),
       body: {
         ...args,

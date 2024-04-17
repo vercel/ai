@@ -1,10 +1,12 @@
 import { parseComplexResponse } from './parse-complex-response';
 import { IdGenerator, JSONValue, Message } from './types';
+import { createChunkDecoder } from './utils';
 
 export async function callChatApi({
   api,
   messages,
   body,
+  streamMode = 'stream-data',
   credentials,
   headers,
   abortController,
@@ -17,6 +19,7 @@ export async function callChatApi({
   api: string;
   messages: Omit<Message, 'id'>[];
   body: Record<string, any>;
+  streamMode?: 'stream-data' | 'text';
   credentials?: RequestCredentials;
   headers?: HeadersInit;
   abortController?: () => AbortController | null;
@@ -64,16 +67,62 @@ export async function callChatApi({
 
   const reader = response.body.getReader();
 
-  return await parseComplexResponse({
-    reader,
-    abortControllerRef:
-      abortController != null ? { current: abortController() } : undefined,
-    update: onUpdate,
-    onFinish(prefixMap) {
-      if (onFinish && prefixMap.text != null) {
-        onFinish(prefixMap.text);
+  switch (streamMode) {
+    case 'text': {
+      const decoder = createChunkDecoder();
+
+      const resultMessage = {
+        id: generateId(),
+        createdAt: new Date(),
+        role: 'assistant' as const,
+        content: '',
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        resultMessage.content += decoder(value);
+        resultMessage.id = generateId();
+
+        // note: creating a new message object is required for Solid.js streaming
+        onUpdate([{ ...resultMessage }], []);
+
+        // The request has been aborted, stop reading the stream.
+        if (abortController?.() === null) {
+          reader.cancel();
+          break;
+        }
       }
-    },
-    generateId,
-  });
+
+      onFinish?.(resultMessage);
+
+      return {
+        messages: [resultMessage],
+        data: [],
+      };
+    }
+
+    case 'stream-data': {
+      return await parseComplexResponse({
+        reader,
+        abortControllerRef:
+          abortController != null ? { current: abortController() } : undefined,
+        update: onUpdate,
+        onFinish(prefixMap) {
+          if (onFinish && prefixMap.text != null) {
+            onFinish(prefixMap.text);
+          }
+        },
+        generateId,
+      });
+    }
+
+    default: {
+      const exhaustiveCheck: never = streamMode;
+      throw new Error(`Unknown stream mode: ${exhaustiveCheck}`);
+    }
+  }
 }

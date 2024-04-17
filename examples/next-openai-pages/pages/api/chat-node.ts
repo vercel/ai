@@ -1,10 +1,10 @@
-import { OpenAIStream, StreamingTextResponse, streamToResponse } from 'ai';
+import { OpenAI } from '@ai-sdk/openai';
+import { experimental_streamText, streamToResponse } from 'ai';
 import { NextApiRequest, NextApiResponse } from 'next';
-import OpenAI from 'openai';
 
-// Create an OpenAI API client (that's edge friendly!)
+// Create an OpenAI Provider instance
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+  apiKey: process.env.OPENAI_API_KEY ?? '',
 });
 
 export default async function handler(
@@ -14,14 +14,13 @@ export default async function handler(
   const { messages } = await req.body;
 
   // Ask OpenAI for a streaming chat completion given the prompt
-  const response = await openai.chat.completions.create({
-    model: 'gpt-3.5-turbo',
-    stream: true,
+  const result = await experimental_streamText({
+    model: openai.chat('gpt-4-turbo-preview'),
     messages,
   });
 
   // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response);
+  const stream = result.toAIStream();
 
   /**
    * Converts the stream to a Node.js Response-like object.

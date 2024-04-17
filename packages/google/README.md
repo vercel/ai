@@ -17,7 +17,7 @@ You can import `Google` from `ai/google` and initialize a provider instance with
 import { Google } from '@ai-sdk/google';
 
 const google = new Google({
-  baseUrl: '', // optional base URL for proxies etc.
+  baseURL: '', // optional base URL for proxies etc.
   apiKey: '', // optional API key, default to env property GOOGLE_GENERATIVE_AI_API_KEY
 });
 ```

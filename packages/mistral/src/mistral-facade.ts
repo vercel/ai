@@ -1,4 +1,8 @@
-import { generateId, loadApiKey } from '@ai-sdk/provider-utils';
+import {
+  generateId,
+  loadApiKey,
+  withoutTrailingSlash,
+} from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import {
   MistralChatModelId,
@@ -9,26 +13,49 @@ import {
  * Mistral provider.
  */
 export class Mistral {
-  readonly baseUrl?: string;
+  /**
+   * Base URL for the Mistral API calls.
+   */
+  readonly baseURL: string;
+
   readonly apiKey?: string;
 
   private readonly generateId: () => string;
 
+  /**
+   * Creates a new Mistral provider instance.
+   */
   constructor(
     options: {
+      /**
+       * Base URL for the Mistral API calls.
+       */
+      baseURL?: string;
+
+      /**
+       * @deprecated Use `baseURL` instead.
+       */
       baseUrl?: string;
+
+      /**
+       * API key for authenticating requests.
+       */
       apiKey?: string;
+
       generateId?: () => string;
     } = {},
   ) {
-    this.baseUrl = options.baseUrl;
+    this.baseURL =
+      withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
+      'https://api.mistral.ai/v1';
+
     this.apiKey = options.apiKey;
     this.generateId = options.generateId ?? generateId;
   }
 
   private get baseConfig() {
     return {
-      baseUrl: this.baseUrl ?? 'https://api.mistral.ai/v1',
+      baseURL: this.baseURL,
       headers: () => ({
         Authorization: `Bearer ${loadApiKey({
           apiKey: this.apiKey,
