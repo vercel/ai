@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.3
+
+### Patch Changes
+
+- 587240b: Standardize providers to offer .chat() method
+
 ## 0.0.2
 
 ### Patch Changes
