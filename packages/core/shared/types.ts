@@ -90,6 +90,11 @@ export interface Message {
   tool_call_id?: string;
   createdAt?: Date;
   content: string;
+  /**
+   * If the sendMessageMetadata flag is enabled, this could be defined.
+   * Otherwise it should be null
+   */
+  metadata?: unknown;
   ui?: string | JSX.Element | JSX.Element[] | null | undefined;
   role: 'system' | 'user' | 'assistant' | 'function' | 'data' | 'tool';
   /**
@@ -338,6 +343,7 @@ export type AssistantMessage = {
       value: string;
     };
   }>;
+  metadata?: unknown;
 };
 
 /*
