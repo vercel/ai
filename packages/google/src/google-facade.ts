@@ -71,7 +71,9 @@ export class Google {
   generativeAI(
     modelId: GoogleGenerativeAIModelId,
     settings: GoogleGenerativeAISettings = {},
-  ) {}
+  ) {
+    return this.chat(modelId, settings);
+  }
 
   chat(
     modelId: GoogleGenerativeAIModelId,

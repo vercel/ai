@@ -67,7 +67,7 @@ export class Anthropic {
     modelId: AnthropicMessagesModelId,
     settings: AnthropicMessagesSettings = {},
   ) {
-    this.chat(modelId, settings);
+    return this.chat(modelId, settings);
   }
 
   chat(
