@@ -58,19 +58,19 @@ import { google } from '@ai-sdk/google';
 
 ## Generative AI Models
 
-You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the `.generativeAI()` factory method.
+You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the `.chat()` factory method.
 The first argument is the model id, e.g. `models/gemini-pro`.
 The models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = google.generativeAI('models/gemini-pro');
+const model = google.chat('models/gemini-pro');
 ```
 
 Google Generative AI models support also some model specific settings that are not part of the [standard call settings](/docs/ai-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = google.generativeAI('models/gemini-pro', {
+const model = google.chat('models/gemini-pro', {
   topK: 0.2,
 });
 ```

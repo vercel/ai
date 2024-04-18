@@ -19,7 +19,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = await experimental_streamText({
-      model: google.generativeAI('models/gemini-pro'),
+      model: google.chat('models/gemini-pro'),
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
     });

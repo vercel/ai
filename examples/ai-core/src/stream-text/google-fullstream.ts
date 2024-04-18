@@ -8,7 +8,7 @@ dotenv.config();
 
 async function main() {
   const result = await experimental_streamText({
-    model: google.generativeAI('models/gemini-pro'),
+    model: google.chat('models/gemini-pro'),
     tools: {
       weather: weatherTool,
       cityAttractions: {

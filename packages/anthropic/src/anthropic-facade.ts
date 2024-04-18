@@ -60,7 +60,17 @@ export class Anthropic {
     };
   }
 
+  /**
+   * @deprecated Use `chat()` instead.
+   */
   messages(
+    modelId: AnthropicMessagesModelId,
+    settings: AnthropicMessagesSettings = {},
+  ) {
+    this.chat(modelId, settings);
+  }
+
+  chat(
     modelId: AnthropicMessagesModelId,
     settings: AnthropicMessagesSettings = {},
   ) {

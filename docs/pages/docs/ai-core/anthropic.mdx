@@ -60,19 +60,19 @@ import { anthropic } from '@ai-sdk/anthropic';
 
 ## Messages Models
 
-You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the `.messages()` factory method.
+You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the `.chat()` factory method.
 The first argument is the model id, e.g. `claude-3-haiku-20240307`.
 Some models have multi-modal capabilities.
 
 ```ts
-const model = anthropic.messages('claude-3-haiku-20240307');
+const model = anthropic.chat('claude-3-haiku-20240307');
 ```
 
 Anthropic Messages` models support also some model specific settings that are not part of the [standard call settings](/docs/ai-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = anthropic.messages('claude-3-haiku-20240307', {
+const model = anthropic.chat('claude-3-haiku-20240307', {
   topK: 0.2,
 });
 ```
