@@ -23,7 +23,7 @@ async function main() {
     }
 
     const { text, toolCalls, toolResults } = await experimental_generateText({
-      model: anthropic.messages('claude-3-opus-20240229'),
+      model: anthropic.chat('claude-3-opus-20240229'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,

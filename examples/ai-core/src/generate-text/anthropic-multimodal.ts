@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await experimental_generateText({
-    model: anthropic.messages('claude-3-haiku-20240307'),
+    model: anthropic.chat('claude-3-haiku-20240307'),
     maxTokens: 512,
     messages: [
       {

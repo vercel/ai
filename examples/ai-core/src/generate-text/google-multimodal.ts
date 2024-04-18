@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await experimental_generateText({
-    model: google.generativeAI('models/gemini-pro-vision'),
+    model: google.chat('models/gemini-pro-vision'),
     maxTokens: 512,
     messages: [
       {

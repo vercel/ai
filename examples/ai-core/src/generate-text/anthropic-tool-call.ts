@@ -8,7 +8,7 @@ dotenv.config();
 
 async function main() {
   const result = await experimental_generateText({
-    model: anthropic.messages('claude-3-opus-20240229'),
+    model: anthropic.chat('claude-3-opus-20240229'),
     maxTokens: 512,
     tools: {
       weather: weatherTool,

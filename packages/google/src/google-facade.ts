@@ -65,7 +65,17 @@ export class Google {
     };
   }
 
+  /**
+   * @deprecated Use `chat()` instead.
+   */
   generativeAI(
+    modelId: GoogleGenerativeAIModelId,
+    settings: GoogleGenerativeAISettings = {},
+  ) {
+    return this.chat(modelId, settings);
+  }
+
+  chat(
     modelId: GoogleGenerativeAIModelId,
     settings: GoogleGenerativeAISettings = {},
   ) {

@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await experimental_generateObject({
-    model: anthropic.messages('claude-3-opus-20240229'),
+    model: anthropic.chat('claude-3-opus-20240229'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),
