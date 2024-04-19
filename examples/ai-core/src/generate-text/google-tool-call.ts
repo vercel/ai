@@ -1,5 +1,5 @@
-import { experimental_generateText, tool } from 'ai';
 import { google } from '@ai-sdk/google';
+import { experimental_generateText, tool } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
@@ -8,7 +8,7 @@ dotenv.config();
 
 async function main() {
   const result = await experimental_generateText({
-    model: google.chat('models/gemini-pro'),
+    model: google('models/gemini-pro'),
     maxTokens: 512,
     tools: {
       weather: weatherTool,

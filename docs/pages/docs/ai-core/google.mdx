@@ -4,7 +4,7 @@ title: Google Provider
 
 import { Callout, Tabs, Tab } from 'nextra-theme-docs';
 
-# Google Provider
+# Google Generative AI Provider
 
 The Google provider contains language model support for the [Google Generative AI](https://ai.google/discover/generativeai/) APIs.
 It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` AI functions.
@@ -39,12 +39,12 @@ yarn add @ai-sdk/google
 
 ## Provider Instance
 
-You can import `Google` from `ai/google` and initialize a provider instance with various settings:
+You can import `createGoogleGenerativeAI` from `ai/google` and initialize a provider instance with various settings:
 
 ```ts
-import { Google } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
-const google = new Google({
+const google = createGoogleGenerativeAI({
   baseURL: '', // optional base URL for proxies etc.
   apiKey: '', // optional API key, default to env property GOOGLE_GENERATIVE_AI_API_KEY
 });
@@ -56,21 +56,21 @@ The AI SDK also provides a shorthand `google` import with a Google provider inst
 import { google } from '@ai-sdk/google';
 ```
 
-## Generative AI Models
+## Models
 
-You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the `.chat()` factory method.
+You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the provider instance.
 The first argument is the model id, e.g. `models/gemini-pro`.
 The models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = google.chat('models/gemini-pro');
+const model = google('models/gemini-pro');
 ```
 
 Google Generative AI models support also some model specific settings that are not part of the [standard call settings](/docs/ai-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = google.chat('models/gemini-pro', {
+const model = google('models/gemini-pro', {
   topK: 0.2,
 });
 ```

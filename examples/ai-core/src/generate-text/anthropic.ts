@@ -1,5 +1,5 @@
-import { experimental_generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
+import { experimental_generateText } from 'ai';
 import dotenv from 'dotenv';
 
 dotenv.config();

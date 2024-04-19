@@ -32,7 +32,7 @@ import { mistral } from '@ai-sdk/mistral';
 
 ## Models
 
-You can create models that call the [Mistral chat API](https://docs.mistral.ai/api/#operation/createChatCompletion) using mistral provider instance.
+You can create models that call the [Mistral chat API](https://docs.mistral.ai/api/#operation/createChatCompletion) using provider instance.
 The first argument is the model id, e.g. `mistral-large-latest`.
 Some Mistral chat models support tool calls.
 
@@ -44,7 +44,7 @@ Mistral chat models also support additional model settings that are not part of 
 You can pass them as an options argument:
 
 ```ts
-const model = mistral.chat('mistral-large-latest', {
+const model = mistral('mistral-large-latest', {
   safePrompt: true, // optional safety prompt injection
 });
 ```
