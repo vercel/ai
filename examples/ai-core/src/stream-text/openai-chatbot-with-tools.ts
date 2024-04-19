@@ -11,7 +11,7 @@ import { weatherTool } from '../tools/weather-tool';
 
 dotenv.config();
 
-const openai = new OpenAI();
+const openai = createOpenAI();
 
 const terminal = readline.createInterface({
   input: process.stdin,

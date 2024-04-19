@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const openai = new OpenAI();
+const openai = createOpenAI();
 
 async function main() {
   const abortController = new AbortController();

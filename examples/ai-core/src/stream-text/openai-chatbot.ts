@@ -5,7 +5,7 @@ import * as readline from 'node:readline/promises';
 
 dotenv.config();
 
-const openai = new OpenAI();
+const openai = createOpenAI();
 
 const terminal = readline.createInterface({
   input: process.stdin,

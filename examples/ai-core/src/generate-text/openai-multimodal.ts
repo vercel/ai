@@ -5,7 +5,7 @@ import fs from 'node:fs';
 
 dotenv.config();
 
-const openai = new OpenAI();
+const openai = createOpenAI();
 
 async function main() {
   const result = await experimental_generateText({

@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 dotenv.config();
 
-const openai = new OpenAI();
+const openai = createOpenAI();
 
 async function main() {
   const result = await experimental_generateObject({

@@ -6,7 +6,7 @@ import { weatherTool } from '../tools/weather-tool';
 
 dotenv.config();
 
-const openai = new OpenAI();
+const openai = createOpenAI();
 
 async function main() {
   const result = await experimental_generateText({
