@@ -14,6 +14,7 @@
     "test": "turbo test",
     "ci:release": "turbo clean && turbo build && changeset publish",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
+    "clean-examples": "node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "check-docs-links": "node ./check-docs-links.js"
   },
   "lint-staged": {
