@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Pass 'data' on on react/use-chat
+Pass 'data' attribute on react/use-chat
