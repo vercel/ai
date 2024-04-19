@@ -101,11 +101,12 @@ const getStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({ role, content, name, function_call, tool_calls, tool_call_id }) => ({
+        ({ role, content, data, name, function_call, tool_calls, tool_call_id }) => ({
           role,
           content,
           tool_call_id,
           ...(name !== undefined && { name }),
+          ...(data !== undefined && { data }),
           ...(function_call !== undefined && {
             function_call: function_call,
           }),
