@@ -54,14 +54,16 @@ export function createOpenAI(
     organization?: string;
   } = {},
 ): OpenAIProvider {
-  const openai = new OpenAI();
+  const openai = new OpenAI(options);
 
   const provider = function (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
   ) {
     if (new.target) {
-      throw new Error('The OpenAI cannot be called with the new keyword.');
+      throw new Error(
+        'The OpenAI model function cannot be called with the new keyword.',
+      );
     }
 
     if (modelId === 'gpt-3.5-turbo-instruct') {

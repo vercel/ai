@@ -31,7 +31,7 @@ The AI SDK also provides a shorthand `openai` import with an OpenAI provider ins
 import { openai } from '@ai-sdk/openai';
 ```
 
-## Model construction
+## Models
 
 The OpenAI provider instance is a function that you can invoke to create a model:
 
@@ -43,7 +43,7 @@ It automatically selects the correct API based on the model id.
 
 You can also provide model-specific parameters or select a model API by using `.chat` or `.completion`.
 
-## Chat Models
+### Chat Models
 
 You can create models that call the [OpenAI chat API](https://platform.openai.com/docs/api-reference/chat) using the `.chat()` factory method.
 The first argument is the model id, e.g. `gpt-4`.
@@ -66,7 +66,7 @@ const model = openai.chat('gpt-3.5-turbo', {
 });
 ```
 
-## Completion Models
+### Completion Models
 
 You can create models that call the [OpenAI completions API](https://platform.openai.com/docs/api-reference/completions) using the `.completion()` factory method.
 The first argument is the model id.

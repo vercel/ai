@@ -13,12 +13,12 @@ npm i @ai-sdk/mistral
 
 ## Provider Instance
 
-You can import `Mistral` from `ai/mistral` and initialize a provider instance with various settings:
+You can import `createMistral` from `ai/mistral` and create a provider instance with various settings:
 
 ```ts
-import { Mistral } from '@ai-sdk/mistral';
+import { createMistral } from '@ai-sdk/mistral';
 
-const mistral = new Mistral({
+const mistral = createMistral({
   baseURL: '', // optional base URL for proxies etc.
   apiKey: '', // optional API key, default to env property MISTRAL_API_KEY
 });
@@ -30,14 +30,14 @@ The AI SDK also provides a shorthand `mistral` import with a Mistral provider in
 import { mistral } from '@ai-sdk/mistral';
 ```
 
-## Chat Models
+## Models
 
-You can create models that call the [Mistral chat API](https://docs.mistral.ai/api/#operation/createChatCompletion) using the `.chat()` factory method.
+You can create models that call the [Mistral chat API](https://docs.mistral.ai/api/#operation/createChatCompletion) using mistral provider instance.
 The first argument is the model id, e.g. `mistral-large-latest`.
 Some Mistral chat models support tool calls.
 
 ```ts
-const model = mistral.chat('mistral-large-latest');
+const model = mistral('mistral-large-latest');
 ```
 
 Mistral chat models also support additional model settings that are not part of the [standard call settings](/docs/ai-core/settings).
