@@ -6,7 +6,7 @@ import {
 } from './anthropic-messages-settings';
 
 /**
- * Anthropic provider.
+ * @deprecated Use `createAnthropic` instead.
  */
 export class Anthropic {
   /**
@@ -80,8 +80,3 @@ export class Anthropic {
     });
   }
 }
-
-/**
- * Default Anthropic provider instance.
- */
-export const anthropic = new Anthropic();

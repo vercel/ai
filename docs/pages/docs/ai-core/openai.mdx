@@ -39,7 +39,7 @@ yarn add @ai-sdk/openai
 
 ## Provider Instance
 
-You can import `createOpenAI` from `ai/openai` and create a provider instance with various settings:
+You can import `createOpenAI` from `@ai-sdk/openai` and create a provider instance with various settings:
 
 ```ts
 import { createOpenAI } from '@ai-sdk/openai'
@@ -106,7 +106,7 @@ OpenAI completion models support also some model specific settings that are not 
 You can pass them as an options argument:
 
 ```ts
-const model = openai.chat('gpt-3.5-turbo', {
+const model = openai.completion('gpt-3.5-turbo-instruct', {
   echo: true, // optional, echo the prompt in addition to the completion
   logitBias: {
     // optional likelihood for specific tokens

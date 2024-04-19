@@ -11,7 +11,7 @@ npm i @ai-sdk/google
 
 ## Provider Instance
 
-You can import `createGoogleGenerativeAI` from `ai/google` and initialize a provider instance with various settings:
+You can import `createGoogleGenerativeAI` from `@ai-sdk/google` and create a provider instance with various settings:
 
 ```ts
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
