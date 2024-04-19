@@ -29,7 +29,7 @@ type Renderer<T extends Array<any>> = (
 type RenderTool<PARAMETERS extends z.ZodTypeAny = any> = {
   description?: string;
   parameters: PARAMETERS;
-  execute?: Renderer<
+  generate?: Renderer<
     [
       z.infer<PARAMETERS>,
       {
@@ -68,9 +68,11 @@ const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
   content;
 
 /**
- * `render` is a helper function to create a streamable UI from some LLMs.
+ * `experimental_streamUI` is a helper function to create a streamable UI from LLMs.
  */
-export async function render<TOOLS extends Record<string, RenderTool>>({
+export async function experimental_streamUI<
+  TOOLS extends Record<string, RenderTool>,
+>({
   model,
   tools,
   system,
@@ -248,7 +250,7 @@ export async function render<TOOLS extends Record<string, RenderTool>>({
                   toolCallId: value.toolCallId,
                 },
               ],
-              tool.execute,
+              tool.generate,
               ui,
             );
 

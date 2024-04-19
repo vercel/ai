@@ -1,6 +1,6 @@
 import { convertArrayToReadableStream } from '../../core/test/convert-array-to-readable-stream';
 import { MockLanguageModelV1 } from '../../core/test/mock-language-model-v1';
-import { render } from './render';
+import { experimental_streamUI } from './stream-ui';
 import { z } from 'zod';
 
 async function recursiveResolve(val: any): Promise<any> {
@@ -49,12 +49,6 @@ async function simulateFlightServerRender(node: React.ReactNode) {
   return traverse(node);
 }
 
-const dummyResponseValues = {
-  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-  finishReason: 'stop' as const,
-  usage: { promptTokens: 10, completionTokens: 20 },
-};
-
 const mockTextModel = new MockLanguageModelV1({
   doStream: async () => {
     return {
@@ -90,7 +84,7 @@ const mockToolModel = new MockLanguageModelV1({
 
 describe('result.value', () => {
   it('should render text', async () => {
-    const result = await render({
+    const result = await experimental_streamUI({
       model: mockTextModel,
       prompt: '',
     });
@@ -100,7 +94,7 @@ describe('result.value', () => {
   });
 
   it('should render text function returned ui', async () => {
-    const result = await render({
+    const result = await experimental_streamUI({
       model: mockTextModel,
       prompt: '',
       text: ({ content }) => <h1>{content}</h1>,
@@ -111,7 +105,7 @@ describe('result.value', () => {
   });
 
   it('should render tool call results', async () => {
-    const result = await render({
+    const result = await experimental_streamUI({
       model: mockToolModel,
       prompt: '',
       tools: {
@@ -120,7 +114,7 @@ describe('result.value', () => {
           parameters: z.object({
             value: z.string(),
           }),
-          execute: async ({ value }) => {
+          generate: async ({ value }) => {
             await new Promise(resolve => setTimeout(resolve, 100));
             return <div>tool1: {value}</div>;
           },
@@ -133,7 +127,7 @@ describe('result.value', () => {
   });
 
   it('should render tool call results with generator render function', async () => {
-    const result = await render({
+    const result = await experimental_streamUI({
       model: mockToolModel,
       prompt: '',
       tools: {
@@ -142,7 +136,7 @@ describe('result.value', () => {
           parameters: z.object({
             value: z.string(),
           }),
-          execute: async function* ({ value }) {
+          generate: async function* ({ value }) {
             yield <div>Loading...</div>;
             await new Promise(resolve => setTimeout(resolve, 100));
             return <div>tool: {value}</div>;

@@ -1,1 +1,0 @@
-export { render } from './render';
