@@ -60,6 +60,10 @@ export function createOpenAI(
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
   ) {
+    if (new.target) {
+      throw new Error('The OpenAI cannot be called with the new keyword.');
+    }
+
     if (modelId === 'gpt-3.5-turbo-instruct') {
       return openai.completion(modelId, settings as OpenAICompletionSettings);
     } else {

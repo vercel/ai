@@ -1,12 +1,8 @@
 import { experimental_generateText } from 'ai';
-import { openai, createOpenAI } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
 import dotenv from 'dotenv';
 
 dotenv.config();
-
-const openai2 = createOpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 async function main() {
   const result = await experimental_generateText({
