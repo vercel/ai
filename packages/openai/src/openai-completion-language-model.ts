@@ -18,7 +18,6 @@ import {
   OpenAICompletionSettings,
 } from './openai-completion-settings';
 import { openaiFailedResponseHandler } from './openai-error';
-import { log } from 'console';
 import { mapOpenAICompletionLogProbs } from './map-openai-completion-logprobs';
 
 type OpenAICompletionConfig = {
@@ -226,6 +225,19 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
                 textDelta: choice.text,
               });
             }
+
+            const logprobs = choice.logprobs
+
+            if (logprobs != null) {
+              // Possible that logprobs is present but content is null e.g. during tool calls.
+              const mappedLogprobs = mapOpenAICompletionLogProbs(logprobs);
+              if (mappedLogprobs?.length) {
+                controller.enqueue({
+                  type: 'log-probs',
+                  logprobs: mappedLogprobs,
+                })
+              }
+            }
           },
 
           flush(controller) {
@@ -274,6 +286,14 @@ const openaiCompletionChunkSchema = z.object({
         .optional()
         .nullable(),
       index: z.number(),
+      logprobs: z.object({
+        tokens: z.array(z.string()),
+        token_logprobs: z.array(z.number()),
+        top_logprobs: z.array(
+          z.record(z.string(), z.number()),
+        ).nullable(),
+        text_offset: z.array(z.number()),
+      }).nullable(),
     }),
   ),
   usage: z

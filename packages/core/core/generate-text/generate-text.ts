@@ -187,7 +187,10 @@ The token usage of the generated text.
 Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
-
+  
+  /**
+Logprobs for the completion.
+   */
   readonly logprobs: LanguageModelV1LogProbs | undefined;
 
   constructor(options: {
