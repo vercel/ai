@@ -258,7 +258,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               });
             }
 
-            const logprobs = choice.logprobs
+            const logprobs = choice?.logprobs
 
             if (logprobs != null) {
               // Possible that logprobs is present but content is null e.g. during tool calls.
@@ -389,7 +389,7 @@ const openAIChatResponseSchema = z.object({
             logprob: z.number(),
           }))
         })).nullable()
-      }).nullable(),
+      }).nullable().optional(),
       finish_reason: z.string().optional().nullable(),
     }),
   ),
@@ -435,7 +435,7 @@ const openaiChatChunkSchema = z.object({
             logprob: z.number(),
           }))
         })).nullable()
-      }).nullable(),
+      }).nullable().optional(),
       finish_reason: z.string().nullable().optional(),
       index: z.number(),
     }),

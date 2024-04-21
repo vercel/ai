@@ -226,7 +226,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
               });
             }
 
-            const logprobs = choice.logprobs
+            const logprobs = choice?.logprobs
 
             if (logprobs != null) {
               // Possible that logprobs is present but content is null e.g. during tool calls.
@@ -265,7 +265,7 @@ const openAICompletionResponseSchema = z.object({
           z.record(z.string(), z.number()),
         ).nullable(),
         text_offset: z.array(z.number()),
-      }).nullable(),
+      }).nullable().optional(),
     }),
   ),
   usage: z.object({
@@ -293,7 +293,7 @@ const openaiCompletionChunkSchema = z.object({
           z.record(z.string(), z.number()),
         ).nullable(),
         text_offset: z.array(z.number()),
-      }).nullable(),
+      }).nullable().optional(),
     }),
   ),
   usage: z
