@@ -2,6 +2,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallOptions,
   LanguageModelV1CallWarning,
+  LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import { z } from 'zod';
@@ -119,6 +120,7 @@ Default and recommended: 'auto' (best mode for the model).
             case 'text-delta':
               controller.enqueue(chunk.textDelta);
               break;
+            case 'log-probs':
             case 'error':
               controller.enqueue(chunk);
               break;
@@ -150,6 +152,7 @@ Default and recommended: 'auto' (best mode for the model).
             case 'text-delta':
               controller.enqueue(chunk.textDelta);
               break;
+            case 'log-probs':
             case 'error':
               controller.enqueue(chunk);
               break;
@@ -189,6 +192,7 @@ Default and recommended: 'auto' (best mode for the model).
             case 'tool-call-delta':
               controller.enqueue(chunk.argsTextDelta);
               break;
+            case 'log-probs':
             case 'error':
               controller.enqueue(chunk);
               break;
@@ -221,7 +225,7 @@ Default and recommended: 'auto' (best mode for the model).
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
 export class StreamObjectResult<T> {
-  private readonly originalStream: ReadableStream<string | ErrorStreamPart>;
+  private readonly originalStream: ReadableStream<string | LogprobsStreamPart | ErrorStreamPart>;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
@@ -232,7 +236,7 @@ Warnings from the model provider (e.g. unsupported settings)
     stream,
     warnings,
   }: {
-    stream: ReadableStream<string | ErrorStreamPart>;
+    stream: ReadableStream<string | LogprobsStreamPart | ErrorStreamPart>;
     warnings: LanguageModelV1CallWarning[] | undefined;
   }) {
     this.originalStream = stream;
@@ -265,6 +269,19 @@ Warnings from the model provider (e.g. unsupported settings)
       },
     });
   }
+
+  get partialLogprobsStream(): AsyncIterableStream<LanguageModelV1LogProbs> {
+
+    return createAsyncIterableStream(this.originalStream, {
+      transform(chunk, controller) {
+        if (typeof chunk === 'object' && chunk.type === 'log-probs') {
+          controller.enqueue(chunk.logprobs)
+        }
+      },
+    });
+  }
 }
 
 export type ErrorStreamPart = { type: 'error'; error: unknown };
+
+export type LogprobsStreamPart = { type: 'log-probs'; logprobs: LanguageModelV1LogProbs };
