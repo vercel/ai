@@ -2,6 +2,7 @@ import { LanguageModelV1CallOptions } from './language-model-v1-call-options';
 import { LanguageModelV1CallWarning } from './language-model-v1-call-warning';
 import { LanguageModelV1FinishReason } from './language-model-v1-finish-reason';
 import { LanguageModelV1FunctionToolCall } from './language-model-v1-function-tool-call';
+import { LanguageModelV1LogProbs } from './language-model-v1-logprobs';
 
 /**
  * Experimental: Specification for a language model that implements the language model
@@ -87,6 +88,11 @@ export type LanguageModelV1 = {
     };
 
     warnings?: LanguageModelV1CallWarning[];
+
+    /**
+     * Logprobs for the completion.
+     */
+    logprobs?: LanguageModelV1LogProbs
   }>;
 
   /**

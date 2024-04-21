@@ -18,6 +18,7 @@ import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import { openaiFailedResponseHandler } from './openai-error';
+import { mapOpenAIChatLogProbs } from './map-openai-chat-logprobs';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -66,6 +67,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
       // model specific settings:
       logit_bias: this.settings.logitBias,
+      logprobs: this.settings.logprobs,
+      top_logprobs: scale({
+        value: this.settings.top_logprobs,
+        inputMin: 0,
+        inputMax: 20,
+        outputMin: 0,
+        outputMax: 20,
+      }),
       user: this.settings.user,
 
       // standardized settings:
@@ -169,6 +178,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       warnings: [],
+      logprobs: choice.logprobs ? mapOpenAIChatLogProbs(choice.logprobs) : undefined
     };
   }
 
@@ -357,6 +367,16 @@ const openAIChatResponseSchema = z.object({
           .optional(),
       }),
       index: z.number(),
+      logprobs: z.object({
+        content: z.array(z.object({
+          token: z.string(),
+          logprob: z.number(),
+          top_logprobs: z.array(z.object({
+            token: z.string(),
+            logprob: z.number(),
+          }))
+        })).nullable()
+      }).nullable(),
       finish_reason: z.string().optional().nullable(),
     }),
   ),

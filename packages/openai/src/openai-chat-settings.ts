@@ -36,6 +36,21 @@ export interface OpenAIChatSettings {
   logitBias?: Record<number, number>;
 
   /**
+   * Whether to include the log probabilities on the logprobs output field.
+   * 
+   * Including logprobs will increase the response size and can slow down
+   * response times. However, it can be useful for developers to better
+   * understand how the model is behaving.
+   */
+  logprobs?: boolean;
+
+  /**
+   * The number of top logprobs to return. This parameter is only valid if
+   * `logprobs` is set to true. Defaults to 0.
+   */
+  top_logprobs?: number;
+
+  /**
    * A unique identifier representing your end-user, which can help OpenAI to
    * monitor and detect abuse. Learn more.
    */

@@ -18,6 +18,8 @@ import {
   OpenAICompletionSettings,
 } from './openai-completion-settings';
 import { openaiFailedResponseHandler } from './openai-error';
+import { log } from 'console';
+import { mapOpenAICompletionLogProbs } from './map-openai-completion-logprobs';
 
 type OpenAICompletionConfig = {
   provider: string;
@@ -71,6 +73,13 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       // model specific settings:
       echo: this.settings.echo,
       logit_bias: this.settings.logitBias,
+      logprobs: scale({
+        value: this.settings.logprobs,
+        inputMin: 0,
+        inputMax: 20,
+        outputMin: 0,
+        outputMax: 20,
+      }),
       suffix: this.settings.suffix,
       user: this.settings.user,
 
@@ -151,6 +160,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.completion_tokens,
       },
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
+      logprobs: choice.logprobs ? mapOpenAICompletionLogProbs(choice.logprobs) : undefined,
       rawCall: { rawPrompt, rawSettings },
       warnings: [],
     };
@@ -236,6 +246,14 @@ const openAICompletionResponseSchema = z.object({
     z.object({
       text: z.string(),
       finish_reason: z.string(),
+      logprobs: z.object({
+        tokens: z.array(z.string()),
+        token_logprobs: z.array(z.number()),
+        top_logprobs: z.array(
+          z.record(z.string(), z.number()),
+        ).nullable(),
+        text_offset: z.array(z.number()),
+      }).nullable(),
     }),
   ),
   usage: z.object({
