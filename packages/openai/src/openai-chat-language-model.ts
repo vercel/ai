@@ -258,6 +258,19 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               });
             }
 
+            const logprobs = choice.logprobs
+
+            if (logprobs != null) {
+              // Possible that logprobs is present but content is null e.g. during tool calls.
+              const mappedLogprobs = mapOpenAIChatLogProbs(logprobs);
+              if (mappedLogprobs?.length) {
+                controller.enqueue({
+                  type: 'log-probs',
+                  logprobs: mappedLogprobs,
+                })
+              }
+            }
+
             if (delta.tool_calls != null) {
               for (const toolCallDelta of delta.tool_calls) {
                 const index = toolCallDelta.index;
@@ -412,7 +425,17 @@ const openaiChatChunkSchema = z.object({
             }),
           )
           .optional(),
-      }),
+        }),
+      logprobs: z.object({
+        content: z.array(z.object({
+          token: z.string(),
+          logprob: z.number(),
+          top_logprobs: z.array(z.object({
+            token: z.string(),
+            logprob: z.number(),
+          }))
+        })).nullable()
+      }).nullable(),
       finish_reason: z.string().nullable().optional(),
       index: z.number(),
     }),

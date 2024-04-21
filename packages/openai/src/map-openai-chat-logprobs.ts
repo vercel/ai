@@ -11,7 +11,7 @@ type OpenAIChatLogProbs = {
   }[] | null;
 }
 
-export function mapOpenAIChatLogProbs(logprobs: OpenAIChatLogProbs): LanguageModelV1LogProbs {
+export function mapOpenAIChatLogProbs(logprobs: OpenAIChatLogProbs): LanguageModelV1LogProbs | undefined {
   return logprobs.content?.map(({ token, logprob, top_logprobs }) => ({
     token,
     logprob,
@@ -19,5 +19,5 @@ export function mapOpenAIChatLogProbs(logprobs: OpenAIChatLogProbs): LanguageMod
       token,
       logprob,
     })) : [],
-  })) ?? []
+  })) ?? undefined
 }

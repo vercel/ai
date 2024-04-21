@@ -40,6 +40,7 @@ export function runToolsTransformation<
       switch (chunkType) {
         // forward:
         case 'text-delta':
+        case 'log-probs':
         case 'error': {
           controller.enqueue(chunk);
           break;

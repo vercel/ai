@@ -131,6 +131,9 @@ export type LanguageModelV1StreamPart =
   // Basic text deltas:
   | { type: 'text-delta'; textDelta: string }
 
+  // Logprob results:
+  | { type: 'log-probs'; logprobs: LanguageModelV1LogProbs }
+
   // Complete tool calls:
   | ({ type: 'tool-call' } & LanguageModelV1FunctionToolCall)
 

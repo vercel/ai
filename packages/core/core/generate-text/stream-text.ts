@@ -2,6 +2,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
 } from '@ai-sdk/provider';
 import {
   AIStreamCallbacksAndOptions,
@@ -118,6 +119,10 @@ export type TextStreamPart<TOOLS extends Record<string, ExperimentalTool>> =
   | {
       type: 'text-delta';
       textDelta: string;
+    }
+  | {
+      type: 'log-probs';
+      logprobs: LanguageModelV1LogProbs;
     }
   | ({
       type: 'tool-call';
