@@ -247,7 +247,8 @@ Warnings from the model provider (e.g. unsupported settings)
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
   /**
-Logprobs for the completion.
+Logprobs for the completion. 
+`undefined` if the mode does not support logprobs or if was not enabled
    */
   readonly logprobs: LanguageModelV1LogProbs | undefined;
 

@@ -90,7 +90,8 @@ export type LanguageModelV1 = {
     warnings?: LanguageModelV1CallWarning[];
 
     /**
-     * Logprobs for the completion.
+     * Logprobs for the completion. 
+     * `undefined` if the mode does not support logprobs or if was not enabled
      */
     logprobs?: LanguageModelV1LogProbs;
   }>;

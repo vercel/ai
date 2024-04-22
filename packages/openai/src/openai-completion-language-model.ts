@@ -72,13 +72,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       // model specific settings:
       echo: this.settings.echo,
       logit_bias: this.settings.logitBias,
-      logprobs: scale({
-        value: this.settings.logprobs,
-        inputMin: 0,
-        inputMax: 20,
-        outputMin: 0,
-        outputMax: 20,
-      }),
+      logprobs: this.settings.logprobs,
       suffix: this.settings.suffix,
       user: this.settings.user,
 
@@ -159,9 +153,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.completion_tokens,
       },
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
-      logprobs: choice.logprobs
-        ? mapOpenAICompletionLogProbs(choice.logprobs)
-        : undefined,
+      logprobs: mapOpenAICompletionLogProbs(choice.logprobs),
       rawCall: { rawPrompt, rawSettings },
       warnings: [],
     };

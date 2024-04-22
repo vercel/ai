@@ -22,6 +22,7 @@ export interface OpenAICompletionSettings {
    * token from being generated.
    */
   logitBias?: Record<number, number>;
+
   /**
    * The number of logprobs to return.
    *
@@ -30,6 +31,7 @@ export interface OpenAICompletionSettings {
    * understand how the model is behaving.
    */
   logprobs?: number;
+
   /**
    * The suffix that comes after a completion of inserted text.
    */

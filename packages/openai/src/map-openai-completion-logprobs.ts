@@ -8,12 +8,13 @@ type OpenAICompletionLogProps = {
 };
 
 export function mapOpenAICompletionLogProbs(
-  logprobs: OpenAICompletionLogProps,
-): LanguageModelV1LogProbs {
+  logprobs: OpenAICompletionLogProps | null | undefined,
+): LanguageModelV1LogProbs | undefined {
+  if (!logprobs) return undefined;
   return logprobs.tokens.map((token, index) => ({
     token,
     logprob: logprobs.token_logprobs[index],
-    top_logprobs: logprobs.top_logprobs
+    topLogprobs: logprobs.top_logprobs
       ? Object.entries(logprobs.top_logprobs[index]).map(
           ([token, logprob]) => ({
             token,

@@ -15,14 +15,15 @@ type OpenAIChatLogProbs = {
     | null;
 };
 
-export function mapOpenAIChatLogProbs(
-  logprobs: OpenAIChatLogProbs,
+export function mapOpenAIChatLogProbsOutput(
+  logprobs: OpenAIChatLogProbs | null | undefined,
 ): LanguageModelV1LogProbs | undefined {
+  if (!logprobs) return undefined;
   return (
     logprobs.content?.map(({ token, logprob, top_logprobs }) => ({
       token,
       logprob,
-      top_logprobs: top_logprobs
+      topLogprobs: top_logprobs
         ? top_logprobs.map(({ token, logprob }) => ({
             token,
             logprob,

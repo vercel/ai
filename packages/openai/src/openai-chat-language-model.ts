@@ -18,7 +18,7 @@ import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import { openaiFailedResponseHandler } from './openai-error';
-import { mapOpenAIChatLogProbs } from './map-openai-chat-logprobs';
+import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -67,14 +67,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
       // model specific settings:
       logit_bias: this.settings.logitBias,
-      logprobs: this.settings.logprobs,
-      top_logprobs: scale({
-        value: this.settings.top_logprobs,
-        inputMin: 0,
-        inputMax: 20,
-        outputMin: 0,
-        outputMax: 20,
-      }),
+      logprobs: this.settings.logprobs !== undefined,
+      top_logprobs: this.settings.logprobs,
       user: this.settings.user,
 
       // standardized settings:
@@ -178,9 +172,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       warnings: [],
-      logprobs: choice.logprobs
-        ? mapOpenAIChatLogProbs(choice.logprobs)
-        : undefined,
+      logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
     };
   }
 
@@ -262,15 +254,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
             const logprobs = choice?.logprobs;
 
-            if (logprobs != null) {
-              // Possible that logprobs is present but content is null e.g. during tool calls.
-              const mappedLogprobs = mapOpenAIChatLogProbs(logprobs);
-              if (mappedLogprobs?.length) {
-                controller.enqueue({
-                  type: 'log-probs',
-                  logprobs: mappedLogprobs,
-                });
-              }
+            const mappedLogprobs = mapOpenAIChatLogProbsOutput(logprobs);
+            if (mappedLogprobs?.length) {
+              controller.enqueue({
+                type: 'log-probs',
+                logprobs: mappedLogprobs,
+              });
             }
 
             if (delta.tool_calls != null) {
