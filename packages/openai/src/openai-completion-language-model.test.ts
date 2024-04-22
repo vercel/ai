@@ -38,9 +38,9 @@ describe('doGenerate', () => {
     logprobs?: {
       tokens: string[];
       token_logprobs: number[];
-      top_logprobs: Record<string, number>[],
-      text_offset: number[],
-    } | null,
+      top_logprobs: Record<string, number>[];
+      text_offset: number[];
+    } | null;
   }) {
     server.responseBodyJson = {
       id: 'cmpl-96cAM1v77r4jXa4qb2NSmRREV5oWB',
@@ -51,7 +51,7 @@ describe('doGenerate', () => {
         {
           text: content,
           index: 0,
-          logprobs: logprobs,
+          logprobs,
           finish_reason: 'stop',
         },
       ],
@@ -152,65 +152,50 @@ describe('doGenerate', () => {
   });
 
   it('should extract logprobs response', async () => {
-
     const TEST_LOGPROBS = {
-      "tokens": [
-        " ever",
-        " after",
-        ".\n\n",
-        "The",
-        " end",
-        "."
+      tokens: [' ever', ' after', '.\n\n', 'The', ' end', '.'],
+      token_logprobs: [
+        -0.0664508, -0.014520033, -1.3820221, -0.7890417, -0.5323165,
+        -0.10247037,
       ],
-      "token_logprobs": [
-        -0.0664508,
-        -0.014520033,
-        -1.3820221,
-        -0.7890417,
-        -0.5323165,
-        -0.10247037
-      ],
-      "top_logprobs": [
+      top_logprobs: [
         {
-          " ever": -0.0664508
+          ' ever': -0.0664508,
         },
         {
-          " after": -0.014520033
+          ' after': -0.014520033,
         },
         {
-          ".\n\n": -1.3820221
+          '.\n\n': -1.3820221,
         },
         {
-          "The": -0.7890417
+          The: -0.7890417,
         },
         {
-          " end": -0.5323165
+          ' end': -0.5323165,
         },
         {
-          ".": -0.10247037
-        }
+          '.': -0.10247037,
+        },
       ] as Record<string, number>[],
-      "text_offset": [
-        22,
-        27,
-        33,
-        36,
-        39,
-        43
-      ]
-    }
+      text_offset: [22, 27, 33, 36, 39, 43],
+    };
 
     prepareJsonResponse({ logprobs: TEST_LOGPROBS });
 
     const provider = createOpenAI({ apiKey: 'test-api-key' });
 
-    const response = await provider.completion('gpt-3.5-turbo', { logprobs: 1 }).doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-    expect(response.logprobs).toStrictEqual(mapOpenAICompletionLogProbs(TEST_LOGPROBS));
-  })
+    const response = await provider
+      .completion('gpt-3.5-turbo', { logprobs: 1 })
+      .doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+    expect(response.logprobs).toStrictEqual(
+      mapOpenAICompletionLogProbs(TEST_LOGPROBS),
+    );
+  });
 });
 
 describe('doStream', () => {

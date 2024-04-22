@@ -29,7 +29,7 @@ describe('doGenerate', () => {
       total_tokens: 34,
       completion_tokens: 30,
     },
-    logprobs = null
+    logprobs = null,
   }: {
     content?: string;
     usage?: {
@@ -38,12 +38,14 @@ describe('doGenerate', () => {
       completion_tokens: number;
     };
     logprobs?: {
-      content: {
-        token: string;
-        logprob: number;
-        top_logprobs: { token: string; logprob: number }[];
-      }[] | null;
-    } | null,
+      content:
+        | {
+            token: string;
+            logprob: number;
+            top_logprobs: { token: string; logprob: number }[];
+          }[]
+        | null;
+    } | null;
   }) {
     server.responseBodyJson = {
       id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
@@ -159,109 +161,113 @@ describe('doGenerate', () => {
     const TEST_LOGPROBS = {
       content: [
         {
-          "token": "Hello",
-          "logprob": -0.0009994634,
-          "top_logprobs": [
+          token: 'Hello',
+          logprob: -0.0009994634,
+          top_logprobs: [
             {
-              "token": "Hello",
-              "logprob": -0.0009994634
-            }
-          ]
+              token: 'Hello',
+              logprob: -0.0009994634,
+            },
+          ],
         },
         {
-          "token": "!",
-          "logprob": -0.13410144,
-          "top_logprobs": [
+          token: '!',
+          logprob: -0.13410144,
+          top_logprobs: [
             {
-              "token": "!",
-              "logprob": -0.13410144
-            }
-          ]
+              token: '!',
+              logprob: -0.13410144,
+            },
+          ],
         },
         {
-          "token": " How",
-          "logprob": -0.0009250381,
-          "top_logprobs": [
+          token: ' How',
+          logprob: -0.0009250381,
+          top_logprobs: [
             {
-              "token": " How",
-              "logprob": -0.0009250381
-            }
-          ]
+              token: ' How',
+              logprob: -0.0009250381,
+            },
+          ],
         },
         {
-          "token": " can",
-          "logprob": -0.047709424,
-          "top_logprobs": [
+          token: ' can',
+          logprob: -0.047709424,
+          top_logprobs: [
             {
-              "token": " can",
-              "logprob": -0.047709424
-            }
-          ]
+              token: ' can',
+              logprob: -0.047709424,
+            },
+          ],
         },
         {
-          "token": " I",
-          "logprob": -0.000009014684,
-          "top_logprobs": [
+          token: ' I',
+          logprob: -0.000009014684,
+          top_logprobs: [
             {
-              "token": " I",
-              "logprob": -0.000009014684
-            }
-          ]
+              token: ' I',
+              logprob: -0.000009014684,
+            },
+          ],
         },
         {
-          "token": " assist",
-          "logprob": -0.009125131,
-          "top_logprobs": [
+          token: ' assist',
+          logprob: -0.009125131,
+          top_logprobs: [
             {
-              "token": " assist",
-              "logprob": -0.009125131
-            }
-          ]
+              token: ' assist',
+              logprob: -0.009125131,
+            },
+          ],
         },
         {
-          "token": " you",
-          "logprob": -0.0000066306106,
-          "top_logprobs": [
+          token: ' you',
+          logprob: -0.0000066306106,
+          top_logprobs: [
             {
-              "token": " you",
-              "logprob": -0.0000066306106
-            }
-          ]
+              token: ' you',
+              logprob: -0.0000066306106,
+            },
+          ],
         },
         {
-          "token": " today",
-          "logprob": -0.00011093382,
-          "top_logprobs": [
+          token: ' today',
+          logprob: -0.00011093382,
+          top_logprobs: [
             {
-              "token": " today",
-              "logprob": -0.00011093382
-            }
-          ]
+              token: ' today',
+              logprob: -0.00011093382,
+            },
+          ],
         },
         {
-          "token": "?",
-          "logprob": -0.00004596782,
-          "top_logprobs": [
+          token: '?',
+          logprob: -0.00004596782,
+          top_logprobs: [
             {
-              "token": "?",
-              "logprob": -0.00004596782
-            }
-          ]
-        }
-      ]
-    }
+              token: '?',
+              logprob: -0.00004596782,
+            },
+          ],
+        },
+      ],
+    };
 
     prepareJsonResponse({ logprobs: TEST_LOGPROBS });
 
     const provider = createOpenAI({ apiKey: 'test-api-key' });
 
-    const response = await provider.chat('gpt-3.5-turbo', { logprobs: 1 }).doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-    expect(response.logprobs).toStrictEqual(mapOpenAIChatLogProbsOutput(TEST_LOGPROBS));
-  })
+    const response = await provider
+      .chat('gpt-3.5-turbo', { logprobs: 1 })
+      .doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+    expect(response.logprobs).toStrictEqual(
+      mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
+    );
+  });
 });
 
 describe('doStream', () => {
