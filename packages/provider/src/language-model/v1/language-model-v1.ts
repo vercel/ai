@@ -92,7 +92,7 @@ export type LanguageModelV1 = {
     /**
      * Logprobs for the completion.
      */
-    logprobs?: LanguageModelV1LogProbs
+    logprobs?: LanguageModelV1LogProbs;
   }>;
 
   /**

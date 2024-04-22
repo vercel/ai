@@ -159,7 +159,9 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.completion_tokens,
       },
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
-      logprobs: choice.logprobs ? mapOpenAICompletionLogProbs(choice.logprobs) : undefined,
+      logprobs: choice.logprobs
+        ? mapOpenAICompletionLogProbs(choice.logprobs)
+        : undefined,
       rawCall: { rawPrompt, rawSettings },
       warnings: [],
     };
@@ -226,7 +228,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
               });
             }
 
-            const logprobs = choice?.logprobs
+            const logprobs = choice?.logprobs;
 
             if (logprobs != null) {
               // Possible that logprobs is present but content is null e.g. during tool calls.
@@ -235,7 +237,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
                 controller.enqueue({
                   type: 'log-probs',
                   logprobs: mappedLogprobs,
-                })
+                });
               }
             }
           },
@@ -258,14 +260,15 @@ const openAICompletionResponseSchema = z.object({
     z.object({
       text: z.string(),
       finish_reason: z.string(),
-      logprobs: z.object({
-        tokens: z.array(z.string()),
-        token_logprobs: z.array(z.number()),
-        top_logprobs: z.array(
-          z.record(z.string(), z.number()),
-        ).nullable(),
-        text_offset: z.array(z.number()),
-      }).nullable().optional(),
+      logprobs: z
+        .object({
+          tokens: z.array(z.string()),
+          token_logprobs: z.array(z.number()),
+          top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
+          text_offset: z.array(z.number()),
+        })
+        .nullable()
+        .optional(),
     }),
   ),
   usage: z.object({
@@ -286,14 +289,15 @@ const openaiCompletionChunkSchema = z.object({
         .optional()
         .nullable(),
       index: z.number(),
-      logprobs: z.object({
-        tokens: z.array(z.string()),
-        token_logprobs: z.array(z.number()),
-        top_logprobs: z.array(
-          z.record(z.string(), z.number()),
-        ).nullable(),
-        text_offset: z.array(z.number()),
-      }).nullable().optional(),
+      logprobs: z
+        .object({
+          tokens: z.array(z.string()),
+          token_logprobs: z.array(z.number()),
+          top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
+          text_offset: z.array(z.number()),
+        })
+        .nullable()
+        .optional(),
     }),
   ),
   usage: z

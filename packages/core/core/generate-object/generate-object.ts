@@ -249,7 +249,7 @@ Warnings from the model provider (e.g. unsupported settings)
   /**
 Logprobs for the completion.
    */
-  readonly logprobs: LanguageModelV1LogProbs| undefined
+  readonly logprobs: LanguageModelV1LogProbs | undefined;
 
   constructor(options: {
     object: T;

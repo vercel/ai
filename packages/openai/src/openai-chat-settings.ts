@@ -37,7 +37,7 @@ export interface OpenAIChatSettings {
 
   /**
    * Whether to include the log probabilities on the logprobs output field.
-   * 
+   *
    * Including logprobs will increase the response size and can slow down
    * response times. However, it can be useful for developers to better
    * understand how the model is behaving.

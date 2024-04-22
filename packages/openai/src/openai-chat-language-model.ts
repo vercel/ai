@@ -178,7 +178,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       warnings: [],
-      logprobs: choice.logprobs ? mapOpenAIChatLogProbs(choice.logprobs) : undefined
+      logprobs: choice.logprobs
+        ? mapOpenAIChatLogProbs(choice.logprobs)
+        : undefined,
     };
   }
 
@@ -258,7 +260,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               });
             }
 
-            const logprobs = choice?.logprobs
+            const logprobs = choice?.logprobs;
 
             if (logprobs != null) {
               // Possible that logprobs is present but content is null e.g. during tool calls.
@@ -267,7 +269,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 controller.enqueue({
                   type: 'log-probs',
                   logprobs: mappedLogprobs,
-                })
+                });
               }
             }
 
@@ -380,16 +382,25 @@ const openAIChatResponseSchema = z.object({
           .optional(),
       }),
       index: z.number(),
-      logprobs: z.object({
-        content: z.array(z.object({
-          token: z.string(),
-          logprob: z.number(),
-          top_logprobs: z.array(z.object({
-            token: z.string(),
-            logprob: z.number(),
-          }))
-        })).nullable()
-      }).nullable().optional(),
+      logprobs: z
+        .object({
+          content: z
+            .array(
+              z.object({
+                token: z.string(),
+                logprob: z.number(),
+                top_logprobs: z.array(
+                  z.object({
+                    token: z.string(),
+                    logprob: z.number(),
+                  }),
+                ),
+              }),
+            )
+            .nullable(),
+        })
+        .nullable()
+        .optional(),
       finish_reason: z.string().optional().nullable(),
     }),
   ),
@@ -425,17 +436,26 @@ const openaiChatChunkSchema = z.object({
             }),
           )
           .optional(),
-        }),
-      logprobs: z.object({
-        content: z.array(z.object({
-          token: z.string(),
-          logprob: z.number(),
-          top_logprobs: z.array(z.object({
-            token: z.string(),
-            logprob: z.number(),
-          }))
-        })).nullable()
-      }).nullable().optional(),
+      }),
+      logprobs: z
+        .object({
+          content: z
+            .array(
+              z.object({
+                token: z.string(),
+                logprob: z.number(),
+                top_logprobs: z.array(
+                  z.object({
+                    token: z.string(),
+                    logprob: z.number(),
+                  }),
+                ),
+              }),
+            )
+            .nullable(),
+        })
+        .nullable()
+        .optional(),
       finish_reason: z.string().nullable().optional(),
       index: z.number(),
     }),

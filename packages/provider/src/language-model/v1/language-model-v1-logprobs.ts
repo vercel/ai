@@ -1,8 +1,8 @@
-export type LanguageModelV1LogProbs = {
+export type LanguageModelV1LogProbs = Array<{
   token: string;
   logprob: number;
-  top_logprobs: {
+  top_logprobs: Array<{
     token: string;
     logprob: number;
-  }[];
-}[];
+  }>;
+}>;

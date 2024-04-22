@@ -225,7 +225,9 @@ Default and recommended: 'auto' (best mode for the model).
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
 export class StreamObjectResult<T> {
-  private readonly originalStream: ReadableStream<string | LogprobsStreamPart | ErrorStreamPart>;
+  private readonly originalStream: ReadableStream<
+    string | LogprobsStreamPart | ErrorStreamPart
+  >;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
@@ -271,11 +273,10 @@ Warnings from the model provider (e.g. unsupported settings)
   }
 
   get partialLogprobsStream(): AsyncIterableStream<LanguageModelV1LogProbs> {
-
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
         if (typeof chunk === 'object' && chunk.type === 'log-probs') {
-          controller.enqueue(chunk.logprobs)
+          controller.enqueue(chunk.logprobs);
         }
       },
     });
@@ -284,4 +285,7 @@ Warnings from the model provider (e.g. unsupported settings)
 
 export type ErrorStreamPart = { type: 'error'; error: unknown };
 
-export type LogprobsStreamPart = { type: 'log-probs'; logprobs: LanguageModelV1LogProbs };
+export type LogprobsStreamPart = {
+  type: 'log-probs';
+  logprobs: LanguageModelV1LogProbs;
+};
