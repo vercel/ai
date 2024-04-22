@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.4
+
+### Patch Changes
+
+- c6fc35b: Add custom header and OpenAI project support.
+
 ## 0.0.3
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 0.0.4
+
+### Patch Changes
+
+- c6fc35b: Add custom header support.
+
 ## 0.0.3
 
 ### Patch Changes
