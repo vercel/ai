@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await streamObject({
-    model: openai('gpt-4-turbo-preview'),
+    model: openai('gpt-4-turbo'),
     maxTokens: 2000,
     schema: z.object({
       characters: z.array(

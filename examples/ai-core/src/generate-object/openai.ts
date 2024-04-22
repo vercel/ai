@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateObject({
-    model: openai('gpt-4-turbo-preview'),
+    model: openai('gpt-4-turbo'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),

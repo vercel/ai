@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateObject({
-    model: openai.chat('gpt-4-turbo-preview'),
+    model: openai.chat('gpt-4-turbo'),
     schema: z.object({
       characters: z.array(
         z.object({
