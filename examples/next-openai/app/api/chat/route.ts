@@ -9,7 +9,7 @@ export async function POST(req: Request) {
 
   // Call the language model
   const result = await streamText({
-    model: openai.chat('gpt-4-turbo-preview'),
+    model: openai('gpt-4-turbo'),
     messages,
   });
 

@@ -6,7 +6,7 @@ import {
 } from './anthropic-messages-settings';
 
 /**
- * Anthropic provider.
+ * @deprecated Use `createAnthropic` instead.
  */
 export class Anthropic {
   /**
@@ -60,7 +60,17 @@ export class Anthropic {
     };
   }
 
+  /**
+   * @deprecated Use `chat()` instead.
+   */
   messages(
+    modelId: AnthropicMessagesModelId,
+    settings: AnthropicMessagesSettings = {},
+  ) {
+    return this.chat(modelId, settings);
+  }
+
+  chat(
     modelId: AnthropicMessagesModelId,
     settings: AnthropicMessagesSettings = {},
   ) {
@@ -70,8 +80,3 @@ export class Anthropic {
     });
   }
 }
-
-/**
- * Default Anthropic provider instance.
- */
-export const anthropic = new Anthropic();

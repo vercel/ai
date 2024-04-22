@@ -1,14 +1,12 @@
+import { mistral } from '@ai-sdk/mistral';
 import { streamText } from 'ai';
-import { Mistral } from '@ai-sdk/mistral';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const mistral = new Mistral();
-
 async function main() {
   const result = await streamText({
-    model: mistral.chat('open-mistral-7b'),
+    model: mistral('open-mistral-7b'),
     maxTokens: 512,
     temperature: 0.3,
     maxRetries: 5,

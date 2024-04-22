@@ -1,12 +1,10 @@
+import { openai } from '@ai-sdk/openai';
 import { CoreMessage, ToolCallPart, ToolResultPart, streamText } from 'ai';
-import { OpenAI } from '@ai-sdk/openai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
 
 dotenv.config();
-
-const openai = new OpenAI();
 
 const terminal = readline.createInterface({
   input: process.stdin,
@@ -25,7 +23,7 @@ async function main() {
     }
 
     const result = await streamText({
-      model: openai.chat('gpt-3.5-turbo'),
+      model: openai('gpt-3.5-turbo'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,

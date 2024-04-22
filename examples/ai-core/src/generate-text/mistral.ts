@@ -1,14 +1,12 @@
+import { mistral } from '@ai-sdk/mistral';
 import { generateText } from 'ai';
-import { Mistral } from '@ai-sdk/mistral';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const mistral = new Mistral();
-
 async function main() {
   const result = await generateText({
-    model: mistral.chat('open-mistral-7b'),
+    model: mistral('open-mistral-7b'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

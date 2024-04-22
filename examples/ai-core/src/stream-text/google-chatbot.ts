@@ -1,5 +1,5 @@
-import { CoreMessage, streamText } from 'ai';
 import { google } from '@ai-sdk/google';
+import { CoreMessage, streamText } from 'ai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 
@@ -19,7 +19,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = await streamText({
-      model: google.generativeAI('models/gemini-pro'),
+      model: google('models/gemini-pro'),
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
     });

@@ -1,5 +1,17 @@
 # @ai-sdk/google
 
+## 0.0.4
+
+### Patch Changes
+
+- ab60b18: Simplified model construction by directly calling provider functions. Add create... functions to create provider instances.
+
+## 0.0.3
+
+### Patch Changes
+
+- 587240b: Standardize providers to offer .chat() method
+
 ## 0.0.2
 
 ### Patch Changes

@@ -1,0 +1,76 @@
+# This workflow lets you manually create snapshot releases
+#
+# A snapshot release is useful when you want to try out changes on a pull request
+# before making a full release and without making a pre release mode.
+#
+# Problem
+#
+# This is useful as changesets force pre release mode across all packages in our
+# mono repo. When using pre releases then stable releases of all packages are
+# blocked until pre release is exited.
+#
+# What are snapshot releases
+#
+# To work around this issue we have this workflow. It lets you create a
+# once-off release for a specific branch. We call those snapshot releases.
+# Snapshot releases are published under the `snapshot` dist-tag and have
+# versions like 0.4.0-579bd13f016c7de43a2830340634b3948db358b6-20230913164912,
+# which consist of the version that would be generated, the commit hash and
+# the timestamp.
+#
+# How to create a snapshot release
+#
+# Make sure you have a branch pushed to GitHub, and make sure that branch has
+# a changeset committed. You can generate a changeset with "pnpm changeset".
+#
+# Then open github.com/vercel/ai and click on Actions > Release Snapshot
+# Then click "Run workflow" on the right and select the branch you want to
+# create a snapshot release for and click the "Run workflow" button.
+
+name: Release Snapshot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release-snapshot:
+    name: Release Snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.6.9
+
+      - name: Setup Node.js 18.x
+        uses: actions/setup-node@v2
+        with:
+          node-version: 18.x
+
+      - name: Add npm auth token to pnpm
+        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN_ELEVATED}"
+        env:
+          NPM_TOKEN_ELEVATED: ${{secrets.NPM_TOKEN_ELEVATED}}
+
+      - name: Install Dependencies
+        run: pnpm i
+
+      - name: Build
+        run: pnpm clean && pnpm build
+
+      - name: Add SHORT_SHA env property with commit short sha
+        run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-8`" >> $GITHUB_ENV
+
+      - name: Create Snapshot Release
+        run: |
+          pnpm changeset version --snapshot ${SHORT_SHA}
+          pnpm clean-examples
+          pnpm changeset publish --no-git-tag --tag snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}

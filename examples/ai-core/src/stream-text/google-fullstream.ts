@@ -1,5 +1,5 @@
-import { streamText } from 'ai';
 import { google } from '@ai-sdk/google';
+import { streamText } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
@@ -8,7 +8,7 @@ dotenv.config();
 
 async function main() {
   const result = await streamText({
-    model: google.generativeAI('models/gemini-pro'),
+    model: google('models/gemini-pro'),
     tools: {
       weather: weatherTool,
       cityAttractions: {

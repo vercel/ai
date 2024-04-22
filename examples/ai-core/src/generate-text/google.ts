@@ -1,12 +1,12 @@
-import { generateText } from 'ai';
 import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: google.generativeAI('models/gemini-pro'),
+    model: google('models/gemini-pro'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

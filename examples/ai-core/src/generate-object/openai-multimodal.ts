@@ -1,5 +1,5 @@
-import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
 import dotenv from 'dotenv';
 import fs from 'node:fs';
 import { z } from 'zod';
@@ -8,7 +8,7 @@ dotenv.config();
 
 async function main() {
   const { object } = await generateObject({
-    model: openai.chat('gpt-4-turbo'),
+    model: openai('gpt-4-turbo'),
     schema: z.object({
       artwork: z.object({
         description: z.string(),

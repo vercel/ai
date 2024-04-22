@@ -1,5 +1,5 @@
-import { CoreMessage, ToolCallPart, ToolResultPart, streamText } from 'ai';
 import { google } from '@ai-sdk/google';
+import { CoreMessage, ToolCallPart, ToolResultPart, streamText } from 'ai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
@@ -23,7 +23,7 @@ async function main() {
     }
 
     const result = await streamText({
-      model: google.generativeAI('models/gemini-pro'),
+      model: google('models/gemini-pro'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,

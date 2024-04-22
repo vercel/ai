@@ -13,12 +13,12 @@ npm i @ai-sdk/openai
 
 ## Provider Instance
 
-You can import `OpenAI` from `ai/openai` and initialize a provider instance with various settings:
+You can import `createOpenAI` from `@ai-sdk/openai` and create a provider instance with various settings:
 
 ```ts
-import { OpenAI } from '@ai-sdk/openai'
+import { createOpenAI } from '@ai-sdk/openai'
 
-const openai = new OpenAI({
+const openai = createOpenAI({
   baseURL: '', // optional base URL for proxies etc.
   apiKey: '' // optional API key, default to env property OPENAI_API_KEY
   organization: '' // optional organization
@@ -31,7 +31,19 @@ The AI SDK also provides a shorthand `openai` import with an OpenAI provider ins
 import { openai } from '@ai-sdk/openai';
 ```
 
-## Chat Models
+## Models
+
+The OpenAI provider instance is a function that you can invoke to create a model:
+
+```ts
+const model = openai('gpt-3.5-turbo');
+```
+
+It automatically selects the correct API based on the model id.
+
+You can also provide model-specific parameters or select a model API by using `.chat` or `.completion`.
+
+### Chat Models
 
 You can create models that call the [OpenAI chat API](https://platform.openai.com/docs/api-reference/chat) using the `.chat()` factory method.
 The first argument is the model id, e.g. `gpt-4`.
@@ -54,7 +66,7 @@ const model = openai.chat('gpt-3.5-turbo', {
 });
 ```
 
-## Completion Models
+### Completion Models
 
 You can create models that call the [OpenAI completions API](https://platform.openai.com/docs/api-reference/completions) using the `.completion()` factory method.
 The first argument is the model id.
@@ -68,7 +80,7 @@ OpenAI completion models support also some model specific settings that are not 
 You can pass them as an options argument:
 
 ```ts
-const model = openai.chat('gpt-3.5-turbo', {
+const model = openai.completion('gpt-3.5-turbo-instruct', {
   echo: true, // optional, echo the prompt in addition to the completion
   logitBias: {
     // optional likelihood for specific tokens

@@ -1,11 +1,9 @@
+import { openai } from '@ai-sdk/openai';
 import { CoreMessage, streamText } from 'ai';
-import { OpenAI } from '@ai-sdk/openai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 
 dotenv.config();
-
-const openai = new OpenAI();
 
 const terminal = readline.createInterface({
   input: process.stdin,
@@ -21,7 +19,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = await streamText({
-      model: openai.chat('gpt-3.5-turbo'),
+      model: openai('gpt-3.5-turbo'),
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
     });

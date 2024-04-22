@@ -331,15 +331,15 @@ importers:
 
   examples/next-fireworks:
     dependencies:
+      '@ai-sdk/openai':
+        specifier: latest
+        version: link:../../packages/openai
       ai:
         specifier: latest
         version: link:../../packages/core
       next:
         specifier: latest
         version: 14.2.1(react-dom@18.2.0)(react@18.2.0)
-      openai:
-        specifier: 4.16.1
-        version: 4.16.1
       react:
         specifier: 18.2.0
         version: 18.2.0

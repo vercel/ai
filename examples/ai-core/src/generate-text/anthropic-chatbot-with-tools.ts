@@ -1,5 +1,5 @@
-import { CoreMessage, generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
+import { CoreMessage, generateText } from 'ai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
@@ -23,7 +23,7 @@ async function main() {
     }
 
     const { text, toolCalls, toolResults } = await generateText({
-      model: anthropic.messages('claude-3-opus-20240229'),
+      model: anthropic('claude-3-opus-20240229'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
