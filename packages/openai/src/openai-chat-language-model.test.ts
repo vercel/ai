@@ -5,6 +5,7 @@ import {
   convertStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from './openai-provider';
+import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -28,6 +29,7 @@ describe('doGenerate', () => {
       total_tokens: 34,
       completion_tokens: 30,
     },
+    logprobs = null
   }: {
     content?: string;
     usage?: {
@@ -35,6 +37,13 @@ describe('doGenerate', () => {
       total_tokens: number;
       completion_tokens: number;
     };
+    logprobs?: {
+      content: {
+        token: string;
+        logprob: number;
+        top_logprobs: { token: string; logprob: number }[];
+      }[] | null;
+    } | null,
   }) {
     server.responseBodyJson = {
       id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
@@ -48,7 +57,7 @@ describe('doGenerate', () => {
             role: 'assistant',
             content,
           },
-          logprobs: null,
+          logprobs,
           finish_reason: 'stop',
         },
       ],
@@ -145,6 +154,114 @@ describe('doGenerate', () => {
       (await server.getRequestHeaders()).get('Authorization'),
     ).toStrictEqual('Bearer test-api-key');
   });
+
+  it('should extract logprobs response', async () => {
+    const TEST_LOGPROBS = {
+      content: [
+        {
+          "token": "Hello",
+          "logprob": -0.0009994634,
+          "top_logprobs": [
+            {
+              "token": "Hello",
+              "logprob": -0.0009994634
+            }
+          ]
+        },
+        {
+          "token": "!",
+          "logprob": -0.13410144,
+          "top_logprobs": [
+            {
+              "token": "!",
+              "logprob": -0.13410144
+            }
+          ]
+        },
+        {
+          "token": " How",
+          "logprob": -0.0009250381,
+          "top_logprobs": [
+            {
+              "token": " How",
+              "logprob": -0.0009250381
+            }
+          ]
+        },
+        {
+          "token": " can",
+          "logprob": -0.047709424,
+          "top_logprobs": [
+            {
+              "token": " can",
+              "logprob": -0.047709424
+            }
+          ]
+        },
+        {
+          "token": " I",
+          "logprob": -0.000009014684,
+          "top_logprobs": [
+            {
+              "token": " I",
+              "logprob": -0.000009014684
+            }
+          ]
+        },
+        {
+          "token": " assist",
+          "logprob": -0.009125131,
+          "top_logprobs": [
+            {
+              "token": " assist",
+              "logprob": -0.009125131
+            }
+          ]
+        },
+        {
+          "token": " you",
+          "logprob": -0.0000066306106,
+          "top_logprobs": [
+            {
+              "token": " you",
+              "logprob": -0.0000066306106
+            }
+          ]
+        },
+        {
+          "token": " today",
+          "logprob": -0.00011093382,
+          "top_logprobs": [
+            {
+              "token": " today",
+              "logprob": -0.00011093382
+            }
+          ]
+        },
+        {
+          "token": "?",
+          "logprob": -0.00004596782,
+          "top_logprobs": [
+            {
+              "token": "?",
+              "logprob": -0.00004596782
+            }
+          ]
+        }
+      ]
+    }
+
+    prepareJsonResponse({ logprobs: TEST_LOGPROBS });
+
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
+
+    const response = await provider.chat('gpt-3.5-turbo', { logprobs: 1 }).doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+    expect(response.logprobs).toStrictEqual(mapOpenAIChatLogProbsOutput(TEST_LOGPROBS));
+  })
 });
 
 describe('doStream', () => {
