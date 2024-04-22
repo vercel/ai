@@ -21,8 +21,16 @@ You can import `createAnthropic` from `@ai-sdk/anthropic` and create a provider 
 import { createAnthropic } from '@ai-sdk/anthropic';
 
 const anthropic = createAnthropic({
-  baseURL: '', // optional base URL for proxies etc.
-  apiKey: '', // optional API key, default to env property ANTHROPIC_API_KEY
+  // optional base URL for proxies etc.:
+  baseURL: '',
+
+  // optional API key, default to env property ANTHROPIC_API_KEY:
+  apiKey: '',
+
+  // optional custom headers:
+  headers: {
+    'custom-header': 'value',
+  },
 });
 ```
 
