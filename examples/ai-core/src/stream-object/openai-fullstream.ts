@@ -42,7 +42,6 @@ async function main() {
       case 'error':
         console.error('Error:', part.error);
         break;
-
     }
   }
 }
