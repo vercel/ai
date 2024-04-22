@@ -4,14 +4,14 @@ import {
   StreamingTestServer,
   convertStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { Anthropic } from './anthropic-facade';
 import { AnthropicAssistantMessage } from './anthropic-messages-prompt';
+import { createAnthropic } from './anthropic-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const anthropic = new Anthropic({
+const anthropic = createAnthropic({
   apiKey: 'test-api-key',
 });
 
@@ -197,10 +197,30 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass custom headers', async () => {
+    prepareJsonResponse({ content: [] });
+
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+      headers: {
+        'Custom-Header': 'test-header',
+      },
+    });
+
+    await provider.chat('claude-3-haiku-20240307').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = await server.getRequestHeaders();
+    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+  });
+
   it('should pass the api key as Authorization header', async () => {
     prepareJsonResponse({});
 
-    const anthropic = new Anthropic({
+    const anthropic = createAnthropic({
       apiKey: 'test-api-key',
     });
 
@@ -276,10 +296,30 @@ describe('doStream', () => {
     });
   });
 
+  it('should pass custom headers', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+      headers: {
+        'Custom-Header': 'test-header',
+      },
+    });
+
+    await provider.chat('claude-3-haiku-20240307').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = await server.getRequestHeaders();
+    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+  });
+
   it('should pass the api key as Authorization header', async () => {
     prepareStreamResponse({ content: [] });
 
-    const anthropic = new Anthropic({
+    const anthropic = createAnthropic({
       apiKey: 'test-api-key',
     });
 

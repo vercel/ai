@@ -100,6 +100,33 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass custom headers', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const openai = createOpenAI({
+      apiKey: 'test-api-key',
+      organization: 'test-organization',
+      project: 'test-project',
+      headers: {
+        'Custom-Header': 'test-header',
+      },
+    });
+
+    await openai.completion('gpt-3.5-turbo-instruct').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = await server.getRequestHeaders();
+
+    expect(requestHeaders.get('OpenAI-Organization')).toStrictEqual(
+      'test-organization',
+    );
+    expect(requestHeaders.get('OpenAI-Project')).toStrictEqual('test-project');
+    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+  });
+
   it('should pass the api key as Authorization header', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -226,7 +253,7 @@ describe('doStream', () => {
     );
   });
 
-  it('should pass the organization as OpenAI-Organization header', async () => {
+  it('should pass custom headers', async () => {
     prepareStreamResponse({ content: [] });
 
     const openai = createOpenAI({
