@@ -17,8 +17,16 @@ You can import `createGoogleGenerativeAI` from `@ai-sdk/google` and create a pro
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 const google = createGoogleGenerativeAI({
-  baseURL: '', // optional base URL for proxies etc.
-  apiKey: '', // optional API key, default to env property GOOGLE_GENERATIVE_AI_API_KEY
+  // optional base URL for proxies etc.:
+  baseURL: '',
+
+  // optional API key, default to env property GOOGLE_GENERATIVE_AI_API_KEY:
+  apiKey: '',
+
+  // optional custom headers:
+  headers: {
+    'custom-header': 'value',
+  },
 });
 ```
 
