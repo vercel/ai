@@ -11,11 +11,11 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const anthropic = createAnthropic({
+const provider = createAnthropic({
   apiKey: 'test-api-key',
 });
 
-const model = anthropic.chat('claude-3-haiku-20240307');
+const model = provider.chat('claude-3-haiku-20240307');
 
 describe('doGenerate', () => {
   const server = new JsonTestServer('https://api.anthropic.com/v1/messages');
@@ -52,7 +52,7 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
-    const { text } = await anthropic.chat('gpt-3.5-turbo').doGenerate({
+    const { text } = await provider.chat('gpt-3.5-turbo').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -207,7 +207,7 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider.chat('claude-3-haiku-20240307').doStream({
+    await provider.chat('claude-3-haiku-20240307').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -220,11 +220,11 @@ describe('doGenerate', () => {
   it('should pass the api key as Authorization header', async () => {
     prepareJsonResponse({});
 
-    const anthropic = createAnthropic({
+    const provider = createAnthropic({
       apiKey: 'test-api-key',
     });
 
-    await anthropic.chat('claude-3-haiku-20240307').doGenerate({
+    await provider.chat('claude-3-haiku-20240307').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -319,11 +319,11 @@ describe('doStream', () => {
   it('should pass the api key as Authorization header', async () => {
     prepareStreamResponse({ content: [] });
 
-    const anthropic = createAnthropic({
+    const provider = createAnthropic({
       apiKey: 'test-api-key',
     });
 
-    await anthropic.chat('claude-3-haiku-2024').doStream({
+    await provider.chat('claude-3-haiku-2024').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,

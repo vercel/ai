@@ -4,13 +4,13 @@ import {
   StreamingTestServer,
   convertStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { Mistral } from './mistral-facade';
+import { createMistral } from './mistral-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const mistral = new Mistral({ apiKey: 'test-api-key' });
+const provider = createMistral({ apiKey: 'test-api-key' });
 
 describe('doGenerate', () => {
   const server = new JsonTestServer(
@@ -58,7 +58,7 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
-    const { text } = await mistral.chat('mistral-small-latest').doGenerate({
+    const { text } = await provider.chat('mistral-small-latest').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -73,7 +73,7 @@ describe('doGenerate', () => {
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
     });
 
-    const { usage } = await mistral.chat('mistral-small-latest').doGenerate({
+    const { usage } = await provider.chat('mistral-small-latest').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -88,7 +88,7 @@ describe('doGenerate', () => {
   it('should pass the model and the messages', async () => {
     prepareJsonResponse({ content: '' });
 
-    await mistral.chat('mistral-small-latest').doGenerate({
+    await provider.chat('mistral-small-latest').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -100,10 +100,30 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass custom headers', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const provider = createMistral({
+      apiKey: 'test-api-key',
+      headers: {
+        'Custom-Header': 'test-header',
+      },
+    });
+
+    await provider.chat('mistral-small-latest').doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = await server.getRequestHeaders();
+    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+  });
+
   it('should pass the api key as Authorization header', async () => {
     prepareJsonResponse({ content: '' });
 
-    const mistral = new Mistral({ apiKey: 'test-api-key' });
+    const mistral = createMistral({ apiKey: 'test-api-key' });
 
     await mistral.chat('mistral-small-latest').doGenerate({
       inputFormat: 'prompt',
@@ -147,7 +167,7 @@ describe('doStream', () => {
   it('should stream text deltas', async () => {
     prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
 
-    const { stream } = await mistral.chat('mistral-small-latest').doStream({
+    const { stream } = await provider.chat('mistral-small-latest').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -178,7 +198,7 @@ describe('doStream', () => {
       'data: [DONE]\n\n',
     ];
 
-    const { stream } = await new Mistral({
+    const { stream } = await createMistral({
       apiKey: 'test-api-key',
       generateId: () => 'test-id',
     })
@@ -234,7 +254,7 @@ describe('doStream', () => {
   it('should pass the messages', async () => {
     prepareStreamResponse({ content: [''] });
 
-    await mistral.chat('mistral-small-latest').doStream({
+    await provider.chat('mistral-small-latest').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -247,12 +267,32 @@ describe('doStream', () => {
     });
   });
 
+  it('should pass custom headers', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const provider = createMistral({
+      apiKey: 'test-api-key',
+      headers: {
+        'Custom-Header': 'test-header',
+      },
+    });
+
+    await provider.chat('mistral-small-latest').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = await server.getRequestHeaders();
+    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+  });
+
   it('should pass the api key as Authorization header', async () => {
     prepareStreamResponse({ content: [''] });
 
-    const mistral = new Mistral({ apiKey: 'test-api-key' });
+    const provider = createMistral({ apiKey: 'test-api-key' });
 
-    await mistral.chat('mistral-small-latest').doStream({
+    await provider.chat('mistral-small-latest').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,

@@ -17,28 +17,35 @@ export interface MistralProvider {
   ): MistralChatLanguageModel;
 }
 
+export interface MistralProviderSettings {
+  /**
+Base URL for the Mistral API calls.
+   */
+  baseURL?: string;
+
+  /**
+@deprecated Use `baseURL` instead.
+   */
+  baseUrl?: string;
+
+  /**
+API key for authenticating requests.
+   */
+  apiKey?: string;
+
+  /**
+Custom headers to include in the requests.
+     */
+  headers?: Record<string, string>;
+
+  generateId?: () => string;
+}
+
 /**
- * Create a Mistral AI provider.
+Create a Mistral AI provider instance.
  */
 export function createMistral(
-  options: {
-    /**
-     * Base URL for the Mistral API calls.
-     */
-    baseURL?: string;
-
-    /**
-     * @deprecated Use `baseURL` instead.
-     */
-    baseUrl?: string;
-
-    /**
-     * API key for authenticating requests.
-     */
-    apiKey?: string;
-
-    generateId?: () => string;
-  } = {},
+  options: MistralProviderSettings = {},
 ): MistralProvider {
   const mistral = new Mistral(options);
 
@@ -61,6 +68,6 @@ export function createMistral(
 }
 
 /**
- * Default Mistral provider instance.
+Default Mistral provider instance.
  */
 export const mistral = createMistral();

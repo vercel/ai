@@ -10,7 +10,7 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const openai = createOpenAI({
+const provider = createOpenAI({
   apiKey: 'test-api-key',
 });
 
@@ -54,7 +54,7 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
-    const { text } = await openai
+    const { text } = await provider
       .completion('gpt-3.5-turbo-instruct')
       .doGenerate({
         inputFormat: 'prompt',
@@ -71,7 +71,7 @@ describe('doGenerate', () => {
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
     });
 
-    const { usage } = await openai
+    const { usage } = await provider
       .completion('gpt-3.5-turbo-instruct')
       .doGenerate({
         inputFormat: 'prompt',
@@ -88,7 +88,7 @@ describe('doGenerate', () => {
   it('should pass the model and the prompt', async () => {
     prepareJsonResponse({ content: '' });
 
-    await openai.completion('gpt-3.5-turbo-instruct').doGenerate({
+    await provider.completion('gpt-3.5-turbo-instruct').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -103,7 +103,7 @@ describe('doGenerate', () => {
   it('should pass custom headers', async () => {
     prepareJsonResponse({ content: '' });
 
-    const openai = createOpenAI({
+    const provider = createOpenAI({
       apiKey: 'test-api-key',
       organization: 'test-organization',
       project: 'test-project',
@@ -112,7 +112,7 @@ describe('doGenerate', () => {
       },
     });
 
-    await openai.completion('gpt-3.5-turbo-instruct').doStream({
+    await provider.completion('gpt-3.5-turbo-instruct').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -130,9 +130,9 @@ describe('doGenerate', () => {
   it('should pass the api key as Authorization header', async () => {
     prepareJsonResponse({ content: '' });
 
-    const openai = createOpenAI({ apiKey: 'test-api-key' });
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
 
-    await openai.completion('gpt-3.5-turbo-instruct').doGenerate({
+    await provider.completion('gpt-3.5-turbo-instruct').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -170,7 +170,7 @@ describe('doStream', () => {
   it('should stream text deltas', async () => {
     prepareStreamResponse({ content: ['Hello', ', ', 'World!'] });
 
-    const { stream } = await openai
+    const { stream } = await provider
       .completion('gpt-3.5-turbo-instruct')
       .doStream({
         inputFormat: 'prompt',
@@ -195,7 +195,7 @@ describe('doStream', () => {
   it('should pass the model and the prompt', async () => {
     prepareStreamResponse({ content: [] });
 
-    await openai.completion('gpt-3.5-turbo-instruct').doStream({
+    await provider.completion('gpt-3.5-turbo-instruct').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -211,7 +211,7 @@ describe('doStream', () => {
   it('should scale the temperature', async () => {
     prepareStreamResponse({ content: [] });
 
-    await openai.completion('gpt-3.5-turbo-instruct').doStream({
+    await provider.completion('gpt-3.5-turbo-instruct').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -224,7 +224,7 @@ describe('doStream', () => {
   it('should scale the frequency penalty', async () => {
     prepareStreamResponse({ content: [] });
 
-    await openai.completion('gpt-3.5-turbo-instruct').doStream({
+    await provider.completion('gpt-3.5-turbo-instruct').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -240,7 +240,7 @@ describe('doStream', () => {
   it('should scale the presence penalty', async () => {
     prepareStreamResponse({ content: [] });
 
-    await openai.completion('gpt-3.5-turbo-instruct').doStream({
+    await provider.completion('gpt-3.5-turbo-instruct').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -256,7 +256,7 @@ describe('doStream', () => {
   it('should pass custom headers', async () => {
     prepareStreamResponse({ content: [] });
 
-    const openai = createOpenAI({
+    const provider = createOpenAI({
       apiKey: 'test-api-key',
       organization: 'test-organization',
       project: 'test-project',
@@ -265,7 +265,7 @@ describe('doStream', () => {
       },
     });
 
-    await openai.completion('gpt-3.5-turbo-instruct').doStream({
+    await provider.completion('gpt-3.5-turbo-instruct').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -283,9 +283,9 @@ describe('doStream', () => {
   it('should pass the api key as Authorization header', async () => {
     prepareStreamResponse({ content: [] });
 
-    const openai = createOpenAI({ apiKey: 'test-api-key' });
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
 
-    await openai.completion('gpt-3.5-turbo-instruct').doStream({
+    await provider.completion('gpt-3.5-turbo-instruct').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
