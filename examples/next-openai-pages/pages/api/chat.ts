@@ -1,7 +1,7 @@
-import { OpenAI } from '@ai-sdk/openai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { StreamingTextResponse, experimental_streamText } from 'ai';
 
-const openai = new OpenAI({
+const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY ?? '',
 });
 
@@ -13,7 +13,7 @@ export default async function handler(req: Request, res: Response) {
   const { messages } = await req.json();
 
   const result = await experimental_streamText({
-    model: openai.chat('gpt-4-turbo-preview'),
+    model: openai('gpt-4-turbo-preview'),
     messages,
   });
 

@@ -1,5 +1,17 @@
 # @ai-sdk/mistral
 
+## 0.0.3
+
+### Patch Changes
+
+- ab60b18: Simplified model construction by directly calling provider functions. Add create... functions to create provider instances.
+
+## 0.0.2
+
+### Patch Changes
+
+- 2bff460: Fix build for release.
+
 ## 0.0.1
 
 ### Patch Changes

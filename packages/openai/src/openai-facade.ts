@@ -8,7 +8,7 @@ import {
 } from './openai-completion-settings';
 
 /**
- * OpenAI provider.
+ * @deprecated Use `createOpenAI` instead.
  */
 export class OpenAI {
   /**
@@ -84,8 +84,3 @@ export class OpenAI {
     });
   }
 }
-
-/**
- * Default OpenAI provider instance.
- */
-export const openai = new OpenAI();

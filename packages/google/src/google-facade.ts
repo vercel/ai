@@ -10,7 +10,7 @@ import {
 } from './google-generative-ai-settings';
 
 /**
- * Google provider.
+ * @deprecated Use `createGoogleGenerativeAI` instead.
  */
 export class Google {
   /**
@@ -65,7 +65,17 @@ export class Google {
     };
   }
 
+  /**
+   * @deprecated Use `chat()` instead.
+   */
   generativeAI(
+    modelId: GoogleGenerativeAIModelId,
+    settings: GoogleGenerativeAISettings = {},
+  ) {
+    return this.chat(modelId, settings);
+  }
+
+  chat(
     modelId: GoogleGenerativeAIModelId,
     settings: GoogleGenerativeAISettings = {},
   ) {
@@ -76,8 +86,3 @@ export class Google {
     });
   }
 }
-
-/**
- * Default Google provider instance.
- */
-export const google = new Google();

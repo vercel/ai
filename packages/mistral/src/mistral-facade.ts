@@ -10,7 +10,7 @@ import {
 } from './mistral-chat-settings';
 
 /**
- * Mistral provider.
+ * @deprecated Use `createMistral` instead.
  */
 export class Mistral {
   /**
@@ -74,8 +74,3 @@ export class Mistral {
     });
   }
 }
-
-/**
- * Default Mistral provider instance.
- */
-export const mistral = new Mistral();

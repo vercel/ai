@@ -33,7 +33,7 @@ const google = new Google({
   apiKey: 'test-api-key',
   generateId: () => 'test-id',
 });
-const model = google.generativeAI('models/gemini-pro');
+const model = google.chat('models/gemini-pro');
 
 describe('doGenerate', () => {
   const server = new JsonTestServer(
@@ -151,7 +151,7 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     const google = new Google({ apiKey: 'test-api-key' });
-    const model = google.generativeAI('models/gemini-pro');
+    const model = google.chat('models/gemini-pro');
 
     await model.doGenerate({
       inputFormat: 'prompt',
@@ -230,7 +230,7 @@ describe('doStream', () => {
 
     const google = new Google({ apiKey: 'test-api-key' });
 
-    await google.generativeAI('models/gemini-pro').doStream({
+    await google.chat('models/gemini-pro').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,

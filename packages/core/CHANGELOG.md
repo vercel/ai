@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.24
+
+### Patch Changes
+
+- e94fb32: feat(ai/rsc): Make `onSetAIState` and `onGetUIState` stable
+
 ## 3.0.23
 
 ### Patch Changes
