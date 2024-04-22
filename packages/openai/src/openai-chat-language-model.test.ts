@@ -99,6 +99,7 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      logprobs: false,
     });
   });
 
@@ -189,6 +190,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
+        logprobs: undefined,
         usage: { promptTokens: 17, completionTokens: 227 },
       },
     ]);
@@ -309,6 +311,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'tool-calls',
+        logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
       },
     ]);
@@ -327,6 +330,7 @@ describe('doStream', () => {
       stream: true,
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      logprobs: false,
     });
   });
 

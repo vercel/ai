@@ -187,6 +187,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
+        logprobs: undefined,
         usage: { promptTokens: 10, completionTokens: 362 },
       },
     ]);
