@@ -1,9 +1,5 @@
 import { CohereClient, Cohere } from 'cohere-ai';
 
-export const runtime = 'edge';
-
-// IMPORTANT! Set the dynamic to force-dynamic
-// Prevent nextjs to cache this route
 export const dynamic = 'force-dynamic';
 
 const cohere = new CohereClient({

@@ -30,8 +30,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
 
-// IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export default async function handler(req: Request, res: Response) {
   const { messages } = await req.json();
@@ -96,8 +95,7 @@ You can use the client `useChat` and `useCompletion` hooks the same between the 
 ```jsx
 import { useChat } from 'ai/react';
 
-// Optional but recommended: use the Edge Runtime. This can only be done at the page level, not inside nested components.
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export default function IndexPage() {
   const { messages, handleSubmit, input, handleInputChange } = useChat();

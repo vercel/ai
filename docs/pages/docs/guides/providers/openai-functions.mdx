@@ -28,8 +28,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
 
-// Set the runtime to edge
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 // Function definition:
 const functions: ChatCompletionCreateParams.Function[] = [

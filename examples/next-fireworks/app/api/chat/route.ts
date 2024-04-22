@@ -1,7 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { StreamingTextResponse, experimental_streamText } from 'ai';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 const fireworks = createOpenAI({
   apiKey: process.env.FIREWORKS_API_KEY ?? '',

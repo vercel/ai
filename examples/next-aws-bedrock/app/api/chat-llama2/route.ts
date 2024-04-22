@@ -5,8 +5,7 @@ import {
 import { AWSBedrockLlama2Stream, StreamingTextResponse } from 'ai';
 import { experimental_buildLlama2Prompt } from 'ai/prompts';
 
-// IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 const bedrockClient = new BedrockRuntimeClient({
   region: process.env.AWS_REGION ?? 'us-east-1',
