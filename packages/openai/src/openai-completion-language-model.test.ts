@@ -4,13 +4,13 @@ import {
   StreamingTestServer,
   convertStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { OpenAI } from './openai-facade';
+import { createOpenAI } from './openai-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const openai = new OpenAI({
+const openai = createOpenAI({
   apiKey: 'test-api-key',
 });
 
@@ -103,7 +103,7 @@ describe('doGenerate', () => {
   it('should pass the api key as Authorization header', async () => {
     prepareJsonResponse({ content: '' });
 
-    const openai = new OpenAI({ apiKey: 'test-api-key' });
+    const openai = createOpenAI({ apiKey: 'test-api-key' });
 
     await openai.completion('gpt-3.5-turbo-instruct').doGenerate({
       inputFormat: 'prompt',
@@ -229,9 +229,13 @@ describe('doStream', () => {
   it('should pass the organization as OpenAI-Organization header', async () => {
     prepareStreamResponse({ content: [] });
 
-    const openai = new OpenAI({
+    const openai = createOpenAI({
       apiKey: 'test-api-key',
       organization: 'test-organization',
+      project: 'test-project',
+      headers: {
+        'Custom-Header': 'test-header',
+      },
     });
 
     await openai.completion('gpt-3.5-turbo-instruct').doStream({
@@ -240,15 +244,19 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(
-      (await server.getRequestHeaders()).get('OpenAI-Organization'),
-    ).toStrictEqual('test-organization');
+    const requestHeaders = await server.getRequestHeaders();
+
+    expect(requestHeaders.get('OpenAI-Organization')).toStrictEqual(
+      'test-organization',
+    );
+    expect(requestHeaders.get('OpenAI-Project')).toStrictEqual('test-project');
+    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
   });
 
   it('should pass the api key as Authorization header', async () => {
     prepareStreamResponse({ content: [] });
 
-    const openai = new OpenAI({ apiKey: 'test-api-key' });
+    const openai = createOpenAI({ apiKey: 'test-api-key' });
 
     await openai.completion('gpt-3.5-turbo-instruct').doStream({
       inputFormat: 'prompt',

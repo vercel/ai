@@ -16,13 +16,26 @@ npm i @ai-sdk/openai
 You can import `createOpenAI` from `@ai-sdk/openai` and create a provider instance with various settings:
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai'
+import { createOpenAI } from '@ai-sdk/openai';
 
 const openai = createOpenAI({
-  baseURL: '', // optional base URL for proxies etc.
-  apiKey: '' // optional API key, default to env property OPENAI_API_KEY
-  organization: '' // optional organization
-})
+  // optional base URL for proxies etc.
+  baseURL: '',
+
+  // optional API key, default to env property OPENAI_API_KEY
+  apiKey: '',
+
+  // optional OpenAI organization:
+  organization: '',
+
+  // optional OpenAI project:
+  project: '',
+
+  // optional custom headers:
+  headers: {
+    'custom-header': 'value',
+  },
+});
 ```
 
 The AI SDK also provides a shorthand `openai` import with an OpenAI provider instance that uses defaults:
