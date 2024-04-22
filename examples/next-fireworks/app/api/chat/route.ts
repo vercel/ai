@@ -1,9 +1,9 @@
-import { OpenAI } from '@ai-sdk/openai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { StreamingTextResponse, experimental_streamText } from 'ai';
 
 export const runtime = 'edge';
 
-const fireworks = new OpenAI({
+const fireworks = createOpenAI({
   apiKey: process.env.FIREWORKS_API_KEY ?? '',
   baseURL: 'https://api.fireworks.ai/inference/v1',
 });
@@ -15,6 +15,7 @@ export async function POST(req: Request) {
 
     // Call the language model
     const result = await experimental_streamText({
+      // Use completion API:
       model: fireworks.completion(
         'accounts/fireworks/models/llama-v2-70b-chat',
       ),
