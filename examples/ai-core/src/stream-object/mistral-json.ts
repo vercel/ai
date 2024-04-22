@@ -1,15 +1,13 @@
+import { mistral } from '@ai-sdk/mistral';
 import { experimental_streamObject } from 'ai';
-import { Mistral } from '@ai-sdk/mistral';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
 dotenv.config();
 
-const mistral = new Mistral();
-
 async function main() {
   const result = await experimental_streamObject({
-    model: mistral.chat('open-mistral-7b'),
+    model: mistral('open-mistral-7b'),
     maxTokens: 2000,
     schema: z.object({
       characters: z.array(

@@ -10,7 +10,7 @@ import {
 } from './google-generative-ai-settings';
 
 /**
- * Google provider.
+ * @deprecated Use `createGoogleGenerativeAI` instead.
  */
 export class Google {
   /**
@@ -86,8 +86,3 @@ export class Google {
     });
   }
 }
-
-/**
- * Default Google provider instance.
- */
-export const google = new Google();

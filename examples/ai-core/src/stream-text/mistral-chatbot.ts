@@ -1,11 +1,9 @@
+import { mistral } from '@ai-sdk/mistral';
 import { ExperimentalMessage, experimental_streamText } from 'ai';
-import { Mistral } from '@ai-sdk/mistral';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 
 dotenv.config();
-
-const mistral = new Mistral();
 
 const terminal = readline.createInterface({
   input: process.stdin,
@@ -21,7 +19,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = await experimental_streamText({
-      model: mistral.chat('open-mistral-7b'),
+      model: mistral('open-mistral-7b'),
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
     });

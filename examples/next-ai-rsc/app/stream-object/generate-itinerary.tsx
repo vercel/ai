@@ -24,7 +24,7 @@ export async function submitItineraryRequest({
   const isGenerating = createStreamableValue(true);
 
   experimental_streamObject({
-    model: openai.chat('gpt-4-1106-preview'),
+    model: openai('gpt-4-1106-preview'),
     maxTokens: 2500,
     schema: itinerarySchema,
     system:

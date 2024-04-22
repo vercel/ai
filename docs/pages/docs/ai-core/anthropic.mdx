@@ -41,12 +41,12 @@ yarn add @ai-sdk/anthropic
 
 ## Provider Instance
 
-You can import `Anthropic` from `ai/anthropic` and initialize a provider instance with various settings:
+You can import `createAnthropic` from `@ai-sdk/anthropic` and create a provider instance with various settings:
 
 ```ts
-import { Anthropic } from '@ai-sdk/anthropic';
+import { createAnthropic } from '@ai-sdk/anthropic';
 
-const anthropic = new Anthropic({
+const anthropic = createAnthropic({
   baseURL: '', // optional base URL for proxies etc.
   apiKey: '', // optional API key, default to env property ANTHROPIC_API_KEY
 });
@@ -58,21 +58,21 @@ The AI SDK also provides a shorthand `anthropic` import with a Anthropic provide
 import { anthropic } from '@ai-sdk/anthropic';
 ```
 
-## Messages Models
+## Models
 
-You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the `.chat()` factory method.
+You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the provider instance.
 The first argument is the model id, e.g. `claude-3-haiku-20240307`.
 Some models have multi-modal capabilities.
 
 ```ts
-const model = anthropic.chat('claude-3-haiku-20240307');
+const model = anthropic('claude-3-haiku-20240307');
 ```
 
 Anthropic Messages` models support also some model specific settings that are not part of the [standard call settings](/docs/ai-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = anthropic.chat('claude-3-haiku-20240307', {
+const model = anthropic('claude-3-haiku-20240307', {
   topK: 0.2,
 });
 ```
