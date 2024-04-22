@@ -23,6 +23,7 @@ import { retryWithExponentialBackoff } from '../util/retry-with-exponential-back
 import { runToolsTransformation } from './run-tools-transformation';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+import { ServerResponse } from 'node:http';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -234,13 +235,48 @@ Non-text-delta events are ignored.
         }),
       ),
       {
-        ...init,
-        status: 200,
+        status: init?.status ?? 200,
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
           ...init?.headers,
         },
       },
     );
+  }
+
+  /**
+Writes the text stream to a Node.js response-like object.
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+writes each text delta as a separate chunk.
+
+@param response A Node.js response-like object (ServerResponse).
+@param init Optional headers and status code.
+   */
+  pipeTextStreamToServerResponse(
+    response: ServerResponse,
+    init?: { headers?: Record<string, string>; status?: number },
+  ) {
+    response.writeHead(init?.status ?? 200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      ...init?.headers,
+    });
+
+    const reader = this.textStream.getReader();
+
+    const read = async () => {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          response.write(value);
+        }
+      } catch (error) {
+        throw error;
+      } finally {
+        response.end();
+      }
+    };
+
+    read();
   }
 }
