@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.3
+
+### Patch Changes
+
+- ab60b18: Simplified model construction by directly calling provider functions. Add create... functions to create provider instances.
+
 ## 0.0.2
 
 ### Patch Changes
