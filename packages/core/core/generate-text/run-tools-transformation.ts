@@ -3,6 +3,7 @@ import { generateId } from '../../shared/generate-id';
 import { ExperimentalTool } from '../tool';
 import { TextStreamPart } from './stream-text';
 import { parseToolCall } from './tool-call';
+import { calculateTokenUsage } from './token-usage';
 
 export function runToolsTransformation<
   TOOLS extends Record<string, ExperimentalTool>,
@@ -40,7 +41,6 @@ export function runToolsTransformation<
       switch (chunkType) {
         // forward:
         case 'text-delta':
-        case 'log-probs':
         case 'error': {
           controller.enqueue(chunk);
           break;
@@ -132,12 +132,8 @@ export function runToolsTransformation<
           controller.enqueue({
             type: 'finish',
             finishReason: chunk.finishReason,
-            usage: {
-              promptTokens: chunk.usage.promptTokens,
-              completionTokens: chunk.usage.completionTokens,
-              totalTokens:
-                chunk.usage.promptTokens + chunk.usage.completionTokens,
-            },
+            logprobs: chunk.logprobs,
+            usage: calculateTokenUsage(chunk.usage),
           });
           break;
         }

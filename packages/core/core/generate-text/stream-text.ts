@@ -120,10 +120,6 @@ export type TextStreamPart<TOOLS extends Record<string, ExperimentalTool>> =
       type: 'text-delta';
       textDelta: string;
     }
-  | {
-      type: 'log-probs';
-      logprobs: LanguageModelV1LogProbs;
-    }
   | ({
       type: 'tool-call';
     } & ToToolCall<TOOLS>)
@@ -137,6 +133,7 @@ export type TextStreamPart<TOOLS extends Record<string, ExperimentalTool>> =
   | {
       type: 'finish';
       finishReason: LanguageModelV1FinishReason;
+      logprobs?: LanguageModelV1LogProbs;
       usage: {
         promptTokens: number;
         completionTokens: number;

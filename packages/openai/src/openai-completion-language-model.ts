@@ -1,6 +1,7 @@
 import {
   LanguageModelV1,
   LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -185,6 +186,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
+    let logprobs: LanguageModelV1LogProbs;
 
     return {
       stream: response.pipeThrough(
@@ -220,22 +222,22 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
               });
             }
 
-            const logprobs = choice?.logprobs;
-
-            if (logprobs != null) {
-              // Possible that logprobs is present but content is null e.g. during tool calls.
-              const mappedLogprobs = mapOpenAICompletionLogProbs(logprobs);
-              if (mappedLogprobs?.length) {
-                controller.enqueue({
-                  type: 'log-probs',
-                  logprobs: mappedLogprobs,
-                });
-              }
+            const mappedLogprobs = mapOpenAICompletionLogProbs(
+              choice?.logprobs,
+            );
+            if (mappedLogprobs?.length) {
+              if (logprobs === undefined) logprobs = [];
+              logprobs.push(...mappedLogprobs);
             }
           },
 
           flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              logprobs,
+              usage,
+            });
           },
         }),
       ),

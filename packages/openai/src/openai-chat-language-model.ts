@@ -2,6 +2,7 @@ import {
   InvalidResponseDataError,
   LanguageModelV1,
   LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -211,6 +212,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
+    let logprobs: LanguageModelV1LogProbs;
 
     return {
       stream: response.pipeThrough(
@@ -252,14 +254,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               });
             }
 
-            const logprobs = choice?.logprobs;
-
-            const mappedLogprobs = mapOpenAIChatLogProbsOutput(logprobs);
+            const mappedLogprobs = mapOpenAIChatLogProbsOutput(
+              choice?.logprobs,
+            );
             if (mappedLogprobs?.length) {
-              controller.enqueue({
-                type: 'log-probs',
-                logprobs: mappedLogprobs,
-              });
+              if (logprobs === undefined) logprobs = [];
+              logprobs.push(...mappedLogprobs);
             }
 
             if (delta.tool_calls != null) {
@@ -339,7 +339,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           },
 
           flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              logprobs,
+              usage,
+            });
           },
         }),
       ),

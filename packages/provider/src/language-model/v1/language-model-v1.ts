@@ -90,7 +90,7 @@ export type LanguageModelV1 = {
     warnings?: LanguageModelV1CallWarning[];
 
     /**
-     * Logprobs for the completion. 
+     * Logprobs for the completion.
      * `undefined` if the mode does not support logprobs or if was not enabled
      */
     logprobs?: LanguageModelV1LogProbs;
@@ -132,9 +132,6 @@ export type LanguageModelV1StreamPart =
   // Basic text deltas:
   | { type: 'text-delta'; textDelta: string }
 
-  // Logprob results:
-  | { type: 'log-probs'; logprobs: LanguageModelV1LogProbs }
-
   // Complete tool calls:
   | ({ type: 'tool-call' } & LanguageModelV1FunctionToolCall)
 
@@ -148,11 +145,12 @@ export type LanguageModelV1StreamPart =
       argsTextDelta: string;
     }
 
-  // the usage stats and finish reason should be the last part of the
+  // the usage stats, finish reason and logprobs should be the last part of the
   // stream:
   | {
       type: 'finish';
       finishReason: LanguageModelV1FinishReason;
+      logprobs?: LanguageModelV1LogProbs;
       usage: { promptTokens: number; completionTokens: number };
     }
 
