@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { StreamData, StreamingTextResponse, experimental_streamText } from 'ai';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request

@@ -7,8 +7,8 @@ const fireworks = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
   baseURL: 'https://api.fireworks.ai/inference/v1',
 });
-// IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+
+export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
   const { messages } = await req.json();

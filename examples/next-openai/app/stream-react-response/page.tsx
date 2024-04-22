@@ -9,4 +9,4 @@ export default function Page() {
   return <Chat handler={handler} />;
 }
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';

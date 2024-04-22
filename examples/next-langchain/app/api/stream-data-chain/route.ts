@@ -3,7 +3,7 @@ import { LLMChain } from 'langchain/chains';
 import { OpenAI } from 'langchain/llms/openai';
 import { PromptTemplate } from 'langchain/prompts';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   const { prompt: value } = await req.json();

@@ -2,7 +2,7 @@ import { LangChainStream, Message, StreamingTextResponse } from 'ai';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
 import { AIMessage, HumanMessage } from 'langchain/schema';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export default defineLazyEventHandler(() => {
   const apiKey = useRuntimeConfig().openaiApiKey;

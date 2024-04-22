@@ -100,7 +100,7 @@ On the client side, the useChat hook from ai/react is utilized to manage the cha
 import { handler } from './action';
 import { Chat } from './chat';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export default function Page() {
   return <Chat handler={handler} />;
