@@ -11,6 +11,34 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
+const TEST_LOGPROBS = {
+  tokens: [' ever', ' after', '.\n\n', 'The', ' end', '.'],
+  token_logprobs: [
+    -0.0664508, -0.014520033, -1.3820221, -0.7890417, -0.5323165, -0.10247037,
+  ],
+  top_logprobs: [
+    {
+      ' ever': -0.0664508,
+    },
+    {
+      ' after': -0.014520033,
+    },
+    {
+      '.\n\n': -1.3820221,
+    },
+    {
+      The: -0.7890417,
+    },
+    {
+      ' end': -0.5323165,
+    },
+    {
+      '.': -0.10247037,
+    },
+  ] as Record<string, number>[],
+  text_offset: [22, 27, 33, 36, 39, 43],
+};
+
 const provider = createOpenAI({
   apiKey: 'test-api-key',
 });
@@ -28,6 +56,7 @@ describe('doGenerate', () => {
       completion_tokens: 30,
     },
     logprobs = null,
+    finish_reason = 'stop',
   }: {
     content?: string;
     usage?: {
@@ -41,6 +70,7 @@ describe('doGenerate', () => {
       top_logprobs: Record<string, number>[];
       text_offset: number[];
     } | null;
+    finish_reason?: string;
   }) {
     server.responseBodyJson = {
       id: 'cmpl-96cAM1v77r4jXa4qb2NSmRREV5oWB',
@@ -91,6 +121,40 @@ describe('doGenerate', () => {
       promptTokens: 20,
       completionTokens: 5,
     });
+  });
+
+  it('should extract logprobs', async () => {
+    prepareJsonResponse({ logprobs: TEST_LOGPROBS });
+
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
+
+    const response = await provider
+      .completion('gpt-3.5-turbo', { logprobs: 1 })
+      .doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+    expect(response.logprobs).toStrictEqual(
+      mapOpenAICompletionLogProbs(TEST_LOGPROBS),
+    );
+  });
+
+  it('should finish reason', async () => {
+    prepareJsonResponse({
+      content: '',
+      finish_reason: 'stop',
+    });
+
+    const { finishReason } = await provider
+      .completion('gpt-3.5-turbo-instruct')
+      .doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+    expect(finishReason).toStrictEqual('stop');
   });
 
   it('should pass the model and the prompt', async () => {
@@ -150,52 +214,6 @@ describe('doGenerate', () => {
       (await server.getRequestHeaders()).get('Authorization'),
     ).toStrictEqual('Bearer test-api-key');
   });
-
-  it('should extract logprobs response', async () => {
-    const TEST_LOGPROBS = {
-      tokens: [' ever', ' after', '.\n\n', 'The', ' end', '.'],
-      token_logprobs: [
-        -0.0664508, -0.014520033, -1.3820221, -0.7890417, -0.5323165,
-        -0.10247037,
-      ],
-      top_logprobs: [
-        {
-          ' ever': -0.0664508,
-        },
-        {
-          ' after': -0.014520033,
-        },
-        {
-          '.\n\n': -1.3820221,
-        },
-        {
-          The: -0.7890417,
-        },
-        {
-          ' end': -0.5323165,
-        },
-        {
-          '.': -0.10247037,
-        },
-      ] as Record<string, number>[],
-      text_offset: [22, 27, 33, 36, 39, 43],
-    };
-
-    prepareJsonResponse({ logprobs: TEST_LOGPROBS });
-
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-
-    const response = await provider
-      .completion('gpt-3.5-turbo', { logprobs: 1 })
-      .doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-      });
-    expect(response.logprobs).toStrictEqual(
-      mapOpenAICompletionLogProbs(TEST_LOGPROBS),
-    );
-  });
 });
 
 describe('doStream', () => {
@@ -205,7 +223,30 @@ describe('doStream', () => {
 
   server.setupTestEnvironment();
 
-  function prepareStreamResponse({ content }: { content: string[] }) {
+  function prepareStreamResponse({
+    content,
+    finish_reason = 'stop',
+    usage = {
+      prompt_tokens: 10,
+      total_tokens: 372,
+      completion_tokens: 362,
+    },
+    logprobs = null,
+  }: {
+    content: string[];
+    usage?: {
+      prompt_tokens: number;
+      total_tokens: number;
+      completion_tokens: number;
+    };
+    logprobs?: {
+      tokens: string[];
+      token_logprobs: number[];
+      top_logprobs: Record<string, number>[];
+      text_offset: number[];
+    } | null;
+    finish_reason?: string;
+  }) {
     server.responseChunks = [
       ...content.map(text => {
         return (
@@ -214,15 +255,28 @@ describe('doStream', () => {
         );
       }),
       `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,` +
-        `"choices":[{"text":"","index":0,"logprobs":null,"finish_reason":"stop"}],"model":"gpt-3.5-turbo-instruct"}\n\n`,
+        `"choices":[{"text":"","index":0,"logprobs":${JSON.stringify(
+          logprobs,
+        )},"finish_reason":"${finish_reason}"}],"model":"gpt-3.5-turbo-instruct"}\n\n`,
       `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,` +
-        `"model":"gpt-3.5-turbo-instruct","usage":{"prompt_tokens":10,"completion_tokens":362,"total_tokens":372},"choices":[]}\n\n`,
+        `"model":"gpt-3.5-turbo-instruct","usage":${JSON.stringify(
+          usage,
+        )},"choices":[]}\n\n`,
       'data: [DONE]\n\n',
     ];
   }
 
   it('should stream text deltas', async () => {
-    prepareStreamResponse({ content: ['Hello', ', ', 'World!'] });
+    prepareStreamResponse({
+      content: ['Hello', ', ', 'World!'],
+      finish_reason: 'stop',
+      usage: {
+        prompt_tokens: 10,
+        total_tokens: 372,
+        completion_tokens: 362,
+      },
+      logprobs: TEST_LOGPROBS,
+    });
 
     const { stream } = await provider
       .completion('gpt-3.5-turbo-instruct')
@@ -241,7 +295,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        logprobs: undefined,
+        logprobs: mapOpenAICompletionLogProbs(TEST_LOGPROBS),
         usage: { promptTokens: 10, completionTokens: 362 },
       },
     ]);
