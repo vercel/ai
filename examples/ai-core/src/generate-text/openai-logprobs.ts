@@ -10,7 +10,7 @@ async function main() {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  console.log(result);
+  console.log(result.logprobs);
 }
 
 main().catch(console.error);
