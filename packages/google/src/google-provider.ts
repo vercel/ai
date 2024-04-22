@@ -25,28 +25,35 @@ export interface GoogleGenerativeAIProvider {
   ): GoogleGenerativeAILanguageModel;
 }
 
+export interface GoogleGenerativeAIProviderSettings {
+  /**
+Base URL for the Google API calls.
+   */
+  baseURL?: string;
+
+  /**
+@deprecated Use `baseURL` instead.
+   */
+  baseUrl?: string;
+
+  /**
+API key for authenticating requests.
+   */
+  apiKey?: string;
+
+  /**
+Custom headers to include in the requests.
+     */
+  headers?: Record<string, string>;
+
+  generateId?: () => string;
+}
+
 /**
- * Create a Google Generative AI provider.
+Create a Google Generative AI provider instance.
  */
 export function createGoogleGenerativeAI(
-  options: {
-    /**
-     * Base URL for the Google API calls.
-     */
-    baseURL?: string;
-
-    /**
-     * @deprecated Use `baseURL` instead.
-     */
-    baseUrl?: string;
-
-    /**
-     * API key for authenticating requests.
-     */
-    apiKey?: string;
-
-    generateId?: () => string;
-  } = {},
+  options: GoogleGenerativeAIProviderSettings = {},
 ): GoogleGenerativeAIProvider {
   const google = new Google(options);
 
@@ -70,6 +77,6 @@ export function createGoogleGenerativeAI(
 }
 
 /**
- * Default Google Generative AI provider instance.
+Default Google Generative AI provider instance.
  */
 export const google = createGoogleGenerativeAI();

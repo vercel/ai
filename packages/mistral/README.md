@@ -19,8 +19,16 @@ You can import `createMistral` from `@ai-sdk/mistral` and create a provider inst
 import { createMistral } from '@ai-sdk/mistral';
 
 const mistral = createMistral({
-  baseURL: '', // optional base URL for proxies etc.
-  apiKey: '', // optional API key, default to env property MISTRAL_API_KEY
+  // optional base URL for proxies etc.:
+  baseURL: '',
+
+  // optional API key, default to env property MISTRAL_API_KEY:
+  apiKey: '',
+
+  // optional custom headers:
+  headers: {
+    'custom-header': 'value',
+  },
 });
 ```
 

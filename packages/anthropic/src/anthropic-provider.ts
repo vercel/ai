@@ -25,28 +25,35 @@ export interface AnthropicProvider {
   ): AnthropicMessagesLanguageModel;
 }
 
+export interface AnthropicProviderSettings {
+  /**
+Base URL for Anthropic API calls.
+   */
+  baseURL?: string;
+
+  /**
+@deprecated Use `baseURL` instead.
+   */
+  baseUrl?: string;
+
+  /**
+API key for authenticating requests.
+   */
+  apiKey?: string;
+
+  /**
+Custom headers to include in the requests.
+     */
+  headers?: Record<string, string>;
+
+  generateId?: () => string;
+}
+
 /**
- * Create an Anthropic provider.
+Create an Anthropic provider instance.
  */
 export function createAnthropic(
-  options: {
-    /**
-     * Base URL for the Google API calls.
-     */
-    baseURL?: string;
-
-    /**
-     * @deprecated Use `baseURL` instead.
-     */
-    baseUrl?: string;
-
-    /**
-     * API key for authenticating requests.
-     */
-    apiKey?: string;
-
-    generateId?: () => string;
-  } = {},
+  options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
   const anthropic = new Anthropic(options);
 
@@ -70,6 +77,6 @@ export function createAnthropic(
 }
 
 /**
- * Default Anthropic provider instance.
+Default Anthropic provider instance.
  */
 export const anthropic = createAnthropic();

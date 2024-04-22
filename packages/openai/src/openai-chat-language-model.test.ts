@@ -4,13 +4,13 @@ import {
   StreamingTestServer,
   convertStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { OpenAI } from './openai-facade';
+import { createOpenAI } from './openai-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const openai = new OpenAI({
+const provider = createOpenAI({
   apiKey: 'test-api-key',
 });
 
@@ -60,7 +60,7 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
-    const { text } = await openai.chat('gpt-3.5-turbo').doGenerate({
+    const { text } = await provider.chat('gpt-3.5-turbo').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -75,7 +75,7 @@ describe('doGenerate', () => {
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
     });
 
-    const { usage } = await openai.chat('gpt-3.5-turbo').doGenerate({
+    const { usage } = await provider.chat('gpt-3.5-turbo').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -90,7 +90,7 @@ describe('doGenerate', () => {
   it('should pass the model and the messages', async () => {
     prepareJsonResponse({ content: '' });
 
-    await openai.chat('gpt-3.5-turbo').doGenerate({
+    await provider.chat('gpt-3.5-turbo').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -102,12 +102,39 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass custom headers', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const provider = createOpenAI({
+      apiKey: 'test-api-key',
+      organization: 'test-organization',
+      project: 'test-project',
+      headers: {
+        'Custom-Header': 'test-header',
+      },
+    });
+
+    await provider.chat('gpt-3.5-turbo').doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = await server.getRequestHeaders();
+
+    expect(requestHeaders.get('OpenAI-Organization')).toStrictEqual(
+      'test-organization',
+    );
+    expect(requestHeaders.get('OpenAI-Project')).toStrictEqual('test-project');
+    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+  });
+
   it('should pass the api key as Authorization header', async () => {
     prepareJsonResponse({ content: '' });
 
-    const openai = new OpenAI({ apiKey: 'test-api-key' });
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
 
-    await openai.chat('gpt-3.5-turbo').doGenerate({
+    await provider.chat('gpt-3.5-turbo').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -147,7 +174,7 @@ describe('doStream', () => {
   it('should stream text deltas', async () => {
     prepareStreamResponse({ content: ['Hello', ', ', 'World!'] });
 
-    const { stream } = await openai.chat('gpt-3.5-turbo').doStream({
+    const { stream } = await provider.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -201,7 +228,7 @@ describe('doStream', () => {
       'data: [DONE]\n\n',
     ];
 
-    const { stream } = await openai.chat('gpt-3.5-turbo').doStream({
+    const { stream } = await provider.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: {
         type: 'regular',
@@ -290,7 +317,7 @@ describe('doStream', () => {
   it('should pass the messages and the model', async () => {
     prepareStreamResponse({ content: [] });
 
-    await openai.chat('gpt-3.5-turbo').doStream({
+    await provider.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -306,7 +333,7 @@ describe('doStream', () => {
   it('should scale the temperature', async () => {
     prepareStreamResponse({ content: [] });
 
-    await openai.chat('gpt-3.5-turbo').doStream({
+    await provider.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -319,7 +346,7 @@ describe('doStream', () => {
   it('should scale the frequency penalty', async () => {
     prepareStreamResponse({ content: [] });
 
-    await openai.chat('gpt-3.5-turbo').doStream({
+    await provider.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -335,7 +362,7 @@ describe('doStream', () => {
   it('should scale the presence penalty', async () => {
     prepareStreamResponse({ content: [] });
 
-    await openai.chat('gpt-3.5-turbo').doStream({
+    await provider.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -348,31 +375,39 @@ describe('doStream', () => {
     );
   });
 
-  it('should pass the organization as OpenAI-Organization header', async () => {
+  it('should pass custom headers', async () => {
     prepareStreamResponse({ content: [] });
 
-    const openai = new OpenAI({
+    const provider = createOpenAI({
       apiKey: 'test-api-key',
       organization: 'test-organization',
+      project: 'test-project',
+      headers: {
+        'Custom-Header': 'test-header',
+      },
     });
 
-    await openai.chat('gpt-3.5-turbo').doStream({
+    await provider.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(
-      (await server.getRequestHeaders()).get('OpenAI-Organization'),
-    ).toStrictEqual('test-organization');
+    const requestHeaders = await server.getRequestHeaders();
+
+    expect(requestHeaders.get('OpenAI-Organization')).toStrictEqual(
+      'test-organization',
+    );
+    expect(requestHeaders.get('OpenAI-Project')).toStrictEqual('test-project');
+    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
   });
 
   it('should pass the api key as Authorization header', async () => {
     prepareStreamResponse({ content: [] });
 
-    const openai = new OpenAI({ apiKey: 'test-api-key' });
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
 
-    await openai.chat('gpt-3.5-turbo').doStream({
+    await provider.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,

@@ -1,6 +1,6 @@
 # Vercel AI SDK - Anthropic Provider
 
-**Note: The Anthropic API does not support streaming tool calls yet.**
+**Note: The Anthropic API does not support streaming tool calls.**
 
 The Anthropic provider contains language model support for the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post).
 It creates language model objects that can be used with the `generateText` and `streamText`AI functions.
@@ -21,8 +21,16 @@ You can import `createAnthropic` from `@ai-sdk/anthropic` and create a provider 
 import { createAnthropic } from '@ai-sdk/anthropic';
 
 const anthropic = createAnthropic({
-  baseURL: '', // optional base URL for proxies etc.
-  apiKey: '', // optional API key, default to env property ANTHROPIC_API_KEY
+  // optional base URL for proxies etc.:
+  baseURL: '',
+
+  // optional API key, default to env property ANTHROPIC_API_KEY:
+  apiKey: '',
+
+  // optional custom headers:
+  headers: {
+    'custom-header': 'value',
+  },
 });
 ```
 

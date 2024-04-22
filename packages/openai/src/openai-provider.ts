@@ -28,31 +28,43 @@ export interface OpenAIProvider {
   ): OpenAICompletionLanguageModel;
 }
 
+export interface OpenAIProviderSettings {
+  /**
+Base URL for the OpenAI API calls.
+     */
+  baseURL?: string;
+
+  /**
+@deprecated Use `baseURL` instead.
+     */
+  baseUrl?: string;
+
+  /**
+API key for authenticating requests.
+     */
+  apiKey?: string;
+
+  /**
+OpenAI Organization.
+     */
+  organization?: string;
+
+  /**
+OpenAI project.
+     */
+  project?: string;
+
+  /**
+Custom headers to include in the requests.
+     */
+  headers?: Record<string, string>;
+}
+
 /**
- * Create an OpenAI provider.
+Create an OpenAI provider instance.
  */
 export function createOpenAI(
-  options: {
-    /**
-     * Base URL for the OpenAI API calls.
-     */
-    baseURL?: string;
-
-    /**
-     * @deprecated Use `baseURL` instead.
-     */
-    baseUrl?: string;
-
-    /**
-     * API key for authenticating requests.
-     */
-    apiKey?: string;
-
-    /**
-     * Organization ID.
-     */
-    organization?: string;
-  } = {},
+  options: OpenAIProviderSettings = {},
 ): OpenAIProvider {
   const openai = new OpenAI(options);
 

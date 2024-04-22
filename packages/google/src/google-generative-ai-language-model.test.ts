@@ -4,7 +4,7 @@ import {
   StreamingTestServer,
   convertStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { Google } from './google-facade';
+import { createGoogleGenerativeAI } from './google-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -29,11 +29,11 @@ const SAFETY_RATINGS = [
   },
 ];
 
-const google = new Google({
+const provider = createGoogleGenerativeAI({
   apiKey: 'test-api-key',
   generateId: () => 'test-id',
 });
-const model = google.chat('models/gemini-pro');
+const model = provider.chat('models/gemini-pro');
 
 describe('doGenerate', () => {
   const server = new JsonTestServer(
@@ -147,11 +147,31 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass custom headers', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      headers: {
+        'Custom-Header': 'test-header',
+      },
+    });
+
+    await provider.chat('models/gemini-pro').doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = await server.getRequestHeaders();
+    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+  });
+
   it('should pass the api key as Authorization header', async () => {
     prepareJsonResponse({ content: '' });
 
-    const google = new Google({ apiKey: 'test-api-key' });
-    const model = google.chat('models/gemini-pro');
+    const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
+    const model = provider.chat('models/gemini-pro');
 
     await model.doGenerate({
       inputFormat: 'prompt',
@@ -225,12 +245,32 @@ describe('doStream', () => {
     });
   });
 
+  it('should pass custom headers', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      headers: {
+        'Custom-Header': 'test-header',
+      },
+    });
+
+    await provider.chat('models/gemini-pro').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = await server.getRequestHeaders();
+    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+  });
+
   it('should pass the api key as Authorization header', async () => {
     prepareStreamResponse({ content: [''] });
 
-    const google = new Google({ apiKey: 'test-api-key' });
+    const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
 
-    await google.chat('models/gemini-pro').doStream({
+    await provider.chat('models/gemini-pro').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
