@@ -259,7 +259,6 @@ const openAICompletionResponseSchema = z.object({
           tokens: z.array(z.string()),
           token_logprobs: z.array(z.number()),
           top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
-          text_offset: z.array(z.number()),
         })
         .nullable()
         .optional(),
@@ -288,7 +287,6 @@ const openaiCompletionChunkSchema = z.object({
           tokens: z.array(z.string()),
           token_logprobs: z.array(z.number()),
           top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
-          text_offset: z.array(z.number()),
         })
         .nullable()
         .optional(),

@@ -36,7 +36,6 @@ const TEST_LOGPROBS = {
       '.': -0.10247037,
     },
   ] as Record<string, number>[],
-  text_offset: [22, 27, 33, 36, 39, 43],
 };
 
 const provider = createOpenAI({
@@ -68,7 +67,6 @@ describe('doGenerate', () => {
       tokens: string[];
       token_logprobs: number[];
       top_logprobs: Record<string, number>[];
-      text_offset: number[];
     } | null;
     finish_reason?: string;
   }) {
@@ -82,7 +80,7 @@ describe('doGenerate', () => {
           text: content,
           index: 0,
           logprobs,
-          finish_reason: 'stop',
+          finish_reason,
         },
       ],
       usage,
@@ -243,7 +241,6 @@ describe('doStream', () => {
       tokens: string[];
       token_logprobs: number[];
       top_logprobs: Record<string, number>[];
-      text_offset: number[];
     } | null;
     finish_reason?: string;
   }) {
