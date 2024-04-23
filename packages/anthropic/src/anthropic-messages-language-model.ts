@@ -96,7 +96,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
       // standardized settings:
       max_tokens: maxTokens ?? 4096, // 4096: max model output tokens
-      temperature, // uses 0..1 scale
+      temperature,
       top_p: topP,
 
       // prompt:

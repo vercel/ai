@@ -330,51 +330,6 @@ describe('doStream', () => {
     });
   });
 
-  it('should scale the temperature', async () => {
-    prepareStreamResponse({ content: [] });
-
-    await provider.chat('gpt-3.5-turbo').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      temperature: 0.5,
-    });
-
-    expect((await server.getRequestBodyJson()).temperature).toBeCloseTo(1, 5);
-  });
-
-  it('should scale the frequency penalty', async () => {
-    prepareStreamResponse({ content: [] });
-
-    await provider.chat('gpt-3.5-turbo').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      frequencyPenalty: 0.2,
-    });
-
-    expect((await server.getRequestBodyJson()).frequency_penalty).toBeCloseTo(
-      0.4,
-      5,
-    );
-  });
-
-  it('should scale the presence penalty', async () => {
-    prepareStreamResponse({ content: [] });
-
-    await provider.chat('gpt-3.5-turbo').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      presencePenalty: -0.9,
-    });
-
-    expect((await server.getRequestBodyJson()).presence_penalty).toBeCloseTo(
-      -1.8,
-      5,
-    );
-  });
-
   it('should pass custom headers', async () => {
     prepareStreamResponse({ content: [] });
 

@@ -12,7 +12,6 @@ import {
   generateId,
   isParseableJson,
   postJsonToApi,
-  scale,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
@@ -71,26 +70,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
       // standardized settings:
       max_tokens: maxTokens,
-      temperature: scale({
-        value: temperature,
-        outputMin: 0,
-        outputMax: 2,
-      }),
+      temperature,
       top_p: topP,
-      frequency_penalty: scale({
-        value: frequencyPenalty,
-        inputMin: -1,
-        inputMax: 1,
-        outputMin: -2,
-        outputMax: 2,
-      }),
-      presence_penalty: scale({
-        value: presencePenalty,
-        inputMin: -1,
-        inputMax: 1,
-        outputMin: -2,
-        outputMax: 2,
-      }),
+      frequency_penalty: frequencyPenalty,
+      presence_penalty: presencePenalty,
       seed,
 
       // messages:

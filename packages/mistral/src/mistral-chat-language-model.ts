@@ -87,7 +87,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
       // standardized settings:
       max_tokens: maxTokens,
-      temperature, // uses 0..1 scale
+      temperature,
       top_p: topP,
       random_seed: seed,
 
