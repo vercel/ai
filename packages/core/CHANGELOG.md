@@ -1,5 +1,20 @@
 # ai
 
+## 3.0.27
+
+### Patch Changes
+
+- eb150a6: ai/core: remove scaling of setting values (breaking change). If you were using the temperature, frequency penalty, or presence penalty settings, you need to update the providers and adjust the setting values.
+- Updated dependencies [eb150a6]
+  - @ai-sdk/provider-utils@0.0.2
+  - @ai-sdk/provider@0.0.1
+
+## 3.0.26
+
+### Patch Changes
+
+- f90f6a1: ai/core: add pipeAIStreamToResponse() to streamText result.
+
 ## 3.0.25
 
 ### Patch Changes

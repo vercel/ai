@@ -39,14 +39,6 @@ export function prepareCallSettings({
         message: 'temperature must be a number',
       });
     }
-
-    if (temperature < 0 || temperature > 1) {
-      throw new InvalidArgumentError({
-        parameter: 'temperature',
-        value: temperature,
-        message: 'temperature must be between 0 and 1 (inclusive)',
-      });
-    }
   }
 
   if (topP != null) {
@@ -55,14 +47,6 @@ export function prepareCallSettings({
         parameter: 'topP',
         value: topP,
         message: 'topP must be a number',
-      });
-    }
-
-    if (topP < 0 || topP > 1) {
-      throw new InvalidArgumentError({
-        parameter: 'topP',
-        value: topP,
-        message: 'topP must be between 0 and 1 (inclusive)',
       });
     }
   }
@@ -75,14 +59,6 @@ export function prepareCallSettings({
         message: 'presencePenalty must be a number',
       });
     }
-
-    if (presencePenalty < -1 || presencePenalty > 1) {
-      throw new InvalidArgumentError({
-        parameter: 'presencePenalty',
-        value: presencePenalty,
-        message: 'presencePenalty must be between -1 and 1 (inclusive)',
-      });
-    }
   }
 
   if (frequencyPenalty != null) {
@@ -91,14 +67,6 @@ export function prepareCallSettings({
         parameter: 'frequencyPenalty',
         value: frequencyPenalty,
         message: 'frequencyPenalty must be a number',
-      });
-    }
-
-    if (frequencyPenalty < -1 || frequencyPenalty > 1) {
-      throw new InvalidArgumentError({
-        parameter: 'frequencyPenalty',
-        value: frequencyPenalty,
-        message: 'frequencyPenalty must be between -1 and 1 (inclusive)',
       });
     }
   }
