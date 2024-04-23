@@ -2,6 +2,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
 } from '@ai-sdk/provider';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -116,6 +117,7 @@ The tools that the model can call. The model needs to support calling tools.
     usage: calculateTokenUsage(modelResponse.usage),
     warnings: modelResponse.warnings,
     rawResponse: modelResponse.rawResponse,
+    logprobs: modelResponse.logprobs,
   });
 }
 
@@ -197,6 +199,12 @@ Response headers.
     headers?: Record<string, string>;
   };
 
+  /**
+Logprobs for the completion. 
+`undefined` if the mode does not support logprobs or if was not enabled
+   */
+  readonly logprobs: LanguageModelV1LogProbs | undefined;
+
   constructor(options: {
     text: string;
     toolCalls: ToToolCallArray<TOOLS>;
@@ -207,6 +215,7 @@ Response headers.
     rawResponse?: {
       headers?: Record<string, string>;
     };
+    logprobs: LanguageModelV1LogProbs | undefined;
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -215,5 +224,6 @@ Response headers.
     this.usage = options.usage;
     this.warnings = options.warnings;
     this.rawResponse = options.rawResponse;
+    this.logprobs = options.logprobs;
   }
 }

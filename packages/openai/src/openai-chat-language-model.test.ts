@@ -5,6 +5,7 @@ import {
   convertStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from './openai-provider';
+import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -12,6 +13,101 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
 
 const provider = createOpenAI({ apiKey: 'test-api-key' });
 const model = provider.chat('gpt-3.5-turbo');
+
+const TEST_LOGPROBS = {
+  content: [
+    {
+      token: 'Hello',
+      logprob: -0.0009994634,
+      top_logprobs: [
+        {
+          token: 'Hello',
+          logprob: -0.0009994634,
+        },
+      ],
+    },
+    {
+      token: '!',
+      logprob: -0.13410144,
+      top_logprobs: [
+        {
+          token: '!',
+          logprob: -0.13410144,
+        },
+      ],
+    },
+    {
+      token: ' How',
+      logprob: -0.0009250381,
+      top_logprobs: [
+        {
+          token: ' How',
+          logprob: -0.0009250381,
+        },
+      ],
+    },
+    {
+      token: ' can',
+      logprob: -0.047709424,
+      top_logprobs: [
+        {
+          token: ' can',
+          logprob: -0.047709424,
+        },
+      ],
+    },
+    {
+      token: ' I',
+      logprob: -0.000009014684,
+      top_logprobs: [
+        {
+          token: ' I',
+          logprob: -0.000009014684,
+        },
+      ],
+    },
+    {
+      token: ' assist',
+      logprob: -0.009125131,
+      top_logprobs: [
+        {
+          token: ' assist',
+          logprob: -0.009125131,
+        },
+      ],
+    },
+    {
+      token: ' you',
+      logprob: -0.0000066306106,
+      top_logprobs: [
+        {
+          token: ' you',
+          logprob: -0.0000066306106,
+        },
+      ],
+    },
+    {
+      token: ' today',
+      logprob: -0.00011093382,
+      top_logprobs: [
+        {
+          token: ' today',
+          logprob: -0.00011093382,
+        },
+      ],
+    },
+    {
+      token: '?',
+      logprob: -0.00004596782,
+      top_logprobs: [
+        {
+          token: '?',
+          logprob: -0.00004596782,
+        },
+      ],
+    },
+  ],
+};
 
 describe('doGenerate', () => {
   const server = new JsonTestServer(
@@ -27,6 +123,8 @@ describe('doGenerate', () => {
       total_tokens: 34,
       completion_tokens: 30,
     },
+    logprobs = null,
+    finish_reason = 'stop',
   }: {
     content?: string;
     usage?: {
@@ -34,6 +132,16 @@ describe('doGenerate', () => {
       total_tokens: number;
       completion_tokens: number;
     };
+    logprobs?: {
+      content:
+        | {
+            token: string;
+            logprob: number;
+            top_logprobs: { token: string; logprob: number }[];
+          }[]
+        | null;
+    } | null;
+    finish_reason?: string;
   }) {
     server.responseBodyJson = {
       id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
@@ -47,8 +155,8 @@ describe('doGenerate', () => {
             role: 'assistant',
             content,
           },
-          logprobs: null,
-          finish_reason: 'stop',
+          logprobs,
+          finish_reason,
         },
       ],
       usage,
@@ -86,27 +194,59 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should expose the raw response headers', async () => {
-    prepareJsonResponse({ content: '' });
+  it('should extract logprobs', async () => {
+    prepareJsonResponse({
+      logprobs: TEST_LOGPROBS,
+    });
 
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
 
-    const { rawResponse } = await model.doGenerate({
+    const response = await provider
+      .chat('gpt-3.5-turbo', { logprobs: 1 })
+      .doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+    expect(response.logprobs).toStrictEqual(
+      mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
+    );
+  });
+
+  it('should extract finish reason', async () => {
+    prepareJsonResponse({
+      content: '',
+      finish_reason: 'stop',
+    });
+
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
+
+    const response = await provider.chat('gpt-3.5-turbo').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
-
-    expect(rawResponse?.headers).toStrictEqual({
-      // default headers:
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
+    
+    expect(response.finishReason).toStrictEqual('stop');
   });
+
+  it('should expose the raw response headers', async () => {
+    prepareJsonResponse({ content: '' });
+  
+    server.responseHeaders = {
+      'test-header': 'test-value',
+    };
+  
+    const { rawResponse } = await model.doGenerate({
+  
+      expect(rawResponse?.headers).toStrictEqual({
+        // default headers:
+        'content-type': 'application/json',
+  
+        // custom header
+        'test-header': 'test-value',
+      });
+    });
 
   it('should pass the model and the messages', async () => {
     prepareJsonResponse({ content: '' });
@@ -120,6 +260,7 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      logprobs: false,
     });
   });
 
@@ -174,7 +315,33 @@ describe('doStream', () => {
 
   server.setupTestEnvironment();
 
-  function prepareStreamResponse({ content }: { content: string[] }) {
+  function prepareStreamResponse({
+    content,
+    usage = {
+      prompt_tokens: 17,
+      total_tokens: 244,
+      completion_tokens: 227,
+    },
+    logprobs = null,
+    finish_reason = 'stop',
+  }: {
+    content: string[];
+    usage?: {
+      prompt_tokens: number;
+      total_tokens: number;
+      completion_tokens: number;
+    };
+    logprobs?: {
+      content:
+        | {
+            token: string;
+            logprob: number;
+            top_logprobs: { token: string; logprob: number }[];
+          }[]
+        | null;
+    } | null;
+    finish_reason?: string;
+  }) {
     server.responseChunks = [
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
         `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
@@ -185,15 +352,28 @@ describe('doStream', () => {
         );
       }),
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
-        `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
-      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"completion_tokens":227,"total_tokens":244}}\n\n`,
+        `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}","logprobs":${JSON.stringify(
+          logprobs,
+        )}}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":${JSON.stringify(
+          usage,
+        )}}\n\n`,
       'data: [DONE]\n\n',
     ];
   }
 
   it('should stream text deltas', async () => {
-    prepareStreamResponse({ content: ['Hello', ', ', 'World!'] });
+    prepareStreamResponse({
+      content: ['Hello', ', ', 'World!'],
+      finish_reason: 'stop',
+      usage: {
+        prompt_tokens: 17,
+        total_tokens: 244,
+        completion_tokens: 227,
+      },
+      logprobs: TEST_LOGPROBS,
+    });
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -210,6 +390,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
+        logprobs: mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
         usage: { promptTokens: 17, completionTokens: 227 },
       },
     ]);
@@ -330,6 +511,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'tool-calls',
+        logprobs: undefined,
         usage: { promptTokens: 53, completionTokens: 17 },
       },
     ]);
@@ -372,6 +554,7 @@ describe('doStream', () => {
       stream: true,
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      logprobs: false,
     });
   });
 

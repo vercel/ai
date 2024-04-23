@@ -25,6 +25,7 @@ describe('result.textStream', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
+                logprobs: undefined,
                 usage: { completionTokens: 10, promptTokens: 3 },
               },
             ]),
@@ -60,6 +61,7 @@ describe('result.fullStream', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
+                logprobs: undefined,
                 usage: { completionTokens: 10, promptTokens: 3 },
               },
             ]),
@@ -79,6 +81,7 @@ describe('result.fullStream', () => {
         {
           type: 'finish',
           finishReason: 'stop',
+          logprobs: undefined,
           usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
         },
       ],
@@ -122,6 +125,7 @@ describe('result.fullStream', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
+                logprobs: undefined,
                 usage: { completionTokens: 10, promptTokens: 3 },
               },
             ]),
@@ -149,6 +153,7 @@ describe('result.fullStream', () => {
         {
           type: 'finish',
           finishReason: 'stop',
+          logprobs: undefined,
           usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
         },
       ],
@@ -192,6 +197,7 @@ describe('result.fullStream', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
+                logprobs: undefined,
                 usage: { completionTokens: 10, promptTokens: 3 },
               },
             ]),
@@ -227,6 +233,7 @@ describe('result.fullStream', () => {
         {
           type: 'finish',
           finishReason: 'stop',
+          logprobs: undefined,
           usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
         },
       ],

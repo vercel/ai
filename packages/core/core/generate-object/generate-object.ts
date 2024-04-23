@@ -2,6 +2,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
   NoTextGeneratedError,
 } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
@@ -94,6 +95,7 @@ Default and recommended: 'auto' (best mode for the model).
   let usage: Parameters<typeof calculateTokenUsage>[0];
   let warnings: LanguageModelV1CallWarning[] | undefined;
   let rawResponse: { headers?: Record<string, string> } | undefined;
+  let logprobs: LanguageModelV1LogProbs | undefined;
 
   switch (mode) {
     case 'json': {
@@ -122,6 +124,7 @@ Default and recommended: 'auto' (best mode for the model).
       usage = generateResult.usage;
       warnings = generateResult.warnings;
       rawResponse = generateResult.rawResponse;
+      logprobs = generateResult.logprobs;
 
       break;
     }
@@ -152,6 +155,7 @@ Default and recommended: 'auto' (best mode for the model).
       usage = generateResult.usage;
       warnings = generateResult.warnings;
       rawResponse = generateResult.rawResponse;
+      logprobs = generateResult.logprobs;
 
       break;
     }
@@ -192,6 +196,7 @@ Default and recommended: 'auto' (best mode for the model).
       usage = generateResult.usage;
       warnings = generateResult.warnings;
       rawResponse = generateResult.rawResponse;
+      logprobs = generateResult.logprobs;
 
       break;
     }
@@ -218,6 +223,7 @@ Default and recommended: 'auto' (best mode for the model).
     usage: calculateTokenUsage(usage),
     warnings,
     rawResponse,
+    logprobs,
   });
 }
 
@@ -255,6 +261,12 @@ Response headers.
     headers?: Record<string, string>;
   };
 
+  /**
+Logprobs for the completion. 
+`undefined` if the mode does not support logprobs or if was not enabled
+   */
+  readonly logprobs: LanguageModelV1LogProbs | undefined;
+
   constructor(options: {
     object: T;
     finishReason: LanguageModelV1FinishReason;
@@ -263,11 +275,13 @@ Response headers.
     rawResponse?: {
       headers?: Record<string, string>;
     };
+    logprobs: LanguageModelV1LogProbs | undefined;
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
     this.rawResponse = options.rawResponse;
+    this.logprobs = options.logprobs;
   }
 }

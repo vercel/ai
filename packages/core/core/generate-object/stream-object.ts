@@ -2,6 +2,8 @@ import {
   LanguageModelV1,
   LanguageModelV1CallOptions,
   LanguageModelV1CallWarning,
+  LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import { z } from 'zod';
@@ -20,6 +22,7 @@ import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { calculateTokenUsage } from '../generate-text/token-usage';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -119,6 +122,7 @@ Default and recommended: 'auto' (best mode for the model).
             case 'text-delta':
               controller.enqueue(chunk.textDelta);
               break;
+            case 'finish':
             case 'error':
               controller.enqueue(chunk);
               break;
@@ -150,6 +154,7 @@ Default and recommended: 'auto' (best mode for the model).
             case 'text-delta':
               controller.enqueue(chunk.textDelta);
               break;
+            case 'finish':
             case 'error':
               controller.enqueue(chunk);
               break;
@@ -189,6 +194,7 @@ Default and recommended: 'auto' (best mode for the model).
             case 'tool-call-delta':
               controller.enqueue(chunk.argsTextDelta);
               break;
+            case 'finish':
             case 'error':
               controller.enqueue(chunk);
               break;
@@ -218,11 +224,36 @@ Default and recommended: 'auto' (best mode for the model).
   });
 }
 
+export type ObjectStreamPartInput =
+  | {
+      type: 'error';
+      error: unknown;
+    }
+  | {
+      type: 'finish';
+      finishReason: LanguageModelV1FinishReason;
+      logprobs?: LanguageModelV1LogProbs;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+    };
+
+export type ObjectStreamPart<T> =
+  | ObjectStreamPartInput
+  | {
+      type: 'object';
+      object: DeepPartial<T>;
+    };
+
 /**
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
 export class StreamObjectResult<T> {
-  private readonly originalStream: ReadableStream<string | ErrorStreamPart>;
+  private readonly originalStream: ReadableStream<
+    string | ObjectStreamPartInput
+  >;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
@@ -244,7 +275,7 @@ Response headers.
     warnings,
     rawResponse,
   }: {
-    stream: ReadableStream<string | ErrorStreamPart>;
+    stream: ReadableStream<string | ObjectStreamPartInput>;
     warnings: LanguageModelV1CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
@@ -273,14 +304,44 @@ Response headers.
 
             controller.enqueue(currentObject);
           }
-        }
-
-        if (typeof chunk === 'object' && chunk.type === 'error') {
+        } else if (chunk.type === 'error') {
           throw chunk.error;
         }
       },
     });
   }
-}
 
-export type ErrorStreamPart = { type: 'error'; error: unknown };
+  get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
+    let accumulatedText = '';
+    let latestObject: DeepPartial<T> | undefined = undefined;
+
+    return createAsyncIterableStream(this.originalStream, {
+      transform(chunk, controller) {
+        if (typeof chunk === 'string') {
+          accumulatedText += chunk;
+          const currentObject = parsePartialJson(
+            accumulatedText,
+          ) as DeepPartial<T>;
+
+          if (!isDeepEqualData(latestObject, currentObject)) {
+            latestObject = currentObject;
+
+            controller.enqueue({ type: 'object', object: currentObject });
+          }
+        } else {
+          switch (chunk.type) {
+            case 'finish':
+              controller.enqueue({
+                ...chunk,
+                usage: calculateTokenUsage(chunk.usage),
+              });
+              break;
+            default:
+              controller.enqueue(chunk);
+              break;
+          }
+        }
+      },
+    });
+  }
+}

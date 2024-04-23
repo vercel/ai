@@ -2,6 +2,7 @@ import {
   InvalidResponseDataError,
   LanguageModelV1,
   LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -18,6 +19,7 @@ import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import { openaiFailedResponseHandler } from './openai-error';
+import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -66,6 +68,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
       // model specific settings:
       logit_bias: this.settings.logitBias,
+      logprobs:
+        this.settings.logprobs === true ||
+        typeof this.settings.logprobs === 'number',
+      top_logprobs:
+        typeof this.settings.logprobs === 'number'
+          ? this.settings.logprobs
+          : typeof this.settings.logprobs === 'boolean'
+          ? this.settings.logprobs
+            ? 0
+            : undefined
+          : undefined,
       user: this.settings.user,
 
       // standardized settings:
@@ -170,6 +183,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings: [],
+      logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
     };
   }
 
@@ -208,6 +222,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
+    let logprobs: LanguageModelV1LogProbs;
 
     return {
       stream: response.pipeThrough(
@@ -247,6 +262,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 type: 'text-delta',
                 textDelta: delta.content,
               });
+            }
+
+            const mappedLogprobs = mapOpenAIChatLogProbsOutput(
+              choice?.logprobs,
+            );
+            if (mappedLogprobs?.length) {
+              if (logprobs === undefined) logprobs = [];
+              logprobs.push(...mappedLogprobs);
             }
 
             if (delta.tool_calls != null) {
@@ -326,7 +349,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           },
 
           flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              logprobs,
+              usage,
+            });
           },
         }),
       ),
@@ -359,6 +387,25 @@ const openAIChatResponseSchema = z.object({
           .optional(),
       }),
       index: z.number(),
+      logprobs: z
+        .object({
+          content: z
+            .array(
+              z.object({
+                token: z.string(),
+                logprob: z.number(),
+                top_logprobs: z.array(
+                  z.object({
+                    token: z.string(),
+                    logprob: z.number(),
+                  }),
+                ),
+              }),
+            )
+            .nullable(),
+        })
+        .nullable()
+        .optional(),
       finish_reason: z.string().optional().nullable(),
     }),
   ),
@@ -395,6 +442,25 @@ const openaiChatChunkSchema = z.object({
           )
           .optional(),
       }),
+      logprobs: z
+        .object({
+          content: z
+            .array(
+              z.object({
+                token: z.string(),
+                logprob: z.number(),
+                top_logprobs: z.array(
+                  z.object({
+                    token: z.string(),
+                    logprob: z.number(),
+                  }),
+                ),
+              }),
+            )
+            .nullable(),
+        })
+        .nullable()
+        .optional(),
       finish_reason: z.string().nullable().optional(),
       index: z.number(),
     }),

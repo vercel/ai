@@ -1,6 +1,7 @@
 import {
   LanguageModelV1,
   LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -18,6 +19,7 @@ import {
   OpenAICompletionSettings,
 } from './openai-completion-settings';
 import { openaiFailedResponseHandler } from './openai-error';
+import { mapOpenAICompletionLogProbs } from './map-openai-completion-logprobs';
 
 type OpenAICompletionConfig = {
   provider: string;
@@ -71,6 +73,14 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       // model specific settings:
       echo: this.settings.echo,
       logit_bias: this.settings.logitBias,
+      logprobs:
+        typeof this.settings.logprobs === 'number'
+          ? this.settings.logprobs
+          : typeof this.settings.logprobs === 'boolean'
+          ? this.settings.logprobs
+            ? 0
+            : undefined
+          : undefined,
       suffix: this.settings.suffix,
       user: this.settings.user,
 
@@ -88,6 +98,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       // stop sequences:
       stop: stopSequences,
     };
+
+    console.log('BASE ARGS LOGS', baseArgs.logprobs);
 
     switch (type) {
       case 'regular': {
@@ -151,6 +163,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.completion_tokens,
       },
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
+      logprobs: mapOpenAICompletionLogProbs(choice.logprobs),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings: [],
@@ -183,6 +196,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
+    let logprobs: LanguageModelV1LogProbs;
 
     return {
       stream: response.pipeThrough(
@@ -217,10 +231,23 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
                 textDelta: choice.text,
               });
             }
+
+            const mappedLogprobs = mapOpenAICompletionLogProbs(
+              choice?.logprobs,
+            );
+            if (mappedLogprobs?.length) {
+              if (logprobs === undefined) logprobs = [];
+              logprobs.push(...mappedLogprobs);
+            }
           },
 
           flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              logprobs,
+              usage,
+            });
           },
         }),
       ),
@@ -238,6 +265,14 @@ const openAICompletionResponseSchema = z.object({
     z.object({
       text: z.string(),
       finish_reason: z.string(),
+      logprobs: z
+        .object({
+          tokens: z.array(z.string()),
+          token_logprobs: z.array(z.number()),
+          top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
+        })
+        .nullable()
+        .optional(),
     }),
   ),
   usage: z.object({
@@ -258,6 +293,14 @@ const openaiCompletionChunkSchema = z.object({
         .optional()
         .nullable(),
       index: z.number(),
+      logprobs: z
+        .object({
+          tokens: z.array(z.string()),
+          token_logprobs: z.array(z.number()),
+          top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
+        })
+        .nullable()
+        .optional(),
     }),
   ),
   usage: z

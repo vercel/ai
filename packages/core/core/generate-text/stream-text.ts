@@ -2,6 +2,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
 } from '@ai-sdk/provider';
 import {
   AIStreamCallbacksAndOptions,
@@ -133,6 +134,7 @@ export type TextStreamPart<TOOLS extends Record<string, ExperimentalTool>> =
   | {
       type: 'finish';
       finishReason: LanguageModelV1FinishReason;
+      logprobs?: LanguageModelV1LogProbs;
       usage: {
         promptTokens: number;
         completionTokens: number;
