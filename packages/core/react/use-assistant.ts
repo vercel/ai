@@ -141,6 +141,8 @@ export function useAssistant({
       data?: Record<string, string>;
     },
   ) => {
+    setStatus('in_progress');
+
     setMessages(messages => [
       ...messages,
       {
