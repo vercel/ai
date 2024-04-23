@@ -101,6 +101,7 @@ const model = openai.chat('gpt-3.5-turbo', {
     // optional likelihood for specific tokens
     '50256': -100,
   },
+  logprobs: true, // provides log probabilities for each token
   user: 'test-user', // optional unique user identifier
 });
 ```
@@ -125,6 +126,7 @@ const model = openai.completion('gpt-3.5-turbo-instruct', {
     // optional likelihood for specific tokens
     '50256': -100,
   },
+  logprobs: true, // provides log probabilities for each token
   suffix: 'some text', // optional suffix that comes after a completion of inserted text
   user: 'test-user', // optional unique user identifier
 });

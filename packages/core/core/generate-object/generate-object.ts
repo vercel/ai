@@ -2,6 +2,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
   NoTextGeneratedError,
 } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
@@ -93,6 +94,7 @@ Default and recommended: 'auto' (best mode for the model).
   let finishReason: LanguageModelV1FinishReason;
   let usage: Parameters<typeof calculateTokenUsage>[0];
   let warnings: LanguageModelV1CallWarning[] | undefined;
+  let logprobs: LanguageModelV1LogProbs | undefined;
 
   switch (mode) {
     case 'json': {
@@ -120,6 +122,7 @@ Default and recommended: 'auto' (best mode for the model).
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
+      logprobs = generateResult.logprobs;
 
       break;
     }
@@ -149,6 +152,7 @@ Default and recommended: 'auto' (best mode for the model).
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
+      logprobs = generateResult.logprobs;
 
       break;
     }
@@ -188,6 +192,7 @@ Default and recommended: 'auto' (best mode for the model).
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
+      logprobs = generateResult.logprobs;
 
       break;
     }
@@ -213,6 +218,7 @@ Default and recommended: 'auto' (best mode for the model).
     finishReason,
     usage: calculateTokenUsage(usage),
     warnings,
+    logprobs,
   });
 }
 
@@ -240,15 +246,23 @@ Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
+  /**
+Logprobs for the completion. 
+`undefined` if the mode does not support logprobs or if was not enabled
+   */
+  readonly logprobs: LanguageModelV1LogProbs | undefined;
+
   constructor(options: {
     object: T;
     finishReason: LanguageModelV1FinishReason;
     usage: TokenUsage;
     warnings: LanguageModelV1CallWarning[] | undefined;
+    logprobs: LanguageModelV1LogProbs | undefined;
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
+    this.logprobs = options.logprobs;
   }
 }
