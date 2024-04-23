@@ -1,5 +1,14 @@
 # @ai-sdk/provider-utils
 
+## 0.0.3
+
+### Patch Changes
+
+- 25f3350: ai/core: add support for getting raw response headers.
+- Updated dependencies [d6431ae]
+- Updated dependencies [25f3350]
+  - @ai-sdk/provider@0.0.2
+
 ## 0.0.2
 
 ### Patch Changes
