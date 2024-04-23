@@ -262,7 +262,7 @@ describe('result.toAIStream', () => {
   });
 });
 
-describe('result.pipeAIStreamToServerResponse', async () => {
+describe('result.pipeAIStreamToResponse', async () => {
   it('should write text deltas to a Node.js response-like object', async () => {
     const mockResponse = createMockServerResponse();
 
@@ -282,7 +282,7 @@ describe('result.pipeAIStreamToServerResponse', async () => {
       prompt: 'test-input',
     });
 
-    result.pipeAIStreamToServerResponse(mockResponse);
+    result.pipeAIStreamToResponse(mockResponse);
 
     // Wait for the stream to finish writing to the mock response
     await new Promise(resolve => {

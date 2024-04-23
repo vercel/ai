@@ -227,7 +227,7 @@ writes each text delta as a separate chunk.
 @param response A Node.js response-like object (ServerResponse).
 @param init Optional headers and status code.
    */
-  pipeAIStreamToServerResponse(
+  pipeAIStreamToResponse(
     response: ServerResponse,
     init?: { headers?: Record<string, string>; status?: number },
   ) {

@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-ai/core: add pipeAIStreamToServerResponse() to streamText result.
+ai/core: add pipeAIStreamToResponse() to streamText result.

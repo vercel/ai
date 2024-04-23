@@ -21,5 +21,5 @@ export default async function handler(
 
   // write the AI stream to the response
   // Note: this is sent as a single response, not a stream
-  result.pipeAIStreamToServerResponse(res);
+  result.pipeAIStreamToResponse(res);
 }
