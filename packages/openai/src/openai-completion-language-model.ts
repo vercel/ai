@@ -99,8 +99,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       stop: stopSequences,
     };
 
-    console.log('BASE ARGS LOGS', baseArgs.logprobs);
-
     switch (type) {
       case 'regular': {
         if (mode.tools?.length) {

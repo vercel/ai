@@ -11,9 +11,6 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const provider = createOpenAI({ apiKey: 'test-api-key' });
-const model = provider.chat('gpt-3.5-turbo');
-
 const TEST_LOGPROBS = {
   content: [
     {
@@ -109,6 +106,9 @@ const TEST_LOGPROBS = {
   ],
 };
 
+const provider = createOpenAI({ apiKey: 'test-api-key' });
+const model = provider.chat('gpt-3.5-turbo');
+
 describe('doGenerate', () => {
   const server = new JsonTestServer(
     'https://api.openai.com/v1/chat/completions',
@@ -199,8 +199,6 @@ describe('doGenerate', () => {
       logprobs: TEST_LOGPROBS,
     });
 
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-
     const response = await provider
       .chat('gpt-3.5-turbo', { logprobs: 1 })
       .doGenerate({
@@ -219,34 +217,36 @@ describe('doGenerate', () => {
       finish_reason: 'stop',
     });
 
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-
-    const response = await provider.chat('gpt-3.5-turbo').doGenerate({
+    const response = await model.doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
-    
+
     expect(response.finishReason).toStrictEqual('stop');
   });
 
   it('should expose the raw response headers', async () => {
     prepareJsonResponse({ content: '' });
-  
+
     server.responseHeaders = {
       'test-header': 'test-value',
     };
-  
+
     const { rawResponse } = await model.doGenerate({
-  
-      expect(rawResponse?.headers).toStrictEqual({
-        // default headers:
-        'content-type': 'application/json',
-  
-        // custom header
-        'test-header': 'test-value',
-      });
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
     });
+
+    expect(rawResponse?.headers).toStrictEqual({
+      // default headers:
+      'content-type': 'application/json',
+
+      // custom header
+      'test-header': 'test-value',
+    });
+  });
 
   it('should pass the model and the messages', async () => {
     prepareJsonResponse({ content: '' });
