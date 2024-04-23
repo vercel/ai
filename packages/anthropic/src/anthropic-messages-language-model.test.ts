@@ -11,10 +11,7 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const provider = createAnthropic({
-  apiKey: 'test-api-key',
-});
-
+const provider = createAnthropic({ apiKey: 'test-api-key' });
 const model = provider.chat('claude-3-haiku-20240307');
 
 describe('doGenerate', () => {
@@ -181,6 +178,28 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should expose the raw response headers', async () => {
+    prepareJsonResponse({});
+
+    server.responseHeaders = {
+      'test-header': 'test-value',
+    };
+
+    const { rawResponse } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(rawResponse?.headers).toStrictEqual({
+      // default headers:
+      'content-type': 'application/json',
+
+      // custom header
+      'test-header': 'test-value',
+    });
+  });
+
   it('should pass the model and the messages', async () => {
     prepareJsonResponse({});
 
@@ -277,6 +296,30 @@ describe('doStream', () => {
         usage: { promptTokens: 17, completionTokens: 227 },
       },
     ]);
+  });
+
+  it('should expose the raw response headers', async () => {
+    prepareStreamResponse({ content: [] });
+
+    server.responseHeaders = {
+      'test-header': 'test-value',
+    };
+
+    const { rawResponse } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(rawResponse?.headers).toStrictEqual({
+      // default headers:
+      'content-type': 'text/event-stream',
+      'cache-control': 'no-cache',
+      connection: 'keep-alive',
+
+      // custom header
+      'test-header': 'test-value',
+    });
   });
 
   it('should pass the messages and the model', async () => {

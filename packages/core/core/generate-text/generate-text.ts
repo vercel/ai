@@ -116,6 +116,7 @@ The tools that the model can call. The model needs to support calling tools.
     finishReason: modelResponse.finishReason,
     usage: calculateTokenUsage(modelResponse.usage),
     warnings: modelResponse.warnings,
+    rawResponse: modelResponse.rawResponse,
     logprobs: modelResponse.logprobs,
   });
 }
@@ -189,6 +190,16 @@ Warnings from the model provider (e.g. unsupported settings)
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
   /**
+Optional raw response data.
+   */
+  rawResponse?: {
+    /**
+Response headers.
+   */
+    headers?: Record<string, string>;
+  };
+
+  /**
 Logprobs for the completion. 
 `undefined` if the mode does not support logprobs or if was not enabled
    */
@@ -201,6 +212,9 @@ Logprobs for the completion.
     finishReason: LanguageModelV1FinishReason;
     usage: TokenUsage;
     warnings: LanguageModelV1CallWarning[] | undefined;
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
     logprobs: LanguageModelV1LogProbs | undefined;
   }) {
     this.text = options.text;
@@ -209,6 +223,7 @@ Logprobs for the completion.
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
+    this.rawResponse = options.rawResponse;
     this.logprobs = options.logprobs;
   }
 }

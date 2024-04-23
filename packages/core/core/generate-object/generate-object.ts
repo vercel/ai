@@ -94,6 +94,7 @@ Default and recommended: 'auto' (best mode for the model).
   let finishReason: LanguageModelV1FinishReason;
   let usage: Parameters<typeof calculateTokenUsage>[0];
   let warnings: LanguageModelV1CallWarning[] | undefined;
+  let rawResponse: { headers?: Record<string, string> } | undefined;
   let logprobs: LanguageModelV1LogProbs | undefined;
 
   switch (mode) {
@@ -122,6 +123,7 @@ Default and recommended: 'auto' (best mode for the model).
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
+      rawResponse = generateResult.rawResponse;
       logprobs = generateResult.logprobs;
 
       break;
@@ -152,6 +154,7 @@ Default and recommended: 'auto' (best mode for the model).
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
+      rawResponse = generateResult.rawResponse;
       logprobs = generateResult.logprobs;
 
       break;
@@ -192,6 +195,7 @@ Default and recommended: 'auto' (best mode for the model).
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
+      rawResponse = generateResult.rawResponse;
       logprobs = generateResult.logprobs;
 
       break;
@@ -218,6 +222,7 @@ Default and recommended: 'auto' (best mode for the model).
     finishReason,
     usage: calculateTokenUsage(usage),
     warnings,
+    rawResponse,
     logprobs,
   });
 }
@@ -247,6 +252,16 @@ Warnings from the model provider (e.g. unsupported settings)
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
   /**
+Optional raw response data.
+   */
+  rawResponse?: {
+    /**
+Response headers.
+ */
+    headers?: Record<string, string>;
+  };
+
+  /**
 Logprobs for the completion. 
 `undefined` if the mode does not support logprobs or if was not enabled
    */
@@ -257,12 +272,16 @@ Logprobs for the completion.
     finishReason: LanguageModelV1FinishReason;
     usage: TokenUsage;
     warnings: LanguageModelV1CallWarning[] | undefined;
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
     logprobs: LanguageModelV1LogProbs | undefined;
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
+    this.rawResponse = options.rawResponse;
     this.logprobs = options.logprobs;
   }
 }

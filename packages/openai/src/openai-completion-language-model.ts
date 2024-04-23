@@ -99,8 +99,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       stop: stopSequences,
     };
 
-    console.log('BASE ARGS LOGS', baseArgs.logprobs);
-
     switch (type) {
       case 'regular': {
         if (mode.tools?.length) {
@@ -142,7 +140,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const args = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/completions`,
       headers: this.config.headers(),
       body: args,
@@ -165,6 +163,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       logprobs: mapOpenAICompletionLogProbs(choice.logprobs),
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings: [],
     };
   }
@@ -174,7 +173,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const args = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/completions`,
       headers: this.config.headers(),
       body: {
@@ -251,6 +250,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings: [],
     };
   }

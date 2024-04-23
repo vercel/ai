@@ -4,9 +4,8 @@ import { convertArrayToReadableStream } from '../test/convert-array-to-readable-
 import { convertAsyncIterableToArray } from '../test/convert-async-iterable-to-array';
 import { convertReadableStreamToArray } from '../test/convert-readable-stream-to-array';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
-import { experimental_streamText } from './stream-text';
-import { ServerResponse } from 'node:http';
 import { createMockServerResponse } from '../test/mock-server-response';
+import { experimental_streamText } from './stream-text';
 
 describe('result.textStream', () => {
   it('should send text deltas', async () => {

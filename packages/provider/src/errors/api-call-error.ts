@@ -2,7 +2,10 @@ export class APICallError extends Error {
   readonly url: string;
   readonly requestBodyValues: unknown;
   readonly statusCode?: number;
+
+  readonly responseHeaders?: Record<string, string>;
   readonly responseBody?: string;
+
   readonly cause?: unknown;
   readonly isRetryable: boolean;
   readonly data?: unknown;
@@ -12,6 +15,7 @@ export class APICallError extends Error {
     url,
     requestBodyValues,
     statusCode,
+    responseHeaders,
     responseBody,
     cause,
     isRetryable = statusCode != null &&
@@ -25,6 +29,7 @@ export class APICallError extends Error {
     url: string;
     requestBodyValues: unknown;
     statusCode?: number;
+    responseHeaders?: Record<string, string>;
     responseBody?: string;
     cause?: unknown;
     isRetryable?: boolean;
@@ -37,6 +42,7 @@ export class APICallError extends Error {
     this.url = url;
     this.requestBodyValues = requestBodyValues;
     this.statusCode = statusCode;
+    this.responseHeaders = responseHeaders;
     this.responseBody = responseBody;
     this.cause = cause;
     this.isRetryable = isRetryable;
@@ -51,6 +57,8 @@ export class APICallError extends Error {
       typeof (error as APICallError).requestBodyValues === 'object' &&
       ((error as APICallError).statusCode == null ||
         typeof (error as APICallError).statusCode === 'number') &&
+      ((error as APICallError).responseHeaders == null ||
+        typeof (error as APICallError).responseHeaders === 'object') &&
       ((error as APICallError).responseBody == null ||
         typeof (error as APICallError).responseBody === 'string') &&
       ((error as APICallError).cause == null ||
@@ -68,6 +76,7 @@ export class APICallError extends Error {
       url: this.url,
       requestBodyValues: this.requestBodyValues,
       statusCode: this.statusCode,
+      responseHeaders: this.responseHeaders,
       responseBody: this.responseBody,
       cause: this.cause,
       isRetryable: this.isRetryable,

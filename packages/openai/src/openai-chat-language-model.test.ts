@@ -106,9 +106,8 @@ const TEST_LOGPROBS = {
   ],
 };
 
-const provider = createOpenAI({
-  apiKey: 'test-api-key',
-});
+const provider = createOpenAI({ apiKey: 'test-api-key' });
+const model = provider.chat('gpt-3.5-turbo');
 
 describe('doGenerate', () => {
   const server = new JsonTestServer(
@@ -168,7 +167,7 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
-    const { text } = await provider.chat('gpt-3.5-turbo').doGenerate({
+    const { text } = await model.doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -183,7 +182,7 @@ describe('doGenerate', () => {
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
     });
 
-    const { usage } = await provider.chat('gpt-3.5-turbo').doGenerate({
+    const { usage } = await model.doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -199,8 +198,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({
       logprobs: TEST_LOGPROBS,
     });
-
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
 
     const response = await provider
       .chat('gpt-3.5-turbo', { logprobs: 1 })
@@ -220,20 +217,41 @@ describe('doGenerate', () => {
       finish_reason: 'stop',
     });
 
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-
-    const response = await provider.chat('gpt-3.5-turbo').doGenerate({
+    const response = await model.doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
+
     expect(response.finishReason).toStrictEqual('stop');
+  });
+
+  it('should expose the raw response headers', async () => {
+    prepareJsonResponse({ content: '' });
+
+    server.responseHeaders = {
+      'test-header': 'test-value',
+    };
+
+    const { rawResponse } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(rawResponse?.headers).toStrictEqual({
+      // default headers:
+      'content-type': 'application/json',
+
+      // custom header
+      'test-header': 'test-value',
+    });
   });
 
   it('should pass the model and the messages', async () => {
     prepareJsonResponse({ content: '' });
 
-    await provider.chat('gpt-3.5-turbo').doGenerate({
+    await model.doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -357,7 +375,7 @@ describe('doStream', () => {
       logprobs: TEST_LOGPROBS,
     });
 
-    const { stream } = await provider.chat('gpt-3.5-turbo').doStream({
+    const { stream } = await model.doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -412,7 +430,7 @@ describe('doStream', () => {
       'data: [DONE]\n\n',
     ];
 
-    const { stream } = await provider.chat('gpt-3.5-turbo').doStream({
+    const { stream } = await model.doStream({
       inputFormat: 'prompt',
       mode: {
         type: 'regular',
@@ -499,10 +517,34 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should expose the raw response headers', async () => {
+    prepareStreamResponse({ content: [] });
+
+    server.responseHeaders = {
+      'test-header': 'test-value',
+    };
+
+    const { rawResponse } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(rawResponse?.headers).toStrictEqual({
+      // default headers:
+      'content-type': 'text/event-stream',
+      'cache-control': 'no-cache',
+      connection: 'keep-alive',
+
+      // custom header
+      'test-header': 'test-value',
+    });
+  });
+
   it('should pass the messages and the model', async () => {
     prepareStreamResponse({ content: [] });
 
-    await provider.chat('gpt-3.5-turbo').doStream({
+    await model.doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,

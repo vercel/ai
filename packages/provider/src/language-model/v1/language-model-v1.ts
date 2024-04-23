@@ -87,6 +87,16 @@ export type LanguageModelV1 = {
       rawSettings: Record<string, unknown>;
     };
 
+    /**
+     * Optional raw response information for debugging purposes.
+     */
+    rawResponse?: {
+      /**
+       * Response headers.
+       */
+      headers?: Record<string, string>;
+    };
+
     warnings?: LanguageModelV1CallWarning[];
 
     /**
@@ -124,6 +134,16 @@ export type LanguageModelV1 = {
       rawSettings: Record<string, unknown>;
     };
 
+    /**
+     * Optional raw response data.
+     */
+    rawResponse?: {
+      /**
+       * Response headers.
+       */
+      headers?: Record<string, string>;
+    };
+
     warnings?: LanguageModelV1CallWarning[];
   }>;
 };
@@ -156,3 +176,5 @@ export type LanguageModelV1StreamPart =
 
   // error parts are streamed, allowing for multiple errors
   | { type: 'error'; error: unknown };
+
+export type LanguageModelV1ResponseMetadata = {};

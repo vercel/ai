@@ -153,7 +153,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const args = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: this.config.headers(),
       body: args,
@@ -181,6 +181,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.completion_tokens,
       },
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings: [],
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
     };
@@ -191,7 +192,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const args = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: this.config.headers(),
       body: {
@@ -358,6 +359,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings: [],
     };
   }
