@@ -1,5 +1,12 @@
 # ai
 
+## 3.0.25
+
+### Patch Changes
+
+- 1e84d6d: Fix: remove mistral lib type dependency.
+- 9c2a049: Add append() helper to useAssistant.
+
 ## 3.0.24
 
 ### Patch Changes
