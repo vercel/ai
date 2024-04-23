@@ -127,6 +127,28 @@ describe('doGenerate', () => {
     expect(finishReason).toStrictEqual('tool-calls');
   });
 
+  it('should expose the raw response headers', async () => {
+    prepareJsonResponse({ content: '' });
+
+    server.responseHeaders = {
+      'test-header': 'test-value',
+    };
+
+    const { rawResponse } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(rawResponse?.headers).toStrictEqual({
+      // default headers:
+      'content-type': 'application/json',
+
+      // custom header
+      'test-header': 'test-value',
+    });
+  });
+
   it('should pass the model and the messages', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -223,6 +245,30 @@ describe('doStream', () => {
         usage: { promptTokens: NaN, completionTokens: NaN },
       },
     ]);
+  });
+
+  it('should expose the raw response headers', async () => {
+    prepareStreamResponse({ content: [] });
+
+    server.responseHeaders = {
+      'test-header': 'test-value',
+    };
+
+    const { rawResponse } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(rawResponse?.headers).toStrictEqual({
+      // default headers:
+      'content-type': 'text/event-stream',
+      'cache-control': 'no-cache',
+      connection: 'keep-alive',
+
+      // custom header
+      'test-header': 'test-value',
+    });
   });
 
   it('should pass the messages', async () => {
