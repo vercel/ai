@@ -93,6 +93,7 @@ Default and recommended: 'auto' (best mode for the model).
   let finishReason: LanguageModelV1FinishReason;
   let usage: Parameters<typeof calculateTokenUsage>[0];
   let warnings: LanguageModelV1CallWarning[] | undefined;
+  let rawResponse: { headers?: Record<string, string> } | undefined;
 
   switch (mode) {
     case 'json': {
@@ -120,6 +121,7 @@ Default and recommended: 'auto' (best mode for the model).
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
+      rawResponse = generateResult.rawResponse;
 
       break;
     }
@@ -149,6 +151,7 @@ Default and recommended: 'auto' (best mode for the model).
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
+      rawResponse = generateResult.rawResponse;
 
       break;
     }
@@ -188,6 +191,7 @@ Default and recommended: 'auto' (best mode for the model).
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
+      rawResponse = generateResult.rawResponse;
 
       break;
     }
@@ -213,6 +217,7 @@ Default and recommended: 'auto' (best mode for the model).
     finishReason,
     usage: calculateTokenUsage(usage),
     warnings,
+    rawResponse,
   });
 }
 
@@ -240,15 +245,29 @@ Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
+  /**
+Optional raw response data.
+   */
+  rawResponse?: {
+    /**
+Response headers.
+ */
+    headers?: Record<string, string>;
+  };
+
   constructor(options: {
     object: T;
     finishReason: LanguageModelV1FinishReason;
     usage: TokenUsage;
     warnings: LanguageModelV1CallWarning[] | undefined;
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
+    this.rawResponse = options.rawResponse;
   }
 }

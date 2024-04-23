@@ -214,6 +214,7 @@ Default and recommended: 'auto' (best mode for the model).
   return new StreamObjectResult({
     stream: result.stream.pipeThrough(new TransformStream(transformer)),
     warnings: result.warnings,
+    rawResponse: result.rawResponse,
   });
 }
 
@@ -228,15 +229,30 @@ Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
+  /**
+Optional raw response data.
+   */
+  rawResponse?: {
+    /**
+Response headers.
+ */
+    headers?: Record<string, string>;
+  };
+
   constructor({
     stream,
     warnings,
+    rawResponse,
   }: {
     stream: ReadableStream<string | ErrorStreamPart>;
     warnings: LanguageModelV1CallWarning[] | undefined;
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
   }) {
     this.originalStream = stream;
     this.warnings = warnings;
+    this.rawResponse = rawResponse;
   }
 
   get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {

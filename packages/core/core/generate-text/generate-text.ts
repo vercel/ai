@@ -115,6 +115,7 @@ The tools that the model can call. The model needs to support calling tools.
     finishReason: modelResponse.finishReason,
     usage: calculateTokenUsage(modelResponse.usage),
     warnings: modelResponse.warnings,
+    rawResponse: modelResponse.rawResponse,
   });
 }
 
@@ -186,6 +187,16 @@ Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
+  /**
+Optional raw response data.
+   */
+  rawResponse?: {
+    /**
+Response headers.
+   */
+    headers?: Record<string, string>;
+  };
+
   constructor(options: {
     text: string;
     toolCalls: ToToolCallArray<TOOLS>;
@@ -193,6 +204,9 @@ Warnings from the model provider (e.g. unsupported settings)
     finishReason: LanguageModelV1FinishReason;
     usage: TokenUsage;
     warnings: LanguageModelV1CallWarning[] | undefined;
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -200,5 +214,6 @@ Warnings from the model provider (e.g. unsupported settings)
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
+    this.rawResponse = options.rawResponse;
   }
 }
