@@ -1,5 +1,16 @@
 # ai
 
+## 3.0.28
+
+### Patch Changes
+
+- d6431ae: ai/core: add logprobs support (thanks @SamStenner for the contribution)
+- 25f3350: ai/core: add support for getting raw response headers.
+- Updated dependencies [d6431ae]
+- Updated dependencies [25f3350]
+  - @ai-sdk/provider@0.0.2
+  - @ai-sdk/provider-utils@0.0.3
+
 ## 3.0.27
 
 ### Patch Changes
