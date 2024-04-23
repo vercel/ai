@@ -169,6 +169,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       },
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings: [],
     };
   }
@@ -241,6 +242,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings: [],
     };
   }
