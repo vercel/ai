@@ -2,7 +2,7 @@ import { InvalidArgumentError } from '@ai-sdk/provider';
 import { CallSettings } from './call-settings';
 
 /**
- * Validates call settings and sets default values.
+Validates call settings and sets default values.
  */
 export function prepareCallSettings({
   maxTokens,
@@ -40,11 +40,11 @@ export function prepareCallSettings({
       });
     }
 
-    if (temperature < 0 || temperature > 1) {
+    if (temperature < 0 || temperature > 2) {
       throw new InvalidArgumentError({
         parameter: 'temperature',
         value: temperature,
-        message: 'temperature must be between 0 and 1 (inclusive)',
+        message: 'temperature must be between 0 and 2 (inclusive)',
       });
     }
   }
@@ -76,11 +76,11 @@ export function prepareCallSettings({
       });
     }
 
-    if (presencePenalty < -1 || presencePenalty > 1) {
+    if (presencePenalty < -2 || presencePenalty > 2) {
       throw new InvalidArgumentError({
         parameter: 'presencePenalty',
         value: presencePenalty,
-        message: 'presencePenalty must be between -1 and 1 (inclusive)',
+        message: 'presencePenalty must be between -2 and 2 (inclusive)',
       });
     }
   }
@@ -94,11 +94,11 @@ export function prepareCallSettings({
       });
     }
 
-    if (frequencyPenalty < -1 || frequencyPenalty > 1) {
+    if (frequencyPenalty < -2 || frequencyPenalty > 2) {
       throw new InvalidArgumentError({
         parameter: 'frequencyPenalty',
         value: frequencyPenalty,
-        message: 'frequencyPenalty must be between -1 and 1 (inclusive)',
+        message: 'frequencyPenalty must be between -2 and 2 (inclusive)',
       });
     }
   }

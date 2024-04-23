@@ -10,6 +10,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
+  scale,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
@@ -87,7 +88,14 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
       // standardized settings:
       max_tokens: maxTokens,
-      temperature, // uses 0..1 scale
+      temperature: scale({
+        // mistral uses 0..1 scale:
+        value: temperature,
+        inputMin: 0,
+        inputMax: 2,
+        outputMin: 0,
+        outputMax: 1,
+      }),
       top_p: topP,
       random_seed: seed,
 

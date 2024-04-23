@@ -38,18 +38,18 @@ This function streams the output. If you do not want to stream the output, use `
 
 @param maxTokens - Maximum number of tokens to generate.
 @param temperature - Temperature setting. 
-This is a number between 0 (almost no randomness) and 1 (very random).
+This is a number between 0 (almost no randomness) and 2 (very random).
 It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling. This is a number between 0 and 1.
 E.g. 0.1 would mean that only tokens with the top 10% probability mass are considered.
 It is recommended to set either `temperature` or `topP`, but not both.
 @param presencePenalty - Presence penalty setting. 
 It affects the likelihood of the model to repeat information that is already in the prompt.
-The presence penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition). 
+The presence penalty is a number between -2 (increase repetition) and 2 (maximum penalty, decrease repetition). 
 0 means no penalty.
 @param frequencyPenalty - Frequency penalty setting.
 It affects the likelihood of the model to repeatedly use the same words or phrases.
-The frequency penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition).
+The frequency penalty is a number between -2 (increase repetition) and 2 (maximum penalty, decrease repetition).
 0 means no penalty.
 @param seed - The seed (integer) to use for random sampling.
 If set and supported by the model, calls will generate deterministic results.

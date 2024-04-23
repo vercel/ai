@@ -11,6 +11,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
+  scale,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { anthropicFailedResponseHandler } from './anthropic-error';
@@ -96,7 +97,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
       // standardized settings:
       max_tokens: maxTokens ?? 4096, // 4096: max model output tokens
-      temperature, // uses 0..1 scale
+      temperature: scale({
+        // anthropic uses 0..1 scale:
+        value: temperature,
+        inputMin: 0,
+        inputMax: 2,
+        outputMin: 0,
+        outputMax: 1,
+      }),
       top_p: topP,
 
       // prompt:
