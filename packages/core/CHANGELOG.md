@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.29
+
+### Patch Changes
+
+- 22a737e: Fix: mark useAssistant as in progress for append/submitMessage.
+
 ## 3.0.28
 
 ### Patch Changes
