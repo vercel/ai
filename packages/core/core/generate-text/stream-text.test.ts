@@ -5,6 +5,8 @@ import { convertAsyncIterableToArray } from '../test/convert-async-iterable-to-a
 import { convertReadableStreamToArray } from '../test/convert-readable-stream-to-array';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { experimental_streamText } from './stream-text';
+import { ServerResponse } from 'node:http';
+import { createMockServerResponse } from '../test/mock-server-response';
 
 describe('result.textStream', () => {
   it('should send text deltas', async () => {
@@ -255,6 +257,53 @@ describe('result.toAIStream', () => {
       await convertReadableStreamToArray(
         result.toAIStream().pipeThrough(new TextDecoderStream()),
       ),
+      ['0:"Hello"\n', '0:", "\n', '0:"world!"\n'],
+    );
+  });
+});
+
+describe('result.pipeAIStreamToResponse', async () => {
+  it('should write text deltas to a Node.js response-like object', async () => {
+    const mockResponse = createMockServerResponse();
+
+    const result = await experimental_streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: 'world!' },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    result.pipeAIStreamToResponse(mockResponse);
+
+    // Wait for the stream to finish writing to the mock response
+    await new Promise(resolve => {
+      const checkIfEnded = () => {
+        if (mockResponse.ended) {
+          resolve(undefined);
+        } else {
+          setImmediate(checkIfEnded);
+        }
+      };
+      checkIfEnded();
+    });
+
+    const decoder = new TextDecoder();
+
+    assert.strictEqual(mockResponse.statusCode, 200);
+    assert.deepStrictEqual(mockResponse.headers, {
+      'Content-Type': 'text/plain; charset=utf-8',
+    });
+    assert.deepStrictEqual(
+      mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
       ['0:"Hello"\n', '0:", "\n', '0:"world!"\n'],
     );
   });
