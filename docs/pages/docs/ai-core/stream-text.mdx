@@ -92,7 +92,7 @@ by the [`useCompletion`](/docs/api-reference/use-completion) hook.
 import { StreamingTextResponse, experimental_streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   // Extract the `prompt` text from the body of the request
@@ -116,7 +116,7 @@ by the [`useChat`](/docs/api-reference/use-chat) hook.
 import { StreamingTextResponse, experimental_streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();

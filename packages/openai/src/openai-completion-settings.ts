@@ -24,6 +24,15 @@ export interface OpenAICompletionSettings {
   logitBias?: Record<number, number>;
 
   /**
+   * The number of logprobs to return.
+   *
+   * Including logprobs will increase the response size and can slow down
+   * response times. However, it can be useful for developers to better
+   * understand how the model is behaving.
+   */
+  logprobs?: boolean | number;
+
+  /**
    * The suffix that comes after a completion of inserted text.
    */
   suffix?: string;

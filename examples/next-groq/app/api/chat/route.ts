@@ -1,9 +1,9 @@
-import { OpenAI } from '@ai-sdk/openai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { StreamingTextResponse, experimental_streamText } from 'ai';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
-const groq = new OpenAI({
+const groq = createOpenAI({
   apiKey: process.env.GROQ_API_KEY ?? '',
   baseURL: 'https://api.groq.com/openai/v1',
 });

@@ -39,16 +39,29 @@ yarn add @ai-sdk/openai
 
 ## Provider Instance
 
-You can import `OpenAI` from `ai/openai` and initialize a provider instance with various settings:
+You can import `createOpenAI` from `@ai-sdk/openai` and create a provider instance with various settings:
 
 ```ts
-import { OpenAI } from '@ai-sdk/openai'
+import { createOpenAI } from '@ai-sdk/openai';
 
-const openai = new OpenAI({
-  baseURL: '', // optional base URL for proxies etc.
-  apiKey: '' // optional API key, default to env property OPENAI_API_KEY
-  organization: '' // optional organization
-})
+const openai = createOpenAI({
+  // optional base URL for proxies etc.
+  baseURL: '',
+
+  // optional API key, default to env property OPENAI_API_KEY
+  apiKey: '',
+
+  // optional OpenAI organization:
+  organization: '',
+
+  // optional OpenAI project:
+  project: '',
+
+  // optional custom headers:
+  headers: {
+    'custom-header': 'value',
+  },
+});
 ```
 
 The AI SDK also provides a shorthand `openai` import with an OpenAI provider instance that uses defaults:
@@ -56,6 +69,18 @@ The AI SDK also provides a shorthand `openai` import with an OpenAI provider ins
 ```ts
 import { openai } from '@ai-sdk/openai';
 ```
+
+## Model construction
+
+The OpenAI provider instance is a function that you can invoke to create a model:
+
+```ts
+const model = openai('gpt-3.5-turbo');
+```
+
+It automatically selects the correct API based on the model id.
+
+You can also provide model-specific parameters or select a model API by using `.chat` or `.completion`.
 
 ## Chat Models
 
@@ -76,6 +101,7 @@ const model = openai.chat('gpt-3.5-turbo', {
     // optional likelihood for specific tokens
     '50256': -100,
   },
+  logprobs: true, // provides log probabilities for each token
   user: 'test-user', // optional unique user identifier
 });
 ```
@@ -94,12 +120,13 @@ OpenAI completion models support also some model specific settings that are not 
 You can pass them as an options argument:
 
 ```ts
-const model = openai.chat('gpt-3.5-turbo', {
+const model = openai.completion('gpt-3.5-turbo-instruct', {
   echo: true, // optional, echo the prompt in addition to the completion
   logitBias: {
     // optional likelihood for specific tokens
     '50256': -100,
   },
+  logprobs: true, // provides log probabilities for each token
   suffix: 'some text', // optional suffix that comes after a completion of inserted text
   user: 'test-user', // optional unique user identifier
 });

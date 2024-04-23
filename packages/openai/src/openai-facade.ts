@@ -6,50 +6,45 @@ import {
   OpenAICompletionModelId,
   OpenAICompletionSettings,
 } from './openai-completion-settings';
+import { OpenAIProviderSettings } from './openai-provider';
 
 /**
- * OpenAI provider.
+@deprecated Use `createOpenAI` instead.
  */
 export class OpenAI {
   /**
-   * Base URL for the OpenAI API calls.
+Base URL for the OpenAI API calls.
    */
   readonly baseURL: string;
 
   readonly apiKey?: string;
+
+  /**
+OpenAI Organization.
+   */
   readonly organization?: string;
+
+  /**
+OpenAI project.
+   */
+  readonly project?: string;
+
+  /**
+Custom headers to include in the requests.
+   */
+  readonly headers?: Record<string, string>;
 
   /**
    * Creates a new OpenAI provider instance.
    */
-  constructor(
-    options: {
-      /**
-       * Base URL for the OpenAI API calls.
-       */
-      baseURL?: string;
-
-      /**
-       * @deprecated Use `baseURL` instead.
-       */
-      baseUrl?: string;
-
-      /**
-       * API key for authenticating requests.
-       */
-      apiKey?: string;
-
-      /**
-       * Organization ID.
-       */
-      organization?: string;
-    } = {},
-  ) {
+  constructor(options: OpenAIProviderSettings = {}) {
     this.baseURL =
       withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
       'https://api.openai.com/v1';
     this.apiKey = options.apiKey;
     this.organization = options.organization;
+    this.project = options.project;
+    this.headers = options.headers;
   }
 
   private get baseConfig() {
@@ -63,6 +58,8 @@ export class OpenAI {
           description: 'OpenAI',
         })}`,
         'OpenAI-Organization': this.organization,
+        'OpenAI-Project': this.project,
+        ...this.headers,
       }),
     };
   }
@@ -84,8 +81,3 @@ export class OpenAI {
     });
   }
 }
-
-/**
- * Default OpenAI provider instance.
- */
-export const openai = new OpenAI();

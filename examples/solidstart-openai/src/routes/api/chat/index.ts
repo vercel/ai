@@ -7,7 +7,7 @@ export const POST = async (event: APIEvent) => {
     const { messages } = await event.request.json();
 
     const result = await experimental_streamText({
-      model: openai.chat('gpt-4-turbo-preview'),
+      model: openai('gpt-4-turbo-preview'),
       messages,
     });
 

@@ -1,10 +1,8 @@
+import { openai } from '@ai-sdk/openai';
 import { experimental_streamText } from 'ai';
-import { OpenAI } from '@ai-sdk/openai';
 import dotenv from 'dotenv';
 
 dotenv.config();
-
-const openai = new OpenAI();
 
 async function main() {
   const abortController = new AbortController();
@@ -17,7 +15,7 @@ async function main() {
 
   try {
     const { textStream } = await experimental_streamText({
-      model: openai.chat('gpt-3.5-turbo'),
+      model: openai('gpt-3.5-turbo'),
       prompt: 'Write a short story about a robot learning to love:\n\n',
       abortSignal: abortController.signal,
     });

@@ -8,9 +8,10 @@ import {
   MistralChatModelId,
   MistralChatSettings,
 } from './mistral-chat-settings';
+import { MistralProviderSettings } from './mistral-provider';
 
 /**
- * Mistral provider.
+ * @deprecated Use `createMistral` instead.
  */
 export class Mistral {
   /**
@@ -20,36 +21,20 @@ export class Mistral {
 
   readonly apiKey?: string;
 
+  readonly headers?: Record<string, string>;
+
   private readonly generateId: () => string;
 
   /**
    * Creates a new Mistral provider instance.
    */
-  constructor(
-    options: {
-      /**
-       * Base URL for the Mistral API calls.
-       */
-      baseURL?: string;
-
-      /**
-       * @deprecated Use `baseURL` instead.
-       */
-      baseUrl?: string;
-
-      /**
-       * API key for authenticating requests.
-       */
-      apiKey?: string;
-
-      generateId?: () => string;
-    } = {},
-  ) {
+  constructor(options: MistralProviderSettings = {}) {
     this.baseURL =
       withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
       'https://api.mistral.ai/v1';
 
     this.apiKey = options.apiKey;
+    this.headers = options.headers;
     this.generateId = options.generateId ?? generateId;
   }
 
@@ -62,6 +47,7 @@ export class Mistral {
           environmentVariableName: 'MISTRAL_API_KEY',
           description: 'Mistral',
         })}`,
+        ...this.headers,
       }),
     };
   }
@@ -74,8 +60,3 @@ export class Mistral {
     });
   }
 }
-
-/**
- * Default Mistral provider instance.
- */
-export const mistral = new Mistral();

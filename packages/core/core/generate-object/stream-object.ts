@@ -2,6 +2,8 @@ import {
   LanguageModelV1,
   LanguageModelV1CallOptions,
   LanguageModelV1CallWarning,
+  LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import { z } from 'zod';
@@ -20,6 +22,7 @@ import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { calculateTokenUsage } from '../generate-text/token-usage';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -37,19 +40,17 @@ This function streams the output. If you do not want to stream the output, use `
 
 @param maxTokens - Maximum number of tokens to generate.
 @param temperature - Temperature setting. 
-This is a number between 0 (almost no randomness) and 1 (very random).
+The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param topP - Nucleus sampling. This is a number between 0 and 1.
-E.g. 0.1 would mean that only tokens with the top 10% probability mass are considered.
+@param topP - Nucleus sampling.
+The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
 @param presencePenalty - Presence penalty setting. 
 It affects the likelihood of the model to repeat information that is already in the prompt.
-The presence penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition). 
-0 means no penalty.
+The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
 It affects the likelihood of the model to repeatedly use the same words or phrases.
-The frequency penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition).
-0 means no penalty.
+The value is passed through to the provider. The range depends on the provider and model.
 @param seed - The seed (integer) to use for random sampling.
 If set and supported by the model, calls will generate deterministic results.
 
@@ -121,6 +122,7 @@ Default and recommended: 'auto' (best mode for the model).
             case 'text-delta':
               controller.enqueue(chunk.textDelta);
               break;
+            case 'finish':
             case 'error':
               controller.enqueue(chunk);
               break;
@@ -152,6 +154,7 @@ Default and recommended: 'auto' (best mode for the model).
             case 'text-delta':
               controller.enqueue(chunk.textDelta);
               break;
+            case 'finish':
             case 'error':
               controller.enqueue(chunk);
               break;
@@ -191,6 +194,7 @@ Default and recommended: 'auto' (best mode for the model).
             case 'tool-call-delta':
               controller.enqueue(chunk.argsTextDelta);
               break;
+            case 'finish':
             case 'error':
               controller.enqueue(chunk);
               break;
@@ -216,29 +220,70 @@ Default and recommended: 'auto' (best mode for the model).
   return new StreamObjectResult({
     stream: result.stream.pipeThrough(new TransformStream(transformer)),
     warnings: result.warnings,
+    rawResponse: result.rawResponse,
   });
 }
+
+export type ObjectStreamPartInput =
+  | {
+      type: 'error';
+      error: unknown;
+    }
+  | {
+      type: 'finish';
+      finishReason: LanguageModelV1FinishReason;
+      logprobs?: LanguageModelV1LogProbs;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+    };
+
+export type ObjectStreamPart<T> =
+  | ObjectStreamPartInput
+  | {
+      type: 'object';
+      object: DeepPartial<T>;
+    };
 
 /**
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
 export class StreamObjectResult<T> {
-  private readonly originalStream: ReadableStream<string | ErrorStreamPart>;
+  private readonly originalStream: ReadableStream<
+    string | ObjectStreamPartInput
+  >;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
+  /**
+Optional raw response data.
+   */
+  rawResponse?: {
+    /**
+Response headers.
+ */
+    headers?: Record<string, string>;
+  };
+
   constructor({
     stream,
     warnings,
+    rawResponse,
   }: {
-    stream: ReadableStream<string | ErrorStreamPart>;
+    stream: ReadableStream<string | ObjectStreamPartInput>;
     warnings: LanguageModelV1CallWarning[] | undefined;
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
   }) {
     this.originalStream = stream;
     this.warnings = warnings;
+    this.rawResponse = rawResponse;
   }
 
   get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
@@ -259,14 +304,44 @@ Warnings from the model provider (e.g. unsupported settings)
 
             controller.enqueue(currentObject);
           }
-        }
-
-        if (typeof chunk === 'object' && chunk.type === 'error') {
+        } else if (chunk.type === 'error') {
           throw chunk.error;
         }
       },
     });
   }
-}
 
-export type ErrorStreamPart = { type: 'error'; error: unknown };
+  get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
+    let accumulatedText = '';
+    let latestObject: DeepPartial<T> | undefined = undefined;
+
+    return createAsyncIterableStream(this.originalStream, {
+      transform(chunk, controller) {
+        if (typeof chunk === 'string') {
+          accumulatedText += chunk;
+          const currentObject = parsePartialJson(
+            accumulatedText,
+          ) as DeepPartial<T>;
+
+          if (!isDeepEqualData(latestObject, currentObject)) {
+            latestObject = currentObject;
+
+            controller.enqueue({ type: 'object', object: currentObject });
+          }
+        } else {
+          switch (chunk.type) {
+            case 'finish':
+              controller.enqueue({
+                ...chunk,
+                usage: calculateTokenUsage(chunk.usage),
+              });
+              break;
+            default:
+              controller.enqueue(chunk);
+              break;
+          }
+        }
+      },
+    });
+  }
+}

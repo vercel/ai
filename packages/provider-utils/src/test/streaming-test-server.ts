@@ -4,6 +4,7 @@ import { SetupServer, setupServer } from 'msw/node';
 export class StreamingTestServer {
   readonly server: SetupServer;
 
+  responseHeaders: Record<string, string> = {};
   responseChunks: any[] = [];
 
   request: Request | undefined;
@@ -34,6 +35,7 @@ export class StreamingTestServer {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             Connection: 'keep-alive',
+            ...this.responseHeaders,
           },
         });
       }),

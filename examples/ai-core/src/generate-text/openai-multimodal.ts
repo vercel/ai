@@ -1,15 +1,13 @@
+import { openai } from '@ai-sdk/openai';
 import { experimental_generateText } from 'ai';
-import { OpenAI } from '@ai-sdk/openai';
 import dotenv from 'dotenv';
 import fs from 'node:fs';
 
 dotenv.config();
 
-const openai = new OpenAI();
-
 async function main() {
   const result = await experimental_generateText({
-    model: openai.chat('gpt-4-vision-preview'),
+    model: openai('gpt-4-vision-preview'),
     maxTokens: 512,
     messages: [
       {

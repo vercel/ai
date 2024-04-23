@@ -1,5 +1,50 @@
 # ai
 
+## 3.0.29
+
+### Patch Changes
+
+- 22a737e: Fix: mark useAssistant as in progress for append/submitMessage.
+
+## 3.0.28
+
+### Patch Changes
+
+- d6431ae: ai/core: add logprobs support (thanks @SamStenner for the contribution)
+- 25f3350: ai/core: add support for getting raw response headers.
+- Updated dependencies [d6431ae]
+- Updated dependencies [25f3350]
+  - @ai-sdk/provider@0.0.2
+  - @ai-sdk/provider-utils@0.0.3
+
+## 3.0.27
+
+### Patch Changes
+
+- eb150a6: ai/core: remove scaling of setting values (breaking change). If you were using the temperature, frequency penalty, or presence penalty settings, you need to update the providers and adjust the setting values.
+- Updated dependencies [eb150a6]
+  - @ai-sdk/provider-utils@0.0.2
+  - @ai-sdk/provider@0.0.1
+
+## 3.0.26
+
+### Patch Changes
+
+- f90f6a1: ai/core: add pipeAIStreamToResponse() to streamText result.
+
+## 3.0.25
+
+### Patch Changes
+
+- 1e84d6d: Fix: remove mistral lib type dependency.
+- 9c2a049: Add append() helper to useAssistant.
+
+## 3.0.24
+
+### Patch Changes
+
+- e94fb32: feat(ai/rsc): Make `onSetAIState` and `onGetUIState` stable
+
 ## 3.0.23
 
 ### Patch Changes

@@ -6,7 +6,7 @@ dotenv.config();
 
 async function main() {
   const result = await experimental_generateText({
-    model: google.generativeAI('models/gemini-pro'),
+    model: google('models/gemini-pro'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
