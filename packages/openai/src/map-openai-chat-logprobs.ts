@@ -18,9 +18,8 @@ type OpenAIChatLogProbs = {
 export function mapOpenAIChatLogProbsOutput(
   logprobs: OpenAIChatLogProbs | null | undefined,
 ): LanguageModelV1LogProbs | undefined {
-  if (!logprobs) return undefined;
   return (
-    logprobs.content?.map(({ token, logprob, top_logprobs }) => ({
+    logprobs?.content?.map(({ token, logprob, top_logprobs }) => ({
       token,
       logprob,
       topLogprobs: top_logprobs
