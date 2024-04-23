@@ -73,7 +73,14 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       // model specific settings:
       echo: this.settings.echo,
       logit_bias: this.settings.logitBias,
-      logprobs: this.settings.logprobs,
+      logprobs:
+        typeof this.settings.logprobs === 'number'
+          ? this.settings.logprobs
+          : typeof this.settings.logprobs === 'boolean'
+          ? this.settings.logprobs
+            ? 0
+            : undefined
+          : undefined,
       suffix: this.settings.suffix,
       user: this.settings.user,
 
@@ -91,6 +98,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       // stop sequences:
       stop: stopSequences,
     };
+
+    console.log('BASE ARGS LOGS', baseArgs.logprobs);
 
     switch (type) {
       case 'regular': {

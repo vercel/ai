@@ -30,7 +30,7 @@ export interface OpenAICompletionSettings {
    * response times. However, it can be useful for developers to better
    * understand how the model is behaving.
    */
-  logprobs?: number;
+  logprobs?: boolean | number;
 
   /**
    * The suffix that comes after a completion of inserted text.
