@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.26
+
+### Patch Changes
+
+- f90f6a1: ai/core: add pipeAIStreamToResponse() to streamText result.
+
 ## 3.0.25
 
 ### Patch Changes
