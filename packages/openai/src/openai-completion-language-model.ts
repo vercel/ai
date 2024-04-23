@@ -147,7 +147,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const args = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/completions`,
       headers: this.config.headers(),
       body: args,
@@ -178,7 +178,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const args = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/completions`,
       headers: this.config.headers(),
       body: {

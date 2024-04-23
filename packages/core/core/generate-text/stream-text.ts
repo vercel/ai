@@ -86,7 +86,7 @@ The tools that the model can call. The model needs to support calling tools.
   }): Promise<StreamTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
-  const { stream, warnings } = await retry(() =>
+  const { stream, warnings, rawResponse } = await retry(() =>
     model.doStream({
       mode: {
         type: 'regular',
@@ -113,6 +113,7 @@ The tools that the model can call. The model needs to support calling tools.
       generatorStream: stream,
     }),
     warnings,
+    rawResponse,
   });
 }
 
@@ -152,15 +153,30 @@ Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
+  /**
+Optional raw response data.
+   */
+  rawResponse?: {
+    /**
+Response headers.
+     */
+    headers?: Record<string, string>;
+  };
+
   constructor({
     stream,
     warnings,
+    rawResponse,
   }: {
     stream: ReadableStream<TextStreamPart<TOOLS>>;
     warnings: LanguageModelV1CallWarning[] | undefined;
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
   }) {
     this.originalStream = stream;
     this.warnings = warnings;
+    this.rawResponse = rawResponse;
   }
 
   /**
