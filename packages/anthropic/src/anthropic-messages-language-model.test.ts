@@ -296,6 +296,19 @@ describe('doStream', () => {
     });
   });
 
+  it('should scale the temperature', async () => {
+    prepareStreamResponse({ content: [] });
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      temperature: 2,
+    });
+
+    expect((await server.getRequestBodyJson()).temperature).toEqual(1);
+  });
+
   it('should pass custom headers', async () => {
     prepareStreamResponse({ content: [] });
 
