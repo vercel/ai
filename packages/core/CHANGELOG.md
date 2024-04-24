@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.30
+
+### Patch Changes
+
+- e7e5898: use-assistant: fix missing message content
+
 ## 3.0.29
 
 ### Patch Changes
