@@ -153,26 +153,26 @@ export function useAssistant({
 
     setInput('');
 
-    const result = await fetch(api, {
-      method: 'POST',
-      credentials,
-      headers: { 'Content-Type': 'application/json', ...headers },
-      body: JSON.stringify({
-        ...body,
-        // always use user-provided threadId when available:
-        threadId: threadIdParam ?? threadId ?? null,
-        message: input,
-
-        // optional request data:
-        data: requestOptions?.data,
-      }),
-    });
-
-    if (result.body == null) {
-      throw new Error('The response body is empty.');
-    }
-
     try {
+      const result = await fetch(api, {
+        method: 'POST',
+        credentials,
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({
+          ...body,
+          // always use user-provided threadId when available:
+          threadId: threadIdParam ?? threadId ?? null,
+          message: message.content,
+
+          // optional request data:
+          data: requestOptions?.data,
+        }),
+      });
+
+      if (result.body == null) {
+        throw new Error('The response body is empty.');
+      }
+
       for await (const { type, value } of readDataStream(
         result.body.getReader(),
       )) {
