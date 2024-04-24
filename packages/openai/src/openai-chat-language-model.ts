@@ -372,7 +372,7 @@ const openAIChatResponseSchema = z.object({
     z.object({
       message: z.object({
         role: z.literal('assistant'),
-        content: z.string().nullable(),
+        content: z.string().nullable().optional(),
         tool_calls: z
           .array(
             z.object({
