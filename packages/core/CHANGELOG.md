@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.31
+
+### Patch Changes
+
+- 74c63b1: ai/core: add toAIStreamResponse() helper to streamText.
+
 ## 3.0.30
 
 ### Patch Changes
