@@ -171,7 +171,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       text: choice.message.content ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
-        toolCallId: toolCall.id,
+        toolCallId: toolCall.id ?? generateId(),
         toolName: toolCall.function.name,
         args: toolCall.function.arguments!,
       })),
@@ -376,7 +376,7 @@ const openAIChatResponseSchema = z.object({
         tool_calls: z
           .array(
             z.object({
-              id: z.string(),
+              id: z.string().optional().nullable(),
               type: z.literal('function'),
               function: z.object({
                 name: z.string(),
@@ -432,7 +432,7 @@ const openaiChatChunkSchema = z.object({
           .array(
             z.object({
               index: z.number(),
-              id: z.string().optional(),
+              id: z.string().optional().nullable(),
               type: z.literal('function').optional(),
               function: z.object({
                 name: z.string().optional(),
