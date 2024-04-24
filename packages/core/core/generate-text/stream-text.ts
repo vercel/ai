@@ -6,6 +6,8 @@ import {
 } from '@ai-sdk/provider';
 import {
   AIStreamCallbacksAndOptions,
+  StreamData,
+  StreamingTextResponse,
   createCallbacksTransformer,
   createStreamDataTransformer,
 } from '../../streams';
@@ -275,9 +277,23 @@ writes each text delta as a separate chunk.
   }
 
   /**
+Converts the result to a streamed response object with a stream data part stream.
+It can be used with the `useChat` and `useCompletion` hooks.
+
+@param init Optional headers.
+
+@return A response object.
+   */
+  toAIStreamResponse(init?: ResponseInit): Response {
+    return new StreamingTextResponse(this.toAIStream(), init);
+  }
+
+  /**
 Creates a simple text stream response.
 Each text delta is encoded as UTF-8 and sent as a separate chunk.
 Non-text-delta events are ignored.
+
+@param init Optional headers and status code.
    */
   toTextStreamResponse(init?: ResponseInit): Response {
     const encoder = new TextEncoder();

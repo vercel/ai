@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { experimental_streamText } from 'ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,20 +9,15 @@ const groq = createOpenAI({
 });
 
 export async function POST(req: Request) {
-  try {
-    // Extract the `messages` from the body of the request
-    const { messages } = await req.json();
+  // Extract the `messages` from the body of the request
+  const { messages } = await req.json();
 
-    // Call the language model
-    const result = await experimental_streamText({
-      model: groq.chat('llama2-70b-4096'),
-      messages,
-    });
+  // Call the language model
+  const result = await experimental_streamText({
+    model: groq.chat('llama3-70b-8192'),
+    messages,
+  });
 
-    // Respond with the stream
-    return new StreamingTextResponse(result.toAIStream());
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
+  // Respond with the stream
+  return result.toAIStreamResponse();
 }
