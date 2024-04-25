@@ -19,7 +19,8 @@ export interface MistralProvider {
 
 export interface MistralProviderSettings {
   /**
-Base URL for the Mistral API calls.
+Use a different URL prefix for API calls, e.g. to use proxy servers.
+The default prefix is `https://api.mistral.ai/v1`.
    */
   baseURL?: string;
 
@@ -29,7 +30,8 @@ Base URL for the Mistral API calls.
   baseUrl?: string;
 
   /**
-API key for authenticating requests.
+API key that is being send using the `Authorization` header.
+It defaults to the `MISTRAL_API_KEY` environment variable.
    */
   apiKey?: string;
 

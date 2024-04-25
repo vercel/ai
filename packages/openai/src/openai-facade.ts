@@ -13,10 +13,15 @@ import { OpenAIProviderSettings } from './openai-provider';
  */
 export class OpenAI {
   /**
-Base URL for the OpenAI API calls.
+Use a different URL prefix for API calls, e.g. to use proxy servers.
+The default prefix is `https://api.openai.com/v1`.
    */
   readonly baseURL: string;
 
+  /**
+API key that is being send using the `Authorization` header.
+It defaults to the `OPENAI_API_KEY` environment variable.
+ */
   readonly apiKey?: string;
 
   /**
