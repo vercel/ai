@@ -4,9 +4,9 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
 } from '@ai-sdk/provider';
+import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
-  StreamData,
   StreamingTextResponse,
   createCallbacksTransformer,
   createStreamDataTransformer,
@@ -26,7 +26,6 @@ import { retryWithExponentialBackoff } from '../util/retry-with-exponential-back
 import { runToolsTransformation } from './run-tools-transformation';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
-import { ServerResponse } from 'node:http';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -151,12 +150,13 @@ export class StreamTextResult<TOOLS extends Record<string, ExperimentalTool>> {
   private readonly originalStream: ReadableStream<TextStreamPart<TOOLS>>;
 
   /**
-Warnings from the model provider (e.g. unsupported settings)
+Warnings from the model provider (e.g. unsupported settings).
    */
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
   /**
-Optional raw response data.
+Optional raw response data. Only contains response headers. 
+You can use this to e.g. extract request headers.
    */
   rawResponse?: {
     /**
@@ -204,8 +204,7 @@ stream will throw the error.
   /**
 A stream with all events, including text deltas, tool calls, tool results, and
 errors.
-You can use it as either an AsyncIterable or a ReadableStream. When an error occurs, the
-stream will throw the error.
+You can use it as either an AsyncIterable or a ReadableStream.
    */
   get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
     return createAsyncIterableStream(this.originalStream, {
@@ -238,9 +237,9 @@ Stream callbacks that will be called when the stream emits events.
   }
 
   /**
-Writes stream data output to a Node.js response-like object.
+Writes stream data output to a Node.js ServerResponse object.
 It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
-writes each text delta as a separate chunk.
+writes each stream data part as a separate chunk.
 
 @param response A Node.js response-like object (ServerResponse).
 @param init Optional headers and status code.

@@ -1,4 +1,3 @@
-import { mistral } from '@ai-sdk/mistral';
 import { createOpenAI } from '@ai-sdk/openai';
 import { experimental_generateObject } from 'ai';
 import dotenv from 'dotenv';

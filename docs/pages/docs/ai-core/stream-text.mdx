@@ -28,7 +28,7 @@ const { textStream } = await experimental_streamText({
 
 The parameters are passed into `experimental_streamText` as a single options object.
 
-- **model** - The language model to use.
+- **model** - The language model that generates the response. You can use language models from any compatible provider.
 - **tools** - The tools that the model can call. The model needs to support calling tools.
 - **system** - A system message that will be apart of the prompt.
 - **prompt** - A simple text prompt. You can either use `prompt` or `messages` but not both.
@@ -53,24 +53,65 @@ The parameters are passed into `experimental_streamText` as a single options obj
 - **maxRetries** - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 - **abortSignal** - An optional abort signal that can be used to cancel the call.
 
-## Return Type
+## Result
 
 `streamText` returns a result object with several properties and methods:
 
-- **textStream**: `AsyncIterable<string> & ReadableStream<string>` - A stream of text deltas.
-- **fullStream**: `AsyncIterable<TextStreamPart> & ReadableStream<TextStreamPart>` - A stream of text stream parts:
+- **textStream** _AsyncIterable&lt;string&gt; & ReadableStream&lt;string&gt;_
+
+  A text stream that returns only the generated text deltas. You can use it
+  as either an AsyncIterable or a ReadableStream. When an error occurs, the
+  stream will throw the error.
+
+- **fullStream** _AsyncIterable&lt;TextStreamPart&gt; & ReadableStream&lt;TextStreamPart&gt;_
+
+  A stream with all events, including text deltas, tool calls, tool results, and
+  errors:
+
   - **text delta** stream part with `type = 'text-delta'` and a `textDelta` property.
   - **tool call** stream part with `type = 'tool-call'` and `toolCallId`, `toolName`, and `args` properties.
   - **tool result** stream part with `type = 'tool-result'` and `toolCallId`, `toolName`, `args`, and `result` properties.
   - **finish** stream part with `type = 'finish'` and `finishReason` and `usage` properties. Sent as the last stream part.
   - **error** stream part with `type = 'error'` and an `error` property.
-- **toAIStream(callbacks)**: convert the stream to an AI stream that is compatible with [`StreamingTextResponse`](/docs/api-reference/streaming-text-response).
-- **warnings**: `Array<Warning> | undefined` - Warnings from the model provider (e.g., unsupported settings).
 
-<Callout type="info">
-  You can only process one of the streams. Once it is processing, the other
-  stream properties will throw errors.
-</Callout>
+  You can use it as either an AsyncIterable or a ReadableStream.
+
+- **toAIStream(callbacks: AIStreamCallbacksAndOptions)** _AIStream_
+
+  Converts the result to an `AIStream` object that is compatible with `StreamingTextResponse`.
+  It can be used with the `useChat` and `useCompletion` hooks.
+
+- **pipeTextStreamToResponse(response: ServerResponse, init: ResponseInit)** _void_
+
+  Writes text delta output to a Node.js response-like object.
+  It sets a `Content-Type` header to `text/plain; charset=utf-8` and
+  writes each text delta as a separate chunk.
+
+- **pipeAIStreamToResponse(response: ServerResponse, init: ResponseInit)** _void_
+
+  Writes stream data output to a Node.js ServerResponse object.
+  It sets a `Content-Type` header to `text/plain; charset=utf-8` and
+  writes each stream data part as a separate chunk.
+
+- **toTextStreamResponse(init: ResponseInit)** _Response_
+
+  Creates a simple text stream response.
+  Each text delta is encoded as UTF-8 and sent as a separate chunk.
+  Non-text-delta events are ignored.
+
+- **toAIStreamResponse(init: ResponseInit)** _Response_
+
+  Converts the result to a streamed response object with a stream data part stream.
+  It can be used with the `useChat` and `useCompletion` hooks.
+
+- **rawResponse** _{ headers: Record&lt;string, string&gt; | undefined } | undefined_
+
+  Optional raw response data. Only contains response headers.
+  You can use this to e.g. extract request headers.
+
+- **warnings** _Array&lt;Warning&gt; | undefined_
+
+  Warnings from the model provider (e.g., unsupported settings).
 
 ## Examples
 
@@ -89,7 +130,7 @@ This example shows an [App router](https://nextjs.org/docs/app) API route that i
 by the [`useCompletion`](/docs/api-reference/use-completion) hook.
 
 ```ts
-import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { experimental_streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export const dynamic = 'force-dynamic';
@@ -99,11 +140,11 @@ export async function POST(req: Request) {
   const { prompt }: { prompt: string } = await req.json();
 
   const result = await experimental_streamText({
-    model: openai.chat('gpt-4'),
+    model: openai('gpt-4'),
     prompt,
   });
 
-  return new StreamingTextResponse(result.toAIStream());
+  return result.toAIStreamResponse();
 }
 ```
 
