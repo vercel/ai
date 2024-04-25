@@ -1,40 +1,49 @@
 # Vercel AI SDK - Google Generative AI Provider
 
-The Google provider contains language model support for the [Google Generative AI](https://ai.google/discover/generativeai/) APIs.
+The Google provider for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Generative AI](https://ai.google/discover/generativeai/) APIs.
 It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` AI functions.
 
 ## Setup
 
 The Google provider is available in the `@ai-sdk/google` module. You can install it with
 
+```bash
 npm i @ai-sdk/google
+```
 
 ## Provider Instance
 
-You can import `createGoogleGenerativeAI` from `@ai-sdk/google` and create a provider instance with various settings:
+You can import the default provider instance `google` from `@ai-sdk/google`:
+
+```ts
+import { google } from '@ai-sdk/google';
+```
+
+If you need a customized setup, you can import `createGoogleGenerativeAI` from `@ai-sdk/google` and create a provider instance with your settings:
 
 ```ts
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 const google = createGoogleGenerativeAI({
-  // optional base URL for proxies etc.:
-  baseURL: '',
-
-  // optional API key, default to env property GOOGLE_GENERATIVE_AI_API_KEY:
-  apiKey: '',
-
-  // optional custom headers:
-  headers: {
-    'custom-header': 'value',
-  },
+  // custom settings
 });
 ```
 
-The AI SDK also provides a shorthand `google` import with a Google provider instance that uses defaults:
+You can use the following optional settings to customize the Google Generative AI provider instance:
 
-```ts
-import { google } from '@ai-sdk/google';
-```
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://generativelanguage.googleapis.com/v1beta`.
+
+- **apiKey** _string_
+
+  API key that is being send using the `x-goog-api-key` header.
+  It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
+
+- **headers** _Record<string,string>_
+
+  Custom headers to include in the requests.
 
 ## Models
 
@@ -54,3 +63,13 @@ const model = google('models/gemini-pro', {
   topK: 0.2,
 });
 ```
+
+The following optional settings are available for Google Generative AI models:
+
+- **topK** _number_
+
+  Optional. The maximum number of tokens to consider when sampling.
+
+  Models use nucleus sampling or combined Top-k and nucleus sampling.
+  Top-k sampling considers the set of topK most probable tokens.
+  Models running with nucleus sampling don't allow topK setting.
