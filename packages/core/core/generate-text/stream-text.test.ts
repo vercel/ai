@@ -269,7 +269,7 @@ describe('result.toAIStream', () => {
 });
 
 describe('result.pipeAIStreamToResponse', async () => {
-  it('should write text deltas to a Node.js response-like object', async () => {
+  it('should write data stream parts to a Node.js response-like object', async () => {
     const mockResponse = createMockServerResponse();
 
     const result = await experimental_streamText({
@@ -312,6 +312,92 @@ describe('result.pipeAIStreamToResponse', async () => {
       mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
       ['0:"Hello"\n', '0:", "\n', '0:"world!"\n'],
     );
+  });
+});
+
+describe('result.pipeTextStreamToResponse', async () => {
+  it('should write text deltas to a Node.js response-like object', async () => {
+    const mockResponse = createMockServerResponse();
+
+    const result = await experimental_streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: 'world!' },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    result.pipeTextStreamToResponse(mockResponse);
+
+    // Wait for the stream to finish writing to the mock response
+    await new Promise(resolve => {
+      const checkIfEnded = () => {
+        if (mockResponse.ended) {
+          resolve(undefined);
+        } else {
+          setImmediate(checkIfEnded);
+        }
+      };
+      checkIfEnded();
+    });
+
+    const decoder = new TextDecoder();
+
+    assert.strictEqual(mockResponse.statusCode, 200);
+    assert.deepStrictEqual(mockResponse.headers, {
+      'Content-Type': 'text/plain; charset=utf-8',
+    });
+    assert.deepStrictEqual(
+      mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
+      ['Hello', ', ', 'world!'],
+    );
+  });
+});
+
+describe('result.toAIStreamResponse', () => {
+  it('should create a Response with a stream data stream', async () => {
+    const result = await experimental_streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: 'world!' },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    const response = result.toAIStreamResponse();
+
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual(
+      response.headers.get('Content-Type'),
+      'text/plain; charset=utf-8',
+    );
+
+    // Read the chunks into an array
+    const reader = response.body!.getReader();
+    const chunks = [];
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      chunks.push(new TextDecoder().decode(value));
+    }
+
+    assert.deepStrictEqual(chunks, ['0:"Hello"\n', '0:", "\n', '0:"world!"\n']);
   });
 });
 
