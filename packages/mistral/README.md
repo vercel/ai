@@ -19,8 +19,7 @@ You can import the default provider instance `mistral` from `@ai-sdk/mistral`:
 import { mistral } from '@ai-sdk/mistral';
 ```
 
-If you need a customized setup, you can import `createMistral` from `@ai-sdk/mistral`
-and create a provider instance with your settings:
+If you need a customized setup, you can import `createMistral` from `@ai-sdk/mistral` and create a provider instance with your settings:
 
 ```ts
 import { createMistral } from '@ai-sdk/mistral';

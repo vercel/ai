@@ -39,7 +39,13 @@ yarn add @ai-sdk/openai
 
 ## Provider Instance
 
-You can import `createOpenAI` from `@ai-sdk/openai` and create a provider instance with various settings:
+You can import the default provider instance `openai` from `@ai-sdk/openai`:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+```
+
+If you need a customized setup, you can import `createOpenAI` from `@ai-sdk/openai` and create a provider instance with your settings:
 
 ```ts
 import { createOpenAI } from '@ai-sdk/openai';
@@ -69,15 +75,9 @@ You can use the following optional settings to customize the OpenAI provider ins
 
   OpenAI project.
 
-- **headers** _Record&lt;string,string&gt;_
+- **headers** _Record<string,string>_
 
   Custom headers to include in the requests.
-
-The AI SDK also provides a shorthand `openai` import with an OpenAI provider instance that uses defaults:
-
-```ts
-import { openai } from '@ai-sdk/openai';
-```
 
 ## Models
 

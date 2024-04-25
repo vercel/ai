@@ -1,6 +1,6 @@
 # Vercel AI SDK - OpenAI Provider
 
-The [OpenAI](https://platform.openai.com/) provider contains language model support for the OpenAI chat and completion APIs.
+The [OpenAI](https://platform.openai.com/) provider for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the OpenAI chat and completion APIs.
 It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` AI functions.
 
 ## Setup
@@ -13,7 +13,13 @@ npm i @ai-sdk/openai
 
 ## Provider Instance
 
-You can import `createOpenAI` from `@ai-sdk/openai` and create a provider instance with various settings:
+You can import the default provider instance `openai` from `@ai-sdk/openai`:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+```
+
+If you need a customized setup, you can import `createOpenAI` from `@ai-sdk/openai` and create a provider instance with your settings:
 
 ```ts
 import { createOpenAI } from '@ai-sdk/openai';
@@ -46,12 +52,6 @@ You can use the following optional settings to customize the OpenAI provider ins
 - **headers** _Record<string,string>_
 
   Custom headers to include in the requests.
-
-The AI SDK also provides a shorthand `openai` import with an OpenAI provider instance that uses defaults:
-
-```ts
-import { openai } from '@ai-sdk/openai';
-```
 
 ## Models
 
