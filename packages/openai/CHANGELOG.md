@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.7
+
+### Patch Changes
+
+- 0833e19: Allow optional content to support Fireworks function calling.
+
 ## 0.0.6
 
 ### Patch Changes
