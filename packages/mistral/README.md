@@ -1,6 +1,6 @@
 # Vercel AI SDK - Mistral Provider
 
-The Mistral provider contains language model support for the Mistral chat API.
+The [Mistral](https://mistral.ai/) provider for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the Mistral chat API.
 It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` AI functions.
 
 ## Setup
@@ -13,30 +13,38 @@ npm i @ai-sdk/mistral
 
 ## Provider Instance
 
-You can import `createMistral` from `@ai-sdk/mistral` and create a provider instance with various settings:
+You can import the default provider instance `mistral` from `@ai-sdk/mistral`:
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+```
+
+If you need a customized setup, you can import `createMistral` from `@ai-sdk/mistral`
+and create a provider instance with your settings:
 
 ```ts
 import { createMistral } from '@ai-sdk/mistral';
 
 const mistral = createMistral({
-  // optional base URL for proxies etc.:
-  baseURL: '',
-
-  // optional API key, default to env property MISTRAL_API_KEY:
-  apiKey: '',
-
-  // optional custom headers:
-  headers: {
-    'custom-header': 'value',
-  },
+  // custom settings
 });
 ```
 
-The AI SDK also provides a shorthand `mistral` import with a Mistral provider instance that uses defaults:
+You can use the following optional settings to customize the Mistral provider instance:
 
-```ts
-import { mistral } from '@ai-sdk/mistral';
-```
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.mistral.ai/v1`.
+
+- **apiKey** _string_
+
+  API key that is being send using the `Authorization` header.
+  It defaults to the `MISTRAL_API_KEY` environment variable.
+
+- **headers** _Record<string,string>_
+
+  Custom headers to include in the requests.
 
 ## Models
 
@@ -56,3 +64,11 @@ const model = mistral('mistral-large-latest', {
   safePrompt: true, // optional safety prompt injection
 });
 ```
+
+The following optional settings are available for Mistral models:
+
+- **safePrompt** _boolean_
+
+  Whether to inject a safety prompt before all conversations.
+
+  Defaults to `false`.
