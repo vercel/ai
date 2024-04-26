@@ -1,7 +1,7 @@
 import MistralClient from '@mistralai/mistralai';
 import { MistralStream, StreamingTextResponse } from 'ai';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 const mistral = new MistralClient(process.env.MISTRAL_API_KEY || '');
 

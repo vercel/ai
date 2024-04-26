@@ -1,10 +1,38 @@
-import { ChatCompletionResponseChunk } from '@mistralai/mistralai';
 import {
   createCallbacksTransformer,
   readableFromAsyncIterable,
   type AIStreamCallbacksAndOptions,
 } from './ai-stream';
 import { createStreamDataTransformer } from './stream-data';
+
+interface ChatCompletionResponseChunk {
+  id: string;
+  object: 'chat.completion.chunk';
+  created: number;
+  model: string;
+  choices: ChatCompletionResponseChunkChoice[];
+}
+
+interface ChatCompletionResponseChunkChoice {
+  index: number;
+  delta: {
+    role?: string;
+    content?: string;
+    tool_calls?: ToolCalls[];
+  };
+  finish_reason: string;
+}
+
+interface FunctionCall {
+  name: string;
+  arguments: string;
+}
+
+interface ToolCalls {
+  id: 'null';
+  type: 'function';
+  function: FunctionCall;
+}
 
 async function* streamable(stream: AsyncIterable<ChatCompletionResponseChunk>) {
   for await (const chunk of stream) {

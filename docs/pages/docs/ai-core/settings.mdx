@@ -10,19 +10,17 @@ All AI functions (`generateText`, `streamText`, `generateObject`, `streamObject`
 
 - **maxTokens** - Maximum number of tokens to generate.
 - **temperature** - Temperature setting.
-  This is a number between 0 (almost no randomness) and 1 (very random).
+  The value is passed through to the provider. The range depends on the provider and model.
   It is recommended to set either `temperature` or `topP`, but not both.
-- **topP** - Nucleus sampling. This is a number between 0 and 1.
-  E.g. 0.1 would mean that only tokens with the top 10% probability mass are considered.
+- **topP** - Nucleus sampling.
+  The value is passed through to the provider. The range depends on the provider and model.
   It is recommended to set either `temperature` or `topP`, but not both.
 - **presencePenalty** - Presence penalty setting.
   It affects the likelihood of the model to repeat information that is already in the prompt.
-  The presence penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition).
-  0 means no penalty.
+  The value is passed through to the provider. The range depends on the provider and model.
 - **frequencyPenalty** - Frequency penalty setting.
   It affects the likelihood of the model to repeatedly use the same words or phrases.
-  The frequency penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition).
-  0 means no penalty.
+  The value is passed through to the provider. The range depends on the provider and model.
 - **seed** - The seed (integer) to use for random sampling.
   If set and supported by the model, calls will generate deterministic results.
 - **maxRetries** - Maximum number of retries. Set to 0 to disable retries. Default: 2.

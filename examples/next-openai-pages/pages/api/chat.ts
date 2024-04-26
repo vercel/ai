@@ -5,7 +5,7 @@ const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY ?? '',
 });
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 // IMPORTANT: The Next.js Pages Router's API Routes do not support streaming responses.
 // see https://sdk.vercel.ai/docs/guides/frameworks/nextjs-pages

@@ -3,7 +3,7 @@ import { MistralStream, StreamingTextResponse, StreamData } from 'ai';
 
 const mistral = new MistralClient(process.env.MISTRAL_API_KEY || '');
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request

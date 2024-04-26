@@ -138,4 +138,67 @@ describe('result.objectStream', () => {
       ],
     );
   });
+
+  it('should send full stream data', async () => {
+    const result = await experimental_streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, { type: 'object-json' });
+          assert.deepStrictEqual(prompt, [
+            {
+              role: 'system',
+              content:
+                'JSON schema:\n' +
+                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
+                'You MUST answer with a JSON object that matches the JSON schema above.',
+            },
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 2 },
+                logprobs: [{ token: '-', logprob: 1, topLogprobs: [] }],
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: { logprobs: 0 } },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.fullStream),
+      [
+        { type: 'object', object: {} },
+        { type: 'object', object: { content: 'Hello, ' } },
+        { type: 'object', object: { content: 'Hello, world' } },
+        { type: 'object', object: { content: 'Hello, world!' } },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { promptTokens: 2, completionTokens: 10, totalTokens: 12 },
+          logprobs: [
+            {
+              token: '-',
+              logprob: 1,
+              topLogprobs: [],
+            },
+          ],
+        },
+      ],
+    );
+  });
 });

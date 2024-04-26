@@ -2,9 +2,12 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
 } from '@ai-sdk/provider';
+import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
+  StreamingTextResponse,
   createCallbacksTransformer,
   createStreamDataTransformer,
 } from '../../streams';
@@ -38,19 +41,17 @@ This function streams the output. If you do not want to stream the output, use `
 
 @param maxTokens - Maximum number of tokens to generate.
 @param temperature - Temperature setting. 
-This is a number between 0 (almost no randomness) and 1 (very random).
+The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param topP - Nucleus sampling. This is a number between 0 and 1.
-E.g. 0.1 would mean that only tokens with the top 10% probability mass are considered.
+@param topP - Nucleus sampling.
+The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
 @param presencePenalty - Presence penalty setting. 
 It affects the likelihood of the model to repeat information that is already in the prompt.
-The presence penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition). 
-0 means no penalty.
+The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
 It affects the likelihood of the model to repeatedly use the same words or phrases.
-The frequency penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition).
-0 means no penalty.
+The value is passed through to the provider. The range depends on the provider and model.
 @param seed - The seed (integer) to use for random sampling.
 If set and supported by the model, calls will generate deterministic results.
 
@@ -83,7 +84,7 @@ The tools that the model can call. The model needs to support calling tools.
   }): Promise<StreamTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
-  const { stream, warnings } = await retry(() =>
+  const { stream, warnings, rawResponse } = await retry(() =>
     model.doStream({
       mode: {
         type: 'regular',
@@ -110,6 +111,7 @@ The tools that the model can call. The model needs to support calling tools.
       generatorStream: stream,
     }),
     warnings,
+    rawResponse,
   });
 }
 
@@ -131,6 +133,7 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
   | {
       type: 'finish';
       finishReason: LanguageModelV1FinishReason;
+      logprobs?: LanguageModelV1LogProbs;
       usage: {
         promptTokens: number;
         completionTokens: number;
@@ -149,15 +152,30 @@ Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
+  /**
+Optional raw response data.
+   */
+  rawResponse?: {
+    /**
+Response headers.
+     */
+    headers?: Record<string, string>;
+  };
+
   constructor({
     stream,
     warnings,
+    rawResponse,
   }: {
     stream: ReadableStream<TextStreamPart<TOOLS>>;
     warnings: LanguageModelV1CallWarning[] | undefined;
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
   }) {
     this.originalStream = stream;
     this.warnings = warnings;
+    this.rawResponse = rawResponse;
   }
 
   /**
@@ -217,9 +235,99 @@ Stream callbacks that will be called when the stream emits events.
   }
 
   /**
+Writes stream data output to a Node.js response-like object.
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+writes each stream data part as a separate chunk.
+
+@param response A Node.js response-like object (ServerResponse).
+@param init Optional headers and status code.
+   */
+  pipeAIStreamToResponse(
+    response: ServerResponse,
+    init?: { headers?: Record<string, string>; status?: number },
+  ) {
+    response.writeHead(init?.status ?? 200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      ...init?.headers,
+    });
+
+    const reader = this.textStream
+      .pipeThrough(createCallbacksTransformer(undefined))
+      .pipeThrough(createStreamDataTransformer())
+      .getReader();
+
+    const read = async () => {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          response.write(value);
+        }
+      } catch (error) {
+        throw error;
+      } finally {
+        response.end();
+      }
+    };
+
+    read();
+  }
+
+  /**
+Writes text delta output to a Node.js response-like object.
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+writes each text delta as a separate chunk.
+
+@param response A Node.js response-like object (ServerResponse).
+@param init Optional headers and status code.
+   */
+  pipeTextStreamToResponse(
+    response: ServerResponse,
+    init?: { headers?: Record<string, string>; status?: number },
+  ) {
+    response.writeHead(init?.status ?? 200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      ...init?.headers,
+    });
+
+    const reader = this.textStream.getReader();
+
+    const read = async () => {
+      const encoder = new TextEncoder();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          response.write(encoder.encode(value));
+        }
+      } catch (error) {
+        throw error;
+      } finally {
+        response.end();
+      }
+    };
+
+    read();
+  }
+
+  /**
+Converts the result to a streamed response object with a stream data part stream.
+It can be used with the `useChat` and `useCompletion` hooks.
+
+@param init Optional headers.
+
+@return A response object.
+   */
+  toAIStreamResponse(init?: ResponseInit): Response {
+    return new StreamingTextResponse(this.toAIStream(), init);
+  }
+
+  /**
 Creates a simple text stream response.
 Each text delta is encoded as UTF-8 and sent as a separate chunk.
 Non-text-delta events are ignored.
+
+@param init Optional headers and status code.
    */
   toTextStreamResponse(init?: ResponseInit): Response {
     const encoder = new TextEncoder();
@@ -232,8 +340,7 @@ Non-text-delta events are ignored.
         }),
       ),
       {
-        ...init,
-        status: 200,
+        status: init?.status ?? 200,
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
           ...init?.headers,

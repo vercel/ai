@@ -7,8 +7,7 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_KEY || '',
 });
 
-// IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();

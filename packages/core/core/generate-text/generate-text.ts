@@ -2,6 +2,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
 } from '@ai-sdk/provider';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -29,19 +30,17 @@ This function does not stream the output. If you want to stream the output, use 
 
 @param maxTokens - Maximum number of tokens to generate.
 @param temperature - Temperature setting. 
-This is a number between 0 (almost no randomness) and 1 (very random).
+The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param topP - Nucleus sampling. This is a number between 0 and 1.
-E.g. 0.1 would mean that only tokens with the top 10% probability mass are considered.
+@param topP - Nucleus sampling.
+The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
 @param presencePenalty - Presence penalty setting. 
 It affects the likelihood of the model to repeat information that is already in the prompt.
-The presence penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition). 
-0 means no penalty.
+The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
 It affects the likelihood of the model to repeatedly use the same words or phrases.
-The frequency penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition).
-0 means no penalty.
+The value is passed through to the provider. The range depends on the provider and model.
 @param seed - The seed (integer) to use for random sampling.
 If set and supported by the model, calls will generate deterministic results.
 
@@ -115,6 +114,8 @@ The tools that the model can call. The model needs to support calling tools.
     finishReason: modelResponse.finishReason,
     usage: calculateTokenUsage(modelResponse.usage),
     warnings: modelResponse.warnings,
+    rawResponse: modelResponse.rawResponse,
+    logprobs: modelResponse.logprobs,
   });
 }
 
@@ -184,6 +185,22 @@ Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: LanguageModelV1CallWarning[] | undefined;
 
+  /**
+Optional raw response data.
+   */
+  rawResponse?: {
+    /**
+Response headers.
+   */
+    headers?: Record<string, string>;
+  };
+
+  /**
+Logprobs for the completion. 
+`undefined` if the mode does not support logprobs or if was not enabled
+   */
+  readonly logprobs: LanguageModelV1LogProbs | undefined;
+
   constructor(options: {
     text: string;
     toolCalls: ToToolCallArray<TOOLS>;
@@ -191,6 +208,10 @@ Warnings from the model provider (e.g. unsupported settings)
     finishReason: LanguageModelV1FinishReason;
     usage: TokenUsage;
     warnings: LanguageModelV1CallWarning[] | undefined;
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
+    logprobs: LanguageModelV1LogProbs | undefined;
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -198,6 +219,8 @@ Warnings from the model provider (e.g. unsupported settings)
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
+    this.rawResponse = options.rawResponse;
+    this.logprobs = options.logprobs;
   }
 }
 

@@ -25,28 +25,37 @@ export interface GoogleGenerativeAIProvider {
   ): GoogleGenerativeAILanguageModel;
 }
 
+export interface GoogleGenerativeAIProviderSettings {
+  /**
+Use a different URL prefix for API calls, e.g. to use proxy servers.
+The default prefix is `https://generativelanguage.googleapis.com/v1beta`.
+   */
+  baseURL?: string;
+
+  /**
+@deprecated Use `baseURL` instead.
+   */
+  baseUrl?: string;
+
+  /**
+API key that is being send using the `x-goog-api-key` header.
+It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
+   */
+  apiKey?: string;
+
+  /**
+Custom headers to include in the requests.
+     */
+  headers?: Record<string, string>;
+
+  generateId?: () => string;
+}
+
 /**
- * Create a Google Generative AI provider.
+Create a Google Generative AI provider instance.
  */
 export function createGoogleGenerativeAI(
-  options: {
-    /**
-     * Base URL for the Google API calls.
-     */
-    baseURL?: string;
-
-    /**
-     * @deprecated Use `baseURL` instead.
-     */
-    baseUrl?: string;
-
-    /**
-     * API key for authenticating requests.
-     */
-    apiKey?: string;
-
-    generateId?: () => string;
-  } = {},
+  options: GoogleGenerativeAIProviderSettings = {},
 ): GoogleGenerativeAIProvider {
   const google = new Google(options);
 
@@ -70,6 +79,6 @@ export function createGoogleGenerativeAI(
 }
 
 /**
- * Default Google Generative AI provider instance.
+Default Google Generative AI provider instance.
  */
 export const google = createGoogleGenerativeAI();

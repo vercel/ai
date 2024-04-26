@@ -4,45 +4,30 @@ import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
+import { AnthropicProviderSettings } from './anthropic-provider';
 
 /**
  * @deprecated Use `createAnthropic` instead.
  */
 export class Anthropic {
   /**
-   * Base URL for the Anthropic API calls.
+   * Base URL for Anthropic API calls.
    */
   readonly baseURL: string;
 
   readonly apiKey?: string;
 
+  readonly headers?: Record<string, string>;
+
   /**
    * Creates a new Anthropic provider instance.
    */
-  constructor(
-    options: {
-      /**
-       * Base URL for the Anthropic API calls.
-       */
-      baseURL?: string;
-
-      /**
-       * @deprecated Use `baseURL` instead.
-       */
-      baseUrl?: string;
-
-      /**
-       * API key for authenticating requests.
-       */
-      apiKey?: string;
-
-      generateId?: () => string;
-    } = {},
-  ) {
+  constructor(options: AnthropicProviderSettings = {}) {
     this.baseURL =
       withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
       'https://api.anthropic.com/v1';
     this.apiKey = options.apiKey;
+    this.headers = options.headers;
   }
 
   private get baseConfig() {
@@ -56,6 +41,7 @@ export class Anthropic {
           environmentVariableName: 'ANTHROPIC_API_KEY',
           description: 'Anthropic',
         }),
+        ...this.headers,
       }),
     };
   }

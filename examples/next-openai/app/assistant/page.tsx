@@ -14,9 +14,7 @@ const roleToColorMap: Record<Message['role'], string> = {
 
 export default function Chat() {
   const { status, messages, input, submitMessage, handleInputChange, error } =
-    useAssistant({
-      api: '/api/assistant',
-    });
+    useAssistant({ api: '/api/assistant' });
 
   // When status changes to accepting messages, focus the input:
   const inputRef = useRef<HTMLInputElement>(null);

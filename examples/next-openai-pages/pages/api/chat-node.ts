@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, streamToResponse } from 'ai';
+import { streamText } from 'ai';
 import { NextApiRequest, NextApiResponse } from 'next';
 
 // Create an OpenAI Provider instance
@@ -19,12 +19,7 @@ export default async function handler(
     messages,
   });
 
-  // Convert the response into a friendly text-stream
-  const stream = result.toAIStream();
-
-  /**
-   * Converts the stream to a Node.js Response-like object.
-   * Please note that this sends the response as one message once it's done.
-   */
-  return streamToResponse(stream, res);
+  // write the AI stream to the response
+  // Note: this is sent as a single response, not a stream
+  result.pipeAIStreamToResponse(res);
 }

@@ -1,5 +1,70 @@
 # ai
 
+## 3.0.33
+
+### Patch Changes
+
+- 56ef84a: ai/core: fix abort handling in transformation stream
+- Updated dependencies [56ef84a]
+  - @ai-sdk/provider-utils@0.0.4
+
+## 3.0.32
+
+### Patch Changes
+
+- 0e0d2af: ai/core: add pipeTextStreamToResponse helper to streamText.
+
+## 3.0.31
+
+### Patch Changes
+
+- 74c63b1: ai/core: add toAIStreamResponse() helper to streamText.
+
+## 3.0.30
+
+### Patch Changes
+
+- e7e5898: use-assistant: fix missing message content
+
+## 3.0.29
+
+### Patch Changes
+
+- 22a737e: Fix: mark useAssistant as in progress for append/submitMessage.
+
+## 3.0.28
+
+### Patch Changes
+
+- d6431ae: ai/core: add logprobs support (thanks @SamStenner for the contribution)
+- 25f3350: ai/core: add support for getting raw response headers.
+- Updated dependencies [d6431ae]
+- Updated dependencies [25f3350]
+  - @ai-sdk/provider@0.0.2
+  - @ai-sdk/provider-utils@0.0.3
+
+## 3.0.27
+
+### Patch Changes
+
+- eb150a6: ai/core: remove scaling of setting values (breaking change). If you were using the temperature, frequency penalty, or presence penalty settings, you need to update the providers and adjust the setting values.
+- Updated dependencies [eb150a6]
+  - @ai-sdk/provider-utils@0.0.2
+  - @ai-sdk/provider@0.0.1
+
+## 3.0.26
+
+### Patch Changes
+
+- f90f6a1: ai/core: add pipeAIStreamToResponse() to streamText result.
+
+## 3.0.25
+
+### Patch Changes
+
+- 1e84d6d: Fix: remove mistral lib type dependency.
+- 9c2a049: Add append() helper to useAssistant.
+
 ## 3.0.24
 
 ### Patch Changes

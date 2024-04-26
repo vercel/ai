@@ -4,18 +4,15 @@ import {
   StreamingTestServer,
   convertStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { Anthropic } from './anthropic-facade';
 import { AnthropicAssistantMessage } from './anthropic-messages-prompt';
+import { createAnthropic } from './anthropic-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const anthropic = new Anthropic({
-  apiKey: 'test-api-key',
-});
-
-const model = anthropic.chat('claude-3-haiku-20240307');
+const provider = createAnthropic({ apiKey: 'test-api-key' });
+const model = provider.chat('claude-3-haiku-20240307');
 
 describe('doGenerate', () => {
   const server = new JsonTestServer('https://api.anthropic.com/v1/messages');
@@ -52,7 +49,7 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
-    const { text } = await anthropic.chat('gpt-3.5-turbo').doGenerate({
+    const { text } = await provider.chat('gpt-3.5-turbo').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -181,6 +178,28 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should expose the raw response headers', async () => {
+    prepareJsonResponse({});
+
+    server.responseHeaders = {
+      'test-header': 'test-value',
+    };
+
+    const { rawResponse } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(rawResponse?.headers).toStrictEqual({
+      // default headers:
+      'content-type': 'application/json',
+
+      // custom header
+      'test-header': 'test-value',
+    });
+  });
+
   it('should pass the model and the messages', async () => {
     prepareJsonResponse({});
 
@@ -197,14 +216,34 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass custom headers', async () => {
+    prepareJsonResponse({ content: [] });
+
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+      headers: {
+        'Custom-Header': 'test-header',
+      },
+    });
+
+    await provider.chat('claude-3-haiku-20240307').doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = await server.getRequestHeaders();
+    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+  });
+
   it('should pass the api key as Authorization header', async () => {
     prepareJsonResponse({});
 
-    const anthropic = new Anthropic({
+    const provider = createAnthropic({
       apiKey: 'test-api-key',
     });
 
-    await anthropic.chat('claude-3-haiku-20240307').doGenerate({
+    await provider.chat('claude-3-haiku-20240307').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -259,6 +298,30 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should expose the raw response headers', async () => {
+    prepareStreamResponse({ content: [] });
+
+    server.responseHeaders = {
+      'test-header': 'test-value',
+    };
+
+    const { rawResponse } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(rawResponse?.headers).toStrictEqual({
+      // default headers:
+      'content-type': 'text/event-stream',
+      'cache-control': 'no-cache',
+      connection: 'keep-alive',
+
+      // custom header
+      'test-header': 'test-value',
+    });
+  });
+
   it('should pass the messages and the model', async () => {
     prepareStreamResponse({ content: [] });
 
@@ -276,14 +339,34 @@ describe('doStream', () => {
     });
   });
 
+  it('should pass custom headers', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+      headers: {
+        'Custom-Header': 'test-header',
+      },
+    });
+
+    await provider.chat('claude-3-haiku-20240307').doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestHeaders = await server.getRequestHeaders();
+    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+  });
+
   it('should pass the api key as Authorization header', async () => {
     prepareStreamResponse({ content: [] });
 
-    const anthropic = new Anthropic({
+    const provider = createAnthropic({
       apiKey: 'test-api-key',
     });
 
-    await anthropic.chat('claude-3-haiku-2024').doStream({
+    await provider.chat('claude-3-haiku-2024').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,

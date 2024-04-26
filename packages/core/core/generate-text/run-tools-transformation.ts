@@ -3,6 +3,7 @@ import { generateId } from '../../shared/generate-id';
 import { CoreTool } from '../tool';
 import { TextStreamPart } from './stream-text';
 import { parseToolCall } from './tool-call';
+import { calculateTokenUsage } from './token-usage';
 
 export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   tools,
@@ -129,12 +130,8 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
           controller.enqueue({
             type: 'finish',
             finishReason: chunk.finishReason,
-            usage: {
-              promptTokens: chunk.usage.promptTokens,
-              completionTokens: chunk.usage.completionTokens,
-              totalTokens:
-                chunk.usage.promptTokens + chunk.usage.completionTokens,
-            },
+            logprobs: chunk.logprobs,
+            usage: calculateTokenUsage(chunk.usage),
           });
           break;
         }
@@ -163,27 +160,30 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   // combine the generator stream and the tool results stream
   return new ReadableStream<TextStreamPart<TOOLS>>({
     async start(controller) {
-      generatorStream.pipeThrough(forwardStream).pipeTo(
-        new WritableStream({
-          write(chunk) {
-            controller.enqueue(chunk);
-          },
-          close() {
-            // the generator stream controller is automatically closed when it's consumed
-          },
-        }),
-      );
-
-      toolResultsStream.pipeTo(
-        new WritableStream({
-          write(chunk) {
-            controller.enqueue(chunk);
-          },
-          close() {
-            controller.close();
-          },
-        }),
-      );
+      // need to wait for both pipes so there are no dangling promises that
+      // can cause uncaught promise rejections when the stream is aborted
+      return Promise.all([
+        generatorStream.pipeThrough(forwardStream).pipeTo(
+          new WritableStream({
+            write(chunk) {
+              controller.enqueue(chunk);
+            },
+            close() {
+              // the generator stream controller is automatically closed when it's consumed
+            },
+          }),
+        ),
+        toolResultsStream.pipeTo(
+          new WritableStream({
+            write(chunk) {
+              controller.enqueue(chunk);
+            },
+            close() {
+              controller.close();
+            },
+          }),
+        ),
+      ]);
     },
   });
 }
