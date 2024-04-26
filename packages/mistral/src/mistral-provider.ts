@@ -1,9 +1,13 @@
+import {
+  generateId,
+  loadApiKey,
+  withoutTrailingSlash,
+} from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import {
   MistralChatModelId,
   MistralChatSettings,
 } from './mistral-chat-settings';
-import { Mistral } from './mistral-facade';
 
 export interface MistralProvider {
   (
@@ -49,7 +53,25 @@ Create a Mistral AI provider instance.
 export function createMistral(
   options: MistralProviderSettings = {},
 ): MistralProvider {
-  const mistral = new Mistral(options);
+  const createModel = (
+    modelId: MistralChatModelId,
+    settings: MistralChatSettings = {},
+  ) =>
+    new MistralChatLanguageModel(modelId, settings, {
+      provider: 'mistral.chat',
+      baseURL:
+        withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
+        'https://api.mistral.ai/v1',
+      headers: () => ({
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'MISTRAL_API_KEY',
+          description: 'Mistral',
+        })}`,
+        ...options.headers,
+      }),
+      generateId: options.generateId ?? generateId,
+    });
 
   const provider = function (
     modelId: MistralChatModelId,
@@ -61,10 +83,10 @@ export function createMistral(
       );
     }
 
-    return mistral.chat(modelId, settings);
+    return createModel(modelId, settings);
   };
 
-  provider.chat = mistral.chat.bind(mistral);
+  provider.chat = createModel;
 
   return provider as MistralProvider;
 }

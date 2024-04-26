@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.32
+
+### Patch Changes
+
+- 0e0d2af: ai/core: add pipeTextStreamToResponse helper to streamText.
+
 ## 3.0.31
 
 ### Patch Changes
