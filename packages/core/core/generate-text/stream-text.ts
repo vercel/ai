@@ -4,9 +4,9 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
 } from '@ai-sdk/provider';
+import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
-  StreamData,
   StreamingTextResponse,
   createCallbacksTransformer,
   createStreamDataTransformer,
@@ -26,7 +26,6 @@ import { retryWithExponentialBackoff } from '../util/retry-with-exponential-back
 import { runToolsTransformation } from './run-tools-transformation';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
-import { ServerResponse } from 'node:http';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
