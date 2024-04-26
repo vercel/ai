@@ -26,9 +26,7 @@ Below is a minimal route handler for using the OpenAI Chat API with the `openai`
 import OpenAI from 'openai';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 
-// Optional, but recommended: run on the edge runtime.
-// See https://vercel.com/docs/concepts/functions/edge-functions
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -64,9 +62,7 @@ import OpenAI from 'openai';
 import { OpenAIStream } from 'ai';
 import { Suspense } from 'react';
 
-// Optional, but recommended: run on the edge runtime.
-// See https://vercel.com/docs/concepts/functions/edge-functions
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -136,7 +132,7 @@ However, you cannot set a routes runtime from them, so if you want to opt-in to 
 ```typescript filename="app/page.tsx" showLineNumbers
 import Chat from './chat';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export default function Page() {
   return <Chat />;

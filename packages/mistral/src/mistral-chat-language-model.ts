@@ -87,7 +87,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
       // standardized settings:
       max_tokens: maxTokens,
-      temperature, // uses 0..1 scale
+      temperature,
       top_p: topP,
       random_seed: seed,
 
@@ -155,7 +155,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: this.config.headers(),
       body: args,
@@ -183,6 +183,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.completion_tokens,
       },
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings,
     };
   }
@@ -192,7 +193,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const { args, warnings } = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: this.config.headers(),
       body: {
@@ -287,6 +288,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings,
     };
   }

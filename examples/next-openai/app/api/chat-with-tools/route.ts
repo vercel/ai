@@ -12,8 +12,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
 
-// IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 const tools: Tool[] = [
   {

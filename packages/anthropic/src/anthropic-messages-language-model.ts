@@ -96,7 +96,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
       // standardized settings:
       max_tokens: maxTokens ?? 4096, // 4096: max model output tokens
-      temperature, // uses 0..1 scale
+      temperature,
       top_p: topP,
 
       // prompt:
@@ -164,7 +164,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
       headers: this.config.headers(),
       body: args,
@@ -210,6 +210,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.output_tokens,
       },
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings,
     };
   }
@@ -219,7 +220,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const { args, warnings } = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
       headers: this.config.headers(),
       body: {
@@ -296,6 +297,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings,
     };
   }

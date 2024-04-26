@@ -151,7 +151,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}:generateContent`,
       headers: this.config.headers(),
       body: args,
@@ -180,6 +180,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         completionTokens: candidate.tokenCount ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings,
     };
   }
@@ -189,7 +190,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const { args, warnings } = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}:streamGenerateContent?alt=sse`,
       headers: this.config.headers(),
       body: args,
@@ -287,6 +288,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings,
     };
   }

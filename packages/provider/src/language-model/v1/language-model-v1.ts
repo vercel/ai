@@ -2,6 +2,7 @@ import { LanguageModelV1CallOptions } from './language-model-v1-call-options';
 import { LanguageModelV1CallWarning } from './language-model-v1-call-warning';
 import { LanguageModelV1FinishReason } from './language-model-v1-finish-reason';
 import { LanguageModelV1FunctionToolCall } from './language-model-v1-function-tool-call';
+import { LanguageModelV1LogProbs } from './language-model-v1-logprobs';
 
 /**
  * Experimental: Specification for a language model that implements the language model
@@ -86,7 +87,23 @@ export type LanguageModelV1 = {
       rawSettings: Record<string, unknown>;
     };
 
+    /**
+     * Optional raw response information for debugging purposes.
+     */
+    rawResponse?: {
+      /**
+       * Response headers.
+       */
+      headers?: Record<string, string>;
+    };
+
     warnings?: LanguageModelV1CallWarning[];
+
+    /**
+     * Logprobs for the completion.
+     * `undefined` if the mode does not support logprobs or if was not enabled
+     */
+    logprobs?: LanguageModelV1LogProbs;
   }>;
 
   /**
@@ -117,6 +134,16 @@ export type LanguageModelV1 = {
       rawSettings: Record<string, unknown>;
     };
 
+    /**
+     * Optional raw response data.
+     */
+    rawResponse?: {
+      /**
+       * Response headers.
+       */
+      headers?: Record<string, string>;
+    };
+
     warnings?: LanguageModelV1CallWarning[];
   }>;
 };
@@ -138,13 +165,16 @@ export type LanguageModelV1StreamPart =
       argsTextDelta: string;
     }
 
-  // the usage stats and finish reason should be the last part of the
+  // the usage stats, finish reason and logprobs should be the last part of the
   // stream:
   | {
       type: 'finish';
       finishReason: LanguageModelV1FinishReason;
+      logprobs?: LanguageModelV1LogProbs;
       usage: { promptTokens: number; completionTokens: number };
     }
 
   // error parts are streamed, allowing for multiple errors
   | { type: 'error'; error: unknown };
+
+export type LanguageModelV1ResponseMetadata = {};

@@ -4,6 +4,7 @@ import { SetupServer, setupServer } from 'msw/node';
 export class JsonTestServer {
   readonly server: SetupServer;
 
+  responseHeaders: Record<string, string> = {};
   responseBodyJson: any = {};
 
   request: Request | undefined;
@@ -15,7 +16,12 @@ export class JsonTestServer {
       http.post(url, ({ request }) => {
         this.request = request;
 
-        return HttpResponse.json(responseBodyJson());
+        return HttpResponse.json(responseBodyJson(), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...this.responseHeaders,
+          },
+        });
       }),
     );
   }

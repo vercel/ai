@@ -51,7 +51,7 @@ export function mockFetchDataStream({
     }
   }
 
-  mockFetchDataStreamWithGenerator({
+  return mockFetchDataStreamWithGenerator({
     url,
     chunkGenerator: generateChunks(),
   });
@@ -64,7 +64,14 @@ export function mockFetchDataStreamWithGenerator({
   url: string;
   chunkGenerator: AsyncGenerator<Uint8Array, void, unknown>;
 }) {
-  vi.spyOn(global, 'fetch').mockImplementation(async () => {
+  let requestBodyResolve: ((value?: unknown) => void) | undefined;
+  const requestBodyPromise = new Promise(resolve => {
+    requestBodyResolve = resolve;
+  });
+
+  vi.spyOn(global, 'fetch').mockImplementation(async (url, init) => {
+    requestBodyResolve?.(init!.body as string);
+
     return {
       url,
       ok: true,
@@ -83,6 +90,10 @@ export function mockFetchDataStreamWithGenerator({
       },
     } as unknown as Response;
   });
+
+  return {
+    requestBody: requestBodyPromise,
+  };
 }
 
 export function mockFetchError({

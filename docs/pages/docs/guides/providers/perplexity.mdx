@@ -53,8 +53,7 @@ const perplexity = new OpenAI({
   baseURL: 'https://api.perplexity.ai/',
 });
 
-// IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
@@ -148,8 +147,7 @@ const perplexity = new OpenAI({
   baseURL: 'https://api.perplexity.ai/',
 });
 
-// IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request

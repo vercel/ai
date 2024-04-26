@@ -1,17 +1,15 @@
+import { mistral } from '@ai-sdk/mistral';
 import {
   ExperimentalMessage,
   ToolCallPart,
   ToolResultPart,
   experimental_streamText,
 } from 'ai';
-import { Mistral } from '@ai-sdk/mistral';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
 
 dotenv.config();
-
-const mistral = new Mistral();
 
 const terminal = readline.createInterface({
   input: process.stdin,
@@ -30,7 +28,7 @@ async function main() {
     }
 
     const result = await experimental_streamText({
-      model: mistral.chat('mistral-large-latest'),
+      model: mistral('mistral-large-latest'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,

@@ -28,7 +28,7 @@ async function main() {
     }
 
     const result = await experimental_streamText({
-      model: google.generativeAI('models/gemini-pro'),
+      model: google('models/gemini-pro'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,

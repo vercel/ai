@@ -1,6 +1,6 @@
 # Vercel AI SDK - Mistral Provider
 
-The Mistral provider contains language model support for the Mistral chat API.
+The [Mistral](https://mistral.ai/) provider for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the Mistral chat API.
 It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` AI functions.
 
 ## Setup
@@ -13,38 +13,61 @@ npm i @ai-sdk/mistral
 
 ## Provider Instance
 
-You can import `Mistral` from `ai/mistral` and initialize a provider instance with various settings:
-
-```ts
-import { Mistral } from '@ai-sdk/mistral';
-
-const mistral = new Mistral({
-  baseURL: '', // optional base URL for proxies etc.
-  apiKey: '', // optional API key, default to env property MISTRAL_API_KEY
-});
-```
-
-The AI SDK also provides a shorthand `mistral` import with a Mistral provider instance that uses defaults:
+You can import the default provider instance `mistral` from `@ai-sdk/mistral`:
 
 ```ts
 import { mistral } from '@ai-sdk/mistral';
 ```
 
-## Chat Models
+If you need a customized setup, you can import `createMistral` from `@ai-sdk/mistral` and create a provider instance with your settings:
 
-You can create models that call the [Mistral chat API](https://docs.mistral.ai/api/#operation/createChatCompletion) using the `.chat()` factory method.
+```ts
+import { createMistral } from '@ai-sdk/mistral';
+
+const mistral = createMistral({
+  // custom settings
+});
+```
+
+You can use the following optional settings to customize the Mistral provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.mistral.ai/v1`.
+
+- **apiKey** _string_
+
+  API key that is being send using the `Authorization` header.
+  It defaults to the `MISTRAL_API_KEY` environment variable.
+
+- **headers** _Record<string,string>_
+
+  Custom headers to include in the requests.
+
+## Models
+
+You can create models that call the [Mistral chat API](https://docs.mistral.ai/api/#operation/createChatCompletion) using provider instance.
 The first argument is the model id, e.g. `mistral-large-latest`.
 Some Mistral chat models support tool calls.
 
 ```ts
-const model = mistral.chat('mistral-large-latest');
+const model = mistral('mistral-large-latest');
 ```
 
 Mistral chat models also support additional model settings that are not part of the [standard call settings](/docs/ai-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = mistral.chat('mistral-large-latest', {
+const model = mistral('mistral-large-latest', {
   safePrompt: true, // optional safety prompt injection
 });
 ```
+
+The following optional settings are available for Mistral models:
+
+- **safePrompt** _boolean_
+
+  Whether to inject a safety prompt before all conversations.
+
+  Defaults to `false`.

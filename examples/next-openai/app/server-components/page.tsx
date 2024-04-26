@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 
 // Optional, but recommended: run on the edge runtime.
 // See https://vercel.com/docs/concepts/functions/edge-functions
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export default async function Page({
   searchParams,
