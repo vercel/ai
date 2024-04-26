@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { experimental_streamObject } from 'ai';
+import { streamObject } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
@@ -11,7 +11,7 @@ const fireworks = createOpenAI({
 });
 
 async function main() {
-  const result = await experimental_streamObject({
+  const result = await streamObject({
     model: fireworks('accounts/fireworks/models/firefunction-v1'),
     maxTokens: 2000,
     schema: z.object({
