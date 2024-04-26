@@ -272,7 +272,7 @@ describe('result.pipeAIStreamToResponse', async () => {
   it('should write data stream parts to a Node.js response-like object', async () => {
     const mockResponse = createMockServerResponse();
 
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async () => {
           return {
@@ -319,7 +319,7 @@ describe('result.pipeTextStreamToResponse', async () => {
   it('should write text deltas to a Node.js response-like object', async () => {
     const mockResponse = createMockServerResponse();
 
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async () => {
           return {
@@ -364,7 +364,7 @@ describe('result.pipeTextStreamToResponse', async () => {
 
 describe('result.toAIStreamResponse', () => {
   it('should create a Response with a stream data stream', async () => {
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           return {

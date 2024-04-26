@@ -140,7 +140,7 @@ describe('result.objectStream', () => {
   });
 
   it('should send full stream data', async () => {
-    const result = await experimental_streamObject({
+    const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, { type: 'object-json' });
