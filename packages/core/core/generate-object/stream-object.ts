@@ -247,10 +247,6 @@ export type ObjectStreamPart<T> =
       object: DeepPartial<T>;
     };
 
-
-    export type ErrorStreamPart = { type: 'error'; error: unknown };
-
-
 /**
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
@@ -313,40 +309,41 @@ Response headers.
         }
       },
     });
-    get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
-      let accumulatedText = '';
-      let latestObject: DeepPartial<T> | undefined = undefined;
-  
-      return createAsyncIterableStream(this.originalStream, {
-        transform(chunk, controller) {
-          if (typeof chunk === 'string') {
-            accumulatedText += chunk;
-            const currentObject = parsePartialJson(
-              accumulatedText,
-            ) as DeepPartial<T>;
-  
-            if (!isDeepEqualData(latestObject, currentObject)) {
-              latestObject = currentObject;
-  
-              controller.enqueue({ type: 'object', object: currentObject });
-            }
-          } else {
-            switch (chunk.type) {
-              case 'finish':
-                controller.enqueue({
-                  ...chunk,
-                  usage: calculateTokenUsage(chunk.usage),
-                });
-                break;
-              default:
-                controller.enqueue(chunk);
-                break;
-            }
+  }
+
+  get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
+    let accumulatedText = '';
+    let latestObject: DeepPartial<T> | undefined = undefined;
+
+    return createAsyncIterableStream(this.originalStream, {
+      transform(chunk, controller) {
+        if (typeof chunk === 'string') {
+          accumulatedText += chunk;
+          const currentObject = parsePartialJson(
+            accumulatedText,
+          ) as DeepPartial<T>;
+
+          if (!isDeepEqualData(latestObject, currentObject)) {
+            latestObject = currentObject;
+
+            controller.enqueue({ type: 'object', object: currentObject });
           }
-        },
-      });
-    }
-  }  
+        } else {
+          switch (chunk.type) {
+            case 'finish':
+              controller.enqueue({
+                ...chunk,
+                usage: calculateTokenUsage(chunk.usage),
+              });
+              break;
+            default:
+              controller.enqueue(chunk);
+              break;
+          }
+        }
+      },
+    });
+  }
 }
 
 /**
