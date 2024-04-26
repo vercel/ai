@@ -45,16 +45,14 @@ export function streamToResponse(
 
   const reader = processedStream.getReader();
   function read() {
-    reader
-      .read()
-      .then(({ done, value }: { done: boolean; value?: any }) => {
-        if (done) {
-          response.end();
-          return;
-        }
-        response.write(value);
-        read();
-      });
+    reader.read().then(({ done, value }: { done: boolean; value?: any }) => {
+      if (done) {
+        response.end();
+        return;
+      }
+      response.write(value);
+      read();
+    });
   }
   read();
 }
