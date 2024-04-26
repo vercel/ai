@@ -162,27 +162,28 @@ export function runToolsTransformation<
   // combine the generator stream and the tool results stream
   return new ReadableStream<TextStreamPart<TOOLS>>({
     async start(controller) {
-      await generatorStream.pipeThrough(forwardStream).pipeTo(
-        new WritableStream({
-          write(chunk) {
-            controller.enqueue(chunk);
-          },
-          close() {
-            // the generator stream controller is automatically closed when it's consumed
-          },
-        }),
-      );
-
-      toolResultsStream.pipeTo(
-        new WritableStream({
-          write(chunk) {
-            controller.enqueue(chunk);
-          },
-          close() {
-            controller.close();
-          },
-        }),
-      );
+      return Promise.all([
+        generatorStream.pipeThrough(forwardStream).pipeTo(
+          new WritableStream({
+            write(chunk) {
+              controller.enqueue(chunk);
+            },
+            close() {
+              // the generator stream controller is automatically closed when it's consumed
+            },
+          }),
+        ),
+        toolResultsStream.pipeTo(
+          new WritableStream({
+            write(chunk) {
+              controller.enqueue(chunk);
+            },
+            close() {
+              controller.close();
+            },
+          }),
+        ),
+      ]);
     },
   });
 }
