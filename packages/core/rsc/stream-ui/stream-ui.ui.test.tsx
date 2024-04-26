@@ -148,4 +148,24 @@ describe('result.value', () => {
     const rendered = await simulateFlightServerRender(result.value);
     expect(rendered).toMatchSnapshot();
   });
+
+  it('should show better error messages if legacy options are passed', async () => {
+    try {
+      await experimental_streamUI({
+        model: mockToolModel,
+        prompt: '',
+        tools: {
+          tool1: {
+            description: 'test tool 1',
+            parameters: z.object({
+              value: z.string(),
+            }),
+            render: async function* () {},
+          },
+        },
+      });
+    } catch (e) {
+      expect(e).toMatchSnapshot();
+    }
+  });
 });

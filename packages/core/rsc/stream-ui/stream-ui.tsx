@@ -98,6 +98,33 @@ export async function experimental_streamUI<
     text?: RenderText;
     initial?: ReactNode;
   }): Promise<RenderResult> {
+  // TODO: Remove these errors after the experimental phase.
+  if (typeof model === 'string') {
+    throw new Error(
+      '`model` cannot be a string in `experimental_streamUI`. Use the actual model instance instead.',
+    );
+  }
+  if ('functions' in settings) {
+    throw new Error(
+      '`functions` is not supported in `experimental_streamUI`, use `tools` instead.',
+    );
+  }
+  if ('provider' in settings) {
+    throw new Error(
+      '`provider` is no longer needed in `experimental_streamUI`. Use `model` instead.',
+    );
+  }
+  if (tools) {
+    for (const [name, tool] of Object.entries(tools)) {
+      if ('render' in tool) {
+        throw new Error(
+          'Tool definition in `experimental_streamUI` should not have `render` property. Use `generate` instead. Found in tool: ' +
+            name,
+        );
+      }
+    }
+  }
+
   const ui = createStreamableUI(initial);
 
   // The default text renderer just returns the content as string.
