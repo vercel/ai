@@ -53,16 +53,38 @@ The parameters are passed into `experimental_generateText` as a single options o
 - **maxRetries** - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 - **abortSignal** - An optional abort signal that can be used to cancel the call.
 
-## Return Type
+## Result
 
 `generateText` returns a result object with several properties:
 
-- **text**: `string` - The generated text.
-- **toolCalls**: `Array<ToolCall>` - The tool calls that were made during the generation. Each tool call has a `toolCallId`, a `toolName`, and a typed `args` object.
-- **toolResults**: `Array<ToolResult>` - The results of the tool calls. Each tool result has a `toolCallId`, a `toolName`, a typed `args` object, and a typed `result` object.
-- **finishReason**: `stop` | `length` | `content-filter` | `tool-calls` | `error` | `other` - The reason why the generation finished.
-- **usage**: `TokenUsage` - The token usage of the generated text. The object contains `promptTokens: number`, `completionTokens: number`, and `totalTokens: number`.
-- **warnings**: `Array<Warning> | undefined` - Warnings from the model provider (e.g., unsupported settings).
+- **text** _string_
+
+  The generated text.
+
+- **toolCalls** : _Array&lt;ToolCall&gt;_
+
+  The tool calls that were made during the generation. Each tool call has a `toolCallId`, a `toolName`, and a typed `args` object.
+
+- **toolResults** _Array&lt;ToolResult&gt;_
+
+  The results of the tool calls. Each tool result has a `toolCallId`, a `toolName`, a typed `args` object, and a typed `result` object.
+
+- **finishReason** _"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"_
+
+  The reason why the generation finished.
+
+- **usage** _TokenUsage_
+
+  The token usage of the generated text. The object contains `promptTokens: number`, `completionTokens: number`, and `totalTokens: number`.
+
+- **rawResponse** _&#123; headers: Record&lt;string, string&gt; | undefined }&#125; | undefined_
+
+  Optional raw response data. Only contains response headers.
+  You can use this to e.g. extract request headers.
+
+- **warnings** \_Array&lt;Warning&gt; | undefined
+
+  Warnings from the model provider (e.g., unsupported settings).
 
 ## Examples
 
