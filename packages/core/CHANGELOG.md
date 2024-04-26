@@ -1,5 +1,19 @@
 # ai
 
+## 3.0.33
+
+### Patch Changes
+
+- 56ef84a: ai/core: fix abort handling in transformation stream
+- Updated dependencies [56ef84a]
+  - @ai-sdk/provider-utils@0.0.4
+
+## 3.0.32
+
+### Patch Changes
+
+- 0e0d2af: ai/core: add pipeTextStreamToResponse helper to streamText.
+
 ## 3.0.31
 
 ### Patch Changes
