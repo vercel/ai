@@ -30,22 +30,31 @@ export function streamToResponse(
   res: ReadableStream,
   response: ServerResponse,
   init?: { headers?: Record<string, string>; status?: number },
+  data?: StreamData,
 ) {
   response.writeHead(init?.status || 200, {
     'Content-Type': 'text/plain; charset=utf-8',
     ...init?.headers,
   });
 
-  const reader = res.getReader();
+  let processedStream = res;
+
+  if (data) {
+    processedStream = res.pipeThrough(data.stream);
+  }
+
+  const reader = processedStream.getReader();
   function read() {
-    reader.read().then(({ done, value }: { done: boolean; value?: any }) => {
-      if (done) {
-        response.end();
-        return;
-      }
-      response.write(value);
-      read();
-    });
+    reader
+      .read()
+      .then(({ done, value }: { done: boolean; value?: any }) => {
+        if (done) {
+          response.end();
+          return;
+        }
+        response.write(value);
+        read();
+      });
   }
   read();
 }

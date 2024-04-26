@@ -8,7 +8,7 @@ import { OptionTable } from '@/components/table';
   [`web-streams-polyfill`](https://www.npmjs.com/package/web-streams-polyfill).
 </Callout>
 
-## `streamToResponse(stream: ReadableStream, response: ServerResponse, options?: Options)`
+## `streamToResponse(stream: ReadableStream, response: ServerResponse, options?: Options, data?: DataStream)`
 
 This method will pipe a `ReadableStream` to a Node.js `ServerResponse` object. It can be helpful to combine this with other AI stream utilities, such as [`OpenAIStream`](/docs/api-reference/providers/openai-stream), in Node.js environments.
 
@@ -42,6 +42,10 @@ Optional object to configure the response, with the following properties:
     ],
   ]}
 />
+
+### `data?: DataStream`
+
+Similar to example in [`StreamData`](docs/api-reference/stream-data#on-the-server), you can provide additional data here.
 
 ## Example: Node.js HTTP Server
 
