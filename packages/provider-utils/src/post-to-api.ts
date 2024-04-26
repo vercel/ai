@@ -1,4 +1,5 @@
 import { APICallError } from '@ai-sdk/provider';
+import { isAbortError } from './is-abort-error';
 import { ResponseHandler } from './response-handler';
 
 export const postJsonToApi = async <T>({
@@ -70,13 +71,8 @@ export const postToApi = async <T>({
           requestBodyValues: body.values,
         });
       } catch (error) {
-        if (error instanceof Error) {
-          if (
-            error.name === 'AbortError' ||
-            APICallError.isAPICallError(error)
-          ) {
-            throw error;
-          }
+        if (isAbortError(error) || APICallError.isAPICallError(error)) {
+          throw error;
         }
 
         throw new APICallError({
@@ -97,7 +93,7 @@ export const postToApi = async <T>({
       });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.name === 'AbortError' || APICallError.isAPICallError(error)) {
+        if (isAbortError(error) || APICallError.isAPICallError(error)) {
           throw error;
         }
       }
@@ -111,10 +107,8 @@ export const postToApi = async <T>({
       });
     }
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw error;
-      }
+    if (isAbortError(error)) {
+      throw error;
     }
 
     // unwrap original error when fetch failed (for easier debugging):
