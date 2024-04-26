@@ -71,7 +71,7 @@ const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
  * `experimental_streamUI` is a helper function to create a streamable UI from LLMs.
  */
 export async function experimental_streamUI<
-  TOOLS extends Record<string, RenderTool>,
+  TOOLS extends { [name: string]: z.ZodTypeAny } = {},
 >({
   model,
   tools,
@@ -93,7 +93,9 @@ export async function experimental_streamUI<
     /**
      * The tools that the model can call. The model needs to support calling tools.
      */
-    tools?: TOOLS;
+    tools?: {
+      [name in keyof TOOLS]: RenderTool<TOOLS[name]>;
+    };
 
     text?: RenderText;
     initial?: ReactNode;
