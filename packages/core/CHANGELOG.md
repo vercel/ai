@@ -1,5 +1,11 @@
 # ai
 
+## 3.0.34
+
+### Patch Changes
+
+- b9a831e: ai/rsc: add experimental_streamUI()
+
 ## 3.0.33
 
 ### Patch Changes
