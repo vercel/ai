@@ -21,7 +21,7 @@ import type { StreamablePatch, StreamableValue } from './types';
  * Create a piece of changable UI that can be streamed to the client.
  * On the client side, it can be rendered as a normal React node.
  */
-export function createStreamableUI(initialValue?: React.ReactNode) {
+function createStreamableUI(initialValue?: React.ReactNode) {
   let currentValue = initialValue;
   let closed = false;
   let { row, resolve, reject } = createSuspensedChunk(initialValue);
@@ -136,12 +136,72 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
   };
 }
 
+const STREAMABLE_VALUE_INTERNAL_LOCK = Symbol('streamable.value.lock');
+
 /**
  * Create a wrapped, changable value that can be streamed to the client.
  * On the client side, the value can be accessed via the readStreamableValue() API.
  */
-export function createStreamableValue<T = any, E = any>(initialValue?: T) {
+function createStreamableValue<T = any, E = any>(
+  initialValue?: T | ReadableStream<T>,
+) {
+  const isReadableStream =
+    initialValue instanceof ReadableStream ||
+    (typeof initialValue === 'object' &&
+      initialValue !== null &&
+      'getReader' in initialValue &&
+      typeof initialValue.getReader === 'function' &&
+      'locked' in initialValue &&
+      typeof initialValue.locked === 'boolean');
+
+  if (!isReadableStream) {
+    return createStreamableValueImpl<T, E>(initialValue);
+  }
+
+  const streamableValue = createStreamableValueImpl<T, E>();
+
+  // Since the streamable value will be from a readable stream, it's not allowed
+  // to update the value manually as that introduces race conditions and
+  // unexpected behavior.
+  // We lock the value to prevent any updates from the user.
+  streamableValue[STREAMABLE_VALUE_INTERNAL_LOCK] = true;
+
+  (async () => {
+    try {
+      // Consume the readable stream and update the value.
+      const reader = initialValue.getReader();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        // Unlock the value to allow updates.
+        streamableValue[STREAMABLE_VALUE_INTERNAL_LOCK] = false;
+        if (typeof value === 'string') {
+          streamableValue.append(value);
+        } else {
+          streamableValue.update(value);
+        }
+        // Lock the value again.
+        streamableValue[STREAMABLE_VALUE_INTERNAL_LOCK] = true;
+      }
+
+      streamableValue[STREAMABLE_VALUE_INTERNAL_LOCK] = false;
+      streamableValue.done();
+    } catch (e) {
+      streamableValue[STREAMABLE_VALUE_INTERNAL_LOCK] = false;
+      streamableValue.error(e);
+    }
+  })();
+
+  return streamableValue;
+}
+
+function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
   let closed = false;
+  let locked = false;
   let resolvable = createResolvablePromise<StreamableValue<T, E>>();
 
   let currentValue = initialValue;
@@ -153,6 +213,11 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
   function assertStream(method: string) {
     if (closed) {
       throw new Error(method + ': Value stream is already closed.');
+    }
+    if (locked) {
+      throw new Error(
+        method + ': Value stream is locked and cannot be updated.',
+      );
     }
   }
 
@@ -213,6 +278,13 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
 
   return {
     /**
+     * @internal This is an internal lock to prevent the value from being
+     * updated by the user.
+     */
+    set [STREAMABLE_VALUE_INTERNAL_LOCK](state: boolean) {
+      locked = state;
+    },
+    /**
      * The value of the streamable. This can be returned from a Server Action and
      * received by the client. To read the streamed values, use the
      * `readStreamableValue` or `useStreamableValue` APIs.
@@ -235,6 +307,56 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
 
       warnUnclosedStream();
     },
+    /**
+     * This method is used to append a delta string to the current value. It
+     * requires the current value of the streamable to be a string.
+     *
+     * @example
+     * ```jsx
+     * const streamable = createStreamableValue('hello');
+     * streamable.append(' world');
+     *
+     * // The value will be 'hello world'
+     * ```
+     */
+    append(value: T) {
+      assertStream('.append()');
+
+      if (
+        typeof currentValue !== 'string' &&
+        typeof currentValue !== 'undefined'
+      ) {
+        throw new Error(
+          `.append(): The current value is not a string. Received: ${typeof currentValue}`,
+        );
+      }
+      if (typeof value !== 'string') {
+        throw new Error(
+          `.append(): The value is not a string. Received: ${typeof value}`,
+        );
+      }
+
+      const resolvePrevious = resolvable.resolve;
+      resolvable = createResolvablePromise();
+
+      if (typeof currentValue === 'string') {
+        currentPatchValue = [0, value];
+        (currentValue as string) = currentValue + value;
+      } else {
+        currentPatchValue = undefined;
+        currentValue = value;
+      }
+
+      currentPromise = resolvable.promise;
+      resolvePrevious(createWrapped());
+
+      warnUnclosedStream();
+    },
+    /**
+     * This method is used to signal that there is an error in the value stream.
+     * It will be thrown on the client side when consumed via
+     * `readStreamableValue` or `useStreamableValue`.
+     */
     error(error: any) {
       assertStream('.error()');
 
@@ -247,6 +369,14 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
 
       resolvable.resolve({ error });
     },
+    /**
+     * This method marks the value as finalized. You can either call it without
+     * any parameters or with a new value as the final state.
+     * Once called, the value cannot be updated or appended anymore.
+     *
+     * This method is always **required** to be called, otherwise the response
+     * will be stuck in a loading state.
+     */
     done(...args: [] | [T]) {
       assertStream('.done()');
 
@@ -266,6 +396,8 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
     },
   };
 }
+
+export { createStreamableUI, createStreamableValue };
 
 type Streamable = ReactNode | Promise<ReactNode>;
 type Renderer<T> = (
