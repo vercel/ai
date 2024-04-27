@@ -160,6 +160,7 @@ describe('result.value', () => {
             parameters: z.object({
               value: z.string(),
             }),
+            // @ts-expect-error
             render: async function* () {},
           },
         },
