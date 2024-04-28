@@ -1,14 +1,16 @@
-export class NoTextGeneratedError extends Error {
+export class NoObjectGeneratedError extends Error {
   readonly cause: unknown;
 
   constructor() {
-    super(`No text generated.`);
+    super(`No object generated.`);
 
-    this.name = 'AI_NoTextGeneratedError';
+    this.name = 'AI_NoObjectGeneratedError';
   }
 
-  static isNoTextGeneratedError(error: unknown): error is NoTextGeneratedError {
-    return error instanceof Error && error.name === 'AI_NoTextGeneratedError';
+  static isNoTextGeneratedError(
+    error: unknown,
+  ): error is NoObjectGeneratedError {
+    return error instanceof Error && error.name === 'AI_NoObjectGeneratedError';
   }
 
   toJSON() {
