@@ -1,9 +1,3 @@
-import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1LogProbs,
-} from '@ai-sdk/provider';
 import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
@@ -17,6 +11,7 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { ExperimentalTool } from '../tool';
+import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -77,7 +72,7 @@ export async function experimental_streamText<
     /**
 The language model to use.
      */
-    model: LanguageModelV1;
+    model: LanguageModel;
 
     /**
 The tools that the model can call. The model needs to support calling tools.
@@ -134,8 +129,8 @@ export type TextStreamPart<TOOLS extends Record<string, ExperimentalTool>> =
     } & ToToolResult<TOOLS>)
   | {
       type: 'finish';
-      finishReason: LanguageModelV1FinishReason;
-      logprobs?: LanguageModelV1LogProbs;
+      finishReason: FinishReason;
+      logprobs?: LogProbs;
       usage: {
         promptTokens: number;
         completionTokens: number;
@@ -152,7 +147,7 @@ export class StreamTextResult<TOOLS extends Record<string, ExperimentalTool>> {
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
-  readonly warnings: LanguageModelV1CallWarning[] | undefined;
+  readonly warnings: CallWarning[] | undefined;
 
   /**
 Optional raw response data.
@@ -170,7 +165,7 @@ Response headers.
     rawResponse,
   }: {
     stream: ReadableStream<TextStreamPart<TOOLS>>;
-    warnings: LanguageModelV1CallWarning[] | undefined;
+    warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
     };

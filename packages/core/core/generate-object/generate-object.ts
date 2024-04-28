@@ -1,10 +1,4 @@
-import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1LogProbs,
-  NoTextGeneratedError,
-} from '@ai-sdk/provider';
+import { NoObjectGeneratedError } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
@@ -13,6 +7,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
+import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
@@ -68,7 +63,7 @@ export async function experimental_generateObject<T>({
     /**
 The language model to use.
      */
-    model: LanguageModelV1;
+    model: LanguageModel;
 
     /**
 The schema of the object that the model should generate.
@@ -91,11 +86,11 @@ Default and recommended: 'auto' (best mode for the model).
   }
 
   let result: string;
-  let finishReason: LanguageModelV1FinishReason;
+  let finishReason: FinishReason;
   let usage: Parameters<typeof calculateTokenUsage>[0];
-  let warnings: LanguageModelV1CallWarning[] | undefined;
+  let warnings: CallWarning[] | undefined;
   let rawResponse: { headers?: Record<string, string> } | undefined;
-  let logprobs: LanguageModelV1LogProbs | undefined;
+  let logprobs: LogProbs | undefined;
 
   switch (mode) {
     case 'json': {
@@ -116,7 +111,7 @@ Default and recommended: 'auto' (best mode for the model).
       });
 
       if (generateResult.text === undefined) {
-        throw new NoTextGeneratedError();
+        throw new NoObjectGeneratedError();
       }
 
       result = generateResult.text;
@@ -147,7 +142,7 @@ Default and recommended: 'auto' (best mode for the model).
       );
 
       if (generateResult.text === undefined) {
-        throw new NoTextGeneratedError();
+        throw new NoObjectGeneratedError();
       }
 
       result = generateResult.text;
@@ -188,7 +183,7 @@ Default and recommended: 'auto' (best mode for the model).
       const functionArgs = generateResult.toolCalls?.[0]?.args;
 
       if (functionArgs === undefined) {
-        throw new NoTextGeneratedError();
+        throw new NoObjectGeneratedError();
       }
 
       result = functionArgs;
@@ -239,7 +234,7 @@ The generated object (typed according to the schema).
   /**
 The reason why the generation finished.
    */
-  readonly finishReason: LanguageModelV1FinishReason;
+  readonly finishReason: FinishReason;
 
   /**
 The token usage of the generated text.
@@ -249,7 +244,7 @@ The token usage of the generated text.
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
-  readonly warnings: LanguageModelV1CallWarning[] | undefined;
+  readonly warnings: CallWarning[] | undefined;
 
   /**
 Optional raw response data.
@@ -265,17 +260,17 @@ Response headers.
 Logprobs for the completion. 
 `undefined` if the mode does not support logprobs or if was not enabled
    */
-  readonly logprobs: LanguageModelV1LogProbs | undefined;
+  readonly logprobs: LogProbs | undefined;
 
   constructor(options: {
     object: T;
-    finishReason: LanguageModelV1FinishReason;
+    finishReason: FinishReason;
     usage: TokenUsage;
-    warnings: LanguageModelV1CallWarning[] | undefined;
+    warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
     };
-    logprobs: LanguageModelV1LogProbs | undefined;
+    logprobs: LogProbs | undefined;
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
