@@ -1,5 +1,15 @@
 # ai
 
+## 3.0.35
+
+### Patch Changes
+
+- 41d5736: ai/core: re-expose language model types.
+- b4c68ec: ai/rsc: ReadableStream as provider for createStreamableValue; add .append() method
+- Updated dependencies [41d5736]
+  - @ai-sdk/provider@0.0.3
+  - @ai-sdk/provider-utils@0.0.5
+
 ## 3.0.34
 
 ### Patch Changes

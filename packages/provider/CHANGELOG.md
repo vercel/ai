@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.3
+
+### Patch Changes
+
+- 41d5736: ai/core: re-expose language model types.
+
 ## 0.0.2
 
 ### Patch Changes
