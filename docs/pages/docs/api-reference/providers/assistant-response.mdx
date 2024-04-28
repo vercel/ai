@@ -32,6 +32,7 @@ It gets invoked with the following functions that you can use to send messages a
 
 - `forwardStream: (stream: AssistantStream) => Run | undefined`: Forwards the assistant response stream to the client. Returns the `Run` object after it completes, or when it requires an action.
 - `sendDataMessage: (message: DataMessage) => void`: Send a data message to the client. You can use this to provide information for rendering custom UIs while the assistant is processing the thread.
+- `sendMessage: (message: AssistantMessage) => void`: Forwards an assistant message (non-streaming) to the client.
 
 ## Example
 
