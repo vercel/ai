@@ -1,5 +1,47 @@
 # ai
 
+## 3.0.35
+
+### Patch Changes
+
+- 41d5736: ai/core: re-expose language model types.
+- b4c68ec: ai/rsc: ReadableStream as provider for createStreamableValue; add .append() method
+- Updated dependencies [41d5736]
+  - @ai-sdk/provider@0.0.3
+  - @ai-sdk/provider-utils@0.0.5
+
+## 3.0.34
+
+### Patch Changes
+
+- b9a831e: ai/rsc: add experimental_streamUI()
+
+## 3.0.33
+
+### Patch Changes
+
+- 56ef84a: ai/core: fix abort handling in transformation stream
+- Updated dependencies [56ef84a]
+  - @ai-sdk/provider-utils@0.0.4
+
+## 3.0.32
+
+### Patch Changes
+
+- 0e0d2af: ai/core: add pipeTextStreamToResponse helper to streamText.
+
+## 3.0.31
+
+### Patch Changes
+
+- 74c63b1: ai/core: add toAIStreamResponse() helper to streamText.
+
+## 3.0.30
+
+### Patch Changes
+
+- e7e5898: use-assistant: fix missing message content
+
 ## 3.0.29
 
 ### Patch Changes

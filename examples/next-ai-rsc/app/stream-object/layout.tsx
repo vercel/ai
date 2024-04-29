@@ -45,12 +45,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`font-sans antialiased ${GeistSans.variable} ${GeistMono.variable}`}
-      >
-        <GenerateItineraryAI>{children}</GenerateItineraryAI>
-      </body>
-    </html>
+    <div
+      className={`font-sans antialiased ${GeistSans.variable} ${GeistMono.variable}`}
+    >
+      <GenerateItineraryAI>{children}</GenerateItineraryAI>
+    </div>
   );
 }

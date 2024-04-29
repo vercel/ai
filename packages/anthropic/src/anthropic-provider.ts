@@ -27,7 +27,8 @@ export interface AnthropicProvider {
 
 export interface AnthropicProviderSettings {
   /**
-Base URL for Anthropic API calls.
+Use a different URL prefix for API calls, e.g. to use proxy servers.
+The default prefix is `https://api.anthropic.com/v1`.
    */
   baseURL?: string;
 
@@ -37,7 +38,8 @@ Base URL for Anthropic API calls.
   baseUrl?: string;
 
   /**
-API key for authenticating requests.
+API key that is being send using the `x-api-key` header.
+It defaults to the `ANTHROPIC_API_KEY` environment variable.
    */
   apiKey?: string;
 

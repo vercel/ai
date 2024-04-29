@@ -1,5 +1,5 @@
 import { APICallError, RetryError } from '@ai-sdk/provider';
-import { getErrorMessage } from '@ai-sdk/provider-utils';
+import { getErrorMessage, isAbortError } from '@ai-sdk/provider-utils';
 import { delay } from './delay';
 
 export type RetryFunction = <OUTPUT>(
@@ -35,7 +35,7 @@ async function _retryWithExponentialBackoff<OUTPUT>(
   try {
     return await f();
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
+    if (isAbortError(error)) {
       throw error; // don't retry when the request was aborted
     }
 

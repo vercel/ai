@@ -1,11 +1,7 @@
-import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1LogProbs,
-} from '@ai-sdk/provider';
+import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
+  StreamingTextResponse,
   createCallbacksTransformer,
   createStreamDataTransformer,
 } from '../../streams';
@@ -15,6 +11,7 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { ExperimentalTool } from '../tool';
+import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -24,7 +21,6 @@ import { retryWithExponentialBackoff } from '../util/retry-with-exponential-back
 import { runToolsTransformation } from './run-tools-transformation';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
-import { ServerResponse } from 'node:http';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -76,7 +72,7 @@ export async function experimental_streamText<
     /**
 The language model to use.
      */
-    model: LanguageModelV1;
+    model: LanguageModel;
 
     /**
 The tools that the model can call. The model needs to support calling tools.
@@ -133,8 +129,8 @@ export type TextStreamPart<TOOLS extends Record<string, ExperimentalTool>> =
     } & ToToolResult<TOOLS>)
   | {
       type: 'finish';
-      finishReason: LanguageModelV1FinishReason;
-      logprobs?: LanguageModelV1LogProbs;
+      finishReason: FinishReason;
+      logprobs?: LogProbs;
       usage: {
         promptTokens: number;
         completionTokens: number;
@@ -151,7 +147,7 @@ export class StreamTextResult<TOOLS extends Record<string, ExperimentalTool>> {
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
-  readonly warnings: LanguageModelV1CallWarning[] | undefined;
+  readonly warnings: CallWarning[] | undefined;
 
   /**
 Optional raw response data.
@@ -169,7 +165,7 @@ Response headers.
     rawResponse,
   }: {
     stream: ReadableStream<TextStreamPart<TOOLS>>;
-    warnings: LanguageModelV1CallWarning[] | undefined;
+    warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
     };
@@ -238,7 +234,7 @@ Stream callbacks that will be called when the stream emits events.
   /**
 Writes stream data output to a Node.js response-like object.
 It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
-writes each text delta as a separate chunk.
+writes each stream data part as a separate chunk.
 
 @param response A Node.js response-like object (ServerResponse).
 @param init Optional headers and status code.
@@ -275,9 +271,60 @@ writes each text delta as a separate chunk.
   }
 
   /**
+Writes text delta output to a Node.js response-like object.
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+writes each text delta as a separate chunk.
+
+@param response A Node.js response-like object (ServerResponse).
+@param init Optional headers and status code.
+   */
+  pipeTextStreamToResponse(
+    response: ServerResponse,
+    init?: { headers?: Record<string, string>; status?: number },
+  ) {
+    response.writeHead(init?.status ?? 200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      ...init?.headers,
+    });
+
+    const reader = this.textStream.getReader();
+
+    const read = async () => {
+      const encoder = new TextEncoder();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          response.write(encoder.encode(value));
+        }
+      } catch (error) {
+        throw error;
+      } finally {
+        response.end();
+      }
+    };
+
+    read();
+  }
+
+  /**
+Converts the result to a streamed response object with a stream data part stream.
+It can be used with the `useChat` and `useCompletion` hooks.
+
+@param init Optional headers.
+
+@return A response object.
+   */
+  toAIStreamResponse(init?: ResponseInit): Response {
+    return new StreamingTextResponse(this.toAIStream(), init);
+  }
+
+  /**
 Creates a simple text stream response.
 Each text delta is encoded as UTF-8 and sent as a separate chunk.
 Non-text-delta events are ignored.
+
+@param init Optional headers and status code.
    */
   toTextStreamResponse(init?: ResponseInit): Response {
     const encoder = new TextEncoder();

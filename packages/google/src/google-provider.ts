@@ -27,7 +27,8 @@ export interface GoogleGenerativeAIProvider {
 
 export interface GoogleGenerativeAIProviderSettings {
   /**
-Base URL for the Google API calls.
+Use a different URL prefix for API calls, e.g. to use proxy servers.
+The default prefix is `https://generativelanguage.googleapis.com/v1beta`.
    */
   baseURL?: string;
 
@@ -37,7 +38,8 @@ Base URL for the Google API calls.
   baseUrl?: string;
 
   /**
-API key for authenticating requests.
+API key that is being send using the `x-goog-api-key` header.
+It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
    */
   apiKey?: string;
 

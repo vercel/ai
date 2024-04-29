@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [41d5736]
+  - @ai-sdk/provider@0.0.3
+
+## 0.0.4
+
+### Patch Changes
+
+- 56ef84a: ai/core: fix abort handling in transformation stream
+
 ## 0.0.3
 
 ### Patch Changes
