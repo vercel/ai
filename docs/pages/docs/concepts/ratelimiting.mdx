@@ -1,0 +1,100 @@
+
+# Shielding Your APIs with Rate Limiting
+
+Imagine you've developed an API for your AI-powered application, excited to
+see it in action. However, shortly after its deployment, you notice an unusual
+spike in traffic. Upon investigation, you find that your API is being
+bombarded with requests, causing it to slow down and start burning through
+your wallet!
+
+## What is Rate Limiting
+
+Rate limiting is a vital tool in the arsenal of any developer aiming to
+protect their APIs from such abuse. In a nutshell, it involves setting a
+maximum threshold on the number of requests a client can make within a
+specified timeframe. This simple yet effective technique acts as a gatekeeper,
+preventing excessive usage that can degrade service performance and incur
+unnecessary costs.
+
+Implementing rate limiting addresses several key concerns:
+
+1. Maintaining Service Stability: By controlling the influx of requests,
+    rate limiting ensures that your API remains responsive and available to
+    legitimate users.
+2. Cost Management: Unrestricted usage can lead to unexpected spikes in
+    operational costs, especially in cloud-based environments where services
+    are often billed per request.
+3. Protection Against Abuse: Malicious actors may attempt to overwhelm your
+    API with requests, leading to denial-of-service attacks. Rate limiting
+    serves as a defense mechanism.
+4. Subscription Plan Differentiation: Many applications offer tiered
+    subscription plans, each with varying levels of access and usage limits.
+    Rate limiting allows you to enforce these restrictions effectively.
+
+## Rate Limiting with Vercel KV and Upstash Ratelimit
+
+In this example, we will protect an API endpoint using [Vercel KV](https://vercel.com/storage/kv)
+and [Upstash Ratelimit](https://github.com/upstash/ratelimit).
+
+```tsx
+import OpenAI from "openai";
+import { OpenAIStream, StreamingTextResponse } from "ai";
+import kv from "@vercel/kv";
+import { Ratelimit } from "@upstash/ratelimit"
+import { NextRequest } from "next/server";
+
+
+// Create an OpenAI API client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Create Rate limit
+const ratelimit = new Ratelimit({
+  redis: kv,
+  limiter: Ratelimit.fixedWindow(5, "30s"),
+});
+
+export const dynamic = 'force-dynamic';
+ 
+export async function POST(req: NextRequest) {
+
+  // call ratelimit with request ip
+  const ip = req.ip ?? "ip";
+  const { success, remaining } = await ratelimit.limit(ip);
+
+  // block the request if unsuccessfull
+  if (!success) {
+    return new Response("Ratelimited!", { status: 429 })
+  }
+
+  const { messages } = await req.json();
+  
+  // Ask OpenAI for a streaming chat completion
+  const response = await openai.chat.completions.create({
+    model: 'gpt-3.5-turbo',
+    stream: true,
+    messages,
+  });
+ 
+  // Convert the response into a text-stream
+  const stream = OpenAIStream(response);
+  // Respond with the stream
+  return new StreamingTextResponse(stream);
+}
+```
+
+## Simplfy API Protection
+
+With Vercel KV and Upstash Ratelimit, it is possible to protect your APIs
+from such attacks with ease. To learn more about how Ratelimit works and
+how it can be configured to your needs, see [Ratelimit Documentation](https://upstash.com/docs/oss/sdks/ts/ratelimit/overview).
+
+## Recommended Resources
+
+- [Vercel KV & Upstash Ratelimit Demo](https://ratelimit-with-vercel-kv.vercel.app/)
+- [Upstash Ratelimit Documentation](https://upstash.com/docs/oss/sdks/ts/ratelimit/overview)
+- [Securing your AI applications with Rate Limiting (Vercel Guide)](https://vercel.com/guides/securing-ai-app-rate-limiting)
+- [API Rate Limiting with Vercel KV and Upstash (Nextjs Template)](https://vercel.com/templates/next.js/api-rate-limit-upstash)
+- [API Rate Limiting by IP and API Keys with Upstash (Nextjs Template)](https://vercel.com/templates/next.js/api-rate-limit-and-tokens)
+- [Vercel AI SDK, Next.js, and OpenAI Chat Example with Rate Limits (AI SDK Example)](https://github.com/vercel/ai/tree/main/examples/next-openai-rate-limits)

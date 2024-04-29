@@ -4,5 +4,6 @@
   "prompt-engineering": "Prompt Engineering",
   "caching": "Caching Responses",
   "tools": "Tools",
-  "ai-rsc": "Generative UI"
+  "ai-rsc": "Generative UI",
+  "ratelimiting": "Rate Limiting"
 }
