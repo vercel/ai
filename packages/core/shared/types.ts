@@ -155,6 +155,7 @@ export type ChatRequestOptions = {
   tools?: Array<Tool>;
   tool_choice?: ToolChoice;
   data?: Record<string, string>;
+  include_only_last_message?: boolean;
 };
 
 export type UseChatOptions = {
