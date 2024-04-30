@@ -4,29 +4,29 @@ title: streamText API
 
 import { Callout } from 'nextra-theme-docs';
 
-# experimental_streamText
+# streamText
 
 Streams text and call tools for a given prompt using a language model.
 
 You can use the `streamText` function for interactive use cases such as chat bots (with and without tool usage), and text and code diff streaming in UIs. You can also generate UI components with tools (see [Generative UI](/docs/concepts/ai-rsc)).
 
 ```ts
-import { experimental_streamText } from 'ai';
+import { streamText } from 'ai';
 
-const { textStream } = await experimental_streamText({
+const { textStream } = await streamText({
   model,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 ```
 
 <Callout type="info">
-  `experimental_streamText` streams the output. If you do not want to stream the
-  output, use [`experimental_generateText`](/docs/ai-core/generate-text).
+  `streamText` streams the output. If you do not want to stream the output, use
+  [`generateText`](/docs/ai-core/generate-text).
 </Callout>
 
 ## Parameters
 
-The parameters are passed into `experimental_streamText` as a single options object.
+The parameters are passed into `streamText` as a single options object.
 
 - **model** - The language model to use.
 - **tools** - The tools that the model can call. The model needs to support calling tools.
@@ -77,7 +77,7 @@ The parameters are passed into `experimental_streamText` as a single options obj
 ### Basic call
 
 ```ts
-const { textStream } = await experimental_streamText({
+const { textStream } = await streamText({
   model,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
@@ -89,7 +89,7 @@ This example shows an [App router](https://nextjs.org/docs/app) API route that i
 by the [`useCompletion`](/docs/api-reference/use-completion) hook.
 
 ```ts
-import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { StreamingTextResponse, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export const dynamic = 'force-dynamic';
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
   // Extract the `prompt` text from the body of the request
   const { prompt }: { prompt: string } = await req.json();
 
-  const result = await experimental_streamText({
+  const result = await streamText({
     model: openai.chat('gpt-4'),
     prompt,
   });
@@ -113,7 +113,7 @@ This example shows an [App router](https://nextjs.org/docs/app) API route that i
 by the [`useChat`](/docs/api-reference/use-chat) hook.
 
 ```ts
-import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { StreamingTextResponse, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export const dynamic = 'force-dynamic';
@@ -121,7 +121,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const result = await experimental_streamText({
+  const result = await streamText({
     model: openai.chat('gpt-4'),
     system: 'You are a helpful assistant.',
     messages,
@@ -134,7 +134,7 @@ export async function POST(req: Request) {
 ### Terminal chatbot
 
 ```ts
-import { ExperimentalMessage, experimental_streamText } from 'ai';
+import { CoreMessage, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import * as readline from 'node:readline/promises';
 
@@ -143,7 +143,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: ExperimentalMessage[] = [];
+const messages: CoreMessage[] = [];
 
 async function main() {
   while (true) {
@@ -151,7 +151,7 @@ async function main() {
 
     messages.push({ role: 'user', content: userInput });
 
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: openai.chat('gpt-3.5-turbo'),
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
@@ -175,12 +175,7 @@ main().catch(console.error);
 ### Terminal chatbot with tools
 
 ```ts
-import {
-  ExperimentalMessage,
-  ToolCallPart,
-  ToolResultPart,
-  experimental_streamText,
-} from 'ai';
+import { CoreMessage, ToolCallPart, ToolResultPart, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import * as readline from 'node:readline/promises';
 
@@ -189,7 +184,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: ExperimentalMessage[] = [];
+const messages: CoreMessage[] = [];
 
 async function main() {
   let toolResponseAvailable = false;
@@ -200,7 +195,7 @@ async function main() {
       messages.push({ role: 'user', content: userInput });
     }
 
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: openai.chat('gpt-3.5-turbo'),
       tools: {
         weatherTool: {

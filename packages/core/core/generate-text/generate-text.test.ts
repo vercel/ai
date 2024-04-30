@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { z } from 'zod';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
-import { experimental_generateText } from './generate-text';
+import { generateText } from './generate-text';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -11,7 +11,7 @@ const dummyResponseValues = {
 
 describe('result.text', () => {
   it('should generate text', async () => {
-    const result = await experimental_generateText({
+    const result = await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
@@ -34,7 +34,7 @@ describe('result.text', () => {
 
 describe('result.toolCalls', () => {
   it('should contain tool calls', async () => {
-    const result = await experimental_generateText({
+    const result = await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
@@ -113,7 +113,7 @@ describe('result.toolCalls', () => {
 
 describe('result.toolResults', () => {
   it('should contain tool results', async () => {
-    const result = await experimental_generateText({
+    const result = await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {

@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { ExperimentalTool } from '../tool';
+import { CoreTool } from '../tool';
 import { ValueOf } from '../util/value-of';
 
 /**
@@ -30,20 +30,20 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
 }
 
 // transforms the tools into a tool call union
-export type ToToolCall<TOOLS extends Record<string, ExperimentalTool>> =
-  ValueOf<{
-    [NAME in keyof TOOLS]: {
-      type: 'tool-call';
-      toolCallId: string;
-      toolName: NAME & string;
-      args: z.infer<TOOLS[NAME]['parameters']>;
-    };
-  }>;
+export type ToToolCall<TOOLS extends Record<string, CoreTool>> = ValueOf<{
+  [NAME in keyof TOOLS]: {
+    type: 'tool-call';
+    toolCallId: string;
+    toolName: NAME & string;
+    args: z.infer<TOOLS[NAME]['parameters']>;
+  };
+}>;
 
-export type ToToolCallArray<TOOLS extends Record<string, ExperimentalTool>> =
-  Array<ToToolCall<TOOLS>>;
+export type ToToolCallArray<TOOLS extends Record<string, CoreTool>> = Array<
+  ToToolCall<TOOLS>
+>;
 
-export function parseToolCall<TOOLS extends Record<string, ExperimentalTool>>({
+export function parseToolCall<TOOLS extends Record<string, CoreTool>>({
   toolCall,
   tools,
 }: {

@@ -1,12 +1,12 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { experimental_generateText } from 'ai';
+import { generateText } from 'ai';
 import dotenv from 'dotenv';
 import fs from 'node:fs';
 
 dotenv.config();
 
 async function main() {
-  const result = await experimental_generateText({
+  const result = await generateText({
     model: anthropic('claude-3-haiku-20240307'),
     maxTokens: 512,
     messages: [

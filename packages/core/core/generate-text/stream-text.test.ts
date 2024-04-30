@@ -5,11 +5,11 @@ import { convertAsyncIterableToArray } from '../test/convert-async-iterable-to-a
 import { convertReadableStreamToArray } from '../test/convert-readable-stream-to-array';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
-import { experimental_streamText } from './stream-text';
+import { streamText } from './stream-text';
 
 describe('result.textStream', () => {
   it('should send text deltas', async () => {
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
@@ -45,7 +45,7 @@ describe('result.textStream', () => {
 
 describe('result.fullStream', () => {
   it('should send text deltas', async () => {
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
@@ -89,7 +89,7 @@ describe('result.fullStream', () => {
   });
 
   it('should send tool calls', async () => {
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
@@ -161,7 +161,7 @@ describe('result.fullStream', () => {
   });
 
   it('should send tool results', async () => {
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
@@ -243,7 +243,7 @@ describe('result.fullStream', () => {
 
 describe('result.toAIStream', () => {
   it('should transform textStream through callbacks and data transformers', async () => {
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           return {
@@ -272,7 +272,7 @@ describe('result.pipeAIStreamToResponse', async () => {
   it('should write data stream parts to a Node.js response-like object', async () => {
     const mockResponse = createMockServerResponse();
 
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async () => {
           return {
@@ -319,7 +319,7 @@ describe('result.pipeTextStreamToResponse', async () => {
   it('should write text deltas to a Node.js response-like object', async () => {
     const mockResponse = createMockServerResponse();
 
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async () => {
           return {
@@ -364,7 +364,7 @@ describe('result.pipeTextStreamToResponse', async () => {
 
 describe('result.toAIStreamResponse', () => {
   it('should create a Response with a stream data stream', async () => {
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           return {
@@ -403,7 +403,7 @@ describe('result.toAIStreamResponse', () => {
 
 describe('result.toTextStreamResponse', () => {
   it('should create a Response with a text stream', async () => {
-    const result = await experimental_streamText({
+    const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           return {

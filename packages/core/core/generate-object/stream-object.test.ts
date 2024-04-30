@@ -3,11 +3,11 @@ import { z } from 'zod';
 import { convertArrayToReadableStream } from '../test/convert-array-to-readable-stream';
 import { convertAsyncIterableToArray } from '../test/convert-async-iterable-to-array';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
-import { experimental_streamObject } from './stream-object';
+import { streamObject } from './stream-object';
 
 describe('result.objectStream', () => {
   it('should send object deltas with json mode', async () => {
-    const result = await experimental_streamObject({
+    const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, { type: 'object-json' });
@@ -52,7 +52,7 @@ describe('result.objectStream', () => {
   });
 
   it('should send object deltas with tool mode', async () => {
-    const result = await experimental_streamObject({
+    const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
@@ -140,7 +140,7 @@ describe('result.objectStream', () => {
   });
 
   it('should send full stream data', async () => {
-    const result = await experimental_streamObject({
+    const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, { type: 'object-json' });

@@ -1,5 +1,5 @@
 import { mistral } from '@ai-sdk/mistral';
-import { experimental_streamText } from 'ai';
+import { streamText } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
@@ -7,7 +7,7 @@ import { weatherTool } from '../tools/weather-tool';
 dotenv.config();
 
 async function main() {
-  const result = await experimental_streamText({
+  const result = await streamText({
     model: mistral('mistral-large-latest'),
     tools: {
       weather: weatherTool,

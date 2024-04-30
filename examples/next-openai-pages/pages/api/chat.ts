@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { StreamingTextResponse, streamText } from 'ai';
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY ?? '',
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export default async function handler(req: Request, res: Response) {
   const { messages } = await req.json();
 
-  const result = await experimental_streamText({
+  const result = await streamText({
     model: openai('gpt-4-turbo-preview'),
     messages,
   });

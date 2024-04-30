@@ -6,10 +6,7 @@ This enables the language model to generate the input.
 
 The tool can also contain an optional execute function for the actual execution function of the tool.
  */
-export interface ExperimentalTool<
-  PARAMETERS extends z.ZodTypeAny = any,
-  RESULT = any,
-> {
+export interface CoreTool<PARAMETERS extends z.ZodTypeAny = any, RESULT = any> {
   /**
 An optional description of what the tool does. Will be used by the language model to decide whether to use the tool.
    */
@@ -33,21 +30,26 @@ Helper function for inferring the execute args of a tool.
  */
 // Note: special type inference is needed for the execute function args to make sure they are inferred correctly.
 export function tool<PARAMETERS extends z.ZodTypeAny, RESULT>(
-  tool: ExperimentalTool<PARAMETERS, RESULT> & {
+  tool: CoreTool<PARAMETERS, RESULT> & {
     execute: (args: z.infer<PARAMETERS>) => PromiseLike<RESULT>;
   },
-): ExperimentalTool<PARAMETERS, RESULT> & {
+): CoreTool<PARAMETERS, RESULT> & {
   execute: (args: z.infer<PARAMETERS>) => PromiseLike<RESULT>;
 };
 export function tool<PARAMETERS extends z.ZodTypeAny, RESULT>(
-  tool: ExperimentalTool<PARAMETERS, RESULT> & {
+  tool: CoreTool<PARAMETERS, RESULT> & {
     execute?: undefined;
   },
-): ExperimentalTool<PARAMETERS, RESULT> & {
+): CoreTool<PARAMETERS, RESULT> & {
   execute: undefined;
 };
 export function tool<PARAMETERS extends z.ZodTypeAny, RESULT = any>(
-  tool: ExperimentalTool<PARAMETERS, RESULT>,
-): ExperimentalTool<PARAMETERS, RESULT> {
+  tool: CoreTool<PARAMETERS, RESULT>,
+): CoreTool<PARAMETERS, RESULT> {
   return tool;
 }
+
+/**
+ * @deprecated Use `CoreTool` instead.
+ */
+export type ExperimentalTool = CoreTool;
