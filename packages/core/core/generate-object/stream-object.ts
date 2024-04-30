@@ -1,17 +1,15 @@
 import {
-  LanguageModelV1,
   LanguageModelV1CallOptions,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import { z } from 'zod';
+import { calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
+import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -22,7 +20,6 @@ import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
-import { calculateTokenUsage } from '../generate-text/token-usage';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -75,7 +72,7 @@ export async function streamObject<T>({
     /**
 The language model to use.
      */
-    model: LanguageModelV1;
+    model: LanguageModel;
 
     /**
 The schema of the object that the model should generate.
@@ -231,8 +228,8 @@ export type ObjectStreamPartInput =
     }
   | {
       type: 'finish';
-      finishReason: LanguageModelV1FinishReason;
-      logprobs?: LanguageModelV1LogProbs;
+      finishReason: FinishReason;
+      logprobs?: LogProbs;
       usage: {
         promptTokens: number;
         completionTokens: number;
@@ -258,7 +255,7 @@ export class StreamObjectResult<T> {
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
-  readonly warnings: LanguageModelV1CallWarning[] | undefined;
+  readonly warnings: CallWarning[] | undefined;
 
   /**
 Optional raw response data.
@@ -276,7 +273,7 @@ Response headers.
     rawResponse,
   }: {
     stream: ReadableStream<string | ObjectStreamPartInput>;
-    warnings: LanguageModelV1CallWarning[] | undefined;
+    warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
     };

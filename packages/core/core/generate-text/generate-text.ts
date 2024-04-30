@@ -1,15 +1,10 @@
-import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1LogProbs,
-} from '@ai-sdk/provider';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { CoreTool } from '../tool/tool';
+import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { TokenUsage, calculateTokenUsage } from './token-usage';
@@ -64,7 +59,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
     /**
 The language model to use.
      */
-    model: LanguageModelV1;
+    model: LanguageModel;
 
     /**
 The tools that the model can call. The model needs to support calling tools.
@@ -173,7 +168,7 @@ The results of the tool calls.
   /**
 The reason why the generation finished.
    */
-  readonly finishReason: LanguageModelV1FinishReason;
+  readonly finishReason: FinishReason;
 
   /**
 The token usage of the generated text.
@@ -183,7 +178,7 @@ The token usage of the generated text.
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
-  readonly warnings: LanguageModelV1CallWarning[] | undefined;
+  readonly warnings: CallWarning[] | undefined;
 
   /**
 Optional raw response data.
@@ -199,19 +194,19 @@ Response headers.
 Logprobs for the completion. 
 `undefined` if the mode does not support logprobs or if was not enabled
    */
-  readonly logprobs: LanguageModelV1LogProbs | undefined;
+  readonly logprobs: LogProbs | undefined;
 
   constructor(options: {
     text: string;
     toolCalls: ToToolCallArray<TOOLS>;
     toolResults: ToToolResultArray<TOOLS>;
-    finishReason: LanguageModelV1FinishReason;
+    finishReason: FinishReason;
     usage: TokenUsage;
-    warnings: LanguageModelV1CallWarning[] | undefined;
+    warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
     };
-    logprobs: LanguageModelV1LogProbs | undefined;
+    logprobs: LogProbs | undefined;
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
