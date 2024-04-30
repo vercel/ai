@@ -1,5 +1,5 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
-import { ExperimentalMessage } from './message';
+import { CoreMessage } from './message';
 import { Prompt } from './prompt';
 
 export type ValidatedPrompt =
@@ -12,7 +12,7 @@ export type ValidatedPrompt =
   | {
       type: 'messages';
       prompt: undefined;
-      messages: ExperimentalMessage[];
+      messages: CoreMessage[];
       system?: string;
     };
 

@@ -1,11 +1,11 @@
 import { mistral } from '@ai-sdk/mistral';
-import { experimental_streamText } from 'ai';
+import { streamText } from 'ai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 async function main() {
-  const result = await experimental_streamText({
+  const result = await streamText({
     model: mistral('open-mistral-7b'),
     maxTokens: 512,
     temperature: 0.3,

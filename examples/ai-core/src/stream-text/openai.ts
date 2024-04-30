@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_streamText } from 'ai';
+import { streamText } from 'ai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 async function main() {
-  const result = await experimental_streamText({
+  const result = await streamText({
     model: openai('gpt-3.5-turbo'),
     maxTokens: 512,
     temperature: 0.3,

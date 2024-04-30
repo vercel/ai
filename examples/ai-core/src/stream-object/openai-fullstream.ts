@@ -1,12 +1,12 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_streamObject } from 'ai';
+import { streamObject } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
 dotenv.config();
 
 async function main() {
-  const result = await experimental_streamObject({
+  const result = await streamObject({
     model: openai('gpt-4-turbo', { logprobs: 2 }),
     maxTokens: 2000,
     schema: z.object({

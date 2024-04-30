@@ -1,6 +1,5 @@
-import { mistral } from '@ai-sdk/mistral';
 import { createOpenAI } from '@ai-sdk/openai';
-import { experimental_generateObject } from 'ai';
+import { generateObject } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
@@ -12,7 +11,7 @@ const fireworks = createOpenAI({
 });
 
 async function main() {
-  const result = await experimental_generateObject({
+  const result = await generateObject({
     model: fireworks('accounts/fireworks/models/firefunction-v1'),
     schema: z.object({
       recipe: z.object({
