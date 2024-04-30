@@ -47,7 +47,7 @@ By default, `render` will stream the text content of the LLM response wrapped wi
         // You may want to construct messages from your AI state
         messages: [
           { role: 'system', content: 'You are a flight assistant' },
-          { role: 'user', content: userInput }
+          { role: 'user', content: content }
         ],
       })
 
@@ -162,7 +162,7 @@ If you use a generator signature, you can `yield` React Nodes and they will be s
         // You may want to construct messages from your AI state
         messages: [
           { role: 'system', content: 'You are a flight assistant' },
-          { role: 'user', content: userInput }
+          { role: 'user', content: content }
         ],
         // `text` is called when an AI returns a text response (as opposed to a tool call)
         text: ({ content, done }) => {
