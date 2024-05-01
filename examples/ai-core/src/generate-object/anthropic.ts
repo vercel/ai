@@ -1,12 +1,12 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { experimental_generateObject } from 'ai';
+import { generateObject } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
 dotenv.config();
 
 async function main() {
-  const result = await experimental_generateObject({
+  const result = await generateObject({
     model: anthropic('claude-3-opus-20240229'),
     schema: z.object({
       recipe: z.object({

@@ -28,10 +28,10 @@ The model is created using a language model provider, e.g. the [OpenAI provider]
 Here is a simple example for `generateText`:
 
 ```ts
-import { experimental_generateText } from 'ai';
+import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const { text } = await experimental_generateText({
+const { text } = await generateText({
   model: openai.chat('gpt-3.5-turbo'),
   prompt: 'Invent a new holiday and describe its traditions.',
 });

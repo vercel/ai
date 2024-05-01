@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { experimental_streamText } from 'ai';
+import { streamText } from 'ai';
 import { NextApiRequest, NextApiResponse } from 'next';
 
 // Create an OpenAI Provider instance
@@ -14,7 +14,7 @@ export default async function handler(
   const { messages } = await req.body;
 
   // Ask OpenAI for a streaming chat completion given the prompt
-  const result = await experimental_streamText({
+  const result = await streamText({
     model: openai('gpt-4-turbo-preview'),
     messages,
   });

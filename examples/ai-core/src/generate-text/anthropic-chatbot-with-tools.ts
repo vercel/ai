@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { ExperimentalMessage, experimental_generateText } from 'ai';
+import { CoreMessage, generateText } from 'ai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
@@ -11,7 +11,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: ExperimentalMessage[] = [];
+const messages: CoreMessage[] = [];
 
 async function main() {
   let toolResponseAvailable = false;
@@ -22,7 +22,7 @@ async function main() {
       messages.push({ role: 'user', content: userInput });
     }
 
-    const { text, toolCalls, toolResults } = await experimental_generateText({
+    const { text, toolCalls, toolResults } = await generateText({
       model: anthropic('claude-3-opus-20240229'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,

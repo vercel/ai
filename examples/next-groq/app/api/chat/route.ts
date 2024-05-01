@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { experimental_streamText } from 'ai';
+import { streamText } from 'ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   // Call the language model
-  const result = await experimental_streamText({
+  const result = await streamText({
     model: groq.chat('llama3-70b-8192'),
     messages,
   });

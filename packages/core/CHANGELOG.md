@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.0
+
+### Minor Changes
+
+- 73356a9: Move AI Core functions out of experimental (streamText, generateText, streamObject, generateObject).
+
 ## 3.0.35
 
 ### Patch Changes

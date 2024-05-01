@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { z } from 'zod';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
-import { experimental_generateObject } from './generate-object';
+import { generateObject } from './generate-object';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -11,7 +11,7 @@ const dummyResponseValues = {
 
 describe('result.object', () => {
   it('should generate object with json mode', async () => {
-    const result = await experimental_generateObject({
+    const result = await generateObject({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, { type: 'object-json' });
@@ -41,7 +41,7 @@ describe('result.object', () => {
   });
 
   it('should generate object with tool mode', async () => {
-    const result = await experimental_generateObject({
+    const result = await generateObject({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {

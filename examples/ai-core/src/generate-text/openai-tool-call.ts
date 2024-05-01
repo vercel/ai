@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateText, tool } from 'ai';
+import { generateText, tool } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
@@ -7,7 +7,7 @@ import { weatherTool } from '../tools/weather-tool';
 dotenv.config();
 
 async function main() {
-  const result = await experimental_generateText({
+  const result = await generateText({
     model: openai('gpt-3.5-turbo'),
     maxTokens: 512,
     tools: {
