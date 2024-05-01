@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { streamText } from 'ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const { messages } = await req.json();
 
     // Call the language model
-    const result = await experimental_streamText({
+    const result = await streamText({
       // Use completion API:
       model: fireworks.completion(
         'accounts/fireworks/models/llama-v2-70b-chat',
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     });
 
     // Respond with the stream
-    return new StreamingTextResponse(result.toAIStream());
+    return result.toAIStreamResponse();
   } catch (error) {
     console.log(error);
     throw error;

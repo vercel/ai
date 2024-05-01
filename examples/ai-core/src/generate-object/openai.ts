@@ -1,12 +1,12 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateObject } from 'ai';
+import { generateObject } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
 dotenv.config();
 
 async function main() {
-  const result = await experimental_generateObject({
+  const result = await generateObject({
     model: openai('gpt-4-turbo'),
     schema: z.object({
       recipe: z.object({

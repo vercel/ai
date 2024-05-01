@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ExperimentalTool } from '../tool';
+import { CoreTool } from '../tool';
 import { ValueOf } from '../util/value-of';
 
 /**
@@ -29,32 +29,31 @@ Result of the tool call. This is the result of the tool's execution.
 }
 
 // limits the tools to those with an execute value
-type ToToolsWithExecute<TOOLS extends Record<string, ExperimentalTool>> = {
+type ToToolsWithExecute<TOOLS extends Record<string, CoreTool>> = {
   [K in keyof TOOLS as TOOLS[K] extends { execute: any } ? K : never]: TOOLS[K];
 };
 
 // limits the tools to those that have execute !== undefined
-type ToToolsWithDefinedExecute<TOOLS extends Record<string, ExperimentalTool>> =
-  {
-    [K in keyof TOOLS as TOOLS[K]['execute'] extends undefined
-      ? never
-      : K]: TOOLS[K];
-  };
+type ToToolsWithDefinedExecute<TOOLS extends Record<string, CoreTool>> = {
+  [K in keyof TOOLS as TOOLS[K]['execute'] extends undefined
+    ? never
+    : K]: TOOLS[K];
+};
 
 // transforms the tools into a tool result union
-type ToToolResultObject<TOOLS extends Record<string, ExperimentalTool>> =
-  ValueOf<{
-    [NAME in keyof TOOLS]: {
-      type: 'tool-result';
-      toolCallId: string;
-      toolName: NAME & string;
-      args: z.infer<TOOLS[NAME]['parameters']>;
-      result: Awaited<ReturnType<Exclude<TOOLS[NAME]['execute'], undefined>>>;
-    };
-  }>;
+type ToToolResultObject<TOOLS extends Record<string, CoreTool>> = ValueOf<{
+  [NAME in keyof TOOLS]: {
+    type: 'tool-result';
+    toolCallId: string;
+    toolName: NAME & string;
+    args: z.infer<TOOLS[NAME]['parameters']>;
+    result: Awaited<ReturnType<Exclude<TOOLS[NAME]['execute'], undefined>>>;
+  };
+}>;
 
-export type ToToolResult<TOOLS extends Record<string, ExperimentalTool>> =
+export type ToToolResult<TOOLS extends Record<string, CoreTool>> =
   ToToolResultObject<ToToolsWithDefinedExecute<ToToolsWithExecute<TOOLS>>>;
 
-export type ToToolResultArray<TOOLS extends Record<string, ExperimentalTool>> =
-  Array<ToToolResult<TOOLS>>;
+export type ToToolResultArray<TOOLS extends Record<string, CoreTool>> = Array<
+  ToToolResult<TOOLS>
+>;

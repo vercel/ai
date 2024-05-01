@@ -1,7 +1,7 @@
 'use server';
 
 import { openai } from '@ai-sdk/openai';
-import { experimental_streamObject } from 'ai';
+import { streamObject } from 'ai';
 import {
   StreamableValue,
   createAI,
@@ -23,7 +23,7 @@ export async function submitItineraryRequest({
   const itineraryComponent = createStreamableUI(<ItineraryView />);
   const isGenerating = createStreamableValue(true);
 
-  experimental_streamObject({
+  streamObject({
     model: openai('gpt-4-turbo'),
     maxTokens: 2500,
     schema: itinerarySchema,

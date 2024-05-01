@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { StreamData, StreamingTextResponse, experimental_streamText } from 'ai';
+import { StreamData, StreamingTextResponse, streamText } from 'ai';
 
 import { env } from '$env/dynamic/private';
 // You may want to replace the above with a static private env variable
@@ -18,7 +18,7 @@ export const POST = (async ({ request }) => {
   const { prompt } = await request.json();
 
   // Ask OpenAI for a streaming chat completion given the prompt
-  const result = await experimental_streamText({
+  const result = await streamText({
     model: openai('gpt-4-turbo-preview'),
     prompt,
   });

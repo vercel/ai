@@ -3,7 +3,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { ExperimentalTool } from '../tool/tool';
+import { CoreTool } from '../tool/tool';
 import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
@@ -14,7 +14,7 @@ import { ToToolResultArray } from './tool-result';
 /**
 Generate a text and call tools for a given prompt using a language model.
 
-This function does not stream the output. If you want to stream the output, use `experimental_streamText` instead.
+This function does not stream the output. If you want to stream the output, use `streamText` instead.
 
 @param model - The language model to use.
 @param tools - The tools that the model can call. The model needs to support calling tools.
@@ -45,9 +45,7 @@ If set and supported by the model, calls will generate deterministic results.
 @returns
 A result object that contains the generated text, the results of the tool calls, and additional information.
  */
-export async function experimental_generateText<
-  TOOLS extends Record<string, ExperimentalTool>,
->({
+export async function generateText<TOOLS extends Record<string, CoreTool>>({
   model,
   tools,
   system,
@@ -116,7 +114,7 @@ The tools that the model can call. The model needs to support calling tools.
   });
 }
 
-async function executeTools<TOOLS extends Record<string, ExperimentalTool>>({
+async function executeTools<TOOLS extends Record<string, CoreTool>>({
   toolCalls,
   tools,
 }: {
@@ -151,9 +149,7 @@ async function executeTools<TOOLS extends Record<string, ExperimentalTool>>({
 The result of a `generateText` call.
 It contains the generated text, the tool calls that were made during the generation, and the results of the tool calls.
  */
-export class GenerateTextResult<
-  TOOLS extends Record<string, ExperimentalTool>,
-> {
+export class GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   /**
 The generated text.
    */
@@ -222,3 +218,8 @@ Logprobs for the completion.
     this.logprobs = options.logprobs;
   }
 }
+
+/**
+ * @deprecated Use `generateText` instead.
+ */
+export const experimental_generateText = generateText;

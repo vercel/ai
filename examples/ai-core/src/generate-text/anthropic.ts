@@ -1,11 +1,11 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { experimental_generateText } from 'ai';
+import { generateText } from 'ai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 async function main() {
-  const result = await experimental_generateText({
+  const result = await generateText({
     model: anthropic('claude-3-haiku-20240307'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
