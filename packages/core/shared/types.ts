@@ -115,6 +115,11 @@ export interface Message {
    * Additional message-specific information added on the server via StreamData
    */
   annotations?: JSONValue[] | undefined;
+
+  /**
+   * Attach arbitrary metadata to a message. 
+   */
+  metadata?: { [key: string]: any } | undefined
 }
 
 export type CreateMessage = Omit<Message, 'id'> & {
