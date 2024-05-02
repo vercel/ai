@@ -1,7 +1,5 @@
-import { OpenAI } from '@ai-sdk/openai';
-import { StreamingTextResponse, streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
-import { experimental_streamText } from 'ai';
+import { streamText } from 'ai';
 
 export const dynamic = 'force-dynamic';
 
