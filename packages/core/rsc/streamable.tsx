@@ -413,7 +413,7 @@ type Renderer<T> = (
  * please use `streamUI` for compatibility with other providers.
  *
  * @deprecated It's recommended to use the `streamUI` API for compatibility with AI SDK Core APIs
- * and future features. This API will be deprecated in a future release.
+ * and future features. This API will be removed in a future release.
  */
 export function render<
   TS extends {
