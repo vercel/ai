@@ -1,1 +1,1 @@
-export { experimental_streamUI } from './stream-ui';
+export { streamUI } from './stream-ui';
