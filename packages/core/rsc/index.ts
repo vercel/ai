@@ -3,7 +3,7 @@ export type {
   getMutableAIState,
   createStreamableUI,
   createStreamableValue,
-  experimental_streamUI,
+  streamUI,
   render,
   createAI,
 } from './rsc-server';

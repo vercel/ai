@@ -1,6 +1,6 @@
 import { convertArrayToReadableStream } from '../../core/test/convert-array-to-readable-stream';
 import { MockLanguageModelV1 } from '../../core/test/mock-language-model-v1';
-import { experimental_streamUI } from './stream-ui';
+import { streamUI } from './stream-ui';
 import { z } from 'zod';
 
 async function recursiveResolve(val: any): Promise<any> {
@@ -84,7 +84,7 @@ const mockToolModel = new MockLanguageModelV1({
 
 describe('result.value', () => {
   it('should render text', async () => {
-    const result = await experimental_streamUI({
+    const result = await streamUI({
       model: mockTextModel,
       prompt: '',
     });
@@ -94,7 +94,7 @@ describe('result.value', () => {
   });
 
   it('should render text function returned ui', async () => {
-    const result = await experimental_streamUI({
+    const result = await streamUI({
       model: mockTextModel,
       prompt: '',
       text: ({ content }) => <h1>{content}</h1>,
@@ -105,7 +105,7 @@ describe('result.value', () => {
   });
 
   it('should render tool call results', async () => {
-    const result = await experimental_streamUI({
+    const result = await streamUI({
       model: mockToolModel,
       prompt: '',
       tools: {
@@ -127,7 +127,7 @@ describe('result.value', () => {
   });
 
   it('should render tool call results with generator render function', async () => {
-    const result = await experimental_streamUI({
+    const result = await streamUI({
       model: mockToolModel,
       prompt: '',
       tools: {
@@ -151,7 +151,7 @@ describe('result.value', () => {
 
   it('should show better error messages if legacy options are passed', async () => {
     try {
-      await experimental_streamUI({
+      await streamUI({
         model: mockToolModel,
         prompt: '',
         tools: {
