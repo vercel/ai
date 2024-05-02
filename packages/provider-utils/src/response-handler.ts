@@ -1,16 +1,20 @@
-import { APICallError, NoResponseBodyError } from '@ai-sdk/provider';
+import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
 import {
   EventSourceParserStream,
   ParsedEvent,
 } from 'eventsource-parser/stream';
 import { ZodSchema } from 'zod';
+import { extractResponseHeaders } from './extract-response-headers';
 import { ParseResult, parseJSON, safeParseJSON } from './parse-json';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
   requestBodyValues: unknown;
   response: Response;
-}) => PromiseLike<RETURN_TYPE>;
+}) => PromiseLike<{
+  value: RETURN_TYPE;
+  responseHeaders?: Record<string, string>;
+}>;
 
 export const createJsonErrorResponseHandler =
   <T>({
@@ -24,17 +28,22 @@ export const createJsonErrorResponseHandler =
   }): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
+    const responseHeaders = extractResponseHeaders(response);
 
     // Some providers return an empty response body for some errors:
     if (responseBody.trim() === '') {
-      return new APICallError({
-        message: response.statusText,
-        url,
-        requestBodyValues,
-        statusCode: response.status,
-        responseBody,
-        isRetryable: isRetryable?.(response),
-      });
+      return {
+        responseHeaders,
+        value: new APICallError({
+          message: response.statusText,
+          url,
+          requestBodyValues,
+          statusCode: response.status,
+          responseHeaders,
+          responseBody,
+          isRetryable: isRetryable?.(response),
+        }),
+      };
     }
 
     // resilient parsing in case the response is not JSON or does not match the schema:
@@ -44,24 +53,32 @@ export const createJsonErrorResponseHandler =
         schema: errorSchema,
       });
 
-      return new APICallError({
-        message: errorToMessage(parsedError),
-        url,
-        requestBodyValues,
-        statusCode: response.status,
-        responseBody,
-        data: parsedError,
-        isRetryable: isRetryable?.(response, parsedError),
-      });
+      return {
+        responseHeaders,
+        value: new APICallError({
+          message: errorToMessage(parsedError),
+          url,
+          requestBodyValues,
+          statusCode: response.status,
+          responseHeaders,
+          responseBody,
+          data: parsedError,
+          isRetryable: isRetryable?.(response, parsedError),
+        }),
+      };
     } catch (parseError) {
-      return new APICallError({
-        message: response.statusText,
-        url,
-        requestBodyValues,
-        statusCode: response.status,
-        responseBody,
-        isRetryable: isRetryable?.(response),
-      });
+      return {
+        responseHeaders,
+        value: new APICallError({
+          message: response.statusText,
+          url,
+          requestBodyValues,
+          statusCode: response.status,
+          responseHeaders,
+          responseBody,
+          isRetryable: isRetryable?.(response),
+        }),
+      };
     }
   };
 
@@ -70,30 +87,35 @@ export const createEventSourceResponseHandler =
     chunkSchema: ZodSchema<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
+    const responseHeaders = extractResponseHeaders(response);
+
     if (response.body == null) {
-      throw new NoResponseBodyError();
+      throw new EmptyResponseBodyError({});
     }
 
-    return response.body
-      .pipeThrough(new TextDecoderStream())
-      .pipeThrough(new EventSourceParserStream())
-      .pipeThrough(
-        new TransformStream<ParsedEvent, ParseResult<T>>({
-          transform({ data }, controller) {
-            // ignore the 'DONE' event that e.g. OpenAI sends:
-            if (data === '[DONE]') {
-              return;
-            }
+    return {
+      responseHeaders,
+      value: response.body
+        .pipeThrough(new TextDecoderStream())
+        .pipeThrough(new EventSourceParserStream())
+        .pipeThrough(
+          new TransformStream<ParsedEvent, ParseResult<T>>({
+            transform({ data }, controller) {
+              // ignore the 'DONE' event that e.g. OpenAI sends:
+              if (data === '[DONE]') {
+                return;
+              }
 
-            controller.enqueue(
-              safeParseJSON({
-                text: data,
-                schema: chunkSchema,
-              }),
-            );
-          },
-        }),
-      );
+              controller.enqueue(
+                safeParseJSON({
+                  text: data,
+                  schema: chunkSchema,
+                }),
+              );
+            },
+          }),
+        ),
+    };
   };
 
 export const createJsonResponseHandler =
@@ -106,16 +128,22 @@ export const createJsonResponseHandler =
       schema: responseSchema,
     });
 
+    const responseHeaders = extractResponseHeaders(response);
+
     if (!parsedResult.success) {
       throw new APICallError({
         message: 'Invalid JSON response',
         cause: parsedResult.error,
         statusCode: response.status,
+        responseHeaders,
         responseBody,
         url,
         requestBodyValues,
       });
     }
 
-    return parsedResult.value;
+    return {
+      responseHeaders,
+      value: parsedResult.value,
+    };
   };

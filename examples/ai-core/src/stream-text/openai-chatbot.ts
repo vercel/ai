@@ -1,18 +1,16 @@
-import { ExperimentalMessage, experimental_streamText } from 'ai';
-import { OpenAI } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
+import { CoreMessage, streamText } from 'ai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 
 dotenv.config();
-
-const openai = new OpenAI();
 
 const terminal = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-const messages: ExperimentalMessage[] = [];
+const messages: CoreMessage[] = [];
 
 async function main() {
   while (true) {
@@ -20,8 +18,8 @@ async function main() {
 
     messages.push({ role: 'user', content: userInput });
 
-    const result = await experimental_streamText({
-      model: openai.chat('gpt-3.5-turbo'),
+    const result = await streamText({
+      model: openai('gpt-3.5-turbo'),
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
     });

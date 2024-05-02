@@ -40,7 +40,7 @@ Here's a step-by-step example of how to implement `HuggingFaceStream`:
 import { HfInference } from '@huggingface/inference';
 import { HuggingFaceStream, StreamingTextResponse } from 'ai';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 

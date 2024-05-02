@@ -1,16 +1,14 @@
-import { experimental_generateText, tool } from 'ai';
-import { Mistral } from '@ai-sdk/mistral';
+import { mistral } from '@ai-sdk/mistral';
+import { generateText, tool } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 dotenv.config();
 
-const mistral = new Mistral();
-
 async function main() {
-  const result = await experimental_generateText({
-    model: mistral.chat('mistral-large-latest'),
+  const result = await generateText({
+    model: mistral('mistral-large-latest'),
     maxTokens: 512,
     tools: {
       weather: weatherTool,

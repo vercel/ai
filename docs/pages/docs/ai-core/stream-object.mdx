@@ -4,16 +4,16 @@ title: streamObject API
 
 import { Callout } from 'nextra-theme-docs';
 
-# experimental_streamObject
+# streamObject
 
 Streams a typed, structured object for a given prompt and [Zod](https://zod.dev/) schema using a language model.
 
 You can use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](/docs/concepts/ai-rsc)).
 
 ```ts
-import { experimental_generateObject } from 'ai';
+import { generateObject } from 'ai';
 
-const { partialObjectStream } = await experimental_streamObject({
+const { partialObjectStream } = await streamObject({
   model,
   schema: z.object({
     recipe: z.object({
@@ -32,14 +32,13 @@ const { partialObjectStream } = await experimental_streamObject({
 ```
 
 <Callout type="info">
-  `experimental_streamObject` streams the output. If you do not want to stream
-  the output, use
-  [`experimental_generateObject`](/docs/ai-core/generate-object).
+  `streamObject` streams the output. If you do not want to stream the output,
+  use [`generateObject`](/docs/ai-core/generate-object).
 </Callout>
 
 ## Parameters
 
-The parameters are passed into `experimental_streamText` as a single options object.
+The parameters are passed into `streamText` as a single options object.
 
 - **model** - The language model to use.
 - **schema** - A [Zod](https://zod.dev/) schema that describes the expected output structure.
@@ -87,7 +86,7 @@ The parameters are passed into `experimental_streamText` as a single options obj
 ### Basic call
 
 ```ts
-const { partialObjectStream } = await experimental_streamObject({
+const { partialObjectStream } = await streamObject({
   model,
   schema: z.object({
     recipe: z.object({

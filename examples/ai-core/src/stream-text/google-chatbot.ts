@@ -1,5 +1,5 @@
-import { ExperimentalMessage, experimental_streamText } from 'ai';
 import { google } from '@ai-sdk/google';
+import { CoreMessage, streamText } from 'ai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 
@@ -10,7 +10,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: ExperimentalMessage[] = [];
+const messages: CoreMessage[] = [];
 
 async function main() {
   while (true) {
@@ -18,8 +18,8 @@ async function main() {
 
     messages.push({ role: 'user', content: userInput });
 
-    const result = await experimental_streamText({
-      model: google.generativeAI('models/gemini-pro'),
+    const result = await streamText({
+      model: google('models/gemini-pro'),
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
     });

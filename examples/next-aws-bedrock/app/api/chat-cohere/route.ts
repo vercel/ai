@@ -4,8 +4,7 @@ import {
 } from '@aws-sdk/client-bedrock-runtime';
 import { AWSBedrockCohereStream, StreamingTextResponse } from 'ai';
 
-// IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 function buildPrompt(
   messages: { content: string; role: 'system' | 'user' | 'assistant' }[],

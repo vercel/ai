@@ -1,10 +1,5 @@
-import {
-  ExperimentalMessage,
-  ToolCallPart,
-  ToolResultPart,
-  experimental_streamText,
-} from 'ai';
 import { google } from '@ai-sdk/google';
+import { CoreMessage, ToolCallPart, ToolResultPart, streamText } from 'ai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
@@ -16,7 +11,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: ExperimentalMessage[] = [];
+const messages: CoreMessage[] = [];
 
 async function main() {
   let toolResponseAvailable = false;
@@ -27,8 +22,8 @@ async function main() {
       messages.push({ role: 'user', content: userInput });
     }
 
-    const result = await experimental_streamText({
-      model: google.generativeAI('models/gemini-pro'),
+    const result = await streamText({
+      model: google('models/gemini-pro'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,

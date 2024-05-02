@@ -1,6 +1,7 @@
 import {
   LanguageModelV1,
   LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -9,7 +10,6 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
-  scale,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
@@ -19,6 +19,7 @@ import {
   OpenAICompletionSettings,
 } from './openai-completion-settings';
 import { openaiFailedResponseHandler } from './openai-error';
+import { mapOpenAICompletionLogProbs } from './map-openai-completion-logprobs';
 
 type OpenAICompletionConfig = {
   provider: string;
@@ -72,31 +73,23 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       // model specific settings:
       echo: this.settings.echo,
       logit_bias: this.settings.logitBias,
+      logprobs:
+        typeof this.settings.logprobs === 'number'
+          ? this.settings.logprobs
+          : typeof this.settings.logprobs === 'boolean'
+          ? this.settings.logprobs
+            ? 0
+            : undefined
+          : undefined,
       suffix: this.settings.suffix,
       user: this.settings.user,
 
       // standardized settings:
       max_tokens: maxTokens,
-      temperature: scale({
-        value: temperature,
-        outputMin: 0,
-        outputMax: 2,
-      }),
+      temperature,
       top_p: topP,
-      frequency_penalty: scale({
-        value: frequencyPenalty,
-        inputMin: -1,
-        inputMax: 1,
-        outputMin: -2,
-        outputMax: 2,
-      }),
-      presence_penalty: scale({
-        value: presencePenalty,
-        inputMin: -1,
-        inputMax: 1,
-        outputMin: -2,
-        outputMax: 2,
-      }),
+      frequency_penalty: frequencyPenalty,
+      presence_penalty: presencePenalty,
       seed,
 
       // prompt:
@@ -147,7 +140,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const args = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/completions`,
       headers: this.config.headers(),
       body: args,
@@ -168,7 +161,9 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.completion_tokens,
       },
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
+      logprobs: mapOpenAICompletionLogProbs(choice.logprobs),
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings: [],
     };
   }
@@ -178,7 +173,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const args = this.getArgs(options);
 
-    const response = await postJsonToApi({
+    const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/completions`,
       headers: this.config.headers(),
       body: {
@@ -199,6 +194,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
+    let logprobs: LanguageModelV1LogProbs;
 
     return {
       stream: response.pipeThrough(
@@ -233,14 +229,28 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
                 textDelta: choice.text,
               });
             }
+
+            const mappedLogprobs = mapOpenAICompletionLogProbs(
+              choice?.logprobs,
+            );
+            if (mappedLogprobs?.length) {
+              if (logprobs === undefined) logprobs = [];
+              logprobs.push(...mappedLogprobs);
+            }
           },
 
           flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              logprobs,
+              usage,
+            });
           },
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
       warnings: [],
     };
   }
@@ -253,6 +263,14 @@ const openAICompletionResponseSchema = z.object({
     z.object({
       text: z.string(),
       finish_reason: z.string(),
+      logprobs: z
+        .object({
+          tokens: z.array(z.string()),
+          token_logprobs: z.array(z.number()),
+          top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
+        })
+        .nullable()
+        .optional(),
     }),
   ),
   usage: z.object({
@@ -273,6 +291,14 @@ const openaiCompletionChunkSchema = z.object({
         .optional()
         .nullable(),
       index: z.number(),
+      logprobs: z
+        .object({
+          tokens: z.array(z.string()),
+          token_logprobs: z.array(z.number()),
+          top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
+        })
+        .nullable()
+        .optional(),
     }),
   ),
   usage: z

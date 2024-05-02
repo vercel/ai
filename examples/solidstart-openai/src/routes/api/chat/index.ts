@@ -1,13 +1,13 @@
 import { openai } from '@ai-sdk/openai';
-import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { StreamingTextResponse, streamText } from 'ai';
 import { APIEvent } from 'solid-start/api';
 
 export const POST = async (event: APIEvent) => {
   try {
     const { messages } = await event.request.json();
 
-    const result = await experimental_streamText({
-      model: openai.chat('gpt-4-turbo-preview'),
+    const result = await streamText({
+      model: openai('gpt-4-turbo-preview'),
       messages,
     });
 

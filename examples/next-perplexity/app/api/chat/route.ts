@@ -1,9 +1,9 @@
-import { OpenAI } from '@ai-sdk/openai';
-import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { StreamingTextResponse, streamText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
-const perplexity = new OpenAI({
+const perplexity = createOpenAI({
   apiKey: process.env.PERPLEXITY_API_KEY ?? '',
   baseURL: 'https://api.perplexity.ai/',
 });
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const { messages } = await req.json();
 
     // Call the language model
-    const result = await experimental_streamText({
+    const result = await streamText({
       // see https://docs.perplexity.ai/docs/model-cards for models
       model: perplexity.chat('sonar-medium-chat'),
       messages,

@@ -1,5 +1,5 @@
-import { experimental_generateText, tool } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
@@ -7,8 +7,8 @@ import { weatherTool } from '../tools/weather-tool';
 dotenv.config();
 
 async function main() {
-  const result = await experimental_generateText({
-    model: anthropic.messages('claude-3-opus-20240229'),
+  const result = await generateText({
+    model: anthropic('claude-3-opus-20240229'),
     maxTokens: 512,
     tools: {
       weather: weatherTool,

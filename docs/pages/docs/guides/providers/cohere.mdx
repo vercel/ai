@@ -40,8 +40,6 @@ For this example, we'll create a route handler at `app/api/chat/route.ts` that a
 import { CohereStream, StreamingTextResponse } from 'ai';
 import { CohereClient, Cohere } from 'cohere-ai';
 
-export const runtime = 'edge';
-
 // IMPORTANT! Set the dynamic to force-dynamic
 // Prevent nextjs to cache this route
 export const dynamic = 'force-dynamic';

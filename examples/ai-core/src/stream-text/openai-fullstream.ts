@@ -1,16 +1,14 @@
-import { experimental_streamText } from 'ai';
-import { OpenAI } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 dotenv.config();
 
-const openai = new OpenAI();
-
 async function main() {
-  const result = await experimental_streamText({
-    model: openai.chat('gpt-3.5-turbo'),
+  const result = await streamText({
+    model: openai('gpt-3.5-turbo'),
     tools: {
       weather: weatherTool,
       cityAttractions: {

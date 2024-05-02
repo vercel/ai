@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { generateId } from '../shared/generate-id';
 import { readDataStream } from '../shared/read-data-stream';
-import { Message } from '../shared/types';
+import { CreateMessage, Message } from '../shared/types';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
@@ -28,6 +28,19 @@ export type UseAssistantHelpers = {
    * The current value of the input field.
    */
   input: string;
+
+  /**
+   * Append a user message to the chat list. This triggers the API call to fetch
+   * the assistant's response.
+   * @param message The message to append
+   * @param requestOptions Additional options to pass to the API call
+   */
+  append: (
+    message: Message | CreateMessage,
+    requestOptions?: {
+      data?: Record<string, string>;
+    },
+  ) => Promise<void>;
 
   /**
    * setState-powered method to update the input value.
@@ -122,47 +135,44 @@ export function useAssistant({
     setInput(event.target.value);
   };
 
-  const submitMessage = async (
-    event?: React.FormEvent<HTMLFormElement>,
+  const append = async (
+    message: Message | CreateMessage,
     requestOptions?: {
       data?: Record<string, string>;
     },
   ) => {
-    event?.preventDefault?.();
-
-    if (input === '') {
-      return;
-    }
-
     setStatus('in_progress');
 
     setMessages(messages => [
       ...messages,
-      { id: '', role: 'user', content: input },
+      {
+        ...message,
+        id: message.id ?? generateId(),
+      },
     ]);
 
     setInput('');
 
-    const result = await fetch(api, {
-      method: 'POST',
-      credentials,
-      headers: { 'Content-Type': 'application/json', ...headers },
-      body: JSON.stringify({
-        ...body,
-        // always use user-provided threadId when available:
-        threadId: threadIdParam ?? threadId ?? null,
-        message: input,
-
-        // optional request data:
-        data: requestOptions?.data,
-      }),
-    });
-
-    if (result.body == null) {
-      throw new Error('The response body is empty.');
-    }
-
     try {
+      const result = await fetch(api, {
+        method: 'POST',
+        credentials,
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({
+          ...body,
+          // always use user-provided threadId when available:
+          threadId: threadIdParam ?? threadId ?? null,
+          message: message.content,
+
+          // optional request data:
+          data: requestOptions?.data,
+        }),
+      });
+
+      if (result.body == null) {
+        throw new Error('The response body is empty.');
+      }
+
       for await (const { type, value } of readDataStream(
         result.body.getReader(),
       )) {
@@ -240,7 +250,23 @@ export function useAssistant({
     setStatus('awaiting_message');
   };
 
+  const submitMessage = async (
+    event?: React.FormEvent<HTMLFormElement>,
+    requestOptions?: {
+      data?: Record<string, string>;
+    },
+  ) => {
+    event?.preventDefault?.();
+
+    if (input === '') {
+      return;
+    }
+
+    append({ role: 'user', content: input }, requestOptions);
+  };
+
   return {
+    append,
     messages,
     setMessages,
     threadId,

@@ -1,4 +1,3 @@
-import { ChatCompletionResponseChunk } from '@mistralai/mistralai';
 import {
   ToolCallPayload,
   createCallbacksTransformer,
@@ -65,6 +64,35 @@ type MistralStreamCallbacksAndOptions = AIStreamCallbacksAndOptions & {
   ) => Promise<undefined | void | string | MistralResponse>;
 };
 
+interface ChatCompletionResponseChunk {
+  id: string;
+  object: 'chat.completion.chunk';
+  created: number;
+  model: string;
+  choices: ChatCompletionResponseChunkChoice[];
+}
+
+interface ChatCompletionResponseChunkChoice {
+  index: number;
+  delta: {
+    role?: string;
+    content?: string;
+    tool_calls?: ToolCalls[];
+  };
+  finish_reason: string;
+}
+
+interface FunctionCall {
+  name: string;
+  arguments: string;
+}
+
+interface ToolCalls {
+  id: 'null';
+  type: 'function';
+  function: FunctionCall;
+}
+
 async function* streamable(
   stream: AsyncIterable<ChatCompletionResponseChunk>,
   callbacks: MistralStreamCallbacksAndOptions & {
@@ -75,7 +103,6 @@ async function* streamable(
 
   let functionCallMessages: CreateMessage[] =
     callbacks[__internal__MistralFnMessagesSymbol] || [];
-
   for await (const chunk of stream) {
     const choice = chunk.choices[0];
     const message = choice?.delta?.content ?? '';

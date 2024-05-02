@@ -1,9 +1,4 @@
-import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  NoTextGeneratedError,
-} from '@ai-sdk/provider';
+import { NoObjectGeneratedError } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
@@ -12,6 +7,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
+import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
@@ -19,7 +15,7 @@ import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
 
-This function does not stream the output. If you want to stream the output, use `experimental_streamObject` instead.
+This function does not stream the output. If you want to stream the output, use `streamObject` instead.
 
 @param model - The language model to use.
 
@@ -32,19 +28,17 @@ This function does not stream the output. If you want to stream the output, use 
 
 @param maxTokens - Maximum number of tokens to generate.
 @param temperature - Temperature setting. 
-This is a number between 0 (almost no randomness) and 1 (very random).
+The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param topP - Nucleus sampling. This is a number between 0 and 1.
-E.g. 0.1 would mean that only tokens with the top 10% probability mass are considered.
+@param topP - Nucleus sampling.
+The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
 @param presencePenalty - Presence penalty setting. 
 It affects the likelihood of the model to repeat information that is already in the prompt.
-The presence penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition). 
-0 means no penalty.
+The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
 It affects the likelihood of the model to repeatedly use the same words or phrases.
-The frequency penalty is a number between -1 (increase repetition) and 1 (maximum penalty, decrease repetition).
-0 means no penalty.
+The value is passed through to the provider. The range depends on the provider and model.
 @param seed - The seed (integer) to use for random sampling.
 If set and supported by the model, calls will generate deterministic results.
 
@@ -54,7 +48,7 @@ If set and supported by the model, calls will generate deterministic results.
 @returns 
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
-export async function experimental_generateObject<T>({
+export async function generateObject<T>({
   model,
   schema,
   mode,
@@ -69,7 +63,7 @@ export async function experimental_generateObject<T>({
     /**
 The language model to use.
      */
-    model: LanguageModelV1;
+    model: LanguageModel;
 
     /**
 The schema of the object that the model should generate.
@@ -92,9 +86,11 @@ Default and recommended: 'auto' (best mode for the model).
   }
 
   let result: string;
-  let finishReason: LanguageModelV1FinishReason;
+  let finishReason: FinishReason;
   let usage: Parameters<typeof calculateTokenUsage>[0];
-  let warnings: LanguageModelV1CallWarning[] | undefined;
+  let warnings: CallWarning[] | undefined;
+  let rawResponse: { headers?: Record<string, string> } | undefined;
+  let logprobs: LogProbs | undefined;
 
   switch (mode) {
     case 'json': {
@@ -115,13 +111,15 @@ Default and recommended: 'auto' (best mode for the model).
       });
 
       if (generateResult.text === undefined) {
-        throw new NoTextGeneratedError();
+        throw new NoObjectGeneratedError();
       }
 
       result = generateResult.text;
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
+      rawResponse = generateResult.rawResponse;
+      logprobs = generateResult.logprobs;
 
       break;
     }
@@ -144,13 +142,15 @@ Default and recommended: 'auto' (best mode for the model).
       );
 
       if (generateResult.text === undefined) {
-        throw new NoTextGeneratedError();
+        throw new NoObjectGeneratedError();
       }
 
       result = generateResult.text;
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
+      rawResponse = generateResult.rawResponse;
+      logprobs = generateResult.logprobs;
 
       break;
     }
@@ -183,13 +183,15 @@ Default and recommended: 'auto' (best mode for the model).
       const functionArgs = generateResult.toolCalls?.[0]?.args;
 
       if (functionArgs === undefined) {
-        throw new NoTextGeneratedError();
+        throw new NoObjectGeneratedError();
       }
 
       result = functionArgs;
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
+      rawResponse = generateResult.rawResponse;
+      logprobs = generateResult.logprobs;
 
       break;
     }
@@ -215,6 +217,8 @@ Default and recommended: 'auto' (best mode for the model).
     finishReason,
     usage: calculateTokenUsage(usage),
     warnings,
+    rawResponse,
+    logprobs,
   });
 }
 
@@ -230,7 +234,7 @@ The generated object (typed according to the schema).
   /**
 The reason why the generation finished.
    */
-  readonly finishReason: LanguageModelV1FinishReason;
+  readonly finishReason: FinishReason;
 
   /**
 The token usage of the generated text.
@@ -240,17 +244,44 @@ The token usage of the generated text.
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
-  readonly warnings: LanguageModelV1CallWarning[] | undefined;
+  readonly warnings: CallWarning[] | undefined;
+
+  /**
+Optional raw response data.
+   */
+  rawResponse?: {
+    /**
+Response headers.
+ */
+    headers?: Record<string, string>;
+  };
+
+  /**
+Logprobs for the completion. 
+`undefined` if the mode does not support logprobs or if was not enabled
+   */
+  readonly logprobs: LogProbs | undefined;
 
   constructor(options: {
     object: T;
-    finishReason: LanguageModelV1FinishReason;
+    finishReason: FinishReason;
     usage: TokenUsage;
-    warnings: LanguageModelV1CallWarning[] | undefined;
+    warnings: CallWarning[] | undefined;
+    rawResponse?: {
+      headers?: Record<string, string>;
+    };
+    logprobs: LogProbs | undefined;
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
+    this.rawResponse = options.rawResponse;
+    this.logprobs = options.logprobs;
   }
 }
+
+/**
+ * @deprecated Use `generateObject` instead.
+ */
+export const experimental_generateObject = generateObject;

@@ -1,13 +1,13 @@
 import { openai } from '@ai-sdk/openai';
-import { StreamData, StreamingTextResponse, experimental_streamText } from 'ai';
+import { StreamData, StreamingTextResponse, streamText } from 'ai';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
 
-  const result = await experimental_streamText({
+  const result = await streamText({
     model: openai.completion('gpt-3.5-turbo-instruct'),
     maxTokens: 2000,
     prompt,

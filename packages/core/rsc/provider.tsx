@@ -55,15 +55,48 @@ export function createAI<
   initialAIState,
   initialUIState,
 
-  unstable_onSetAIState: onSetAIState,
-  unstable_onGetUIState: onGetUIState,
+  onSetAIState,
+  onGetUIState,
 }: {
   actions: Actions;
   initialAIState?: AIState;
   initialUIState?: UIState;
 
-  unstable_onSetAIState?: OnSetAIState<AIState>;
-  unstable_onGetUIState?: OnGetUIState<UIState>;
+  /**
+   * This function is called whenever the AI state is updated by an Action.
+   * You can use this to persist the AI state to a database, or to send it to a
+   * logging service.
+   */
+  onSetAIState?: OnSetAIState<AIState>;
+
+  /**
+   * This function is used to retrieve the UI state based on the AI state.
+   * For example, to render the initial UI state based on a given AI state, or
+   * to sync the UI state when the application is already loaded.
+   *
+   * If returning `undefined`, the client side UI state will not be updated.
+   *
+   * This function must be annotated with the `"use server"` directive.
+   *
+   * @example
+   * ```tsx
+   * onGetUIState: async () => {
+   *   'use server';
+   *
+   *   const currentAIState = getAIState();
+   *   const externalAIState = await loadAIStateFromDatabase();
+   *
+   *   if (currentAIState === externalAIState) return undefined;
+   *
+   *   // Update current AI state and return the new UI state
+   *   const state = getMutableAIState()
+   *   state.done(externalAIState)
+   *
+   *   return <div>...</div>;
+   * }
+   * ```
+   */
+  onGetUIState?: OnGetUIState<UIState>;
 }) {
   // Wrap all actions with our HoC.
   const wrappedActions: ServerWrappedActions = {};

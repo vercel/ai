@@ -1,15 +1,13 @@
-import { experimental_streamObject } from 'ai';
-import { OpenAI } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
+import { streamObject } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
 dotenv.config();
 
-const openai = new OpenAI();
-
 async function main() {
-  const result = await experimental_streamObject({
-    model: openai.chat('gpt-4-turbo-preview'),
+  const result = await streamObject({
+    model: openai.chat('gpt-4-turbo'),
     maxTokens: 2000,
     schema: z.object({
       characters: z.array(
