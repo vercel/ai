@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.1
+
+### Patch Changes
+
+- 0f77132: ai/rsc: remove experimental\_ from streamUI
+
 ## 3.1.0
 
 ### Minor Changes
