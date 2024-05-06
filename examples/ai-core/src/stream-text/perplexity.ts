@@ -4,15 +4,17 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const groq = createOpenAI({
-  apiKey: process.env.GROQ_API_KEY ?? '',
-  baseURL: 'https://api.groq.com/openai/v1',
+const perplexity = createOpenAI({
+  apiKey: process.env.PERPLEXITY_API_KEY ?? '',
+  baseURL: 'https://api.perplexity.ai/',
 });
 
 async function main() {
   const result = await streamText({
-    model: groq.chat('llama3-70b-8192'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: perplexity('llama-3-sonar-large-32k-online'),
+    prompt:
+      'List the top 5 San Francisco news from the past week.' +
+      'You must include the date of each article.',
   });
 
   for await (const textPart of result.textStream) {

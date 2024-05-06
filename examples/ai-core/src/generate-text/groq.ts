@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { generateText } from 'ai';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -10,14 +10,12 @@ const groq = createOpenAI({
 });
 
 async function main() {
-  const result = await streamText({
+  const result = await generateText({
     model: groq.chat('llama3-70b-8192'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
-  }
+  console.log(result.text);
 }
 
 main().catch(console.error);
