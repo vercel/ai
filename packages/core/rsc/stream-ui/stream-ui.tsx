@@ -68,9 +68,9 @@ const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
   content;
 
 /**
- * `experimental_streamUI` is a helper function to create a streamable UI from LLMs.
+ * `streamUI` is a helper function to create a streamable UI from LLMs.
  */
-export async function experimental_streamUI<
+export async function streamUI<
   TOOLS extends { [name: string]: z.ZodTypeAny } = {},
 >({
   model,
@@ -103,24 +103,24 @@ export async function experimental_streamUI<
   // TODO: Remove these errors after the experimental phase.
   if (typeof model === 'string') {
     throw new Error(
-      '`model` cannot be a string in `experimental_streamUI`. Use the actual model instance instead.',
+      '`model` cannot be a string in `streamUI`. Use the actual model instance instead.',
     );
   }
   if ('functions' in settings) {
     throw new Error(
-      '`functions` is not supported in `experimental_streamUI`, use `tools` instead.',
+      '`functions` is not supported in `streamUI`, use `tools` instead.',
     );
   }
   if ('provider' in settings) {
     throw new Error(
-      '`provider` is no longer needed in `experimental_streamUI`. Use `model` instead.',
+      '`provider` is no longer needed in `streamUI`. Use `model` instead.',
     );
   }
   if (tools) {
     for (const [name, tool] of Object.entries(tools)) {
       if ('render' in tool) {
         throw new Error(
-          'Tool definition in `experimental_streamUI` should not have `render` property. Use `generate` instead. Found in tool: ' +
+          'Tool definition in `streamUI` should not have `render` property. Use `generate` instead. Found in tool: ' +
             name,
         );
       }

@@ -409,9 +409,11 @@ type Renderer<T> = (
 
 /**
  * `render` is a helper function to create a streamable UI from some LLMs.
- * Currently, it only supports OpenAI's GPT models with Function Calling and Assistants Tools.
+ * This API only supports OpenAI's GPT models with Function Calling and Assistants Tools,
+ * please use `streamUI` for compatibility with other providers.
  *
- * @deprecated It's recommended to use the `experimental_streamUI` API for compatibility with the new core APIs.
+ * @deprecated It's recommended to use the `streamUI` API for compatibility with AI SDK Core APIs
+ * and future features. This API will be removed in a future release.
  */
 export function render<
   TS extends {
