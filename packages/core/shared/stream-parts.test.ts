@@ -1,4 +1,5 @@
 import { ToolCall as CoreToolCall } from '../core/generate-text/tool-call';
+import { ToolResult as CoreToolResult } from '../core/generate-text/tool-result';
 import { formatStreamPart, parseStreamPart } from './stream-parts';
 
 describe('stream-parts', () => {
@@ -121,6 +122,37 @@ describe('tool_call stream part', () => {
     expect(parseStreamPart(input)).toEqual({
       type: 'tool_call',
       value: toolCall,
+    });
+  });
+});
+
+describe('tool_result stream part', () => {
+  it('should format a tool_result stream part', () => {
+    const toolResult: CoreToolResult<string, any, any> = {
+      toolCallId: 'tc_0',
+      toolName: 'example_tool',
+      args: { test: 'value' },
+      result: 'result',
+    };
+
+    expect(formatStreamPart('tool_result', toolResult)).toEqual(
+      `a:${JSON.stringify(toolResult)}\n`,
+    );
+  });
+
+  it('should parse a tool_result stream part', () => {
+    const toolResult = {
+      toolCallId: 'tc_0',
+      toolName: 'example_tool',
+      args: { test: 'value' },
+      result: 'result',
+    };
+
+    const input = `a:${JSON.stringify(toolResult)}`;
+
+    expect(parseStreamPart(input)).toEqual({
+      type: 'tool_result',
+      value: toolResult,
     });
   });
 });
