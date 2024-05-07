@@ -1,3 +1,4 @@
+import { ToolCall as CoreToolCall } from '../core/generate-text/tool-call';
 import { formatStreamPart, parseStreamPart } from './stream-parts';
 
 describe('stream-parts', () => {
@@ -91,6 +92,35 @@ describe('stream-parts', () => {
     it("should throw error if the input's JSON is invalid", () => {
       const input = '0:{"test":"value"';
       expect(() => parseStreamPart(input)).toThrow();
+    });
+  });
+});
+
+describe('tool_call stream part', () => {
+  it('should format a tool_call stream part', () => {
+    const toolCall: CoreToolCall<string, any> = {
+      toolCallId: 'tc_0',
+      toolName: 'example_tool',
+      args: { test: 'value' },
+    };
+
+    expect(formatStreamPart('tool_call', toolCall)).toEqual(
+      `9:${JSON.stringify(toolCall)}\n`,
+    );
+  });
+
+  it('should parse a tool_call stream part', () => {
+    const toolCall: CoreToolCall<string, any> = {
+      toolCallId: 'tc_0',
+      toolName: 'example_tool',
+      args: { test: 'value' },
+    };
+
+    const input = `9:${JSON.stringify(toolCall)}`;
+
+    expect(parseStreamPart(input)).toEqual({
+      type: 'tool_call',
+      value: toolCall,
     });
   });
 });

@@ -266,6 +266,8 @@ describe('result.toAIStream', () => {
       ['0:"Hello"\n', '0:", "\n', '0:"world!"\n'],
     );
   });
+
+  it('should ', async () => {});
 });
 
 describe('result.pipeAIStreamToResponse', async () => {
