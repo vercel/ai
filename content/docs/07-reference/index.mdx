@@ -1,0 +1,34 @@
+---
+title: Reference
+description: Reference documentation for the AI SDK
+---
+
+# API Reference
+
+<IndexCards
+  cards={[
+    {
+      title: 'AI SDK Core',
+      description: 'Switch between model providers without changing your code.',
+      href: '/docs/reference/ai-sdk-core',
+    },
+    {
+      title: 'AI SDK RSC',
+      description:
+        'Use React Server Components to stream user interfaces to the client.',
+      href: '/docs/reference/ai-sdk-rsc',
+    },
+    {
+      title: 'AI SDK UI',
+      description:
+        'Use hooks to integrate user interfaces that interact with language models.',
+      href: '/docs/reference/ai-sdk-ui',
+    },
+    {
+      title: 'Stream Helpers',
+      description:
+        'Use special functions that help stream model generations from various providers.',
+      href: '/docs/reference/stream-helpers',
+    },
+  ]}
+/>

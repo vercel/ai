@@ -1,0 +1,16 @@
+---
+title: ReplicateStream
+description: Learn to use ReplicateStream helper function in your application.
+---
+
+# `ReplicateStream`
+
+The ReplicateStream function is a utility that handles extracting the stream from the output of [Replicate](https://replicate.com)'s API. It expects a Prediction object as returned by the [Replicate JavaScript SDK](https://github.com/replicate/replicate-javascript), and returns a ReadableStream. Unlike other wrappers, ReplicateStream returns a Promise because it makes a fetch call to the [Replicate streaming API](https://github.com/replicate/replicate-javascript#streaming) under the hood.
+
+## Import
+
+### React
+
+<Snippet text={`import { ReplicateStream } from "ai"`} prompt={false} />
+
+<ReferenceTable packageName="streams" functionName="ReplicateStream" />
