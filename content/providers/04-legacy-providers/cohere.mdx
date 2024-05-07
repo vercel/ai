@@ -1,0 +1,252 @@
+---
+title: Cohere
+description: Learn how to use Cohere with the Vercel AI SDK.
+---
+
+# Cohere
+
+Vercel AI SDK provides a set of utilities to make it easy to use Cohere's API. In this guide, we'll walk through how to use the utilities to create a text completion app.
+
+## Guide: Chat Bot
+
+<Steps>
+
+### Create a Next.js app
+
+Create a Next.js application and install `ai`:
+
+```sh
+pnpm dlx create-next-app my-ai-app
+cd my-ai-app
+pnpm install ai
+```
+
+### Add your Cohere API Key to `.env`
+
+Create a `.env` file in your project root and add your Cohere API Key:
+
+```shell filename=".env"
+COHERE_API_KEY=xxxxxxx
+```
+
+### Create a Route Handler
+
+Create a Next.js Route Handler that generates a response to a series of messages via Cohere's TypeScript SDK, and returns the response as a streaming text response.
+
+For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
+
+```tsx filename="app/api/chat/route.ts" showLineNumbers
+import { CohereStream, StreamingTextResponse } from 'ai';
+import { CohereClient, Cohere } from 'cohere-ai';
+
+// IMPORTANT! Set the dynamic to force-dynamic
+// Prevent nextjs to cache this route
+export const dynamic = 'force-dynamic';
+
+if (!process.env.COHERE_API_KEY) {
+  throw new Error('Missing COHERE_API_KEY environment variable');
+}
+
+const cohere = new CohereClient({
+  token: process.env.COHERE_API_KEY,
+});
+
+const toCohereRole = (role: string): Cohere.ChatMessageRole => {
+  if (role === 'user') {
+    return Cohere.ChatMessageRole.User;
+  }
+  return Cohere.ChatMessageRole.Chatbot;
+};
+
+export async function POST(req: Request) {
+  // Extract the `prompt` from the body of the request
+  const { messages } = await req.json();
+  const chatHistory = messages.map((message: any) => ({
+    message: message.content,
+    role: toCohereRole(message.role),
+  }));
+  const lastMessage = chatHistory.pop();
+
+  const response = await cohere.chatStream({
+    message: lastMessage.message,
+    chatHistory,
+  });
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      for await (const event of response) {
+        if (event.eventType === 'text-generation') {
+          controller.enqueue(event.text);
+        }
+      }
+      controller.close();
+    },
+  });
+
+  return new Response(stream);
+}
+```
+
+<Note>
+  Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
+  pass the streaming `response` we receive from Cohere's TypeScript SDK to
+  [`CohereStream`](/docs/reference/stream-helpers/cohere-stream). This utility
+  class decodes/extracts the text tokens in the response and then re-encodes
+  them properly for simple consumption. We can then pass that new stream
+  directly to
+  [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response).
+  This is another utility class that extends the normal Node/Edge Runtime
+  `Response` class with the default headers you probably want (hint:
+  `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
+</Note>
+
+### Wire up the UI
+
+Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
+By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
+
+```tsx filename="app/page.tsx" showLineNumbers
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit, data } = useChat();
+
+  return (
+    <div className="p-4">
+      <header className="text-center">
+        <h1 className="text-xl">Chat Example</h1>
+      </header>
+      <div className="flex flex-col justify-between w-full max-w-md mx-auto stretch">
+        <div className="flex-grow overflow-y-auto">
+          {messages.map(m => (
+            <div key={m.id} className="whitespace-pre-wrap">
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))}
+        </div>
+        <form onSubmit={handleSubmit}>
+          <input
+            className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+            value={input}
+            placeholder="Say something..."
+            onChange={handleInputChange}
+          />
+        </form>
+      </div>
+    </div>
+  );
+}
+```
+
+</Steps>
+
+## Guide: Text Completion
+
+<Steps>
+
+### Create a Next.js app
+
+Create a Next.js application and install `ai`:
+
+```sh
+pnpm dlx create-next-app my-ai-app
+cd my-ai-app
+pnpm install ai
+```
+
+### Add your Cohere API Key to `.env`
+
+```shell filename=".env"
+COHERE_API_KEY=xxxxxxx
+```
+
+### Create a Route Handler
+
+Create a Next.js Route Handler that uses the Edge Runtime to generate a response to a series of messages via Cohere's API, and returns the response as a streaming text response.
+
+For this example, we'll create a route handler at `app/api/completion/route.ts` that accepts a `POST` request with a `prompt` string:
+
+```tsx filename="app/api/completion/route.ts" showLineNumbers
+import { StreamingTextResponse, CohereStream } from 'ai';
+
+export async function POST(req: Request) {
+  // Extract the `prompt` from the body of the request
+  const { prompt } = await req.json();
+
+  const body = JSON.stringify({
+    prompt,
+    model: 'command-nightly',
+    max_tokens: 300,
+    stop_sequences: [],
+    temperature: 0.9,
+    return_likelihoods: 'NONE',
+    stream: true,
+  });
+
+  const response = await fetch('https://api.cohere.ai/v1/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.COHERE_API_KEY}`,
+    },
+    body,
+  });
+
+  // Check for errors
+  if (!response.ok) {
+    return new Response(await response.text(), {
+      status: response.status,
+    });
+  }
+
+  // Extract the text response from the Cohere stream
+  const stream = CohereStream(response);
+
+  // Respond with the stream
+  return new StreamingTextResponse(stream);
+}
+```
+
+### Wire up the UI
+
+Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
+
+By default, the [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
+
+```tsx filename="app/page.tsx" showLineNumbers
+'use client';
+
+import { useCompletion } from 'ai/react';
+
+export default function Chat() {
+  const { completion, input, handleInputChange, handleSubmit, error } =
+    useCompletion();
+
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      <h4 className="text-xl font-bold text-gray-900 md:text-xl pb-4">
+        useCompletion Example
+      </h4>
+      {error && (
+        <div className="fixed top-0 left-0 w-full p-4 text-center bg-red-500 text-white">
+          {error.message}
+        </div>
+      )}
+      {completion}
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+</Steps>

@@ -1,0 +1,44 @@
+---
+title: Schemas and Zod
+description: Learn how to specify schemas and validate structured data with Zod.
+---
+
+# Schema Specification and Validation with Zod
+
+Tool usage and structured object generation require the specification of schemas.
+The AI SDK uses [Zod](https://zod.dev/), the most popular JavaScript schema validation library, for schema specification and validation.
+
+You can install Zod with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm install zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add zod" dark />
+  </Tab>
+</Tabs>
+
+You can then specify schemas, for example:
+
+```ts
+import z from 'zod';
+
+const recipeSchema = z.object({
+  recipe: z.object({
+    name: z.string(),
+    ingredients: z.array(
+      z.object({
+        name: z.string(),
+        amount: z.string(),
+      }),
+    ),
+    steps: z.array(z.string()),
+  }),
+});
+```
+
+These schemas can be used to define parameters for tool calls and to generated structured objects with `generateObject` and `streamObject`.
