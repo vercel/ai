@@ -268,6 +268,60 @@ describe('result.toAIStream', () => {
     );
   });
 
+  it('should invoke callback', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: 'world!' },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    const events: string[] = [];
+
+    await convertReadableStreamToArray(
+      result
+        .toAIStream({
+          onStart() {
+            events.push('start');
+          },
+          onToken(token) {
+            events.push(`token:${token}`);
+          },
+          onText(text) {
+            events.push(`text:${text}`);
+          },
+          onCompletion(completion) {
+            events.push(`completion:${completion}`);
+          },
+          onFinal(completion) {
+            events.push(`final:${completion}`);
+          },
+        })
+        .pipeThrough(new TextDecoderStream()),
+    );
+
+    assert.deepStrictEqual(events, [
+      'start',
+      'token:Hello',
+      'text:Hello',
+      'token:, ',
+      'text:, ',
+      'token:world!',
+      'text:world!',
+      'completion:Hello, world!',
+      'final:Hello, world!',
+    ]);
+  });
+
   it('should send tool call and tool result stream parts', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({

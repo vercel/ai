@@ -224,8 +224,37 @@ Stream callbacks that will be called when the stream emits events.
 
 @returns an `AIStream` object.
    */
-  toAIStream(callbacks?: AIStreamCallbacksAndOptions) {
-    // TODO add callback support
+  toAIStream(callbacks: AIStreamCallbacksAndOptions = {}) {
+    let aggregatedResponse = '';
+
+    const callbackTransformer = new TransformStream<
+      TextStreamPart<TOOLS>,
+      TextStreamPart<TOOLS>
+    >({
+      async start(): Promise<void> {
+        if (callbacks.onStart) await callbacks.onStart();
+      },
+
+      async transform(chunk, controller): Promise<void> {
+        controller.enqueue(chunk);
+
+        if (chunk.type === 'text-delta') {
+          const textDelta = chunk.textDelta;
+
+          aggregatedResponse += textDelta;
+
+          if (callbacks.onToken) await callbacks.onToken(textDelta);
+          if (callbacks.onText) await callbacks.onText(textDelta);
+        }
+      },
+
+      async flush(): Promise<void> {
+        if (callbacks.onCompletion)
+          await callbacks.onCompletion(aggregatedResponse);
+        if (callbacks.onFinal) await callbacks.onFinal(aggregatedResponse);
+      },
+    });
+
     const streamDataTransformer = new TransformStream<
       TextStreamPart<TOOLS>,
       string
@@ -263,12 +292,10 @@ Stream callbacks that will be called when the stream emits events.
       },
     });
 
-    return (
-      this.fullStream
-        // .pipeThrough(createCallbacksTransformer(callbacks))
-        .pipeThrough(streamDataTransformer)
-        .pipeThrough(new TextEncoderStream())
-    );
+    return this.fullStream
+      .pipeThrough(callbackTransformer)
+      .pipeThrough(streamDataTransformer)
+      .pipeThrough(new TextEncoderStream());
   }
 
   /**
