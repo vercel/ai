@@ -1,0 +1,53 @@
+---
+title: Perplexity
+description: Learn how to use Perplexity.
+---
+
+# Perplexity Provider
+
+<Note style={{ paddingTop: 0, paddingBottom: 0 }}>
+  Perplexity is supported via OpenAI API compatibility - the OpenAI provider is
+  used in the examples below.
+</Note>
+
+The [Perplexity](https://docs.perplexity.ai/) provider contains language model support for the Perplexity API.
+It creates language model objects that can be used with the `generateText` and `streamText`.
+
+## Setup
+
+The Perplexity provider is available via the `@ai-sdk/openai` module as it is compatible with the OpenAI API.
+You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm install @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use Perplexity, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+
+const perplexity = createOpenAI({
+  apiKey: process.env.PERPLEXITY_API_KEY ?? '',
+  baseURL: 'https://api.perplexity.ai/',
+});
+```
+
+## Models
+
+You can create [Perplexity models](https://docs.perplexity.ai/docs/model-cards) using a provider instance.
+The first argument is the model id, e.g. `llama-3-sonar-large-32k-online`.
+
+```ts
+const model = perplexity('llama-3-sonar-large-32k-online');
+```
