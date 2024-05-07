@@ -6,6 +6,7 @@ import { convertReadableStreamToArray } from '../test/convert-readable-stream-to
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { streamText } from './stream-text';
+import { formatStreamPart } from '../../streams';
 
 describe('result.textStream', () => {
   it('should send text deltas', async () => {
@@ -267,7 +268,79 @@ describe('result.toAIStream', () => {
     );
   });
 
-  it('should ', async () => {});
+  it('should send tool call and tool result stream parts', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: [
+              {
+                type: 'function',
+                name: 'tool1',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
+                },
+              },
+            ],
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        },
+      },
+      prompt: 'test-input',
+    });
+
+    assert.deepStrictEqual(
+      await convertReadableStreamToArray(
+        result.toAIStream().pipeThrough(new TextDecoderStream()),
+      ),
+      [
+        formatStreamPart('tool_call', {
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          args: { value: 'value' },
+        }),
+        formatStreamPart('tool_result', {
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          args: { value: 'value' },
+          result: 'value-result',
+        }),
+      ],
+    );
+  });
 });
 
 describe('result.pipeAIStreamToResponse', async () => {

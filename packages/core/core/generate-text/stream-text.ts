@@ -4,6 +4,7 @@ import {
   StreamingTextResponse,
   createCallbacksTransformer,
   createStreamDataTransformer,
+  formatStreamPart,
 } from '../../streams';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -224,9 +225,50 @@ Stream callbacks that will be called when the stream emits events.
 @returns an `AIStream` object.
    */
   toAIStream(callbacks?: AIStreamCallbacksAndOptions) {
-    return this.textStream
-      .pipeThrough(createCallbacksTransformer(callbacks))
-      .pipeThrough(createStreamDataTransformer());
+    // TODO add callback support
+    const streamDataTransformer = new TransformStream<
+      TextStreamPart<TOOLS>,
+      string
+    >({
+      transform: async (chunk, controller) => {
+        switch (chunk.type) {
+          case 'text-delta':
+            controller.enqueue(formatStreamPart('text', chunk.textDelta));
+            break;
+          case 'tool-call':
+            controller.enqueue(
+              formatStreamPart('tool_call', {
+                toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
+                args: chunk.args,
+              }),
+            );
+            break;
+          case 'tool-result':
+            controller.enqueue(
+              formatStreamPart('tool_result', {
+                toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
+                args: chunk.args,
+                result: chunk.result,
+              }),
+            );
+            break;
+          case 'error':
+            controller.enqueue(
+              formatStreamPart('error', JSON.stringify(chunk.error)),
+            );
+            break;
+        }
+      },
+    });
+
+    return (
+      this.fullStream
+        // .pipeThrough(createCallbacksTransformer(callbacks))
+        .pipeThrough(streamDataTransformer)
+        .pipeThrough(new TextEncoderStream())
+    );
   }
 
   /**
