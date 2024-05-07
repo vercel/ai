@@ -47,8 +47,9 @@ Install `ai` and `@ai-sdk/openai`, Vercel AI SDK's OpenAI provider.
   <Snippet text="pnpm install ai @ai-sdk/openai zod" />
 </div>
 
-<Note type="secondary" fill>Make sure you are using `ai` version 3.1 or higher.</Note>
-
+<Note type="secondary" fill>
+  Make sure you are using `ai` version 3.1 or higher.
+</Note>
 
 ### Configure OpenAI API key
 
@@ -69,27 +70,27 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 Create an API route, `server/api/chat.ts` and add the following code:
 
 ```tsx filename="server/api/chat.ts"
-import { StreamingTextResponse, streamText } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
+import { StreamingTextResponse, streamText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 
 export default defineLazyEventHandler(async () => {
-  const apiKey = useRuntimeConfig().openaiApiKey
-  if (!apiKey) throw new Error('Missing OpenAI API key')
+  const apiKey = useRuntimeConfig().openaiApiKey;
+  if (!apiKey) throw new Error('Missing OpenAI API key');
   const openai = createOpenAI({
-    apiKey: apiKey
-  })
+    apiKey: apiKey,
+  });
 
   return defineEventHandler(async (event: any) => {
-    const { messages } = await readBody(event)
+    const { messages } = await readBody(event);
 
     const result = await streamText({
       model: openai('gpt-4-turbo'),
-      messages
-    })
+      messages,
+    });
 
-    return new StreamingTextResponse(result.toAIStream())
-  })
-})
+    return new StreamingTextResponse(result.toAIStream());
+  });
+});
 ```
 
 Let's take a look at what is happening in this code:
@@ -155,37 +156,37 @@ Depending on your use case, you may want to stream additional data alongside the
 Make the following changes to your API route (`pages/api/chat.ts`)
 
 ```ts filename="server/api/chat.ts" highlight="1,19-29"
-import { StreamingTextResponse, streamText, StreamData } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
+import { StreamingTextResponse, streamText, StreamData } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 
 export default defineLazyEventHandler(async () => {
-  const apiKey = useRuntimeConfig().openaiApiKey
-  if (!apiKey) throw new Error('Missing OpenAI API key')
+  const apiKey = useRuntimeConfig().openaiApiKey;
+  if (!apiKey) throw new Error('Missing OpenAI API key');
   const openai = createOpenAI({
-    apiKey: apiKey
-  })
+    apiKey: apiKey,
+  });
 
   return defineEventHandler(async (event: any) => {
-    const { messages } = await readBody(event)
+    const { messages } = await readBody(event);
 
     const result = await streamText({
       model: openai('gpt-4-turbo'),
-      messages
-    })
+      messages,
+    });
 
-    const data = new StreamData()
+    const data = new StreamData();
 
-    data.append({ test: 'value' })
+    data.append({ test: 'value' });
 
     const stream = result.toAIStream({
       onFinal(_) {
-        data.close()
-      }
-    })
+        data.close();
+      },
+    });
 
-    return new StreamingTextResponse(stream, {}, data)
-  })
-})
+    return new StreamingTextResponse(stream, {}, data);
+  });
+});
 ```
 
 In this code, you:

@@ -14,11 +14,11 @@ As a result, the `ai/rsc` library provides a way to seamlessly manage both state
 Let's use layout to wrap the children components of page with the AI context provider.
 
 ```tsx filename='app/layout.tsx'
-import { ReactNode } from 'react'
-import { AI } from './actions'
+import { ReactNode } from 'react';
+import { AI } from './actions';
 
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
@@ -26,22 +26,22 @@ export default function RootLayout({
         <AI>{children}</AI>
       </body>
     </html>
-  )
+  );
 }
 ```
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { ClientMessage } from './actions'
-import { useActions, useUIState } from 'ai/rsc'
-import { nanoid } from 'nanoid'
+import { useState } from 'react';
+import { ClientMessage } from './actions';
+import { useActions, useUIState } from 'ai/rsc';
+import { nanoid } from 'nanoid';
 
 export default function Home() {
-  const [input, setInput] = useState<string>('')
-  const [conversation, setConversation] = useUIState()
-  const { continueConversation } = useActions()
+  const [input, setInput] = useState<string>('');
+  const [conversation, setConversation] = useUIState();
+  const { continueConversation } = useActions();
 
   return (
     <div>
@@ -58,61 +58,61 @@ export default function Home() {
           type="text"
           value={input}
           onChange={event => {
-            setInput(event.target.value)
+            setInput(event.target.value);
           }}
         />
         <button
           onClick={async () => {
             setConversation((currentConversation: ClientMessage[]) => [
               ...currentConversation,
-              { id: nanoid(), role: 'user', display: input }
-            ])
+              { id: nanoid(), role: 'user', display: input },
+            ]);
 
-            const message = await continueConversation(input)
+            const message = await continueConversation(input);
 
             setConversation((currentConversation: ClientMessage[]) => [
               ...currentConversation,
-              message
-            ])
+              message,
+            ]);
           }}
         >
           Send Message
         </button>
       </div>
     </div>
-  )
+  );
 }
 ```
 
 ## Server
 
 ```tsx filename='app/actions.tsx'
-'use server'
+'use server';
 
-import { createAI, getMutableAIState, streamUI } from 'ai/rsc'
-import { openai } from "@ai-sdk/openai"
-import { ReactNode } from 'react'
-import { z } from 'zod'
-import { nanoid } from 'nanoid'
-import { Stock } from '@ai-studio/components/stock'
+import { createAI, getMutableAIState, streamUI } from 'ai/rsc';
+import { openai } from '@ai-sdk/openai';
+import { ReactNode } from 'react';
+import { z } from 'zod';
+import { nanoid } from 'nanoid';
+import { Stock } from '@ai-studio/components/stock';
 
 export interface ServerMessage {
-  role: 'user' | 'assistant'
-  content: string
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 export interface ClientMessage {
-  id: string
-  role: 'user' | 'assistant'
-  display: ReactNode
+  id: string;
+  role: 'user' | 'assistant';
+  display: ReactNode;
 }
 
 export async function continueConversation(
-  input: string
+  input: string,
 ): Promise<ClientMessage> {
-  'use server'
+  'use server';
 
-  const history = getMutableAIState()
+  const history = getMutableAIState();
 
   const result = await streamUI({
     model: openai('gpt-3.5-turbo'),
@@ -121,11 +121,11 @@ export async function continueConversation(
       if (done) {
         history.done((messages: ServerMessage[]) => [
           ...messages,
-          { role: 'assistant', content }
-        ])
+          { role: 'assistant', content },
+        ]);
       }
 
-      return <div>{content}</div>
+      return <div>{content}</div>;
     },
     tools: {
       showStockInformation: {
@@ -137,35 +137,35 @@ export async function continueConversation(
             .describe('The stock symbol to get information for'),
           numOfMonths: z
             .number()
-            .describe('The number of months to get historical information for')
+            .describe('The number of months to get historical information for'),
         }),
         generate: async ({ symbol, numOfMonths }) => {
           history.done((messages: ServerMessage[]) => [
             ...messages,
             {
               role: 'assistant',
-              content: `Showing stock information for ${symbol}`
-            }
-          ])
+              content: `Showing stock information for ${symbol}`,
+            },
+          ]);
 
-          return <Stock symbol={symbol} numOfMonths={numOfMonths} />
-        }
-      }
-    }
-  })
+          return <Stock symbol={symbol} numOfMonths={numOfMonths} />;
+        },
+      },
+    },
+  });
 
   return {
     id: nanoid(),
     role: 'assistant',
-    display: result.value
-  }
+    display: result.value,
+  };
 }
 
 export const AI = createAI<ServerMessage[], ClientMessage[]>({
   actions: {
-    continueConversation
+    continueConversation,
   },
   initialAIState: [],
-  initialUIState: []
-})
+  initialUIState: [],
+});
 ```

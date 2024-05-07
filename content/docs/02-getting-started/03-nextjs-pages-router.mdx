@@ -53,7 +53,9 @@ Install `ai` and `@ai-sdk/openai`, Vercel AI SDK's OpenAI provider.
   <Snippet text="pnpm install ai @ai-sdk/openai zod" />
 </div>
 
-<Note type="secondary" fill>Make sure you are using `ai` version 3.1 or higher.</Note>
+<Note type="secondary" fill>
+  Make sure you are using `ai` version 3.1 or higher.
+</Note>
 
 ### Configure OpenAI API Key
 
@@ -80,18 +82,18 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 Create a Route Handler (`app/api/chat/route.ts`) and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai'
-import { StreamingTextResponse, streamText } from 'ai'
+import { openai } from '@ai-sdk/openai';
+import { StreamingTextResponse, streamText } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages
-  })
+    messages,
+  });
 
-  return new StreamingTextResponse(result.toAIStream())
+  return new StreamingTextResponse(result.toAIStream());
 }
 ```
 
@@ -111,10 +113,10 @@ Now that you have an API route that can query an LLM, it's time to setup your fr
 Update your root page (`pages/index.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
 ```tsx filename="pages/index.tsx"
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat()
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(m => (
@@ -133,7 +135,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -161,28 +163,28 @@ Depending on your use case, you may want to stream additional data alongside the
 Make the following changes to your Route Handler (`app/api/chat/route.ts`)
 
 ```ts filename="app/api/chat/route.ts" highlight="2,12-22"
-import { openai } from '@ai-sdk/openai'
-import { StreamingTextResponse, streamText, StreamData } from 'ai'
+import { openai } from '@ai-sdk/openai';
+import { StreamingTextResponse, streamText, StreamData } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages
-  })
+    messages,
+  });
 
-  const data = new StreamData()
+  const data = new StreamData();
 
-  data.append({ test: 'value' })
+  data.append({ test: 'value' });
 
   const stream = result.toAIStream({
     onFinal(_) {
-      data.close()
-    }
-  })
+      data.close();
+    },
+  });
 
-  return new StreamingTextResponse(stream, {}, data)
+  return new StreamingTextResponse(stream, {}, data);
 }
 ```
 
@@ -199,10 +201,10 @@ In this code, you:
 To access this data on the frontend, the `useChat` hook returns an optional value that stores this data. Update your root route with the following code to render the streamed data:
 
 ```tsx filename="pages/index.tsx" highlight="4, 7"
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, data } = useChat()
+  const { messages, input, handleInputChange, handleSubmit, data } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
@@ -222,7 +224,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 

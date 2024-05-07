@@ -33,17 +33,17 @@ REPLICATE_API_KEY=xxxxxxxxx
 ### Create a Route Handler
 
 ```tsx file="app/api/chat/route.ts" showLineNumbers
-import { ReplicateStream, StreamingTextResponse } from 'ai'
-import Replicate from 'replicate'
-import { experimental_buildLlama2Prompt } from 'ai/prompts'
+import { ReplicateStream, StreamingTextResponse } from 'ai';
+import Replicate from 'replicate';
+import { experimental_buildLlama2Prompt } from 'ai/prompts';
 
 // Create a Replicate API client
 const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_KEY || ''
-})
+  auth: process.env.REPLICATE_API_KEY || '',
+});
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const response = await replicate.predictions.create({
     // You must enable streaming.
@@ -54,14 +54,14 @@ export async function POST(req: Request) {
     // Format the message list into the format expected by Llama 2
     // @see https://github.com/vercel/ai/blob/99cf16edf0a09405d15d3867f997c96a8da869c6/packages/core/prompts/huggingface.ts#L53C1-L78C2
     input: {
-      prompt: experimental_buildLlama2Prompt(messages)
-    }
-  })
+      prompt: experimental_buildLlama2Prompt(messages),
+    },
+  });
 
   // Convert the response into a friendly text-stream
-  const stream = await ReplicateStream(response)
+  const stream = await ReplicateStream(response);
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```
 
@@ -71,12 +71,12 @@ Create a Client component with a form that we'll use to gather the prompt from t
 By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
 
 ```tsx file="app/page.tsx" showLineNumbers
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat()
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -96,7 +96,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -109,16 +109,16 @@ export default function Chat() {
 ### Create and stream a completion
 
 ```tsx file="app/api/completion/route.ts" showLineNumbers
-import { ReplicateStream, StreamingTextResponse } from 'ai'
-import Replicate from 'replicate'
+import { ReplicateStream, StreamingTextResponse } from 'ai';
+import Replicate from 'replicate';
 
 const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_KEY || ''
-})
+  auth: process.env.REPLICATE_API_KEY || '',
+});
 
 export async function POST(req: Request) {
   // Get the prompt from the request body
-  const { prompt } = await req.json()
+  const { prompt } = await req.json();
 
   const response = await replicate.predictions.create({
     // You must enable streaming.
@@ -129,14 +129,14 @@ export async function POST(req: Request) {
     // Format the message list into the format expected by Llama 2
     // @see https://github.com/vercel/ai/blob/99cf16edf0a09405d15d3867f997c96a8da869c6/packages/core/prompts/huggingface.ts#L53C1-L78C2
     input: {
-      prompt
-    }
-  })
+      prompt,
+    },
+  });
 
   // Convert the response into a friendly text-stream
-  const stream = await ReplicateStream(response)
+  const stream = await ReplicateStream(response);
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```
 
@@ -145,13 +145,13 @@ export async function POST(req: Request) {
 We can use the [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
 
 ```tsx file="app/page.tsx" showLineNumbers
-'use client'
+'use client';
 
-import { useCompletion } from 'ai/react'
+import { useCompletion } from 'ai/react';
 
 export default function Chat() {
   const { completion, input, handleInputChange, handleSubmit, error } =
-    useCompletion()
+    useCompletion();
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -173,7 +173,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -192,21 +192,21 @@ export async function POST(req: Request) {
     onStart: async () => {
       // This callback is called when the stream starts
       // You can use this to save the prompt to your database
-      await savePromptToDatabase(prompt)
+      await savePromptToDatabase(prompt);
     },
     onToken: async (token: string) => {
       // This callback is called for each token in the stream
       // You can use this to debug the stream or save the tokens to your database
-      console.log(token)
+      console.log(token);
     },
     onCompletion: async (completion: string) => {
       // This callback is called when the stream completes
       // You can use this to save the final completion to your database
-      await saveCompletionToDatabase(completion)
-    }
-  })
+      await saveCompletionToDatabase(completion);
+    },
+  });
 
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```

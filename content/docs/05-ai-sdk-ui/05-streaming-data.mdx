@@ -23,36 +23,36 @@ To use `StreamData`, create a `StreamData` value on the server, append some data
 </Note>
 
 ```tsx highlight="16-30"
-import { openai } from '@ai-sdk/openai'
-import { StreamingTextResponse, streamText, StreamData } from 'ai'
+import { openai } from '@ai-sdk/openai';
+import { StreamingTextResponse, streamText, StreamData } from 'ai';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   // Call the language model
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages
-  })
+    messages,
+  });
 
   // Create a new StreamData
-  const data = new StreamData()
+  const data = new StreamData();
 
   // Append additional data
-  data.append({ test: 'value' })
+  data.append({ test: 'value' });
 
   // Convert the response into a friendly text-stream
   const stream = result.toAIStream({
     onFinal(_) {
-      data.close()
-    }
-  })
+      data.close();
+    },
+  });
 
   // Respond with the stream and additional StreamData
-  return new StreamingTextResponse(stream, {}, data)
+  return new StreamingTextResponse(stream, {}, data);
 }
 ```
 
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
 On the client, you can destructure `data` from the `useChat` hook which stores all `StreamData` in an array. The `data` is of the type `JSONValue[]`.
 
 ```tsx
-const { data } = useChat()
+const { data } = useChat();
 ```
 
 Future versions of the AI SDK will support each `Message` having a `data` object attached to it.

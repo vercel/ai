@@ -16,23 +16,23 @@ Text generation can sometimes take a long time to complete, especially when you'
 Let's create a simple React component that will call the `getAnswer` function when a button is clicked. The `getAnswer` function will call the `streamText` function, which will then generate text based on the input prompt. To consume the stream of text in the client, we will use the `readStreamableValue` function from the `ai/rsc` module.
 
 ```tsx filename="app/page.tsx"
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { generate } from './actions'
-import { readStreamableValue } from 'ai/rsc'
+import { useState } from 'react';
+import { generate } from './actions';
+import { readStreamableValue } from 'ai/rsc';
 
 export default function Home() {
-  const [generation, setGeneration] = useState<string>('')
+  const [generation, setGeneration] = useState<string>('');
 
   return (
     <div>
       <button
         onClick={async () => {
-          const { output } = await generate('Why is the sky blue?')
+          const { output } = await generate('Why is the sky blue?');
 
           for await (const delta of readStreamableValue(output)) {
-            setGeneration(currentGeneration => `${currentGeneration}${delta}`)
+            setGeneration(currentGeneration => `${currentGeneration}${delta}`);
           }
         }}
       >
@@ -41,7 +41,7 @@ export default function Home() {
 
       <div>{generation}</div>
     </div>
-  )
+  );
 }
 ```
 
@@ -52,30 +52,30 @@ On the server side, we need to implement the `getAnswer` function, which will ca
 Using DevTools, we can see the text generation being streamed to the client in real-time.
 
 ```typescript filename='app/actions.ts'
-'use server'
+'use server';
 
-import { streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { createStreamableValue } from 'ai/rsc'
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { createStreamableValue } from 'ai/rsc';
 
 export async function generate(input: string) {
-  'use server'
+  'use server';
 
   const stream = createStreamableValue('');
 
   (async () => {
     const { textStream } = await streamText({
       model: openai('gpt-3.5-turbo'),
-      prompt: input
-    })
+      prompt: input,
+    });
 
     for await (const delta of textStream) {
-      stream.update(delta)
+      stream.update(delta);
     }
 
-    stream.done()
-  })()
+    stream.done();
+  })();
 
-  return { output: stream.value }
+  return { output: stream.value };
 }
 ```

@@ -18,19 +18,19 @@ To use Server Actions in a Client Component, you can either export them from a s
 Learn more about [Server Actions and Mutations](https://nextjs.org/docs/app/api-reference/functions/server-actions#with-client-components).
 
 ```ts file='actions.ts'
-'use server' // [!code ++]
+'use server'; // [!code ++]
 
-import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 export async function getAnswer(question: string) {
-  'use server' // [!code --]
+  'use server'; // [!code --]
 
   const { text } = await generateText({
     model: openai.chat('gpt-3.5-turbo'),
-    prompt: question
-  })
+    prompt: question,
+  });
 
-  return { answer: text }
+  return { answer: text };
 }
 ```

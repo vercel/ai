@@ -16,21 +16,21 @@ The function requires you to provide a schema using [zod](https://zod.dev), a li
         {
           name: 'Jamie Roberts',
           message: "Hey! How's the study grind going? Need a coffee boost?",
-          minutesAgo: 15
+          minutesAgo: 15,
         },
         {
           name: 'Prof. Morgan',
           message:
             'Reminder: Your term paper is due promptly at 8 AM tomorrow. Please ensure it meets the submission guidelines outlined.',
-          minutesAgo: 46
+          minutesAgo: 46,
         },
         {
           name: 'Alex Chen',
           message:
             "Dude, urgent! Borrow your notes for tomorrow's exam? I swear mine got eaten by my dog!",
-          minutesAgo: 30
-        }
-      ]
+          minutesAgo: 30,
+        },
+      ],
     }}
   />
 </Browser>
@@ -40,23 +40,23 @@ The function requires you to provide a schema using [zod](https://zod.dev), a li
 Let's create a simple React component that will call the `getNotifications` function when a button is clicked. The function will generate a list of notifications as described in the schema.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { getNotifications } from './actions'
+import { useState } from 'react';
+import { getNotifications } from './actions';
 
 export default function Home() {
-  const [generation, setGeneration] = useState<string>('')
+  const [generation, setGeneration] = useState<string>('');
 
   return (
     <div>
       <button
         onClick={async () => {
           const { notifications } = await getNotifications(
-            'Messages during finals week.'
-          )
+            'Messages during finals week.',
+          );
 
-          setGeneration(JSON.stringify(notifications, null, 2))
+          setGeneration(JSON.stringify(notifications, null, 2));
         }}
       >
         View Notifications
@@ -64,7 +64,7 @@ export default function Home() {
 
       <pre>{generation}</pre>
     </div>
-  )
+  );
 }
 ```
 
@@ -73,14 +73,14 @@ export default function Home() {
 Now let's implement the `getNotifications` function. We'll use the `generateObject` function to generate the list of notifications based on the schema we defined earlier.
 
 ```typescript filename='app/actions.ts'
-'use server'
+'use server';
 
-import { generateObject } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { z } from 'zod'
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 export async function getNotifications(input: string) {
-  'use server'
+  'use server';
 
   const { object: notifications } = await generateObject({
     model: openai('gpt-4-turbo'),
@@ -91,12 +91,12 @@ export async function getNotifications(input: string) {
         z.object({
           name: z.string().describe('Name of a fictional person.'),
           message: z.string().describe('Do not use emojis or links.'),
-          minutesAgo: z.number()
-        })
-      )
-    })
-  })
+          minutesAgo: z.number(),
+        }),
+      ),
+    }),
+  });
 
-  return { notifications }
+  return { notifications };
 }
 ```

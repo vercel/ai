@@ -18,24 +18,24 @@ This is useful when you want to stream:
 You can import `createStreamableValue` from `ai/rsc` and use it to create a streamable value.
 
 ```tsx file='app/actions.ts'
-'use server'
+'use server';
 
-import { createStreamableValue } from 'ai/rsc'
+import { createStreamableValue } from 'ai/rsc';
 
 export const runThread = async () => {
-  const streamableStatus = createStreamableValue('thread.init')
+  const streamableStatus = createStreamableValue('thread.init');
 
   setTimeout(() => {
-    streamableValue.update('thread.run.create')
-    streamableValue.update('thread.run.update')
-    streamableValue.update('thread.run.end')
-    streamableValue.done('thread.end')
-  }, 1000)
+    streamableValue.update('thread.run.create');
+    streamableValue.update('thread.run.update');
+    streamableValue.update('thread.run.end');
+    streamableValue.done('thread.end');
+  }, 1000);
 
   return {
-    status: streamableStatus.value
-  }
-}
+    status: streamableStatus.value,
+  };
+};
 ```
 
 ## Reading a Streamable Value
@@ -43,22 +43,22 @@ export const runThread = async () => {
 You can read a streamable value on the client using `readStreamableValue`. It returns an async iterator that yields the value of the streamable as it is updated:
 
 ```tsx file='app/page.tsx'
-import { readStreamableValue } from 'ai/rsc'
-import { runThread } from '@/actions'
+import { readStreamableValue } from 'ai/rsc';
+import { runThread } from '@/actions';
 
 export default function Page() {
   return (
     <button
       onClick={async () => {
-        const { status } = await runThread()
+        const { status } = await runThread();
 
         for await (const value of readStreamableValue(status)) {
-          console.log(value)
+          console.log(value);
         }
       }}
     >
       Ask
     </button>
-  )
+  );
 }
 ```

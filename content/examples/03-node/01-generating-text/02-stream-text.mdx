@@ -25,43 +25,43 @@ Overall, Joyful Hearts Day is a day to celebrate love, kindness, and positivity,
 ## Without reader
 
 ```ts file='index.ts'
-import { streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 const result = await streamText({
   model: openai('gpt-3.5-turbo'),
   maxTokens: 512,
   temperature: 0.3,
   maxRetries: 5,
-  prompt: 'Invent a new holiday and describe its traditions.'
-})
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
 
 for await (const textPart of result.textStream) {
-  console.log(textPart)
+  console.log(textPart);
 }
 ```
 
 ## With reader
 
 ```ts file='index.ts'
-import { streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 const result = await streamText({
   model: openai('gpt-3.5-turbo'),
   maxTokens: 512,
   temperature: 0.3,
   maxRetries: 5,
-  prompt: 'Invent a new holiday and describe its traditions.'
-})
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
 
-const reader = result.textStream.getReader()
+const reader = result.textStream.getReader();
 
 while (true) {
-  const { done, value } = await reader.read()
+  const { done, value } = await reader.read();
   if (done) {
-    break
+    break;
   }
-  console.log(value)
+  console.log(value);
 }
 ```

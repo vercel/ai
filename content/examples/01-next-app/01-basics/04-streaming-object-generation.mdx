@@ -15,21 +15,21 @@ Object generation can sometimes take a long time to complete, especially when yo
         {
           name: 'Jamie Roberts',
           message: "Hey! How's the study grind going? Need a coffee boost?",
-          minutesAgo: 15
+          minutesAgo: 15,
         },
         {
           name: 'Prof. Morgan',
           message:
             'Reminder: Your term paper is due promptly at 8 AM tomorrow. Please ensure it meets the submission guidelines outlined.',
-          minutesAgo: 46
+          minutesAgo: 46,
         },
         {
           name: 'Alex Chen',
           message:
             "Dude, urgent! Borrow your notes for tomorrow's exam? I swear mine got eaten by my dog!",
-          minutesAgo: 30
-        }
-      ]
+          minutesAgo: 30,
+        },
+      ],
     }}
   />
 </Browser>
@@ -39,26 +39,26 @@ Object generation can sometimes take a long time to complete, especially when yo
 Let's create a simple React component that will call the `getNotifications` function when a button is clicked. The function will generate a list of notifications as described in the schema.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { generate } from './actions'
-import { readStreamableValue } from 'ai/rsc'
+import { useState } from 'react';
+import { generate } from './actions';
+import { readStreamableValue } from 'ai/rsc';
 
 export default function Home() {
-  const [generation, setGeneration] = useState<string>('')
+  const [generation, setGeneration] = useState<string>('');
 
   return (
     <div>
       <button
         onClick={async () => {
-          const { object } = await generate('Messages during finals week.')
+          const { object } = await generate('Messages during finals week.');
 
           for await (const partialObject of readStreamableValue(object)) {
             if (partialObject) {
               setGeneration(
-                JSON.stringify(partialObject.notifications, null, 2)
-              )
+                JSON.stringify(partialObject.notifications, null, 2),
+              );
             }
           }
         }}
@@ -68,7 +68,7 @@ export default function Home() {
 
       <pre>{generation}</pre>
     </div>
-  )
+  );
 }
 ```
 
@@ -77,19 +77,19 @@ export default function Home() {
 Now let's implement the `getNotifications` function. We'll use the `generateObject` function to generate the list of fictional notifications based on the schema we defined earlier.
 
 ```typescript filename='app/actions.ts'
-'use server'
+'use server';
 
-import { streamObject } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { createStreamableValue } from 'ai/rsc'
-import { z } from 'zod'
+import { streamObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { createStreamableValue } from 'ai/rsc';
+import { z } from 'zod';
 
 export async function generate(input: string) {
-  'use server'
+  'use server';
 
-  const stream = createStreamableValue()
+  const stream = createStreamableValue();
 
-  ;(async () => {
+  (async () => {
     const { partialObjectStream } = await streamObject({
       model: openai('gpt-4-turbo'),
       system: 'You generate three notifications for a messages app.',
@@ -99,19 +99,19 @@ export async function generate(input: string) {
           z.object({
             name: z.string().describe('Name of a fictional person.'),
             message: z.string().describe('Do not use emojis or links.'),
-            minutesAgo: z.number()
-          })
-        )
-      })
-    })
+            minutesAgo: z.number(),
+          }),
+        ),
+      }),
+    });
 
     for await (const partialObject of partialObjectStream) {
-      stream.update(partialObject)
+      stream.update(partialObject);
     }
 
-    stream.done()
-  })()
+    stream.done();
+  })();
 
-  return { object: stream.value }
+  return { object: stream.value };
 }
 ```

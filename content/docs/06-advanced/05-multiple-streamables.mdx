@@ -10,31 +10,31 @@ description: Learn to handle multiple streamables in your application.
 The AI SDK RSC APIs allow you to compose and return any number of streamable UIs, along with other data, in a single request. This can be useful when you want to decouple the UI into smaller components and stream them separately.
 
 ```tsx file='app/actions.ts'
-'use server'
+'use server';
 
-import { createStreamableUI } from 'ai/rsc'
+import { createStreamableUI } from 'ai/rsc';
 
 export async function getWeather() {
-  const weatherUI = createStreamableUI()
-  const forecastUI = createStreamableUI()
+  const weatherUI = createStreamableUI();
+  const forecastUI = createStreamableUI();
 
-  weatherUI.update(<div>Loading weather...</div>)
-  forecastUI.update(<div>Loading forecast...</div>)
+  weatherUI.update(<div>Loading weather...</div>);
+  forecastUI.update(<div>Loading forecast...</div>);
 
   getWeatherData().then(weatherData => {
-    weatherUI.done(<div>{weatherData}</div>)
-  })
+    weatherUI.done(<div>{weatherData}</div>);
+  });
 
   getForecastData().then(forecastData => {
-    forecastUI.done(<div>{forecastData}</div>)
-  })
+    forecastUI.done(<div>{forecastData}</div>);
+  });
 
   // Return both streamable UIs and other data fields.
   return {
     requestedAt: Date.now(),
     weather: weatherUI.value,
-    forecast: forecastUI.value
-  }
+    forecast: forecastUI.value,
+  };
 }
 ```
 
@@ -46,23 +46,23 @@ You can stream UI components within other UI components. This allows you to crea
 
 ```tsx file='app/actions.ts'
 async function getStockHistoryChart({ symbol: string }) {
-  'use server'
+  'use server';
 
   const ui = createStreamableUI(<Spinner />);
 
   // We need to wrap this in an async IIFE to avoid blocking.
   (async () => {
-    const price = await getStockPrice({ symbol })
+    const price = await getStockPrice({ symbol });
 
     // Show a spinner as the history chart for now.
-    const historyChart = createStreamableUI(<Spinner />)
-    ui.done(<StockCard historyChart={historyChart.value} price={price} />)
+    const historyChart = createStreamableUI(<Spinner />);
+    ui.done(<StockCard historyChart={historyChart.value} price={price} />);
 
     // Getting the history data and then update that part of the UI.
-    const historyData = await fetch('https://my-stock-data-api.com')
-    historyChart.done(<HistoryChart data={historyData} />)
-  })()
+    const historyData = await fetch('https://my-stock-data-api.com');
+    historyChart.done(<HistoryChart data={historyData} />);
+  })();
 
-  return ui
+  return ui;
 }
 ```

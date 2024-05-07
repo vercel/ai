@@ -47,8 +47,9 @@ Install `ai` and `@ai-sdk/openai`, Vercel AI SDK's OpenAI provider.
   <Snippet text="pnpm install ai @ai-sdk/openai zod" />
 </div>
 
-<Note type="secondary" fill>Make sure you are using `ai` version 3.1 or higher.</Note>
-
+<Note type="secondary" fill>
+  Make sure you are using `ai` version 3.1 or higher.
+</Note>
 
 ### Configure OpenAI API Key
 
@@ -69,26 +70,26 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 Create a SvelteKit Endpoint, `src/routes/api/chat/+server.ts` and add the following code:
 
 ```tsx filename="src/routes/api/chat/+server.ts"
-import { createOpenAI } from '@ai-sdk/openai'
-import { StreamingTextResponse, streamText } from 'ai'
-import type { RequestHandler } from './$types'
+import { createOpenAI } from '@ai-sdk/openai';
+import { StreamingTextResponse, streamText } from 'ai';
+import type { RequestHandler } from './$types';
 
-import { env } from '$env/dynamic/private'
+import { env } from '$env/dynamic/private';
 
 const openai = createOpenAI({
-  apiKey: env.OPENAI_API_KEY ?? ''
-})
+  apiKey: env.OPENAI_API_KEY ?? '',
+});
 
 export const POST = (async ({ request }) => {
-  const { messages } = await request.json()
+  const { messages } = await request.json();
 
   const result = await streamText({
     model: openai('gpt-4-turbo-preview'),
-    messages
-  })
+    messages,
+  });
 
-  return new StreamingTextResponse(result.toAIStream())
-}) satisfies RequestHandler
+  return new StreamingTextResponse(result.toAIStream());
+}) satisfies RequestHandler;
 ```
 
 Let's take a look at what is happening in this code:
@@ -150,36 +151,36 @@ Depending on your use case, you may want to stream additional data alongside the
 Make the following changes to your POST endpoint (`src/routes/api/chat/+server.ts`)
 
 ```ts filename="src/routes/api/chat/+server.ts" highlight="2,19-29"
-import { createOpenAI } from '@ai-sdk/openai'
-import { StreamData, StreamingTextResponse, streamText } from 'ai'
-import type { RequestHandler } from './$types'
+import { createOpenAI } from '@ai-sdk/openai';
+import { StreamData, StreamingTextResponse, streamText } from 'ai';
+import type { RequestHandler } from './$types';
 
-import { env } from '$env/dynamic/private'
+import { env } from '$env/dynamic/private';
 
 const openai = createOpenAI({
-  apiKey: env.OPENAI_API_KEY ?? ''
-})
+  apiKey: env.OPENAI_API_KEY ?? '',
+});
 
 export const POST = (async ({ request }) => {
-  const { messages } = await request.json()
+  const { messages } = await request.json();
 
   const result = await streamText({
     model: openai('gpt-3.5-turbo'),
-    messages
-  })
+    messages,
+  });
 
-  const data = new StreamData()
+  const data = new StreamData();
 
-  data.append({ test: 'value' })
+  data.append({ test: 'value' });
 
   const stream = result.toAIStream({
     onFinal(_) {
-      data.close()
-    }
-  })
+      data.close();
+    },
+  });
 
-  return new StreamingTextResponse(stream, {}, data)
-}) satisfies RequestHandler
+  return new StreamingTextResponse(stream, {}, data);
+}) satisfies RequestHandler;
 ```
 
 In this code, you:

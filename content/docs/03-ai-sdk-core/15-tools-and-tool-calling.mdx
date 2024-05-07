@@ -7,22 +7,29 @@ description: Learn how to use tools and tool calling with the Vercel AI SDK.
 
 While large language models have incredible generation capabilities, they struggle with discrete tasks (eg. mathematics) and interacting with the outside world (eg. getting the weather). Tools can be thought of as programs you give to a model which can be run as and when the model deems applicable.
 
-<Note>When a model uses a tool, it is called a "tool call" and the output of the tool is called a "tool result".</Note>
+<Note>
+  When a model uses a tool, it is called a "tool call" and the output of the
+  tool is called a "tool result".
+</Note>
 
 You can use tools with the `generateText` or `streamText` functions, by passing a tool(s) to the `tools` paramter.
 
 There are three elements of a tool, a description, parameters, and an optional execute function.
+
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
 - **`parameters`**: A [Zod](https://zod.dev/) schema that defines the parameters. It is converted to a JSON schema that is consumed by the LLM, and also used to validate the LLM tool calls.
 - **`execute`**: An optional async function that is called with the arguments from the tool call and produces a value of type `RESULT`. It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
 
-<Note>You can use the `tool` helper function to infer the types of the `execute` parameters.</Note>
+<Note>
+  You can use the `tool` helper function to infer the types of the `execute`
+  parameters.
+</Note>
 
 The `tools` parameter of `generateText` and `streamText` is an object that has the tool names as keys and the tools as values:
 
 ```ts highlight="6-17"
-import { z } from 'zod'
-import { generateText, tool } from 'ai'
+import { z } from 'zod';
+import { generateText, tool } from 'ai';
 
 const result = await generateText({
   model: openai('gpt-3.5-turbo'),
@@ -30,20 +37,19 @@ const result = await generateText({
     weather: tool({
       description: 'Get the weather in a location',
       parameters: z.object({
-        location: z.string().describe('The location to get the weather for')
+        location: z.string().describe('The location to get the weather for'),
       }),
       execute: async ({ location }) => ({
         location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10
-      })
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
     }),
   },
   prompt:
-    'What is the weather in San Francisco and what attractions should I visit?'
-})
+    'What is the weather in San Francisco and what attractions should I visit?',
+});
 ```
 
 If the LLM decides to use a tool, it will generate a tool call. Tools with an `execute` function are run automatically when these calls are generated.
 The results of the tool executions are returned using tool result objects.
 Each tool result object has a `toolCallId`, a `toolName`, a typed `args` object, and a typed `result`.
-

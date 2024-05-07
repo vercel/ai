@@ -17,36 +17,36 @@ In this example, you will protect an API endpoint using [Vercel KV](https://verc
 and [Upstash Ratelimit](https://github.com/upstash/ratelimit).
 
 ```tsx filename='app/api/generate/route.ts'
-import kv from '@vercel/kv'
-import { openai } from '@ai-sdk/openai'
-import { OpenAIStream, StreamingTextResponse } from 'ai'
-import { Ratelimit } from '@upstash/ratelimit'
-import { NextRequest } from 'next/server'
+import kv from '@vercel/kv';
+import { openai } from '@ai-sdk/openai';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { Ratelimit } from '@upstash/ratelimit';
+import { NextRequest } from 'next/server';
 
 // Create Rate limit
 const ratelimit = new Ratelimit({
   redis: kv,
-  limiter: Ratelimit.fixedWindow(5, '30s')
-})
+  limiter: Ratelimit.fixedWindow(5, '30s'),
+});
 
 export async function POST(req: NextRequest) {
   // call ratelimit with request ip
-  const ip = req.ip ?? 'ip'
-  const { success, remaining } = await ratelimit.limit(ip)
+  const ip = req.ip ?? 'ip';
+  const { success, remaining } = await ratelimit.limit(ip);
 
   // block the request if unsuccessfull
   if (!success) {
-    return new Response('Ratelimited!', { status: 429 })
+    return new Response('Ratelimited!', { status: 429 });
   }
 
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const result = await streamText({
     model: openai('gpt-3.5-turbo'),
-    messages
-  })
+    messages,
+  });
 
-  return new StreamingTextResponse(result.toAIStream())
+  return new StreamingTextResponse(result.toAIStream());
 }
 ```
 

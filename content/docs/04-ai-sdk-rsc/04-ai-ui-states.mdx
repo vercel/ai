@@ -28,27 +28,27 @@ To start, you need create an React context using [`createAI`](/docs/reference/ai
 ```tsx filename='app/actions.tsx'
 // Define the AI state and UI state types
 export type AIState = Array<{
-  role: 'user' | 'assistant'
-  content: string
-}>
+  role: 'user' | 'assistant';
+  content: string;
+}>;
 
 export type UIState = Array<{
-  id: string
-  role: 'user' | 'assistant'
-  display: ReactNode
-}>
+  id: string;
+  role: 'user' | 'assistant';
+  display: ReactNode;
+}>;
 
 // Create the AI provider with the initial states and allowed actions
 export const AI = createAI({
   initialAIState: [] as AIState,
   initialUIState: [] as UIState,
   actions: {
-    sendMessage
-  }
-})
+    sendMessage,
+  },
+});
 
 async function sendMessage(message: string) {
-  'use server'
+  'use server';
 
   // Handle the message, covered in the following sections.
 }
@@ -59,11 +59,11 @@ async function sendMessage(message: string) {
 The AI context can be used in any Server Component, to wrap the children components that need access to the AI. For example, you can wrap your root layout component with it
 
 ```tsx filename='app/layout.tsx'
-import { type ReactNode } from 'react'
-import { AI } from './actions'
+import { type ReactNode } from 'react';
+import { AI } from './actions';
 
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{ children: ReactNode }>) {
   return (
     <AI>
@@ -71,7 +71,7 @@ export default function RootLayout({
         <body>{children}</body>
       </html>
     </AI>
-  )
+  );
 }
 ```
 
@@ -80,12 +80,12 @@ export default function RootLayout({
 The UI state can be accessed in Client Components using the [`useUIState`](/docs/reference/ai-sdk-rsc/use-ui-state) hook provided by the RSC API. The hook returns the current UI state and a function to update the UI state like React's `useState`.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useUIState } from 'ai/rsc'
+import { useUIState } from 'ai/rsc';
 
 export default function Page() {
-  const [messages, setMessages] = useUIState()
+  const [messages, setMessages] = useUIState();
 
   return (
     <ul>
@@ -93,7 +93,7 @@ export default function Page() {
         <li key={message.id}>{message.display}</li>
       ))}
     </ul>
-  )
+  );
 }
 ```
 
@@ -102,12 +102,12 @@ export default function Page() {
 The AI state can be accessed in Client Components using the [`useAIState`](/docs/reference/ai-sdk-rsc/use-ai-state) hook provided by the RSC API. The hook returns the current AI state.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useAIAtate } from 'ai/rsc'
+import { useAIAtate } from 'ai/rsc';
 
 export default function Page() {
-  const [messages, setMessages] = useAIState()
+  const [messages, setMessages] = useAIState();
 
   return (
     <ul>
@@ -115,7 +115,7 @@ export default function Page() {
         <li key={message.id}>{message.content}</li>
       ))}
     </ul>
-  )
+  );
 }
 ```
 
@@ -124,19 +124,19 @@ export default function Page() {
 The AI State can be accessed by the Server Action we provided to `createAI`, using the [`getAIState`](/docs/reference/ai-sdk-rsc/get-ai-state) function. It returns the current AI state as a read-only value:
 
 ```tsx filename='app/actions.ts'
-import { getAIState } from 'ai/rsc'
+import { getAIState } from 'ai/rsc';
 
 export async function sendMessage(message: string) {
-  'use server'
+  'use server';
 
-  const history = getAIState()
+  const history = getAIState();
 
   const response = await generateText({
     model: openai('gpt-3.5-turbo'),
-    messages: [...history, { role: 'user', content: message }]
-  })
+    messages: [...history, { role: 'user', content: message }],
+  });
 
-  return response
+  return response;
 }
 ```
 
@@ -145,25 +145,25 @@ export async function sendMessage(message: string) {
 The AI State can also be updated by the Server Action with the [`getMutableAIState`](/docs/reference/ai-sdk-rsc/get-mutable-ai-state) function. Similar to `getAIState`, but it returns the state with methods to read and update it:
 
 ```tsx filename='app/actions.ts'
-import { getMutableAIState } from 'ai/rsc'
+import { getMutableAIState } from 'ai/rsc';
 
 export async function sendMessage(message: string) {
-  'use server'
+  'use server';
 
-  const history = getMutableAIState()
+  const history = getMutableAIState();
 
   // Update the AI state with the new user message.
-  history.update([...history.get(), { role: 'user', content: message }])
+  history.update([...history.get(), { role: 'user', content: message }]);
 
   const response = await generateText({
     model: openai('gpt-3.5-turbo'),
-    messages: history.get()
-  })
+    messages: history.get(),
+  });
 
   // Update the AI state again with the response from the model.
-  history.done([...history.get(), { role: 'assistant', content: response }])
+  history.done([...history.get(), { role: 'assistant', content: response }]);
 
-  return response
+  return response;
 }
 ```
 
@@ -174,28 +174,28 @@ When the `sendMessage` action is triggered multiple times, the AI state will alw
 To call the `sendMessage` action from the client, you can use the [`useActions`](/docs/reference/ai-sdk-rsc/use-actions) hook. The hook returns all the available Actions that were provided to `createAI`:
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useActions, useUIState } from 'ai/rsc'
+import { useActions, useUIState } from 'ai/rsc';
 
 export default function Page() {
-  const { sendMessage } = useActions()
-  const [messages, setMessages] = useUIState()
+  const { sendMessage } = useActions();
+  const [messages, setMessages] = useUIState();
 
   const handleSubmit = async event => {
-    event.preventDefault()
+    event.preventDefault();
 
     setMessages([
       ...messages,
-      { id: Date.now(), role: 'user', display: event.target.message.value }
-    ])
+      { id: Date.now(), role: 'user', display: event.target.message.value },
+    ]);
 
-    const response = await sendMessage(event.target.message.value)
+    const response = await sendMessage(event.target.message.value);
     setMessages([
       ...messages,
-      { id: Date.now(), role: 'assistant', display: response }
-    ])
-  }
+      { id: Date.now(), role: 'assistant', display: response },
+    ]);
+  };
 
   return (
     <>
@@ -209,7 +209,7 @@ export default function Page() {
         <button type="submit">Send</button>
       </form>
     </>
-  )
+  );
 }
 ```
 

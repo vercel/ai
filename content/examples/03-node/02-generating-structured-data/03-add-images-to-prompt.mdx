@@ -10,12 +10,12 @@ Some language models that support vision capabilities accept images as part of t
 ## URL
 
 ```ts file='index.ts'
-import { generateObject } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import dotenv from 'dotenv'
-import { z } from 'zod'
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import dotenv from 'dotenv';
+import { z } from 'zod';
 
-dotenv.config()
+dotenv.config();
 
 async function main() {
   const { object } = await generateObject({
@@ -25,9 +25,9 @@ async function main() {
       stamps: z.array(
         z.object({
           country: z.string(),
-          date: z.string()
-        })
-      )
+          date: z.string(),
+        }),
+      ),
     }),
     messages: [
       {
@@ -35,34 +35,34 @@ async function main() {
         content: [
           {
             type: 'text',
-            text: 'list all the stamps in these passport pages?'
+            text: 'list all the stamps in these passport pages?',
           },
           {
             type: 'image',
             image: new URL(
-              'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/WW2_Spanish_official_passport.jpg/1498px-WW2_Spanish_official_passport.jpg'
-            )
-          }
-        ]
-      }
-    ]
-  })
+              'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/WW2_Spanish_official_passport.jpg/1498px-WW2_Spanish_official_passport.jpg',
+            ),
+          },
+        ],
+      },
+    ],
+  });
 
-  console.log(object)
+  console.log(object);
 }
 
-main()
+main();
 ```
 
 ## File Buffer
 
 ```ts file='index.ts'
-import { generateObject } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import dotenv from 'dotenv'
-import { z } from 'zod'
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import dotenv from 'dotenv';
+import { z } from 'zod';
 
-dotenv.config()
+dotenv.config();
 
 async function main() {
   const { object } = await generateObject({
@@ -72,9 +72,9 @@ async function main() {
       stamps: z.array(
         z.object({
           country: z.string(),
-          date: z.string()
-        })
-      )
+          date: z.string(),
+        }),
+      ),
     }),
     messages: [
       {
@@ -82,19 +82,19 @@ async function main() {
         content: [
           {
             type: 'text',
-            text: 'list all the stamps in these passport pages?'
+            text: 'list all the stamps in these passport pages?',
           },
           {
             type: 'image',
-            image: fs.readFileSync('./node/attachments/eclipse.jpg')
-          }
-        ]
-      }
-    ]
-  })
+            image: fs.readFileSync('./node/attachments/eclipse.jpg'),
+          },
+        ],
+      },
+    ],
+  });
 
-  console.log(object)
+  console.log(object);
 }
 
-main()
+main();
 ```

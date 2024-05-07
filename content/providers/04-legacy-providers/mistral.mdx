@@ -42,28 +42,28 @@ Create a Next.js Route Handler that we'll use to generate a chat completion via 
 For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
 
 ```tsx file="app/api/chat/route.ts" showLineNumbers
-import { MistralStream, StreamingTextResponse } from 'ai'
+import { MistralStream, StreamingTextResponse } from 'ai';
 
-import MistralClient from '@mistralai/mistralai'
+import MistralClient from '@mistralai/mistralai';
 
-const mistral = new MistralClient(process.env.MISTRAL_API_KEY || '')
+const mistral = new MistralClient(process.env.MISTRAL_API_KEY || '');
 
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const response = mistral.chatStream({
     model: 'mistral-small',
     maxTokens: 1000,
-    messages
-  })
+    messages,
+  });
 
   // Convert the response into a friendly text-stream. The Mistral client responses are
   // compatible with the Vercel AI SDK MistralStream adapter.
-  const stream = MistralStream(response)
+  const stream = MistralStream(response);
 
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```
 
@@ -85,10 +85,10 @@ Create a Client component with a form that we'll use to gather the prompt from t
 By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
 
 ```tsx file="app/page.tsx" showLineNumbers
-'use client'
-import { useChat } from 'ai/react'
+'use client';
+import { useChat } from 'ai/react';
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat()
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
       {messages.map(m => (
@@ -106,7 +106,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -121,27 +121,27 @@ export default function Chat() {
 Similar to the Chatbot example above, we'll create a Next.js Route Handler that generates a text completion via the Mistral api that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
 
 ```tsx file="app/api/completion/route.ts" showLineNumbers
-import MistralClient from '@mistralai/mistralai'
-import { MistralStream, StreamingTextResponse } from 'ai'
+import MistralClient from '@mistralai/mistralai';
+import { MistralStream, StreamingTextResponse } from 'ai';
 
-const mistral = new MistralClient(process.env.MISTRAL_API_KEY || '')
+const mistral = new MistralClient(process.env.MISTRAL_API_KEY || '');
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
-  const { prompt } = await req.json()
+  const { prompt } = await req.json();
 
   // Ask Mistral for a streaming completion given the prompt
   const response = mistral.chatStream({
     model: 'mistral-small',
     maxTokens: 1000,
-    messages: [{ role: 'user', content: prompt }]
-  })
+    messages: [{ role: 'user', content: prompt }],
+  });
 
   // Convert the response into a friendly text-stream
-  const stream = MistralStream(response)
+  const stream = MistralStream(response);
 
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```
 
@@ -150,9 +150,9 @@ export async function POST(req: Request) {
 We can use the [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
 
 ```tsx file="app/page.tsx" showLineNumbers
-'use client'
+'use client';
 
-import { useCompletion } from 'ai/react'
+import { useCompletion } from 'ai/react';
 
 export default function Completion() {
   const {
@@ -162,10 +162,10 @@ export default function Completion() {
     isLoading,
     handleInputChange,
     handleSubmit,
-    error
+    error,
   } = useCompletion({
-    api: '/api/completion'
-  })
+    api: '/api/completion',
+  });
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
       <h4 className="text-xl font-bold text-gray-900 md:text-xl pb-4">
@@ -204,7 +204,7 @@ export default function Completion() {
         </button>
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -222,20 +222,20 @@ export async function POST(req: Request) {
     onStart: async () => {
       // This callback is called when the stream starts
       // You can use this to save the prompt to your database
-      await savePromptToDatabase(prompt)
+      await savePromptToDatabase(prompt);
     },
     onToken: async (token: string) => {
       // This callback is called for each token in the stream
       // You can use this to debug the stream or save the tokens to your database
-      console.log(token)
+      console.log(token);
     },
     onCompletion: async (completion: string) => {
       // This callback is called when the stream completes
       // You can use this to save the final completion to your database
-      await saveCompletionToDatabase(completion)
-    }
-  })
+      await saveCompletionToDatabase(completion);
+    },
+  });
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```

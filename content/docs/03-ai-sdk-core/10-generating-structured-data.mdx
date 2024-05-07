@@ -17,8 +17,8 @@ The `generateObject` function uses [Zod schemas](./schemas-and-zod) to specify t
 The schema is also used to validate the generated data, ensuring type safety and correctness.
 
 ```ts
-import { generateObject } from 'ai'
-import { z } from 'zod'
+import { generateObject } from 'ai';
+import { z } from 'zod';
 
 const { object } = await generateObject({
   model,
@@ -28,14 +28,14 @@ const { object } = await generateObject({
       ingredients: z.array(
         z.object({
           name: z.string(),
-          amount: z.string()
-        })
+          amount: z.string(),
+        }),
       ),
-      steps: z.array(z.string())
-    })
+      steps: z.array(z.string()),
+    }),
   }),
-  prompt: 'Generate a lasagna recipe.'
-})
+  prompt: 'Generate a lasagna recipe.',
+});
 ```
 
 ## Specifying Generation Mode
@@ -54,15 +54,15 @@ While some models (like OpenAI) natively support object generation, others requi
 Given the added complexity of returning structured data, model response time can be unacceptable for your interactive use case. With the [`streamObject`](/docs/reference/ai-sdk-core/stream-object) function, you can stream the model's response as it is generated.
 
 ```ts
-import { streamObject } from 'ai'
+import { streamObject } from 'ai';
 
 const { partialObjectStream } = await streamObject({
   // ...
-})
+});
 
 // use partialObjectStream as an async iterable
 for await (const partialObject of partialObjectStream) {
-  console.log(partialObject)
+  console.log(partialObject);
 }
 ```
 

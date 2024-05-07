@@ -30,7 +30,7 @@ The release of Vercel AI SDK 3.1 introduces several new features that improve th
 
 ## Migrating from Legacy Providers to AI SDK Core
 
-Prior to AI SDK Core, you had to use a model providers SDK to query their models. 
+Prior to AI SDK Core, you had to use a model providers SDK to query their models.
 
 In the following Route Handler, you use the OpenAI SDK to query their model. You then pipe that response into the `OpenAIStream` function which returns a ReadableStream that you can pass to the client using a new `StreamingTextResponse`.
 
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
 }
 ```
 
-With Vercel AI SDK Core you have a unified API for any provider that implements the [AI SDK Language Model Specification](https://sdk.vercel.ai/providers/community-providers/custom-providers). 
+With Vercel AI SDK Core you have a unified API for any provider that implements the [AI SDK Language Model Specification](https://sdk.vercel.ai/providers/community-providers/custom-providers).
 
 Let’s take a look at the example above, but refactored to utilize the AI SDK Core API alongside the AI SDK OpenAI provider. In this example, you import the LLM function you want to use from the `ai` package, import the OpenAI provider from `@ai-sdk/openai`, and then you call the model and return the response using the `toAIStreamResponse()` helper function.
 
@@ -84,15 +84,16 @@ The AI SDK RSC API was launched as part of version 3.0. This API introduced the 
 The following example Server Action uses the `render` function using the model provider directly from OpenAI. You first create an OpenAI provider instance with the OpenAI SDK. Then, you pass it to the provider key of the render function alongside a tool that returns a React Server Component, defined in the `render` key of the tool.
 
 ```tsx
-import { render } from 'ai/rsc'
-import OpenAI from 'openai'
-import { z } from 'zod'
-import { Spinner, Weather } from '@/components'
-import { getWeather } from '@/utils'
+import { render } from 'ai/rsc';
+import OpenAI from 'openai';
+import { z } from 'zod';
+import { Spinner, Weather } from '@/components';
+import { getWeather } from '@/utils';
 
-const openai = new OpenAI()
+const openai = new OpenAI();
 
-async function submitMessage(userInput) { // 'What is the weather in SF?'
+async function submitMessage(userInput) {
+  // 'What is the weather in SF?'
   'use server';
 
   return render({
@@ -100,36 +101,39 @@ async function submitMessage(userInput) { // 'What is the weather in SF?'
     model: 'gpt-4-turbo',
     messages: [
       { role: 'system', content: 'You are a helpful assistant' },
-      { role: 'user', content: userInput }
+      { role: 'user', content: userInput },
     ],
     text: ({ content }) => <p>{content}</p>,
     tools: {
       get_city_weather: {
         description: 'Get the current weather for a city',
-        parameters: z.object({
-          city: z.string().describe('the city')
-        }).required(),
+        parameters: z
+          .object({
+            city: z.string().describe('the city'),
+          })
+          .required(),
         render: async function* ({ city }) {
-          yield <Spinner/>
-          const weather = await getWeather(city)
-          return <Weather info={weather} />
-        }
-      }
-    }
-  })
+          yield <Spinner />;
+          const weather = await getWeather(city);
+          return <Weather info={weather} />;
+        },
+      },
+    },
+  });
 }
 ```
 
 With the new `streamUI` function, you can now use any compatible AI SDK providers. In this example, you import the AI SDK OpenAI provider. Then, you pass it to the model key of the new `streamUI` function. Finally you declare a tool and return a React Server Component, defined in the `generate` key of the tool.
 
 ```tsx
-import { streamUI } from 'ai/rsc'
-import { openai } from "@ai-sdk/openai"
-import { z } from 'zod'
-import { Spinner, Weather } from '@/components'
-import { getWeather } from '@/utils'
+import { streamUI } from 'ai/rsc';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import { Spinner, Weather } from '@/components';
+import { getWeather } from '@/utils';
 
-async function submitMessage(userInput) { // 'What is the weather in SF?'
+async function submitMessage(userInput) {
+  // 'What is the weather in SF?'
   'use server';
 
   const result = await streamUI({
@@ -140,18 +144,20 @@ async function submitMessage(userInput) { // 'What is the weather in SF?'
     tools: {
       get_city_weather: {
         description: 'Get the current weather for a city',
-        parameters: z.object({
-          city: z.string().describe('Name of the city')
-        }).required(),
+        parameters: z
+          .object({
+            city: z.string().describe('Name of the city'),
+          })
+          .required(),
         generate: async function* ({ city }) {
-          yield <Spinner/>
-          const weather = await getWeather(city)
-          return <Weather info={weather} />
-        }
-      }
-    }
-  })
+          yield <Spinner />;
+          const weather = await getWeather(city);
+          return <Weather info={weather} />;
+        },
+      },
+    },
+  });
 
-  return result.value
+  return result.value;
 }
 ```

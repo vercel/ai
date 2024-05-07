@@ -11,15 +11,15 @@ Some models allow developers to provide a list of functions that can be called a
   <ChatGeneration
     history={[
       { role: 'User', content: 'How is it going?' },
-      { role: 'Assistant', content: 'All good, how may I help you?' }
+      { role: 'Assistant', content: 'All good, how may I help you?' },
     ]}
     inputMessage={{
       role: 'User',
-      content: 'What is 24 celsius in fahrenheit?'
+      content: 'What is 24 celsius in fahrenheit?',
     }}
     outputMessage={{
       role: 'Assistant',
-      content: '24°C is 75.20°F'
+      content: '24°C is 75.20°F',
     }}
   />
 </Browser>
@@ -29,14 +29,14 @@ Some models allow developers to provide a list of functions that can be called a
 Let's create a simple conversation between a user and model and place a button that will call `continueConversation`.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Message, continueConversation } from './actions'
+import { useState } from 'react';
+import { Message, continueConversation } from './actions';
 
 export default function Home() {
-  const [conversation, setConversation] = useState<Message[]>([])
-  const [input, setInput] = useState<string>('')
+  const [conversation, setConversation] = useState<Message[]>([]);
+  const [input, setInput] = useState<string>('');
 
   return (
     <div>
@@ -53,24 +53,24 @@ export default function Home() {
           type="text"
           value={input}
           onChange={event => {
-            setInput(event.target.value)
+            setInput(event.target.value);
           }}
         />
         <button
           onClick={async () => {
             const { messages } = await continueConversation([
               ...conversation,
-              { role: 'user', content: input }
-            ])
+              { role: 'user', content: input },
+            ]);
 
-            setConversation(messages)
+            setConversation(messages);
           }}
         >
           Send Message
         </button>
       </div>
     </div>
-  )
+  );
 }
 ```
 
@@ -81,19 +81,19 @@ Now, let's implement the `continueConversation` action that uses `generateText` 
 We will use zod to specify the schema for the `celsiusToFahrenheit` function's parameters.
 
 ```tsx filename='app/actions.ts'
-'use server'
+'use server';
 
-import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { z } from 'zod'
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 export interface Message {
-  role: 'user' | 'assistant'
-  content: string
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 export async function continueConversation(history: Message[]) {
-  'use server'
+  'use server';
 
   const { text, toolResults } = await generateText({
     model: openai('gpt-3.5-turbo'),
@@ -103,16 +103,16 @@ export async function continueConversation(history: Message[]) {
       celsiusToFahrenheit: {
         description: 'Converts celsius to fahrenheit',
         parameters: z.object({
-          value: z.string().describe('The value in celsius')
+          value: z.string().describe('The value in celsius'),
         }),
         execute: async ({ value }) => {
-          const celsius = parseFloat(value)
-          const fahrenheit = celsius * (9 / 5) + 32
-          return `${celsius}°C is ${fahrenheit.toFixed(2)}°F`
-        }
-      }
-    }
-  })
+          const celsius = parseFloat(value);
+          const fahrenheit = celsius * (9 / 5) + 32;
+          return `${celsius}°C is ${fahrenheit.toFixed(2)}°F`;
+        },
+      },
+    },
+  });
 
   return {
     messages: [
@@ -120,9 +120,9 @@ export async function continueConversation(history: Message[]) {
       {
         role: 'assistant' as const,
         content:
-          text || toolResults.map(toolResult => toolResult.result).join('\n')
-      }
-    ]
-  }
+          text || toolResults.map(toolResult => toolResult.result).join('\n'),
+      },
+    ],
+  };
 }
 ```

@@ -16,16 +16,16 @@ The AI state can be saved using the [`onSetAIState`](/docs/reference/ai-sdk-rsc/
 ```tsx
 export const AI = createAI<ServerMessage[], ClientMessage[]>({
   actions: {
-    continueConversation
+    continueConversation,
   },
   onSetAIState: async ({ state, done }) => {
-    'use server'
+    'use server';
 
     if (done) {
-      saveChatToDB(state)
+      saveChatToDB(state);
     }
-  }
-})
+  },
+});
 ```
 
 ### Restoring AI state
@@ -33,13 +33,13 @@ export const AI = createAI<ServerMessage[], ClientMessage[]>({
 The AI state can be restored using the [`initialAIState`](/docs/reference/ai-sdk-rsc/create-ai#initial-ai-state) prop passed to the context provider created by the [`createAI`](/docs/reference/ai-sdk-rsc/create-ai) function. In the following example, we restore the chat history from a database when the component is mounted.
 
 ```tsx file='app/layout.tsx'
-import { ReactNode } from 'react'
-import { AI } from './actions'
+import { ReactNode } from 'react';
+import { AI } from './actions';
 
 export default async function RootLayout({
-  children
+  children,
 }: Readonly<{ children: ReactNode }>) {
-  const chat = await loadChatFromDB()
+  const chat = await loadChatFromDB();
 
   return (
     <html lang="en">
@@ -47,7 +47,7 @@ export default async function RootLayout({
         <AI initialAIState={chat}>{children}</AI>
       </body>
     </html>
-  )
+  );
 }
 ```
 
@@ -64,13 +64,13 @@ The UI state can be restored using the AI state as a proxy. In the following exa
 ```tsx file='app/components/Chat.tsx'
 export const AI = createAI<ServerMessage[], ClientMessage[]>({
   actions: {
-    continueConversation
+    continueConversation,
   },
   onGetUIState: async () => {
-    'use server'
+    'use server';
 
-    const historyFromDB: ServerMessage[] = await loadChatFromDB()
-    const historyFromApp: ServerMessage[] = getAIState()
+    const historyFromDB: ServerMessage[] = await loadChatFromDB();
+    const historyFromApp: ServerMessage[] = getAIState();
 
     // If the history from the database is different from the
     // history in the app, they're not in sync so return the UIState
@@ -81,11 +81,15 @@ export const AI = createAI<ServerMessage[], ClientMessage[]>({
         id: nanoid(),
         role,
         display:
-          role === 'function' ? <Component {...JSON.parse(content)} /> : content
-      }))
+          role === 'function' ? (
+            <Component {...JSON.parse(content)} />
+          ) : (
+            content
+          ),
+      }));
     }
-  }
-})
+  },
+});
 ```
 
 To learn more, check out this [example](/examples/next-app/state-management/save-and-restore-states) that persists and restores states in your Next.js application.

@@ -21,15 +21,15 @@ You have several options:
 
    ```tsx
    export async function POST(req: Request) {
-     const { prompt } = await req.json()
+     const { prompt } = await req.json();
 
      const result = await streamText({
        model: openai.completion('gpt-3.5-turbo-instruct'),
        maxTokens: 2000,
-       prompt
-     })
+       prompt,
+     });
 
-     return result.toTextStreamResponse()
+     return result.toTextStreamResponse();
    }
    ```
 
@@ -38,10 +38,10 @@ You have several options:
 
    ```tsx
    for await (const { type, value } of readDataStream(reader, {
-     isAborted: () => abortControllerRef?.current === null
+     isAborted: () => abortControllerRef?.current === null,
    })) {
      if (type === 'text') {
-       doSomething(value)
+       doSomething(value);
      }
    }
    ```

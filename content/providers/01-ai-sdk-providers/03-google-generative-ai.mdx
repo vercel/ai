@@ -29,17 +29,17 @@ The Google provider is available in the `@ai-sdk/google` module. You can install
 You can import the default provider instance `google` from `@ai-sdk/google`:
 
 ```ts
-import { google } from '@ai-sdk/google'
+import { google } from '@ai-sdk/google';
 ```
 
 If you need a customized setup, you can import `createGoogleGenerativeAI` from `@ai-sdk/google` and create a provider instance with your settings:
 
 ```ts
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 const google = createGoogleGenerativeAI({
   // custom settings
-})
+});
 ```
 
 You can use the following optional settings to customize the Google Generative AI provider instance:
@@ -65,7 +65,7 @@ The first argument is the model id, e.g. `models/gemini-pro`.
 The models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = google('models/gemini-pro')
+const model = google('models/gemini-pro');
 ```
 
 Google Generative AI models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
@@ -73,8 +73,8 @@ You can pass them as an options argument:
 
 ```ts
 const model = google('models/gemini-pro', {
-  topK: 0.2
-})
+  topK: 0.2,
+});
 ```
 
 The following optional settings are available for Google Generative AI models:

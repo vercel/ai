@@ -18,14 +18,14 @@ The `functions` object is an array containing the schema for each function you w
 Here is an example:
 
 ```ts highlight="14,45"
-import { OpenAIStream, StreamingTextResponse } from 'ai'
-import OpenAI from 'openai'
-import type { ChatCompletionCreateParams } from 'openai/resources/chat'
+import { OpenAIStream, StreamingTextResponse } from 'ai';
+import OpenAI from 'openai';
+import type { ChatCompletionCreateParams } from 'openai/resources/chat';
 
 // Create an OpenAI API client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ''
-})
+  apiKey: process.env.OPENAI_API_KEY || '',
+});
 
 // Function definition:
 const functions: ChatCompletionCreateParams.Function[] = [
@@ -37,33 +37,33 @@ const functions: ChatCompletionCreateParams.Function[] = [
       properties: {
         location: {
           type: 'string',
-          description: 'The city and state, e.g. San Francisco, CA'
+          description: 'The city and state, e.g. San Francisco, CA',
         },
         format: {
           type: 'string',
           enum: ['celsius', 'fahrenheit'],
           description:
-            'The temperature unit to use. Infer this from the users location.'
-        }
+            'The temperature unit to use. Infer this from the users location.',
+        },
       },
-      required: ['location', 'format']
-    }
-  }
-]
+      required: ['location', 'format'],
+    },
+  },
+];
 
 // And use it like this:
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo-0613',
     stream: true,
     messages,
-    functions
-  })
+    functions,
+  });
 
-  const stream = OpenAIStream(response)
-  return new StreamingTextResponse(stream)
+  const stream = OpenAIStream(response);
+  return new StreamingTextResponse(stream);
 }
 ```
 
@@ -79,7 +79,7 @@ You can also return a string which will be sent to the client as the "assistant"
 const stream = OpenAIStream(response, {
   experimental_onFunctionCall: async (
     { name, arguments: args },
-    createFunctionCallMessages
+    createFunctionCallMessages,
   ) => {
     // if you skip the function call and return nothing, the `function_call`
     // message will be sent to the client for it to handle
@@ -87,21 +87,21 @@ const stream = OpenAIStream(response, {
       // Call a weather API here
       const weatherData = {
         temperature: 20,
-        unit: args.format === 'celsius' ? 'C' : 'F'
-      }
+        unit: args.format === 'celsius' ? 'C' : 'F',
+      };
 
       // `createFunctionCallMessages` constructs the relevant "assistant" and "function" messages for you
-      const newMessages = createFunctionCallMessages(weatherData)
+      const newMessages = createFunctionCallMessages(weatherData);
       return openai.chat.completions.create({
         messages: [...messages, ...newMessages],
         stream: true,
         model: 'gpt-3.5-turbo-0613',
         // see "Recursive Function Calls" below
-        functions
-      })
+        functions,
+      });
     }
-  }
-})
+  },
+});
 ```
 
 You will then receive a regular "assistant" message on the client containing the output of the function call.
@@ -120,22 +120,22 @@ The handler will be called when the function is invoked. Here's a sample functio
 ```tsx
 const functionCallHandler: FunctionCallHandler = async (
   chatMessages,
-  functionCall
+  functionCall,
 ) => {
   if (functionCall.name === 'get_current_weather') {
     if (functionCall.arguments) {
-      const parsedFunctionCallArguments = JSON.parse(functionCall.arguments)
+      const parsedFunctionCallArguments = JSON.parse(functionCall.arguments);
       // You now have access to the parsed arguments here (assuming the JSON was valid)
       // If JSON is invalid, return an appropriate message to the model so that it may retry?
-      console.log(parsedFunctionCallArguments)
+      console.log(parsedFunctionCallArguments);
     }
 
     // Generate a fake temperature
-    const temperature = Math.floor(Math.random() * (100 - 30 + 1) + 30)
+    const temperature = Math.floor(Math.random() * (100 - 30 + 1) + 30);
     // Generate random weather condition
     const weather = ['sunny', 'cloudy', 'rainy', 'snowy'][
       Math.floor(Math.random() * 4)
-    ]
+    ];
 
     const functionResponse: ChatRequest = {
       messages: [
@@ -147,22 +147,22 @@ const functionCallHandler: FunctionCallHandler = async (
           content: JSON.stringify({
             temperature,
             weather,
-            info: 'This data is randomly generated and came from a fake weather API!'
-          })
-        }
-      ]
-    }
-    return functionResponse
+            info: 'This data is randomly generated and came from a fake weather API!',
+          }),
+        },
+      ],
+    };
+    return functionResponse;
   }
-}
+};
 ```
 
 Then just pass the handler to the hook:
 
 ```tsx
 const { messages, input, handleInputChange, handleSubmit } = useChat({
-  experimental_onFunctionCall: functionCallHandler
-})
+  experimental_onFunctionCall: functionCallHandler,
+});
 ```
 
 Now, when the model calls the `get_current_weather` function, the OpenAI API will return a specially formatted message with the arguments and the name of the function to call.
@@ -196,7 +196,7 @@ So you can interact with the function call:
       <p>Function name: {message.function_call.name}</p>
       <p>Function arguments: {message.function_call.arguments}</p>
     </div>
-  )
+  );
 }
 ```
 
@@ -208,7 +208,7 @@ if (m.function_call) {
   const functionCallString =
     typeof m.function_call === 'string'
       ? m.function_call
-      : JSON.stringify(m.function_call)
+      : JSON.stringify(m.function_call);
 
   return (
     <>
@@ -216,9 +216,9 @@ if (m.function_call) {
         <p key={index}>{line}</p>
       ))}
     </>
-  )
+  );
 } else {
-  return m.content
+  return m.content;
 }
 ```
 

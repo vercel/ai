@@ -36,28 +36,28 @@ Create a Next.js Route Handler that we'll use to generate a chat completion via 
 For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
 
 ```tsx file='app/api/chat/route.ts' showLineNumbers
-import { OpenAIClient, AzureKeyCredential } from '@azure/openai'
-import { OpenAIStream, StreamingTextResponse } from 'ai'
+import { OpenAIClient, AzureKeyCredential } from '@azure/openai';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
 
 // Create an OpenAI API client
 const client = new OpenAIClient(
   'https://YOUR-AZURE-OPENAI-ENDPOINT',
-  new AzureKeyCredential(process.env.AZURE_OPENAI_API_KEY!)
-)
+  new AzureKeyCredential(process.env.AZURE_OPENAI_API_KEY!),
+);
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   // Ask Azure OpenAI for a streaming chat completion given the prompt
   const response = await client.streamChatCompletions(
     'YOUR_DEPLOYED_INSTANCE_NAME',
-    messages
-  )
+    messages,
+  );
 
   // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response)
+  const stream = OpenAIStream(response);
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```
 
@@ -79,12 +79,12 @@ Create a Client component with a form that we'll use to gather the prompt from t
 By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat()
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(m => (
@@ -103,7 +103,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -122,21 +122,21 @@ export async function POST(req: Request) {
     onStart: async () => {
       // This callback is called when the stream starts
       // You can use this to save the prompt to your database
-      await savePromptToDatabase(prompt)
+      await savePromptToDatabase(prompt);
     },
     onToken: async (token: string) => {
       // This callback is called for each token in the stream
       // You can use this to debug the stream or save the tokens to your database
-      console.log(token)
+      console.log(token);
     },
     onCompletion: async (completion: string) => {
       // This callback is called when the stream completes
       // You can use this to save the final completion to your database
-      await saveCompletionToDatabase(completion)
-    }
-  })
+      await saveCompletionToDatabase(completion);
+    },
+  });
 
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```

@@ -53,8 +53,9 @@ Install `ai` and `@ai-sdk/openai`, the Vercel AI package and Vercel AI SDK's [ O
   <Snippet text="pnpm install ai @ai-sdk/openai zod" />
 </div>
 
-<Note type="secondary" fill>Make sure you are using `ai` version 3.1 or higher.</Note>
-
+<Note type="secondary" fill>
+  Make sure you are using `ai` version 3.1 or higher.
+</Note>
 
 ### Configure OpenAI API key
 
@@ -75,18 +76,18 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 Create a route handler, `app/api/chat/route.ts` and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai'
-import { StreamingTextResponse, streamText } from 'ai'
+import { openai } from '@ai-sdk/openai';
+import { StreamingTextResponse, streamText } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages
-  })
+    messages,
+  });
 
-  return new StreamingTextResponse(result.toAIStream())
+  return new StreamingTextResponse(result.toAIStream());
 }
 ```
 
@@ -106,12 +107,12 @@ Now that you have an Route Handler that can query an LLM, it's time to setup you
 Update your root page (`app/page.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
 ```tsx filename="app/page.tsx"
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat()
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(m => (
@@ -130,7 +131,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -163,28 +164,28 @@ Depending on your use case, you may want to stream additional data alongside the
 Make the following changes to your Route Handler (`app/api/chat/route.ts`)
 
 ```ts filename="app/api/chat/route.ts" highlight="2,12-22"
-import { openai } from '@ai-sdk/openai'
-import { StreamingTextResponse, streamText, StreamData } from 'ai'
+import { openai } from '@ai-sdk/openai';
+import { StreamingTextResponse, streamText, StreamData } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages
-  })
+    messages,
+  });
 
-  const data = new StreamData()
+  const data = new StreamData();
 
-  data.append({ test: 'value' })
+  data.append({ test: 'value' });
 
   const stream = result.toAIStream({
     onFinal(_) {
-      data.close()
-    }
-  })
+      data.close();
+    },
+  });
 
-  return new StreamingTextResponse(stream, {}, data)
+  return new StreamingTextResponse(stream, {}, data);
 }
 ```
 
@@ -201,12 +202,12 @@ In this code, you:
 To access this data on the frontend, the `useChat` hook returns an optional value that stores this data. Update your root route with the following code to render the streamed data:
 
 ```tsx filename="app/page.tsx" highlight="6, 9"
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, data } = useChat()
+  const { messages, input, handleInputChange, handleSubmit, data } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
@@ -226,7 +227,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -257,20 +258,20 @@ The server-first architecture of RSCs enables a number of powerful features, lik
 Create your first Server Action (`app/actions.tsx`) and add the following code:
 
 ```tsx filename="app/actions.tsx"
-'use server'
+'use server';
 
-import { createStreamableValue } from 'ai/rsc'
-import { CoreMessage, streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { createStreamableValue } from 'ai/rsc';
+import { CoreMessage, streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 export async function continueConversation(messages: CoreMessage[]) {
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages
-  })
+    messages,
+  });
 
-  const stream = createStreamableValue(result.textStream)
-  return stream.value
+  const stream = createStreamableValue(result.textStream);
+  return stream.value;
 }
 ```
 
@@ -289,16 +290,16 @@ Now that you have created a Server Action that can query an LLM, it's time to up
 Update your root page (`app/page.tsx`) with the following code:
 
 ```tsx filename="app/page.tsx"
-'use client'
+'use client';
 
-import { type CoreMessage } from 'ai'
-import { useState } from 'react'
-import { continueConversation } from './actions'
-import { readStreamableValue } from 'ai/rsc'
+import { type CoreMessage } from 'ai';
+import { useState } from 'react';
+import { continueConversation } from './actions';
+import { readStreamableValue } from 'ai/rsc';
 
 export default function Chat() {
-  const [messages, setMessages] = useState<CoreMessage[]>([])
-  const [input, setInput] = useState('')
+  const [messages, setMessages] = useState<CoreMessage[]>([]);
+  const [input, setInput] = useState('');
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map((m, i) => (
@@ -312,22 +313,22 @@ export default function Chat() {
         action={async () => {
           const newMessages: CoreMessage[] = [
             ...messages,
-            { content: input, role: 'user' }
-          ]
+            { content: input, role: 'user' },
+          ];
 
-          setMessages(newMessages)
-          setInput('')
+          setMessages(newMessages);
+          setInput('');
 
-          const result = await continueConversation(newMessages)
+          const result = await continueConversation(newMessages);
 
           for await (const content of readStreamableValue(result)) {
             setMessages([
               ...newMessages,
               {
                 role: 'assistant',
-                content: content as string
-              }
-            ])
+                content: content as string,
+              },
+            ]);
           }
         }}
       >
@@ -339,7 +340,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -358,21 +359,21 @@ If your use case requires that you stream additional data alongside the response
 Update your `app/actions.tsx`with the following code:
 
 ```ts filename="app/actions.tsx" highlight="13,15"
-'use server'
+'use server';
 
-import { createStreamableValue } from 'ai/rsc'
-import { CoreMessage, streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { createStreamableValue } from 'ai/rsc';
+import { CoreMessage, streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 export async function continueConversation(messages: CoreMessage[]) {
-  'use server'
+  'use server';
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages
-  })
-  const data = { test: 'hello' }
-  const stream = createStreamableValue(result.textStream)
-  return { message: stream.value, data }
+    messages,
+  });
+  const data = { test: 'hello' };
+  const stream = createStreamableValue(result.textStream);
+  return { message: stream.value, data };
 }
 ```
 
@@ -383,17 +384,17 @@ The only change that you make here is to declare a new value (`data`) and return
 Update your root route with the following code:
 
 ```tsx filename="app/page.tsx" highlight="11, 14, 33"
-'use client'
+'use client';
 
-import { type CoreMessage } from 'ai'
-import { useState } from 'react'
-import { continueConversation } from './actions'
-import { readStreamableValue } from 'ai/rsc'
+import { type CoreMessage } from 'ai';
+import { useState } from 'react';
+import { continueConversation } from './actions';
+import { readStreamableValue } from 'ai/rsc';
 
 export default function Chat() {
-  const [messages, setMessages] = useState<CoreMessage[]>([])
-  const [input, setInput] = useState('')
-  const [data, setData] = useState<any>()
+  const [messages, setMessages] = useState<CoreMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [data, setData] = useState<any>();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
@@ -408,23 +409,23 @@ export default function Chat() {
         action={async () => {
           const newMessages: CoreMessage[] = [
             ...messages,
-            { content: input, role: 'user' }
-          ]
+            { content: input, role: 'user' },
+          ];
 
-          setMessages(newMessages)
-          setInput('')
+          setMessages(newMessages);
+          setInput('');
 
-          const result = await continueConversation(newMessages)
-          setData(result.data)
+          const result = await continueConversation(newMessages);
+          setData(result.data);
 
           for await (const content of readStreamableValue(result.message)) {
             setMessages([
               ...newMessages,
               {
                 role: 'assistant',
-                content: content as string
-              }
-            ])
+                content: content as string,
+              },
+            ]);
           }
         }}
       >
@@ -436,7 +437,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 

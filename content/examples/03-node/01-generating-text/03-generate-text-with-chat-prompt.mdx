@@ -10,8 +10,8 @@ Previously, we were able to generate text and objects using either a single mess
 A chat completion allows you to generate text based on a series of messages. This series of messages can be any series of interactions between any number systems, but the most popular and relatable use case has been a series of messages that represent a conversation between a user and a model.
 
 ```ts file='index.ts'
-import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
   model: openai('gpt-3.5-turbo'),
@@ -20,18 +20,18 @@ const result = await generateText({
   messages: [
     {
       role: 'user',
-      content: 'Hello!'
+      content: 'Hello!',
     },
     {
       role: 'assistant',
-      content: 'Hello! How can I help you today?'
+      content: 'Hello! How can I help you today?',
     },
     {
       role: 'user',
-      content: 'I need help with my computer.'
-    }
-  ]
-})
+      content: 'I need help with my computer.',
+    },
+  ],
+});
 
-console.log(result.text)
+console.log(result.text);
 ```

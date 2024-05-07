@@ -18,14 +18,14 @@ In this guide, you will learn how to use the `useChat` hook to create a chatbot 
 ## Example
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: 'api/chat'
-  })
+    api: 'api/chat',
+  });
 
   return (
     <>
@@ -45,24 +45,24 @@ export default function Page() {
         <button type="submit">Submit</button>
       </form>
     </>
-  )
+  );
 }
 ```
 
 ```ts filename='app/api/chat/route.ts'
-import { StreamingTextResponse, experimental_streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
-  const { prompt }: { prompt: string } = await req.json()
+  const { prompt }: { prompt: string } = await req.json();
 
   const result = await experimental_streamText({
     model: openai('gpt-4'),
     system: 'You are a helpful assistant.',
-    messages
-  })
+    messages,
+  });
 
-  return new StreamingTextResponse(result.toAIStream())
+  return new StreamingTextResponse(result.toAIStream());
 }
 ```
 
@@ -204,13 +204,13 @@ By default, the `useChat` hook sends a HTTP POST request to the `/api/chat` endp
 const { messages, input, handleInputChange, handleSubmit } = useChat({
   api: '/api/custom-chat',
   headers: {
-    Authorization: 'your_token'
+    Authorization: 'your_token',
   },
   body: {
-    user_id: '123'
+    user_id: '123',
   },
-  credentials: 'same-origin'
-})
+  credentials: 'same-origin',
+});
 ```
 
 In this example, the `useChat` hook sends a POST request to the `/api/custom-chat` endpoint with the specified headers, additional body fields, and credentials for that fetch request. On your server side, you can handle the request with these additional information.

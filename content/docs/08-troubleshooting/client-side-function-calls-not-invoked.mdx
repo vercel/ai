@@ -16,7 +16,7 @@ You need to add a stub for `onFunctionCall` to `OpenAIStream` to enable the corr
 ```tsx
 const stream = OpenAIStream(response, {
   async experimental_onFunctionCall() {
-    return
-  }
-})
+    return;
+  },
+});
 ```

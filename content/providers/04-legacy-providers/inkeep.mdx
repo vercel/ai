@@ -53,75 +53,75 @@ import {
   InkeepStream,
   InkeepOnFinalMetadata,
   StreamingTextResponse,
-  StreamData
-} from 'ai'
-import { InkeepAI } from '@inkeep/ai-api'
-import type { RecordsCited$ } from '@inkeep/ai-api/models/components'
+  StreamData,
+} from 'ai';
+import { InkeepAI } from '@inkeep/ai-api';
+import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
 
 interface ChatRequestBody {
   messages: Array<{
-    role: 'user' | 'assistant'
-    content: string
-  }>
-  chat_session_id?: string
+    role: 'user' | 'assistant';
+    content: string;
+  }>;
+  chat_session_id?: string;
 }
 
-const inkeepIntegrationId = process.env.INKEEP_INTEGRATION_ID
+const inkeepIntegrationId = process.env.INKEEP_INTEGRATION_ID;
 
 export async function POST(req: Request) {
-  const chatRequestBody: ChatRequestBody = await req.json()
-  const chat_session_id = chatRequestBody.chat_session_id
+  const chatRequestBody: ChatRequestBody = await req.json();
+  const chat_session_id = chatRequestBody.chat_session_id;
 
   const ikpClient = new InkeepAI({
-    apiKey: process.env.INKEEP_API_KEY
-  })
+    apiKey: process.env.INKEEP_API_KEY,
+  });
 
-  let response
+  let response;
 
   if (!chat_session_id) {
     const createRes = await ikpClient.chatSession.create({
       integrationId: inkeepIntegrationId,
       chatSession: {
-        messages: chatRequestBody.messages
+        messages: chatRequestBody.messages,
       },
-      stream: true
-    })
+      stream: true,
+    });
 
-    response = createRes.rawResponse
+    response = createRes.rawResponse;
   } else {
     const continueRes = await ikpClient.chatSession.continue(chat_session_id, {
       integrationId: inkeepIntegrationId,
       message: chatRequestBody.messages[chatRequestBody.messages.length - 1],
-      stream: true
-    })
+      stream: true,
+    });
 
-    response = continueRes.rawResponse
+    response = continueRes.rawResponse;
   }
 
   // used to pass custom metadata to the client
-  const data = new StreamData()
+  const data = new StreamData();
 
   if (!response?.body) {
-    throw new Error('Response body is null')
+    throw new Error('Response body is null');
   }
 
   const stream = InkeepStream(response, {
     onRecordsCited: async (records_cited: RecordsCited$.Inbound) => {
       // append the citations to the message annotations
       data.appendMessageAnnotation({
-        records_cited
-      })
+        records_cited,
+      });
     },
     onFinal: async (complete: string, metadata?: InkeepOnFinalMetadata) => {
       // return the chat_session_id to the client
       if (metadata) {
-        data.append({ onFinalMetadata: metadata })
+        data.append({ onFinalMetadata: metadata });
       }
-      data.close()
-    }
-  })
+      data.close();
+    },
+  });
 
-  return new StreamingTextResponse(stream, {}, data)
+  return new StreamingTextResponse(stream, {}, data);
 }
 ```
 
@@ -153,41 +153,41 @@ By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use th
 We will use the `data` field to get the Inkeep `chat_session_id`, which we will include in the request body in any subsequent messages.
 
 ```tsx file="app/page.tsx" showLineNumbers
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
-import { useEffect, useState } from 'react'
-import { Message } from 'ai'
-import { type InkeepOnFinalMetadata } from 'ai/streams'
-import { Citations } from './Citations'
+import { useChat } from 'ai/react';
+import { useEffect, useState } from 'react';
+import { Message } from 'ai';
+import { type InkeepOnFinalMetadata } from 'ai/streams';
+import { Citations } from './Citations';
 
 export default function Chat() {
   /**
    * You can alternatively put the chat_session_id in search params e.g. ?chat_session_id=123 or path params like /chat/123 depending on your use case
    */
   const [chatSessionId, setChatSessionId] = useState<string | undefined>(
-    undefined
-  )
+    undefined,
+  );
 
   const { messages, input, handleInputChange, handleSubmit, data } = useChat({
     body: {
-      chat_session_id: chatSessionId
-    }
-  })
+      chat_session_id: chatSessionId,
+    },
+  });
 
   // SET THE INKEEP CHAT SESSION ID FROM THE CHAT DATA
   useEffect(() => {
     // get the onFinalMetadata item from the global data
     const onFinalMetadataItem = data?.find(
       item =>
-        typeof item === 'object' && item !== null && 'onFinalMetadata' in item
-    ) as { onFinalMetadata: InkeepOnFinalMetadata } | undefined
+        typeof item === 'object' && item !== null && 'onFinalMetadata' in item,
+    ) as { onFinalMetadata: InkeepOnFinalMetadata } | undefined;
 
     // get the chat_session_id from the onFinalMetadata item
-    const chatSessionId = onFinalMetadataItem?.onFinalMetadata?.chat_session_id
+    const chatSessionId = onFinalMetadataItem?.onFinalMetadata?.chat_session_id;
 
-    setChatSessionId(chatSessionId)
-  }, [data])
+    setChatSessionId(chatSessionId);
+  }, [data]);
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -199,7 +199,7 @@ export default function Chat() {
             {m.content}
             <Citations annotations={m.annotations} />
           </div>
-        )
+        );
       })}
 
       <form onSubmit={handleSubmit}>
@@ -211,7 +211,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -222,21 +222,22 @@ The Inkeep API provides information about the sources (documentation, web pages,
 We can use this to display a list of "Citations" at the end of the main chat message content.
 
 ```tsx file="app/Citations.tsx" showLineNumbers
-import { Message } from 'ai'
-import type { RecordsCited$ } from '@inkeep/ai-api/models/components'
+import { Message } from 'ai';
+import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
 
 interface CitationsProps {
-  annotations: Message['annotations']
+  annotations: Message['annotations'];
 }
 
 export const Citations = ({ annotations }: CitationsProps) => {
   // get the records_cited annotation of the message
   const recordsCitedAnnotation = annotations?.find(
-    item => typeof item === 'object' && item !== null && 'records_cited' in item
-  ) as { records_cited: RecordsCited$.Inbound } | undefined
+    item =>
+      typeof item === 'object' && item !== null && 'records_cited' in item,
+  ) as { records_cited: RecordsCited$.Inbound } | undefined;
 
   // get the citations from the records_cited annotation
-  const citations = recordsCitedAnnotation?.records_cited?.citations
+  const citations = recordsCitedAnnotation?.records_cited?.citations;
 
   return (
     citations && (
@@ -260,8 +261,8 @@ export const Citations = ({ annotations }: CitationsProps) => {
         )}
       </>
     )
-  )
-}
+  );
+};
 ```
 
 </Steps>

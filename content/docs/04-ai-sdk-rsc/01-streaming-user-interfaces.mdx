@@ -3,10 +3,10 @@ title: Streaming User Interfaces
 description: Overview of streaming user interfaces
 ---
 
-import { UIPreviewCard, Card } from '@/components/home/card'
-import { EventPlanning } from '@/components/home/event-planning'
-import { Searching } from '@/components/home/searching'
-import { Weather } from '@/components/home/weather'
+import { UIPreviewCard, Card } from '@/components/home/card';
+import { EventPlanning } from '@/components/home/event-planning';
+import { Searching } from '@/components/home/searching';
+import { Weather } from '@/components/home/weather';
 
 # Streaming User Interfaces
 
@@ -43,19 +43,19 @@ In the example above, `'use server'` is used to indicate that the exported funct
 On the client side, you can request to the `getWeather` Server Action via a normal function call, render the returned UI like any other normal React components.
 
 ```tsx file='app/page.tsx'
-import { useState } from 'react'
-import { readStreamableValue } from 'ai/rsc'
-import { runThread } from '@/actions'
+import { useState } from 'react';
+import { readStreamableValue } from 'ai/rsc';
+import { runThread } from '@/actions';
 
 export default function Page() {
-  const [weather, setWeather] = useState(null)
+  const [weather, setWeather] = useState(null);
 
   return (
     <div>
       <button
         onClick={async () => {
-          const weatherUI = await getWeather()
-          setWeather(weatherUI)
+          const weatherUI = await getWeather();
+          setWeather(weatherUI);
         }}
       >
         What's the weather?
@@ -63,7 +63,7 @@ export default function Page() {
 
       {weather}
     </div>
-  )
+  );
 }
 ```
 

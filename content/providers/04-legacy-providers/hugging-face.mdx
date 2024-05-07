@@ -39,16 +39,16 @@ Create a Next.js Route Handler that uses the `OpenAssistant/oasst-sft-4-pythia-1
 For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
 
 ```tsx file="app/api/chat/route.ts" showLineNumbers
-import { HfInference } from '@huggingface/inference'
-import { HuggingFaceStream, StreamingTextResponse } from 'ai'
-import { experimental_buildOpenAssistantPrompt } from 'ai/prompts'
+import { HfInference } from '@huggingface/inference';
+import { HuggingFaceStream, StreamingTextResponse } from 'ai';
+import { experimental_buildOpenAssistantPrompt } from 'ai/prompts';
 
 // Create a new HuggingFace Inference instance
-const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY)
+const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const response = Hf.textGenerationStream({
     model: 'OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5',
@@ -59,15 +59,15 @@ export async function POST(req: Request) {
       typical_p: 0.2,
       repetition_penalty: 1,
       truncate: 1000,
-      return_full_text: false
-    }
-  })
+      return_full_text: false,
+    },
+  });
 
   // Convert the response into a friendly text-stream
-  const stream = HuggingFaceStream(response)
+  const stream = HuggingFaceStream(response);
 
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```
 
@@ -90,12 +90,12 @@ Create a Client component with a form that we'll use to gather the prompt from t
 By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
 
 ```tsx file="app/page.tsx" showLineNumbers
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat()
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
 
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
@@ -118,7 +118,7 @@ export default function Chat() {
         <button type="submit">Send</button>
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -133,15 +133,15 @@ export default function Chat() {
 Similar to the Chat Bot example above, we'll create a Next.js Route Handler that generates a text completion via the same Hugging Face API that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
 
 ```tsx file="app/api/completion/route.ts" showLineNumbers
-import { HfInference } from '@huggingface/inference'
-import { HuggingFaceStream, StreamingTextResponse } from 'ai'
+import { HfInference } from '@huggingface/inference';
+import { HuggingFaceStream, StreamingTextResponse } from 'ai';
 
 // Create a new Hugging Face Inference instance
-const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY)
+const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
-  const { prompt } = await req.json()
+  const { prompt } = await req.json();
 
   const response = Hf.textGenerationStream({
     model: 'OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5',
@@ -152,15 +152,15 @@ export async function POST(req: Request) {
       typical_p: 0.2,
       repetition_penalty: 1,
       truncate: 1000,
-      return_full_text: false
-    }
-  })
+      return_full_text: false,
+    },
+  });
 
   // Convert the response into a friendly text-stream
-  const stream = HuggingFaceStream(response)
+  const stream = HuggingFaceStream(response);
 
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```
 
@@ -169,9 +169,9 @@ export async function POST(req: Request) {
 We can use the [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
 
 ```tsx file="app/page.tsx" showLineNumbers
-'use client'
+'use client';
 
-import { useCompletion } from 'ai/react'
+import { useCompletion } from 'ai/react';
 
 export default function Completion() {
   const {
@@ -180,8 +180,8 @@ export default function Completion() {
     stop,
     isLoading,
     handleInputChange,
-    handleSubmit
-  } = useCompletion()
+    handleSubmit,
+  } = useCompletion();
 
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
@@ -203,7 +203,7 @@ export default function Completion() {
         </button>
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -215,11 +215,14 @@ export default function Completion() {
 `@huggingface/inference` also works with Inference Endpoints, making it very easy to switch between the two API services. The only change needed is how you create your inference instance.
 
 ```tsx file="app/api/completion/route.ts" showLineNumbers
-import { HfInferenceEndpoint } from '@huggingface/inference'
+import { HfInferenceEndpoint } from '@huggingface/inference';
 
 // Create a new Hugging Face Inference instance
-const endpointUrl = 'https://YOUR_ENDPOINT.endpoints.huggingface.cloud/gpt2'
-const Hf = new HfInferenceEndpoint(endpointUrl, process.env.HUGGINGFACE_API_KEY)
+const endpointUrl = 'https://YOUR_ENDPOINT.endpoints.huggingface.cloud/gpt2';
+const Hf = new HfInferenceEndpoint(
+  endpointUrl,
+  process.env.HUGGINGFACE_API_KEY,
+);
 
 // Rest of the code stays the same
 ```
@@ -237,21 +240,21 @@ export async function POST(req: Request) {
     onStart: async () => {
       // This callback is called when the stream starts
       // You can use this to save the prompt to your database
-      await savePromptToDatabase(prompt)
+      await savePromptToDatabase(prompt);
     },
     onToken: async (token: string) => {
       // This callback is called for each token in the stream
       // You can use this to debug the stream or save the tokens to your database
-      console.log(token)
+      console.log(token);
     },
     onCompletion: async (completion: string) => {
       // This callback is called when the stream completes
       // You can use this to save the final completion to your database
-      await saveCompletionToDatabase(completion)
-    }
-  })
+      await saveCompletionToDatabase(completion);
+    },
+  });
 
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```

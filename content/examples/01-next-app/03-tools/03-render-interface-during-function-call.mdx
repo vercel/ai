@@ -11,11 +11,11 @@ An interesting consequence of language models that can call functions is that th
   <ChatGeneration
     history={[
       { role: 'User', content: 'How is it going?' },
-      { role: 'Assistant', content: 'All good, how may I help you?' }
+      { role: 'Assistant', content: 'All good, how may I help you?' },
     ]}
     inputMessage={{
       role: 'User',
-      content: 'What is the weather in San Francisco?'
+      content: 'What is the weather in San Francisco?',
     }}
     outputMessage={{
       role: 'Assistant',
@@ -26,12 +26,12 @@ An interesting consequence of language models that can call functions is that th
             content={{
               weather: {
                 temperature: 24,
-                condition: 'Sunny'
-              }
+                condition: 'Sunny',
+              },
             }}
           />
         </div>
-      )
+      ),
     }}
   />
 </Browser>
@@ -41,14 +41,14 @@ An interesting consequence of language models that can call functions is that th
 We can make a few changes to our previous example where the assistant could get the weather for any city by calling the `getWeather` function. This time, instead of returning text during the function call, we will stream a React component that will be rendered on the client using `createStreamableUI` from `ai/rsc`.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Message, continueConversation } from './actions'
+import { useState } from 'react';
+import { Message, continueConversation } from './actions';
 
 export default function Home() {
-  const [conversation, setConversation] = useState<Message[]>([])
-  const [input, setInput] = useState<string>('')
+  const [conversation, setConversation] = useState<Message[]>([]);
+  const [input, setInput] = useState<string>('');
 
   return (
     <div>
@@ -66,47 +66,47 @@ export default function Home() {
           type="text"
           value={input}
           onChange={event => {
-            setInput(event.target.value)
+            setInput(event.target.value);
           }}
         />
         <button
           onClick={async () => {
             const { messages } = await continueConversation([
               ...conversation,
-              { role: 'user', content: input }
-            ])
+              { role: 'user', content: input },
+            ]);
 
-            setConversation(messages)
+            setConversation(messages);
           }}
         >
           Send Message
         </button>
       </div>
     </div>
-  )
+  );
 }
 ```
 
 ## Server
 
 ```tsx filename='app/actions.tsx'
-'use server'
+'use server';
 
-import { Weather } from '@ai-studio/components/weather'
-import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { createStreamableUI } from 'ai/rsc'
-import { ReactNode } from 'react'
-import { z } from 'zod'
+import { Weather } from '@ai-studio/components/weather';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { createStreamableUI } from 'ai/rsc';
+import { ReactNode } from 'react';
+import { z } from 'zod';
 
 export interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  display?: ReactNode // [!code highlight]
+  role: 'user' | 'assistant';
+  content: string;
+  display?: ReactNode; // [!code highlight]
 }
 
 export async function continueConversation(history: Message[]) {
-  const stream = createStreamableUI() // [!code highlight]
+  const stream = createStreamableUI(); // [!code highlight]
 
   const { text, toolResults } = await generateText({
     model: openai('gpt-3.5-turbo'),
@@ -119,15 +119,15 @@ export async function continueConversation(history: Message[]) {
           city: z.string().describe('The city to show the weather for.'),
           unit: z
             .enum(['C', 'F'])
-            .describe('The unit to display the temperature in')
+            .describe('The unit to display the temperature in'),
         }),
         execute: async ({ city, unit }) => {
-          stream.done(<Weather city={city} unit={unit} />) // [!code highlight]
-          return `Here's the weather for ${city}!` // [!code highlight]
-        }
-      }
-    }
-  })
+          stream.done(<Weather city={city} unit={unit} />); // [!code highlight]
+          return `Here's the weather for ${city}!`; // [!code highlight]
+        },
+      },
+    },
+  });
 
   return {
     messages: [
@@ -136,9 +136,9 @@ export async function continueConversation(history: Message[]) {
         role: 'assistant' as const,
         content:
           text || toolResults.map(toolResult => toolResult.result).join(),
-        display: stream.value // [!code highlight]
-      }
-    ]
-  }
+        display: stream.value, // [!code highlight]
+      },
+    ],
+  };
 }
 ```

@@ -11,25 +11,25 @@ For example, you can ask a model to come up with a recipe, draft an email, or su
 You can generate text using the [`generateText`](/docs/reference/ai-sdk-core/generate-text) function. This function is ideal for non-interactive use cases where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
 
 ```tsx
-import { generateText } from 'ai'
+import { generateText } from 'ai';
 
 const { text } = await generateText({
   model,
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
-})
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 ```
 
 You can use more [advanced prompts](./prompts) to generate text with more complex instructions and content:
 
 ```tsx
-import { generateText } from 'ai'
+import { generateText } from 'ai';
 
 const { text } = await generateText({
   model,
   system:
     'You are a professional writer. You write simple, clear, and concise content.',
-  prompt: `summarize the following article in 3-5 sentences:\n${article}`
-})
+  prompt: `summarize the following article in 3-5 sentences:\n${article}`,
+});
 ```
 
 ## Streaming Text
@@ -39,37 +39,37 @@ Depending on your model and prompt, it can take a large language model (LLM) up 
 Vercel AI SDK Core provides the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which simplifies streaming text from LLMs.
 
 ```ts
-import { streamText } from 'ai'
+import { streamText } from 'ai';
 
 const result = await streamText({
   model,
-  prompt: 'Invent a new holiday and describe its traditions.'
-})
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
 
 // use textStream as an async iterable:
 for await (const textPart of result.textStream) {
-  console.log(textPart)
+  console.log(textPart);
 }
 ```
 
 `result.textStream` is also a `ReadableStream`, so you can use it in a browser or Node.js environment.
 
 ```ts
-import { streamText } from 'ai'
+import { streamText } from 'ai';
 
 const result = await streamText({
   model,
-  prompt: 'Invent a new holiday and describe its traditions.'
-})
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
 
 // use textStream as a ReadableStream:
-const reader = result.textStream.getReader()
+const reader = result.textStream.getReader();
 while (true) {
-  const { done, value } = await reader.read()
+  const { done, value } = await reader.read();
   if (done) {
-    break
+    break;
   }
-  process.stdout.write(value)
+  process.stdout.write(value);
 }
 ```
 

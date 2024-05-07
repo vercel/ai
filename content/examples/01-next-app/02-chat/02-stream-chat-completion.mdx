@@ -12,12 +12,12 @@ Chat completion can sometimes take a long time to finish, especially when the re
     stream
     history={[
       { role: 'User', content: 'How is it going?' },
-      { role: 'Assistant', content: 'All good, how may I help you?' }
+      { role: 'Assistant', content: 'All good, how may I help you?' },
     ]}
     inputMessage={{ role: 'User', content: 'Why is the sky blue?' }}
     outputMessage={{
       role: 'Assistant',
-      content: 'The sky is blue because of rayleigh scattering.'
+      content: 'The sky is blue because of rayleigh scattering.',
     }}
   />
 </Browser>
@@ -27,15 +27,15 @@ Chat completion can sometimes take a long time to finish, especially when the re
 Let's create a simple conversation between a user and a model, and place a button that will call `continueConversation`.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Message, continueConversation } from './actions'
-import { readStreamableValue } from 'ai/rsc'
+import { useState } from 'react';
+import { Message, continueConversation } from './actions';
+import { readStreamableValue } from 'ai/rsc';
 
 export default function Home() {
-  const [conversation, setConversation] = useState<Message[]>([])
-  const [input, setInput] = useState<string>('')
+  const [conversation, setConversation] = useState<Message[]>([]);
+  const [input, setInput] = useState<string>('');
 
   return (
     <div>
@@ -52,25 +52,25 @@ export default function Home() {
           type="text"
           value={input}
           onChange={event => {
-            setInput(event.target.value)
+            setInput(event.target.value);
           }}
         />
         <button
           onClick={async () => {
             const { messages, newMessage } = await continueConversation([
               ...conversation,
-              { role: 'user', content: input }
-            ])
+              { role: 'user', content: input },
+            ]);
 
-            let textContent = ''
+            let textContent = '';
 
             for await (const delta of readStreamableValue(newMessage)) {
-              textContent = `${textContent}${delta}`
+              textContent = `${textContent}${delta}`;
 
               setConversation([
                 ...messages,
-                { role: 'assistant', content: textContent }
-              ])
+                { role: 'assistant', content: textContent },
+              ]);
             }
           }}
         >
@@ -78,7 +78,7 @@ export default function Home() {
         </button>
       </div>
     </div>
-  )
+  );
 }
 ```
 
@@ -87,40 +87,40 @@ export default function Home() {
 Now, let's implement the `continueConversation` function that will insert the user's message into the conversation and stream back the new message.
 
 ```typescript filename='app/actions.ts'
-'use server'
+'use server';
 
-import { streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { createStreamableValue } from 'ai/rsc'
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { createStreamableValue } from 'ai/rsc';
 
 export interface Message {
-  role: 'user' | 'assistant'
-  content: string
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 export async function continueConversation(history: Message[]) {
-  'use server'
+  'use server';
 
-  const stream = createStreamableValue()
+  const stream = createStreamableValue();
 
-  ;(async () => {
+  (async () => {
     const { textStream } = await streamText({
       model: openai('gpt-3.5-turbo'),
       system:
         "You are a dude that doesn't drop character until the DVD commentary.",
-      messages: history
-    })
+      messages: history,
+    });
 
     for await (const text of textStream) {
-      stream.update(text)
+      stream.update(text);
     }
 
-    stream.done()
-  })()
+    stream.done();
+  })();
 
   return {
     messages: history,
-    newMessage: stream.value
-  }
+    newMessage: stream.value,
+  };
 }
 ```

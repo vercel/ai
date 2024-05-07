@@ -10,13 +10,13 @@ The `useAssistant` hook allows you to handle the client state when interacting w
 ## Example
 
 ```tsx filename='app/pages.tsx'
-'use client'
+'use client';
 
-import { Message, useAssistant } from 'ai/react'
+import { Message, useAssistant } from 'ai/react';
 
 export default function Chat() {
   const { status, messages, input, submitMessage, handleInputChange } =
-    useAssistant({ api: '/api/assistant' })
+    useAssistant({ api: '/api/assistant' });
 
   return (
     <div>
@@ -47,33 +47,33 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
 ```tsx filename='app/api/assistant/route.ts'
-import { AssistantResponse } from 'ai'
-import OpenAI from 'openai'
+import { AssistantResponse } from 'ai';
+import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ''
-})
+  apiKey: process.env.OPENAI_API_KEY || '',
+});
 
 export async function POST(req: Request) {
   // Parse the request body
   const input: {
-    threadId: string | null
-    message: string
-  } = await req.json()
+    threadId: string | null;
+    message: string;
+  } = await req.json();
 
   // Create a thread if needed
-  const threadId = input.threadId ?? (await openai.beta.threads.create({})).id
+  const threadId = input.threadId ?? (await openai.beta.threads.create({})).id;
 
   // Add a message to the thread
   const createdMessage = await openai.beta.threads.messages.create(threadId, {
     role: 'user',
-    content: input.message
-  })
+    content: input.message,
+  });
 
   return AssistantResponse(
     { threadId, messageId: createdMessage.id },
@@ -83,12 +83,12 @@ export async function POST(req: Request) {
         assistant_id:
           process.env.ASSISTANT_ID ??
           (() => {
-            throw new Error('ASSISTANT_ID is not set')
-          })()
-      })
+            throw new Error('ASSISTANT_ID is not set');
+          })(),
+      });
 
       // forward run status would stream message deltas
-      let runResult = await forwardStream(runStream)
+      let runResult = await forwardStream(runStream);
 
       // status can be: queued, in_progress, requires_action, cancelling, cancelled, failed, completed, or expired
       while (
@@ -98,29 +98,29 @@ export async function POST(req: Request) {
         const tool_outputs =
           runResult.required_action.submit_tool_outputs.tool_calls.map(
             (toolCall: any) => {
-              const parameters = JSON.parse(toolCall.function.arguments)
+              const parameters = JSON.parse(toolCall.function.arguments);
 
               switch (toolCall.function.name) {
                 // configure your tool calls here
 
                 default:
                   throw new Error(
-                    `Unknown tool call function: ${toolCall.function.name}`
-                  )
+                    `Unknown tool call function: ${toolCall.function.name}`,
+                  );
               }
-            }
-          )
+            },
+          );
 
         runResult = await forwardStream(
           openai.beta.threads.runs.submitToolOutputsStream(
             threadId,
             runResult.id,
-            { tool_outputs }
-          )
-        )
+            { tool_outputs },
+          ),
+        );
       }
-    }
-  )
+    },
+  );
 }
 ```
 
@@ -168,7 +168,7 @@ In the initial example, we have `handleSubmit` and `handleInputChange` callbacks
 The following example demonstrates how to use more granular APIs like `append` with your custom input and submit button components:
 
 ```tsx
-const { append } = useAssistant()
+const { append } = useAssistant();
 
 return (
   <>
@@ -177,12 +177,12 @@ return (
         // Send a new message to the AI provider
         append({
           role: 'user',
-          content: input
-        })
+          content: input,
+        });
       }}
     />
   </>
-)
+);
 ```
 
 ## Configure Request Options
@@ -193,13 +193,13 @@ By default, the `useAssistant` hook sends a HTTP POST request to the `/api/compl
 const { messages, input, handleInputChange, handleSubmit } = useAssistant({
   api: '/api/custom-completion',
   headers: {
-    Authorization: 'your_token'
+    Authorization: 'your_token',
   },
   body: {
-    user_id: '123'
+    user_id: '123',
   },
-  credentials: 'same-origin'
-})
+  credentials: 'same-origin',
+});
 ```
 
 In this example, the `useAssistant` hook sends a POST request to the `/api/completion` endpoint with the specified headers, additional body fields, and credentials for that fetch request. On your server side, you can handle the request with these additional information.

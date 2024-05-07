@@ -10,17 +10,17 @@ If you haven't noticed already, in our previous example we've been streaming rea
 ## Client
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { ClientMessage } from './actions'
-import { useActions, useUIState } from 'ai/rsc'
-import { nanoid } from 'nanoid'
+import { useState } from 'react';
+import { ClientMessage } from './actions';
+import { useActions, useUIState } from 'ai/rsc';
+import { nanoid } from 'nanoid';
 
 export default function Home() {
-  const [input, setInput] = useState<string>('')
-  const [conversation, setConversation] = useUIState()
-  const { continueConversation } = useActions()
+  const [input, setInput] = useState<string>('');
+  const [conversation, setConversation] = useUIState();
+  const { continueConversation } = useActions();
 
   return (
     <div>
@@ -37,60 +37,60 @@ export default function Home() {
           type="text"
           value={input}
           onChange={event => {
-            setInput(event.target.value)
+            setInput(event.target.value);
           }}
         />
         <button
           onClick={async () => {
             setConversation((currentConversation: ClientMessage[]) => [
               ...currentConversation,
-              { id: nanoid(), role: 'user', display: input }
-            ])
+              { id: nanoid(), role: 'user', display: input },
+            ]);
 
-            const message = await continueConversation(input)
+            const message = await continueConversation(input);
 
             setConversation((currentConversation: ClientMessage[]) => [
               ...currentConversation,
-              message
-            ])
+              message,
+            ]);
           }}
         >
           Send Message
         </button>
       </div>
     </div>
-  )
+  );
 }
 ```
 
 ## Server
 
 ```tsx filename='app/actions.ts'
-'use server'
+'use server';
 
-import { createAI, getMutableAIState, streamUI } from 'ai/rsc'
-import { openai } from "@ai-sdk/openai"
-import { ReactNode } from 'react'
-import { z } from 'zod'
-import { nanoid } from 'nanoid'
+import { createAI, getMutableAIState, streamUI } from 'ai/rsc';
+import { openai } from '@ai-sdk/openai';
+import { ReactNode } from 'react';
+import { z } from 'zod';
+import { nanoid } from 'nanoid';
 
 export interface ServerMessage {
-  role: 'user' | 'assistant'
-  content: string
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 export interface ClientMessage {
-  id: string
-  role: 'user' | 'assistant'
-  display: ReactNode
+  id: string;
+  role: 'user' | 'assistant';
+  display: ReactNode;
 }
 
 export async function continueConversation(
-  input: string
+  input: string,
 ): Promise<ClientMessage> {
-  'use server'
+  'use server';
 
-  const history = getMutableAIState()
+  const history = getMutableAIState();
 
   const result = await streamUI({
     model: openai('gpt-3.5-turbo'),
@@ -99,11 +99,11 @@ export async function continueConversation(
       if (done) {
         history.done((messages: ServerMessage[]) => [
           ...messages,
-          { role: 'assistant', content }
-        ])
+          { role: 'assistant', content },
+        ]);
       }
 
-      return <div>{content}</div>
+      return <div>{content}</div>;
     },
     tools: {
       deploy: {
@@ -111,31 +111,31 @@ export async function continueConversation(
         parameters: z.object({
           repositoryName: z
             .string()
-            .describe('The name of the repository, example: vercel/ai-chatbot')
+            .describe('The name of the repository, example: vercel/ai-chatbot'),
         }),
         generate: async function* ({ repositoryName }) {
-          yield <div>Cloning repository {repositoryName}...</div> // [!code highlight:5]
-          await new Promise(resolve => setTimeout(resolve, 3000))
-          yield <div>Building repository {repositoryName}...</div>
-          await new Promise(resolve => setTimeout(resolve, 2000))
-          return <div>{repositoryName} deployed!</div>
-        }
-      }
-    }
-  })
+          yield <div>Cloning repository {repositoryName}...</div>; // [!code highlight:5]
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          yield <div>Building repository {repositoryName}...</div>;
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return <div>{repositoryName} deployed!</div>;
+        },
+      },
+    },
+  });
 
   return {
     id: nanoid(),
     role: 'assistant',
-    display: result.value
-  }
+    display: result.value,
+  };
 }
 
 export const AI = createAI<ServerMessage[], ClientMessage[]>({
   actions: {
-    continueConversation
+    continueConversation,
   },
   initialAIState: [],
-  initialUIState: []
-})
+  initialUIState: [],
+});
 ```

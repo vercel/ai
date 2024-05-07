@@ -28,18 +28,18 @@ The Mistral provider is available in the `@ai-sdk/mistral` module. You can insta
 You can import the default provider instance `mistral` from `@ai-sdk/mistral`:
 
 ```ts
-import { mistral } from '@ai-sdk/mistral'
+import { mistral } from '@ai-sdk/mistral';
 ```
 
 If you need a customized setup, you can import `createMistral` from `@ai-sdk/mistral`
 and create a provider instance with your settings:
 
 ```ts
-import { createMistral } from '@ai-sdk/mistral'
+import { createMistral } from '@ai-sdk/mistral';
 
 const mistral = createMistral({
   // custom settings
-})
+});
 ```
 
 You can use the following optional settings to customize the Mistral provider instance:
@@ -65,7 +65,7 @@ The first argument is the model id, e.g. `mistral-large-latest`.
 Some Mistral chat models support tool calls.
 
 ```ts
-const model = mistral('mistral-large-latest')
+const model = mistral('mistral-large-latest');
 ```
 
 Mistral chat models also support additional model settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
@@ -73,8 +73,8 @@ You can pass them as an options argument:
 
 ```ts
 const model = mistral('mistral-large-latest', {
-  safePrompt: true // optional safety prompt injection
-})
+  safePrompt: true, // optional safety prompt injection
+});
 ```
 
 The following optional settings are available for Mistral models:

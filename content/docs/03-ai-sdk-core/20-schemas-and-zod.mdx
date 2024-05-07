@@ -25,7 +25,7 @@ You can install Zod with
 You can then specify schemas, for example:
 
 ```ts
-import z from 'zod'
+import z from 'zod';
 
 const recipeSchema = z.object({
   recipe: z.object({
@@ -33,12 +33,12 @@ const recipeSchema = z.object({
     ingredients: z.array(
       z.object({
         name: z.string(),
-        amount: z.string()
-      })
+        amount: z.string(),
+      }),
     ),
-    steps: z.array(z.string())
-  })
-})
+    steps: z.array(z.string()),
+  }),
+});
 ```
 
 These schemas can be used to define parameters for tool calls and to generated structured objects with `generateObject` and `streamObject`.

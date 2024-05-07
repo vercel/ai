@@ -13,12 +13,12 @@ A chat completion allows you to generate text based on a series of messages. Thi
   <ChatGeneration
     history={[
       { role: 'User', content: 'How is it going?' },
-      { role: 'Assistant', content: 'All good, how may I help you?' }
+      { role: 'Assistant', content: 'All good, how may I help you?' },
     ]}
     inputMessage={{ role: 'User', content: 'Why is the sky blue?' }}
     outputMessage={{
       role: 'Assistant',
-      content: 'The sky is blue because of rayleigh scattering.'
+      content: 'The sky is blue because of rayleigh scattering.',
     }}
   />
 </Browser>
@@ -28,14 +28,14 @@ A chat completion allows you to generate text based on a series of messages. Thi
 Let's create a simple conversation between a user and a model, and place a button that will call `continueConversation`.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Message, continueConversation } from './actions'
+import { useState } from 'react';
+import { Message, continueConversation } from './actions';
 
 export default function Home() {
-  const [conversation, setConversation] = useState<Message[]>([])
-  const [input, setInput] = useState<string>('')
+  const [conversation, setConversation] = useState<Message[]>([]);
+  const [input, setInput] = useState<string>('');
 
   return (
     <div>
@@ -52,24 +52,24 @@ export default function Home() {
           type="text"
           value={input}
           onChange={event => {
-            setInput(event.target.value)
+            setInput(event.target.value);
           }}
         />
         <button
           onClick={async () => {
             const { messages } = await continueConversation([
               ...conversation,
-              { role: 'user', content: input }
-            ])
+              { role: 'user', content: input },
+            ]);
 
-            setConversation(messages)
+            setConversation(messages);
           }}
         >
           Send Message
         </button>
       </div>
     </div>
-  )
+  );
 }
 ```
 
@@ -78,33 +78,33 @@ export default function Home() {
 Now, let's implement the `continueConversation` function that will insert the user's message into the conversation and generate a response.
 
 ```typescript filename='app/actions.ts'
-'use server'
+'use server';
 
-import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 export interface Message {
-  role: 'user' | 'assistant'
-  content: string
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 export async function continueConversation(history: Message[]) {
-  'use server'
+  'use server';
 
   const { text } = await generateText({
     model: openai('gpt-3.5-turbo'),
     system: 'You are a friendly assistant!',
-    messages: history
-  })
+    messages: history,
+  });
 
   return {
     messages: [
       ...history,
       {
         role: 'assistant' as const,
-        content: text
-      }
-    ]
-  }
+        content: text,
+      },
+    ],
+  };
 }
 ```

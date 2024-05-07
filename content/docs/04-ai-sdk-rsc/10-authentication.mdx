@@ -3,34 +3,34 @@ title: Handling Authentication
 description: Learn how to authenticate with the AI SDK.
 ---
 
-# Authentication 
+# Authentication
 
-The RSC API makes extensive use of [`Server Actions`](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) to power streaming values and UI from the server. 
+The RSC API makes extensive use of [`Server Actions`](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) to power streaming values and UI from the server.
 
-Server Actions are exposed as public, unprotected endpoints. As a result, you should treat Server Actions as you would public-facing API endpoints and ensure that the user is authorized to perform the action before returning any data. 
+Server Actions are exposed as public, unprotected endpoints. As a result, you should treat Server Actions as you would public-facing API endpoints and ensure that the user is authorized to perform the action before returning any data.
 
 ```tsx filename="app/actions.tsx"
-'use server'
+'use server';
 
-import { cookies } from 'next/headers'
-import { createStremableUI } from 'ai/rsc'
-import { validateToken } from '../utils/auth'
+import { cookies } from 'next/headers';
+import { createStremableUI } from 'ai/rsc';
+import { validateToken } from '../utils/auth';
 
 export const getWeather = async () => {
-  const token = cookies().get('token')
- 
+  const token = cookies().get('token');
+
   if (!token || !validateToken(token)) {
     return {
-      error: "This action requires authentication"
-    }
+      error: 'This action requires authentication',
+    };
   }
-  const streamableDisplay = createStreamableUI(null)
+  const streamableDisplay = createStreamableUI(null);
 
-  streamableDisplay.update(<Skeleton />)
-  streamableDisplay.done(<Weather />)
+  streamableDisplay.update(<Skeleton />);
+  streamableDisplay.done(<Weather />);
 
   return {
-    display: streamableDisplay.value
-  }
-}
+    display: streamableDisplay.value,
+  };
+};
 ```

@@ -36,54 +36,54 @@ Create a Next.js Route Handler that generates a response to a series of messages
 For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
 
 ```tsx filename="app/api/chat/route.ts" showLineNumbers
-import { CohereStream, StreamingTextResponse } from 'ai'
-import { CohereClient, Cohere } from 'cohere-ai'
+import { CohereStream, StreamingTextResponse } from 'ai';
+import { CohereClient, Cohere } from 'cohere-ai';
 
 // IMPORTANT! Set the dynamic to force-dynamic
 // Prevent nextjs to cache this route
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 if (!process.env.COHERE_API_KEY) {
-  throw new Error('Missing COHERE_API_KEY environment variable')
+  throw new Error('Missing COHERE_API_KEY environment variable');
 }
 
 const cohere = new CohereClient({
-  token: process.env.COHERE_API_KEY
-})
+  token: process.env.COHERE_API_KEY,
+});
 
 const toCohereRole = (role: string): Cohere.ChatMessageRole => {
   if (role === 'user') {
-    return Cohere.ChatMessageRole.User
+    return Cohere.ChatMessageRole.User;
   }
-  return Cohere.ChatMessageRole.Chatbot
-}
+  return Cohere.ChatMessageRole.Chatbot;
+};
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
-  const { messages } = await req.json()
+  const { messages } = await req.json();
   const chatHistory = messages.map((message: any) => ({
     message: message.content,
-    role: toCohereRole(message.role)
-  }))
-  const lastMessage = chatHistory.pop()
+    role: toCohereRole(message.role),
+  }));
+  const lastMessage = chatHistory.pop();
 
   const response = await cohere.chatStream({
     message: lastMessage.message,
-    chatHistory
-  })
+    chatHistory,
+  });
 
   const stream = new ReadableStream({
     async start(controller) {
       for await (const event of response) {
         if (event.eventType === 'text-generation') {
-          controller.enqueue(event.text)
+          controller.enqueue(event.text);
         }
       }
-      controller.close()
-    }
-  })
+      controller.close();
+    },
+  });
 
-  return new Response(stream)
+  return new Response(stream);
 }
 ```
 
@@ -106,12 +106,12 @@ Create a Client component with a form that we'll use to gather the prompt from t
 By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, data } = useChat()
+  const { messages, input, handleInputChange, handleSubmit, data } = useChat();
 
   return (
     <div className="p-4">
@@ -137,7 +137,7 @@ export default function Chat() {
         </form>
       </div>
     </div>
-  )
+  );
 }
 ```
 
@@ -170,11 +170,11 @@ Create a Next.js Route Handler that uses the Edge Runtime to generate a response
 For this example, we'll create a route handler at `app/api/completion/route.ts` that accepts a `POST` request with a `prompt` string:
 
 ```tsx filename="app/api/completion/route.ts" showLineNumbers
-import { StreamingTextResponse, CohereStream } from 'ai'
+import { StreamingTextResponse, CohereStream } from 'ai';
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
-  const { prompt } = await req.json()
+  const { prompt } = await req.json();
 
   const body = JSON.stringify({
     prompt,
@@ -183,30 +183,30 @@ export async function POST(req: Request) {
     stop_sequences: [],
     temperature: 0.9,
     return_likelihoods: 'NONE',
-    stream: true
-  })
+    stream: true,
+  });
 
   const response = await fetch('https://api.cohere.ai/v1/generate', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.COHERE_API_KEY}`
+      Authorization: `Bearer ${process.env.COHERE_API_KEY}`,
     },
-    body
-  })
+    body,
+  });
 
   // Check for errors
   if (!response.ok) {
     return new Response(await response.text(), {
-      status: response.status
-    })
+      status: response.status,
+    });
   }
 
   // Extract the text response from the Cohere stream
-  const stream = CohereStream(response)
+  const stream = CohereStream(response);
 
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```
 
@@ -217,13 +217,13 @@ Create a Client component with a form that we'll use to gather the prompt from t
 By default, the [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
 
 ```tsx filename="app/page.tsx" showLineNumbers
-'use client'
+'use client';
 
-import { useCompletion } from 'ai/react'
+import { useCompletion } from 'ai/react';
 
 export default function Chat() {
   const { completion, input, handleInputChange, handleSubmit, error } =
-    useCompletion()
+    useCompletion();
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -245,7 +245,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 

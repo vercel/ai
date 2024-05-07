@@ -11,16 +11,16 @@ Some language models support calling functions in parallel. This is particularly
   <ChatGeneration
     history={[
       { role: 'User', content: 'How is it going?' },
-      { role: 'Assistant', content: 'All good, how may I help you?' }
+      { role: 'Assistant', content: 'All good, how may I help you?' },
     ]}
     inputMessage={{
       role: 'User',
-      content: 'What is the weather in Paris and New York?'
+      content: 'What is the weather in Paris and New York?',
     }}
     outputMessage={{
       role: 'Assistant',
       content:
-        'The weather is 24°C in New York and 25°C in Paris. It is sunny in both cities.'
+        'The weather is 24°C in New York and 25°C in Paris. It is sunny in both cities.',
     }}
   />
 </Browser>
@@ -30,14 +30,14 @@ Some language models support calling functions in parallel. This is particularly
 Let's modify our previous example to call `getWeather` function for multiple cities in parallel.
 
 ```tsx filename='app/page.tsx'
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Message, continueConversation } from './actions'
+import { useState } from 'react';
+import { Message, continueConversation } from './actions';
 
 export default function Home() {
-  const [conversation, setConversation] = useState<Message[]>([])
-  const [input, setInput] = useState<string>('')
+  const [conversation, setConversation] = useState<Message[]>([]);
+  const [input, setInput] = useState<string>('');
 
   return (
     <div>
@@ -54,24 +54,24 @@ export default function Home() {
           type="text"
           value={input}
           onChange={event => {
-            setInput(event.target.value)
+            setInput(event.target.value);
           }}
         />
         <button
           onClick={async () => {
             const { messages } = await continueConversation([
               ...conversation,
-              { role: 'user', content: input }
-            ])
+              { role: 'user', content: input },
+            ]);
 
-            setConversation(messages)
+            setConversation(messages);
           }}
         >
           Send Message
         </button>
       </div>
     </div>
-  )
+  );
 }
 ```
 
@@ -80,26 +80,26 @@ export default function Home() {
 Let's update the tools object to now use the `getWeather` function instead.
 
 ```ts filename='app/actions.ts'
-'use server'
+'use server';
 
-import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { z } from 'zod'
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 export interface Message {
-  role: 'user' | 'assistant'
-  content: string
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 function getWeather({ city, unit }) {
   // This function would normally make an
   // API request to get the weather.
 
-  return { value: 25, description: 'Sunny' }
+  return { value: 25, description: 'Sunny' };
 }
 
 export async function continueConversation(history: Message[]) {
-  'use server'
+  'use server';
 
   const { text, toolResults } = await generateText({
     model: openai('gpt-3.5-turbo'),
@@ -112,15 +112,15 @@ export async function continueConversation(history: Message[]) {
           city: z.string().describe('The city to get the weather for'),
           unit: z
             .enum(['C', 'F'])
-            .describe('The unit to display the temperature in')
+            .describe('The unit to display the temperature in'),
         }),
         execute: async ({ city, unit }) => {
-          const weather = getWeather({ city, unit })
-          return `It is currently 25°${weather.value} and ${weather.description} in ${city}!`
-        }
-      }
-    }
-  })
+          const weather = getWeather({ city, unit });
+          return `It is currently 25°${weather.value} and ${weather.description} in ${city}!`;
+        },
+      },
+    },
+  });
 
   return {
     messages: [
@@ -128,9 +128,9 @@ export async function continueConversation(history: Message[]) {
       {
         role: 'assistant' as const,
         content:
-          text || toolResults.map(toolResult => toolResult.result).join('\n')
-      }
-    ]
-  }
+          text || toolResults.map(toolResult => toolResult.result).join('\n'),
+      },
+    ],
+  };
 }
 ```

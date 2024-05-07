@@ -44,10 +44,10 @@ Create a Next.js Route Handler that generates a response to a series of messages
 For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
 
 ```tsx file="app/api/chat/route.ts" showLineNumbers
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import { GoogleGenerativeAIStream, Message, StreamingTextResponse } from 'ai'
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAIStream, Message, StreamingTextResponse } from 'ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '')
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 // convert messages from the Vercel AI SDK Format to the format
 // that is expected by the Google GenAI SDK
@@ -56,23 +56,23 @@ const buildGoogleGenAIPrompt = (messages: Message[]) => ({
     .filter(message => message.role === 'user' || message.role === 'assistant')
     .map(message => ({
       role: message.role === 'user' ? 'user' : 'model',
-      parts: [{ text: message.content }]
-    }))
-})
+      parts: [{ text: message.content }],
+    })),
+});
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   const geminiStream = await genAI
     .getGenerativeModel({ model: 'gemini-pro' })
-    .generateContentStream(buildGoogleGenAIPrompt(messages))
+    .generateContentStream(buildGoogleGenAIPrompt(messages));
 
   // Convert the response into a friendly text-stream
-  const stream = GoogleGenerativeAIStream(geminiStream)
+  const stream = GoogleGenerativeAIStream(geminiStream);
 
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```
 
@@ -95,12 +95,12 @@ Create a Client component with a form that we'll use to gather the prompt from t
 By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
 
 ```tsx file="app/page.tsx" showLineNumbers
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat()
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
 
   return (
     <div>
@@ -119,7 +119,7 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -135,27 +135,27 @@ Similar to the Chat Bot example above, we'll create a Next.js Route Handler that
 Google Generative AI SDK that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
 
 ```tsx file="app/api/completion/route.ts" showLineNumbers
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import { GoogleGenerativeAIStream, StreamingTextResponse } from 'ai'
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAIStream, StreamingTextResponse } from 'ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '')
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
-  const { prompt } = await req.json()
+  const { prompt } = await req.json();
 
   // Ask Google Generative AI for a streaming completion given the prompt
   const response = await genAI
     .getGenerativeModel({ model: 'gemini-pro' })
     .generateContentStream({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }]
-    })
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    });
 
   // Convert the response into a friendly text-stream
-  const stream = GoogleGenerativeAIStream(response)
+  const stream = GoogleGenerativeAIStream(response);
 
   // Respond with the stream
-  return new StreamingTextResponse(stream)
+  return new StreamingTextResponse(stream);
 }
 ```
 
@@ -164,9 +164,9 @@ export async function POST(req: Request) {
 We can use the [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
 
 ```tsx file="app/page.tsx" showLineNumbers
-'use client'
+'use client';
 
-import { useCompletion } from 'ai/react'
+import { useCompletion } from 'ai/react';
 
 export default function Completion() {
   const {
@@ -175,8 +175,8 @@ export default function Completion() {
     stop,
     isLoading,
     handleInputChange,
-    handleSubmit
-  } = useCompletion()
+    handleSubmit,
+  } = useCompletion();
 
   return (
     <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
@@ -198,7 +198,7 @@ export default function Completion() {
         </button>
       </form>
     </div>
-  )
+  );
 }
 ```
 
@@ -217,21 +217,21 @@ export async function POST(req: Request) {
     onStart: async () => {
       // This callback is called when the stream starts
       // You can use this to save the prompt to your database
-      await savePromptToDatabase(prompt)
+      await savePromptToDatabase(prompt);
     },
     onToken: async (token: string) => {
       // This callback is called for each token in the stream
       // You can use this to debug the stream or save the tokens to your database
-      console.log(token)
+      console.log(token);
     },
     onCompletion: async (completion: string) => {
       // This callback is called when the completion is ready
       // You can use this to save the final completion to your database
-      await saveCompletionToDatabase(completion)
-    }
-  })
+      await saveCompletionToDatabase(completion);
+    },
+  });
 
   // Respond with the stream
-  return new StreamingTextResponse(response)
+  return new StreamingTextResponse(response);
 }
 ```

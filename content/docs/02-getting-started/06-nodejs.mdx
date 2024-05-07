@@ -47,10 +47,11 @@ pnpm add ai @ai-sdk/openai zod dotenv
 pnpm add -D @types/node tsx typescript
 ```
 
-<Note type="secondary" fill>Make sure you are using `ai` version 3.1 or higher.</Note>
+<Note type="secondary" fill>
+  Make sure you are using `ai` version 3.1 or higher.
+</Note>
 
 The `ai` and `@ai-sdk/openai` packages contain the Vercel AI SDK and the [ Vercel AI SDK OpenAI provider](/providers/ai-sdk-providers/openai), respectively. You will use `zod` to define type-safe schemas that you will pass to the large language model (LLM). You will use `dotenv` to access environment variables (your OpenAI key) within your application. There are also three development dependencies, installed with the `-D` flag, that are necessary to run your Typescript code.
-
 
 ### Configure OpenAI API key
 
@@ -73,45 +74,45 @@ In this quickstart guide, you will explore the fundamental concepts behind Verce
 First, create an `index.ts` file in the root of your project and add the following code:
 
 ```ts filename="index.ts"
-import { openai } from '@ai-sdk/openai'
-import { Message, streamText } from 'ai'
-import dotenv from 'dotenv'
-import * as readline from 'node:readline/promises'
+import { openai } from '@ai-sdk/openai';
+import { Message, streamText } from 'ai';
+import dotenv from 'dotenv';
+import * as readline from 'node:readline/promises';
 
-dotenv.config()
+dotenv.config();
 
 const terminal = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
-})
+  output: process.stdout,
+});
 
-const messages: Message[] = []
+const messages: Message[] = [];
 
 async function main() {
   while (true) {
-    const userInput = await terminal.question('You: ')
+    const userInput = await terminal.question('You: ');
 
-    messages.push({ role: 'user', content: userInput })
+    messages.push({ role: 'user', content: userInput });
 
     const result = await streamText({
       model: openai('gpt-3.5-turbo'),
       system: `You are a helpful, respectful and honest assistant.`,
-      messages
-    })
+      messages,
+    });
 
-    let fullResponse = ''
-    process.stdout.write('\nAssistant: ')
+    let fullResponse = '';
+    process.stdout.write('\nAssistant: ');
     for await (const delta of result.textStream) {
-      fullResponse += delta
-      process.stdout.write(delta)
+      fullResponse += delta;
+      process.stdout.write(delta);
     }
-    process.stdout.write('\n\n')
+    process.stdout.write('\n\n');
 
-    messages.push({ role: 'assistant', content: fullResponse })
+    messages.push({ role: 'assistant', content: fullResponse });
   }
 }
 
-main().catch(console.error)
+main().catch(console.error);
 ```
 
 **Let's take a closer look at the code**:
