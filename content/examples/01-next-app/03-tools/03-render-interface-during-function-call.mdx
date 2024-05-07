@@ -72,7 +72,8 @@ export default function Home() {
         <button
           onClick={async () => {
             const { messages } = await continueConversation([
-              ...conversation,
+              // exclude React components from being sent back to the server:
+              ...conversation.map(({ role, content }) => ({ role, content })),
               { role: 'user', content: input },
             ]);
 

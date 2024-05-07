@@ -24,25 +24,32 @@ Vercel AI SDK comes with several providers that you can use to interact with dif
 - [Google Provider](/providers/ai-sdk-providers/google-generative-ai) (`@ai-sdk/google`)
 - [Anthropic Provider](/providers/ai-sdk-providers/anthropic) (`@ai-sdk/anthropic`)
 
+You can also use the OpenAI provider with OpenAI-compatible APIs:
+
+- [Groq](/providers/ai-sdk-providers/groq)
+- [Perplexity](/providers/ai-sdk-providers/perplexity)
+- [Fireworks](/providers/ai-sdk-providers/fireworks)
+
 Our [language model specification](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v1) is published as an open-source package, which you can use to create [custom providers](/providers/community-providers/custom-providers).
 
 The open-source community has created the following providers:
 
 - [LLamaCpp Provider](/providers/community-providers/llama-cpp) (`nnance/llamacpp-ai-provider `)
+- [Ollama Provider](/providers/community-providers/ollama) (`sgomez/ollama-ai-provider`)
 
 ## Model Capabilities
 
 The AI providers support different language models with various capabilities.
 Here are the capabilities of popular models:
 
-| Provider  | Model                          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| --------- | ------------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| OpenAI    | `gpt-4-turbo`                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| OpenAI    | `gpt-4`                        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| OpenAI    | `gpt-3.5-turbo`                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Anthropic | `claude-3-opus-20240229`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| Anthropic | `claude-3-sonnet-20240229`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| Anthropic | `claude-3-haiku-20240307`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| Mistral   | `mistral-large-latest`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Mistral   | `mistral-small-latest`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Google    | `models/gemini-1.5-pro-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Provider                                                   | Model                          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ---------------------------------------------------------- | ------------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| [OpenAI](/providers/ai-sdk-providers/openai)               | `gpt-4-turbo`                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)               | `gpt-4`                        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)               | `gpt-3.5-turbo`                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)         | `claude-3-opus-20240229`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)         | `claude-3-sonnet-20240229`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)         | `claude-3-haiku-20240307`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| [Mistral](/providers/ai-sdk-providers/mistral)             | `mistral-large-latest`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Mistral](/providers/ai-sdk-providers/mistral)             | `mistral-small-latest`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Google](/providers/ai-sdk-providers/google-generative-ai) | `models/gemini-1.5-pro-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
