@@ -1,0 +1,146 @@
+---
+title: Node.js
+description: Welcome to the Vercel AI SDK documentation!
+---
+
+# Node.js Quickstart
+
+In this quickstart tutorial, you'll build a simple AI chatbot with a streaming user interface. Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
+
+If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Streaming](/docs/advanced/why-streaming), you can optionally read these documents first.
+
+## Prerequisites
+
+Before you raise a frothy seed round and build a billion dollar AI startup, you need to set-up your project.
+
+Make sure you have the following:
+
+- Node.js 18+ and pnpm installed on your local development machine.
+- An OpenAI API key.
+
+If you haven't obtained your OpenAI API key, you can do so by [signing up](https://platform.openai.com/signup/) on the OpenAI website.
+
+<Note>
+  Vercel AI SDK is designed to be a unified interface to interact with any large
+  language model. This means that you can change model and providers with just
+  one line of code! Learn more about [available providers](/providers) and
+  [building custom providers](/providers/community-providers/custom-providers)
+  in the [providers](/providers) section.
+</Note>
+
+## Setup Your Application
+
+Start by creating a new directory using the `mkdir` command. Change into your new directory and then run the `pnpm init` command. This will create a a `package.json` in your new directory.
+
+```bash
+mkdir my-ai-app
+cd my-ai-app
+pnpm init
+```
+
+### Install dependencies
+
+In your new directory, install the following dependencies:
+
+```bash
+pnpm add ai @ai-sdk/openai zod dotenv
+pnpm add -D @types/node tsx typescript
+```
+
+<Note type="secondary" fill>
+  Make sure you are using `ai` version 3.1 or higher.
+</Note>
+
+The `ai` and `@ai-sdk/openai` packages contain the Vercel AI SDK and the [ Vercel AI SDK OpenAI provider](/providers/ai-sdk-providers/openai), respectively. You will use `zod` to define type-safe schemas that you will pass to the large language model (LLM). You will use `dotenv` to access environment variables (your OpenAI key) within your application. There are also three development dependencies, installed with the `-D` flag, that are necessary to run your Typescript code.
+
+### Configure OpenAI API key
+
+Create a `.env` file in your project root and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
+
+<Snippet text="touch .env" />
+
+```env filename=".env"
+OPENAI_API_KEY=xxxxxxxxx
+```
+
+Replace `xxxxxxxxx` with your actual OpenAI API key.
+
+## Build Your Application
+
+Now that your project is configured, it’s time to start building.
+
+In this quickstart guide, you will explore the fundamental concepts behind Vercel AI SDK by building a Node.js chatbot that will run in your terminal.
+
+First, create an `index.ts` file in the root of your project and add the following code:
+
+```ts filename="index.ts"
+import { openai } from '@ai-sdk/openai';
+import { Message, streamText } from 'ai';
+import dotenv from 'dotenv';
+import * as readline from 'node:readline/promises';
+
+dotenv.config();
+
+const terminal = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+const messages: Message[] = [];
+
+async function main() {
+  while (true) {
+    const userInput = await terminal.question('You: ');
+
+    messages.push({ role: 'user', content: userInput });
+
+    const result = await streamText({
+      model: openai('gpt-3.5-turbo'),
+      system: `You are a helpful, respectful and honest assistant.`,
+      messages,
+    });
+
+    let fullResponse = '';
+    process.stdout.write('\nAssistant: ');
+    for await (const delta of result.textStream) {
+      fullResponse += delta;
+      process.stdout.write(delta);
+    }
+    process.stdout.write('\n\n');
+
+    messages.push({ role: 'assistant', content: fullResponse });
+  }
+}
+
+main().catch(console.error);
+```
+
+**Let's take a closer look at the code**:
+
+1. **Import Libraries and Configure Environment:**
+   - You start by importing necessary libraries for handling the OpenAI SDK, messaging, and environmental variables.
+   - You call `dotenv.config();` to load environment variables, ensuring secure access to your OpenAI API key.
+2. **Setup Command Line Interface:**
+   - You set up a readline interface for taking input from the terminal, enabling interactive sessions directly from the command line.
+3. **Initialize Your Message Storage:**
+   - You define an array called `messages` to store the history of your conversation. This history is crucial for the AI to maintain context in ongoing dialogues.
+4. **Define the Main Function:**
+   - In your `main` function, which is asynchronous, you manage the chat process:
+     - You continuously prompt for and capture user input, storing it in `userInput`.
+     - You add this input to the `messages` array as a user message.
+     - You call the `streamText` function with the model, system instructions, and the accumulated messages to generate an AI response.
+     - You iterate over the text stream returned by the `streamText` function (`result.textStream`) and print the contents of the stream to the terminal
+5. **Handle Errors and Execute:**
+   - You invoke the `main` function with error handling to catch and log any issues, allowing your program to either recover or exit gracefully when errors occur.
+
+Head back to the terminal and run the following command:
+
+<Snippet text="pnpm tsx src/index.ts" />
+
+Type in a message and hit enter. You should see the model's response stream in as it’s being generated, just like a typewriter.
+
+## Where to Next?
+
+You've built an AI chatbot using the Vercel AI SDK! Remember, your imagination is the limit when it comes to using AI to build apps, so feel free to experiment and extend the functionality of this application further.
+
+If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.

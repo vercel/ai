@@ -1,0 +1,18 @@
+---
+title: OpenAIStream
+description: Learn to use OpenAIStream helper function in your application.
+---
+
+# `OpenAIStream`
+
+Transforms the response from OpenAI's language models into a ReadableStream.
+
+Note: Prior to v4, the official OpenAI API SDK does not support the Edge Runtime and only works in serverless environments. The openai-edge package is based on fetch instead of axios (and thus works in the Edge Runtime) so we recommend using openai v4+ or openai-edge.
+
+## Import
+
+### React
+
+<Snippet text={`import { OpenAIStream } from "ai"`} prompt={false} />
+
+<ReferenceTable packageName="streams" functionName="OpenAIStream" />

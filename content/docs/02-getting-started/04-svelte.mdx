@@ -1,0 +1,225 @@
+---
+title: Svelte
+description: Welcome to the Vercel AI SDK quickstart guide for Svelte!
+---
+
+# Svelte Quickstart
+
+The Vercel AI SDK is a powerful Typescript library designed to help developers build AI-powered applications.
+
+In this quickstart tutorial, you'll build a simple AI-chatbot with a streaming user interface. Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
+
+If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Streaming](/docs/advanced/why-streaming), you can optionally read these documents first.
+
+## Prerequisites
+
+Before you raise a frothy seed round and build a billion dollar business, you need to set-up your project.
+
+Make sure you have the following:
+
+- Node.js 18+ and pnpm installed on your local development machine.
+- An OpenAI API key.
+
+If you haven't obtained your OpenAI API key, you can do so by [signing up](https://platform.openai.com/signup/) on the OpenAI website.
+
+## Setup Your Application
+
+Start by creating a new SvelteKit application. This command will create a new directory named `my-ai-app` and set up a basic SvelteKit application inside it.
+
+<Snippet text="pnpm create svelte@latest my-ai-app" />
+
+Navigate to the newly created directory:
+
+<Snippet text="cd my-ai-app" />
+
+### Install Dependencies
+
+Install `ai` and `@ai-sdk/openai`, Vercel AI SDK's OpenAI provider.
+
+<Note>
+  Vercel AI SDK is designed to be a unified interface to interact with any large
+  language model. This means that you can change model and providers with just
+  one line of code! Learn more about [available providers](/providers) and
+  [building custom providers](/providers/community-providers/custom-providers)
+  in the [providers](/providers) section.
+</Note>
+<div className="my-4">
+  <Snippet text="pnpm install ai @ai-sdk/openai zod" />
+</div>
+
+<Note type="secondary" fill>
+  Make sure you are using `ai` version 3.1 or higher.
+</Note>
+
+### Configure OpenAI API Key
+
+Create a `.env.local` file in your project root and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
+
+<Snippet text="touch .env.local" />
+
+Edit the `.env.local` file:
+
+```env filename=".env.local"
+OPENAI_API_KEY=xxxxxxxxx
+```
+
+Replace `xxxxxxxxx` with your actual OpenAI API key.
+
+## Create an API route
+
+Create a SvelteKit Endpoint, `src/routes/api/chat/+server.ts` and add the following code:
+
+```tsx filename="src/routes/api/chat/+server.ts"
+import { createOpenAI } from '@ai-sdk/openai';
+import { StreamingTextResponse, streamText } from 'ai';
+import type { RequestHandler } from './$types';
+
+import { env } from '$env/dynamic/private';
+
+const openai = createOpenAI({
+  apiKey: env.OPENAI_API_KEY ?? '',
+});
+
+export const POST = (async ({ request }) => {
+  const { messages } = await request.json();
+
+  const result = await streamText({
+    model: openai('gpt-4-turbo-preview'),
+    messages,
+  });
+
+  return new StreamingTextResponse(result.toAIStream());
+}) satisfies RequestHandler;
+```
+
+Let's take a look at what is happening in this code:
+
+1. First, you create an OpenAI provider instance with the `createOpenAI` function from the `@ai-sdk/openai` package.
+2. Next, you define an `POST` request and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
+3. Next, you call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (defined in step 1) and `messages` (defined in step 2). You can use pass additional [settings](/docs/ai-sdk-core/settings) in this configuration object to further customise the models behaviour.
+
+4. The `streamText` function will return a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toAIStream` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream) function which will be used in the next step to convert the stream into a format compatible with `StreamingTextResponse`.
+5. Finally, you send the result to the client by a returning a new [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response), passing the AI Stream from the `result` object described in the previous step. This will set the required headers and response details to allow the client to stream the response.
+
+## Wire up the UI
+
+Now that you have an API route that can query an LLM, it's time to setup your frontend. Vercel AI SDK's [ UI ](/docs/ai-sdk-ui) package abstract the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
+
+Update your root page (`src/routes/+page.svelte`) with the following code to show a list of chat messages and provide a user message input:
+
+```svelte filename="src/routes/+page.svelte"
+<script>
+  import { useChat } from 'ai/svelte';
+
+  const { input, handleSubmit, messages } = useChat();
+</script>
+
+<main>
+  <ul>
+    {#each $messages as message}
+      <li>{message.role}: {message.content}</li>
+    {/each}
+  </ul>
+  <form on:submit={handleSubmit}>
+    <input bind:value={$input} />
+    <button type="submit">Send</button>
+  </form>
+</main>
+```
+
+This page utilizes the `useChat` hook, which will, by default, use the `POST` route handler you created earlier. The hook provides functions and state for handling user input and form submission. The `useChat` hook provides multiple utility functions and state variables:
+
+- `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
+- `input` - the current value of the user's input field.
+- `handleInputChange` and `handleSubmit` - functions to handle user interactions (typing into the input field and submitting the form, respectively).
+- `isLoading` - boolean that indicates whether the API request is in progress.
+
+## Running Your Application
+
+With that, you have built everything you need for your chatbot! To start your application, use the command:
+
+<Snippet text="pnpm run dev" />
+
+Head to your browser and open http://localhost:5173. You should see an input field. Test it out by entering a message and see the AI chatbot respond in real-time! Vercel AI SDK makes it fast and easy to build AI chat interfaces with Svelte.
+
+## Stream Data Alongside Response
+
+Depending on your use case, you may want to stream additional data alongside the model's response. This can be done using [`StreamData`](/docs/reference/stream-helpers/stream-data).
+
+### Update your API route
+
+Make the following changes to your POST endpoint (`src/routes/api/chat/+server.ts`)
+
+```ts filename="src/routes/api/chat/+server.ts" highlight="2,19-29"
+import { createOpenAI } from '@ai-sdk/openai';
+import { StreamData, StreamingTextResponse, streamText } from 'ai';
+import type { RequestHandler } from './$types';
+
+import { env } from '$env/dynamic/private';
+
+const openai = createOpenAI({
+  apiKey: env.OPENAI_API_KEY ?? '',
+});
+
+export const POST = (async ({ request }) => {
+  const { messages } = await request.json();
+
+  const result = await streamText({
+    model: openai('gpt-3.5-turbo'),
+    messages,
+  });
+
+  const data = new StreamData();
+
+  data.append({ test: 'value' });
+
+  const stream = result.toAIStream({
+    onFinal(_) {
+      data.close();
+    },
+  });
+
+  return new StreamingTextResponse(stream, {}, data);
+}) satisfies RequestHandler;
+```
+
+In this code, you:
+
+1. Create a new instance of `StreamData`.
+2. Append the data you want to stream alongside the model's response.
+3. Create a new AI stream with the `toAIStream` method on the `StreamTextResult` object.
+4. Listen for the onFinal callback on the AI Stream created above.
+5. Pass the data alongside the stream to the new `StreamingTextResponse`
+
+### Update your frontend
+
+To access this data on the frontend, the `useChat` hook returns an optional value that stores this data. Update your root route with the following code to render the streamed data:
+
+```svelte filename="src/routes/+page.svelte" highlight="4, 8"
+<script>
+  import { useChat } from 'ai/svelte';
+
+  const { input, handleSubmit, messages, data } = useChat();
+</script>
+
+<main>
+  <pre>{JSON.stringify($data, null, 2)}</pre>
+  <ul>
+    {#each $messages as message}
+      <li>{message.role}: {message.content}</li>
+    {/each}
+  </ul>
+  <form on:submit={handleSubmit}>
+    <input bind:value={$input} />
+    <button type="submit">Send</button>
+  </form>
+</main>
+```
+
+Head back to your browser (http://localhost:5173) and enter a new message. You should see a JSON object appear with the value you sent from your API route!
+
+## Where to Next?
+
+You've built an AI chatbot using the Vercel AI SDK! Remember, your imagination is the limit when it comes to using AI to build apps, so feel free to experiment and extend the functionality of this application further.
+
+If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.
