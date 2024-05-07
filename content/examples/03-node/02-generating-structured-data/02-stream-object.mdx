@@ -1,0 +1,39 @@
+---
+title: Stream Object Generation
+description: Learn how to stream an object generation in a Node.js application.
+---
+
+# Stream Object Generation
+
+Object generation can sometimes take a long time to complete, especially when you're generating a large schema.
+In such cases, it is useful to stream the object to the client in real-time.
+This allows the client to display the object as it is being generated,
+rather than have users wait for it to complete before displaying the result.
+
+```ts file='index.ts'
+import { streamObject } from 'ai'
+import { openai } from '@ai-sdk/openai'
+import { z } from 'zod'
+
+const result = await streamObject({
+  model: openai('gpt-4-turbo'),
+  maxTokens: 2000,
+  schema: z.object({
+    characters: z.array(
+      z.object({
+        name: z.string(),
+        class: z
+          .string()
+          .describe('Character class, e.g. warrior, mage, or thief.'),
+        description: z.string()
+      })
+    )
+  }),
+  prompt: 'Generate 3 character descriptions for a fantasy role playing game.'
+})
+
+for await (const partialObject of result.partialObjectStream) {
+  console.clear()
+  console.log(partialObject)
+}
+```

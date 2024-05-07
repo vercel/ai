@@ -1,0 +1,100 @@
+---
+title: Generate Object with Image Prompt
+description: Learn how to generate an object with an image prompt in a Node.js application.
+---
+
+# Add images to prompt
+
+Some language models that support vision capabilities accept images as part of the prompt. Here are some of the different [formats](/docs/reference/ai-sdk-core/generate-text#content-image) you can use to include images as input.
+
+## URL
+
+```ts file='index.ts'
+import { generateObject } from 'ai'
+import { openai } from '@ai-sdk/openai'
+import dotenv from 'dotenv'
+import { z } from 'zod'
+
+dotenv.config()
+
+async function main() {
+  const { object } = await generateObject({
+    model: openai('gpt-4-turbo'),
+    maxTokens: 512,
+    schema: z.object({
+      stamps: z.array(
+        z.object({
+          country: z.string(),
+          date: z.string()
+        })
+      )
+    }),
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'list all the stamps in these passport pages?'
+          },
+          {
+            type: 'image',
+            image: new URL(
+              'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/WW2_Spanish_official_passport.jpg/1498px-WW2_Spanish_official_passport.jpg'
+            )
+          }
+        ]
+      }
+    ]
+  })
+
+  console.log(object)
+}
+
+main()
+```
+
+## File Buffer
+
+```ts file='index.ts'
+import { generateObject } from 'ai'
+import { openai } from '@ai-sdk/openai'
+import dotenv from 'dotenv'
+import { z } from 'zod'
+
+dotenv.config()
+
+async function main() {
+  const { object } = await generateObject({
+    model: openai('gpt-4-turbo'),
+    maxTokens: 512,
+    schema: z.object({
+      stamps: z.array(
+        z.object({
+          country: z.string(),
+          date: z.string()
+        })
+      )
+    }),
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'list all the stamps in these passport pages?'
+          },
+          {
+            type: 'image',
+            image: fs.readFileSync('./node/attachments/eclipse.jpg')
+          }
+        ]
+      }
+    ]
+  })
+
+  console.log(object)
+}
+
+main()
+```

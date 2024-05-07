@@ -1,0 +1,144 @@
+---
+title: Render Interface during Function Call
+description: Learn to render a React component during a function call using the Vercel AI SDK in your Next.js application
+---
+
+# Render Interface During Function Call
+
+An interesting consequence of language models that can call functions is that this ability can be used to render visual interfaces by streaming React components to the client.
+
+<Browser>
+  <ChatGeneration
+    history={[
+      { role: 'User', content: 'How is it going?' },
+      { role: 'Assistant', content: 'All good, how may I help you?' }
+    ]}
+    inputMessage={{
+      role: 'User',
+      content: 'What is the weather in San Francisco?'
+    }}
+    outputMessage={{
+      role: 'Assistant',
+      content: 'The weather is 24°C and sunny in San Francisco.',
+      display: (
+        <div className="py-4">
+          <WeatherCard
+            content={{
+              weather: {
+                temperature: 24,
+                condition: 'Sunny'
+              }
+            }}
+          />
+        </div>
+      )
+    }}
+  />
+</Browser>
+
+## Client
+
+We can make a few changes to our previous example where the assistant could get the weather for any city by calling the `getWeather` function. This time, instead of returning text during the function call, we will stream a React component that will be rendered on the client using `createStreamableUI` from `ai/rsc`.
+
+```tsx filename='app/page.tsx'
+'use client'
+
+import { useState } from 'react'
+import { Message, continueConversation } from './actions'
+
+export default function Home() {
+  const [conversation, setConversation] = useState<Message[]>([])
+  const [input, setInput] = useState<string>('')
+
+  return (
+    <div>
+      <div>
+        {conversation.map((message, index) => (
+          <div key={index}>
+            {message.role}: {message.content}
+            {message.display} // [!code highlight]
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <input
+          type="text"
+          value={input}
+          onChange={event => {
+            setInput(event.target.value)
+          }}
+        />
+        <button
+          onClick={async () => {
+            const { messages } = await continueConversation([
+              ...conversation,
+              { role: 'user', content: input }
+            ])
+
+            setConversation(messages)
+          }}
+        >
+          Send Message
+        </button>
+      </div>
+    </div>
+  )
+}
+```
+
+## Server
+
+```tsx filename='app/actions.tsx'
+'use server'
+
+import { Weather } from '@ai-studio/components/weather'
+import { generateText } from 'ai'
+import { openai } from '@ai-sdk/openai'
+import { createStreamableUI } from 'ai/rsc'
+import { ReactNode } from 'react'
+import { z } from 'zod'
+
+export interface Message {
+  role: 'user' | 'assistant'
+  content: string
+  display?: ReactNode // [!code highlight]
+}
+
+export async function continueConversation(history: Message[]) {
+  const stream = createStreamableUI() // [!code highlight]
+
+  const { text, toolResults } = await generateText({
+    model: openai('gpt-3.5-turbo'),
+    system: 'You are a friendly weather assistant!',
+    messages: history,
+    tools: {
+      showWeather: {
+        description: 'Show the weather for a given location.',
+        parameters: z.object({
+          city: z.string().describe('The city to show the weather for.'),
+          unit: z
+            .enum(['C', 'F'])
+            .describe('The unit to display the temperature in')
+        }),
+        execute: async ({ city, unit }) => {
+          stream.done(<Weather city={city} unit={unit} />) // [!code highlight]
+          return `Here's the weather for ${city}!` // [!code highlight]
+        }
+      }
+    }
+  })
+
+  return {
+    messages: [
+      ...history,
+      {
+        role: 'assistant' as const,
+        content:
+          text || toolResults.map(toolResult => toolResult.result).join(),
+        display: stream.value // [!code highlight]
+      }
+    ]
+  }
+}
+```

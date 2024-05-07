@@ -1,0 +1,142 @@
+---
+title: Azure OpenAI
+description: Learn how to use Azure OpenAI with the Vercel AI SDK.
+---
+
+# Azure OpenAI
+
+Vercel AI SDK provides a set of utilities to make it easy to use the [Azure OpenAI client library](https://learn.microsoft.com/en-us/javascript/api/overview/azure/openai-readme?view=azure-node-preview). In this guide, we'll walk through how to use the utilities to create a chat bot.
+
+## Guide: Chat Bot
+
+<Steps>
+
+### Create a Next.js app
+
+Create a Next.js application and install `ai` and `@azure/openai`, the Vercel AI SDK and Azure OpenAI client respectively:
+
+```shell
+pnpm dlx create-next-app my-ai-app
+cd my-ai-app
+pnpm install ai @azure/openai
+```
+
+### Add your Azure OpenAI API Key to `.env`
+
+Create a `.env` file in your project root and add your Azure OpenAI API Key:
+
+```shell file='.env'
+AZURE_OPENAI_API_KEY=xxxxxxxxx
+```
+
+### Create a Route Handler
+
+Create a Next.js Route Handler that we'll use to generate a chat completion via Azure OpenAI that we'll then stream back to our Next.js.
+
+For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
+
+```tsx file='app/api/chat/route.ts' showLineNumbers
+import { OpenAIClient, AzureKeyCredential } from '@azure/openai'
+import { OpenAIStream, StreamingTextResponse } from 'ai'
+
+// Create an OpenAI API client
+const client = new OpenAIClient(
+  'https://YOUR-AZURE-OPENAI-ENDPOINT',
+  new AzureKeyCredential(process.env.AZURE_OPENAI_API_KEY!)
+)
+
+export async function POST(req: Request) {
+  const { messages } = await req.json()
+
+  // Ask Azure OpenAI for a streaming chat completion given the prompt
+  const response = await client.streamChatCompletions(
+    'YOUR_DEPLOYED_INSTANCE_NAME',
+    messages
+  )
+
+  // Convert the response into a friendly text-stream
+  const stream = OpenAIStream(response)
+  // Respond with the stream
+  return new StreamingTextResponse(stream)
+}
+```
+
+<Note>
+  Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
+  pass the streaming `response` we receive from Azure OpenAI library to
+  [`OpenAIStream`](/docs/reference/stream-helpers/open-ai-stream). This method
+  decodes/extracts the text tokens in the response and then re-encodes them
+  properly for simple consumption. We can then pass that new stream directly to
+  [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response).
+  This is another utility class that extends the normal Node/Edge Runtime
+  `Response` class with the default headers you probably want (hint:
+  `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
+</Note>
+
+### Wire up the UI
+
+Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
+By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
+
+```tsx filename="app/page.tsx" showLineNumbers
+'use client'
+
+import { useChat } from 'ai/react'
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat()
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(m => (
+        <div key={m.id} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  )
+}
+```
+
+</Steps>
+
+## Guide: Save to Database After Completion
+
+It’s common to want to save the result of a completion to a database after streaming it back to the user. The `OpenAIStream` adapter accepts a couple of optional callbacks that can be used to do this.
+
+```tsx filename="app/api/completion/route.ts" showLineNumbers
+export async function POST(req: Request) {
+  // ...
+
+  // Convert the response into a friendly text-stream
+  const stream = OpenAIStream(response, {
+    onStart: async () => {
+      // This callback is called when the stream starts
+      // You can use this to save the prompt to your database
+      await savePromptToDatabase(prompt)
+    },
+    onToken: async (token: string) => {
+      // This callback is called for each token in the stream
+      // You can use this to debug the stream or save the tokens to your database
+      console.log(token)
+    },
+    onCompletion: async (completion: string) => {
+      // This callback is called when the stream completes
+      // You can use this to save the final completion to your database
+      await saveCompletionToDatabase(completion)
+    }
+  })
+
+  // Respond with the stream
+  return new StreamingTextResponse(stream)
+}
+```

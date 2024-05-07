@@ -1,0 +1,451 @@
+---
+title: Next.js App Router
+description: Welcome to the Vercel AI SDK documentation!
+---
+
+# Next.js App Router Quickstart
+
+In this quick start tutorial, you'll build a simple AI-chatbot with a streaming user interface. Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
+
+Check out [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Streaming](/docs/advanced/why-streaming) if you haven't heard of them.
+
+## Prerequisites
+
+Before you raise a frothy seed round and build a billion dollar business, you need to set-up your project.
+
+Make sure you have the following:
+
+- Node.js 18+ and pnpm installed on your local development machine.
+- An OpenAI API key.
+
+If you haven't obtained your OpenAI API key, you can do so by [signing up](https://platform.openai.com/signup/) on the OpenAI website.
+
+## Create Your Application
+
+Start by creating a new Next.js application. This command will create a new directory named `my-ai-app` and set up a basic Next.js application inside it.
+
+<div className="mb-4">
+  <Note>
+    {' '}
+    Be sure to select yes when prompted to use the App Router. If you are looking
+    for the Next.js Pages Router quickstart guide, you can find it [ here ](/docs/getting-started/nextjs-pages-router).
+  </Note>
+</div>
+
+<Snippet text="pnpm create next-app@latest my-ai-app" />
+
+Navigate to the newly created directory:
+
+<Snippet text="cd my-ai-app" />
+
+### Install dependencies
+
+Install `ai` and `@ai-sdk/openai`, the Vercel AI package and Vercel AI SDK's [ OpenAI provider ](/providers/ai-sdk-providers/openai) respectively.
+
+<Note>
+  Vercel AI SDK is designed to be a unified interface to interact with any large
+  language model. This means that you can change model and providers with just
+  one line of code! Learn more about [available providers](/providers) and
+  [building custom providers](/providers/community-providers/custom-providers)
+  in the [providers](/providers) section.
+</Note>
+<div className="my-4">
+  <Snippet text="pnpm install ai @ai-sdk/openai zod" />
+</div>
+
+<Note type="secondary" fill>Make sure you are using `ai` version 3.1 or higher.</Note>
+
+
+### Configure OpenAI API key
+
+Create a `.env.local` file in your project root and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
+
+<Snippet text="touch .env.local" />
+
+Edit the `.env.local` file:
+
+```env filename=".env.local"
+OPENAI_API_KEY=xxxxxxxxx
+```
+
+Replace `xxxxxxxxx` with your actual OpenAI API key.
+
+## Create a Route Handler
+
+Create a route handler, `app/api/chat/route.ts` and add the following code:
+
+```tsx filename="app/api/chat/route.ts"
+import { openai } from '@ai-sdk/openai'
+import { StreamingTextResponse, streamText } from 'ai'
+
+export async function POST(req: Request) {
+  const { messages } = await req.json()
+
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages
+  })
+
+  return new StreamingTextResponse(result.toAIStream())
+}
+```
+
+Let's take a look at what is happening in this code:
+
+1. First, you define an asynchronous `POST` request and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
+2. Next, you call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 2). You can use pass additional [settings](/docs/ai-sdk-core/settings) in this configuration object to further customise the models behaviour.
+3. The `streamText` function will return a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toAIStream` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream) function which will be used in the next step to convert the stream into a format compatible with `StreamingTextResponse`.
+4. Finally, you send the result to the client by a returning a new [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response), passing the AI Stream from the `result` object described in the previous step. This will set the required headers and response details to allow the client to stream the response.
+
+This Route Handler creates a POST request endpint at `/api/chat`.
+
+## Wire up the UI
+
+Now that you have an Route Handler that can query an LLM, it's time to setup your frontend. Vercel AI SDK's [ UI ](docs/building-applications) package abstract the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
+
+Update your root page (`app/page.tsx`) with the following code to show a list of chat messages and provide a user message input:
+
+```tsx filename="app/page.tsx"
+'use client'
+
+import { useChat } from 'ai/react'
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat()
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(m => (
+        <div key={m.id} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  )
+}
+```
+
+<Note>
+  Make sure you add the `"use client"` directive to the top of your file. This
+  allows you to add interactivity with Javascript.
+</Note>
+
+This page utilizes the `useChat` hook, which will, by default, use the `POST` API route you created earlier (`/api/chat`). The hook provides functions and state for handling user input and form submission. The `useChat` hook provides multiple utility functions and state variables:
+
+- `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
+- `input` - the current value of the user's input field.
+- `handleInputChange` and `handleSubmit` - functions to handle user interactions (typing into the input field and submitting the form, respectively).
+- `isLoading` - boolean that indicates whether the API request is in progress.
+
+## Running Your Application
+
+With that, you have built everything you need for your chatbot! To start your application, use the command:
+
+<Snippet text="pnpm run dev" />
+
+Head to your browser and open http://localhost:3000. You should see an input field. Test it out by entering a message and see the AI chatbot respond in real-time! Vercel AI SDK makes it fast and easy to build AI chat interfaces with Next.js.
+
+## Stream Data Alongside Response
+
+Depending on your use case, you may want to stream additional data alongside the model's response. This can be done using [`StreamData`](/docs/reference/stream-helpers/stream-data).
+
+### Update your Route Handler
+
+Make the following changes to your Route Handler (`app/api/chat/route.ts`)
+
+```ts filename="app/api/chat/route.ts" highlight="2,12-22"
+import { openai } from '@ai-sdk/openai'
+import { StreamingTextResponse, streamText, StreamData } from 'ai'
+
+export async function POST(req: Request) {
+  const { messages } = await req.json()
+
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages
+  })
+
+  const data = new StreamData()
+
+  data.append({ test: 'value' })
+
+  const stream = result.toAIStream({
+    onFinal(_) {
+      data.close()
+    }
+  })
+
+  return new StreamingTextResponse(stream, {}, data)
+}
+```
+
+In this code, you:
+
+1. Create a new instance of `StreamData`.
+2. Append the data you want to stream alongside the model's response.
+3. Create a new AI stream with the `toAIStream` method on the `StreamTextResult` object.
+4. Listen for the onFinal callback on the AI Stream created above.
+5. Pass the data alongside the stream to the new `StreamingTextResponse`.
+
+### Update your frontend
+
+To access this data on the frontend, the `useChat` hook returns an optional value that stores this data. Update your root route with the following code to render the streamed data:
+
+```tsx filename="app/page.tsx" highlight="6, 9"
+'use client'
+
+import { useChat } from 'ai/react'
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit, data } = useChat()
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
+      {messages.map(m => (
+        <div key={m.id} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  )
+}
+```
+
+Head back to your browser (http://localhost:3000) and enter a new message. You should see a JSON object appear with the value you sent from your API route!
+
+## Introducing `ai/rsc`
+
+So far, you have used Vercel AI SDK's [ UI ](/docs/ai-sdk-ui) package to connect your frontend to your API route. This package is framework agnostic and provides simple abstractions for quickly building chat-like interfaces with LLMs.
+
+The Vercel AI SDK also has a package ([`ai/rsc`](/docs/ai-sdk-rsc)) specifically designed for frameworks that support the [React Server Component](https://nextjs.org/docs/app/building-your-application/rendering/server-components) architecture. With `ai/rsc`, you can build AI applications that go beyond pure text.
+
+## Next.js App Router
+
+The [Next.js App Router](https://nextjs.org/docs/app) is a React Server Component (RSC) framework. This means that pages and components are rendered on the server. Optionally, you can add directives, like `"use client"` when you want to add interactivity using Javascript and `"use server"` when you want to ensure code will only run on the server.
+
+The server-first architecture of RSCs enables a number of powerful features, like Server Actions, which we will use as our server-side environment to query the language model.
+
+<Note>
+  Server Actions are functions that run on a server, but can be called directly
+  from your Next.js frontend. Server Actions reduce the amount of code you write
+  while also providing end-to-end type safety between the client and server. You
+  can learn more
+  [here](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations#with-client-components)
+</Note>
+
+### Create a Server Action
+
+Create your first Server Action (`app/actions.tsx`) and add the following code:
+
+```tsx filename="app/actions.tsx"
+'use server'
+
+import { createStreamableValue } from 'ai/rsc'
+import { CoreMessage, streamText } from 'ai'
+import { openai } from '@ai-sdk/openai'
+
+export async function continueConversation(messages: CoreMessage[]) {
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages
+  })
+
+  const stream = createStreamableValue(result.textStream)
+  return stream.value
+}
+```
+
+Let's take a look at what is happening in this code:
+
+1. First, you add the `"use server"` directive at the top of the file to indicate to Next.js that this file can only run on the server.
+2. Next, you define and export an async function (`continueConversation`) that takes one argument, `messages`, which is an array of type `Message`. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
+3. Next, you call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 2). You can use pass additional [settings](/docs/ai-sdk-core/settings) in this configuration object to further customise the models behaviour.
+4. Next, you create a streamable value using the [ `createStreamableValue` ](/docs/reference/ai-sdk-rsc/create-streamable-value) function imported from the `ai/rsc` package. To use this function you pass model response as a text stream which can be accessed directly on the model response object (`result.textStream`).
+5. Finally, you return the value of the stream (`stream.value`).
+
+### Update the UI
+
+Now that you have created a Server Action that can query an LLM, it's time to update your frontend. With `ai/rsc`, you have much finer control over how you send and receive streamable values from the LLM.
+
+Update your root page (`app/page.tsx`) with the following code:
+
+```tsx filename="app/page.tsx"
+'use client'
+
+import { type CoreMessage } from 'ai'
+import { useState } from 'react'
+import { continueConversation } from './actions'
+import { readStreamableValue } from 'ai/rsc'
+
+export default function Chat() {
+  const [messages, setMessages] = useState<CoreMessage[]>([])
+  const [input, setInput] = useState('')
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map((m, i) => (
+        <div key={i} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content as string}
+        </div>
+      ))}
+
+      <form
+        action={async () => {
+          const newMessages: CoreMessage[] = [
+            ...messages,
+            { content: input, role: 'user' }
+          ]
+
+          setMessages(newMessages)
+          setInput('')
+
+          const result = await continueConversation(newMessages)
+
+          for await (const content of readStreamableValue(result)) {
+            setMessages([
+              ...newMessages,
+              {
+                role: 'assistant',
+                content: content as string
+              }
+            ])
+          }
+        }}
+      >
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={e => setInput(e.target.value)}
+        />
+      </form>
+    </div>
+  )
+}
+```
+
+Let's look at how your implementation has changed. As you are no longer using `useChat`, you have to manage your own state. You achieve this using the `useState` hook to manage the user\'s `input` and `messages` respectively. The biggest change in your implementation is how you manage the form submission behaviour:
+
+1. First, you define a new variable that will house the existing `messages` and append the users message.
+2. Next, you update the `messages` state by passing the variable declared above to the `setMessages` function.
+3. Next, you clear the `input` state with `setInput("")`.
+4. Next, you call your Server Action just like any other asynchronous function, passing the `newMessages` variable declared in the first step. This function will return a streamable value.
+5. Next, you use an asynchronous for-loop in conjunction with the `readStreamableValue` function to iterate over the stream returned by the Server Action and read its value.
+6. Finally, you update the `messages` state with the content streamed via the Server Action.
+
+## Streaming Additional Data
+
+If your use case requires that you stream additional data alongside the response from the model, this is as simple as returning an additional value in your Server Action.
+Update your `app/actions.tsx`with the following code:
+
+```ts filename="app/actions.tsx" highlight="13,15"
+'use server'
+
+import { createStreamableValue } from 'ai/rsc'
+import { CoreMessage, streamText } from 'ai'
+import { openai } from '@ai-sdk/openai'
+
+export async function continueConversation(messages: CoreMessage[]) {
+  'use server'
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages
+  })
+  const data = { test: 'hello' }
+  const stream = createStreamableValue(result.textStream)
+  return { message: stream.value, data }
+}
+```
+
+The only change that you make here is to declare a new value (`data`) and return it alongside the stream.
+
+### Update the UI
+
+Update your root route with the following code:
+
+```tsx filename="app/page.tsx" highlight="11, 14, 33"
+'use client'
+
+import { type CoreMessage } from 'ai'
+import { useState } from 'react'
+import { continueConversation } from './actions'
+import { readStreamableValue } from 'ai/rsc'
+
+export default function Chat() {
+  const [messages, setMessages] = useState<CoreMessage[]>([])
+  const [input, setInput] = useState('')
+  const [data, setData] = useState<any>()
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
+      {messages.map((m, i) => (
+        <div key={i} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content as string}
+        </div>
+      ))}
+
+      <form
+        action={async () => {
+          const newMessages: CoreMessage[] = [
+            ...messages,
+            { content: input, role: 'user' }
+          ]
+
+          setMessages(newMessages)
+          setInput('')
+
+          const result = await continueConversation(newMessages)
+          setData(result.data)
+
+          for await (const content of readStreamableValue(result.message)) {
+            setMessages([
+              ...newMessages,
+              {
+                role: 'assistant',
+                content: content as string
+              }
+            ])
+          }
+        }}
+      >
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={e => setInput(e.target.value)}
+        />
+      </form>
+    </div>
+  )
+}
+```
+
+In the code above, you first create a new variable to manage the state of the additional data (`data`). Then, you update the state of the additional data with `setData(result.data)`. Just like that, you've sent additional data alongside the models' response.
+
+The `ai/rsc` library is designed to give you complete control to easily work with streamable values. This unlocks LLM applications beyond the traditional chat format.
+
+## Where to Next?
+
+You've built an AI chatbot using the Vercel AI SDK! Remember, your imagination is the limit when it comes to using AI to build apps, so feel free to experiment and extend the functionality of this application further.
+
+If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.

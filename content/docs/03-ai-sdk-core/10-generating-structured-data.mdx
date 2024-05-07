@@ -1,0 +1,69 @@
+---
+title: Generating Structured Data
+description: Learn how to generate structured data with the Vercel AI SDK.
+---
+
+# Generating Structured Data
+
+While text generation can be useful, your usecase will likely call for generating structured data.
+For example, you might want to extract information from text, classify data, or generate synthetic data.
+
+Many language models are capable of generating structured data, often defined as using "JSON modes" or "tools".
+However, you need to manually provide schemas and then validate the generated data as LLMs can produce incorrect or incomplete structured data.
+
+The Vercel AI SDK standardises structured object generation across model providers with the [`generateObject`](/docs/reference/ai-sdk-core/generate-object) function.
+
+The `generateObject` function uses [Zod schemas](./schemas-and-zod) to specify the shape of the data that you want, and the AI model will generate data that conforms to that structure.
+The schema is also used to validate the generated data, ensuring type safety and correctness.
+
+```ts
+import { generateObject } from 'ai'
+import { z } from 'zod'
+
+const { object } = await generateObject({
+  model,
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(
+        z.object({
+          name: z.string(),
+          amount: z.string()
+        })
+      ),
+      steps: z.array(z.string())
+    })
+  }),
+  prompt: 'Generate a lasagna recipe.'
+})
+```
+
+## Specifying Generation Mode
+
+While some models (like OpenAI) natively support object generation, others require alternative methods, like modified function calling. The `generateObject` function allows you to specify the method it will use to return structured data.
+
+- `auto`: The provider will choose the best mode for the model.
+- `tool`: A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
+- `json`: The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled.
+- `grammar`: The provider is instructed to convert the JSON schema into a provider specific grammar and use it to select the output tokens.
+
+<Note>Please note that most providers do not support all modes.</Note>
+
+## Streaming Objects
+
+Given the added complexity of returning structured data, model response time can be unacceptable for your interactive use case. With the [`streamObject`](/docs/reference/ai-sdk-core/stream-object) function, you can stream the model's response as it is generated.
+
+```ts
+import { streamObject } from 'ai'
+
+const { partialObjectStream } = await streamObject({
+  // ...
+})
+
+// use partialObjectStream as an async iterable
+for await (const partialObject of partialObjectStream) {
+  console.log(partialObject)
+}
+```
+
+You can also use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](../ai-rsc)).

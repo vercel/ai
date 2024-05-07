@@ -1,0 +1,16 @@
+---
+title: streamToResponse
+description: Learn to use streamToResponse helper function in your application.
+---
+
+# `streamToResponse`
+
+This method will pipe a ReadableStream to a Node.js ServerResponse object. It can be helpful to combine this with other AI stream utilities, such as OpenAIStream, in Node.js environments. Similar to StreamingTextResponse, it automatically sets the status code to 200 and the Content-Type header to 'text/plain; charset=utf-8'
+
+## Import
+
+### React
+
+<Snippet text={`import { streamToResponse } from "ai"`} prompt={false} />
+
+<ReferenceTable packageName="streams" functionName="streamToResponse" />
