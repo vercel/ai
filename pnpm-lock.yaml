@@ -1152,7 +1152,7 @@ importers:
         specifier: 0.0.3
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.5
+        specifier: 0.0.6
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1177,7 +1177,7 @@ importers:
         specifier: 0.0.3
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.5
+        specifier: 0.0.6
         version: link:../provider-utils
       eventsource-parser:
         specifier: 1.1.2
@@ -1325,7 +1325,7 @@ importers:
         specifier: 0.0.3
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.5
+        specifier: 0.0.6
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1350,7 +1350,7 @@ importers:
         specifier: 0.0.3
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.5
+        specifier: 0.0.6
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1375,7 +1375,7 @@ importers:
         specifier: 0.0.3
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.5
+        specifier: 0.0.6
         version: link:../provider-utils
     devDependencies:
       '@types/node':
