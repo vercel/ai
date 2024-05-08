@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from 'react';
 import { generateId } from '../shared/generate-id';
 import { readDataStream } from '../shared/read-data-stream';
 import { CreateMessage, Message } from '../shared/types';
+import { abort } from 'node:process';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
@@ -168,8 +169,9 @@ export function useAssistant({
 
     setInput('');
 
+    const abortController = new AbortController();
+
     try {
-      const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
       const result = await fetch(api, {
@@ -259,8 +261,8 @@ export function useAssistant({
         }
       }
     } catch (error) {
-      // Ignore abort errors as they are expected.
-      if (isAbortError(error)) {
+      // Ignore abort errors as they are expected when the user cancels the request:
+      if (isAbortError(error) && abortController.signal.aborted) {
         abortControllerRef.current = null;
         return;
       }
