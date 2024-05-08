@@ -27,22 +27,30 @@ export async function POST(req: Request) {
   const threadId = input.threadId ?? (await openai.beta.threads.create({})).id;
 
   // Add a message to the thread
-  const createdMessage = await openai.beta.threads.messages.create(threadId, {
-    role: 'user',
-    content: input.message,
-  });
+  const createdMessage = await openai.beta.threads.messages.create(
+    threadId,
+    {
+      role: 'user',
+      content: input.message,
+    },
+    { signal: req.signal },
+  );
 
   return AssistantResponse(
     { threadId, messageId: createdMessage.id },
     async ({ forwardStream, sendDataMessage }) => {
       // Run the assistant on the thread
-      const runStream = openai.beta.threads.runs.createAndStream(threadId, {
-        assistant_id:
-          process.env.ASSISTANT_ID ??
-          (() => {
-            throw new Error('ASSISTANT_ID is not set');
-          })(),
-      });
+      const runStream = openai.beta.threads.runs.createAndStream(
+        threadId,
+        {
+          assistant_id:
+            process.env.ASSISTANT_ID ??
+            (() => {
+              throw new Error('ASSISTANT_ID is not set');
+            })(),
+        },
+        { signal: req.signal },
+      );
 
       // forward run status would stream message deltas
       let runResult = await forwardStream(runStream);
@@ -108,6 +116,7 @@ export async function POST(req: Request) {
             threadId,
             runResult.id,
             { tool_outputs },
+            { signal: req.signal },
           ),
         );
       }
