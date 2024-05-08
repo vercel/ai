@@ -568,3 +568,56 @@ describe('result.toTextStreamResponse', () => {
     assert.deepStrictEqual(chunks, ['Hello', ', ', 'world!']);
   });
 });
+
+describe('multiple stream consumption', () => {
+  it('should support text stream, ai stream, full stream on single result object', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: 'world!' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.textStream),
+      ['Hello', ', ', 'world!'],
+    );
+
+    assert.deepStrictEqual(
+      await convertReadableStreamToArray(
+        result.toAIStream().pipeThrough(new TextDecoderStream()),
+      ),
+      ['0:"Hello"\n', '0:", "\n', '0:"world!"\n'],
+    );
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.fullStream),
+      [
+        { type: 'text-delta', textDelta: 'Hello' },
+        { type: 'text-delta', textDelta: ', ' },
+        { type: 'text-delta', textDelta: 'world!' },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+        },
+      ],
+    );
+  });
+});

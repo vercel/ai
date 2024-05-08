@@ -141,7 +141,7 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
 A result object for accessing different stream types and additional information.
  */
 export class StreamTextResult<TOOLS extends Record<string, CoreTool>> {
-  private readonly originalStream: ReadableStream<TextStreamPart<TOOLS>>;
+  private originalStream: ReadableStream<TextStreamPart<TOOLS>>;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
@@ -175,12 +175,26 @@ Response headers.
   }
 
   /**
+Split out a new stream from the original stream.
+The original stream is replaced to allow for further splitting,
+since we do not know how many times the stream will be split.
+
+Note: this leads to buffering the stream content on the server.
+However, the LLM results are expected to be small enough to not cause issues.
+   */
+  private teeStream() {
+    const [stream1, stream2] = this.originalStream.tee();
+    this.originalStream = stream2;
+    return stream1;
+  }
+
+  /**
 A text stream that returns only the generated text deltas. You can use it
 as either an AsyncIterable or a ReadableStream. When an error occurs, the
 stream will throw the error.
    */
   get textStream(): AsyncIterableStream<string> {
-    return createAsyncIterableStream(this.originalStream, {
+    return createAsyncIterableStream(this.teeStream(), {
       transform(chunk, controller) {
         if (chunk.type === 'text-delta') {
           // do not stream empty text deltas:
@@ -201,7 +215,7 @@ You can use it as either an AsyncIterable or a ReadableStream. When an error occ
 stream will throw the error.
    */
   get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
-    return createAsyncIterableStream(this.originalStream, {
+    return createAsyncIterableStream(this.teeStream(), {
       transform(chunk, controller) {
         if (chunk.type === 'text-delta') {
           // do not stream empty text deltas:
