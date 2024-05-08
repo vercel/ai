@@ -30,7 +30,7 @@ type GoogleGenerativeAIConfig = {
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = undefined;
+  readonly defaultObjectGenerationMode = 'json';
 
   readonly modelId: GoogleGenerativeAIModelId;
   readonly settings: GoogleGenerativeAISettings;
@@ -86,20 +86,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       });
     }
 
-    const baseArgs = {
-      generationConfig: {
-        // model specific settings:
-        topK: this.settings.topK,
+    const generationConfig = {
+      // model specific settings:
+      topK: this.settings.topK,
 
-        // standardized settings:
-        maxOutputTokens: maxTokens,
-        temperature,
-        topP,
-      },
-
-      // prompt:
-      contents: convertToGoogleGenerativeAIMessages(prompt),
+      // standardized settings:
+      maxOutputTokens: maxTokens,
+      temperature,
+      topP,
     };
+
+    const contents = convertToGoogleGenerativeAIMessages(prompt);
 
     switch (type) {
       case 'regular': {
@@ -111,7 +108,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
         return {
           args: {
-            ...baseArgs,
+            generationConfig,
+            contents,
             tools:
               functionDeclarations == null
                 ? undefined
@@ -122,9 +120,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-json mode',
-        });
+        return {
+          args: {
+            generationConfig: {
+              ...generationConfig,
+              response_mime_type: 'application/json',
+            },
+            contents,
+          },
+          warnings,
+        };
       }
 
       case 'object-tool': {
