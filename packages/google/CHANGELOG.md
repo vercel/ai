@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 0.0.10
+
+### Patch Changes
+
+- 20aa9dd: feat (provider/gemini): Add JSON mode for generateObject
+- Updated dependencies [276f22b]
+  - @ai-sdk/provider-utils@0.0.6
+
 ## 0.0.9
 
 ### Patch Changes
