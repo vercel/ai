@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.2
+
+### Patch Changes
+
+- d1b1880: fix (ai/core): allow reading streams in streamText result multiple times
+
 ## 3.1.1
 
 ### Patch Changes
