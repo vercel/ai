@@ -50,19 +50,19 @@ export default function Page() {
 ```
 
 ```ts filename='app/api/chat/route.ts'
-import { StreamingTextResponse, experimental_streamText } from 'ai';
+import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
   const { prompt }: { prompt: string } = await req.json();
 
-  const result = await experimental_streamText({
+  const result = await streamText({
     model: openai('gpt-4'),
     system: 'You are a helpful assistant.',
     messages,
   });
 
-  return new StreamingTextResponse(result.toAIStream());
+  return result.toAIStreamResponse();
 }
 ```
 
