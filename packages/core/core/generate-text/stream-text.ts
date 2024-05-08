@@ -21,6 +21,7 @@ import { retryWithExponentialBackoff } from '../util/retry-with-exponential-back
 import { runToolsTransformation } from './run-tools-transformation';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+import { TokenUsage } from './token-usage';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -148,6 +149,16 @@ Warnings from the model provider (e.g. unsupported settings)
   readonly warnings: CallWarning[] | undefined;
 
   /**
+The token usage of the generated text. Resolved when the response is finished.
+   */
+  readonly usage: Promise<TokenUsage>;
+
+  /**
+The reason why the generation finished. Resolved when the response is finished.
+   */
+  readonly finishReason: Promise<FinishReason>;
+
+  /**
 Optional raw response data.
    */
   rawResponse?: {
@@ -168,9 +179,36 @@ Response headers.
       headers?: Record<string, string>;
     };
   }) {
-    this.originalStream = stream;
     this.warnings = warnings;
     this.rawResponse = rawResponse;
+
+    // initialize usage promise
+    let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
+    this.usage = new Promise<TokenUsage>(resolve => {
+      resolveUsage = resolve;
+    });
+
+    // initialize finish reason promise
+    let resolveFinishReason: (
+      value: FinishReason | PromiseLike<FinishReason>,
+    ) => void;
+    this.finishReason = new Promise<FinishReason>(resolve => {
+      resolveFinishReason = resolve;
+    });
+
+    // pipe chunks through a transformation stream that extracts metadata:
+    this.originalStream = stream.pipeThrough(
+      new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+        async transform(chunk, controller): Promise<void> {
+          controller.enqueue(chunk);
+
+          if (chunk.type === 'finish') {
+            resolveUsage(chunk.usage);
+            resolveFinishReason(chunk.finishReason);
+          }
+        },
+      }),
+    );
   }
 
   /**
