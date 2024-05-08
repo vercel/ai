@@ -15,13 +15,13 @@ import {
   createSuspensedChunk,
   consumeStream,
 } from './utils';
-import type { StreamableValue } from './types';
+import type { StreamablePatch, StreamableValue } from './types';
 
 /**
  * Create a piece of changable UI that can be streamed to the client.
  * On the client side, it can be rendered as a normal React node.
  */
-export function createStreamableUI(initialValue?: React.ReactNode) {
+function createStreamableUI(initialValue?: React.ReactNode) {
   let currentValue = initialValue;
   let closed = false;
   let { row, resolve, reject } = createSuspensedChunk(initialValue);
@@ -48,9 +48,21 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
   warnUnclosedStream();
 
   return {
+    /**
+     * The value of the streamable UI. This can be returned from a Server Action and received by the client.
+     */
     value: row,
+    /**
+     * This method updates the current UI node. It takes a new UI node and replaces the old one.
+     */
     update(value: React.ReactNode) {
       assertStream('.update()');
+
+      // There is no need to update the value if it's referentially equal.
+      if (value === currentValue) {
+        warnUnclosedStream();
+        return;
+      }
 
       const resolvable = createResolvablePromise();
       currentValue = value;
@@ -61,27 +73,38 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
 
       warnUnclosedStream();
     },
+    /**
+     * This method is used to append a new UI node to the end of the old one.
+     * Once appended a new UI node, the previous UI node cannot be updated anymore.
+     *
+     * @example
+     * ```jsx
+     * const ui = createStreamableUI(<div>hello</div>)
+     * ui.append(<div>world</div>)
+     *
+     * // The UI node will be:
+     * // <>
+     * //   <div>hello</div>
+     * //   <div>world</div>
+     * // </>
+     * ```
+     */
     append(value: React.ReactNode) {
       assertStream('.append()');
 
       const resolvable = createResolvablePromise();
-      if (typeof currentValue === 'string' && typeof value === 'string') {
-        currentValue += value;
-      } else {
-        currentValue = (
-          <>
-            {currentValue}
-            {value}
-          </>
-        );
-      }
+      currentValue = value;
 
-      resolve({ value: currentValue, done: false, next: resolvable.promise });
+      resolve({ value, done: false, append: true, next: resolvable.promise });
       resolve = resolvable.resolve;
       reject = resolvable.reject;
 
       warnUnclosedStream();
     },
+    /**
+     * This method is used to signal that there is an error in the UI stream.
+     * It will be thrown on the client side and caught by the nearest error boundary component.
+     */
     error(error: any) {
       assertStream('.error()');
 
@@ -91,7 +114,13 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
       closed = true;
       reject(error);
     },
-    done(...args: any) {
+    /**
+     * This method marks the UI node as finalized. You can either call it without any parameters or with a new UI node as the final state.
+     * Once called, the UI node cannot be updated or appended anymore.
+     *
+     * This method is always **required** to be called, otherwise the response will be stuck in a loading state.
+     */
+    done(...args: [] | [React.ReactNode]) {
       assertStream('.done()');
 
       if (warningTimeout) {
@@ -107,17 +136,88 @@ export function createStreamableUI(initialValue?: React.ReactNode) {
   };
 }
 
+const STREAMABLE_VALUE_INTERNAL_LOCK = Symbol('streamable.value.lock');
+
 /**
  * Create a wrapped, changable value that can be streamed to the client.
  * On the client side, the value can be accessed via the readStreamableValue() API.
  */
-export function createStreamableValue<T = any, E = any>(initialValue?: T) {
+function createStreamableValue<T = any, E = any>(
+  initialValue?: T | ReadableStream<T>,
+) {
+  const isReadableStream =
+    initialValue instanceof ReadableStream ||
+    (typeof initialValue === 'object' &&
+      initialValue !== null &&
+      'getReader' in initialValue &&
+      typeof initialValue.getReader === 'function' &&
+      'locked' in initialValue &&
+      typeof initialValue.locked === 'boolean');
+
+  if (!isReadableStream) {
+    return createStreamableValueImpl<T, E>(initialValue);
+  }
+
+  const streamableValue = createStreamableValueImpl<T, E>();
+
+  // Since the streamable value will be from a readable stream, it's not allowed
+  // to update the value manually as that introduces race conditions and
+  // unexpected behavior.
+  // We lock the value to prevent any updates from the user.
+  streamableValue[STREAMABLE_VALUE_INTERNAL_LOCK] = true;
+
+  (async () => {
+    try {
+      // Consume the readable stream and update the value.
+      const reader = initialValue.getReader();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        // Unlock the value to allow updates.
+        streamableValue[STREAMABLE_VALUE_INTERNAL_LOCK] = false;
+        if (typeof value === 'string') {
+          streamableValue.append(value);
+        } else {
+          streamableValue.update(value);
+        }
+        // Lock the value again.
+        streamableValue[STREAMABLE_VALUE_INTERNAL_LOCK] = true;
+      }
+
+      streamableValue[STREAMABLE_VALUE_INTERNAL_LOCK] = false;
+      streamableValue.done();
+    } catch (e) {
+      streamableValue[STREAMABLE_VALUE_INTERNAL_LOCK] = false;
+      streamableValue.error(e);
+    }
+  })();
+
+  return streamableValue;
+}
+
+function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
   let closed = false;
-  let { promise, resolve } = createResolvablePromise<StreamableValue<T, E>>();
+  let locked = false;
+  let resolvable = createResolvablePromise<StreamableValue<T, E>>();
+
+  let currentValue = initialValue;
+  let currentError: E | undefined;
+  let currentPromise: typeof resolvable.promise | undefined =
+    resolvable.promise;
+  let currentPatchValue: StreamablePatch;
 
   function assertStream(method: string) {
     if (closed) {
       throw new Error(method + ': Value stream is already closed.');
+    }
+    if (locked) {
+      throw new Error(
+        method + ': Value stream is locked and cannot be updated.',
+      );
     }
   }
 
@@ -136,38 +236,127 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
   }
   warnUnclosedStream();
 
-  function createWrapped(
-    val: T | undefined,
-    initial?: boolean,
-  ): StreamableValue<T, E> {
-    if (initial) {
-      return {
-        type: STREAMABLE_VALUE_TYPE,
-        curr: val,
-        next: promise,
-      };
+  function createWrapped(initialChunk?: boolean): StreamableValue<T, E> {
+    // This makes the payload much smaller if there're mutative updates before the first read.
+    let init: Partial<StreamableValue<T, E>>;
+
+    if (currentError !== undefined) {
+      init = { error: currentError };
+    } else {
+      if (currentPatchValue && !initialChunk) {
+        init = { diff: currentPatchValue };
+      } else {
+        init = { curr: currentValue };
+      }
     }
 
-    return {
-      curr: val,
-      next: promise,
-    };
+    if (currentPromise) {
+      init.next = currentPromise;
+    }
+
+    if (initialChunk) {
+      init.type = STREAMABLE_VALUE_TYPE;
+    }
+
+    return init;
+  }
+
+  // Update the internal `currentValue` and `currentPatchValue` if needed.
+  function updateValueStates(value: T) {
+    // If we can only send a patch over the wire, it's better to do so.
+    currentPatchValue = undefined;
+    if (typeof value === 'string') {
+      if (typeof currentValue === 'string') {
+        if (value.startsWith(currentValue)) {
+          currentPatchValue = [0, value.slice(currentValue.length)];
+        }
+      }
+    }
+
+    currentValue = value;
   }
 
   return {
-    value: createWrapped(initialValue, true),
+    /**
+     * @internal This is an internal lock to prevent the value from being
+     * updated by the user.
+     */
+    set [STREAMABLE_VALUE_INTERNAL_LOCK](state: boolean) {
+      locked = state;
+    },
+    /**
+     * The value of the streamable. This can be returned from a Server Action and
+     * received by the client. To read the streamed values, use the
+     * `readStreamableValue` or `useStreamableValue` APIs.
+     */
+    get value() {
+      return createWrapped(true);
+    },
+    /**
+     * This method updates the current value with a new one.
+     */
     update(value: T) {
       assertStream('.update()');
 
-      const resolvePrevious = resolve;
-      const resolvable = createResolvablePromise();
-      promise = resolvable.promise;
-      resolve = resolvable.resolve;
+      const resolvePrevious = resolvable.resolve;
+      resolvable = createResolvablePromise();
 
-      resolvePrevious(createWrapped(value));
+      updateValueStates(value);
+      currentPromise = resolvable.promise;
+      resolvePrevious(createWrapped());
 
       warnUnclosedStream();
     },
+    /**
+     * This method is used to append a delta string to the current value. It
+     * requires the current value of the streamable to be a string.
+     *
+     * @example
+     * ```jsx
+     * const streamable = createStreamableValue('hello');
+     * streamable.append(' world');
+     *
+     * // The value will be 'hello world'
+     * ```
+     */
+    append(value: T) {
+      assertStream('.append()');
+
+      if (
+        typeof currentValue !== 'string' &&
+        typeof currentValue !== 'undefined'
+      ) {
+        throw new Error(
+          `.append(): The current value is not a string. Received: ${typeof currentValue}`,
+        );
+      }
+      if (typeof value !== 'string') {
+        throw new Error(
+          `.append(): The value is not a string. Received: ${typeof value}`,
+        );
+      }
+
+      const resolvePrevious = resolvable.resolve;
+      resolvable = createResolvablePromise();
+
+      if (typeof currentValue === 'string') {
+        currentPatchValue = [0, value];
+        (currentValue as string) = currentValue + value;
+      } else {
+        currentPatchValue = undefined;
+        currentValue = value;
+      }
+
+      currentPromise = resolvable.promise;
+      resolvePrevious(createWrapped());
+
+      warnUnclosedStream();
+    },
+    /**
+     * This method is used to signal that there is an error in the value stream.
+     * It will be thrown on the client side when consumed via
+     * `readStreamableValue` or `useStreamableValue`.
+     */
     error(error: any) {
       assertStream('.error()');
 
@@ -175,25 +364,40 @@ export function createStreamableValue<T = any, E = any>(initialValue?: T) {
         clearTimeout(warningTimeout);
       }
       closed = true;
-      resolve({ error });
+      currentError = error;
+      currentPromise = undefined;
+
+      resolvable.resolve({ error });
     },
-    done(...args: any) {
+    /**
+     * This method marks the value as finalized. You can either call it without
+     * any parameters or with a new value as the final state.
+     * Once called, the value cannot be updated or appended anymore.
+     *
+     * This method is always **required** to be called, otherwise the response
+     * will be stuck in a loading state.
+     */
+    done(...args: [] | [T]) {
       assertStream('.done()');
 
       if (warningTimeout) {
         clearTimeout(warningTimeout);
       }
       closed = true;
+      currentPromise = undefined;
 
       if (args.length) {
-        resolve({ curr: args[0] });
+        updateValueStates(args[0]);
+        resolvable.resolve(createWrapped());
         return;
       }
 
-      resolve({});
+      resolvable.resolve({});
     },
   };
 }
+
+export { createStreamableUI, createStreamableValue };
 
 type Streamable = ReactNode | Promise<ReactNode>;
 type Renderer<T> = (
@@ -205,7 +409,11 @@ type Renderer<T> = (
 
 /**
  * `render` is a helper function to create a streamable UI from some LLMs.
- * Currently, it only supports OpenAI's GPT models with Function Calling and Assistants Tools.
+ * This API only supports OpenAI's GPT models with Function Calling and Assistants Tools,
+ * please use `streamUI` for compatibility with other providers.
+ *
+ * @deprecated It's recommended to use the `streamUI` API for compatibility with AI SDK Core APIs
+ * and future features. This API will be removed in a future release.
  */
 export function render<
   TS extends {
@@ -230,7 +438,21 @@ export function render<
   messages: Parameters<
     typeof OpenAI.prototype.chat.completions.create
   >[0]['messages'];
-  text?: Renderer<{ content: string; done: boolean }>;
+  text?: Renderer<{
+    /**
+     * The full text content from the model so far.
+     */
+    content: string;
+    /**
+     * The new appended text content from the model since the last `text` call.
+     */
+    delta: string;
+    /**
+     * Whether the model is done generating text.
+     * If `true`, the `content` will be the final output and this call will be the last.
+     */
+    done: boolean;
+  }>;
   tools?: {
     [name in keyof TS]: {
       description?: string;
@@ -403,7 +625,7 @@ export function render<
             : {}),
           onText(chunk) {
             content += chunk;
-            handleRender({ content, done: false }, text, ui);
+            handleRender({ content, done: false, delta: chunk }, text, ui);
           },
           async onFinal() {
             if (hasFunction) {

@@ -1,0 +1,22 @@
+---
+title: HuggingFaceStream
+description: Learn to use HuggingFaceStream helper function in your application.
+---
+
+# `HuggingFaceStream`
+
+Converts the output from language models hosted on Hugging Face into a ReadableStream.
+
+While HuggingFaceStream is compatible with most Hugging Face language models, the rapidly evolving landscape of models may result in certain new or niche models not being supported. If you encounter a model that isn't supported, we encourage you to open an issue.
+
+To ensure that AI responses are comprised purely of text without any delimiters that could pose issues when rendering in chat or completion modes, we standardize and remove special end-of-response tokens. If your use case requires a different handling of responses, you can fork and modify this stream to meet your specific needs.
+
+Currently, `</s>` and `<|endoftext|>` are recognized as end-of-stream tokens.
+
+## Import
+
+### React
+
+<Snippet text={`import { HuggingFaceStream } from "ai"`} prompt={false} />
+
+<ReferenceTable packageName="streams" functionName="HuggingFaceStream" />

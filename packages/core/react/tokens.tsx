@@ -8,8 +8,10 @@ type Props = {
 };
 
 /**
- * A React Server Component that recursively renders a stream of tokens.
- * Can only be used inside of server components.
+A React Server Component that recursively renders a stream of tokens.
+Can only be used inside of server components.
+
+@deprecated Use RSCs / Generative AI instead.
  */
 export async function Tokens(props: Props) {
   const { stream } = props;

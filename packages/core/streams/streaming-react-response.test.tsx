@@ -2,7 +2,7 @@ import ReactDOMServer from 'react-dom/server';
 import {
   OpenAIStream,
   ReactResponseRow,
-  experimental_StreamData,
+  StreamData,
   experimental_StreamingReactResponse,
 } from '.';
 import {
@@ -67,6 +67,7 @@ async function extractReactRowContents(response: Promise<ReactResponseRow>) {
 describe('without ui', () => {
   it('should stream text response as React rows', async () => {
     const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL));
+
     const response = new experimental_StreamingReactResponse(
       stream,
       {},
@@ -84,13 +85,12 @@ describe('without ui', () => {
   });
 
   it('should stream text response as React rows from data stream', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL), {
       onFinal() {
         data.close();
       },
-      experimental_streamData: true,
     });
 
     const response = new experimental_StreamingReactResponse(stream, {
@@ -128,13 +128,12 @@ describe('with ui: sync jsx for content', () => {
   });
 
   it('should stream React response as React rows from data stream', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL), {
       onFinal() {
         data.close();
       },
-      experimental_streamData: true,
     });
 
     const response = new experimental_StreamingReactResponse(stream, {
@@ -173,13 +172,12 @@ describe('with ui: async sync jsx for content', () => {
   });
 
   it('should stream React response as React rows from data stream', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(DEFAULT_TEST_URL), {
       onFinal() {
         data.close();
       },
-      experimental_streamData: true,
     });
 
     const response = new experimental_StreamingReactResponse(stream, {
@@ -201,7 +199,7 @@ describe('with ui: async sync jsx for content', () => {
 
 describe('with ui: sync jsx for content and data', () => {
   it('should stream React response as React rows from data stream when data is appended', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
       onFinal() {
@@ -211,7 +209,6 @@ describe('with ui: sync jsx for content and data', () => {
         data.append({ fn: name });
         return undefined;
       },
-      experimental_streamData: true,
     });
 
     const response = new experimental_StreamingReactResponse(stream, {
@@ -246,7 +243,7 @@ describe('with ui: sync jsx for content and data', () => {
 
 describe('with ui: async jsx for content and data', () => {
   it('should stream React response as React rows from data stream when data is appended', async () => {
-    const data = new experimental_StreamData();
+    const data = new StreamData();
 
     const stream = OpenAIStream(await fetch(FUNCTION_CALL_TEST_URL), {
       onFinal() {
@@ -256,7 +253,6 @@ describe('with ui: async jsx for content and data', () => {
         data.append({ fn: name });
         return undefined;
       },
-      experimental_streamData: true,
     });
 
     const response = new experimental_StreamingReactResponse(stream, {

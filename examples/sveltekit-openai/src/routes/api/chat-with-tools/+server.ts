@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import {
   OpenAIStream,
   StreamingTextResponse,
-  experimental_StreamData,
+  StreamData,
   type Tool,
   type ToolCallPayload,
 } from 'ai';
@@ -70,7 +70,7 @@ export async function POST({ request }) {
     tool_choice: 'auto',
   });
 
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   const stream = OpenAIStream(response, {
     experimental_onToolCall: async (
@@ -109,7 +109,6 @@ export async function POST({ request }) {
     onFinal() {
       data.close();
     },
-    experimental_streamData: true,
   });
 
   data.append({

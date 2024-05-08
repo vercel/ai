@@ -1,8 +1,4 @@
-import {
-  OpenAIStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from 'ai';
+import { OpenAIStream, StreamingTextResponse, StreamData } from 'ai';
 import OpenAI from 'openai';
 import type { ChatCompletionCreateParams } from 'openai/resources/chat';
 
@@ -11,8 +7,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
 
-// IMPORTANT! Set the runtime to edge
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 const functions: ChatCompletionCreateParams.Function[] = [
   {
@@ -58,7 +53,7 @@ export async function POST(req: Request) {
     functions,
   });
 
-  const data = new experimental_StreamData();
+  const data = new StreamData();
   const stream = OpenAIStream(response, {
     experimental_onFunctionCall: async (
       { name, arguments: args },
@@ -91,7 +86,6 @@ export async function POST(req: Request) {
     onFinal(completion) {
       data.close();
     },
-    experimental_streamData: true,
   });
 
   data.append({

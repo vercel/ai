@@ -1,5 +1,4 @@
 import { vi } from 'vitest';
-import { COMPLEX_HEADER } from '../../shared/utils';
 
 export function mockFetchTextStream({
   url,
@@ -52,7 +51,7 @@ export function mockFetchDataStream({
     }
   }
 
-  mockFetchDataStreamWithGenerator({
+  return mockFetchDataStreamWithGenerator({
     url,
     chunkGenerator: generateChunks(),
   });
@@ -65,14 +64,18 @@ export function mockFetchDataStreamWithGenerator({
   url: string;
   chunkGenerator: AsyncGenerator<Uint8Array, void, unknown>;
 }) {
-  vi.spyOn(global, 'fetch').mockImplementation(async () => {
+  let requestBodyResolve: ((value?: unknown) => void) | undefined;
+  const requestBodyPromise = new Promise(resolve => {
+    requestBodyResolve = resolve;
+  });
+
+  vi.spyOn(global, 'fetch').mockImplementation(async (url, init) => {
+    requestBodyResolve?.(init!.body as string);
+
     return {
       url,
       ok: true,
       status: 200,
-      headers: new Map<string, string>([
-        [COMPLEX_HEADER, 'true'],
-      ]) as any as Headers,
       bodyUsed: false,
       body: {
         getReader() {
@@ -87,6 +90,10 @@ export function mockFetchDataStreamWithGenerator({
       },
     } as unknown as Response;
   });
+
+  return {
+    requestBody: requestBodyPromise,
+  };
 }
 
 export function mockFetchError({

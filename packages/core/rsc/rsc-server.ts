@@ -4,4 +4,5 @@ export {
   createStreamableValue,
   render,
 } from './streamable';
+export { streamUI } from './stream-ui';
 export { createAI } from './provider';

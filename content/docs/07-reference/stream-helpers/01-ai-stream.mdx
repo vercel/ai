@@ -1,0 +1,18 @@
+---
+title: AIStream
+description: Learn to use AIStream helper function in your application.
+---
+
+# `AIStream`
+
+Creates a readable stream for AI responses. This is based on the responses returned by fetch and serves as the basis for the OpenAIStream and AnthropicStream. It allows you to handle AI response streams in a controlled and customized manner that will work with useChat and useCompletion.
+
+AIStream will throw an error if res doesn't have a 2xx status code. This is to ensure that the stream is only created for successful responses.
+
+## Import
+
+### React
+
+<Snippet text={`import { AIStream } from "ai"`} prompt={false} />
+
+<ReferenceTable packageName="streams" functionName="AIStream" />

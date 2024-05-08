@@ -1,0 +1,237 @@
+---
+title: Google
+description: Learn how to use Google's Generative AI SDK with the Vercel AI SDK.
+---
+
+# Google
+
+<Note>
+  **It is recommended to use the [AI SDK Google Generative AI
+  Provider](../ai-sdk-providers/google-generative-ai) instead of the legacy
+  Google provider.**
+</Note>
+
+Vercel AI SDK provides a set of utilities to make it easy to use [Google's Generative AI SDK](https://github.com/google/generative-ai-js)
+that enables you to build apps using [Google Gemini](https://ai.google.dev/).
+In this guide, we'll walk through how to use the utilities to create a chat bot and a text completion app.
+
+## Guide: Chat Bot
+
+<Steps>
+
+### Create a Next.js app
+
+Create a Next.js application and install `ai`:
+
+```shell
+pnpm dlx create-next-app my-ai-app
+cd my-ai-app
+pnpm install ai @google/generative-ai
+```
+
+### Add your Google API Key to `.env`
+
+Create a `.env` file in your project root and add your [API Key for the Google AI SDK](https://makersuite.google.com/app/apikey):
+
+```shell file=".env"
+GOOGLE_API_KEY=xxxxxxx
+```
+
+### Create a Route Handler
+
+Create a Next.js Route Handler that generates a response to a series of messages via Google's Generative AI SDK, and returns the response as a streaming text response.
+
+For this example, we'll create a route handler at `app/api/chat/route.ts` that accepts a `POST` request with a `messages` array of strings:
+
+```tsx file="app/api/chat/route.ts" showLineNumbers
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAIStream, Message, StreamingTextResponse } from 'ai';
+
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+
+// convert messages from the Vercel AI SDK Format to the format
+// that is expected by the Google GenAI SDK
+const buildGoogleGenAIPrompt = (messages: Message[]) => ({
+  contents: messages
+    .filter(message => message.role === 'user' || message.role === 'assistant')
+    .map(message => ({
+      role: message.role === 'user' ? 'user' : 'model',
+      parts: [{ text: message.content }],
+    })),
+});
+
+export async function POST(req: Request) {
+  // Extract the `prompt` from the body of the request
+  const { messages } = await req.json();
+
+  const geminiStream = await genAI
+    .getGenerativeModel({ model: 'gemini-pro' })
+    .generateContentStream(buildGoogleGenAIPrompt(messages));
+
+  // Convert the response into a friendly text-stream
+  const stream = GoogleGenerativeAIStream(geminiStream);
+
+  // Respond with the stream
+  return new StreamingTextResponse(stream);
+}
+```
+
+<Note>
+  Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
+  pass the streaming `response` we receive from Google's Generative AI SDK to
+  [`GoogleGenerativeAIStream`](/docs/reference/stream-helpers/google-generative-ai-stream).
+  This utility class decodes/extracts the text tokens in the response and then
+  re-encodes them properly for simple consumption. We can then pass that new
+  stream directly to
+  [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response).
+  This is another utility class that extends the normal Node/Edge Runtime
+  `Response` class with the default headers you probably want (hint:
+  `'Content-Type': 'text/plain; charset=utf-8'` is already set for you).
+</Note>
+
+### Wire up the UI
+
+Create a Client component with a form that we'll use to gather the prompt from the user and then stream back the completion from.
+By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use the `POST` Route Handler we created above (it defaults to `/api/chat`). You can override this by passing a `api` prop to `useChat({ api: '...'})`.
+
+```tsx file="app/page.tsx" showLineNumbers
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          value={input}
+          placeholder="Say something..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+</Steps>
+
+## Guide: Text Completion
+
+<Steps>
+
+### Use the Completion API
+
+Similar to the Chat Bot example above, we'll create a Next.js Route Handler that generates a text completion via the same
+Google Generative AI SDK that we'll then stream back to our Next.js. It accepts a `POST` request with a `prompt` string:
+
+```tsx file="app/api/completion/route.ts" showLineNumbers
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAIStream, StreamingTextResponse } from 'ai';
+
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+
+export async function POST(req: Request) {
+  // Extract the `prompt` from the body of the request
+  const { prompt } = await req.json();
+
+  // Ask Google Generative AI for a streaming completion given the prompt
+  const response = await genAI
+    .getGenerativeModel({ model: 'gemini-pro' })
+    .generateContentStream({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    });
+
+  // Convert the response into a friendly text-stream
+  const stream = GoogleGenerativeAIStream(response);
+
+  // Respond with the stream
+  return new StreamingTextResponse(stream);
+}
+```
+
+### Wire up the UI
+
+We can use the [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hook to make it easy to wire up the UI. By default, the `useCompletion` hook will use the `POST` Route Handler we created above (it defaults to `/api/completion`). You can override this by passing a `api` prop to `useCompletion({ api: '...'})`.
+
+```tsx file="app/page.tsx" showLineNumbers
+'use client';
+
+import { useCompletion } from 'ai/react';
+
+export default function Completion() {
+  const {
+    completion,
+    input,
+    stop,
+    isLoading,
+    handleInputChange,
+    handleSubmit,
+  } = useCompletion();
+
+  return (
+    <div className="mx-auto w-full max-w-md py-24 flex flex-col stretch">
+      <form onSubmit={handleSubmit}>
+        <label>
+          Say something...
+          <input
+            className="fixed w-full max-w-md bottom-0 border border-gray-300 rounded mb-8 shadow-xl p-2"
+            value={input}
+            onChange={handleInputChange}
+          />
+        </label>
+        <output>Completion result: {completion}</output>
+        <button type="button" onClick={stop}>
+          Stop
+        </button>
+        <button disabled={isLoading} type="submit">
+          Send
+        </button>
+      </form>
+    </div>
+  );
+}
+```
+
+</Steps>
+
+## Guide: Save to Database After Completion
+
+It’s common to want to save the result of a completion to a database after streaming it back to the user. The `GoogleGenerativeAIStream` adapter accepts a couple of optional callbacks that can be used to do this.
+
+```tsx file="app/api/completion/route.ts" showLineNumbers
+export async function POST(req: Request) {
+  // ...
+
+  // Convert the response into a friendly text-stream
+  const stream = GoogleGenerativeAIStream(response, {
+    onStart: async () => {
+      // This callback is called when the stream starts
+      // You can use this to save the prompt to your database
+      await savePromptToDatabase(prompt);
+    },
+    onToken: async (token: string) => {
+      // This callback is called for each token in the stream
+      // You can use this to debug the stream or save the tokens to your database
+      console.log(token);
+    },
+    onCompletion: async (completion: string) => {
+      // This callback is called when the completion is ready
+      // You can use this to save the final completion to your database
+      await saveCompletionToDatabase(completion);
+    },
+  });
+
+  // Respond with the stream
+  return new StreamingTextResponse(response);
+}
+```

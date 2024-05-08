@@ -1,21 +1,15 @@
 import { parseComplexResponse } from './parse-complex-response';
-import {
-  FunctionCall,
-  IdGenerator,
-  JSONValue,
-  Message,
-  ToolCall,
-} from './types';
-import { COMPLEX_HEADER, createChunkDecoder } from './utils';
+import { IdGenerator, JSONValue, Message } from './types';
+import { createChunkDecoder } from './utils';
 
 export async function callChatApi({
   api,
   messages,
   body,
+  streamMode = 'stream-data',
   credentials,
   headers,
   abortController,
-  appendMessage,
   restoreMessagesOnFailure,
   onResponse,
   onUpdate,
@@ -25,11 +19,11 @@ export async function callChatApi({
   api: string;
   messages: Omit<Message, 'id'>[];
   body: Record<string, any>;
+  streamMode?: 'stream-data' | 'text';
   credentials?: RequestCredentials;
   headers?: HeadersInit;
   abortController?: () => AbortController | null;
   restoreMessagesOnFailure: () => void;
-  appendMessage: (message: Message) => void;
   onResponse?: (response: Response) => void | Promise<void>;
   onUpdate: (merged: Message[], data: JSONValue[] | undefined) => void;
   onFinish?: (message: Message) => void;
@@ -72,86 +66,63 @@ export async function callChatApi({
   }
 
   const reader = response.body.getReader();
-  const isComplexMode = response.headers.get(COMPLEX_HEADER) === 'true';
 
-  if (isComplexMode) {
-    return await parseComplexResponse({
-      reader,
-      abortControllerRef:
-        abortController != null ? { current: abortController() } : undefined,
-      update: onUpdate,
-      onFinish(prefixMap) {
-        if (onFinish && prefixMap.text != null) {
-          onFinish(prefixMap.text);
+  switch (streamMode) {
+    case 'text': {
+      const decoder = createChunkDecoder();
+
+      const resultMessage = {
+        id: generateId(),
+        createdAt: new Date(),
+        role: 'assistant' as const,
+        content: '',
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
         }
-      },
-      generateId,
-    });
-  } else {
-    const createdAt = new Date();
-    const decode = createChunkDecoder(false);
 
-    // TODO-STREAMDATA: Remove this once Stream Data is not experimental
-    let streamedResponse = '';
-    const replyId = generateId();
-    let responseMessage: Message = {
-      id: replyId,
-      createdAt,
-      content: '',
-      role: 'assistant',
-    };
+        resultMessage.content += decoder(value);
+        resultMessage.id = generateId();
 
-    // TODO-STREAMDATA: Remove this once Stream Data is not experimental
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-      // Update the chat state with the new message tokens.
-      streamedResponse += decode(value);
+        // note: creating a new message object is required for Solid.js streaming
+        onUpdate([{ ...resultMessage }], []);
 
-      if (streamedResponse.startsWith('{"function_call":')) {
-        // While the function call is streaming, it will be a string.
-        responseMessage['function_call'] = streamedResponse;
-      } else if (streamedResponse.startsWith('{"tool_calls":')) {
-        // While the tool calls are streaming, it will be a string.
-        responseMessage['tool_calls'] = streamedResponse;
-      } else {
-        responseMessage['content'] = streamedResponse;
+        // The request has been aborted, stop reading the stream.
+        if (abortController?.() === null) {
+          reader.cancel();
+          break;
+        }
       }
 
-      appendMessage({ ...responseMessage });
+      onFinish?.(resultMessage);
 
-      // The request has been aborted, stop reading the stream.
-      if (abortController?.() === null) {
-        reader.cancel();
-        break;
-      }
+      return {
+        messages: [resultMessage],
+        data: [],
+      };
     }
 
-    if (streamedResponse.startsWith('{"function_call":')) {
-      // Once the stream is complete, the function call is parsed into an object.
-      const parsedFunctionCall: FunctionCall =
-        JSON.parse(streamedResponse).function_call;
-
-      responseMessage['function_call'] = parsedFunctionCall;
-
-      appendMessage({ ...responseMessage });
-    }
-    if (streamedResponse.startsWith('{"tool_calls":')) {
-      // Once the stream is complete, the tool calls are parsed into an array.
-      const parsedToolCalls: ToolCall[] =
-        JSON.parse(streamedResponse).tool_calls;
-
-      responseMessage['tool_calls'] = parsedToolCalls;
-
-      appendMessage({ ...responseMessage });
+    case 'stream-data': {
+      return await parseComplexResponse({
+        reader,
+        abortControllerRef:
+          abortController != null ? { current: abortController() } : undefined,
+        update: onUpdate,
+        onFinish(prefixMap) {
+          if (onFinish && prefixMap.text != null) {
+            onFinish(prefixMap.text);
+          }
+        },
+        generateId,
+      });
     }
 
-    if (onFinish) {
-      onFinish(responseMessage);
+    default: {
+      const exhaustiveCheck: never = streamMode;
+      throw new Error(`Unknown stream mode: ${exhaustiveCheck}`);
     }
-
-    return responseMessage;
   }
 }

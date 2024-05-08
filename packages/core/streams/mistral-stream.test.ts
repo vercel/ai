@@ -1,5 +1,5 @@
 import MistralClient from '@mistralai/mistralai';
-import { StreamingTextResponse, experimental_StreamData } from '.';
+import { StreamingTextResponse, StreamData } from '.';
 import { mistralChunks } from '../tests/snapshots/mistral';
 import { readAllChunks } from '../tests/utils/mock-client';
 import { createMockServer } from '../tests/utils/mock-server';
@@ -27,7 +27,9 @@ describe('MistralStream', () => {
     server.close();
   });
 
-  it('should be able to parse SSE and receive the streamed response', async () => {
+  it('should send text', async () => {
+    const data = new StreamData();
+
     const client = new MistralClient('api-key', 'http://localhost:3030');
 
     const mistralResponse = client.chatStream({
@@ -35,80 +37,52 @@ describe('MistralStream', () => {
       messages: [{ role: 'user', content: 'What is the best French cheese?' }],
     });
 
-    const stream = MistralStream(mistralResponse);
-    const response = new StreamingTextResponse(stream);
+    const stream = MistralStream(mistralResponse, {
+      onFinal() {
+        data.close();
+      },
+    });
+
+    const response = new StreamingTextResponse(stream, {}, data);
 
     const chunks = await readAllChunks(response);
 
-    expect(JSON.stringify(chunks)).toMatchInlineSnapshot(
-      `"[\\"Hello\\",\\",\\",\\" world\\",\\".\\"]"`,
-    );
+    expect(chunks).toEqual([
+      '0:"Hello"\n',
+      '0:","\n',
+      '0:" world"\n',
+      '0:"."\n',
+    ]);
   });
 
-  describe('StreamData protocol', () => {
-    it('should send text', async () => {
-      const data = new experimental_StreamData();
+  it('should send text and data', async () => {
+    const data = new StreamData();
 
-      const client = new MistralClient('api-key', 'http://localhost:3030');
+    data.append({ t1: 'v1' });
 
-      const mistralResponse = client.chatStream({
-        model: 'mistral-small',
-        messages: [
-          { role: 'user', content: 'What is the best French cheese?' },
-        ],
-      });
+    const client = new MistralClient('api-key', 'http://localhost:3030');
 
-      const stream = MistralStream(mistralResponse, {
-        onFinal() {
-          data.close();
-        },
-        experimental_streamData: true,
-      });
-
-      const response = new StreamingTextResponse(stream, {}, data);
-
-      const chunks = await readAllChunks(response);
-
-      expect(chunks).toEqual([
-        '0:"Hello"\n',
-        '0:","\n',
-        '0:" world"\n',
-        '0:"."\n',
-      ]);
+    const mistralResponse = client.chatStream({
+      model: 'mistral-small',
+      messages: [{ role: 'user', content: 'What is the best French cheese?' }],
     });
 
-    it('should send text and data', async () => {
-      const data = new experimental_StreamData();
-
-      data.append({ t1: 'v1' });
-
-      const client = new MistralClient('api-key', 'http://localhost:3030');
-
-      const mistralResponse = client.chatStream({
-        model: 'mistral-small',
-        messages: [
-          { role: 'user', content: 'What is the best French cheese?' },
-        ],
-      });
-
-      const stream = MistralStream(mistralResponse, {
-        onFinal() {
-          data.close();
-        },
-        experimental_streamData: true,
-      });
-
-      const response = new StreamingTextResponse(stream, {}, data);
-
-      const chunks = await readAllChunks(response);
-
-      expect(chunks).toEqual([
-        '2:[{"t1":"v1"}]\n',
-        '0:"Hello"\n',
-        '0:","\n',
-        '0:" world"\n',
-        '0:"."\n',
-      ]);
+    const stream = MistralStream(mistralResponse, {
+      onFinal() {
+        data.close();
+      },
     });
+
+    const response = new StreamingTextResponse(stream, {}, data);
+
+    const chunks = await readAllChunks(response);
+
+    expect(chunks).toEqual([
+      '2:[{"t1":"v1"}]\n',
+      '0:"Hello"\n',
+      '0:","\n',
+      '0:" world"\n',
+      '0:"."\n',
+    ]);
   });
 });

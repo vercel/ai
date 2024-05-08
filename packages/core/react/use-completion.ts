@@ -7,6 +7,8 @@ import {
   UseCompletionOptions,
 } from '../shared/types';
 
+export type { UseCompletionOptions };
+
 export type UseCompletionHelpers = {
   /** The current completion result */
   completion: string;
@@ -56,7 +58,7 @@ export type UseCompletionHelpers = {
   /** Whether the API request is in progress */
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
-  data?: JSONValue[] | undefined;
+  data?: JSONValue[];
 };
 
 export function useCompletion({
@@ -67,6 +69,7 @@ export function useCompletion({
   credentials,
   headers,
   body,
+  streamMode,
   onResponse,
   onFinish,
   onError,
@@ -120,6 +123,7 @@ export function useCompletion({
           ...extraMetadataRef.current.body,
           ...options?.body,
         },
+        streamMode,
         setCompletion: completion => mutate(completion, false),
         setLoading: mutateLoading,
         setError,

@@ -8,6 +8,8 @@ import type {
   UseCompletionOptions,
 } from '../shared/types';
 
+export type { UseCompletionOptions };
+
 export type UseCompletionHelpers = {
   /** The current completion result */
   completion: Ref<string>;
@@ -61,6 +63,7 @@ export function useCompletion({
   credentials,
   headers,
   body,
+  streamMode,
   onResponse,
   onFinish,
   onError,
@@ -114,6 +117,7 @@ export function useCompletion({
         ...unref(body),
         ...options?.body,
       },
+      streamMode,
       setCompletion: mutate,
       setLoading: loading => mutateLoading(() => loading),
       setError: err => {

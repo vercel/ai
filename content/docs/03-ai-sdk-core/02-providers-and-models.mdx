@@ -1,0 +1,55 @@
+---
+title: Providers and Models
+description: Learn about the providers and models available in the Vercel AI SDK.
+---
+
+# Providers and Models
+
+Companies such as OpenAI and Anthropic (providers) offer access to a range of large language models (LLMs) with differing strengths and capabilities through their own APIs.
+
+Each provider typically has its own unique method for interfacing with their models, complicating the process of switching providers and increasing the risk of vendor lock-in.
+
+To solve these challenges, Vercel AI SDK Core offers a standardized approach to interacting with LLMs through a [language model specification](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v1) that abstracts differences between providers. This unified interface allows you to switch between providers with ease while using the same API for all providers.
+
+Here is an overview of the AI SDK Provider Architecture:
+
+![AI SDK Core Provider Architecture](/images/ai-sdk-diagram.png)
+
+## AI SDK Providers
+
+Vercel AI SDK comes with several providers that you can use to interact with different language models:
+
+- [OpenAI Provider](/providers/ai-sdk-providers/openai) (`@ai-sdk/openai`)
+- [Mistral Provider](/providers/ai-sdk-providers/mistral) (`@ai-sdk/mistral`)
+- [Google Provider](/providers/ai-sdk-providers/google-generative-ai) (`@ai-sdk/google`)
+- [Anthropic Provider](/providers/ai-sdk-providers/anthropic) (`@ai-sdk/anthropic`)
+
+You can also use the OpenAI provider with OpenAI-compatible APIs:
+
+- [Groq](/providers/ai-sdk-providers/groq)
+- [Perplexity](/providers/ai-sdk-providers/perplexity)
+- [Fireworks](/providers/ai-sdk-providers/fireworks)
+
+Our [language model specification](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v1) is published as an open-source package, which you can use to create [custom providers](/providers/community-providers/custom-providers).
+
+The open-source community has created the following providers:
+
+- [LLamaCpp Provider](/providers/community-providers/llama-cpp) (`nnance/llamacpp-ai-provider `)
+- [Ollama Provider](/providers/community-providers/ollama) (`sgomez/ollama-ai-provider`)
+
+## Model Capabilities
+
+The AI providers support different language models with various capabilities.
+Here are the capabilities of popular models:
+
+| Provider                                                   | Model                          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ---------------------------------------------------------- | ------------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| [OpenAI](/providers/ai-sdk-providers/openai)               | `gpt-4-turbo`                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)               | `gpt-4`                        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)               | `gpt-3.5-turbo`                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)         | `claude-3-opus-20240229`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)         | `claude-3-sonnet-20240229`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)         | `claude-3-haiku-20240307`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| [Mistral](/providers/ai-sdk-providers/mistral)             | `mistral-large-latest`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Mistral](/providers/ai-sdk-providers/mistral)             | `mistral-small-latest`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Google](/providers/ai-sdk-providers/google-generative-ai) | `models/gemini-1.5-pro-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |

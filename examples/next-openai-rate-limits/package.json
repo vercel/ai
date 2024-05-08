@@ -11,8 +11,8 @@
   "dependencies": {
     "@upstash/ratelimit": "^0.4.3",
     "@vercel/kv": "^0.2.2",
-    "ai": "3.0.7",
-    "next": "14.1.1",
+    "ai": "latest",
+    "next": "latest",
     "openai": "4.16.1",
     "react": "18.2.0",
     "react-dom": "^18.2.0",

@@ -1,9 +1,5 @@
 import { HfInference } from '@huggingface/inference';
-import {
-  HuggingFaceStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from '.';
+import { HuggingFaceStream, StreamingTextResponse, StreamData } from '.';
 import { huggingfaceChunks } from '../tests/snapshots/huggingface';
 import { createClient } from '../tests/utils/mock-client';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
@@ -35,78 +31,56 @@ describe('HuggingFace stream', () => {
     return createClient(response).readAll();
   }
 
-  it('should be able to parse HuggingFace response and receive the streamed response', async () => {
+  it('should send text', async () => {
+    const data = new StreamData();
+
     const stream = HuggingFaceStream(
       Hf.textGenerationStream(
         { model: 'model', inputs: '' },
         { fetch: () => fetch(DEFAULT_TEST_URL) },
       ),
+      {
+        onFinal() {
+          data.close();
+        },
+      },
     );
 
-    const response = new StreamingTextResponse(stream);
+    const response = new StreamingTextResponse(stream, {}, data);
 
     expect(await readAllChunks(response)).toEqual([
-      'Hello',
-      ',',
-      ' world',
-      '.',
+      '0:"Hello"\n',
+      '0:","\n',
+      '0:" world"\n',
+      '0:"."\n',
     ]);
   });
 
-  describe('StreamData prototcol', () => {
-    it('should send text', async () => {
-      const data = new experimental_StreamData();
+  it('should send text and data', async () => {
+    const data = new StreamData();
 
-      const stream = HuggingFaceStream(
-        Hf.textGenerationStream(
-          { model: 'model', inputs: '' },
-          { fetch: () => fetch(DEFAULT_TEST_URL) },
-        ),
-        {
-          onFinal() {
-            data.close();
-          },
-          experimental_streamData: true,
+    data.append({ t1: 'v1' });
+
+    const stream = HuggingFaceStream(
+      Hf.textGenerationStream(
+        { model: 'model', inputs: '' },
+        { fetch: () => fetch(DEFAULT_TEST_URL) },
+      ),
+      {
+        onFinal() {
+          data.close();
         },
-      );
+      },
+    );
 
-      const response = new StreamingTextResponse(stream, {}, data);
+    const response = new StreamingTextResponse(stream, {}, data);
 
-      expect(await readAllChunks(response)).toEqual([
-        '0:"Hello"\n',
-        '0:","\n',
-        '0:" world"\n',
-        '0:"."\n',
-      ]);
-    });
-
-    it('should send text and data', async () => {
-      const data = new experimental_StreamData();
-
-      data.append({ t1: 'v1' });
-
-      const stream = HuggingFaceStream(
-        Hf.textGenerationStream(
-          { model: 'model', inputs: '' },
-          { fetch: () => fetch(DEFAULT_TEST_URL) },
-        ),
-        {
-          onFinal() {
-            data.close();
-          },
-          experimental_streamData: true,
-        },
-      );
-
-      const response = new StreamingTextResponse(stream, {}, data);
-
-      expect(await readAllChunks(response)).toEqual([
-        '2:[{"t1":"v1"}]\n',
-        '0:"Hello"\n',
-        '0:","\n',
-        '0:" world"\n',
-        '0:"."\n',
-      ]);
-    });
+    expect(await readAllChunks(response)).toEqual([
+      '2:[{"t1":"v1"}]\n',
+      '0:"Hello"\n',
+      '0:","\n',
+      '0:" world"\n',
+      '0:"."\n',
+    ]);
   });
 });

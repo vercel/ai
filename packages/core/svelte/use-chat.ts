@@ -11,7 +11,7 @@ import type {
   Message,
   UseChatOptions,
 } from '../shared/types';
-import { nanoid } from '../shared/utils';
+import { generateId as generateIdFunc } from '../shared/generate-id';
 export type { CreateMessage, Message, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -72,6 +72,7 @@ const getStreamedResponse = async (
   previousMessages: Message[],
   abortControllerRef: AbortController | null,
   generateId: IdGenerator,
+  streamMode?: 'stream-data' | 'text',
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean,
@@ -116,15 +117,13 @@ const getStreamedResponse = async (
         tool_choice: chatRequest.tool_choice,
       }),
     },
+    streamMode,
     credentials: extraMetadata.credentials,
     headers: {
       ...extraMetadata.headers,
       ...chatRequest.options?.headers,
     },
     abortController: () => abortControllerRef,
-    appendMessage(message) {
-      mutate([...chatRequest.messages, message]);
-    },
     restoreMessagesOnFailure() {
       mutate(previousMessages);
     },
@@ -150,13 +149,14 @@ export function useChat({
   sendExtraMessageFields,
   experimental_onFunctionCall,
   experimental_onToolCall,
+  streamMode,
   onResponse,
   onFinish,
   onError,
   credentials,
   headers,
   body,
-  generateId = nanoid,
+  generateId = generateIdFunc,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
@@ -219,6 +219,7 @@ export function useChat({
             get(messages),
             abortController,
             generateId,
+            streamMode,
             onFinish,
             onResponse,
             sendExtraMessageFields,

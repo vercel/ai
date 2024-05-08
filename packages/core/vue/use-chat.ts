@@ -2,6 +2,7 @@ import swrv from 'swrv';
 import type { Ref } from 'vue';
 import { ref, unref } from 'vue';
 import { callChatApi } from '../shared/call-chat-api';
+import { generateId as generateIdFunc } from '../shared/generate-id';
 import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
@@ -11,7 +12,6 @@ import type {
   Message,
   UseChatOptions,
 } from '../shared/types';
-import { nanoid } from '../shared/utils';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -70,13 +70,14 @@ export function useChat({
   initialInput = '',
   sendExtraMessageFields,
   experimental_onFunctionCall,
+  streamMode,
   onResponse,
   onFinish,
   onError,
   credentials,
   headers,
   body,
-  generateId = nanoid,
+  generateId = generateIdFunc,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
@@ -154,6 +155,7 @@ export function useChat({
               ...unref(body), // Use unref to unwrap the ref value
               ...options?.body,
             },
+            streamMode,
             headers: {
               ...headers,
               ...options?.headers,
@@ -170,9 +172,6 @@ export function useChat({
               // push it twice to make sure it's displayed.
               mutate([...chatRequest.messages, message]);
               onFinish?.(message);
-            },
-            appendMessage(message) {
-              mutate([...chatRequest.messages, message]);
             },
             restoreMessagesOnFailure() {
               // Restore the previous messages if the request fails.

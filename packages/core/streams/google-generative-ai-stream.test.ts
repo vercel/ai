@@ -1,8 +1,4 @@
-import {
-  GoogleGenerativeAIStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from '.';
+import { GoogleGenerativeAIStream, StreamingTextResponse, StreamData } from '.';
 import { readAllChunks } from '../tests/utils/mock-client';
 
 function simulateGenerativeAIResponse(chunks: any[]) {
@@ -67,57 +63,45 @@ export const googleGenerativeAIChunks = [
   },
 ];
 
-it('should be able to parse SSE and receive the streamed response', async () => {
-  const aiResponse = simulateGenerativeAIResponse(googleGenerativeAIChunks);
-  const stream = GoogleGenerativeAIStream(aiResponse);
-  const response = new StreamingTextResponse(stream);
+it('should send text', async () => {
+  const data = new StreamData();
 
-  expect(await readAllChunks(response)).toEqual(['Hello', ',', ' world', '.']);
+  const aiResponse = simulateGenerativeAIResponse(googleGenerativeAIChunks);
+  const stream = GoogleGenerativeAIStream(aiResponse, {
+    onFinal() {
+      data.close();
+    },
+  });
+
+  const response = new StreamingTextResponse(stream, {}, data);
+
+  expect(await readAllChunks(response)).toEqual([
+    '0:"Hello"\n',
+    '0:","\n',
+    '0:" world"\n',
+    '0:"."\n',
+  ]);
 });
 
-describe('StreamData protocol', () => {
-  it('should send text', async () => {
-    const data = new experimental_StreamData();
+it('should send text and data', async () => {
+  const data = new StreamData();
 
-    const aiResponse = simulateGenerativeAIResponse(googleGenerativeAIChunks);
-    const stream = GoogleGenerativeAIStream(aiResponse, {
-      onFinal() {
-        data.close();
-      },
-      experimental_streamData: true,
-    });
+  data.append({ t1: 'v1' });
 
-    const response = new StreamingTextResponse(stream, {}, data);
-
-    expect(await readAllChunks(response)).toEqual([
-      '0:"Hello"\n',
-      '0:","\n',
-      '0:" world"\n',
-      '0:"."\n',
-    ]);
+  const aiResponse = simulateGenerativeAIResponse(googleGenerativeAIChunks);
+  const stream = GoogleGenerativeAIStream(aiResponse, {
+    onFinal() {
+      data.close();
+    },
   });
 
-  it('should send text and data', async () => {
-    const data = new experimental_StreamData();
+  const response = new StreamingTextResponse(stream, {}, data);
 
-    data.append({ t1: 'v1' });
-
-    const aiResponse = simulateGenerativeAIResponse(googleGenerativeAIChunks);
-    const stream = GoogleGenerativeAIStream(aiResponse, {
-      onFinal() {
-        data.close();
-      },
-      experimental_streamData: true,
-    });
-
-    const response = new StreamingTextResponse(stream, {}, data);
-
-    expect(await readAllChunks(response)).toEqual([
-      '2:[{"t1":"v1"}]\n',
-      '0:"Hello"\n',
-      '0:","\n',
-      '0:" world"\n',
-      '0:"."\n',
-    ]);
-  });
+  expect(await readAllChunks(response)).toEqual([
+    '2:[{"t1":"v1"}]\n',
+    '0:"Hello"\n',
+    '0:","\n',
+    '0:" world"\n',
+    '0:"."\n',
+  ]);
 });

@@ -1,5 +1,222 @@
 # ai
 
+## 3.1.2
+
+### Patch Changes
+
+- d1b1880: fix (ai/core): allow reading streams in streamText result multiple times
+
+## 3.1.1
+
+### Patch Changes
+
+- 0f77132: ai/rsc: remove experimental\_ from streamUI
+
+## 3.1.0
+
+### Minor Changes
+
+- 73356a9: Move AI Core functions out of experimental (streamText, generateText, streamObject, generateObject).
+
+## 3.0.35
+
+### Patch Changes
+
+- 41d5736: ai/core: re-expose language model types.
+- b4c68ec: ai/rsc: ReadableStream as provider for createStreamableValue; add .append() method
+- Updated dependencies [41d5736]
+  - @ai-sdk/provider@0.0.3
+  - @ai-sdk/provider-utils@0.0.5
+
+## 3.0.34
+
+### Patch Changes
+
+- b9a831e: ai/rsc: add experimental_streamUI()
+
+## 3.0.33
+
+### Patch Changes
+
+- 56ef84a: ai/core: fix abort handling in transformation stream
+- Updated dependencies [56ef84a]
+  - @ai-sdk/provider-utils@0.0.4
+
+## 3.0.32
+
+### Patch Changes
+
+- 0e0d2af: ai/core: add pipeTextStreamToResponse helper to streamText.
+
+## 3.0.31
+
+### Patch Changes
+
+- 74c63b1: ai/core: add toAIStreamResponse() helper to streamText.
+
+## 3.0.30
+
+### Patch Changes
+
+- e7e5898: use-assistant: fix missing message content
+
+## 3.0.29
+
+### Patch Changes
+
+- 22a737e: Fix: mark useAssistant as in progress for append/submitMessage.
+
+## 3.0.28
+
+### Patch Changes
+
+- d6431ae: ai/core: add logprobs support (thanks @SamStenner for the contribution)
+- 25f3350: ai/core: add support for getting raw response headers.
+- Updated dependencies [d6431ae]
+- Updated dependencies [25f3350]
+  - @ai-sdk/provider@0.0.2
+  - @ai-sdk/provider-utils@0.0.3
+
+## 3.0.27
+
+### Patch Changes
+
+- eb150a6: ai/core: remove scaling of setting values (breaking change). If you were using the temperature, frequency penalty, or presence penalty settings, you need to update the providers and adjust the setting values.
+- Updated dependencies [eb150a6]
+  - @ai-sdk/provider-utils@0.0.2
+  - @ai-sdk/provider@0.0.1
+
+## 3.0.26
+
+### Patch Changes
+
+- f90f6a1: ai/core: add pipeAIStreamToResponse() to streamText result.
+
+## 3.0.25
+
+### Patch Changes
+
+- 1e84d6d: Fix: remove mistral lib type dependency.
+- 9c2a049: Add append() helper to useAssistant.
+
+## 3.0.24
+
+### Patch Changes
+
+- e94fb32: feat(ai/rsc): Make `onSetAIState` and `onGetUIState` stable
+
+## 3.0.23
+
+### Patch Changes
+
+- 66b5892: Add streamMode parameter to useChat and useCompletion.
+- Updated dependencies [7b8791d]
+  - @ai-sdk/provider-utils@0.0.1
+
+## 3.0.22
+
+### Patch Changes
+
+- d544886: Breaking change: extract experimental AI core provider packages. They can now be imported with e.g. import { openai } from '@ai-sdk/openai' after adding them to a project.
+- ea6b0e1: Expose formatStreamPart, parseStreamPart, and readDataStream helpers.
+
+## 3.0.21
+
+### Patch Changes
+
+- 87d3db5: Extracted @ai-sdk/provider package
+- 8c40f8c: ai/core: Fix openai provider streamObject for gpt-4-turbo
+- 5cd29bd: ai/core: add toTextStreamResponse() method to streamText result
+
+## 3.0.20
+
+### Patch Changes
+
+- f42bbb5: Remove experimental from useAssistant and AssistantResponse.
+- 149fe26: Deprecate <Tokens/>
+- 2eb4b55: Remove experimental\_ prefix from StreamData.
+- e45fa96: Add stream support for Bedrock/Cohere.
+- a6b2500: Deprecated the `experimental_streamData: true` setting from AIStreamCallbacksAndOptions. You can delete occurrences in your code. The stream data protocol is now used by default.
+
+## 3.0.19
+
+### Patch Changes
+
+- 4f4c7f5: ai/core: Anthropic tool call support
+
+## 3.0.18
+
+### Patch Changes
+
+- 63d587e: Add Anthropic provider for ai/core functions (no tool calling).
+- 63d587e: Add automatic mime type detection for images in ai/core prompts.
+
+## 3.0.17
+
+### Patch Changes
+
+- 2b991c4: Add Google Generative AI provider for ai/core functions.
+
+## 3.0.16
+
+### Patch Changes
+
+- a54ea77: feat(ai/rsc): add `useStreamableValue`
+
+## 3.0.15
+
+### Patch Changes
+
+- 4aed2a5: Add JSDoc comments for ai/core functions.
+- cf8d12f: Export experimental language model specification under `ai/spec`.
+
+## 3.0.14
+
+### Patch Changes
+
+- 8088de8: fix(ai/rsc): improve typings for `StreamableValue`
+- 20007b9: feat(ai/rsc): support string diff and patch in streamable value
+- 6039460: Support Bedrock Anthropic Stream for Messages API.
+- e83bfe3: Added experimental ai/core functions (streamText, generateText, streamObject, generateObject). Add OpenAI and Mistral language model providers.
+
+## 3.0.13
+
+### Patch Changes
+
+- 026d061: Expose setMessages in useAssistant hook
+- 42209be: AssistantResponse: specify forwardStream return type.
+
+## 3.0.12
+
+### Patch Changes
+
+- b99b008: fix(ai/rsc): avoid appending boundary if the same reference was passed
+
+## 3.0.11
+
+### Patch Changes
+
+- ce009e2: Added OpenAI assistants streaming.
+- 3f9bf3e: Updates types to OpenAI SDK 4.29.0
+
+## 3.0.10
+
+### Patch Changes
+
+- 33d261a: fix(ai/rsc): Fix .append() behavior
+
+## 3.0.9
+
+### Patch Changes
+
+- 81ca3d6: fix(ai/rsc): improve .done() argument type
+
+## 3.0.8
+
+### Patch Changes
+
+- a94aab2: ai/rsc: optimize streamable value stream size
+
 ## 3.0.7
 
 ### Patch Changes

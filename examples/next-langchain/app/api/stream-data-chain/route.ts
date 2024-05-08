@@ -1,13 +1,9 @@
-import {
-  LangChainStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from 'ai';
+import { LangChainStream, StreamingTextResponse, StreamData } from 'ai';
 import { LLMChain } from 'langchain/chains';
 import { OpenAI } from 'langchain/llms/openai';
 import { PromptTemplate } from 'langchain/prompts';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   const { prompt: value } = await req.json();
@@ -18,7 +14,7 @@ export async function POST(req: Request) {
   );
   const chain = new LLMChain({ llm: model, prompt });
 
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   // important: use LangChainStream from the AI SDK:
   const { stream, handlers } = LangChainStream({
@@ -26,7 +22,6 @@ export async function POST(req: Request) {
       data.append(JSON.stringify({ key: 'value' })); // example
       data.close();
     },
-    experimental_streamData: true,
   });
 
   await chain.stream({ product: value }, { callbacks: [handlers] });

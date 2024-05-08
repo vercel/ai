@@ -1,9 +1,5 @@
 import OpenAI from 'openai';
-import {
-  OpenAIStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from 'ai';
+import { OpenAIStream, StreamingTextResponse, StreamData } from 'ai';
 import { env } from '$env/dynamic/private';
 import type { ChatCompletionCreateParams } from 'openai/resources/chat';
 
@@ -60,7 +56,7 @@ export async function POST({ request }) {
     functions,
   });
 
-  const data = new experimental_StreamData();
+  const data = new StreamData();
   const stream = OpenAIStream(response, {
     experimental_onFunctionCall: async (
       { name, arguments: args },
@@ -88,7 +84,6 @@ export async function POST({ request }) {
     onFinal(completion) {
       data.close();
     },
-    experimental_streamData: true,
   });
 
   data.append({

@@ -3,7 +3,7 @@
 import {
   Message,
   OpenAIStream,
-  experimental_StreamData,
+  StreamData,
   experimental_StreamingReactResponse,
 } from 'ai';
 import { experimental_buildOpenAIMessages } from 'ai/prompts';
@@ -48,7 +48,7 @@ const functions: ChatCompletionCreateParams.Function[] = [
 ];
 
 export async function handler({ messages }: { messages: Message[] }) {
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY!,
@@ -101,7 +101,6 @@ export async function handler({ messages }: { messages: Message[] }) {
 
       return undefined;
     },
-    experimental_streamData: true,
   });
 
   return new experimental_StreamingReactResponse(stream, {
@@ -113,11 +112,11 @@ export async function handler({ messages }: { messages: Message[] }) {
         switch (value.type) {
           case 'weather': {
             return (
-              <div className="bg-blue-500 text-white p-6 rounded-lg shadow-md">
-                <div className="flex justify-between items-center">
+              <div className="p-6 text-white bg-blue-500 rounded-lg shadow-md">
+                <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold">{value.location}</h2>
                   <svg
-                    className=" w-8 h-8"
+                    className="w-8 h-8 "
                     fill="none"
                     height="24"
                     stroke="currentColor"
@@ -131,7 +130,7 @@ export async function handler({ messages }: { messages: Message[] }) {
                     <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
                   </svg>
                 </div>
-                <p className="text-4xl font-semibold mt-2">
+                <p className="mt-2 text-4xl font-semibold">
                   {value.temperature}° {value.format}
                 </p>
               </div>
@@ -143,7 +142,7 @@ export async function handler({ messages }: { messages: Message[] }) {
               <div className="border-8 border-[#8B4513] dark:border-[#5D2E1F] rounded-lg overflow-hidden">
                 <img
                   alt="Framed Image"
-                  className="aspect-square object-cover w-full"
+                  className="object-cover w-full aspect-square"
                   height="500"
                   src={value.url}
                   width="500"

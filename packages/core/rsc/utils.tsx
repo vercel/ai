@@ -13,15 +13,16 @@ export function createResolvablePromise<T = any>() {
   };
 }
 
-export function createSuspensedChunk(initialValue: React.ReactNode) {
-  const Row = (async ({
-    current,
-    next,
+// Use the name `R` for `Row` as it will be shorter in the RSC payload.
+const R = [
+  (async ({
+    c, // current
+    n, // next
   }: {
-    current: React.ReactNode;
-    next: Promise<any>;
+    c: React.ReactNode;
+    n: Promise<any>;
   }) => {
-    const chunk = await next;
+    const chunk = await n;
     if (chunk.done) {
       return chunk.value;
     }
@@ -29,9 +30,9 @@ export function createSuspensedChunk(initialValue: React.ReactNode) {
     if (chunk.append) {
       return (
         <>
-          {current}
+          {c}
           <Suspense fallback={chunk.value}>
-            <Row current={chunk.value} next={chunk.next} />
+            <R c={chunk.value} n={chunk.next} />
           </Suspense>
         </>
       );
@@ -39,20 +40,22 @@ export function createSuspensedChunk(initialValue: React.ReactNode) {
 
     return (
       <Suspense fallback={chunk.value}>
-        <Row current={chunk.value} next={chunk.next} />
+        <R c={chunk.value} n={chunk.next} />
       </Suspense>
     );
-  }) /* Our React typings don't support async components */ as unknown as React.FC<{
-    current: React.ReactNode;
-    next: Promise<any>;
-  }>;
+  }) as unknown as React.FC<{
+    c: React.ReactNode;
+    n: Promise<any>;
+  }>,
+][0];
 
+export function createSuspensedChunk(initialValue: React.ReactNode) {
   const { promise, resolve, reject } = createResolvablePromise();
 
   return {
     row: (
       <Suspense fallback={initialValue}>
-        <Row current={initialValue} next={promise} />
+        <R c={initialValue} n={promise} />
       </Suspense>
     ),
     resolve,

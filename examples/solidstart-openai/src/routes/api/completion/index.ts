@@ -1,8 +1,4 @@
-import {
-  OpenAIStream,
-  StreamingTextResponse,
-  experimental_StreamData,
-} from 'ai';
+import { OpenAIStream, StreamingTextResponse, StreamData } from 'ai';
 import OpenAI from 'openai';
 
 import { APIEvent } from 'solid-start/api';
@@ -24,7 +20,7 @@ export const POST = async (event: APIEvent) => {
   });
 
   // optional: use stream data
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   data.append({ test: 'value' });
 
@@ -33,7 +29,6 @@ export const POST = async (event: APIEvent) => {
     onFinal(completion) {
       data.close();
     },
-    experimental_streamData: true,
   });
 
   // Respond with the stream

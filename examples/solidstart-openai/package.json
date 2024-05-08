@@ -16,9 +16,10 @@
     "vite": "^4.1.4"
   },
   "dependencies": {
+    "@ai-sdk/openai": "latest",
     "@solidjs/meta": "0.29.3",
     "@solidjs/router": "0.8.2",
-    "ai": "3.0.7",
+    "ai": "latest",
     "openai": "4.16.1",
     "solid-js": "1.8.7",
     "solid-start": "0.3.10",

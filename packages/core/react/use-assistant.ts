@@ -1,8 +1,10 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
 import { useState } from 'react';
+
+import { generateId } from '../shared/generate-id';
 import { readDataStream } from '../shared/read-data-stream';
-import { Message } from '../shared/types';
+import { CreateMessage, Message } from '../shared/types';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
@@ -13,6 +15,11 @@ export type UseAssistantHelpers = {
   messages: Message[];
 
   /**
+   * setState-powered method to update the messages array.
+   */
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+
+  /**
    * The current thread ID.
    */
   threadId: string | undefined;
@@ -21,6 +28,19 @@ export type UseAssistantHelpers = {
    * The current value of the input field.
    */
   input: string;
+
+  /**
+   * Append a user message to the chat list. This triggers the API call to fetch
+   * the assistant's response.
+   * @param message The message to append
+   * @param requestOptions Additional options to pass to the API call
+   */
+  append: (
+    message: Message | CreateMessage,
+    requestOptions?: {
+      data?: Record<string, string>;
+    },
+  ) => Promise<void>;
 
   /**
    * setState-powered method to update the input value.
@@ -69,7 +89,7 @@ export type UseAssistantOptions = {
    * An optional string that represents the ID of an existing thread.
    * If not provided, a new thread will be created.
    */
-  threadId?: string | undefined;
+  threadId?: string;
 
   /**
    * An optional literal that sets the mode of credentials to be used on the request.
@@ -93,7 +113,7 @@ export type UseAssistantOptions = {
   onError?: (error: Error) => void;
 };
 
-export function experimental_useAssistant({
+export function useAssistant({
   api,
   threadId: threadIdParam,
   credentials,
@@ -115,47 +135,44 @@ export function experimental_useAssistant({
     setInput(event.target.value);
   };
 
-  const submitMessage = async (
-    event?: React.FormEvent<HTMLFormElement>,
+  const append = async (
+    message: Message | CreateMessage,
     requestOptions?: {
       data?: Record<string, string>;
     },
   ) => {
-    event?.preventDefault?.();
-
-    if (input === '') {
-      return;
-    }
-
     setStatus('in_progress');
 
     setMessages(messages => [
       ...messages,
-      { id: '', role: 'user', content: input },
+      {
+        ...message,
+        id: message.id ?? generateId(),
+      },
     ]);
 
     setInput('');
 
-    const result = await fetch(api, {
-      method: 'POST',
-      credentials,
-      headers: { 'Content-Type': 'application/json', ...headers },
-      body: JSON.stringify({
-        ...body,
-        // always use user-provided threadId when available:
-        threadId: threadIdParam ?? threadId ?? null,
-        message: input,
-
-        // optional request data:
-        data: requestOptions?.data,
-      }),
-    });
-
-    if (result.body == null) {
-      throw new Error('The response body is empty.');
-    }
-
     try {
+      const result = await fetch(api, {
+        method: 'POST',
+        credentials,
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({
+          ...body,
+          // always use user-provided threadId when available:
+          threadId: threadIdParam ?? threadId ?? null,
+          message: message.content,
+
+          // optional request data:
+          data: requestOptions?.data,
+        }),
+      });
+
+      if (result.body == null) {
+        throw new Error('The response body is empty.');
+      }
+
       for await (const { type, value } of readDataStream(
         result.body.getReader(),
       )) {
@@ -172,11 +189,28 @@ export function experimental_useAssistant({
             break;
           }
 
+          case 'text': {
+            // text delta - add to last message:
+            setMessages(messages => {
+              const lastMessage = messages[messages.length - 1];
+              return [
+                ...messages.slice(0, messages.length - 1),
+                {
+                  id: lastMessage.id,
+                  role: lastMessage.role,
+                  content: lastMessage.content + value,
+                },
+              ];
+            });
+
+            break;
+          }
+
           case 'data_message': {
             setMessages(messages => [
               ...messages,
               {
-                id: value.id ?? '',
+                id: value.id ?? generateId(),
                 role: 'data',
                 content: '',
                 data: value.data,
@@ -216,8 +250,25 @@ export function experimental_useAssistant({
     setStatus('awaiting_message');
   };
 
+  const submitMessage = async (
+    event?: React.FormEvent<HTMLFormElement>,
+    requestOptions?: {
+      data?: Record<string, string>;
+    },
+  ) => {
+    event?.preventDefault?.();
+
+    if (input === '') {
+      return;
+    }
+
+    append({ role: 'user', content: input }, requestOptions);
+  };
+
   return {
+    append,
     messages,
+    setMessages,
     threadId,
     input,
     setInput,
@@ -227,3 +278,8 @@ export function experimental_useAssistant({
     error,
   };
 }
+
+/**
+@deprecated Use `useAssistant` instead.
+ */
+export const experimental_useAssistant = useAssistant;

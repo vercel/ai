@@ -1,0 +1,72 @@
+---
+title: Streaming User Interfaces
+description: Overview of streaming user interfaces
+---
+
+import { UIPreviewCard, Card } from '@/components/home/card';
+import { EventPlanning } from '@/components/home/event-planning';
+import { Searching } from '@/components/home/searching';
+import { Weather } from '@/components/home/weather';
+
+# Streaming User Interfaces
+
+The RSC API allows you to stream user interfaces from the server to the client using [`createStreamableUI`](/docs/reference/ai-sdk-rsc/create-streamable-ui).
+
+This is useful when you want to go beyond raw data and stream React components to the client in real-time.
+
+## Creating a Streamable UI
+
+You can import `createStreamableUI` from `ai/rsc` and use it to create a streamable UI.
+
+```tsx file='app/actions.ts'
+'use server'
+
+import { createStreamableUI } from 'ai/rsc'
+
+export async function getWeather {
+  const weatherUI = createStreamableUI()
+
+  weatherUI.update(<div style={{ color: 'gray' }}>Loading...</div>)
+
+  setTimeout(() => {
+    weatherUI.done(<div>It's a sunny day!</div>)
+  }, 1000)
+
+  return weatherUI.value
+}
+```
+
+In the example above, `'use server'` is used to indicate that the exported function is a Server Action function that can be requested by the client. Initially, we create a streamable UI and update it with a loading message. After 1 second, we mark it as done with the actual weather information. And the `.value` property contains the actual UI piece that can be sent to the client.
+
+## Reading a Streamable UI
+
+On the client side, you can request to the `getWeather` Server Action via a normal function call, render the returned UI like any other normal React components.
+
+```tsx file='app/page.tsx'
+import { useState } from 'react';
+import { readStreamableValue } from 'ai/rsc';
+import { runThread } from '@/actions';
+
+export default function Page() {
+  const [weather, setWeather] = useState(null);
+
+  return (
+    <div>
+      <button
+        onClick={async () => {
+          const weatherUI = await getWeather();
+          setWeather(weatherUI);
+        }}
+      >
+        What's the weather?
+      </button>
+
+      {weather}
+    </div>
+  );
+}
+```
+
+When the button is clicked, the `getWeather` function is called, and the returned UI is set to the `weather` state and rendered on the page. Users will see the loading message first and then the actual weather information after 1 second.
+
+You can also handle multiple streams in a single request, you can learn more about it in the [Multiple Streamables](/docs/advanced/multiple-streamables) guide.

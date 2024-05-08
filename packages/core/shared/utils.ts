@@ -1,15 +1,19 @@
-import { customAlphabet } from 'nanoid/non-secure';
 import {
   StreamPartType,
   StreamStringPrefixes,
   parseStreamPart,
 } from './stream-parts';
 
-// 7-character random string
-export const nanoid = customAlphabet(
-  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-  7,
-);
+export * from './generate-id';
+
+// TODO remove (breaking change)
+export { generateId as nanoid } from './generate-id';
+
+// Export stream data utilities for custom stream implementations,
+// both on the client and server side.
+export type { StreamPart } from './stream-parts';
+export { formatStreamPart, parseStreamPart } from './stream-parts';
+export { readDataStream } from './read-data-stream';
 
 // simple decoder signatures:
 function createChunkDecoder(): (chunk: Uint8Array | undefined) => string;
@@ -54,8 +58,3 @@ export const isStreamStringEqualToType = (
 
 export type StreamString =
   `${(typeof StreamStringPrefixes)[keyof typeof StreamStringPrefixes]}:${string}\n`;
-
-/**
- * A header sent to the client so it knows how to handle parsing the stream (as a deprecated text response or using the new prefixed protocol)
- */
-export const COMPLEX_HEADER = 'X-Experimental-Stream-Data';

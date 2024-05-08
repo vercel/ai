@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { OpenAIStream } from 'ai';
 import { Tokens } from 'ai/react';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export default async function Page() {
   const openai = new OpenAI({

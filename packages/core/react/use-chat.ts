@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
 import { callChatApi } from '../shared/call-chat-api';
+import { generateId as generateIdFunc } from '../shared/generate-id';
 import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
@@ -11,7 +12,6 @@ import type {
   Message,
   UseChatOptions,
 } from '../shared/types';
-import { nanoid } from '../shared/utils';
 import type {
   ReactResponseRow,
   experimental_StreamingReactResponse,
@@ -70,7 +70,7 @@ export type UseChatHelpers = {
   /** Whether the API request is in progress */
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
-  data?: JSONValue[] | undefined;
+  data?: JSONValue[];
 };
 
 type StreamingReactResponseAction = (payload: {
@@ -88,6 +88,7 @@ const getStreamedResponse = async (
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
   generateId: IdGenerator,
+  streamMode?: 'stream-data' | 'text',
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean,
@@ -179,15 +180,13 @@ const getStreamedResponse = async (
         tool_choice: chatRequest.tool_choice,
       }),
     },
+    streamMode,
     credentials: extraMetadataRef.current.credentials,
     headers: {
       ...extraMetadataRef.current.headers,
       ...chatRequest.options?.headers,
     },
     abortController: () => abortControllerRef.current,
-    appendMessage(message) {
-      mutate([...chatRequest.messages, message], false);
-    },
     restoreMessagesOnFailure() {
       mutate(previousMessages, false);
     },
@@ -209,13 +208,14 @@ export function useChat({
   sendExtraMessageFields,
   experimental_onFunctionCall,
   experimental_onToolCall,
+  streamMode,
   onResponse,
   onFinish,
   onError,
   credentials,
   headers,
   body,
-  generateId = nanoid,
+  generateId = generateIdFunc,
 }: Omit<UseChatOptions, 'api'> & {
   api?: string | StreamingReactResponseAction;
   key?: string;
@@ -295,6 +295,7 @@ export function useChat({
               messagesRef,
               abortControllerRef,
               generateId,
+              streamMode,
               onFinish,
               onResponse,
               sendExtraMessageFields,

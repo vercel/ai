@@ -2,7 +2,7 @@ import {
   InkeepStream,
   InkeepOnFinalMetadata,
   StreamingTextResponse,
-  experimental_StreamData,
+  StreamData,
 } from 'ai';
 import { InkeepAI } from '@inkeep/ai-api';
 import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
   }
 
   // used to pass custom metadata to the client
-  const data = new experimental_StreamData();
+  const data = new StreamData();
 
   if (!response?.body) {
     throw new Error('Response body is null');
@@ -68,7 +68,6 @@ export async function POST(req: Request) {
       }
       data.close();
     },
-    experimental_streamData: true,
   });
 
   return new StreamingTextResponse(stream, {}, data);

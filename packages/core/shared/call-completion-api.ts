@@ -1,6 +1,6 @@
 import { readDataStream } from './read-data-stream';
 import { JSONValue } from './types';
-import { COMPLEX_HEADER, createChunkDecoder } from './utils';
+import { createChunkDecoder } from './utils';
 
 export async function callCompletionApi({
   api,
@@ -8,6 +8,7 @@ export async function callCompletionApi({
   credentials,
   headers,
   body,
+  streamMode = 'stream-data',
   setCompletion,
   setLoading,
   setError,
@@ -22,6 +23,7 @@ export async function callCompletionApi({
   credentials?: RequestCredentials;
   headers?: HeadersInit;
   body: Record<string, any>;
+  streamMode?: 'stream-data' | 'text';
   setCompletion: (completion: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: Error | undefined) => void;
@@ -78,42 +80,52 @@ export async function callCompletionApi({
     let result = '';
     const reader = res.body.getReader();
 
-    const isComplexMode = res.headers.get(COMPLEX_HEADER) === 'true';
+    switch (streamMode) {
+      case 'text': {
+        const decoder = createChunkDecoder();
 
-    if (isComplexMode) {
-      for await (const { type, value } of readDataStream(reader, {
-        isAborted: () => abortController === null,
-      })) {
-        switch (type) {
-          case 'text': {
-            result += value;
-            setCompletion(result);
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
             break;
           }
-          case 'data': {
-            onData?.(value);
+
+          // Update the completion state with the new message tokens.
+          result += decoder(value);
+          setCompletion(result);
+
+          // The request has been aborted, stop reading the stream.
+          if (abortController === null) {
+            reader.cancel();
             break;
           }
         }
+
+        break;
       }
-    } else {
-      const decoder = createChunkDecoder();
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
+      case 'stream-data': {
+        for await (const { type, value } of readDataStream(reader, {
+          isAborted: () => abortController === null,
+        })) {
+          switch (type) {
+            case 'text': {
+              result += value;
+              setCompletion(result);
+              break;
+            }
+            case 'data': {
+              onData?.(value);
+              break;
+            }
+          }
         }
+        break;
+      }
 
-        // Update the completion state with the new message tokens.
-        result += decoder(value);
-        setCompletion(result);
-
-        // The request has been aborted, stop reading the stream.
-        if (abortController === null) {
-          reader.cancel();
-          break;
-        }
+      default: {
+        const exhaustiveCheck: never = streamMode;
+        throw new Error(`Unknown stream mode: ${exhaustiveCheck}`);
       }
     }
 

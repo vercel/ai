@@ -5,77 +5,89 @@ import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
-  mockFetchTextStream,
 } from '../tests/utils/mock-fetch';
 import TestCompletionComponent from './TestCompletionComponent.vue';
+import TestCompletionTextStreamComponent from './TestCompletionTextStreamComponent.vue';
 
-beforeEach(() => {
-  render(TestCompletionComponent);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-  cleanup();
-});
-
-it('should render normal streamed stream', async () => {
-  mockFetchTextStream({
-    url: 'https://example.com/api/completion',
-    chunks: ['Hello', ',', ' world', '.'],
+describe('stream data stream', () => {
+  beforeEach(() => {
+    render(TestCompletionComponent);
   });
 
-  await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
-
-  findByText(await screen.findByTestId('completion'), 'Hello, world.');
-
-  expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
-});
-
-it('should render complex text stream', async () => {
-  mockFetchDataStream({
-    url: 'https://example.com/api/completion',
-    chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
   });
 
-  await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
-
-  await screen.findByTestId('completion');
-  expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
-});
-
-describe('loading state', () => {
-  it('should show loading state', async () => {
-    let finishGeneration: ((value?: unknown) => void) | undefined;
-    const finishGenerationPromise = new Promise(resolve => {
-      finishGeneration = resolve;
-    });
-
-    mockFetchDataStreamWithGenerator({
-      url: 'https://example.com/api/chat',
-      chunkGenerator: (async function* generate() {
-        const encoder = new TextEncoder();
-        yield encoder.encode('0:"Hello"\n');
-        await finishGenerationPromise;
-      })(),
+  it('should show streamed response', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/completion',
+      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
     });
 
     await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
 
-    await screen.findByTestId('loading');
-    expect(screen.getByTestId('loading')).toHaveTextContent('true');
-
-    finishGeneration?.();
-
-    await findByText(await screen.findByTestId('loading'), 'false');
-    expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    await screen.findByTestId('completion');
+    expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
   });
 
-  it('should reset loading state on error', async () => {
-    mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
+  describe('loading state', () => {
+    it('should show loading state', async () => {
+      let finishGeneration: ((value?: unknown) => void) | undefined;
+      const finishGenerationPromise = new Promise(resolve => {
+        finishGeneration = resolve;
+      });
+
+      mockFetchDataStreamWithGenerator({
+        url: 'https://example.com/api/chat',
+        chunkGenerator: (async function* generate() {
+          const encoder = new TextEncoder();
+          yield encoder.encode('0:"Hello"\n');
+          await finishGenerationPromise;
+        })(),
+      });
+
+      await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
+
+      await screen.findByTestId('loading');
+      expect(screen.getByTestId('loading')).toHaveTextContent('true');
+
+      finishGeneration?.();
+
+      await findByText(await screen.findByTestId('loading'), 'false');
+      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    });
+
+    it('should reset loading state on error', async () => {
+      mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
+
+      await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
+
+      await screen.findByTestId('loading');
+      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    });
+  });
+});
+
+describe('stream data stream', () => {
+  beforeEach(() => {
+    render(TestCompletionTextStreamComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should show streamed response', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/completion',
+      chunks: ['Hello', ',', ' world', '.'],
+    });
 
     await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
 
-    await screen.findByTestId('loading');
-    expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    await screen.findByTestId('completion');
+    expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
   });
 });
