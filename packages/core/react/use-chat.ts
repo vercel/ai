@@ -336,6 +336,7 @@ export function useChat({
       setError,
       mutateStreamData,
       streamData,
+      streamMode,
       sendExtraMessageFields,
       experimental_onFunctionCall,
       experimental_onToolCall,
