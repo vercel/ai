@@ -169,6 +169,28 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should set response mime type for json mode', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'object-json' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: 'Hello' }],
+        },
+      ],
+      generationConfig: {
+        response_mime_type: 'application/json',
+      },
+    });
+  });
+
   it('should pass custom headers', async () => {
     prepareJsonResponse({ content: '' });
 
