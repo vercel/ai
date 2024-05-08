@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { StreamingTextResponse, streamText } from 'ai';
+import { streamText } from 'ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,5 +14,5 @@ export async function POST(req: Request) {
   });
 
   // Respond with the stream
-  return new StreamingTextResponse(result.toAIStream());
+  return result.toAIStreamResponse();
 }
