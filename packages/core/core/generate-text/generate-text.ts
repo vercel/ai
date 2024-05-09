@@ -17,14 +17,14 @@ Generate a text and call tools for a given prompt using a language model.
 This function does not stream the output. If you want to stream the output, use `streamText` instead.
 
 @param model - The language model to use.
-@param tools - The tools that the model can call. The model needs to support calling tools.
+@param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
 
 @param system - A system message that will be part of the prompt.
 @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
 @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
 
 @param maxTokens - Maximum number of tokens to generate.
-@param temperature - Temperature setting. 
+@param temperature - Temperature setting.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.

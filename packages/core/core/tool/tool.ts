@@ -14,12 +14,13 @@ An optional description of what the tool does. Will be used by the language mode
 
   /**
 The schema of the input that the tool expects. The language model will use this to generate the input.
+It is also used to validate the output of the language model. 
 Use descriptions to make the input understandable for the language model.
    */
   parameters: PARAMETERS;
 
   /**
-An optional execute function for the actual execution function of the tool.
+An async function that is called with the arguments from the tool call and produces a result. 
 If not provided, the tool will not be executed automatically.
    */
   execute?: (args: z.infer<PARAMETERS>) => PromiseLike<RESULT>;
