@@ -19,7 +19,7 @@ This can be caused by using an older version of the AI SDK in the backend, by pr
 ## Solution
 
 You can switch `useChat` and `useCompletion` to raw text stream processing with the `streamMode` parameter (introduced in `v3.0.23` of the AI SDK).
-Just set it to `text` as follows:
+Set it to `text` as follows:
 
 ```tsx
 const { messages, append } = useChat({
