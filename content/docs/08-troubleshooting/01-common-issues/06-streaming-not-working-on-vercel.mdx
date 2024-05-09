@@ -1,0 +1,21 @@
+---
+title: Streaming Not Working When Deploying on Vercel
+description: Troubleshooting errors related to streaming not working when deploying on Vercel.
+---
+
+# Streaming Not Working When Deploying on Vercel
+
+## Issue
+
+Streaming with the AI SDK works in my local dev environment. I'm using the app router and I'm deploying to Vercel.
+However, streaming does not work in the deployed app. Instead of streaming, only the full response is returned after a while.
+
+## Solution
+
+Add the following to your route file:
+
+```tsx
+export const dynamic = 'force-dynamic';
+```
+
+This will enforce dynamic behavior, which is required for streaming.
