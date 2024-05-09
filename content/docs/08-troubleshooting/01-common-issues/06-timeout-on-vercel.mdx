@@ -1,0 +1,27 @@
+---
+title: Getting Timeouts When Deploying on Vercel
+description: Troubleshooting errors related to streaming not working when deploying on Vercel.
+---
+
+# Getting Timeouts When Deploying on Vercel
+
+## Issue
+
+Streaming with the AI SDK works in my local dev environment.
+I'm using the app router and I'm deploying to Vercel.
+However, I'm getting timeouts.
+
+## Solution
+
+Add the following to your route file:
+
+```tsx
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+```
+
+This will enforce dynamic behavior, which is required for streaming.
+
+## See also
+
+- [Configuring Maximum Duration for Vercel Functions](https://vercel.com/docs/functions/configuring-functions/duration)
