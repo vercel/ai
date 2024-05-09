@@ -621,3 +621,79 @@ describe('multiple stream consumption', () => {
     );
   });
 });
+
+describe('result.usage', () => {
+  it('should send token usage', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    // consume stream (runs in parallel)
+    convertAsyncIterableToArray(result.textStream);
+
+    assert.deepStrictEqual(await result.usage, {
+      completionTokens: 10,
+      promptTokens: 3,
+      totalTokens: 13,
+    });
+  });
+});
+
+describe('result.finishReason', () => {
+  it('should send finish reason', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    // consume stream (runs in parallel)
+    convertAsyncIterableToArray(result.textStream);
+
+    assert.strictEqual(await result.finishReason, 'stop');
+  });
+});
