@@ -26,7 +26,7 @@ type Renderer<T extends Array<any>> = (
   | Generator<Streamable, Streamable, void>
   | AsyncGenerator<Streamable, Streamable, void>;
 
-type RenderTool<PARAMETERS extends z.ZodTypeAny = any> = {
+export type RenderTool<PARAMETERS extends z.ZodTypeAny = any> = {
   description?: string;
   parameters: PARAMETERS;
   generate?: Renderer<
@@ -40,7 +40,7 @@ type RenderTool<PARAMETERS extends z.ZodTypeAny = any> = {
   >;
 };
 
-type RenderText = Renderer<
+export type RenderText = Renderer<
   [
     {
       /**
