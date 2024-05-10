@@ -10,9 +10,19 @@ A message that can be used in the `messages` field of a prompt.
 It can be a user message, an assistant message, or a tool message.
  */
 export type CoreMessage =
+  | CoreSystemMessage
   | CoreUserMessage
   | CoreAssistantMessage
   | CoreToolMessage;
+
+/**
+ A system message. It can contain system information.
+
+ Note: using the "system" part of the prompt is strongly preferred
+ to increase the resilience against prompt injection attacks,
+ and because not all providers support several system messages.
+ */
+export type CoreSystemMessage = { role: 'system'; content: string };
 
 /**
  * @deprecated Use `CoreMessage` instead.

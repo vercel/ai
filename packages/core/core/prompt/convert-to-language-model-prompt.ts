@@ -30,6 +30,10 @@ export function convertToLanguageModelPrompt(
       languageModelMessages.push(
         ...prompt.messages.map((message): LanguageModelV1Message => {
           switch (message.role) {
+            case 'system': {
+              return { role: 'system', content: message.content };
+            }
+
             case 'user': {
               if (typeof message.content === 'string') {
                 return {
