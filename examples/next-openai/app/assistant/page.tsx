@@ -13,8 +13,15 @@ const roleToColorMap: Record<Message['role'], string> = {
 };
 
 export default function Chat() {
-  const { status, messages, input, submitMessage, handleInputChange, error } =
-    useAssistant({ api: '/api/assistant' });
+  const {
+    status,
+    messages,
+    input,
+    submitMessage,
+    handleInputChange,
+    error,
+    stop,
+  } = useAssistant({ api: '/api/assistant' });
 
   // When status changes to accepting messages, focus the input:
   const inputRef = useRef<HTMLInputElement>(null);
@@ -64,12 +71,19 @@ export default function Chat() {
         <input
           ref={inputRef}
           disabled={status !== 'awaiting_message'}
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          className="fixed w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl bottom-14 ax-w-md"
           value={input}
           placeholder="What is the temperature in the living room?"
           onChange={handleInputChange}
         />
       </form>
+
+      <button
+        className="fixed bottom-0 w-full max-w-md p-2 mb-8 text-white bg-red-500 rounded-lg"
+        onClick={stop}
+      >
+        Stop
+      </button>
     </div>
   );
 }
