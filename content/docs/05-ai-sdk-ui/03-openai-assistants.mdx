@@ -5,11 +5,11 @@ description: Learn how to use the useAssistant hook.
 
 # OpenAI Assistants
 
-The `useAssistant` hook allows you to handle the client state when interacting with an OpenAI compatible assistant API. This hook is useful when you want to integrate assistant capibilities into your application, with the UI updated automatically as the assistant is streaming its execution.
+The `useAssistant` hook allows you to handle the client state when interacting with an OpenAI compatible assistant API. This hook is useful when you want to integrate assistant capabilities into your application, with the UI updated automatically as the assistant is streaming its execution.
 
 ## Example
 
-```tsx filename='app/pages.tsx'
+```tsx filename='app/page.tsx'
 'use client';
 
 import { Message, useAssistant } from 'ai/react';
@@ -202,4 +202,4 @@ const { messages, input, handleInputChange, handleSubmit } = useAssistant({
 });
 ```
 
-In this example, the `useAssistant` hook sends a POST request to the `/api/completion` endpoint with the specified headers, additional body fields, and credentials for that fetch request. On your server side, you can handle the request with these additional information.
+In this example, the `useAssistant` hook sends a POST request to the `/api/custom-completion` endpoint with the specified headers, additional body fields, and credentials for that fetch request. On your server side, you can handle the request with these additional information.
