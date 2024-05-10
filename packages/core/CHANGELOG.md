@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.5
+
+### Patch Changes
+
+- 5b01c13: feat (ai/core): add system message support in messages list
+
 ## 3.1.4
 
 ### Patch Changes
