@@ -70,12 +70,12 @@ Custom headers to include in the requests.
 // provider factory function
 export function createCustomProvider(
   options: CustomProviderSettings = {},
-): MistralProvider {
+): CustomProvider {
   const createModel = (
-    modelId: MistralChatModelId,
-    settings: MistralChatSettings = {},
+    modelId: CustomChatModelId,
+    settings: CustomChatSettings = {},
   ) =>
-    new MistralChatLanguageModel(modelId, settings, {
+    new CustomChatLanguageModel(modelId, settings, {
       provider: 'custom.chat',
       baseURL:
         withoutTrailingSlash(options.baseURL) ?? 'https://custom.ai/api/v1',
