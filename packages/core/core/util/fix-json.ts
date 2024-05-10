@@ -140,6 +140,7 @@ export function fixJson(input: string): string {
             break;
           }
           case '}': {
+            lastValidIndex = i;
             stack.pop();
             break;
           }

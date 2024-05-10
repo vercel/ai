@@ -517,7 +517,7 @@ importers:
     dependencies:
       '@inkeep/ai-api':
         specifier: ^0.1.8
-        version: 0.1.8(zod@3.22.4)
+        version: 0.1.8(zod@3.23.4)
       ai:
         specifier: latest
         version: link:../../packages/core
@@ -671,6 +671,9 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
+      zod:
+        specifier: 3.23.4
+        version: 3.23.4
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
@@ -1149,7 +1152,7 @@ importers:
         specifier: 0.0.3
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.5
+        specifier: 0.0.6
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1174,7 +1177,7 @@ importers:
         specifier: 0.0.3
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.5
+        specifier: 0.0.6
         version: link:../provider-utils
       eventsource-parser:
         specifier: 1.1.2
@@ -1322,7 +1325,7 @@ importers:
         specifier: 0.0.3
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.5
+        specifier: 0.0.6
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1347,7 +1350,7 @@ importers:
         specifier: 0.0.3
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.5
+        specifier: 0.0.6
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1372,7 +1375,7 @@ importers:
         specifier: 0.0.3
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.5
+        specifier: 0.0.6
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -4292,14 +4295,14 @@ packages:
       vue: 3.3.8(typescript@5.1.6)
     dev: false
 
-  /@inkeep/ai-api@0.1.8(zod@3.22.4):
+  /@inkeep/ai-api@0.1.8(zod@3.23.4):
     resolution: {integrity: sha512-GGlwlGgmyl25SxIkWVQsu7lH08GShKDzOOxP7YPSAisl74hX7zT4Gtc1iF+R/joZwdYfNFb8iFIJP0A9gQc2TQ==}
     peerDependencies:
       zod: '>= 3'
     dependencies:
       decimal.js: 10.4.3
       jsonpath: 1.1.1
-      zod: 3.22.4
+      zod: 3.23.4
     dev: false
 
   /@ioredis/commands@1.2.0:
@@ -12189,8 +12192,8 @@ packages:
       p-retry: 4.6.2
       uuid: 9.0.1
       yaml: 2.3.4
-      zod: 3.22.4
-      zod-to-json-schema: 3.22.5(zod@3.22.4)
+      zod: 3.23.4
+      zod-to-json-schema: 3.22.5(zod@3.23.4)
     transitivePeerDependencies:
       - debug
       - encoding
@@ -12838,8 +12841,8 @@ packages:
       p-retry: 4.6.2
       uuid: 9.0.1
       yaml: 2.3.4
-      zod: 3.22.4
-      zod-to-json-schema: 3.20.3(zod@3.22.4)
+      zod: 3.23.4
+      zod-to-json-schema: 3.20.3(zod@3.23.4)
     transitivePeerDependencies:
       - encoding
     dev: true
@@ -18856,6 +18859,15 @@ packages:
       zod: ^3.20.0
     dependencies:
       zod: 3.22.4
+    dev: false
+
+  /zod-to-json-schema@3.20.3(zod@3.23.4):
+    resolution: {integrity: sha512-/Q3wnyxAfCt94ZcrGiXXoiAfRqasxl9CX64LZ9fj+4dKH68zulUtU0uk1WMxQPfAxQ0ZI70dKzcoW7hHj+DwSQ==}
+    peerDependencies:
+      zod: ^3.20.0
+    dependencies:
+      zod: 3.23.4
+    dev: true
 
   /zod-to-json-schema@3.22.4(zod@3.22.4):
     resolution: {integrity: sha512-2Ed5dJ+n/O3cU383xSY28cuVi0BCQhF8nYqWU5paEpl7fVdqdAmiLdqLyfblbNdfOFwFfi/mqU4O1pwc60iBhQ==}
@@ -18873,5 +18885,16 @@ packages:
       zod: 3.22.4
     dev: false
 
+  /zod-to-json-schema@3.22.5(zod@3.23.4):
+    resolution: {integrity: sha512-+akaPo6a0zpVCCseDed504KBJUQpEW5QZw7RMneNmKw+fGaML1Z9tUNLnHHAC8x6dzVRO1eB2oEMyZRnuBZg7Q==}
+    peerDependencies:
+      zod: ^3.22.4
+    dependencies:
+      zod: 3.23.4
+    dev: false
+
   /zod@3.22.4:
     resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
+
+  /zod@3.23.4:
+    resolution: {integrity: sha512-/AtWOKbBgjzEYYQRNfoGKHObgfAZag6qUJX1VbHo2PRBgS+wfWagEY2mizjfyAPcGesrJOcx/wcl0L9WnVrHFw==}

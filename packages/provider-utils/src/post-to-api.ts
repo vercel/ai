@@ -1,4 +1,5 @@
 import { APICallError } from '@ai-sdk/provider';
+import { extractResponseHeaders } from './extract-response-headers';
 import { isAbortError } from './is-abort-error';
 import { ResponseHandler } from './response-handler';
 
@@ -63,9 +64,16 @@ export const postToApi = async <T>({
       signal: abortSignal,
     });
 
+    const responseHeaders = extractResponseHeaders(response);
+
     if (!response.ok) {
+      let errorInformation: {
+        value: Error;
+        responseHeaders?: Record<string, string> | undefined;
+      };
+
       try {
-        throw await failedResponseHandler({
+        errorInformation = await failedResponseHandler({
           response,
           url,
           requestBodyValues: body.values,
@@ -80,9 +88,12 @@ export const postToApi = async <T>({
           cause: error,
           statusCode: response.status,
           url,
+          responseHeaders,
           requestBodyValues: body.values,
         });
       }
+
+      throw errorInformation.value;
     }
 
     try {
@@ -103,6 +114,7 @@ export const postToApi = async <T>({
         cause: error,
         statusCode: response.status,
         url,
+        responseHeaders,
         requestBodyValues: body.values,
       });
     }

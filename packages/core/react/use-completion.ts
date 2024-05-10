@@ -146,6 +146,7 @@ export function useCompletion({
       onError,
       setError,
       streamData,
+      streamMode,
       mutateStreamData,
     ],
   );

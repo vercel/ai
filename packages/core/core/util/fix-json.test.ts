@@ -168,8 +168,12 @@ describe('object', () => {
     assert.strictEqual(fixJson('{"k1": 1, "k2":'), '{"k1": 1}');
   });
 
-  test('should handle trailing whitespaces', () => {
+  test('should handle trailing whitespace', () => {
     assert.strictEqual(fixJson('{"key": "value"  '), '{"key": "value"}');
+  });
+
+  test('should handle closing after empty object', () => {
+    assert.strictEqual(fixJson('{"a": {"b": {}'), '{"a": {"b": {}}}');
   });
 });
 
@@ -263,6 +267,13 @@ describe('regression', () => {
         '    {',
         '      "b1": "n"}]}',
       ].join('\n'),
+    );
+  });
+
+  test('should handle empty objects inside nested objects and arrays', () => {
+    assert.strictEqual(
+      fixJson(`{"type":"div","children":[{"type":"Card","props":{}`),
+      `{"type":"div","children":[{"type":"Card","props":{}}]}`,
     );
   });
 });

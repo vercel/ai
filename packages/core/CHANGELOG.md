@@ -1,5 +1,14 @@
 # ai
 
+## 3.1.3
+
+### Patch Changes
+
+- 970a099: fix (ai/core): streamObject fixes partial json with empty objects correctly
+- 1ac2390: feat (ai/core): add usage and finishReason to streamText result.
+- Updated dependencies [276f22b]
+  - @ai-sdk/provider-utils@0.0.6
+
 ## 3.1.2
 
 ### Patch Changes

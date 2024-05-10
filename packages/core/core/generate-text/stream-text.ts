@@ -21,6 +21,7 @@ import { retryWithExponentialBackoff } from '../util/retry-with-exponential-back
 import { runToolsTransformation } from './run-tools-transformation';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+import { TokenUsage } from './token-usage';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -28,14 +29,14 @@ Generate a text and call tools for a given prompt using a language model.
 This function streams the output. If you do not want to stream the output, use `generateText` instead.
 
 @param model - The language model to use.
-@param tools - The tools that the model can call. The model needs to support calling tools.
+@param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
 
 @param system - A system message that will be part of the prompt.
 @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
 @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
 
 @param maxTokens - Maximum number of tokens to generate.
-@param temperature - Temperature setting. 
+@param temperature - Temperature setting.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.
@@ -143,9 +144,19 @@ export class StreamTextResult<TOOLS extends Record<string, CoreTool>> {
   private originalStream: ReadableStream<TextStreamPart<TOOLS>>;
 
   /**
-Warnings from the model provider (e.g. unsupported settings)
+Warnings from the model provider (e.g. unsupported settings).
    */
   readonly warnings: CallWarning[] | undefined;
+
+  /**
+The token usage of the generated text. Resolved when the response is finished.
+   */
+  readonly usage: Promise<TokenUsage>;
+
+  /**
+The reason why the generation finished. Resolved when the response is finished.
+   */
+  readonly finishReason: Promise<FinishReason>;
 
   /**
 Optional raw response data.
@@ -168,9 +179,36 @@ Response headers.
       headers?: Record<string, string>;
     };
   }) {
-    this.originalStream = stream;
     this.warnings = warnings;
     this.rawResponse = rawResponse;
+
+    // initialize usage promise
+    let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
+    this.usage = new Promise<TokenUsage>(resolve => {
+      resolveUsage = resolve;
+    });
+
+    // initialize finish reason promise
+    let resolveFinishReason: (
+      value: FinishReason | PromiseLike<FinishReason>,
+    ) => void;
+    this.finishReason = new Promise<FinishReason>(resolve => {
+      resolveFinishReason = resolve;
+    });
+
+    // pipe chunks through a transformation stream that extracts metadata:
+    this.originalStream = stream.pipeThrough(
+      new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+        async transform(chunk, controller): Promise<void> {
+          controller.enqueue(chunk);
+
+          if (chunk.type === 'finish') {
+            resolveUsage(chunk.usage);
+            resolveFinishReason(chunk.finishReason);
+          }
+        },
+      }),
+    );
   }
 
   /**
