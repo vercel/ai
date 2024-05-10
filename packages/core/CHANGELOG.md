@@ -1,5 +1,12 @@
 # ai
 
+## 3.1.4
+
+### Patch Changes
+
+- ceb44bc: feat (ai/ui): add stop() helper to useAssistant (important: AssistantResponse now requires OpenAI SDK 4.42+)
+- 37c9d4c: feat (ai/streams): add LangChainAdapter.toAIStream()
+
 ## 3.1.3
 
 ### Patch Changes
