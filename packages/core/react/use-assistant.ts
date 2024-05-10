@@ -1,10 +1,11 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
-import { useState } from 'react';
-
+import { isAbortError } from '@ai-sdk/provider-utils';
+import { useCallback, useRef, useState } from 'react';
 import { generateId } from '../shared/generate-id';
 import { readDataStream } from '../shared/read-data-stream';
 import { CreateMessage, Message } from '../shared/types';
+import { abort } from 'node:process';
 
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
@@ -41,6 +42,11 @@ export type UseAssistantHelpers = {
       data?: Record<string, string>;
     },
   ) => Promise<void>;
+
+  /**
+Abort the current request immediately, keep the generated tokens if any.
+   */
+  stop: () => void;
 
   /**
    * setState-powered method to update the input value.
@@ -135,6 +141,16 @@ export function useAssistant({
     setInput(event.target.value);
   };
 
+  // Abort controller to cancel the current API call.
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const stop = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
+
   const append = async (
     message: Message | CreateMessage,
     requestOptions?: {
@@ -153,10 +169,15 @@ export function useAssistant({
 
     setInput('');
 
+    const abortController = new AbortController();
+
     try {
+      abortControllerRef.current = abortController;
+
       const result = await fetch(api, {
         method: 'POST',
         credentials,
+        signal: abortController.signal,
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify({
           ...body,
@@ -240,14 +261,21 @@ export function useAssistant({
         }
       }
     } catch (error) {
+      // Ignore abort errors as they are expected when the user cancels the request:
+      if (isAbortError(error) && abortController.signal.aborted) {
+        abortControllerRef.current = null;
+        return;
+      }
+
       if (onError && error instanceof Error) {
         onError(error);
       }
 
       setError(error as Error);
+    } finally {
+      abortControllerRef.current = null;
+      setStatus('awaiting_message');
     }
-
-    setStatus('awaiting_message');
   };
 
   const submitMessage = async (
@@ -276,6 +304,7 @@ export function useAssistant({
     submitMessage,
     status,
     error,
+    stop,
   };
 }
 
