@@ -17,37 +17,38 @@ The AI SDK `LangChainAdapter` uses the result from [LangChain ExpressionLanguage
 `LangChainAdapter.toAIStream()` is compatible with the LangChain Expression Language `.stream()` function response.
 
 ```tsx filename="app/api/completion/route.ts" highlight={"17"}
-import { ChatOpenAI } from '@langchain/openai'
-import { LangChainAdapter, StreamingTextResponse } from 'ai'
+import { ChatOpenAI } from '@langchain/openai';
+import { LangChainAdapter, StreamingTextResponse } from 'ai';
 
-export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const model = new ChatOpenAI({
   model: 'gpt-3.5-turbo-0125',
-  temperature: 0
-})
+  temperature: 0,
+});
 
 export async function POST(req: Request) {
-  const { prompt } = await req.json()
+  const { prompt } = await req.json();
 
-  const stream = await model.stream(prompt)
+  const stream = await model.stream(prompt);
 
-  const aiStream = LangChainAdapter.toAIStream(stream)
+  const aiStream = LangChainAdapter.toAIStream(stream);
 
-  return new StreamingTextResponse(aiStream)
+  return new StreamingTextResponse(aiStream);
 }
 ```
 
 Then, we use the Vercel AI SDK's [`useCompletion`](/docs/ai-sdk-ui/completion) method in the page component to handle the completion:
 
 ```tsx filename="app/page.tsx"
-'use client'
+'use client';
 
-import { useCompletion } from 'ai/react'
+import { useCompletion } from 'ai/react';
 
 export default function Chat() {
-  const { completion, input, handleInputChange, handleSubmit } = useCompletion()
+  const { completion, input, handleInputChange, handleSubmit } =
+    useCompletion();
 
   return (
     <div>
@@ -56,7 +57,7 @@ export default function Chat() {
         <input value={input} onChange={handleInputChange} />
       </form>
     </div>
-  )
+  );
 }
 ```
 
