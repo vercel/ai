@@ -19,4 +19,4 @@ You are an assistant who always answers like Kanye West. Whenever you respond to
 ## Run
 
 1. Run `pnpm run dev` in `examples/sveltekit-openai`
-2. Go to http://localhost:3000/assistant
+2. Go to http://localhost:5173/assistant
