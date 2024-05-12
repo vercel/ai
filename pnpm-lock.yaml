@@ -1195,7 +1195,7 @@ importers:
         specifier: 3.3.6
         version: 3.3.6
       react:
-        specifier: ^18.2.0
+        specifier: ^18.2.0 || ^19.0.0-0
         version: 18.2.0
       secure-json-parse:
         specifier: 2.7.0
