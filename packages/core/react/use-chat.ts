@@ -16,6 +16,7 @@ import type {
   ReactResponseRow,
   experimental_StreamingReactResponse,
 } from '../streams/streaming-react-response';
+
 export type { CreateMessage, Message, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -101,17 +102,23 @@ const getStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({ role, content, name, function_call, tool_calls, tool_call_id }) => ({
+        ({
           role,
           content,
+          name,
+          toolInvocations,
+          function_call,
+          tool_calls,
           tool_call_id,
+        }) => ({
+          role,
+          content,
           ...(name !== undefined && { name }),
-          ...(function_call !== undefined && {
-            function_call: function_call,
-          }),
-          ...(tool_calls !== undefined && {
-            tool_calls: tool_calls,
-          }),
+          ...(toolInvocations !== undefined && { toolInvocations }),
+          // outdated function/tool call handling (TODO deprecate):
+          tool_call_id,
+          ...(function_call !== undefined && { function_call }),
+          ...(tool_calls !== undefined && { tool_calls }),
         }),
       );
 
@@ -219,7 +226,15 @@ export function useChat({
 }: Omit<UseChatOptions, 'api'> & {
   api?: string | StreamingReactResponseAction;
   key?: string;
-} = {}): UseChatHelpers {
+} = {}): UseChatHelpers & {
+  addToolResult: ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => void;
+} {
   // Generate a unique id for the chat if not provided.
   const hookId = useId();
   const idKey = id ?? hookId;
@@ -480,5 +495,43 @@ export function useChat({
     handleSubmit,
     isLoading,
     data: streamData,
+    addToolResult: ({
+      toolCallId,
+      result,
+    }: {
+      toolCallId: string;
+      result: any;
+    }) => {
+      const updatedMessages = messagesRef.current.map((message, index, arr) =>
+        // update the tool calls in the last assistant message:
+        index === arr.length - 1 &&
+        message.role === 'assistant' &&
+        message.toolInvocations
+          ? {
+              ...message,
+              toolInvocations: message.toolInvocations.map(toolInvocation =>
+                toolInvocation.toolCallId === toolCallId
+                  ? { ...toolInvocation, result }
+                  : toolInvocation,
+              ),
+            }
+          : message,
+      );
+
+      mutate(updatedMessages, false);
+
+      // auto-submit when all tool calls in the last assistant message have results:
+      const lastMessage = updatedMessages[updatedMessages.length - 1];
+      if (
+        lastMessage.role === 'assistant' &&
+        lastMessage.toolInvocations &&
+        lastMessage.toolInvocations.length > 0 &&
+        lastMessage.toolInvocations.every(
+          toolInvocation => 'result' in toolInvocation,
+        )
+      ) {
+        triggerRequest({ messages: updatedMessages });
+      }
+    },
   };
 }
