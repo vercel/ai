@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.7
+
+### Patch Changes
+
+- f617b97: feat (ai): support client/server tool calls with useChat and streamText
+
 ## 3.1.6
 
 ### Patch Changes
