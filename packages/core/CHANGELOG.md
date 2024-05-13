@@ -1,5 +1,16 @@
 # ai
 
+## 3.1.6
+
+### Patch Changes
+
+- 2e78acb: Deprecate StreamingReactResponse (use AI SDK RSC instead).
+- 8439884: ai/rsc: make RSC streamable utils chainable
+- 325ca55: feat (ai/core): improve image content part error message
+- Updated dependencies [325ca55]
+  - @ai-sdk/provider@0.0.4
+  - @ai-sdk/provider-utils@0.0.7
+
 ## 3.1.5
 
 ### Patch Changes
