@@ -227,7 +227,7 @@ export function useChat({
   api?: string | StreamingReactResponseAction;
   key?: string;
 } = {}): UseChatHelpers & {
-  addToolResult: ({
+  experimental_addToolResult: ({
     toolCallId,
     result,
   }: {
@@ -495,7 +495,7 @@ export function useChat({
     handleSubmit,
     isLoading,
     data: streamData,
-    addToolResult: ({
+    experimental_addToolResult: ({
       toolCallId,
       result,
     }: {

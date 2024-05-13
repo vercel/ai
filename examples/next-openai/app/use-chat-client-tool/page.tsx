@@ -4,8 +4,13 @@ import { ToolInvocation } from 'ai';
 import { Message, useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, addToolResult } =
-    useChat({ api: '/api/tool-calls' });
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    experimental_addToolResult,
+  } = useChat({ api: '/api/use-chat-client-tool' });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -29,7 +34,10 @@ export default function Chat() {
                         <button
                           className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                           onClick={() =>
-                            addToolResult({ toolCallId, result: 'Yes!' })
+                            experimental_addToolResult({
+                              toolCallId,
+                              result: 'Yes, confirmed.',
+                            })
                           }
                         >
                           Yes
@@ -37,7 +45,10 @@ export default function Chat() {
                         <button
                           className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                           onClick={() =>
-                            addToolResult({ toolCallId, result: 'No!' })
+                            experimental_addToolResult({
+                              toolCallId,
+                              result: 'No, denied',
+                            })
                           }
                         >
                           No
