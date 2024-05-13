@@ -5,72 +5,149 @@ description: Learn how to write a custom provider for the Vercel AI SDK
 
 # Writing a Custom Provider
 
-The Vercel AI SDK provides a [Language Model Specification](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v1). You can write your own provider that adheres to the specification and it will be compatible with the AI SDK.
-
-## Language Model Specification
+The Vercel AI SDK provides a [Language Model Specification](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v1).
+You can write your own provider that adheres to the specification and it will be compatible with the Vercel AI SDK.
 
 You can find the Language Model Specification in the [AI SDK repository](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v1).
 It can be imported from `'@ai-sdk/provider'`. We also provide utilities that make it easier to implement a custom provider. You can find them in the `@ai-sdk/provider-utils` package ([source code](https://github.com/vercel/ai/tree/main/packages/provider-utils)).
-There are several reference implementations, e.g. a [Mistral reference implementation](https://github.com/vercel/ai/tree/main/packages/mistral).
 
-## Provider Facade
+<Note>
+  If you open-source a provider, we'd love to promote it here. Please send us a
+  PR to add it to the [Community Providers](/providers/community-providers)
+  section.
+</Note>
 
-A custom provider should follow the pattern of using a provider facade with factory methods for the specific providers. An instance of the custom provider class with default settings can be exported for convenience.
+## Provider Implementation Guide
 
-```ts file='custom-provider-facade.ts'
-import { generateId, loadApiKey, withoutTrailingSlash } from ''@ai-sdk/provider-utils'';
+Implementing a custom language model provider involves several steps:
+
+- Creating an entry point
+- Adding a language model implementation
+- Mapping the input (prompt, tools, settings)
+- Processing the results (generate, streaming, tool calls)
+- Supporting object generation
+
+The best way to get started is to copy a reference implementation and modify it to fit your needs.
+Check out the [Mistral reference implementation](https://github.com/vercel/ai/tree/main/packages/mistral)
+to see how the project is structured, and feel free to copy the setup.
+
+### Creating an Entry Point
+
+Each AI SDK provider should follow the pattern of using a factory function that returns a provider instance
+and provide a default instance.
+
+```ts filename="custom-provider.ts"
+import {
+  generateId,
+  loadApiKey,
+  withoutTrailingSlash,
+} from '@ai-sdk/provider-utils';
 import { CustomChatLanguageModel } from './custom-chat-language-model';
-import { CustomChatModelId, CustomChatSettings } from './mistral-chat-settings';
+import { CustomChatModelId, CustomChatSettings } from './custom-chat-settings';
 
-/**
- * Custom provider facade.
- */
-export class CustomProvider {
-  readonly baseURL: string;
-  readonly apiKey?: string;
+// model factory function with additional methods and properties
+export interface CustomProvider {
+  (
+    modelId: CustomChatModelId,
+    settings?: CustomChatSettings,
+  ): CustomChatLanguageModel;
 
-  constructor(
-    options: {
-      baseURL?: string;
-      apiKey?: string;
-    } = {},
-  ) {
-    this.baseURL = withoutTrailingSlash(options.baseURL) ??
-      'https://api.custom.ai/v1';
-    this.apiKey = options.apiKey;
-  }
+  // explicit method for targeting a specific API in case there are several
+  chat(
+    modelId: CustomChatModelId,
+    settings?: CustomChatSettings,
+  ): CustomChatLanguageModel;
+}
 
-  private get baseConfig() {
-    return {
-      baseURL: this.baseURL,
+// optional settings for the provider
+export interface CustomProviderSettings {
+  /**
+Use a different URL prefix for API calls, e.g. to use proxy servers.
+   */
+  baseURL?: string;
+
+  /**
+API key.
+   */
+  apiKey?: string;
+
+  /**
+Custom headers to include in the requests.
+     */
+  headers?: Record<string, string>;
+}
+
+// provider factory function
+export function createCustomProvider(
+  options: CustomProviderSettings = {},
+): CustomProvider {
+  const createModel = (
+    modelId: CustomChatModelId,
+    settings: CustomChatSettings = {},
+  ) =>
+    new CustomChatLanguageModel(modelId, settings, {
+      provider: 'custom.chat',
+      baseURL:
+        withoutTrailingSlash(options.baseURL) ?? 'https://custom.ai/api/v1',
       headers: () => ({
         Authorization: `Bearer ${loadApiKey({
-          apiKey: this.apiKey,
+          apiKey: options.apiKey,
           environmentVariableName: 'CUSTOM_API_KEY',
           description: 'Custom Provider',
         })}`,
+        ...options.headers,
       }),
-    };
-  }
-
-  chat(modelId: CustomChatModelId, settings: CustomChatSettings = {}) {
-    return new CustomChatLanguageModel(modelId, settings, {
-      provider: 'custom.chat',
-      ...this.baseConfig,
+      generateId: options.generateId ?? generateId,
     });
-  }
+
+  const provider = function (
+    modelId: CustomChatModelId,
+    settings?: CustomChatSettings,
+  ) {
+    if (new.target) {
+      throw new Error(
+        'The model factory function cannot be called with the new keyword.',
+      );
+    }
+
+    return createModel(modelId, settings);
+  };
+
+  provider.chat = createModel;
+
+  return provider as CustomProvider;
 }
 
 /**
  * Default custom provider instance.
  */
-export const customprovider = new CustomProvider();
+export const customProvider = createCustomProvider();
 ```
 
-## Errors
+### Implementing the Language Model
+
+A [language model](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v1/language-model-v1.ts) needs to implement:
+
+- metadata fields
+  - `specificationVersion: 'v1'` - always `'v1'`
+  - `provider: string` - name of the provider
+  - `modelId: string` - unique identifier of the model
+  - `defaultObjectGenerationMode` - default object generation mode, e.g. "json"
+- `doGenerate` method
+- `doStream` method
+
+Check out the [Mistral language model](https://github.com/vercel/ai/blob/main/packages/mistral/src/mistral-chat-language-model.ts) as an example.
+
+At a high level, both `doGenerate` and `doStream` methods should:
+
+1. **Map the prompt and the settings to the format required by the provider API.** This can be extracted, e.g. the Mistral provider contains a `getArgs` method.
+2. **Call the provider API.** You could e.g. use fetch calls or a library offered by the provider.
+3. **Process the results.** You need to convert the response to the format required by the AI SDK.
+
+### Errors
 
 The AI SDK provides [standardized errors](https://github.com/vercel/ai/tree/main/packages/provider/src/errors) that should be used by providers where possible. This will make it easy for user to debug them.
 
-## Retries, timeouts, and abort signals
+### Retries, timeouts, and abort signals
 
 The AI SDK will handle retries, timeouts, and aborting requests in a unified way. The model classes should not implement retries or timeouts themselves. Instead, they should use the `abortSignal` parameter to determine when the call should be aborted, and they should throw `ApiCallErrors` (or similar) with a correct `isRetryable` flag when errors such as network errors occur.

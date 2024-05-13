@@ -1,4 +1,4 @@
-import { AssistantStream } from 'openai/lib/AssistantStream';
+import { type AssistantStream } from 'openai/lib/AssistantStream';
 import { Run } from 'openai/resources/beta/threads/runs/runs';
 import { formatStreamPart } from '../shared/stream-parts';
 import { AssistantMessage, DataMessage } from '../shared/types';

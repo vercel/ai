@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.11
+
+### Patch Changes
+
+- 5b01c13: feat (ai/core): add system message support in messages list
+
 ## 0.0.10
 
 ### Patch Changes
