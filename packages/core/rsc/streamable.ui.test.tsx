@@ -3,7 +3,11 @@ import {
   openaiFunctionCallChunks,
 } from '../tests/snapshots/openai-chat';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
-import { createStreamableUI, render } from './streamable';
+import {
+  createStreamableUI,
+  createStreamableValue,
+  render,
+} from './streamable';
 import { z } from 'zod';
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
@@ -443,6 +447,37 @@ describe('rsc - createStreamableUI()', () => {
       3:[\\"$\\",\\"div\\",null,\\"$4\\"]
       2:\\"$3\\"
       "
+    `);
+  });
+
+  it('should return self', async () => {
+    const ui = createStreamableUI(<div>1</div>)
+      .update(<div>2</div>)
+      .update(<div>3</div>)
+      .done(<div>4</div>);
+
+    expect(await flightRender(ui.value)).toMatchInlineSnapshot(`
+      "1:\\"$Sreact.suspense\\"
+      2:D{\\"name\\":\\"\\",\\"env\\":\\"Server\\"}
+      0:[\\"$\\",\\"$1\\",null,{\\"fallback\\":[\\"$\\",\\"div\\",null,{\\"children\\":\\"1\\"}],\\"children\\":\\"$L2\\"}]
+      3:D{\\"name\\":\\"\\",\\"env\\":\\"Server\\"}
+      2:[\\"$\\",\\"$1\\",null,{\\"fallback\\":[\\"$\\",\\"div\\",null,{\\"children\\":\\"2\\"}],\\"children\\":\\"$L3\\"}]
+      4:D{\\"name\\":\\"\\",\\"env\\":\\"Server\\"}
+      3:[\\"$\\",\\"$1\\",null,{\\"fallback\\":[\\"$\\",\\"div\\",null,{\\"children\\":\\"3\\"}],\\"children\\":\\"$L4\\"}]
+      4:[\\"$\\",\\"div\\",null,{\\"children\\":\\"4\\"}]
+      "
+    `);
+  });
+});
+
+describe('rsc - createStreamableValue()', () => {
+  it('should return self', async () => {
+    const value = createStreamableValue(1).update(2).update(3).done(4);
+    expect(value.value).toMatchInlineSnapshot(`
+      {
+        "curr": 4,
+        "type": Symbol(ui.streamable.value),
+      }
     `);
   });
 });
