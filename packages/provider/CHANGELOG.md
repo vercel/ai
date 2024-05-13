@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.4
+
+### Patch Changes
+
+- 325ca55: feat (ai/core): improve image content part error message
+
 ## 0.0.3
 
 ### Patch Changes
