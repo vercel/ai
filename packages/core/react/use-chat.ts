@@ -73,6 +73,9 @@ export type UseChatHelpers = {
   data?: JSONValue[];
 };
 
+/**
+@deprecated Use AI SDK RSC instead: https://sdk.vercel.ai/docs/ai-sdk-rsc
+ */
 type StreamingReactResponseAction = (payload: {
   messages: Message[];
   data?: Record<string, string>;
@@ -115,6 +118,7 @@ const getStreamedResponse = async (
         }),
       );
 
+  // TODO deprecated, remove in next major release
   if (typeof api !== 'string') {
     // In this case, we are handling a Server Action. No complex mode handling needed.
 
