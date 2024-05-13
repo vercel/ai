@@ -41,7 +41,16 @@ export function convertDataContentToUint8Array(
   }
 
   if (typeof content === 'string') {
-    return convertBase64ToUint8Array(content);
+    try {
+      return convertBase64ToUint8Array(content);
+    } catch (error) {
+      throw new InvalidDataContentError({
+        message:
+          'Invalid data content. Content string is not a base64-encoded image.',
+        content,
+        cause: error,
+      });
+    }
   }
 
   if (content instanceof ArrayBuffer) {
