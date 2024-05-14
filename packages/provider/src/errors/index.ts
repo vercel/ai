@@ -10,6 +10,7 @@ export * from './load-api-key-error';
 export * from './no-object-generated-error';
 export * from './no-such-tool-error';
 export * from './retry-error';
+export * from './too-many-embedding-values-for-call-error';
 export * from './tool-call-parse-error';
 export * from './type-validation-error';
 export * from './unsupported-functionality-error';

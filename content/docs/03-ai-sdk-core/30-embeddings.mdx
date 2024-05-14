@@ -1,0 +1,24 @@
+---
+title: Embeddings
+description: Learn how to embed values with the Vercel AI SDK.
+---
+
+# Embeddings
+
+Embeddings are a way to represent words, phrases, or images as vectors in a high-dimensional space.
+In this space, similar words are close to each other, and the distance between words can be used to measure their similarity.
+
+## Embedding a Single Value
+
+The Vercel AI SDK provides the `embed` function to embed single values, which is useful for tasks such as finding similar words
+or phrases or clustering text. You can use it with embeddings models, e.g. `openai.embedding('text-embedding-3-large')` or `mistral.embedding('mistral-embed')`.
+
+```tsx
+import { embed } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { embedding } = await embed({
+  model: openai.embedding('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+});
+```
