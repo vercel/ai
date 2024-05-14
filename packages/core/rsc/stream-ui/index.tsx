@@ -1,1 +1,3 @@
-export { streamUI, RenderText, RenderTool } from './stream-ui';
+export { streamUI } from './stream-ui';
+
+export type { RenderText, RenderTool };
