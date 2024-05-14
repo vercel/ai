@@ -855,8 +855,8 @@ importers:
         specifier: ^1.21.0
         version: 1.27.5(svelte@4.2.3)(vite@4.5.0)
       '@types/cookie':
-        specifier: ^0.5.1
-        version: 0.5.4
+        specifier: ^0.6.0
+        version: 0.6.0
       svelte:
         specifier: ^4.0.1
         version: 4.2.3
@@ -6752,6 +6752,10 @@ packages:
 
   /@types/cookie@0.5.4:
     resolution: {integrity: sha512-7z/eR6O859gyWIAjuvBWFzNURmf2oPBmJlfVWkwehU5nzIyjwBsTh7WMmEEV4JFnHuQ3ex4oyTvfKzcyJVDBNA==}
+
+  /@types/cookie@0.6.0:
+    resolution: {integrity: sha512-4Kh9a6B2bQciAhf7FSuMRRkUWecJgJu9nPnx3yzpsfXX/c50REIqpHY4C82bXP90qrLtXtkDxTZosYO3UpOwlA==}
+    dev: true
 
   /@types/d3-scale@4.0.8:
     resolution: {integrity: sha512-gkK1VVTr5iNiYJ7vWDI+yUFFlszhNMtVeneJ6lUTKPjprsvLLI9/tgEGiXJOnlINJA8FyA88gfnQsHbybVZrYQ==}
