@@ -1,9 +1,9 @@
 import { Embedding, EmbeddingModel } from '../types';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 
-export async function embedMany<VALUE>({
+export async function embed<VALUE>({
   model,
-  values,
+  value,
   maxRetries,
   abortSignal,
 }: {
@@ -13,9 +13,9 @@ The embedding model to use.
   model: EmbeddingModel<VALUE>;
 
   /**
-The values that should be embedded.
+The value that should be embedded.
    */
-  values: VALUE[];
+  value: VALUE;
 
   /**
 Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -28,36 +28,39 @@ Maximum number of retries per embedding model call. Set to 0 to disable retries.
 Abort signal.
  */
   abortSignal?: AbortSignal;
-}): Promise<GenerateEmbeddingResult<VALUE>> {
+}): Promise<EmbedResult<VALUE>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
 
   const modelResponse = await retry(() =>
-    model.doEmbed({ values, abortSignal }),
+    model.doEmbed({
+      values: [value],
+      abortSignal,
+    }),
   );
 
-  return new GenerateEmbeddingResult({
-    values,
-    embeddings: modelResponse.embeddings,
+  return new EmbedResult({
+    value,
+    embedding: modelResponse.embeddings[0],
     rawResponse: modelResponse.rawResponse,
   });
 }
 
-export class GenerateEmbeddingResult<VALUE> {
-  readonly values: VALUE[];
-  readonly embeddings: Array<Embedding>;
+export class EmbedResult<VALUE> {
+  readonly value: VALUE;
+  readonly embedding: Embedding;
   readonly rawResponse?: {
     headers?: Record<string, string>;
   };
 
   constructor(options: {
-    values: VALUE[];
-    embeddings: Array<Embedding>;
+    value: VALUE;
+    embedding: Embedding;
     rawResponse?: {
       headers?: Record<string, string>;
     };
   }) {
-    this.values = options.values;
-    this.embeddings = options.embeddings;
+    this.value = options.value;
+    this.embedding = options.embedding;
     this.rawResponse = options.rawResponse;
   }
 }

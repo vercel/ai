@@ -1,1 +1,1 @@
-export * from './embed-many';
+export * from './embed';
