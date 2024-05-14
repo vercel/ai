@@ -70,13 +70,23 @@ const result = await generateText({
 
 <Note>
   Multi-modal refers to interacting with a model across different data types
-  (text, images, sound etc.).
+  such as text, image, or audio data.
 </Note>
+
+Instead of sending a text in the `content` property, you can send an array of parts that include text and other data types.
+Currently image and text parts are supported.
 
 For models that support multi-modal inputs, user messages can include images. An `image` can be a base64-encoded image (`string`), an `ArrayBuffer`, a `Uint8Array`,
 a `Buffer`, or a `URL` object. It is possible to mix text and multiple images.
 
-```ts highlight="3-11"
+<Note type="warning">
+  Not all models support all types of multi-modal inputs. Check the model's
+  capabilities before using this feature.
+</Note>
+
+#### Example: Buffer images
+
+```ts highlight="8-11"
 const result = await generateText({
   model,
   messages: [
@@ -84,7 +94,54 @@ const result = await generateText({
       role: 'user',
       content: [
         { type: 'text', text: 'Describe the image in detail.' },
-        { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+        {
+          type: 'image',
+          image: fs.readFileSync('./data/comic-cat.png'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+#### Example: Base-64 encoded images
+
+<Note>You do not need a `data:...` prefix for the base64-encoded image.</Note>
+
+```ts highlight="8-11"
+const result = await generateText({
+  model,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe the image in detail.' },
+        {
+          type: 'image',
+          image: fs.readFileSync('./data/comic-cat.png').toString('base64'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+#### Example: Image URLs
+
+```ts highlight="8-13"
+const result = await generateText({
+  model,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe the image in detail.' },
+        {
+          type: 'image',
+          image: new URL(
+            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+          ),
+        },
       ],
     },
   ],
