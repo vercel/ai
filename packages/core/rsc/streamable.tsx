@@ -47,7 +47,7 @@ function createStreamableUI(initialValue?: React.ReactNode) {
   }
   warnUnclosedStream();
 
-  return {
+  const streamable = {
     /**
      * The value of the streamable UI. This can be returned from a Server Action and received by the client.
      */
@@ -61,7 +61,7 @@ function createStreamableUI(initialValue?: React.ReactNode) {
       // There is no need to update the value if it's referentially equal.
       if (value === currentValue) {
         warnUnclosedStream();
-        return;
+        return streamable;
       }
 
       const resolvable = createResolvablePromise();
@@ -72,6 +72,8 @@ function createStreamableUI(initialValue?: React.ReactNode) {
       reject = resolvable.reject;
 
       warnUnclosedStream();
+
+      return streamable;
     },
     /**
      * This method is used to append a new UI node to the end of the old one.
@@ -100,6 +102,8 @@ function createStreamableUI(initialValue?: React.ReactNode) {
       reject = resolvable.reject;
 
       warnUnclosedStream();
+
+      return streamable;
     },
     /**
      * This method is used to signal that there is an error in the UI stream.
@@ -113,6 +117,8 @@ function createStreamableUI(initialValue?: React.ReactNode) {
       }
       closed = true;
       reject(error);
+
+      return streamable;
     },
     /**
      * This method marks the UI node as finalized. You can either call it without any parameters or with a new UI node as the final state.
@@ -129,11 +135,15 @@ function createStreamableUI(initialValue?: React.ReactNode) {
       closed = true;
       if (args.length) {
         resolve({ value: args[0], done: true });
-        return;
+        return streamable;
       }
       resolve({ value: currentValue, done: true });
+
+      return streamable;
     },
   };
+
+  return streamable;
 }
 
 const STREAMABLE_VALUE_INTERNAL_LOCK = Symbol('streamable.value.lock');
@@ -276,7 +286,7 @@ function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
     currentValue = value;
   }
 
-  return {
+  const streamable = {
     /**
      * @internal This is an internal lock to prevent the value from being
      * updated by the user.
@@ -306,6 +316,8 @@ function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
       resolvePrevious(createWrapped());
 
       warnUnclosedStream();
+
+      return streamable;
     },
     /**
      * This method is used to append a delta string to the current value. It
@@ -351,6 +363,8 @@ function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
       resolvePrevious(createWrapped());
 
       warnUnclosedStream();
+
+      return streamable;
     },
     /**
      * This method is used to signal that there is an error in the value stream.
@@ -368,6 +382,8 @@ function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
       currentPromise = undefined;
 
       resolvable.resolve({ error });
+
+      return streamable;
     },
     /**
      * This method marks the value as finalized. You can either call it without
@@ -389,12 +405,16 @@ function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
       if (args.length) {
         updateValueStates(args[0]);
         resolvable.resolve(createWrapped());
-        return;
+        return streamable;
       }
 
       resolvable.resolve({});
+
+      return streamable;
     },
   };
+
+  return streamable;
 }
 
 export { createStreamableUI, createStreamableValue };

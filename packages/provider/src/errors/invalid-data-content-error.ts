@@ -1,17 +1,21 @@
 export class InvalidDataContentError extends Error {
   readonly content: unknown;
+  readonly cause?: unknown;
 
   constructor({
     content,
-    message = `Invalid data content. Expected a string, Uint8Array, ArrayBuffer, or Buffer, but got ${typeof content}.`,
+    cause,
+    message = `Invalid data content. Expected a base64 string, Uint8Array, ArrayBuffer, or Buffer, but got ${typeof content}.`,
   }: {
     content: unknown;
+    cause?: unknown;
     message?: string;
   }) {
     super(message);
 
     this.name = 'AI_InvalidDataContentError';
 
+    this.cause = cause;
     this.content = content;
   }
 
@@ -30,7 +34,7 @@ export class InvalidDataContentError extends Error {
       name: this.name,
       message: this.message,
       stack: this.stack,
-
+      cause: this.cause,
       content: this.content,
     };
   }

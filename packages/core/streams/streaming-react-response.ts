@@ -20,12 +20,17 @@ type Payload = {
   content: string;
 };
 
+/**
+ @deprecated Use AI SDK RSC instead: https://sdk.vercel.ai/docs/ai-sdk-rsc
+ */
 export type ReactResponseRow = Payload & {
   next: null | Promise<ReactResponseRow>;
 };
 
 /**
- * A utility class for streaming React responses.
+A utility class for streaming React responses.
+
+@deprecated Use AI SDK RSC instead: https://sdk.vercel.ai/docs/ai-sdk-rsc
  */
 export class experimental_StreamingReactResponse {
   constructor(

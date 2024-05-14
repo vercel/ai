@@ -1,6 +1,6 @@
+import { generateId as generateIdFunction } from './generate-id';
 import { readDataStream } from './read-data-stream';
 import type { FunctionCall, JSONValue, Message, ToolCall } from './types';
-import { generateId as generateIdFunction } from './generate-id';
 
 type PrefixMap = {
   text?: Message;
@@ -65,6 +65,51 @@ export async function parseComplexResponse({
           content: value,
           createdAt,
         };
+      }
+    }
+
+    // Tool invocations are part of an assistant message
+    if (type === 'tool_call') {
+      // create message if it doesn't exist
+      if (prefixMap.text == null) {
+        prefixMap.text = {
+          id: generateId(),
+          role: 'assistant',
+          content: '',
+          createdAt,
+        };
+      }
+
+      if (prefixMap.text.toolInvocations == null) {
+        prefixMap.text.toolInvocations = [];
+      }
+
+      prefixMap.text.toolInvocations.push(value);
+    } else if (type === 'tool_result') {
+      // create message if it doesn't exist
+      if (prefixMap.text == null) {
+        prefixMap.text = {
+          id: generateId(),
+          role: 'assistant',
+          content: '',
+          createdAt,
+        };
+      }
+
+      if (prefixMap.text.toolInvocations == null) {
+        prefixMap.text.toolInvocations = [];
+      }
+
+      // find if there is any tool invocation with the same toolCallId
+      // and replace it with the result
+      const toolInvocationIndex = prefixMap.text.toolInvocations.findIndex(
+        invocation => invocation.toolCallId === value.toolCallId,
+      );
+
+      if (toolInvocationIndex !== -1) {
+        prefixMap.text.toolInvocations[toolInvocationIndex] = value;
+      } else {
+        prefixMap.text.toolInvocations.push(value);
       }
     }
 

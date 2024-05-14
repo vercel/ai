@@ -1,3 +1,6 @@
+import { ToolCall as CoreToolCall } from '../core/generate-text/tool-call';
+import { ToolResult as CoreToolResult } from '../core/generate-text/tool-result';
+
 // https://github.com/openai/openai-node/blob/07b3504e1c40fd929f4aae1651b83afc19e3baf8/src/resources/chat/completions.ts#L146-L159
 export interface FunctionCall {
   /**
@@ -83,6 +86,15 @@ export interface Function {
 export type IdGenerator = () => string;
 
 /**
+Tool invocations are either tool calls or tool results. For each assistant tool call,
+there is one tool invocation. While the call is in progress, the invocation is a tool call.
+Once the call is complete, the invocation is a tool result.
+ */
+export type ToolInvocation =
+  | CoreToolCall<string, any>
+  | CoreToolResult<string, any, any>;
+
+/**
  * Shared types between the API and UI packages.
  */
 export interface Message {
@@ -90,9 +102,15 @@ export interface Message {
   tool_call_id?: string;
   createdAt?: Date;
   content: string;
+
+  /**
+@deprecated Use AI SDK RSC instead: https://sdk.vercel.ai/docs/ai-sdk-rsc
+ */
   ui?: string | JSX.Element | JSX.Element[] | null | undefined;
+
   role: 'system' | 'user' | 'assistant' | 'function' | 'data' | 'tool';
   /**
+   *
    * If the message has a role of `function`, the `name` field is the name of the function.
    * Otherwise, the name field should not be set.
    */
@@ -115,6 +133,12 @@ export interface Message {
    * Additional message-specific information added on the server via StreamData
    */
   annotations?: JSONValue[] | undefined;
+
+  /**
+Tool invocations (that can be tool calls or tool results, depending on whether or not the invocation has finished)
+that the assistant made as part of this message.
+   */
+  toolInvocations?: Array<ToolInvocation>;
 }
 
 export type CreateMessage = Omit<Message, 'id'> & {

@@ -1,0 +1,66 @@
+---
+title: LangChain
+description: Learn how to use LangChain with the Vercel AI SDK.
+---
+
+# LangChain
+
+[LangChain](https://js.langchain.com/docs/) is a framework for developing applications powered by language models.
+It provides tools and abstractions for working with AI models, agents, vector stores, and other data sources for retrieval augmented generation (RAG).
+However, LangChain does not provide a way to easily build UIs or a standard way to stream data to the client.
+
+## Example: Completion
+
+Here is a basic example that uses both Vercel AI SDK and LangChain together with the [Next.js](https://nextjs.org/docs) App Router.
+
+The AI SDK `LangChainAdapter` uses the result from [LangChain ExpressionLanguage streaming](https://js.langchain.com/docs/expression_language/streaming) to pipe text to the client.
+`LangChainAdapter.toAIStream()` is compatible with the LangChain Expression Language `.stream()` function response.
+
+```tsx filename="app/api/completion/route.ts" highlight={"17"}
+import { ChatOpenAI } from '@langchain/openai';
+import { LangChainAdapter, StreamingTextResponse } from 'ai';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+export async function POST(req: Request) {
+  const { prompt } = await req.json();
+
+  const model = new ChatOpenAI({
+    model: 'gpt-3.5-turbo-0125',
+    temperature: 0,
+  });
+
+  const stream = await model.stream(prompt);
+
+  const aiStream = LangChainAdapter.toAIStream(stream);
+
+  return new StreamingTextResponse(aiStream);
+}
+```
+
+Then, we use the Vercel AI SDK's [`useCompletion`](/docs/ai-sdk-ui/completion) method in the page component to handle the completion:
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useCompletion } from 'ai/react';
+
+export default function Chat() {
+  const { completion, input, handleInputChange, handleSubmit } =
+    useCompletion();
+
+  return (
+    <div>
+      {completion}
+      <form onSubmit={handleSubmit}>
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </div>
+  );
+}
+```
+
+## More Examples
+
+You can find additional examples in the Vercel AI SDK [examples/next-langchain](https://github.com/vercel/ai/tree/main/examples/next-langchain) folder.

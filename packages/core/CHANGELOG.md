@@ -1,5 +1,35 @@
 # ai
 
+## 3.1.7
+
+### Patch Changes
+
+- f617b97: feat (ai): support client/server tool calls with useChat and streamText
+
+## 3.1.6
+
+### Patch Changes
+
+- 2e78acb: Deprecate StreamingReactResponse (use AI SDK RSC instead).
+- 8439884: ai/rsc: make RSC streamable utils chainable
+- 325ca55: feat (ai/core): improve image content part error message
+- Updated dependencies [325ca55]
+  - @ai-sdk/provider@0.0.4
+  - @ai-sdk/provider-utils@0.0.7
+
+## 3.1.5
+
+### Patch Changes
+
+- 5b01c13: feat (ai/core): add system message support in messages list
+
+## 3.1.4
+
+### Patch Changes
+
+- ceb44bc: feat (ai/ui): add stop() helper to useAssistant (important: AssistantResponse now requires OpenAI SDK 4.42+)
+- 37c9d4c: feat (ai/streams): add LangChainAdapter.toAIStream()
+
 ## 3.1.3
 
 ### Patch Changes
