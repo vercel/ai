@@ -1,5 +1,14 @@
 # ai
 
+## 3.1.8
+
+### Patch Changes
+
+- 0f6bc4e: feat (ai/core): add embed function
+- Updated dependencies [0f6bc4e]
+  - @ai-sdk/provider@0.0.5
+  - @ai-sdk/provider-utils@0.0.8
+
 ## 3.1.7
 
 ### Patch Changes
