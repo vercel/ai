@@ -130,8 +130,8 @@ importers:
         specifier: ^0.2.1
         version: 0.2.1(next@14.2.3)(react-dom@18.2.0)(react@18.2.0)
       openai:
-        specifier: ^4.28.4
-        version: 4.28.4
+        specifier: ^4.47.1
+        version: 4.47.1
       react:
         specifier: ^18
         version: 18.2.0
@@ -436,8 +436,8 @@ importers:
         specifier: latest
         version: 14.2.3(react-dom@18.2.0)(react@18.2.0)
       openai:
-        specifier: 4.42.0
-        version: 4.42.0
+        specifier: 4.47.1
+        version: 4.47.1
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -491,8 +491,8 @@ importers:
         specifier: latest
         version: 14.2.3(react-dom@18.2.0)(react@18.2.0)
       openai:
-        specifier: 4.16.1
-        version: 4.16.1
+        specifier: 4.47.1
+        version: 4.47.1
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -592,8 +592,8 @@ importers:
         specifier: latest
         version: 14.2.3(react-dom@18.2.0)(react@18.2.0)
       openai:
-        specifier: 4.16.1
-        version: 4.16.1
+        specifier: 4.47.1
+        version: 4.47.1
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -766,8 +766,8 @@ importers:
         specifier: ^3.6.5
         version: 3.8.1(@types/node@20.9.0)(eslint@7.32.0)(typescript@5.1.6)(vite@4.5.0)
       openai:
-        specifier: 4.16.1
-        version: 4.16.1
+        specifier: 4.47.1
+        version: 4.47.1
       tailwindcss:
         specifier: ^3.3.3
         version: 3.3.5
@@ -799,8 +799,8 @@ importers:
         specifier: latest
         version: link:../../packages/core
       openai:
-        specifier: 4.16.1
-        version: 4.16.1
+        specifier: 4.47.1
+        version: 4.47.1
       solid-js:
         specifier: 1.8.7
         version: 1.8.7
@@ -839,8 +839,8 @@ importers:
         specifier: latest
         version: link:../../packages/core
       openai:
-        specifier: 4.16.1
-        version: 4.16.1
+        specifier: 4.47.1
+        version: 4.47.1
     devDependencies:
       '@fontsource/fira-mono':
         specifier: ^4.5.10
@@ -1022,8 +1022,8 @@ importers:
         specifier: 2.0.9
         version: 2.0.9(typescript@5.1.3)
       openai:
-        specifier: 4.42.0
-        version: 4.42.0
+        specifier: 4.47.1
+        version: 4.47.1
       react-dom:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
@@ -4395,11 +4395,11 @@ packages:
       ws:
         optional: true
     dependencies:
-      '@langchain/core': 0.1.62(openai@4.44.0)
+      '@langchain/core': 0.1.62(openai@4.47.1)
       '@langchain/openai': 0.0.28
       expr-eval: 2.0.2
       flat: 5.0.2
-      langsmith: 0.1.23(openai@4.44.0)
+      langsmith: 0.1.23(openai@4.47.1)
       uuid: 9.0.1
       zod: 3.23.4
       zod-to-json-schema: 3.22.5(zod@3.23.4)
@@ -4408,7 +4408,7 @@ packages:
       - openai
     dev: false
 
-  /@langchain/core@0.1.62(openai@4.44.0):
+  /@langchain/core@0.1.62(openai@4.47.1):
     resolution: {integrity: sha512-PsBM/x0wxVvVPawKak2MFjxEneogipf212yO+rLf+2M3RDepCpYCdn1NBWgfmC+AWpmBYx/8zM7Y4QW7Kg2Wjw==}
     engines: {node: '>=18'}
     dependencies:
@@ -4416,7 +4416,7 @@ packages:
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.11
-      langsmith: 0.1.23(openai@4.44.0)
+      langsmith: 0.1.23(openai@4.47.1)
       ml-distance: 4.0.1
       mustache: 4.2.0
       p-queue: 6.6.2
@@ -4432,9 +4432,9 @@ packages:
     resolution: {integrity: sha512-2s1RA3/eAnz4ahdzsMPBna9hfAqpFNlWdHiPxVGZ5yrhXsbLWWoPcF+22LCk9t0HJKtazi2GCIWc0HVXH9Abig==}
     engines: {node: '>=18'}
     dependencies:
-      '@langchain/core': 0.1.62(openai@4.44.0)
+      '@langchain/core': 0.1.62(openai@4.47.1)
       js-tiktoken: 1.0.11
-      openai: 4.44.0
+      openai: 4.47.1
       zod: 3.23.4
       zod-to-json-schema: 3.22.5(zod@3.23.4)
     transitivePeerDependencies:
@@ -4445,7 +4445,7 @@ packages:
     resolution: {integrity: sha512-3hPesWomnmVeYMppEGYbyv0v/sRUugUdlFBNn9m1ueJYHAIKbvCErkWxNUH3guyKKYgJVrkvZoQxcd9faucSaw==}
     engines: {node: '>=18'}
     dependencies:
-      '@langchain/core': 0.1.62(openai@4.44.0)
+      '@langchain/core': 0.1.62(openai@4.47.1)
       js-tiktoken: 1.0.11
     transitivePeerDependencies:
       - openai
@@ -12589,7 +12589,7 @@ packages:
       langchainhub: 0.0.6
       langsmith: 0.0.48
       ml-distance: 4.0.1
-      openai: 4.42.0
+      openai: 4.47.1
       openapi-types: 12.1.3
       p-retry: 4.6.2
       uuid: 9.0.1
@@ -12764,7 +12764,7 @@ packages:
     dependencies:
       '@anthropic-ai/sdk': 0.9.1
       '@langchain/community': 0.0.55
-      '@langchain/core': 0.1.62(openai@4.44.0)
+      '@langchain/core': 0.1.62(openai@4.47.1)
       '@langchain/openai': 0.0.28
       '@langchain/textsplitters': 0.0.0
       binary-extensions: 2.2.0
@@ -12772,7 +12772,7 @@ packages:
       js-yaml: 4.1.0
       jsonpointer: 5.0.1
       langchainhub: 0.0.10
-      langsmith: 0.1.23(openai@4.44.0)
+      langsmith: 0.1.23(openai@4.47.1)
       ml-distance: 4.0.1
       openapi-types: 12.1.3
       p-retry: 4.6.2
@@ -12870,7 +12870,7 @@ packages:
       p-retry: 4.6.2
       uuid: 9.0.1
 
-  /langsmith@0.1.23(openai@4.44.0):
+  /langsmith@0.1.23(openai@4.47.1):
     resolution: {integrity: sha512-lc6BpC82zpHNDW5qNO/+eQrN9YNK7ElZIU0GIHZrdKTclaqAXYkJB2C3hM2sxdkdp0HbFYOLa0PxxZLzNkMloQ==}
     peerDependencies:
       openai: '*'
@@ -12880,7 +12880,7 @@ packages:
     dependencies:
       '@types/uuid': 9.0.7
       commander: 10.0.1
-      openai: 4.44.0
+      openai: 4.47.1
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 9.0.1
@@ -14398,41 +14398,8 @@ packages:
       - debug
     dev: false
 
-  /openai@4.16.1:
-    resolution: {integrity: sha512-Gr+uqUN1ICSk6VhrX64E+zL7skjI1TgPr/XUN+ZQuNLLOvx15+XZulx/lSW4wFEAQzgjBDlMBbBeikguGIjiMg==}
-    hasBin: true
-    dependencies:
-      '@types/node': 18.18.9
-      '@types/node-fetch': 2.6.9
-      abort-controller: 3.0.0
-      agentkeepalive: 4.5.0
-      digest-fetch: 1.3.0
-      form-data-encoder: 1.7.2
-      formdata-node: 4.4.1
-      node-fetch: 2.7.0
-      web-streams-polyfill: 3.2.1
-    transitivePeerDependencies:
-      - encoding
-
-  /openai@4.28.4:
-    resolution: {integrity: sha512-RNIwx4MT/F0zyizGcwS+bXKLzJ8QE9IOyigDG/ttnwB220d58bYjYFp0qjvGwEFBO6+pvFVIDABZPGDl46RFsg==}
-    hasBin: true
-    dependencies:
-      '@types/node': 18.18.9
-      '@types/node-fetch': 2.6.9
-      abort-controller: 3.0.0
-      agentkeepalive: 4.5.0
-      digest-fetch: 1.3.0
-      form-data-encoder: 1.7.2
-      formdata-node: 4.4.1
-      node-fetch: 2.7.0
-      web-streams-polyfill: 3.2.1
-    transitivePeerDependencies:
-      - encoding
-    dev: false
-
-  /openai@4.42.0:
-    resolution: {integrity: sha512-xbiQQ2YNqdkE6cHqeWKa7lsAvdYfgp84XiNFOVkAMa6+9KpmOL4hCWCRR6e6I/clpaens/T9XeLVtyC5StXoRw==}
+  /openai@4.47.1:
+    resolution: {integrity: sha512-WWSxhC/69ZhYWxH/OBsLEirIjUcfpQ5+ihkXKp06hmeYXgBBIUCa9IptMzYx6NdkiOCsSGYCnTIsxaic3AjRCQ==}
     hasBin: true
     dependencies:
       '@types/node': 18.18.9
@@ -14445,22 +14412,6 @@ packages:
       web-streams-polyfill: 3.2.1
     transitivePeerDependencies:
       - encoding
-
-  /openai@4.44.0:
-    resolution: {integrity: sha512-jVpDIJsBAR83rVbIHPuWRr9UkFc5DaH9ev2kt2IQAhKCs73DBRoFOa5SwtqfN7/CcBdIGBdygpmpc0gsFaV+Ow==}
-    hasBin: true
-    dependencies:
-      '@types/node': 18.18.9
-      '@types/node-fetch': 2.6.9
-      abort-controller: 3.0.0
-      agentkeepalive: 4.5.0
-      form-data-encoder: 1.7.2
-      formdata-node: 4.4.1
-      node-fetch: 2.7.0
-      web-streams-polyfill: 3.2.1
-    transitivePeerDependencies:
-      - encoding
-    dev: false
 
   /openapi-types@12.1.3:
     resolution: {integrity: sha512-N4YtSYJqghVu4iek2ZUvcN/0aqH1kRDuNqzcycDxhOUpg7GdvLa2F3DgS6yBNhInhv2r/6I0Flkn7CqL8+nIcw==}
