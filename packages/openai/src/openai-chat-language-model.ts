@@ -199,8 +199,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         ...args,
         stream: true,
         stream_options: {
-          include_usage: true
-        }
+          include_usage: true,
+        },
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
