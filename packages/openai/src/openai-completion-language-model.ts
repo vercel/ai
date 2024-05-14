@@ -179,6 +179,9 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       body: {
         ...this.getArgs(options),
         stream: true,
+        stream_options: {
+          include_usage: true,
+        },
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
