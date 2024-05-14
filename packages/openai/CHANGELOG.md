@@ -1,5 +1,16 @@
 # @ai-sdk/openai
 
+## 0.0.12
+
+### Patch Changes
+
+- 6f48839: feat (provider/openai): add gpt-4o to the list of supported models
+- 1009594: feat (provider/openai): set stream_options/include_usage to true when streaming
+- 0f6bc4e: feat (ai/core): add embed function
+- Updated dependencies [0f6bc4e]
+  - @ai-sdk/provider@0.0.5
+  - @ai-sdk/provider-utils@0.0.8
+
 ## 0.0.11
 
 ### Patch Changes
