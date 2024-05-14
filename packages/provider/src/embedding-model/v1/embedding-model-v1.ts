@@ -29,6 +29,16 @@ Provider-specific model ID for logging purposes.
   readonly modelId: string;
 
   /**
+Limit of how many embeddings can be generated in a single API call.
+   */
+  readonly maxEmbeddingsPerCall: number | undefined;
+
+  /**
+True if the model can handle multiple embedding calls in parallel.
+   */
+  readonly supportsParallelCalls: boolean;
+
+  /**
 Generates a list of embeddings for the given input text.
 
 Naming: "do" prefix to prevent accidental direct usage of the method
@@ -39,10 +49,25 @@ by the user.
 List of values to embed.
      */
     values: Array<VALUE>;
+
+    /**
+Abort signal for cancelling the operation.
+     */
+    abortSignal?: AbortSignal;
   }): PromiseLike<{
     /**
 Generated embeddings. They are in the same order as the input values.
      */
     embeddings: Array<EmbeddingModelV1Embedding>;
+
+    /**
+Optional raw response information for debugging purposes.
+     */
+    rawResponse?: {
+      /**
+Response headers.
+       */
+      headers?: Record<string, string>;
+    };
   }>;
 };

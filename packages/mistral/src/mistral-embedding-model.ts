@@ -1,4 +1,7 @@
-import { EmbeddingModelV1 } from '@ai-sdk/provider';
+import {
+  EmbeddingModelV1,
+  TooManyEmbeddingValuesForCallError,
+} from '@ai-sdk/provider';
 import {
   createJsonResponseHandler,
   postJsonToApi,
@@ -18,11 +21,24 @@ type MistralEmbeddingConfig = {
 
 export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'json';
-
   readonly modelId: MistralEmbeddingModelId;
 
   private readonly config: MistralEmbeddingConfig;
+  private readonly settings: MistralEmbeddingSettings;
+
+  get provider(): string {
+    return this.config.provider;
+  }
+
+  get maxEmbeddingsPerCall(): number {
+    return this.settings.maxEmbeddingsPerCall ?? 32;
+  }
+
+  get supportsParallelCalls(): boolean {
+    // Parallel calls are technically possible,
+    // but I have been hitting rate limits and disable them for now.
+    return this.settings.supportsParallelCalls ?? false;
+  }
 
   constructor(
     modelId: MistralEmbeddingModelId,
@@ -30,17 +46,24 @@ export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
     config: MistralEmbeddingConfig,
   ) {
     this.modelId = modelId;
+    this.settings = settings;
     this.config = config;
   }
 
-  get provider(): string {
-    return this.config.provider;
-  }
-
-  async doEmbed(
-    options: Parameters<EmbeddingModelV1<string>['doEmbed']>[0],
-  ): Promise<Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>> {
-    const { values } = options;
+  async doEmbed({
+    values,
+    abortSignal,
+  }: Parameters<EmbeddingModelV1<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>
+  > {
+    if (values.length > this.maxEmbeddingsPerCall) {
+      throw new TooManyEmbeddingValuesForCallError({
+        provider: this.provider,
+        modelId: this.modelId,
+        maxEmbeddingsPerCall: this.maxEmbeddingsPerCall,
+        values,
+      });
+    }
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/embeddings`,
@@ -54,13 +77,12 @@ export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
       successfulResponseHandler: createJsonResponseHandler(
         MistralTextEmbeddingResponseSchema,
       ),
-      // abortSignal: options.abortSignal,
+      abortSignal,
     });
-
-    // TODO raw headers, abort signal
 
     return {
       embeddings: response.data.map(item => item.embedding),
+      rawResponse: { headers: responseHeaders },
     };
   }
 }
