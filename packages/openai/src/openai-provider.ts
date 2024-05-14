@@ -6,6 +6,11 @@ import {
   OpenAICompletionModelId,
   OpenAICompletionSettings,
 } from './openai-completion-settings';
+import { OpenAIEmbeddingModel } from './openai-embedding-model';
+import {
+  OpenAIEmbeddingModelId,
+  OpenAIEmbeddingSettings,
+} from './openai-embedding-settings';
 
 export interface OpenAIProvider {
   (
@@ -17,15 +22,29 @@ export interface OpenAIProvider {
     settings?: OpenAIChatSettings,
   ): OpenAIChatLanguageModel;
 
+  /**
+Creates an OpenAI chat model for text generation.
+   */
   chat(
     modelId: OpenAIChatModelId,
     settings?: OpenAIChatSettings,
   ): OpenAIChatLanguageModel;
 
+  /**
+Creates an OpenAI completion model for text generation.
+   */
   completion(
     modelId: OpenAICompletionModelId,
     settings?: OpenAICompletionSettings,
   ): OpenAICompletionLanguageModel;
+
+  /**
+Creates a model for text embeddings.
+   */
+  embedding(
+    modelId: OpenAIEmbeddingModelId,
+    settings?: OpenAIEmbeddingSettings,
+  ): OpenAIEmbeddingModel;
 }
 
 export interface OpenAIProviderSettings {
@@ -101,6 +120,16 @@ export function createOpenAI(
       headers: getHeaders,
     });
 
+  const createEmbeddingModel = (
+    modelId: OpenAIEmbeddingModelId,
+    settings: OpenAIEmbeddingSettings = {},
+  ) =>
+    new OpenAIEmbeddingModel(modelId, settings, {
+      provider: 'openai.embedding',
+      baseURL,
+      headers: getHeaders,
+    });
+
   const provider = function (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
@@ -123,6 +152,7 @@ export function createOpenAI(
 
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
+  provider.embedding = createEmbeddingModel;
 
   return provider as OpenAIProvider;
 }
