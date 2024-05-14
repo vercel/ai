@@ -1,3 +1,4 @@
+import { loadApiKey, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './openai-chat-language-model';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import { OpenAICompletionLanguageModel } from './openai-completion-language-model';
@@ -5,7 +6,6 @@ import {
   OpenAICompletionModelId,
   OpenAICompletionSettings,
 } from './openai-completion-settings';
-import { OpenAI } from './openai-facade';
 
 export interface OpenAIProvider {
   (
@@ -66,7 +66,40 @@ Create an OpenAI provider instance.
 export function createOpenAI(
   options: OpenAIProviderSettings = {},
 ): OpenAIProvider {
-  const openai = new OpenAI(options);
+  const baseURL =
+    withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
+    'https://api.openai.com/v1';
+
+  const getHeaders = () => ({
+    Authorization: `Bearer ${loadApiKey({
+      apiKey: options.apiKey,
+      environmentVariableName: 'OPENAI_API_KEY',
+      description: 'OpenAI',
+    })}`,
+    'OpenAI-Organization': options.organization,
+    'OpenAI-Project': options.project,
+    ...options.headers,
+  });
+
+  const createChatModel = (
+    modelId: OpenAIChatModelId,
+    settings: OpenAIChatSettings = {},
+  ) =>
+    new OpenAIChatLanguageModel(modelId, settings, {
+      provider: 'openai.chat',
+      baseURL,
+      headers: getHeaders,
+    });
+
+  const createCompletionModel = (
+    modelId: OpenAICompletionModelId,
+    settings: OpenAICompletionSettings = {},
+  ) =>
+    new OpenAICompletionLanguageModel(modelId, settings, {
+      provider: 'openai.completion',
+      baseURL,
+      headers: getHeaders,
+    });
 
   const provider = function (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
@@ -79,19 +112,22 @@ export function createOpenAI(
     }
 
     if (modelId === 'gpt-3.5-turbo-instruct') {
-      return openai.completion(modelId, settings as OpenAICompletionSettings);
-    } else {
-      return openai.chat(modelId, settings as OpenAIChatSettings);
+      return createCompletionModel(
+        modelId,
+        settings as OpenAICompletionSettings,
+      );
     }
+
+    return createChatModel(modelId, settings as OpenAIChatSettings);
   };
 
-  provider.chat = openai.chat.bind(openai);
-  provider.completion = openai.completion.bind(openai);
+  provider.chat = createChatModel;
+  provider.completion = createCompletionModel;
 
   return provider as OpenAIProvider;
 }
 
 /**
- * Default OpenAI provider instance.
+Default OpenAI provider instance.
  */
 export const openai = createOpenAI();
