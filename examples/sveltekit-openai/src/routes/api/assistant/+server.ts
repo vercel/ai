@@ -9,6 +9,14 @@ const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY || '',
 });
 
+const homeTemperatures = {
+  bedroom: 20,
+  'home office': 21,
+  'living room': 21,
+  kitchen: 22,
+  bathroom: 23,
+};
+
 export const POST = (async ({ request }) => {
   // Parse the request body
   const input: {
@@ -51,7 +59,42 @@ export const POST = (async ({ request }) => {
               const parameters = JSON.parse(toolCall.function.arguments);
 
               switch (toolCall.function.name) {
-                // configure your tool calls here
+                case 'getRoomTemperature': {
+                  const temperature =
+                    homeTemperatures[
+                      parameters.room as keyof typeof homeTemperatures
+                    ];
+
+                  return {
+                    tool_call_id: toolCall.id,
+                    output: temperature.toString(),
+                  };
+                }
+
+                case 'setRoomTemperature': {
+                  const oldTemperature =
+                    homeTemperatures[
+                      parameters.room as keyof typeof homeTemperatures
+                    ];
+
+                  homeTemperatures[
+                    parameters.room as keyof typeof homeTemperatures
+                  ] = parameters.temperature;
+
+                  sendDataMessage({
+                    role: 'data',
+                    data: {
+                      oldTemperature,
+                      newTemperature: parameters.temperature,
+                      description: `Temperature in ${parameters.room} changed from ${oldTemperature} to ${parameters.temperature}`,
+                    },
+                  });
+
+                  return {
+                    tool_call_id: toolCall.id,
+                    output: `temperature set successfully`,
+                  };
+                }
 
                 default:
                   throw new Error(

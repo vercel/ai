@@ -839,8 +839,8 @@ importers:
         specifier: latest
         version: link:../../packages/core
       openai:
-        specifier: 4.45.0
-        version: 4.45.0
+        specifier: 4.42.0
+        version: 4.42.0
     devDependencies:
       '@fontsource/fira-mono':
         specifier: ^4.5.10
@@ -14448,22 +14448,6 @@ packages:
 
   /openai@4.44.0:
     resolution: {integrity: sha512-jVpDIJsBAR83rVbIHPuWRr9UkFc5DaH9ev2kt2IQAhKCs73DBRoFOa5SwtqfN7/CcBdIGBdygpmpc0gsFaV+Ow==}
-    hasBin: true
-    dependencies:
-      '@types/node': 18.18.9
-      '@types/node-fetch': 2.6.9
-      abort-controller: 3.0.0
-      agentkeepalive: 4.5.0
-      form-data-encoder: 1.7.2
-      formdata-node: 4.4.1
-      node-fetch: 2.7.0
-      web-streams-polyfill: 3.2.1
-    transitivePeerDependencies:
-      - encoding
-    dev: false
-
-  /openai@4.45.0:
-    resolution: {integrity: sha512-uszUQrl9eQPCA9a7Zml+Eizb3mG0JDd8zUl528OM6Ccn039dqbOmUivL5s8zUM6iJMRMvNGRMXS9yuuR1Bv2sw==}
     hasBin: true
     dependencies:
       '@types/node': 18.18.9

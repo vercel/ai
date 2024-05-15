@@ -1,6 +1,5 @@
 <script>
-	import { useAssistant } from '../../../../../packages/core/svelte/use-assistant'
-
+	import { useAssistant } from 'ai/svelte'
 	const { messages, input, submitMessage } = useAssistant({
 		api: '/api/assistant',
 	});
@@ -14,8 +13,16 @@
 <section>
 	<h1>useAssistant</h1>
 	<ul>
-		{#each $messages as message}
-			<li>{message.role}: {message.content}</li>
+		{#each $messages as m}
+			<strong>{m.role}</strong> 
+			{#if m.role !== 'data'}
+			{m.content}
+			{/if}
+			{#if m.role === 'data'}
+			<pre>{JSON.stringify(m.data, null, 2)}}</pre>
+			{/if}
+			<br/>
+			<br/>
 		{/each}
 	</ul>
 	<form on:submit={submitMessage}>

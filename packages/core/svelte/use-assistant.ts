@@ -1,43 +1,42 @@
-// Import required modules
-import { writable, derived, get, Readable, Writable } from 'svelte/store';
-import { callCompletionApi } from '../shared/call-completion-api';
+import { isAbortError } from '@ai-sdk/provider-utils';
+import { Readable, Writable, get, writable } from 'svelte/store';
 import { generateId } from '../shared/generate-id';
 import { readDataStream } from '../shared/read-data-stream';
-import type { CreateMessage, Message } from '../shared/types';
+import type {
+  AssistantStatus,
+  CreateMessage,
+  Message,
+  UseAssistantOptions,
+} from '../shared/types';
 
-// Define a type for the assistant status
-export type AssistantStatus = 'in_progress' | 'awaiting_message';
-
-// Define the unique identifier counter for completions
 let uniqueId = 0;
 
-// Create a storage object to maintain messages by key
 const store: Record<string, any> = {};
 
-// Define a store type to maintain the assistant state
 export type UseAssistantHelpers = {
   /**
-   * Current array of chat messages.
+   * The current array of chat messages.
    */
   messages: Readable<Message[]>;
 
   /**
-   * Error object encountered during processing.
+   * Update the message store with a new array of messages.
    */
-  error: Readable<undefined | Error>;
+  setMessages: (messages: Message[]) => void;
 
   /**
-   * The thread ID being used.
+   * The current thread ID.
    */
   threadId: Readable<string | undefined>;
 
   /**
-   * The current input field value.
+   * The current value of the input field.
    */
   input: Writable<string>;
 
   /**
-   * Append a user message to the chat list and fetch the assistant's response.
+   * Append a user message to the chat list. This triggers the API call to fetch
+   * the assistant's response.
    * @param message The message to append
    * @param requestOptions Additional options to pass to the API call
    */
@@ -47,7 +46,12 @@ export type UseAssistantHelpers = {
   ) => Promise<void>;
 
   /**
-   * Form submission handler that resets the input field and appends a user message.
+Abort the current request immediately, keep the generated tokens if any.
+   */
+  stop: () => void;
+
+  /**
+   * Form submission handler that automatically resets the input field and appends a user message.
    */
   submitMessage: (
     e: any,
@@ -55,58 +59,16 @@ export type UseAssistantHelpers = {
   ) => Promise<void>;
 
   /**
-   * The current status of the assistant, for loading indication.
+   * The current status of the assistant. This can be used to show a loading indicator.
    */
   status: Readable<AssistantStatus>;
 
   /**
-   * Update the message store with a new array of messages.
+   * The error thrown during the assistant message processing, if any.
    */
-  setMessages: (messages: Message[]) => void;
-
-  /**
-   * Stop the current request immediately.
-   */
-  stop: () => void;
+  error: Readable<undefined | Error>;
 };
 
-export type UseAssistantOptions = {
-  /**
-   * The API endpoint that accepts a `{ threadId: string | null; message: string; }` object and returns an `AssistantResponse` stream.
-   * The threadId refers to an existing thread with messages (or is `null` to create a new thread).
-   * The message is the next message that should be appended to the thread and sent to the assistant.
-   */
-  api: string;
-
-  /**
-   * An optional string that represents the ID of an existing thread.
-   * If not provided, a new thread will be created.
-   */
-  threadId?: string;
-
-  /**
-   * An optional literal that sets the mode of credentials to be used on the request.
-   * Defaults to "same-origin".
-   */
-  credentials?: RequestCredentials;
-
-  /**
-   * An optional object of headers to be passed to the API endpoint.
-   */
-  headers?: Record<string, string> | Headers;
-
-  /**
-   * An optional, additional body object to be passed to the API endpoint.
-   */
-  body?: object;
-
-  /**
-   * An optional callback that will be called when the assistant encounters an error.
-   */
-  onError?: (error: Error) => void;
-};
-
-// Main helper function to handle the assistant functionality
 export function useAssistant({
   api,
   threadId: threadIdParam,
@@ -151,18 +113,20 @@ export function useAssistant({
     input.set('');
 
     try {
-      // Send a request to the specified API
       const result = await fetch(api, {
         method: 'POST',
         credentials,
+        signal: abortController.signal,
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify({
           ...body,
+          // always use user-provided threadId when available:
           threadId: threadIdParam ?? get(threadIdStore) ?? null,
           message: message.content,
+
+          // optional request data:
           data: requestOptions?.data,
         }),
-        signal: abortController.signal,
       });
 
       if (result.body == null) {
@@ -174,7 +138,7 @@ export function useAssistant({
         result.body.getReader(),
       )) {
         switch (type) {
-          case 'assistant_message':
+          case 'assistant_message': {
             mutateMessages([
               ...get(messages),
               {
@@ -184,8 +148,10 @@ export function useAssistant({
               },
             ]);
             break;
-          case 'text':
-            // Update the last message with the new text content
+          }
+
+          case 'text': {
+            // text delta - add to last message:
             mutateMessages(
               get(messages).map((msg, index, array) => {
                 if (index === array.length - 1) {
@@ -195,7 +161,9 @@ export function useAssistant({
               }),
             );
             break;
-          case 'data_message':
+          }
+
+          case 'data_message': {
             mutateMessages([
               ...get(messages),
               {
@@ -206,8 +174,11 @@ export function useAssistant({
               },
             ]);
             break;
-          case 'assistant_control_data':
+          }
+
+          case 'assistant_control_data': {
             threadIdStore.set(value.threadId);
+
             mutateMessages(
               get(messages).map((msg, index, array) => {
                 if (index === array.length - 1) {
@@ -216,20 +187,31 @@ export function useAssistant({
                 return msg;
               }),
             );
+
             break;
-          case 'error':
+          }
+
+          case 'error': {
             error.set(new Error(value));
             break;
+          }
         }
       }
     } catch (err) {
+      // Ignore abort errors as they are expected when the user cancels the request:
+      if (isAbortError(error) && abortController?.signal?.aborted) {
+        abortController = null;
+        return;
+      }
+
       if (onError && err instanceof Error) {
         onError(err);
       }
+
       error.set(err as Error);
     } finally {
+      abortController = null;
       status.set('awaiting_message');
-      abortController = null; // Reset the abort controller
     }
   }
 
