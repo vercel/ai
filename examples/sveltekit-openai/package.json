@@ -15,7 +15,7 @@
     "openai": "4.47.1"
   },
   "devDependencies": {
-    "@fontsource/fira-mono": "^4.5.10",
+    "@fontsource/fira-mono": "^5.0.13",
     "@neoconfetti/svelte": "^2.2.1",
     "@sveltejs/adapter-auto": "^2.1.0",
     "@sveltejs/kit": "^1.21.0",
