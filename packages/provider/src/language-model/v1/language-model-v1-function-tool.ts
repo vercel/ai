@@ -18,7 +18,15 @@ The name of the tool. Unique within this model call.
    */
   name: string;
 
+  /**
+A description of the tool. The language model uses this to understand the
+tool's purpose and to provide better completion suggestions.
+   */
   description?: string;
 
+  /**
+The parameters that the tool expects. The language model uses this to
+understand the tool's input requirements and to provide matching suggestions.
+   */
   parameters: JSONSchema7;
 };

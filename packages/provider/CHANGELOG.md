@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.5
+
+### Patch Changes
+
+- 0f6bc4e: feat (ai/core): add embed function
+
 ## 0.0.4
 
 ### Patch Changes
