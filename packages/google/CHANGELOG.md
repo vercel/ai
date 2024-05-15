@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 0.0.13
+
+### Patch Changes
+
+- 9a7ec8b: feat (provider/google): add token usage information
+
 ## 0.0.12
 
 ### Patch Changes
