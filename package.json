@@ -32,7 +32,7 @@
     "prettier": "2.8.8",
     "publint": "0.1.11",
     "turbo": "^1.10.13",
-    "vitest": "^0.34.6"
+    "vitest": "^1.6.0"
   },
   "homepage": "https://sdk.vercel.ai/docs",
   "repository": {
