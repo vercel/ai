@@ -66,6 +66,12 @@ You can use the following optional settings to customize the OpenAI provider ins
 
   Custom headers to include in the requests.
 
+- **compatibility** _"strict" | "compatible"_
+
+  OpenAI compatibility mode. Should be set to `strict` when using the OpenAI API,
+  and `compatible` when using 3rd party providers. In `compatible` mode, newer
+  information such as streamOptions are not being sent. Defaults to 'compatible'.
+
 ## Models
 
 The OpenAI provider instance is a function that you can invoke to create a model:
