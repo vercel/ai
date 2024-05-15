@@ -42,7 +42,21 @@ describe('doGenerate', () => {
 
   server.setupTestEnvironment();
 
-  function prepareJsonResponse({ content = '' }: { content?: string }) {
+  function prepareJsonResponse({
+    content = '',
+    usage = {
+      promptTokenCount: 1,
+      candidatesTokenCount: 2,
+      totalTokenCount: 3,
+    },
+  }: {
+    content?: string;
+    usage?: {
+      promptTokenCount: number;
+      candidatesTokenCount: number;
+      totalTokenCount: number;
+    };
+  }) {
     server.responseBodyJson = {
       candidates: [
         {
@@ -56,6 +70,7 @@ describe('doGenerate', () => {
         },
       ],
       promptFeedback: { safetyRatings: SAFETY_RATINGS },
+      usageMetadata: usage,
     };
   }
 
@@ -69,6 +84,28 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('Hello, World!');
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonResponse({
+      content: '',
+      usage: {
+        promptTokenCount: 20,
+        candidatesTokenCount: 5,
+        totalTokenCount: 25,
+      },
+    });
+
+    const { usage } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toStrictEqual({
+      promptTokens: 20,
+      completionTokens: 5,
+    });
   });
 
   it('should extract tool calls', async () => {
@@ -244,7 +281,8 @@ describe('doStream', () => {
         `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
         `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
         `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
-        `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}]}\n\n`,
+        `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}],` +
+        `"usageMetadata": {"promptTokenCount": 294,"candidatesTokenCount": 233,"totalTokenCount": 527}}\n\n`,
     );
   }
 
@@ -264,7 +302,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { promptTokens: NaN, completionTokens: NaN },
+        usage: { promptTokens: 294, completionTokens: 233 },
       },
     ]);
   });
