@@ -114,7 +114,7 @@
     "cohere-ai": "^7.6.2",
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
-    "jsdom": "^23.0.0",
+    "jsdom": "^24.0.0",
     "langchain": "0.0.196",
     "msw": "2.0.9",
     "openai": "4.47.1",
