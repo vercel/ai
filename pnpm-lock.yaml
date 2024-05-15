@@ -139,8 +139,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       react-intersection-observer:
-        specifier: ^9.8.0
-        version: 9.8.1(react-dom@18.2.0)(react@18.2.0)
+        specifier: ^9.10.2
+        version: 9.10.2(react-dom@18.2.0)(react@18.2.0)
       react-textarea-autosize:
         specifier: ^8.5.3
         version: 8.5.3(@types/react@18.2.8)(react@18.2.0)
@@ -15452,11 +15452,11 @@ packages:
       react: 18.2.0
       scheduler: 0.23.0
 
-  /react-intersection-observer@9.8.1(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-QzOFdROX8D8MH3wE3OVKH0f3mLjKTtEN1VX/rkNuECCff+aKky0pIjulDhr3Ewqj5el/L+MhBkM3ef0Tbt+qUQ==}
+  /react-intersection-observer@9.10.2(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-j2hGADK2hCbAlfaq6L3tVLb4iqngoN7B1fT16MwJ4J16YW/vWLcmAIinLsw0lgpZeMi4UDUWtHC9QDde0/P1yQ==}
     peerDependencies:
-      react: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0
-      react-dom: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0
+      react: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     peerDependenciesMeta:
       react-dom:
         optional: true
