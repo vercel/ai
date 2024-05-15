@@ -19,7 +19,7 @@
     "@neoconfetti/svelte": "^1.0.0",
     "@sveltejs/adapter-auto": "^2.1.0",
     "@sveltejs/kit": "^1.21.0",
-    "@types/cookie": "^0.5.1",
+    "@types/cookie": "^0.6.0",
     "svelte": "^4.0.1",
     "svelte-check": "^3.4.4",
     "tslib": "^2.6.0",
