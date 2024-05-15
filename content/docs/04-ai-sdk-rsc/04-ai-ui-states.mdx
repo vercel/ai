@@ -38,6 +38,12 @@ export type UIState = Array<{
   display: ReactNode;
 }>;
 
+async function sendMessage(message: string) {
+  'use server';
+
+  // Handle the message, covered in the following sections.
+}
+
 // Create the AI provider with the initial states and allowed actions
 export const AI = createAI({
   initialAIState: [] as AIState,
@@ -46,12 +52,6 @@ export const AI = createAI({
     sendMessage,
   },
 });
-
-async function sendMessage(message: string) {
-  'use server';
-
-  // Handle the message, covered in the following sections.
-}
 ```
 
 ## Using the AI Context
