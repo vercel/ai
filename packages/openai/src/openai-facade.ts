@@ -73,6 +73,7 @@ Custom headers to include in the requests.
     return new OpenAIChatLanguageModel(modelId, settings, {
       provider: 'openai.chat',
       ...this.baseConfig,
+      compatibility: 'strict',
     });
   }
 
@@ -83,6 +84,7 @@ Custom headers to include in the requests.
     return new OpenAICompletionLanguageModel(modelId, settings, {
       provider: 'openai.completion',
       ...this.baseConfig,
+      compatibility: 'strict',
     });
   }
 }
