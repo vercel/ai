@@ -38,7 +38,11 @@ const TEST_LOGPROBS = {
   ] as Record<string, number>[],
 };
 
-const provider = createOpenAI({ apiKey: 'test-api-key' });
+const provider = createOpenAI({
+  apiKey: 'test-api-key',
+  compatibility: 'strict',
+});
+
 const model = provider.completion('gpt-3.5-turbo-instruct');
 
 describe('doGenerate', () => {

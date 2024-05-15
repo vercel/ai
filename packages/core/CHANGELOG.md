@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.9
+
+### Patch Changes
+
+- 18a9655: feat (ai/svelte): add useAssistant
+
 ## 3.1.8
 
 ### Patch Changes
