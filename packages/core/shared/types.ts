@@ -1,6 +1,8 @@
 import { ToolCall as CoreToolCall } from '../core/generate-text/tool-call';
 import { ToolResult as CoreToolResult } from '../core/generate-text/tool-result';
 
+export * from './use-assistant-types';
+
 // https://github.com/openai/openai-node/blob/07b3504e1c40fd929f4aae1651b83afc19e3baf8/src/resources/chat/completions.ts#L146-L159
 export interface FunctionCall {
   /**

@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.13
+
+### Patch Changes
+
+- 4e3c922: fix (provider/openai): introduce compatibility mode in which "stream_options" are not sent
+
 ## 0.0.12
 
 ### Patch Changes
