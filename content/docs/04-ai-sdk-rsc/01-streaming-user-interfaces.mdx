@@ -45,7 +45,7 @@ On the client side, you can request to the `getWeather` Server Action via a norm
 ```tsx file='app/page.tsx'
 import { useState } from 'react';
 import { readStreamableValue } from 'ai/rsc';
-import { runThread } from '@/actions';
+import { getWeather } from '@/actions';
 
 export default function Page() {
   const [weather, setWeather] = useState(null);
