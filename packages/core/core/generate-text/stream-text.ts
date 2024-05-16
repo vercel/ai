@@ -2,8 +2,6 @@ import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
   StreamingTextResponse,
-  createCallbacksTransformer,
-  createStreamDataTransformer,
   formatStreamPart,
 } from '../../streams';
 import { CallSettings } from '../prompt/call-settings';
@@ -20,9 +18,9 @@ import {
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
+import { TokenUsage } from './token-usage';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
-import { TokenUsage } from './token-usage';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -367,10 +365,7 @@ writes each stream data part as a separate chunk.
       ...init?.headers,
     });
 
-    const reader = this.textStream
-      .pipeThrough(createCallbacksTransformer(undefined))
-      .pipeThrough(createStreamDataTransformer())
-      .getReader();
+    const reader = this.toAIStream().getReader();
 
     const read = async () => {
       try {
