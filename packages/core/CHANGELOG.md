@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.11
+
+### Patch Changes
+
+- a085d42: fix (ai/ui): decouple StreamData chunks from LLM stream
+
 ## 3.1.10
 
 ### Patch Changes
