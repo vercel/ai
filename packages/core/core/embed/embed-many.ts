@@ -1,5 +1,6 @@
 import { Embedding, EmbeddingModel } from '../types';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
+import { splitArray } from '../util/split-array';
 
 /**
 Embed several value using an embedding model. The type of the value is defined by the embedding model.
@@ -41,18 +42,34 @@ Abort signal.
   abortSignal?: AbortSignal;
 }): Promise<EmbedManyResult<VALUE>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
+  const maxEmbeddingsPerCall = model.maxEmbeddingsPerCall;
 
-  const modelResponse = await retry(() =>
-    model.doEmbed({
+  // the model has not specified limits on
+  // how many embeddings can be generated in a single call
+  if (maxEmbeddingsPerCall == null) {
+    const modelResponse = await retry(() =>
+      model.doEmbed({ values, abortSignal }),
+    );
+
+    return new EmbedManyResult({
       values,
-      abortSignal,
-    }),
-  );
+      embeddings: modelResponse.embeddings,
+    });
+  }
 
-  return new EmbedManyResult({
-    values,
-    embeddings: modelResponse.embeddings,
-  });
+  // split the values into chunks that are small enough for the model:
+  const valueChunks = splitArray(values, maxEmbeddingsPerCall);
+
+  // serially embed the chunks:
+  const embeddings = [];
+  for (const chunk of valueChunks) {
+    const modelResponse = await retry(() =>
+      model.doEmbed({ values: chunk, abortSignal }),
+    );
+    embeddings.push(...modelResponse.embeddings);
+  }
+
+  return new EmbedManyResult({ values, embeddings });
 }
 
 /**
