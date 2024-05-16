@@ -87,8 +87,8 @@ describe('InkeepStream', () => {
       '0:","\n',
       '0:" world"\n',
       '0:"."\n',
-      `2:[{"onFinalMetadata":{"chat_session_id":"12345",${recordsCitedSerialized}}}]\n`,
       `8:[{${recordsCitedSerialized}}]\n`,
+      `2:[{"onFinalMetadata":{"chat_session_id":"12345",${recordsCitedSerialized}}}]\n`,
     ]);
   });
 });

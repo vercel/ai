@@ -1,5 +1,6 @@
 import type { ServerResponse } from 'node:http';
 import { StreamData } from './stream-data';
+import { mergeStreams } from '../core/util/merge-streams';
 
 /**
  * A utility class for streaming text responses.
@@ -9,7 +10,7 @@ export class StreamingTextResponse extends Response {
     let processedStream = res;
 
     if (data) {
-      processedStream = res.pipeThrough(data.stream);
+      processedStream = mergeStreams(data.stream, res);
     }
 
     super(processedStream as any, {
