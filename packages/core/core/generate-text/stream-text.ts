@@ -406,16 +406,15 @@ writes each text delta as a separate chunk.
       ...init?.headers,
     });
 
-    const reader = this.textStream
-      .pipeThrough(new TextEncoderStream())
-      .getReader();
+    const reader = this.textStream.getReader();
 
     const read = async () => {
+      const encoder = new TextEncoder();
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          response.write(value);
+          response.write(encoder.encode(value));
         }
       } catch (error) {
         throw error;
@@ -447,13 +446,23 @@ Non-text-delta events are ignored.
 @param init Optional headers and status code.
    */
   toTextStreamResponse(init?: ResponseInit): Response {
-    return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
-      status: init?.status ?? 200,
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        ...init?.headers,
+    const encoder = new TextEncoder();
+    return new Response(
+      this.textStream.pipeThrough(
+        new TransformStream({
+          transform(chunk, controller) {
+            controller.enqueue(encoder.encode(chunk));
+          },
+        }),
+      ),
+      {
+        status: init?.status ?? 200,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          ...init?.headers,
+        },
       },
-    });
+    );
   }
 }
 
