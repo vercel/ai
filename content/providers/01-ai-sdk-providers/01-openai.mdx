@@ -72,9 +72,9 @@ You can use the following optional settings to customize the OpenAI provider ins
   and `compatible` when using 3rd party providers. In `compatible` mode, newer
   information such as streamOptions are not being sent. Defaults to 'compatible'.
 
-## Models
+## Language Models
 
-The OpenAI provider instance is a function that you can invoke to create a model:
+The OpenAI provider instance is a function that you can invoke to create a language model:
 
 ```ts
 const model = openai('gpt-3.5-turbo');
@@ -91,6 +91,14 @@ const model = openai('gpt-3.5-turbo', {
 
 The available options depend on the API that's automatically chosen for the model (see below).
 If you want to explicitly select a specific model API, you can use `.chat` or `.completion`.
+
+### Model Capabilities
+
+| Model           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| --------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-4-turbo`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-3.5-turbo` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 ### Chat Models
 
@@ -215,10 +223,40 @@ The following optional settings are available for OpenAI completion models:
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. Learn more.
 
-## Model Capabilities
+## Embedding Models
 
-| Model           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| --------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-4-turbo`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-3.5-turbo` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+You can create models that call the [OpenAI embeddings API](https://platform.openai.com/docs/api-reference/embeddings)
+using the `.embedding()` factory method.
+
+```ts
+const model = openai.embedding('text-embedding-3-large');
+```
+
+OpenAI embedding models support several aditional settings.
+You can pass them as an options argument:
+
+```ts
+const model = openai.embedding('text-embedding-3-large', {
+  dimensions: 512 // optional, number of dimensions for the embedding
+  user: 'test-user' // optional unique user identifier
+})
+```
+
+The following optional settings are available for OpenAI embedding models:
+
+- **dimensions**: _number_
+
+  Echo back the prompt in addition to the completion.
+
+- **user** _string_
+
+  A unique identifier representing your end-user, which can help OpenAI to
+  monitor and detect abuse. Learn more.
+
+### Model Capabilities
+
+| Model                    | Default Dimensions | Custom Dimensions   |
+| ------------------------ | ------------------ | ------------------- |
+| `text-embedding-3-large` | 3072               | <Check size={18} /> |
+| `text-embedding-3-small` | 1536               | <Check size={18} /> |
+| `text-embedding-ada-002` | 1536               | <Cross size={18} /> |
