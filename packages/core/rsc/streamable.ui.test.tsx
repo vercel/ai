@@ -398,16 +398,16 @@ describe('rsc - createStreamableUI()', () => {
     ui.done();
 
     expect(await flightRender(ui.value)).toMatchInlineSnapshot(`
-      "1:\\"$Sreact.suspense\\"
-      2:D{\\"name\\":\\"\\",\\"env\\":\\"Server\\"}
-      0:[\\"$\\",\\"$1\\",null,{\\"fallback\\":\\"hello\\",\\"children\\":\\"$L2\\"}]
-      3:D{\\"name\\":\\"\\",\\"env\\":\\"Server\\"}
-      2:[\\"hello\\",[\\"$\\",\\"$1\\",null,{\\"fallback\\":\\" world\\",\\"children\\":\\"$L3\\"}]]
-      4:D{\\"name\\":\\"\\",\\"env\\":\\"Server\\"}
-      3:[\\" world\\",[\\"$\\",\\"$1\\",null,{\\"fallback\\":\\" and\\",\\"children\\":\\"$L4\\"}]]
-      5:D{\\"name\\":\\"\\",\\"env\\":\\"Server\\"}
-      4:[\\" and\\",[\\"$\\",\\"$1\\",null,{\\"fallback\\":\\" universe\\",\\"children\\":\\"$L5\\"}]]
-      5:\\" universe\\"
+      "1:"$Sreact.suspense"
+      2:D{"name":"","env":"Server"}
+      0:["$","$1",null,{"fallback":"hello","children":"$L2"}]
+      3:D{"name":"","env":"Server"}
+      2:["hello",["$","$1",null,{"fallback":" world","children":"$L3"}]]
+      4:D{"name":"","env":"Server"}
+      3:[" world",["$","$1",null,{"fallback":" and","children":"$L4"}]]
+      5:D{"name":"","env":"Server"}
+      4:[" and",["$","$1",null,{"fallback":" universe","children":"$L5"}]]
+      5:" universe"
       "
     `);
 
@@ -424,7 +424,7 @@ describe('rsc - createStreamableUI()', () => {
     expect(() => {
       ui.update(<div>3</div>);
     }).toThrowErrorMatchingInlineSnapshot(
-      '".update(): UI stream is already closed."',
+      '[Error: .update(): UI stream is already closed.]',
     );
   });
 
@@ -440,12 +440,12 @@ describe('rsc - createStreamableUI()', () => {
     ui.done();
 
     expect(await flightRender(ui.value)).toMatchInlineSnapshot(`
-      "1:\\"$Sreact.suspense\\"
-      2:D{\\"name\\":\\"\\",\\"env\\":\\"Server\\"}
-      0:[\\"$\\",\\"$1\\",null,{\\"fallback\\":[\\"$\\",\\"div\\",null,{\\"children\\":\\"1\\"}],\\"children\\":\\"$L2\\"}]
-      4:{\\"children\\":\\"1\\"}
-      3:[\\"$\\",\\"div\\",null,\\"$4\\"]
-      2:\\"$3\\"
+      "1:"$Sreact.suspense"
+      2:D{"name":"","env":"Server"}
+      0:["$","$1",null,{"fallback":["$","div",null,{"children":"1"}],"children":"$L2"}]
+      4:{"children":"1"}
+      3:["$","div",null,"$4"]
+      2:"$3"
       "
     `);
   });
@@ -457,14 +457,14 @@ describe('rsc - createStreamableUI()', () => {
       .done(<div>4</div>);
 
     expect(await flightRender(ui.value)).toMatchInlineSnapshot(`
-      "1:\\"$Sreact.suspense\\"
-      2:D{\\"name\\":\\"\\",\\"env\\":\\"Server\\"}
-      0:[\\"$\\",\\"$1\\",null,{\\"fallback\\":[\\"$\\",\\"div\\",null,{\\"children\\":\\"1\\"}],\\"children\\":\\"$L2\\"}]
-      3:D{\\"name\\":\\"\\",\\"env\\":\\"Server\\"}
-      2:[\\"$\\",\\"$1\\",null,{\\"fallback\\":[\\"$\\",\\"div\\",null,{\\"children\\":\\"2\\"}],\\"children\\":\\"$L3\\"}]
-      4:D{\\"name\\":\\"\\",\\"env\\":\\"Server\\"}
-      3:[\\"$\\",\\"$1\\",null,{\\"fallback\\":[\\"$\\",\\"div\\",null,{\\"children\\":\\"3\\"}],\\"children\\":\\"$L4\\"}]
-      4:[\\"$\\",\\"div\\",null,{\\"children\\":\\"4\\"}]
+      "1:"$Sreact.suspense"
+      2:D{"name":"","env":"Server"}
+      0:["$","$1",null,{"fallback":["$","div",null,{"children":"1"}],"children":"$L2"}]
+      3:D{"name":"","env":"Server"}
+      2:["$","$1",null,{"fallback":["$","div",null,{"children":"2"}],"children":"$L3"}]
+      4:D{"name":"","env":"Server"}
+      3:["$","$1",null,{"fallback":["$","div",null,{"children":"3"}],"children":"$L4"}]
+      4:["$","div",null,{"children":"4"}]
       "
     `);
   });
