@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.10
+
+### Patch Changes
+
+- 3a21030: feat (ai/core): add embedMany function
+
 ## 3.1.9
 
 ### Patch Changes
