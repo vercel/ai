@@ -502,7 +502,7 @@ describe('rsc - readStreamableValue()', () => {
       expect(() =>
         streamable.update('world'),
       ).toThrowErrorMatchingInlineSnapshot(
-        '".update(): Value stream is locked and cannot be updated."',
+        '[Error: .update(): Value stream is locked and cannot be updated.]',
       );
     });
   });
