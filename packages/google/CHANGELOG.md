@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 0.0.14
+
+### Patch Changes
+
+- df47a34: feat (provider/google): add models/gemini-1.5-flash-latest to list of supported models
+
 ## 0.0.13
 
 ### Patch Changes
