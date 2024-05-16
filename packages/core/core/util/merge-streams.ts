@@ -11,7 +11,7 @@
  * @param {ReadableStream<VALUE2>} stream2 - The second readable stream.
  * @returns {ReadableStream<VALUE1 | VALUE2>} A new readable stream that emits values from both input streams.
  */
-export function weaveStreams<VALUE1, VALUE2>(
+export function mergeStreams<VALUE1, VALUE2>(
   stream1: ReadableStream<VALUE1>,
   stream2: ReadableStream<VALUE2>,
 ): ReadableStream<VALUE1 | VALUE2> {

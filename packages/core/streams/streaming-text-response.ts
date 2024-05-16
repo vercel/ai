@@ -1,6 +1,6 @@
 import type { ServerResponse } from 'node:http';
 import { StreamData } from './stream-data';
-import { weaveStreams } from '../core/util/weave-streams';
+import { mergeStreams } from '../core/util/merge-streams';
 
 /**
  * A utility class for streaming text responses.
@@ -10,7 +10,7 @@ export class StreamingTextResponse extends Response {
     let processedStream = res;
 
     if (data) {
-      processedStream = weaveStreams(data.stream, res);
+      processedStream = mergeStreams(data.stream, res);
     }
 
     super(processedStream as any, {

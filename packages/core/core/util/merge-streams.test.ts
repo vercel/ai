@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { weaveStreams } from './weave-streams';
+import { mergeStreams } from './merge-streams';
 import { convertReadableStreamToArray } from '../test/convert-readable-stream-to-array';
 import { convertArrayToReadableStream } from '../test/convert-array-to-readable-stream';
 
@@ -7,7 +7,7 @@ it('should prioritize the first stream over the second stream', async () => {
   const stream1 = convertArrayToReadableStream(['1a', '1b', '1c']);
   const stream2 = convertArrayToReadableStream(['2a', '2b', '2c']);
 
-  const mergedStream = weaveStreams(stream1, stream2);
+  const mergedStream = mergeStreams(stream1, stream2);
 
   expect(await convertReadableStreamToArray(mergedStream)).toEqual([
     '1a',
@@ -34,7 +34,7 @@ it('should return values from the 2nd stream until the 1st stream has values', a
     },
   });
 
-  const mergedStream = weaveStreams(stream1, stream2);
+  const mergedStream = mergeStreams(stream1, stream2);
 
   const result: string[] = [];
   const reader = mergedStream.getReader();

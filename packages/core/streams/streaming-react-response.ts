@@ -8,7 +8,7 @@
  * between the rows, but flushing the full payload on each row.
  */
 
-import { weaveStreams } from '../core/util/weave-streams';
+import { mergeStreams } from '../core/util/merge-streams';
 import { parseComplexResponse } from '../shared/parse-complex-response';
 import { IdGenerator, JSONValue } from '../shared/types';
 import { nanoid } from '../shared/utils';
@@ -51,7 +51,7 @@ export class experimental_StreamingReactResponse {
     });
 
     const processedStream: ReadableStream<Uint8Array> =
-      options?.data != null ? weaveStreams(options?.data?.stream, res) : res;
+      options?.data != null ? mergeStreams(options?.data?.stream, res) : res;
 
     let lastPayload: Payload | undefined = undefined;
 
