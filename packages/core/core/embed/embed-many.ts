@@ -3,7 +3,11 @@ import { retryWithExponentialBackoff } from '../util/retry-with-exponential-back
 import { splitArray } from '../util/split-array';
 
 /**
-Embed several value using an embedding model. The type of the value is defined by the embedding model.
+Embed several values using an embedding model. The type of the value is defined 
+by the embedding model.
+
+`embedMany` automatically splits large requests into smaller chunks if the model
+has a limit on how many embeddings can be generated in a single call.
 
 @param model - The embedding model to use.
 @param values - The values that should be embedded.
