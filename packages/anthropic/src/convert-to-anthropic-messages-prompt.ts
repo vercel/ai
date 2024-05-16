@@ -11,12 +11,18 @@ import {
 export function convertToAnthropicMessagesPrompt(
   prompt: LanguageModelV1Prompt,
 ): AnthropicMessagesPrompt {
-  let system: string | undefined;
+  let system: string | undefined = undefined;
   const messages: AnthropicMessage[] = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
       case 'system': {
+        if (system != null) {
+          throw new UnsupportedFunctionalityError({
+            functionality: 'Multiple system messages',
+          });
+        }
+
         system = content;
         break;
       }

@@ -106,7 +106,11 @@ const TEST_LOGPROBS = {
   ],
 };
 
-const provider = createOpenAI({ apiKey: 'test-api-key' });
+const provider = createOpenAI({
+  apiKey: 'test-api-key',
+  compatibility: 'strict',
+});
+
 const model = provider.chat('gpt-3.5-turbo');
 
 describe('doGenerate', () => {
@@ -552,6 +556,7 @@ describe('doStream', () => {
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       stream: true,
+      stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       logprobs: false,

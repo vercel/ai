@@ -1,5 +1,41 @@
 # @ai-sdk/google
 
+## 0.0.14
+
+### Patch Changes
+
+- df47a34: feat (provider/google): add models/gemini-1.5-flash-latest to list of supported models
+
+## 0.0.13
+
+### Patch Changes
+
+- 9a7ec8b: feat (provider/google): add token usage information
+
+## 0.0.12
+
+### Patch Changes
+
+- Updated dependencies [0f6bc4e]
+  - @ai-sdk/provider@0.0.5
+  - @ai-sdk/provider-utils@0.0.8
+
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [325ca55]
+  - @ai-sdk/provider@0.0.4
+  - @ai-sdk/provider-utils@0.0.7
+
+## 0.0.10
+
+### Patch Changes
+
+- 20aa9dd: feat (provider/gemini): Add JSON mode for generateObject
+- Updated dependencies [276f22b]
+  - @ai-sdk/provider-utils@0.0.6
+
 ## 0.0.9
 
 ### Patch Changes

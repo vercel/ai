@@ -1,0 +1,94 @@
+---
+title: Google Generative AI
+description: Learn how to use Google Generative AI.
+---
+
+# Google Generative AI Provider
+
+The [Google Generative AI](https://ai.google/discover/generativeai/) provider contains language model support for the [Google Generative AI](https://ai.google.dev/api/rest) APIs.
+It creates language model objects that can be used with the `generateText` and `streamText` functions.
+
+## Setup
+
+The Google provider is available in the `@ai-sdk/google` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm install @ai-sdk/google" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/google" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/google" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `google` from `@ai-sdk/google`:
+
+```ts
+import { google } from '@ai-sdk/google';
+```
+
+If you need a customized setup, you can import `createGoogleGenerativeAI` from `@ai-sdk/google` and create a provider instance with your settings:
+
+```ts
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+
+const google = createGoogleGenerativeAI({
+  // custom settings
+});
+```
+
+You can use the following optional settings to customize the Google Generative AI provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://generativelanguage.googleapis.com/v1beta`.
+
+- **apiKey** _string_
+
+  API key that is being send using the `x-goog-api-key` header.
+  It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+## Models
+
+You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the provider instance.
+The first argument is the model id, e.g. `models/gemini-pro`.
+The models support tool calls and some have multi-modal capabilities.
+
+```ts
+const model = google('models/gemini-pro');
+```
+
+Google Generative AI models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
+You can pass them as an options argument:
+
+```ts
+const model = google('models/gemini-pro', {
+  topK: 0.2,
+});
+```
+
+The following optional settings are available for Google Generative AI models:
+
+- **topK** _number_
+
+  Optional. The maximum number of tokens to consider when sampling.
+
+  Models use nucleus sampling or combined Top-k and nucleus sampling.
+  Top-k sampling considers the set of topK most probable tokens.
+  Models running with nucleus sampling don't allow topK setting.
+
+## Model Capabilities
+
+| Model                          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `models/gemini-1.5-pro-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

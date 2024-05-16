@@ -1,12 +1,15 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
-import { useState } from 'react';
-
+import { isAbortError } from '@ai-sdk/provider-utils';
+import { useCallback, useRef, useState } from 'react';
 import { generateId } from '../shared/generate-id';
 import { readDataStream } from '../shared/read-data-stream';
-import { CreateMessage, Message } from '../shared/types';
-
-export type AssistantStatus = 'in_progress' | 'awaiting_message';
+import {
+  AssistantStatus,
+  CreateMessage,
+  Message,
+  UseAssistantOptions,
+} from '../shared/types';
 
 export type UseAssistantHelpers = {
   /**
@@ -15,7 +18,7 @@ export type UseAssistantHelpers = {
   messages: Message[];
 
   /**
-   * setState-powered method to update the messages array.
+   * Update the message store with a new array of messages.
    */
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 
@@ -41,6 +44,11 @@ export type UseAssistantHelpers = {
       data?: Record<string, string>;
     },
   ) => Promise<void>;
+
+  /**
+Abort the current request immediately, keep the generated tokens if any.
+   */
+  stop: () => void;
 
   /**
    * setState-powered method to update the input value.
@@ -77,42 +85,6 @@ export type UseAssistantHelpers = {
   error: undefined | unknown;
 };
 
-export type UseAssistantOptions = {
-  /**
-   * The API endpoint that accepts a `{ threadId: string | null; message: string; }` object and returns an `AssistantResponse` stream.
-   * The threadId refers to an existing thread with messages (or is `null` to create a new thread).
-   * The message is the next message that should be appended to the thread and sent to the assistant.
-   */
-  api: string;
-
-  /**
-   * An optional string that represents the ID of an existing thread.
-   * If not provided, a new thread will be created.
-   */
-  threadId?: string;
-
-  /**
-   * An optional literal that sets the mode of credentials to be used on the request.
-   * Defaults to "same-origin".
-   */
-  credentials?: RequestCredentials;
-
-  /**
-   * An optional object of headers to be passed to the API endpoint.
-   */
-  headers?: Record<string, string> | Headers;
-
-  /**
-   * An optional, additional body object to be passed to the API endpoint.
-   */
-  body?: object;
-
-  /**
-   * An optional callback that will be called when the assistant encounters an error.
-   */
-  onError?: (error: Error) => void;
-};
-
 export function useAssistant({
   api,
   threadId: threadIdParam,
@@ -135,6 +107,16 @@ export function useAssistant({
     setInput(event.target.value);
   };
 
+  // Abort controller to cancel the current API call.
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const stop = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
+
   const append = async (
     message: Message | CreateMessage,
     requestOptions?: {
@@ -153,10 +135,15 @@ export function useAssistant({
 
     setInput('');
 
+    const abortController = new AbortController();
+
     try {
+      abortControllerRef.current = abortController;
+
       const result = await fetch(api, {
         method: 'POST',
         credentials,
+        signal: abortController.signal,
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify({
           ...body,
@@ -233,21 +220,27 @@ export function useAssistant({
           }
 
           case 'error': {
-            const errorObj = new Error(value);
-            setError(errorObj);
+            setError(new Error(value));
             break;
           }
         }
       }
     } catch (error) {
+      // Ignore abort errors as they are expected when the user cancels the request:
+      if (isAbortError(error) && abortController.signal.aborted) {
+        abortControllerRef.current = null;
+        return;
+      }
+
       if (onError && error instanceof Error) {
         onError(error);
       }
 
       setError(error as Error);
+    } finally {
+      abortControllerRef.current = null;
+      setStatus('awaiting_message');
     }
-
-    setStatus('awaiting_message');
   };
 
   const submitMessage = async (
@@ -276,6 +269,7 @@ export function useAssistant({
     submitMessage,
     status,
     error,
+    stop,
   };
 }
 

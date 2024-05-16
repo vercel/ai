@@ -80,10 +80,19 @@ The schema of the object that the model should generate.
     schema: z.Schema<T>;
 
     /**
-The mode to use for object generation. Not all models support all modes.
+The mode to use for object generation.
+
+The Zod schema is converted in a JSON schema and used in one of the following ways
+
+- 'auto': The provider will choose the best mode for the model.
+- 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
+- 'json': The JSON schema and a instruction is injected into the prompt. If the provider supports JSON mode, it is enabled.
+- 'grammar': The provider is instructed to converted the JSON schema into a provider specific grammar and use it to select the output tokens.
+
+Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
- */
+     */
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
   }): Promise<StreamObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });

@@ -38,7 +38,11 @@ const TEST_LOGPROBS = {
   ] as Record<string, number>[],
 };
 
-const provider = createOpenAI({ apiKey: 'test-api-key' });
+const provider = createOpenAI({
+  apiKey: 'test-api-key',
+  compatibility: 'strict',
+});
+
 const model = provider.completion('gpt-3.5-turbo-instruct');
 
 describe('doGenerate', () => {
@@ -348,6 +352,7 @@ describe('doStream', () => {
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       stream: true,
+      stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo-instruct',
       prompt: 'Hello',
     });

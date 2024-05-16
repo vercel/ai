@@ -1,0 +1,172 @@
+---
+title: Route Components
+description: Learn to route components using the Vercel AI SDK in your Next.js application
+---
+
+# Route Components
+
+We've now seen how a language model can call a function and render a component based on a conversation with the user.
+
+When we define multiple functions in [`tools`](/docs/reference/ai-sdk-core/generate-text#tools), it is possible for the model to reason out the right functions to call based on whatever the user's intent is. This means that you can write a bunch of functions without the burden of implementing complex routing logic to run them.
+
+## Client
+
+```tsx filename='app/page.tsx'
+'use client';
+
+import { useState } from 'react';
+import { ClientMessage } from './actions';
+import { useActions, useUIState } from 'ai/rsc';
+import { nanoid } from 'nanoid';
+
+export default function Home() {
+  const [input, setInput] = useState<string>('');
+  const [conversation, setConversation] = useUIState();
+  const { continueConversation } = useActions();
+
+  return (
+    <div>
+      <div>
+        {conversation.map((message: ClientMessage) => (
+          <div key={message.id}>
+            {message.role}: {message.display}
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <input
+          type="text"
+          value={input}
+          onChange={event => {
+            setInput(event.target.value);
+          }}
+        />
+        <button
+          onClick={async () => {
+            setConversation((currentConversation: ClientMessage[]) => [
+              ...currentConversation,
+              { id: nanoid(), role: 'user', display: input },
+            ]);
+
+            const message = await continueConversation(input);
+
+            setConversation((currentConversation: ClientMessage[]) => [
+              ...currentConversation,
+              message,
+            ]);
+          }}
+        >
+          Send Message
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+## Server
+
+```tsx filename='app/actions.ts'
+'use server';
+
+import { createAI, getMutableAIState, streamUI } from 'ai/rsc';
+import { openai } from '@ai-sdk/openai';
+import { ReactNode } from 'react';
+import { z } from 'zod';
+import { nanoid } from 'nanoid';
+import { Stock } from '@ai-studio/components/stock';
+import { Flight } from '@ai-studio/components/flight';
+
+export interface ServerMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ClientMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  display: ReactNode;
+}
+
+export async function continueConversation(
+  input: string,
+): Promise<ClientMessage> {
+  'use server';
+
+  const history = getMutableAIState();
+
+  const result = await streamUI({
+    model: openai('gpt-3.5-turbo'),
+    messages: [...history.get(), { role: 'user', content: input }],
+    text: ({ content, done }) => {
+      if (done) {
+        history.done((messages: ServerMessage[]) => [
+          ...messages,
+          { role: 'assistant', content },
+        ]);
+      }
+
+      return <div>{content}</div>;
+    },
+    tools: {
+      showStockInformation: {
+        description:
+          'Get stock information for symbol for the last numOfMonths months',
+        parameters: z.object({
+          symbol: z
+            .string()
+            .describe('The stock symbol to get information for'),
+          numOfMonths: z
+            .number()
+            .describe('The number of months to get historical information for'),
+        }),
+        generate: async ({ symbol, numOfMonths }) => {
+          history.done((messages: ServerMessage[]) => [
+            ...messages,
+            {
+              role: 'assistant',
+              content: `Showing stock information for ${symbol}`,
+            },
+          ]);
+
+          return <Stock symbol={symbol} numOfMonths={numOfMonths} />;
+        },
+      },
+      showFlightStatus: {
+        description: 'Get the status of a flight',
+        parameters: z.object({
+          flightNumber: z
+            .string()
+            .describe('The flight number to get status for'),
+        }),
+        generate: async ({ flightNumber }) => {
+          history.done((messages: ServerMessage[]) => [
+            ...messages,
+            {
+              role: 'assistant',
+              content: `Showing flight status for ${flightNumber}`,
+            },
+          ]);
+
+          return <Flight flightNumber={flightNumber} />;
+        },
+      },
+    },
+  });
+
+  return {
+    id: nanoid(),
+    role: 'assistant',
+    display: result.value,
+  };
+}
+
+export const AI = createAI<ServerMessage[], ClientMessage[]>({
+  actions: {
+    continueConversation,
+  },
+  initialAIState: [],
+  initialUIState: [],
+});
+```

@@ -30,7 +30,7 @@ type GoogleGenerativeAIConfig = {
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = undefined;
+  readonly defaultObjectGenerationMode = 'json';
 
   readonly modelId: GoogleGenerativeAIModelId;
   readonly settings: GoogleGenerativeAISettings;
@@ -86,20 +86,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       });
     }
 
-    const baseArgs = {
-      generationConfig: {
-        // model specific settings:
-        topK: this.settings.topK,
+    const generationConfig = {
+      // model specific settings:
+      topK: this.settings.topK,
 
-        // standardized settings:
-        maxOutputTokens: maxTokens,
-        temperature,
-        topP,
-      },
-
-      // prompt:
-      contents: convertToGoogleGenerativeAIMessages(prompt),
+      // standardized settings:
+      maxOutputTokens: maxTokens,
+      temperature,
+      topP,
     };
+
+    const contents = convertToGoogleGenerativeAIMessages(prompt);
 
     switch (type) {
       case 'regular': {
@@ -111,7 +108,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
         return {
           args: {
-            ...baseArgs,
+            generationConfig,
+            contents,
             tools:
               functionDeclarations == null
                 ? undefined
@@ -122,9 +120,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-json mode',
-        });
+        return {
+          args: {
+            generationConfig: {
+              ...generationConfig,
+              response_mime_type: 'application/json',
+            },
+            contents,
+          },
+          warnings,
+        };
       }
 
       case 'object-tool': {
@@ -168,6 +173,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       generateId: this.config.generateId,
     });
 
+    const usageMetadata = response.usageMetadata;
+
     return {
       text: getTextFromParts(candidate.content.parts),
       toolCalls,
@@ -176,8 +183,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         hasToolCalls: toolCalls != null && toolCalls.length > 0,
       }),
       usage: {
-        promptTokens: NaN,
-        completionTokens: candidate.tokenCount ?? NaN,
+        promptTokens: usageMetadata?.promptTokenCount ?? NaN,
+        completionTokens: usageMetadata?.candidatesTokenCount ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
@@ -233,10 +240,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               });
             }
 
-            if (candidate.tokenCount != null) {
+            const usageMetadata = value.usageMetadata;
+
+            if (usageMetadata != null) {
               usage = {
-                promptTokens: NaN,
-                completionTokens: candidate.tokenCount,
+                promptTokens: usageMetadata.promptTokenCount ?? NaN,
+                completionTokens: usageMetadata.candidatesTokenCount ?? NaN,
               };
             }
 
@@ -377,9 +386,15 @@ const responseSchema = z.object({
     z.object({
       content: contentSchema,
       finishReason: z.string().optional(),
-      tokenCount: z.number().optional(),
     }),
   ),
+  usageMetadata: z
+    .object({
+      promptTokenCount: z.number(),
+      candidatesTokenCount: z.number(),
+      totalTokenCount: z.number(),
+    })
+    .optional(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -389,7 +404,13 @@ const chunkSchema = z.object({
     z.object({
       content: contentSchema.optional(),
       finishReason: z.string().optional(),
-      tokenCount: z.number().optional(),
     }),
   ),
+  usageMetadata: z
+    .object({
+      promptTokenCount: z.number(),
+      candidatesTokenCount: z.number(),
+      totalTokenCount: z.number(),
+    })
+    .optional(),
 });

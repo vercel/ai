@@ -4,6 +4,7 @@ import {
   StreamingTextResponse,
   createCallbacksTransformer,
   createStreamDataTransformer,
+  formatStreamPart,
 } from '../../streams';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -21,6 +22,7 @@ import { retryWithExponentialBackoff } from '../util/retry-with-exponential-back
 import { runToolsTransformation } from './run-tools-transformation';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+import { TokenUsage } from './token-usage';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -28,14 +30,14 @@ Generate a text and call tools for a given prompt using a language model.
 This function streams the output. If you do not want to stream the output, use `generateText` instead.
 
 @param model - The language model to use.
-@param tools - The tools that the model can call. The model needs to support calling tools.
+@param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
 
 @param system - A system message that will be part of the prompt.
 @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
 @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
 
 @param maxTokens - Maximum number of tokens to generate.
-@param temperature - Temperature setting. 
+@param temperature - Temperature setting.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.
@@ -140,12 +142,22 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
 A result object for accessing different stream types and additional information.
  */
 export class StreamTextResult<TOOLS extends Record<string, CoreTool>> {
-  private readonly originalStream: ReadableStream<TextStreamPart<TOOLS>>;
+  private originalStream: ReadableStream<TextStreamPart<TOOLS>>;
 
   /**
-Warnings from the model provider (e.g. unsupported settings)
+Warnings from the model provider (e.g. unsupported settings).
    */
   readonly warnings: CallWarning[] | undefined;
+
+  /**
+The token usage of the generated text. Resolved when the response is finished.
+   */
+  readonly usage: Promise<TokenUsage>;
+
+  /**
+The reason why the generation finished. Resolved when the response is finished.
+   */
+  readonly finishReason: Promise<FinishReason>;
 
   /**
 Optional raw response data.
@@ -168,9 +180,50 @@ Response headers.
       headers?: Record<string, string>;
     };
   }) {
-    this.originalStream = stream;
     this.warnings = warnings;
     this.rawResponse = rawResponse;
+
+    // initialize usage promise
+    let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
+    this.usage = new Promise<TokenUsage>(resolve => {
+      resolveUsage = resolve;
+    });
+
+    // initialize finish reason promise
+    let resolveFinishReason: (
+      value: FinishReason | PromiseLike<FinishReason>,
+    ) => void;
+    this.finishReason = new Promise<FinishReason>(resolve => {
+      resolveFinishReason = resolve;
+    });
+
+    // pipe chunks through a transformation stream that extracts metadata:
+    this.originalStream = stream.pipeThrough(
+      new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+        async transform(chunk, controller): Promise<void> {
+          controller.enqueue(chunk);
+
+          if (chunk.type === 'finish') {
+            resolveUsage(chunk.usage);
+            resolveFinishReason(chunk.finishReason);
+          }
+        },
+      }),
+    );
+  }
+
+  /**
+Split out a new stream from the original stream.
+The original stream is replaced to allow for further splitting,
+since we do not know how many times the stream will be split.
+
+Note: this leads to buffering the stream content on the server.
+However, the LLM results are expected to be small enough to not cause issues.
+   */
+  private teeStream() {
+    const [stream1, stream2] = this.originalStream.tee();
+    this.originalStream = stream2;
+    return stream1;
   }
 
   /**
@@ -179,7 +232,7 @@ as either an AsyncIterable or a ReadableStream. When an error occurs, the
 stream will throw the error.
    */
   get textStream(): AsyncIterableStream<string> {
-    return createAsyncIterableStream(this.originalStream, {
+    return createAsyncIterableStream(this.teeStream(), {
       transform(chunk, controller) {
         if (chunk.type === 'text-delta') {
           // do not stream empty text deltas:
@@ -200,7 +253,7 @@ You can use it as either an AsyncIterable or a ReadableStream. When an error occ
 stream will throw the error.
    */
   get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
-    return createAsyncIterableStream(this.originalStream, {
+    return createAsyncIterableStream(this.teeStream(), {
       transform(chunk, controller) {
         if (chunk.type === 'text-delta') {
           // do not stream empty text deltas:
@@ -223,10 +276,78 @@ Stream callbacks that will be called when the stream emits events.
 
 @returns an `AIStream` object.
    */
-  toAIStream(callbacks?: AIStreamCallbacksAndOptions) {
-    return this.textStream
-      .pipeThrough(createCallbacksTransformer(callbacks))
-      .pipeThrough(createStreamDataTransformer());
+  toAIStream(callbacks: AIStreamCallbacksAndOptions = {}) {
+    let aggregatedResponse = '';
+
+    const callbackTransformer = new TransformStream<
+      TextStreamPart<TOOLS>,
+      TextStreamPart<TOOLS>
+    >({
+      async start(): Promise<void> {
+        if (callbacks.onStart) await callbacks.onStart();
+      },
+
+      async transform(chunk, controller): Promise<void> {
+        controller.enqueue(chunk);
+
+        if (chunk.type === 'text-delta') {
+          const textDelta = chunk.textDelta;
+
+          aggregatedResponse += textDelta;
+
+          if (callbacks.onToken) await callbacks.onToken(textDelta);
+          if (callbacks.onText) await callbacks.onText(textDelta);
+        }
+      },
+
+      async flush(): Promise<void> {
+        if (callbacks.onCompletion)
+          await callbacks.onCompletion(aggregatedResponse);
+        if (callbacks.onFinal) await callbacks.onFinal(aggregatedResponse);
+      },
+    });
+
+    const streamDataTransformer = new TransformStream<
+      TextStreamPart<TOOLS>,
+      string
+    >({
+      transform: async (chunk, controller) => {
+        switch (chunk.type) {
+          case 'text-delta':
+            controller.enqueue(formatStreamPart('text', chunk.textDelta));
+            break;
+          case 'tool-call':
+            controller.enqueue(
+              formatStreamPart('tool_call', {
+                toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
+                args: chunk.args,
+              }),
+            );
+            break;
+          case 'tool-result':
+            controller.enqueue(
+              formatStreamPart('tool_result', {
+                toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
+                args: chunk.args,
+                result: chunk.result,
+              }),
+            );
+            break;
+          case 'error':
+            controller.enqueue(
+              formatStreamPart('error', JSON.stringify(chunk.error)),
+            );
+            break;
+        }
+      },
+    });
+
+    return this.fullStream
+      .pipeThrough(callbackTransformer)
+      .pipeThrough(streamDataTransformer)
+      .pipeThrough(new TextEncoderStream());
   }
 
   /**

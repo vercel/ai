@@ -13,7 +13,10 @@ export type LanguageModelV1Message =
   // Note: there could be additional parts for each role in the future,
   // e.g. when the assistant can return images or the user can share files
   // such as PDFs.
-  | { role: 'system'; content: string } // can only come as 1st message
+  | {
+      role: 'system';
+      content: string;
+    }
   | {
       role: 'user';
       content: Array<LanguageModelV1TextPart | LanguageModelV1ImagePart>;
@@ -22,7 +25,10 @@ export type LanguageModelV1Message =
       role: 'assistant';
       content: Array<LanguageModelV1TextPart | LanguageModelV1ToolCallPart>;
     }
-  | { role: 'tool'; content: Array<LanguageModelV1ToolResultPart> };
+  | {
+      role: 'tool';
+      content: Array<LanguageModelV1ToolResultPart>;
+    };
 
 /**
 Text content part of a prompt. It contains a string of text.

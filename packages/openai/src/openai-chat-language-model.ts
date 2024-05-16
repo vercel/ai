@@ -24,6 +24,7 @@ import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 type OpenAIChatConfig = {
   provider: string;
   baseURL: string;
+  compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
 };
 
@@ -198,6 +199,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       body: {
         ...args,
         stream: true,
+
+        // only include stream_options when in strict compatibility mode:
+        stream_options:
+          this.config.compatibility === 'strict'
+            ? { include_usage: true }
+            : undefined,
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

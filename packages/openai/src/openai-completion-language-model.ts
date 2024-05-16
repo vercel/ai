@@ -24,6 +24,7 @@ import { mapOpenAICompletionLogProbs } from './map-openai-completion-logprobs';
 type OpenAICompletionConfig = {
   provider: string;
   baseURL: string;
+  compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
 };
 
@@ -179,6 +180,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       body: {
         ...this.getArgs(options),
         stream: true,
+
+        // only include stream_options when in strict compatibility mode:
+        stream_options:
+          this.config.compatibility === 'strict'
+            ? { include_usage: true }
+            : undefined,
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

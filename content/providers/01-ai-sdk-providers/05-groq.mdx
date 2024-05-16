@@ -1,0 +1,63 @@
+---
+title: Groq
+description: Learn how to use Groq.
+---
+
+# Groq Provider
+
+<Note style={{ paddingTop: 0, paddingBottom: 0 }}>
+  Groq is supported via [ OpenAI API
+  compatibility](https://console.groq.com/docs/openai) - the OpenAI provider is
+  used in the examples below.
+</Note>
+
+The [Groq](https://groq.com/) provider contains language model support for the Groq API.
+It creates language model objects that can be used with the `generateText`, `streamText`, and `generateObject`.
+
+## Setup
+
+The Groq provider is available via the `@ai-sdk/openai` module as it is compatible with the OpenAI API.
+You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm install @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use Groq, you can create a custom provider instance with the `createOpenAI` function from `@ai-sdk/openai`:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+
+const groq = createOpenAI({
+  baseURL: 'https://api.groq.com/openai/v1',
+  apiKey: process.env.GROQ_API_KEY,
+});
+```
+
+## Models
+
+You can create [Groq models](https://console.groq.com/docs/models) using a provider instance.
+The first argument is the model id, e.g. `llama3-8b-8192`.
+
+```ts
+const model = groq('llama3-8b-8192');
+```
+
+## Model Capabilities
+
+| Model                | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| -------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `llama3-8b-8192`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `llama3-70b-8192`    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `mixtral-8x7b-32768` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `gemma-7b-it`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |

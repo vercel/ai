@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: openai.chat('gpt-4-turbo'),
+    model: openai('gpt-4-turbo'),
     maxTokens: 512,
     messages: [
       {

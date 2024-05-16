@@ -8,6 +8,11 @@ import {
   MistralChatModelId,
   MistralChatSettings,
 } from './mistral-chat-settings';
+import {
+  MistralEmbeddingModelId,
+  MistralEmbeddingSettings,
+} from './mistral-embedding-settings';
+import { MistralEmbeddingModel } from './mistral-embedding-model';
 
 export interface MistralProvider {
   (
@@ -15,10 +20,21 @@ export interface MistralProvider {
     settings?: MistralChatSettings,
   ): MistralChatLanguageModel;
 
+  /**
+Creates a model for text generation.
+*/
   chat(
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
   ): MistralChatLanguageModel;
+
+  /**
+Creates a model for text embeddings.
+   */
+  embedding(
+    modelId: MistralEmbeddingModelId,
+    settings?: MistralEmbeddingSettings,
+  ): MistralEmbeddingModel;
 }
 
 export interface MistralProviderSettings {
@@ -53,24 +69,38 @@ Create a Mistral AI provider instance.
 export function createMistral(
   options: MistralProviderSettings = {},
 ): MistralProvider {
-  const createModel = (
+  const baseURL =
+    withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
+    'https://api.mistral.ai/v1';
+
+  const getHeaders = () => ({
+    Authorization: `Bearer ${loadApiKey({
+      apiKey: options.apiKey,
+      environmentVariableName: 'MISTRAL_API_KEY',
+      description: 'Mistral',
+    })}`,
+    ...options.headers,
+  });
+
+  const createChatModel = (
     modelId: MistralChatModelId,
     settings: MistralChatSettings = {},
   ) =>
     new MistralChatLanguageModel(modelId, settings, {
       provider: 'mistral.chat',
-      baseURL:
-        withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
-        'https://api.mistral.ai/v1',
-      headers: () => ({
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'MISTRAL_API_KEY',
-          description: 'Mistral',
-        })}`,
-        ...options.headers,
-      }),
+      baseURL,
+      headers: getHeaders,
       generateId: options.generateId ?? generateId,
+    });
+
+  const createEmbeddingModel = (
+    modelId: MistralEmbeddingModelId,
+    settings: MistralEmbeddingSettings = {},
+  ) =>
+    new MistralEmbeddingModel(modelId, settings, {
+      provider: 'mistral.embedding',
+      baseURL,
+      headers: getHeaders,
     });
 
   const provider = function (
@@ -83,10 +113,11 @@ export function createMistral(
       );
     }
 
-    return createModel(modelId, settings);
+    return createChatModel(modelId, settings);
   };
 
-  provider.chat = createModel;
+  provider.chat = createChatModel;
+  provider.embedding = createEmbeddingModel;
 
   return provider as MistralProvider;
 }
