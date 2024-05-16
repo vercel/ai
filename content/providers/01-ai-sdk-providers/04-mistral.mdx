@@ -23,6 +23,7 @@ The Mistral provider is available in the `@ai-sdk/mistral` module. You can insta
     <Snippet text="yarn add @ai-sdk/mistral" dark />
   </Tab>
 </Tabs>
+
 ## Provider Instance
 
 You can import the default provider instance `mistral` from `@ai-sdk/mistral`:
@@ -58,7 +59,7 @@ You can use the following optional settings to customize the Mistral provider in
 
   Custom headers to include in the requests.
 
-## Models
+## Language Models
 
 You can create models that call the [Mistral chat API](https://docs.mistral.ai/api/#operation/createChatCompletion) using provider instance.
 The first argument is the model id, e.g. `mistral-large-latest`.
@@ -85,9 +86,18 @@ The following optional settings are available for Mistral models:
 
   Defaults to `false`.
 
-## Model Capabilities
+### Model Capabilities
 
 | Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `mistral-large-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `mistral-small-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+## Embedding Models
+
+You can create models that call the [Mistral embeddings API](https://docs.mistral.ai/api/#operation/createEmbedding)
+using the `.embedding()` factory method.
+
+```ts
+const model = mistral.embedding('mistral-embed');
+```

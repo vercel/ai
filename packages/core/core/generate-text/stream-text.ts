@@ -2,8 +2,6 @@ import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
   StreamingTextResponse,
-  createCallbacksTransformer,
-  createStreamDataTransformer,
   formatStreamPart,
 } from '../../streams';
 import { CallSettings } from '../prompt/call-settings';
@@ -20,9 +18,9 @@ import {
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
+import { TokenUsage } from './token-usage';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
-import { TokenUsage } from './token-usage';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -367,10 +365,7 @@ writes each stream data part as a separate chunk.
       ...init?.headers,
     });
 
-    const reader = this.textStream
-      .pipeThrough(createCallbacksTransformer(undefined))
-      .pipeThrough(createStreamDataTransformer())
-      .getReader();
+    const reader = this.toAIStream().getReader();
 
     const read = async () => {
       try {
@@ -406,15 +401,16 @@ writes each text delta as a separate chunk.
       ...init?.headers,
     });
 
-    const reader = this.textStream.getReader();
+    const reader = this.textStream
+      .pipeThrough(new TextEncoderStream())
+      .getReader();
 
     const read = async () => {
-      const encoder = new TextEncoder();
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          response.write(encoder.encode(value));
+          response.write(value);
         }
       } catch (error) {
         throw error;
@@ -446,23 +442,13 @@ Non-text-delta events are ignored.
 @param init Optional headers and status code.
    */
   toTextStreamResponse(init?: ResponseInit): Response {
-    const encoder = new TextEncoder();
-    return new Response(
-      this.textStream.pipeThrough(
-        new TransformStream({
-          transform(chunk, controller) {
-            controller.enqueue(encoder.encode(chunk));
-          },
-        }),
-      ),
-      {
-        status: init?.status ?? 200,
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          ...init?.headers,
-        },
+    return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
+      status: init?.status ?? 200,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        ...init?.headers,
       },
-    );
+    });
   }
 }
 
