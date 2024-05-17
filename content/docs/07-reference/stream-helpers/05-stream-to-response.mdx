@@ -5,9 +5,12 @@ description: Learn to use streamToResponse helper function in your application.
 
 # `streamToResponse`
 
-This method will pipe an AI stream to a Node.js `ServerResponse` object.
-It can be helpful to combine this with other AI stream utilities, such as OpenAIStream, in Node.js environments.
-Similar to StreamingTextResponse, it automatically sets the status code to 200 and the Content-Type header to 'text/plain; charset=utf-8'
+`streamToResponse` pipes an AI stream to a Node.js `ServerResponse` object and sets the status code and headers.
+
+This is useful to create AI stream responses in environments that use `ServerResponse` objects, such as Node.js HTTP servers.
+
+The status code and headers can be configured using the `options` parameter.
+By default, the status code is set to 200 and the Content-Type header is set to `text/plain; charset=utf-8`.
 
 ## Import
 
