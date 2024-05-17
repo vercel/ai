@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.14
+
+### Patch Changes
+
+- 06e3934: feat (provider/anthropic): streaming tool calls
+
 ## 0.0.13
 
 ### Patch Changes
