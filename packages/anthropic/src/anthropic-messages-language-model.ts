@@ -242,6 +242,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       completionTokens: Number.NaN,
     };
 
+    const toolCallContentBlocks: Record<
+      number,
+      {
+        toolCallId: string;
+        toolName: string;
+        jsonText: string;
+      }
+    > = {};
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -257,18 +266,90 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
             const value = chunk.value;
 
             switch (value.type) {
-              case 'ping':
-              case 'content_block_start':
-              case 'content_block_stop': {
+              case 'ping': {
                 return; // ignored
               }
 
-              case 'content_block_delta': {
-                controller.enqueue({
-                  type: 'text-delta',
-                  textDelta: value.delta.text,
-                });
+              case 'content_block_start': {
+                const contentBlockType = value.content_block.type;
+
+                switch (contentBlockType) {
+                  case 'text': {
+                    return; // ignored
+                  }
+
+                  case 'tool_use': {
+                    toolCallContentBlocks[value.index] = {
+                      toolCallId: value.content_block.id,
+                      toolName: value.content_block.name,
+                      jsonText: '',
+                    };
+                    return;
+                  }
+
+                  default: {
+                    const _exhaustiveCheck: never = contentBlockType;
+                    throw new Error(
+                      `Unsupported content block type: ${_exhaustiveCheck}`,
+                    );
+                  }
+                }
+              }
+
+              case 'content_block_stop': {
+                // when finishing a tool call block, send the full tool call:
+                if (toolCallContentBlocks[value.index] != null) {
+                  const contentBlock = toolCallContentBlocks[value.index];
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: contentBlock.toolCallId,
+                    toolName: contentBlock.toolName,
+                    args: contentBlock.jsonText,
+                  });
+
+                  delete toolCallContentBlocks[value.index];
+                }
+
                 return;
+              }
+
+              case 'content_block_delta': {
+                const deltaType = value.delta.type;
+                switch (deltaType) {
+                  case 'text_delta': {
+                    controller.enqueue({
+                      type: 'text-delta',
+                      textDelta: value.delta.text,
+                    });
+
+                    return;
+                  }
+
+                  case 'input_json_delta': {
+                    const contentBlock = toolCallContentBlocks[value.index];
+
+                    controller.enqueue({
+                      type: 'tool-call-delta',
+                      toolCallType: 'function',
+                      toolCallId: contentBlock.toolCallId,
+                      toolName: contentBlock.toolName,
+                      argsTextDelta: value.delta.partial_json,
+                    });
+
+                    contentBlock.jsonText += value.delta.partial_json;
+
+                    return;
+                  }
+
+                  default: {
+                    const _exhaustiveCheck: never = deltaType;
+                    throw new Error(
+                      `Unsupported delta type: ${_exhaustiveCheck}`,
+                    );
+                  }
+                }
               }
 
               case 'message_start': {
@@ -343,18 +424,31 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('content_block_start'),
     index: z.number(),
-    content_block: z.object({
-      type: z.literal('text'),
-      text: z.string(),
-    }),
+    content_block: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('text'),
+        text: z.string(),
+      }),
+      z.object({
+        type: z.literal('tool_use'),
+        id: z.string(),
+        name: z.string(),
+      }),
+    ]),
   }),
   z.object({
     type: z.literal('content_block_delta'),
     index: z.number(),
-    delta: z.object({
-      type: z.literal('text_delta'),
-      text: z.string(),
-    }),
+    delta: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('input_json_delta'),
+        partial_json: z.string(),
+      }),
+      z.object({
+        type: z.literal('text_delta'),
+        text: z.string(),
+      }),
+    ]),
   }),
   z.object({
     type: z.literal('content_block_stop'),
