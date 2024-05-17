@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.12
+
+### Patch Changes
+
+- ae05fb7: feat (ai/streams): add StreamData support to streamToResponse
+
 ## 3.1.11
 
 ### Patch Changes
