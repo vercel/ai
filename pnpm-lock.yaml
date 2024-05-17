@@ -678,7 +678,7 @@ importers:
         specifier: 5.1.3
         version: 5.1.3
 
-  examples/node-server:
+  examples/node-http-server:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: latest
