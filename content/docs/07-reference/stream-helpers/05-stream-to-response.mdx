@@ -5,7 +5,12 @@ description: Learn to use streamToResponse helper function in your application.
 
 # `streamToResponse`
 
-This method will pipe a ReadableStream to a Node.js ServerResponse object. It can be helpful to combine this with other AI stream utilities, such as OpenAIStream, in Node.js environments. Similar to StreamingTextResponse, it automatically sets the status code to 200 and the Content-Type header to 'text/plain; charset=utf-8'
+`streamToResponse` pipes an AI stream to a Node.js `ServerResponse` object and sets the status code and headers.
+
+This is useful to create AI stream responses in environments that use `ServerResponse` objects, such as Node.js HTTP servers.
+
+The status code and headers can be configured using the `options` parameter.
+By default, the status code is set to 200 and the Content-Type header is set to `text/plain; charset=utf-8`.
 
 ## Import
 
@@ -13,4 +18,51 @@ This method will pipe a ReadableStream to a Node.js ServerResponse object. It ca
 
 <Snippet text={`import { streamToResponse } from "ai"`} prompt={false} />
 
-<ReferenceTable packageName="streams" functionName="streamToResponse" />
+<ObjectTableList
+  content={{
+    Parameters: [
+      {
+        name: 'stream',
+        type: 'ReadableStream',
+        description:
+          'The Web Stream to pipe to the response. It can be the return value of OpenAIStream, HuggingFaceStream, AnthropicStream, or an AIStream instance.',
+      },
+      {
+        name: 'response',
+        type: 'ServerResponse',
+        description:
+          'The Node.js ServerResponse object to pipe the stream to. This is usually the second argument of a Node.js HTTP request handler.',
+      },
+      {
+        name: 'options',
+        type: 'Options',
+        description: 'Configure the response',
+        properties: [
+          {
+            type: 'Options',
+            parameters: [
+              {
+                name: 'status',
+                type: 'number',
+                description:
+                  'The status code to set on the response. Defaults to `200`.',
+              },
+              {
+                name: 'headers',
+                type: 'Record<string, string>',
+                description:
+                  "Additional headers to set on the response. Defaults to `{ 'Content-Type': 'text/plain; charset=utf-8' }`.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'data',
+        type: 'StreamData',
+        description:
+          'StreamData object for forwarding additional data to the client.',
+      },
+    ],
+  }}
+/>
