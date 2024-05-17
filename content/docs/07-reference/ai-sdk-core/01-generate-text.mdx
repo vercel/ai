@@ -9,12 +9,20 @@ Generates text and calls tools for a given prompt using a language model.
 
 It is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
 
-## Import
+## Example
 
-<Snippet text={`import { generateText } from "ai"`} prompt={false} />
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-4-turbo'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
 
 <ReferenceTable packageName="core" functionName="generateText" />
 
-## Examples
+## More Examples
 
 <ExamplesList packageName="core" functionName="generateText" />
