@@ -1,22 +1,28 @@
 ---
-title: Generate Text
-description: Learn to generate text in a Node.js application.
+title: generateText
+description: Generate text using the AI SDK Core
 ---
 
-# Generate Text
+# `generateText`
 
-The most basic LLM use case is generating text based on a prompt.
-For example, you may want to generate a response to a question or summarize a body of text.
-The `generateText` function can be used to generate text based on the input prompt.
+Generates text and calls tools for a given prompt using a language model.
 
-```ts file='index.ts'
-import { generateText } from 'ai';
+It is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
+
+## Example
+
+```ts
 import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai('gpt-3.5-turbo'),
-  prompt: 'Why is the sky blue?',
+  model: openai('gpt-4-turbo'),
+  prompt: 'Invent a new holiday and describe its traditions.',
 });
-
-console.log(result);
 ```
+
+<ReferenceTable packageName="core" functionName="generateText" />
+
+## More Examples
+
+<ExamplesList packageName="core" functionName="generateText" />
