@@ -188,6 +188,41 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     };
   }
 
+  async doRawStream(
+    options: Parameters<LanguageModelV1['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    const args = this.getArgs(options);
+
+    const { responseHeaders, value: response } = await postJsonToApi({
+      url: `${this.config.baseURL}/chat/completions`,
+      headers: this.config.headers(),
+      body: {
+        ...args,
+        stream: true,
+
+        // only include stream_options when in strict compatibility mode:
+        stream_options:
+          this.config.compatibility === 'strict'
+            ? { include_usage: true }
+            : undefined,
+      },
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createEventSourceResponseHandler(
+        openaiChatChunkSchema,
+      ),
+      abortSignal: options.abortSignal,
+    });
+
+    const { messages: rawPrompt, ...rawSettings } = args;
+
+    return {
+      stream: response,
+      rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
+      warnings: [],
+    };
+  }
+
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
