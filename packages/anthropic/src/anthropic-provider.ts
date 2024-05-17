@@ -1,4 +1,4 @@
-import { Anthropic } from './anthropic-facade';
+import { loadApiKey, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import {
   AnthropicMessagesModelId,
@@ -6,11 +6,17 @@ import {
 } from './anthropic-messages-settings';
 
 export interface AnthropicProvider {
+  /**
+Creates a model for text generation.
+*/
   (
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
   ): AnthropicMessagesLanguageModel;
 
+  /**
+Creates a model for text generation.
+*/
   chat(
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
@@ -57,7 +63,30 @@ Create an Anthropic provider instance.
 export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
-  const anthropic = new Anthropic(options);
+  const baseURL =
+    withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
+    'https://api.anthropic.com/v1';
+
+  const getHeaders = () => ({
+    'anthropic-version': '2023-06-01',
+    'anthropic-beta': 'tools-2024-04-04',
+    'x-api-key': loadApiKey({
+      apiKey: options.apiKey,
+      environmentVariableName: 'ANTHROPIC_API_KEY',
+      description: 'Anthropic',
+    }),
+    ...options.headers,
+  });
+
+  const createChatModel = (
+    modelId: AnthropicMessagesModelId,
+    settings: AnthropicMessagesSettings = {},
+  ) =>
+    new AnthropicMessagesLanguageModel(modelId, settings, {
+      provider: 'anthropic.messages',
+      baseURL,
+      headers: getHeaders,
+    });
 
   const provider = function (
     modelId: AnthropicMessagesModelId,
@@ -69,11 +98,11 @@ export function createAnthropic(
       );
     }
 
-    return anthropic.chat(modelId, settings);
+    return createChatModel(modelId, settings);
   };
 
-  provider.chat = anthropic.chat.bind(anthropic);
-  provider.messages = anthropic.messages.bind(anthropic);
+  provider.chat = createChatModel;
+  provider.messages = createChatModel;
 
   return provider as AnthropicProvider;
 }
