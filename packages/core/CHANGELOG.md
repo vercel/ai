@@ -1,5 +1,17 @@
 # ai
 
+## 3.1.11
+
+### Patch Changes
+
+- a085d42: fix (ai/ui): decouple StreamData chunks from LLM stream
+
+## 3.1.10
+
+### Patch Changes
+
+- 3a21030: feat (ai/core): add embedMany function
+
 ## 3.1.9
 
 ### Patch Changes

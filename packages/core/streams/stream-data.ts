@@ -7,80 +7,33 @@ import { JSONValue } from '../shared/types';
 export class StreamData {
   private encoder = new TextEncoder();
 
-  private controller: TransformStreamDefaultController<Uint8Array> | null =
-    null;
-  public stream: TransformStream<Uint8Array, Uint8Array>;
+  private controller: ReadableStreamController<Uint8Array> | null = null;
+  public stream: ReadableStream<Uint8Array>;
 
-  // closing the stream is synchronous, but we want to return a promise
-  // in case we're doing async work
-  private isClosedPromise: Promise<void> | null = null;
-  private isClosedPromiseResolver: undefined | (() => void) = undefined;
   private isClosed: boolean = false;
-
-  // array to store appended data
-  private data: JSONValue[] = [];
-  private messageAnnotations: JSONValue[] = [];
+  private warningTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
-    this.isClosedPromise = new Promise(resolve => {
-      this.isClosedPromiseResolver = resolve;
-    });
-
     const self = this;
-    this.stream = new TransformStream({
+
+    this.stream = new ReadableStream({
       start: async controller => {
         self.controller = controller;
+
+        // Set a timeout to show a warning if the stream is not closed within 3 seconds
+        if (process.env.NODE_ENV === 'development') {
+          self.warningTimeout = setTimeout(() => {
+            console.warn(
+              'The data stream is hanging. Did you forget to close it with `data.close()`?',
+            );
+          }, 3000);
+        }
       },
-      transform: async (chunk, controller) => {
-        // add buffered data to the stream
-        if (self.data.length > 0) {
-          const encodedData = self.encoder.encode(
-            formatStreamPart('data', self.data),
-          );
-          self.data = [];
-          controller.enqueue(encodedData);
-        }
-
-        if (self.messageAnnotations.length) {
-          const encodedMessageAnnotations = self.encoder.encode(
-            formatStreamPart('message_annotations', self.messageAnnotations),
-          );
-          self.messageAnnotations = [];
-          controller.enqueue(encodedMessageAnnotations);
-        }
-
-        controller.enqueue(chunk);
+      pull: controller => {
+        // No-op: we don't need to do anything special on pull
       },
-      async flush(controller) {
-        // Show a warning during dev if the data stream is hanging after 3 seconds.
-        const warningTimeout =
-          process.env.NODE_ENV === 'development'
-            ? setTimeout(() => {
-                console.warn(
-                  'The data stream is hanging. Did you forget to close it with `data.close()`?',
-                );
-              }, 3000)
-            : null;
-
-        await self.isClosedPromise;
-
-        if (warningTimeout !== null) {
-          clearTimeout(warningTimeout);
-        }
-
-        if (self.data.length) {
-          const encodedData = self.encoder.encode(
-            formatStreamPart('data', self.data),
-          );
-          controller.enqueue(encodedData);
-        }
-
-        if (self.messageAnnotations.length) {
-          const encodedData = self.encoder.encode(
-            formatStreamPart('message_annotations', self.messageAnnotations),
-          );
-          controller.enqueue(encodedData);
-        }
+      cancel: reason => {
+        this.isClosed = true;
       },
     });
   }
@@ -94,8 +47,13 @@ export class StreamData {
       throw new Error('Stream controller is not initialized.');
     }
 
-    this.isClosedPromiseResolver?.();
+    this.controller.close();
     this.isClosed = true;
+
+    // Clear the warning timeout if the stream is closed
+    if (this.warningTimeout) {
+      clearTimeout(this.warningTimeout);
+    }
   }
 
   append(value: JSONValue): void {
@@ -103,7 +61,13 @@ export class StreamData {
       throw new Error('Data Stream has already been closed.');
     }
 
-    this.data.push(value);
+    if (!this.controller) {
+      throw new Error('Stream controller is not initialized.');
+    }
+
+    this.controller.enqueue(
+      this.encoder.encode(formatStreamPart('data', [value])),
+    );
   }
 
   appendMessageAnnotation(value: JSONValue): void {
@@ -111,7 +75,13 @@ export class StreamData {
       throw new Error('Data Stream has already been closed.');
     }
 
-    this.messageAnnotations.push(value);
+    if (!this.controller) {
+      throw new Error('Stream controller is not initialized.');
+    }
+
+    this.controller.enqueue(
+      this.encoder.encode(formatStreamPart('message_annotations', [value])),
+    );
   }
 }
 
