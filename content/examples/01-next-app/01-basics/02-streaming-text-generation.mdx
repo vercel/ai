@@ -13,7 +13,7 @@ Text generation can sometimes take a long time to complete, especially when you'
 
 ## Client
 
-Let's create a simple React component that will call the `getAnswer` function when a button is clicked. The `getAnswer` function will call the `streamText` function, which will then generate text based on the input prompt. To consume the stream of text in the client, we will use the `readStreamableValue` function from the `ai/rsc` module.
+Let's create a simple React component that will call the `generate` function when a button is clicked. The `generate` function will call the `streamText` function, which will then generate text based on the input prompt. To consume the stream of text in the client, we will use the `readStreamableValue` function from the `ai/rsc` module.
 
 ```tsx filename="app/page.tsx"
 'use client';
@@ -47,7 +47,7 @@ export default function Home() {
 
 ## Server
 
-On the server side, we need to implement the `getAnswer` function, which will call the `streamText` function. The `streamText` function will generate text based on the input prompt. In order to stream the text generation to the client, we will use `createStreambleValue` that can wrap any changable value and stream it to the client.
+On the server side, we need to implement the `generate` function, which will call the `streamText` function. The `streamText` function will generate text based on the input prompt. In order to stream the text generation to the client, we will use `createStreambleValue` that can wrap any changable value and stream it to the client.
 
 Using DevTools, we can see the text generation being streamed to the client in real-time.
 
@@ -58,8 +58,7 @@ import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { createStreamableValue } from 'ai/rsc';
 
-export async function generate(input: string) {
-  'use server';
+export async function generate(input: string) { 
 
   const stream = createStreamableValue('');
 
