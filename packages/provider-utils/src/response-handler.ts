@@ -118,6 +118,21 @@ export const createEventSourceResponseHandler =
     };
   };
 
+export const createEventSourcePassThroughHandler =
+  <T>(chunkSchema: ZodSchema<T>): ResponseHandler<ReadableStream<Uint8Array>> =>
+  async ({ response }: { response: Response }) => {
+    const responseHeaders = extractResponseHeaders(response);
+
+    if (response.body == null) {
+      throw new EmptyResponseBodyError({});
+    }
+
+    return {
+      responseHeaders,
+      value: response.body,
+    };
+  };
+
 export const createJsonResponseHandler =
   <T>(responseSchema: ZodSchema<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {

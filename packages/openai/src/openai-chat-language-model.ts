@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   InvalidResponseDataError,
   LanguageModelV1,
@@ -9,6 +8,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   ParseResult,
+  createEventSourcePassThroughHandler,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
@@ -191,10 +191,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
   async doRawStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+  ): Promise<
+    Omit<Awaited<ReturnType<LanguageModelV1['doStream']>>, 'stream'> & {
+      stream: ReadableStream<Uint8Array>;
+    }
+  > {
     const args = this.getArgs(options);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const { responseHeaders, value: responseBody } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: this.config.headers(),
       body: {
@@ -208,7 +212,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
             : undefined,
       },
       failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(
+      successfulResponseHandler: createEventSourcePassThroughHandler(
         openaiChatChunkSchema,
       ),
       abortSignal: options.abortSignal,
@@ -217,7 +221,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
 
     return {
-      stream: response,
+      stream: responseBody,
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings: [],

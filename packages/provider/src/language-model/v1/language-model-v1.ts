@@ -145,6 +145,39 @@ Response headers.
 
     warnings?: LanguageModelV1CallWarning[];
   }>;
+
+  doRawStream?: (options: LanguageModelV1CallOptions) => PromiseLike<{
+    stream: ReadableStream<Uint8Array>;
+
+    /**
+Raw prompt and setting information for observability provider integration.
+     */
+    rawCall: {
+      /**
+Raw prompt after expansion and conversion to the format that the
+provider uses to send the information to their API.
+       */
+      rawPrompt: unknown;
+
+      /**
+Raw settings that are used for the API call. Includes provider-specific
+settings.
+       */
+      rawSettings: Record<string, unknown>;
+    };
+
+    /**
+Optional raw response data.
+     */
+    rawResponse?: {
+      /**
+Response headers.
+       */
+      headers?: Record<string, string>;
+    };
+
+    warnings?: LanguageModelV1CallWarning[];
+  }>;
 };
 
 export type LanguageModelV1StreamPart =

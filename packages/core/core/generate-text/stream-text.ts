@@ -21,6 +21,7 @@ import { runToolsTransformation } from './run-tools-transformation';
 import { TokenUsage } from './token-usage';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+import { LanguageModelV1CallWarning } from '@ai-sdk/provider';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -108,6 +109,64 @@ The tools that the model can call. The model needs to support calling tools.
     warnings,
     rawResponse,
   });
+}
+
+export async function streamResponse<TOOLS extends Record<string, CoreTool>>({
+  model,
+  tools,
+  system,
+  prompt,
+  messages,
+  maxRetries,
+  abortSignal,
+  ...settings
+}: CallSettings &
+  Prompt & {
+    /**
+The language model to use.
+     */
+    model: LanguageModel;
+
+    /**
+The tools that the model can call. The model needs to support calling tools.
+    */
+    tools?: TOOLS;
+  }): Promise<{
+  stream: ReadableStream;
+  warnings: LanguageModelV1CallWarning[] | undefined;
+  rawResponse:
+    | {
+        headers?: Record<string, string>;
+      }
+    | undefined;
+}> {
+  const retry = retryWithExponentialBackoff({ maxRetries });
+  const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
+  const { stream, warnings, rawResponse } = await retry(() => {
+    if (!model.doRawStream) {
+      throw new Error('The model does not support raw streaming.');
+    }
+    return model.doRawStream({
+      mode: {
+        type: 'regular',
+        tools:
+          tools == null
+            ? undefined
+            : Object.entries(tools).map(([name, tool]) => ({
+                type: 'function',
+                name,
+                description: tool.description,
+                parameters: convertZodToJSONSchema(tool.parameters),
+              })),
+      },
+      ...prepareCallSettings(settings),
+      inputFormat: validatedPrompt.type,
+      prompt: convertToLanguageModelPrompt(validatedPrompt),
+      abortSignal,
+    });
+  });
+
+  return { stream, warnings, rawResponse };
 }
 
 export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
