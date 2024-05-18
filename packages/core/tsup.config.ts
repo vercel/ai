@@ -46,9 +46,6 @@ export default defineConfig([
     external: ['react', 'svelte', 'vue', 'solid-js'],
     dts: true,
     sourcemap: true,
-    // `sswr` has some issue with `.es.js` that can't be resolved correctly by
-    // vite so we have to bundle it here.
-    noExternal: ['sswr'],
   },
   // Vue APIs
   {
