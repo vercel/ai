@@ -21,27 +21,28 @@ When language models are provided with a set of function definitions, and instru
 - Not execute any function if the user query is out of bounds the set of functions available to them.
 
 ```tsx filename='app/actions.ts'
-const sendMessage = (prompt: string) => generateText({
-  model: 'gpt-3.5-turbo',
-  system: "you are a friendly weather assistant!",
-  prompt,
-  tools: {
-    getWeather: {
-      description: 'Get the weather in a location',
-      parameters: z.object({
-        location: z.string().describe('The location to get the weather for')
-      }),
-      execute: async ({ location }: { location: string }) => ({
-        location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10
-      })
+const sendMessage = (prompt: string) =>
+  generateText({
+    model: 'gpt-3.5-turbo',
+    system: 'you are a friendly weather assistant!',
+    prompt,
+    tools: {
+      getWeather: {
+        description: 'Get the weather in a location',
+        parameters: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }: { location: string }) => ({
+          location,
+          temperature: 72 + Math.floor(Math.random() * 21) - 10,
+        }),
+      },
     },
-  }
-})
+  });
 
-sendMessage('What is the weather in San Francisco?') // getWeather is called
-sendMessage('What is the weather in New York?')      // getWeather is called
-sendMessage('What events are happening in London?')  // No function is called
+sendMessage('What is the weather in San Francisco?'); // getWeather is called
+sendMessage('What is the weather in New York?'); // getWeather is called
+sendMessage('What events are happening in London?'); // No function is called
 ```
 
 This way, it is possible to ensure that the generations result in deterministic outputs, while the choice a model makes still remains to be probabilistic.
