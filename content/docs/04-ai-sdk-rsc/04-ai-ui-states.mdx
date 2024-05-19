@@ -177,9 +177,10 @@ To call the `sendMessage` action from the client, you can use the [`useActions`]
 'use client';
 
 import { useActions, useUIState } from 'ai/rsc';
+import { AI } from './actions';
 
 export default function Page() {
-  const { sendMessage } = useActions();
+  const { sendMessage } = useActions<typeof AI>();
   const [messages, setMessages] = useUIState();
 
   const handleSubmit = async event => {
