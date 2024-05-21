@@ -220,8 +220,7 @@ export function useAssistant({
           }
 
           case 'error': {
-            setError(new Error(value));
-            break;
+            throw new Error(value);
           }
         }
       }
