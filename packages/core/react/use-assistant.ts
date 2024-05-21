@@ -83,6 +83,11 @@ Abort the current request immediately, keep the generated tokens if any.
    * The error thrown during the assistant message processing, if any.
    */
   error: undefined | unknown;
+
+  /**
+   * Clears the error. This can be used to implement retry logic.
+   */
+  clearError: () => void;
 };
 
 export function useAssistant({
@@ -98,6 +103,8 @@ export function useAssistant({
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<AssistantStatus>('awaiting_message');
   const [error, setError] = useState<undefined | Error>(undefined);
+
+  const clearError = () => setError(undefined);
 
   const handleInputChange = (
     event:
@@ -269,6 +276,7 @@ export function useAssistant({
     status,
     error,
     stop,
+    clearError,
   };
 }
 
