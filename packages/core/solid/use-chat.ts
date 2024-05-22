@@ -76,6 +76,7 @@ export function useChat({
   initialInput = '',
   sendExtraMessageFields,
   experimental_onFunctionCall,
+  experimental_onToolCall,
   onResponse,
   onFinish,
   onError,
@@ -84,7 +85,18 @@ export function useChat({
   body,
   streamMode,
   generateId = generateIdFunc,
-}: UseChatOptions = {}): UseChatHelpers {
+}: Omit<UseChatOptions, 'api'> & {
+  api?: string;
+  key?: string;
+} = {}): UseChatHelpers & {
+  experimental_addToolResult: ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => void;
+} {
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
 
@@ -112,7 +124,14 @@ export function useChat({
   let abortController: AbortController | null = null;
   async function triggerRequest(
     messagesSnapshot: Message[],
-    { options, data }: ChatRequestOptions = {},
+    {
+      options,
+      data,
+      functions,
+      function_call,
+      tools,
+      tool_choice,
+    }: ChatRequestOptions = {},
   ) {
     try {
       setError(undefined);
@@ -130,10 +149,38 @@ export function useChat({
       const previousMessages = getCurrentMessages();
       mutate(messagesSnapshot);
 
+      const constructedMessagesPayload = sendExtraMessageFields
+        ? messagesSnapshot
+        : messagesSnapshot.map(
+            ({
+              role,
+              content,
+              name,
+              toolInvocations,
+              function_call,
+              tool_calls,
+              tool_call_id,
+            }) => ({
+              id: generateId(),
+              role,
+              content,
+              ...(name !== undefined && { name }),
+              ...(toolInvocations !== undefined && { toolInvocations }),
+              // outdated function/tool call handling (TODO deprecate):
+              tool_call_id,
+              ...(function_call !== undefined && { function_call }),
+              ...(tool_calls !== undefined && { tool_calls }),
+            }),
+          );
+
       let chatRequest: ChatRequest = {
-        messages: messagesSnapshot,
+        messages: constructedMessagesPayload,
         options,
         data,
+        ...(functions !== undefined && { functions }),
+        ...(function_call !== undefined && { function_call }),
+        ...(tools !== undefined && { tools }),
+        ...(tool_choice !== undefined && { tool_choice }),
       };
 
       await processChatStream({
@@ -142,22 +189,23 @@ export function useChat({
 
           return await callChatApi({
             api,
-            messages: sendExtraMessageFields
-              ? chatRequest.messages
-              : chatRequest.messages.map(
-                  ({ role, content, name, function_call }) => ({
-                    role,
-                    content,
-                    ...(name !== undefined && { name }),
-                    ...(function_call !== undefined && {
-                      function_call,
-                    }),
-                  }),
-                ),
+            messages: constructedMessagesPayload,
             body: {
               data: chatRequest.data,
               ...body,
               ...options?.body,
+              ...(functions !== undefined && {
+                functions,
+              }),
+              ...(function_call !== undefined && {
+                function_call,
+              }),
+              ...(tools !== undefined && {
+                tools,
+              }),
+              ...(tool_choice !== undefined && {
+                tool_choice,
+              }),
             },
             streamMode,
             headers: {
@@ -182,6 +230,7 @@ export function useChat({
           });
         },
         experimental_onFunctionCall,
+        experimental_onToolCall,
         updateChatRequest(newChatRequest) {
           chatRequest = newChatRequest;
         },
@@ -269,5 +318,43 @@ export function useChat({
     handleSubmit,
     isLoading,
     data: streamData,
+    experimental_addToolResult: ({
+      toolCallId,
+      result,
+    }: {
+      toolCallId: string;
+      result: any;
+    }) => {
+      const updatedMessages = (messages() ?? []).map((message, index, arr) =>
+        // update the tool calls in the last assistant message:
+        index === arr.length - 1 &&
+        message.role === 'assistant' &&
+        message.toolInvocations
+          ? {
+              ...message,
+              toolInvocations: message.toolInvocations.map(toolInvocation =>
+                toolInvocation.toolCallId === toolCallId
+                  ? { ...toolInvocation, result }
+                  : toolInvocation,
+              ),
+            }
+          : message,
+      );
+
+      mutate(updatedMessages);
+
+      // auto-submit when all tool calls in the last assistant message have results:
+      const lastMessage = updatedMessages.at(-1);
+      if (
+        lastMessage?.role === 'assistant' &&
+        lastMessage.toolInvocations &&
+        lastMessage.toolInvocations.length > 0 &&
+        lastMessage.toolInvocations.every(
+          toolInvocation => 'result' in toolInvocation,
+        )
+      ) {
+        triggerRequest(updatedMessages);
+      }
+    },
   };
 }
