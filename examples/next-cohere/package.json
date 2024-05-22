@@ -12,13 +12,13 @@
     "ai": "latest",
     "cohere-ai": "^7.6.1",
     "next": "latest",
-    "react": "18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^18",
+    "react-dom": "^18"
   },
   "devDependencies": {
     "@types/node": "^17.0.12",
-    "@types/react": "18.2.8",
-    "@types/react-dom": "18.2.4",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",
     "eslint": "^7.32.0",
     "eslint-config-next": "13.4.12",
