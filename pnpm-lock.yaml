@@ -203,20 +203,20 @@ importers:
         specifier: latest
         version: 14.2.3(react-dom@18.2.0)(react@18.2.0)
       react:
-        specifier: 18.2.0
+        specifier: ^18
         version: 18.2.0
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18
         version: 18.2.0(react@18.2.0)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
         version: 17.0.45
       '@types/react':
-        specifier: 18.2.8
+        specifier: ^18
         version: 18.2.8
       '@types/react-dom':
-        specifier: 18.2.4
+        specifier: ^18
         version: 18.2.4
       autoprefixer:
         specifier: ^10.4.14
@@ -249,20 +249,20 @@ importers:
         specifier: latest
         version: 14.2.3(react-dom@18.2.0)(react@18.2.0)
       react:
-        specifier: 18.2.0
+        specifier: ^18
         version: 18.2.0
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18
         version: 18.2.0(react@18.2.0)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
         version: 17.0.45
       '@types/react':
-        specifier: 18.2.8
+        specifier: ^18
         version: 18.2.8
       '@types/react-dom':
-        specifier: 18.2.4
+        specifier: ^18
         version: 18.2.4
       autoprefixer:
         specifier: ^10.4.14
@@ -295,20 +295,20 @@ importers:
         specifier: latest
         version: 14.2.3(react-dom@18.2.0)(react@18.2.0)
       react:
-        specifier: 18.2.0
+        specifier: ^18
         version: 18.2.0
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18
         version: 18.2.0(react@18.2.0)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
         version: 17.0.45
       '@types/react':
-        specifier: 18.2.8
+        specifier: ^18
         version: 18.2.8
       '@types/react-dom':
-        specifier: 18.2.4
+        specifier: ^18
         version: 18.2.4
       autoprefixer:
         specifier: ^10.4.14
@@ -341,20 +341,20 @@ importers:
         specifier: latest
         version: 14.2.3(react-dom@18.2.0)(react@18.2.0)
       react:
-        specifier: 18.2.0
+        specifier: ^18
         version: 18.2.0
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18
         version: 18.2.0(react@18.2.0)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
         version: 17.0.45
       '@types/react':
-        specifier: 18.2.8
+        specifier: ^18
         version: 18.2.8
       '@types/react-dom':
-        specifier: 18.2.4
+        specifier: ^18
         version: 18.2.4
       autoprefixer:
         specifier: ^10.4.14
@@ -390,20 +390,20 @@ importers:
         specifier: latest
         version: 14.2.3(react-dom@18.2.0)(react@18.2.0)
       react:
-        specifier: 18.2.0
+        specifier: ^18
         version: 18.2.0
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18
         version: 18.2.0(react@18.2.0)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
         version: 17.0.45
       '@types/react':
-        specifier: 18.2.8
+        specifier: ^18
         version: 18.2.8
       '@types/react-dom':
-        specifier: 18.2.4
+        specifier: ^18
         version: 18.2.4
       autoprefixer:
         specifier: ^10.4.14
@@ -439,10 +439,10 @@ importers:
         specifier: 4.47.1
         version: 4.47.1
       react:
-        specifier: 18.2.0
+        specifier: ^18
         version: 18.2.0
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18
         version: 18.2.0(react@18.2.0)
       zod:
         specifier: 3.23.4
@@ -452,10 +452,10 @@ importers:
         specifier: ^17.0.12
         version: 17.0.45
       '@types/react':
-        specifier: 18.2.8
+        specifier: ^18
         version: 18.2.8
       '@types/react-dom':
-        specifier: 18.2.4
+        specifier: ^18
         version: 18.2.4
       autoprefixer:
         specifier: ^10.4.14
@@ -494,10 +494,10 @@ importers:
         specifier: 4.47.1
         version: 4.47.1
       react:
-        specifier: 18.2.0
+        specifier: ^18
         version: 18.2.0
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18
         version: 18.2.0(react@18.2.0)
       sonner:
         specifier: ^0.6.2
@@ -507,10 +507,10 @@ importers:
         specifier: ^17.0.12
         version: 17.0.45
       '@types/react':
-        specifier: 18.2.8
+        specifier: ^18
         version: 18.2.8
       '@types/react-dom':
-        specifier: 18.2.4
+        specifier: ^18
         version: 18.2.4
       autoprefixer:
         specifier: ^10.4.14
@@ -543,20 +543,20 @@ importers:
         specifier: latest
         version: 14.2.3(react-dom@18.2.0)(react@18.2.0)
       react:
-        specifier: 18.2.0
+        specifier: ^18
         version: 18.2.0
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18
         version: 18.2.0(react@18.2.0)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
         version: 17.0.45
       '@types/react':
-        specifier: 18.2.8
+        specifier: ^18
         version: 18.2.8
       '@types/react-dom':
-        specifier: 18.2.4
+        specifier: ^18
         version: 18.2.4
       autoprefixer:
         specifier: ^10.4.14
@@ -595,10 +595,10 @@ importers:
         specifier: 4.47.1
         version: 4.47.1
       react:
-        specifier: 18.2.0
+        specifier: ^18
         version: 18.2.0
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18
         version: 18.2.0(react@18.2.0)
       sonner:
         specifier: ^0.6.2
@@ -608,10 +608,10 @@ importers:
         specifier: ^17.0.12
         version: 17.0.45
       '@types/react':
-        specifier: 18.2.8
+        specifier: ^18
         version: 18.2.8
       '@types/react-dom':
-        specifier: 18.2.4
+        specifier: ^18
         version: 18.2.4
       autoprefixer:
         specifier: ^10.4.14
@@ -641,10 +641,10 @@ importers:
         specifier: latest
         version: 14.2.3(react-dom@18.2.0)(react@18.2.0)
       react:
-        specifier: 18.2.0
+        specifier: ^18
         version: 18.2.0
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18
         version: 18.2.0(react@18.2.0)
       replicate:
         specifier: ^0.20.1
@@ -654,10 +654,10 @@ importers:
         specifier: ^17.0.12
         version: 17.0.45
       '@types/react':
-        specifier: 18.2.8
+        specifier: ^18
         version: 18.2.8
       '@types/react-dom':
-        specifier: 18.2.4
+        specifier: ^18
         version: 18.2.4
       autoprefixer:
         specifier: ^10.4.14
@@ -956,7 +956,7 @@ importers:
         specifier: 3.3.6
         version: 3.3.6
       react:
-        specifier: ^18.2.0
+        specifier: ^18 || ^19
         version: 18.2.0
       secure-json-parse:
         specifier: 2.7.0
@@ -1026,10 +1026,10 @@ importers:
         specifier: ^17.0.12
         version: 17.0.45
       '@types/react':
-        specifier: ^18.2.8
+        specifier: ^18
         version: 18.2.8
       '@types/react-dom':
-        specifier: ^18.2.0
+        specifier: ^18
         version: 18.2.4
       '@vercel/ai-tsconfig':
         specifier: workspace:*
@@ -1062,7 +1062,7 @@ importers:
         specifier: 4.47.1
         version: 4.47.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18
         version: 18.2.0(react@18.2.0)
       react-server-dom-webpack:
         specifier: 18.3.0-canary-eb33bd747-20240312
