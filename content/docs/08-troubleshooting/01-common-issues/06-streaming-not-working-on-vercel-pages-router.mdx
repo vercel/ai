@@ -26,6 +26,8 @@ Example App Router route:
 import { openai } from '@ai-sdk/openai';
 import { StreamingTextResponse, streamText } from 'ai';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
