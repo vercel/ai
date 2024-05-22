@@ -18,21 +18,21 @@ This is useful when you want to go beyond raw data and stream React components t
 
 You can import `createStreamableUI` from `ai/rsc` and use it to create a streamable UI.
 
-```tsx file='app/actions.ts'
-'use server'
+```tsx file='app/actions.tsx'
+'use server';
 
-import { createStreamableUI } from 'ai/rsc'
+import { createStreamableUI } from 'ai/rsc';
 
-export async function getWeather {
-  const weatherUI = createStreamableUI()
+export async function getWeather() {
+  const weatherUI = createStreamableUI();
 
-  weatherUI.update(<div style={{ color: 'gray' }}>Loading...</div>)
+  weatherUI.update(<div style={{ color: 'gray' }}>Loading...</div>);
 
   setTimeout(() => {
-    weatherUI.done(<div>It's a sunny day!</div>)
-  }, 1000)
+    weatherUI.done(<div>It's a sunny day!</div>);
+  }, 1000);
 
-  return weatherUI.value
+  return weatherUI.value;
 }
 ```
 
@@ -45,7 +45,7 @@ On the client side, you can request to the `getWeather` Server Action via a norm
 ```tsx file='app/page.tsx'
 import { useState } from 'react';
 import { readStreamableValue } from 'ai/rsc';
-import { runThread } from '@/actions';
+import { getWeather } from '@/actions';
 
 export default function Page() {
   const [weather, setWeather] = useState(null);

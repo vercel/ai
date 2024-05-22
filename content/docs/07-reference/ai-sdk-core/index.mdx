@@ -5,16 +5,22 @@ description: Reference documentation for the AI SDK Core
 
 # AI SDK Core
 
+[AI SDK Core](/docs/ai-sdk-core) is a set of functions that allow you to interact with language models and other AI models.
+These functions are designed to be easy to use and flexible, allowing you to generate text, structured data,
+and embeddings from language models and other AI models.
+
+AI SDK Core contains the following functions:
+
 <IndexCards
   cards={[
     {
       title: 'generateText',
-      description: 'Generate text from a language model.',
+      description: 'Generate text and call tools from a language model.',
       href: '/docs/reference/ai-sdk-core/generate-text',
     },
     {
       title: 'streamText',
-      description: 'Stream text generation from a language model.',
+      description: 'Stream text and call tools from a language model.',
       href: '/docs/reference/ai-sdk-core/stream-text',
     },
     {
@@ -24,7 +30,7 @@ description: Reference documentation for the AI SDK Core
     },
     {
       title: 'streamObject',
-      description: 'Stream structured data generation from a language model.',
+      description: 'Stream structured data from a language model.',
       href: '/docs/reference/ai-sdk-core/stream-object',
     },
     {
@@ -32,6 +38,12 @@ description: Reference documentation for the AI SDK Core
       description:
         'Generate an embedding for a single value using an embedding model.',
       href: '/docs/reference/ai-sdk-core/embed',
+    },
+    {
+      title: 'embedMany',
+      description:
+        'Generate embeddings for several values using an embedding model (batch embedding).',
+      href: '/docs/reference/ai-sdk-core/embed-many',
     },
   ]}
 />

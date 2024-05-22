@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/openai",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -17,8 +17,8 @@
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
-    "test:edge": "vitest --config vitest.edge.config.js --run --threads=false",
-    "test:node": "vitest --config vitest.node.config.js --run --threads=false"
+    "test:edge": "vitest --config vitest.edge.config.js --run",
+    "test:node": "vitest --config vitest.node.config.js --run"
   },
   "exports": {
     "./package.json": "./package.json",

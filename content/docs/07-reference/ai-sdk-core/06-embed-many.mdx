@@ -1,0 +1,18 @@
+---
+title: embedMany
+description: Embed several values using the AI SDK Core (batch embedding)
+---
+
+# `embedMany`
+
+Embed several values using an embedding model. The type of the value is defined
+by the embedding model.
+
+`embedMany` automatically splits large requests into smaller chunks if the model
+has a limit on how many embeddings can be generated in a single call.
+
+## Import
+
+<Snippet text={`import { embedMany } from "ai"`} prompt={false} />
+
+<ReferenceTable packageName="core" functionName="embedMany" />

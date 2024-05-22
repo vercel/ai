@@ -4,10 +4,12 @@ import { isAbortError } from '@ai-sdk/provider-utils';
 import { useCallback, useRef, useState } from 'react';
 import { generateId } from '../shared/generate-id';
 import { readDataStream } from '../shared/read-data-stream';
-import { CreateMessage, Message } from '../shared/types';
-import { abort } from 'node:process';
-
-export type AssistantStatus = 'in_progress' | 'awaiting_message';
+import {
+  AssistantStatus,
+  CreateMessage,
+  Message,
+  UseAssistantOptions,
+} from '../shared/types';
 
 export type UseAssistantHelpers = {
   /**
@@ -16,7 +18,7 @@ export type UseAssistantHelpers = {
   messages: Message[];
 
   /**
-   * setState-powered method to update the messages array.
+   * Update the message store with a new array of messages.
    */
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 
@@ -81,42 +83,6 @@ Abort the current request immediately, keep the generated tokens if any.
    * The error thrown during the assistant message processing, if any.
    */
   error: undefined | unknown;
-};
-
-export type UseAssistantOptions = {
-  /**
-   * The API endpoint that accepts a `{ threadId: string | null; message: string; }` object and returns an `AssistantResponse` stream.
-   * The threadId refers to an existing thread with messages (or is `null` to create a new thread).
-   * The message is the next message that should be appended to the thread and sent to the assistant.
-   */
-  api: string;
-
-  /**
-   * An optional string that represents the ID of an existing thread.
-   * If not provided, a new thread will be created.
-   */
-  threadId?: string;
-
-  /**
-   * An optional literal that sets the mode of credentials to be used on the request.
-   * Defaults to "same-origin".
-   */
-  credentials?: RequestCredentials;
-
-  /**
-   * An optional object of headers to be passed to the API endpoint.
-   */
-  headers?: Record<string, string> | Headers;
-
-  /**
-   * An optional, additional body object to be passed to the API endpoint.
-   */
-  body?: object;
-
-  /**
-   * An optional callback that will be called when the assistant encounters an error.
-   */
-  onError?: (error: Error) => void;
 };
 
 export function useAssistant({
@@ -254,8 +220,7 @@ export function useAssistant({
           }
 
           case 'error': {
-            const errorObj = new Error(value);
-            setError(errorObj);
+            setError(new Error(value));
             break;
           }
         }

@@ -1,5 +1,29 @@
 # ai
 
+## 3.1.12
+
+### Patch Changes
+
+- ae05fb7: feat (ai/streams): add StreamData support to streamToResponse
+
+## 3.1.11
+
+### Patch Changes
+
+- a085d42: fix (ai/ui): decouple StreamData chunks from LLM stream
+
+## 3.1.10
+
+### Patch Changes
+
+- 3a21030: feat (ai/core): add embedMany function
+
+## 3.1.9
+
+### Patch Changes
+
+- 18a9655: feat (ai/svelte): add useAssistant
+
 ## 3.1.8
 
 ### Patch Changes

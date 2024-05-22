@@ -2,13 +2,14 @@ import { openai } from '@ai-sdk/openai';
 import { StreamData, StreamingTextResponse, streamText } from 'ai';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
 
   const result = await streamText({
-    model: openai.completion('gpt-3.5-turbo-instruct'),
+    model: openai('gpt-3.5-turbo-instruct'),
     maxTokens: 2000,
     prompt,
   });
@@ -16,11 +17,12 @@ export async function POST(req: Request) {
   // optional: use stream data
   const data = new StreamData();
 
-  data.append({ test: 'value' });
+  data.append('call started');
 
-  // Convert the response into a friendly text-stream
+  // Convert the response to an AI data stream
   const stream = result.toAIStream({
     onFinal(completion) {
+      data.append('call completed');
       data.close();
     },
   });
