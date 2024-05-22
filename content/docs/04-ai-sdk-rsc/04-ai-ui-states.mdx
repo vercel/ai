@@ -104,7 +104,7 @@ The AI state can be accessed in Client Components using the [`useAIState`](/docs
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { useAIAtate } from 'ai/rsc';
+import { useAIState } from 'ai/rsc';
 
 export default function Page() {
   const [messages, setMessages] = useAIState();
@@ -177,9 +177,10 @@ To call the `sendMessage` action from the client, you can use the [`useActions`]
 'use client';
 
 import { useActions, useUIState } from 'ai/rsc';
+import { AI } from './actions';
 
 export default function Page() {
-  const { sendMessage } = useActions();
+  const { sendMessage } = useActions<typeof AI>();
   const [messages, setMessages] = useUIState();
 
   const handleSubmit = async event => {
