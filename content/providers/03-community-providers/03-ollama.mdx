@@ -6,3 +6,68 @@ description: Learn how to use the Ollama provider.
 # Ollama Provider
 
 [sgomez/ollama-ai-provider](https://github.com/sgomez/ollama-ai-provider) is a community provider that uses [Ollama](https://ollama.com/) to provide language model support for the Vercel AI SDK.
+
+## Setup
+
+The Ollama provider is available in the `ollama-ai-provider` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm install ollama-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ollama-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ollama-ai-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `ollama` from `ollama-ai-provider`:
+
+```ts
+import { ollama } from 'ollama-ai-provider';
+```
+
+If you need a customized setup, you can import `createOllama` from `ollama-ai-provider` and create a provider instance with your settings:
+
+```ts
+import { createOllama } from 'ollama-ai-provider';
+
+const ollama = createOllama({
+  // custom settings
+});
+```
+
+You can use the following optional settings to customize the Ollama provider instance:
+
+- **baseURL** _string_
+
+Use a different URL prefix for API calls, e.g., to use proxy servers.
+The default prefix is `http://localhost:11434/api`.
+
+## Language Models
+
+You can create models that call the [Ollama Chat Completion API](https://github.com/ollama/ollama/blob/main/docs/api.md#generate-a-chat-completion) using the provider instance.
+The first argument is the model id, e.g. `phi3`. Some models have multi-modal capabilities.
+
+```ts
+const model = ollama('phi3');
+```
+
+You can find more models on the [Ollama Library](https://ollama.com/library) homepage.
+
+### Model Capabilities
+
+This provider is capable of generating and streaming text and objects. Image input depends on models with multi-modal capabilities.
+
+## Embedding Models
+
+You can create models that call the [Ollama embeddings API](https://github.com/ollama/ollama/blob/main/docs/api.md#generate-embeddings)
+using the `.embedding()` factory method.
+
+```ts
+const model = ollama.embedding('nomic-embed-text');
+```
