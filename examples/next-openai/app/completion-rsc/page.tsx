@@ -23,9 +23,9 @@ export default function Chat() {
         onSubmit={async e => {
           e.preventDefault();
 
-          const streamableValue = await generateCompletion(input);
-          for await (const value of readStreamableValue(streamableValue)) {
-            setCompletion(value ?? '');
+          const streamableCompletion = await generateCompletion(input);
+          for await (const text of readStreamableValue(streamableCompletion)) {
+            setCompletion(text ?? '');
           }
         }}
       >
