@@ -47,6 +47,9 @@ importers:
       '@ai-sdk/google':
         specifier: latest
         version: link:../../packages/google
+      '@ai-sdk/google-vertex':
+        specifier: latest
+        version: link:../../packages/google-vertex
       '@ai-sdk/mistral':
         specifier: latest
         version: link:../../packages/mistral
@@ -1120,8 +1123,8 @@ importers:
         specifier: 0.0.8
         version: link:../provider-utils
       '@google-cloud/vertexai':
-        specifier: 1.1.0
-        version: 1.1.0
+        specifier: ^1.2.0
+        version: 1.2.0
     devDependencies:
       '@types/node':
         specifier: ^18
@@ -4235,8 +4238,8 @@ packages:
     resolution: {integrity: sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==}
     dev: true
 
-  /@google-cloud/vertexai@1.1.0:
-    resolution: {integrity: sha512-hfwfdlVpJ+kM6o2b5UFfPnweBcz8tgHAFRswnqUKYqLJsvKU0DDD0Z2/YKoHyAUoPJAv20qg6KlC3msNeUKUiw==}
+  /@google-cloud/vertexai@1.2.0:
+    resolution: {integrity: sha512-EH0dnoMRIBQzJEEOUWN03eWPSdLBFdsZA/am3eU+qYrnNyY9okUueOajZd79U48KwgFbqoFrCA9yHQ30DgfD8Q==}
     engines: {node: '>=18.0.0'}
     dependencies:
       google-auth-library: 9.10.0

@@ -31,7 +31,7 @@
   "dependencies": {
     "@ai-sdk/provider": "0.0.5",
     "@ai-sdk/provider-utils": "0.0.8",
-    "@google-cloud/vertexai": "1.1.0"
+    "@google-cloud/vertexai": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^18",

@@ -1,2 +1,1 @@
-export * from './google-facade';
-export * from './google-provider';
+export * from './google-vertex-provider';
