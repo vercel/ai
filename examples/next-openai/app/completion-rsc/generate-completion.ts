@@ -11,20 +11,5 @@ export async function generateCompletion(prompt: string) {
     prompt,
   });
 
-  const streamable = createStreamableValue('');
-
-  (async () => {
-    try {
-      let text = '';
-      for await (const token of result.textStream) {
-        text += token;
-        streamable.update(text);
-      }
-      streamable.done();
-    } catch (error) {
-      streamable.error(error);
-    }
-  })();
-
-  return streamable.value;
+  return createStreamableValue(result.textStream).value;
 }

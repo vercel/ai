@@ -24,11 +24,8 @@ export default function Chat() {
           e.preventDefault();
 
           const streamableValue = await generateCompletion(input);
-
           for await (const value of readStreamableValue(streamableValue)) {
-            if (value != null) {
-              setCompletion(value);
-            }
+            setCompletion(value ?? '');
           }
         }}
       >
