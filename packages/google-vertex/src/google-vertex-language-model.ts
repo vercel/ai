@@ -5,6 +5,7 @@ import {
   GoogleVertexSettings,
 } from './google-vertex-settings';
 import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
+import { mapGoogleVertexFinishReason } from './map-google-vertex-finish-reason';
 
 type GoogleVertexAIConfig = {
   vertexAI: VertexAI;
@@ -44,25 +45,25 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
 
     const contentRequest = convertToGoogleVertexContentRequest(options.prompt);
 
-    const result = await generativeModel.generateContent(contentRequest);
+    const { response } = await generativeModel.generateContent(contentRequest);
 
-    console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(response, null, 2));
 
-    const firstCandidate = result.response.candidates?.[0];
+    const firstCandidate = response.candidates?.[0];
 
     if (firstCandidate == null) {
+      // TODO dedicated error
       throw new Error('No candidates returned');
     }
 
-    const text = firstCandidate.content.parts
-      .map(part => part.text)
-      .join('\n\n');
-
-    const usageMetadata = result.response.usageMetadata;
+    const usageMetadata = response.usageMetadata;
 
     return {
-      text,
-      finishReason: 'other', // TODO
+      text: firstCandidate.content.parts.map(part => part.text).join(''),
+      finishReason: mapGoogleVertexFinishReason({
+        finishReason: firstCandidate.finishReason,
+        hasToolCalls: false,
+      }),
       usage: {
         promptTokens: usageMetadata?.promptTokenCount ?? NaN,
         completionTokens: usageMetadata?.candidatesTokenCount ?? NaN,

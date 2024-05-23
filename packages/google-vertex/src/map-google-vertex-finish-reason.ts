@@ -1,10 +1,11 @@
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import { FinishReason } from '@google-cloud/vertexai';
 
 export function mapGoogleVertexFinishReason({
   finishReason,
   hasToolCalls,
 }: {
-  finishReason: string | null | undefined;
+  finishReason: FinishReason | undefined;
   hasToolCalls: boolean;
 }): LanguageModelV1FinishReason {
   switch (finishReason) {
@@ -12,6 +13,9 @@ export function mapGoogleVertexFinishReason({
       return hasToolCalls ? 'tool-calls' : 'stop';
     case 'MAX_TOKENS':
       return 'length';
+    case 'BLOCKLIST':
+    case 'PROHIBITED_CONTENT':
+    case 'SPII':
     case 'RECITATION':
     case 'SAFETY':
       return 'content-filter';
