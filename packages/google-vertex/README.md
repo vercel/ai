@@ -19,12 +19,12 @@ You can import the default provider instance `vertex` from `@ai-sdk/google-verte
 import { vertex } from '@ai-sdk/google-vertex';
 ```
 
-If you need a customized setup, you can import `createGoogleVertex` from `@ai-sdk/google-vertex` and create a provider instance with your settings:
+If you need a customized setup, you can import `createVertex` from `@ai-sdk/google-vertex` and create a provider instance with your settings:
 
 ```ts
-import { createGoogleVertex } from '@ai-sdk/google-vertex';
+import { createVertex } from '@ai-sdk/google-vertex';
 
-const vertex = createGoogleVertex({
+const vertex = createVertex({
   // custom settings
 });
 ```

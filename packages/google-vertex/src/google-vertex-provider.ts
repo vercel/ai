@@ -43,7 +43,7 @@ Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_
 /**
 Create a Google Vertex AI provider instance.
  */
-export function createGoogleVertex(
+export function createVertex(
   options: GoogleVertexProviderSettings = {},
 ): GoogleVertexProvider {
   const createVertexAI = () => {
@@ -95,4 +95,4 @@ export function createGoogleVertex(
 /**
 Default Google Vertex AI provider instance.
  */
-export const vertex = createGoogleVertex();
+export const vertex = createVertex();

@@ -5,7 +5,7 @@ import {
   GenerateContentResponse,
   GenerativeModel,
 } from '@google-cloud/vertexai';
-import { createGoogleVertex } from './google-vertex-provider';
+import { createVertex } from './google-vertex-provider';
 import { MockVertexAI } from './mock-vertex-ai';
 import { GoogleVertexSettings } from './google-vertex-settings';
 
@@ -21,7 +21,7 @@ function createModel(options: {
 }) {
   const mock = new MockVertexAI(options);
 
-  const provider = createGoogleVertex({
+  const provider = createVertex({
     location: 'test-location',
     project: 'test-project',
     generateId: () => 'test-id',
