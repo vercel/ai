@@ -6,7 +6,7 @@ dotenv.config();
 
 async function main() {
   const result = await streamText({
-    model: vertex('gemini-1.0-pro-002'),
+    model: vertex('gemini-1.0-pro'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
