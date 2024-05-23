@@ -1,13 +1,18 @@
 import {
   LanguageModelV1,
   LanguageModelV1CallOptions,
+  LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
   NoContentGeneratedError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertAsyncGeneratorToReadableStream } from '@ai-sdk/provider-utils';
-import { GenerateContentResponse, VertexAI } from '@google-cloud/vertexai';
+import {
+  GenerateContentResponse,
+  GenerationConfig,
+  VertexAI,
+} from '@google-cloud/vertexai';
 import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
 import {
   GoogleVertexModelId,
@@ -40,8 +45,49 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     this.config = config;
   }
 
-  // TODO setting support
-  private getArgs({ prompt, mode }: LanguageModelV1CallOptions) {
+  private getArgs({
+    prompt,
+    mode,
+    frequencyPenalty,
+    presencePenalty,
+    seed,
+    maxTokens,
+    temperature,
+    topP,
+  }: LanguageModelV1CallOptions) {
+    const warnings: LanguageModelV1CallWarning[] = [];
+
+    if (frequencyPenalty != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'frequencyPenalty',
+      });
+    }
+
+    if (presencePenalty != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'presencePenalty',
+      });
+    }
+
+    if (seed != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'seed',
+      });
+    }
+
+    const generationConfig: GenerationConfig = {
+      // model specific settings:
+      topK: this.settings.topK,
+
+      // standardized settings:
+      maxOutputTokens: maxTokens,
+      temperature,
+      topP,
+    };
+
     const type = mode.type;
 
     switch (type) {
@@ -55,8 +101,10 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
         return {
           model: this.config.vertexAI.getGenerativeModel({
             model: this.modelId,
+            generationConfig,
           }),
           contentRequest: convertToGoogleVertexContentRequest(prompt),
+          warnings,
         };
       }
 
@@ -88,7 +136,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { model, contentRequest } = this.getArgs(options);
+    const { model, contentRequest, warnings } = this.getArgs(options);
     const { response } = await model.generateContent(contentRequest);
 
     const firstCandidate = response.candidates?.[0];
@@ -113,13 +161,14 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
         rawPrompt: contentRequest,
         rawSettings: {},
       },
+      warnings,
     };
   }
 
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { model, contentRequest } = this.getArgs(options);
+    const { model, contentRequest, warnings } = this.getArgs(options);
     const { stream } = await model.generateContentStream(contentRequest);
 
     let finishReason: LanguageModelV1FinishReason = 'other';
@@ -184,6 +233,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
         rawPrompt: contentRequest,
         rawSettings: {},
       },
+      warnings,
     };
   }
 }
