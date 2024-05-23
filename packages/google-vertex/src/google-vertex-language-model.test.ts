@@ -1,14 +1,16 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { convertStreamToArray } from '@ai-sdk/provider-utils/test';
+import { GenerativeModel } from '@google-cloud/vertexai';
 import { createGoogleVertex } from './google-vertex-provider';
 import { MockVertexAI } from './mock-vertex-ai';
-import { GenerativeModel } from '@google-cloud/vertexai';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
 function createModel(options: {
-  generateContent: GenerativeModel['generateContent'];
+  generateContent?: GenerativeModel['generateContent'];
+  generateContentStream?: GenerativeModel['generateContentStream'];
 }) {
   const mock = new MockVertexAI(options);
 
@@ -48,5 +50,46 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('Hello, World!');
+  });
+});
+
+describe('doStream', () => {
+  it('should stream text deltas', async () => {
+    const model = createModel({
+      generateContentStream: async () => ({
+        response: Promise.resolve({}),
+        stream: (async function* () {
+          yield {
+            candidates: [
+              {
+                content: { parts: [{ text: 'Hello, ' }], role: 'model' },
+                index: 0,
+              },
+            ],
+          };
+
+          yield {
+            candidates: [
+              {
+                content: { parts: [{ text: 'World!' }], role: 'model' },
+                index: 0,
+              },
+            ],
+          };
+        })(),
+      }),
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertStreamToArray(stream)).toStrictEqual([
+      { type: 'text-delta', textDelta: 'Hello, ' },
+      { type: 'text-delta', textDelta: 'World!' },
+      // TODO: Add completion token count
+    ]);
   });
 });
