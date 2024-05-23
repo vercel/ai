@@ -5,20 +5,22 @@ description: Learn how to use tools and tool calling with the Vercel AI SDK.
 
 # Tools and Tool Calling
 
-While large language models have incredible generation capabilities, they struggle with discrete tasks (eg. mathematics) and interacting with the outside world (eg. getting the weather). Tools can be thought of as programs you give to a model which can be run as and when the model deems applicable.
+While large language models have incredible generation capabilities,
+they struggle with discrete tasks (eg. mathematics) and interacting with the outside world (eg. getting the weather).
+Tools can be thought of as programs you give to a model which can be run as and when the model deems applicable.
 
 <Note>
   When a model uses a tool, it is called a "tool call" and the output of the
   tool is called a "tool result".
 </Note>
 
-You can use tools with the `generateText` or `streamText` functions, by passing a tool(s) to the `tools` paramter.
+You can use tools with the `generateText` or `streamText` functions, by passing a tool(s) to the `tools` parameter.
 
 There are three elements of a tool, a description, parameters, and an optional execute function.
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
 - **`parameters`**: A [Zod](https://zod.dev/) schema that defines the parameters. It is converted to a JSON schema that is consumed by the LLM, and also used to validate the LLM tool calls.
-- **`execute`**: An optional async function that is called with the arguments from the tool call and produces a value of type `RESULT`. It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
+- **`execute`**: An optional async function that is called with the arguments from the tool call and produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
 
 <Note>
   You can use the `tool` helper function to infer the types of the `execute`
@@ -27,12 +29,13 @@ There are three elements of a tool, a description, parameters, and an optional e
 
 The `tools` parameter of `generateText` and `streamText` is an object that has the tool names as keys and the tools as values:
 
-```ts highlight="6-17"
+```ts highlight="7-18"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: openai('gpt-3.5-turbo'),
+  model: openai('gpt-4-turbo'),
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
