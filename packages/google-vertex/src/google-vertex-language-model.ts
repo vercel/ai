@@ -3,6 +3,7 @@ import {
   LanguageModelV1CallOptions,
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
+  NoContentGeneratedError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertAsyncGeneratorToReadableStream } from '@ai-sdk/provider-utils';
@@ -93,8 +94,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     const firstCandidate = response.candidates?.[0];
 
     if (firstCandidate == null) {
-      // TODO dedicated error
-      throw new Error('No candidates returned');
+      throw new NoContentGeneratedError({ message: 'No candidates returned' });
     }
 
     const usageMetadata = response.usageMetadata;
@@ -144,6 +144,12 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
               const firstCandidate = chunk.candidates?.[0];
 
               if (firstCandidate == null) {
+                controller.enqueue({
+                  type: 'error',
+                  error: new NoContentGeneratedError({
+                    message: 'No candidates in chunk.',
+                  }),
+                });
                 return;
               }
 
