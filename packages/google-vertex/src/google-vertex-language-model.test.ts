@@ -1,66 +1,45 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
-import {
-  JsonTestServer,
-  StreamingTestServer,
-  convertStreamToArray,
-} from '@ai-sdk/provider-utils/test';
-import { createGoogleGenerativeAI } from './google-provider';
+import { createGoogleVertex } from './google-vertex-provider';
+import { MockVertexAI } from './mock-vertex-ai';
+import { GenerativeModel } from '@google-cloud/vertexai';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const SAFETY_RATINGS = [
-  {
-    category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-    probability: 'NEGLIGIBLE',
-  },
-  {
-    category: 'HARM_CATEGORY_HATE_SPEECH',
-    probability: 'NEGLIGIBLE',
-  },
-  {
-    category: 'HARM_CATEGORY_HARASSMENT',
-    probability: 'NEGLIGIBLE',
-  },
-  {
-    category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-    probability: 'NEGLIGIBLE',
-  },
-];
+function createModel(options: {
+  generateContent: GenerativeModel['generateContent'];
+}) {
+  const mock = new MockVertexAI(options);
 
-const provider = createGoogleGenerativeAI({
-  apiKey: 'test-api-key',
-  generateId: () => 'test-id',
-});
-const model = provider.chat('models/gemini-pro');
+  const provider = createGoogleVertex({
+    location: 'test-location',
+    project: 'test-project',
+    generateId: () => 'test-id',
+    createVertexAI: ({ project, location }) =>
+      mock.createVertexAI({ project, location }),
+  });
+
+  return provider('gemini-1.0-pro-002');
+}
 
 describe('doGenerate', () => {
-  const server = new JsonTestServer(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-  );
-
-  server.setupTestEnvironment();
-
-  function prepareJsonResponse({ content = '' }: { content?: string }) {
-    server.responseBodyJson = {
-      candidates: [
-        {
-          content: {
-            parts: [{ text: content }],
-            role: 'model',
-          },
-          finishReason: 'STOP',
-          index: 0,
-          safetyRatings: SAFETY_RATINGS,
-        },
-      ],
-      promptFeedback: { safetyRatings: SAFETY_RATINGS },
-    };
-  }
-
   it('should extract text response', async () => {
-    prepareJsonResponse({ content: 'Hello, World!' });
+    const model = createModel({
+      generateContent: async () => ({
+        response: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Hello, World!' }],
+                role: 'model',
+              },
+              index: 0,
+            },
+          ],
+        },
+      }),
+    });
 
     const { text } = await model.doGenerate({
       inputFormat: 'prompt',
@@ -71,281 +50,281 @@ describe('doGenerate', () => {
     expect(text).toStrictEqual('Hello, World!');
   });
 
-  it('should extract tool calls', async () => {
-    server.responseBodyJson = {
-      candidates: [
-        {
-          content: {
-            parts: [
-              {
-                functionCall: {
-                  name: 'test-tool',
-                  args: { value: 'example value' },
-                },
-              },
-            ],
-            role: 'model',
-          },
-          finishReason: 'STOP',
-          index: 0,
-          safetyRatings: SAFETY_RATINGS,
-        },
-      ],
-      promptFeedback: { safetyRatings: SAFETY_RATINGS },
-    };
+  // it('should extract tool calls', async () => {
+  //   server.responseBodyJson = {
+  //     candidates: [
+  //       {
+  //         content: {
+  //           parts: [
+  //             {
+  //               functionCall: {
+  //                 name: 'test-tool',
+  //                 args: { value: 'example value' },
+  //               },
+  //             },
+  //           ],
+  //           role: 'model',
+  //         },
+  //         finishReason: 'STOP',
+  //         index: 0,
+  //         safetyRatings: SAFETY_RATINGS,
+  //       },
+  //     ],
+  //     promptFeedback: { safetyRatings: SAFETY_RATINGS },
+  //   };
 
-    const { toolCalls, finishReason, text } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        ],
-      },
-      prompt: TEST_PROMPT,
-    });
+  //   const { toolCalls, finishReason, text } = await model.doGenerate({
+  //     inputFormat: 'prompt',
+  //     mode: {
+  //       type: 'regular',
+  //       tools: [
+  //         {
+  //           type: 'function',
+  //           name: 'test-tool',
+  //           parameters: {
+  //             type: 'object',
+  //             properties: { value: { type: 'string' } },
+  //             required: ['value'],
+  //             additionalProperties: false,
+  //             $schema: 'http://json-schema.org/draft-07/schema#',
+  //           },
+  //         },
+  //       ],
+  //     },
+  //     prompt: TEST_PROMPT,
+  //   });
 
-    expect(toolCalls).toStrictEqual([
-      {
-        toolCallId: 'test-id',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"example value"}',
-      },
-    ]);
-    expect(text).toStrictEqual(undefined);
-    expect(finishReason).toStrictEqual('tool-calls');
-  });
+  //   expect(toolCalls).toStrictEqual([
+  //     {
+  //       toolCallId: 'test-id',
+  //       toolCallType: 'function',
+  //       toolName: 'test-tool',
+  //       args: '{"value":"example value"}',
+  //     },
+  //   ]);
+  //   expect(text).toStrictEqual(undefined);
+  //   expect(finishReason).toStrictEqual('tool-calls');
+  // });
 
-  it('should expose the raw response headers', async () => {
-    prepareJsonResponse({ content: '' });
+  // it('should expose the raw response headers', async () => {
+  //   prepareJsonResponse({ content: '' });
 
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+  //   server.responseHeaders = {
+  //     'test-header': 'test-value',
+  //   };
 
-    const { rawResponse } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
+  //   const { rawResponse } = await model.doGenerate({
+  //     inputFormat: 'prompt',
+  //     mode: { type: 'regular' },
+  //     prompt: TEST_PROMPT,
+  //   });
 
-    expect(rawResponse?.headers).toStrictEqual({
-      // default headers:
-      'content-type': 'application/json',
+  //   expect(rawResponse?.headers).toStrictEqual({
+  //     // default headers:
+  //     'content-type': 'application/json',
 
-      // custom header
-      'test-header': 'test-value',
-    });
-  });
+  //     // custom header
+  //     'test-header': 'test-value',
+  //   });
+  // });
 
-  it('should pass the model and the messages', async () => {
-    prepareJsonResponse({ content: '' });
+  // it('should pass the model and the messages', async () => {
+  //   prepareJsonResponse({ content: '' });
 
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
+  //   await model.doGenerate({
+  //     inputFormat: 'prompt',
+  //     mode: { type: 'regular' },
+  //     prompt: TEST_PROMPT,
+  //   });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
-        },
-      ],
-      generationConfig: {},
-    });
-  });
+  //   expect(await server.getRequestBodyJson()).toStrictEqual({
+  //     contents: [
+  //       {
+  //         role: 'user',
+  //         parts: [{ text: 'Hello' }],
+  //       },
+  //     ],
+  //     generationConfig: {},
+  //   });
+  // });
 
-  it('should set response mime type for json mode', async () => {
-    prepareJsonResponse({ content: '' });
+  // it('should set response mime type for json mode', async () => {
+  //   prepareJsonResponse({ content: '' });
 
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'object-json' },
-      prompt: TEST_PROMPT,
-    });
+  //   await model.doGenerate({
+  //     inputFormat: 'prompt',
+  //     mode: { type: 'object-json' },
+  //     prompt: TEST_PROMPT,
+  //   });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
-        },
-      ],
-      generationConfig: {
-        response_mime_type: 'application/json',
-      },
-    });
-  });
+  //   expect(await server.getRequestBodyJson()).toStrictEqual({
+  //     contents: [
+  //       {
+  //         role: 'user',
+  //         parts: [{ text: 'Hello' }],
+  //       },
+  //     ],
+  //     generationConfig: {
+  //       response_mime_type: 'application/json',
+  //     },
+  //   });
+  // });
 
-  it('should pass custom headers', async () => {
-    prepareJsonResponse({ content: '' });
+  // it('should pass custom headers', async () => {
+  //   prepareJsonResponse({ content: '' });
 
-    const provider = createGoogleGenerativeAI({
-      apiKey: 'test-api-key',
-      headers: {
-        'Custom-Header': 'test-header',
-      },
-    });
+  //   const provider = createGoogleGenerativeAI({
+  //     apiKey: 'test-api-key',
+  //     headers: {
+  //       'Custom-Header': 'test-header',
+  //     },
+  //   });
 
-    await provider.chat('models/gemini-pro').doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
+  //   await provider.chat('models/gemini-pro').doGenerate({
+  //     inputFormat: 'prompt',
+  //     mode: { type: 'regular' },
+  //     prompt: TEST_PROMPT,
+  //   });
 
-    const requestHeaders = await server.getRequestHeaders();
-    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
-  });
+  //   const requestHeaders = await server.getRequestHeaders();
+  //   expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+  // });
 
-  it('should pass the api key as Authorization header', async () => {
-    prepareJsonResponse({ content: '' });
+  // it('should pass the api key as Authorization header', async () => {
+  //   prepareJsonResponse({ content: '' });
 
-    const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
-    const model = provider.chat('models/gemini-pro');
+  //   const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
+  //   const model = provider.chat('models/gemini-pro');
 
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
+  //   await model.doGenerate({
+  //     inputFormat: 'prompt',
+  //     mode: { type: 'regular' },
+  //     prompt: TEST_PROMPT,
+  //   });
 
-    expect(
-      (await server.getRequestHeaders()).get('x-goog-api-key'),
-    ).toStrictEqual('test-api-key');
-  });
+  //   expect(
+  //     (await server.getRequestHeaders()).get('x-goog-api-key'),
+  //   ).toStrictEqual('test-api-key');
+  // });
 });
 
-describe('doStream', () => {
-  const server = new StreamingTestServer(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent?alt=sse',
-  );
+// describe('doStream', () => {
+//   const server = new StreamingTestServer(
+//     'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent?alt=sse',
+//   );
 
-  server.setupTestEnvironment();
+//   server.setupTestEnvironment();
 
-  function prepareStreamResponse({ content }: { content: string[] }) {
-    server.responseChunks = content.map(
-      text =>
-        `data: {"candidates": [{"content": {"parts": [{"text": "${text}"}],"role": "model"},` +
-        `"finishReason": "STOP","index": 0,"safetyRatings": [` +
-        `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
-        `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
-        `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
-        `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}]}\n\n`,
-    );
-  }
+//   function prepareStreamResponse({ content }: { content: string[] }) {
+//     server.responseChunks = content.map(
+//       text =>
+//         `data: {"candidates": [{"content": {"parts": [{"text": "${text}"}],"role": "model"},` +
+//         `"finishReason": "STOP","index": 0,"safetyRatings": [` +
+//         `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
+//         `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
+//         `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
+//         `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}]}\n\n`,
+//     );
+//   }
 
-  it('should stream text deltas', async () => {
-    prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
+//   it('should stream text deltas', async () => {
+//     prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
 
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
+//     const { stream } = await model.doStream({
+//       inputFormat: 'prompt',
+//       mode: { type: 'regular' },
+//       prompt: TEST_PROMPT,
+//     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'world!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: NaN, completionTokens: NaN },
-      },
-    ]);
-  });
+//     expect(await convertStreamToArray(stream)).toStrictEqual([
+//       { type: 'text-delta', textDelta: 'Hello' },
+//       { type: 'text-delta', textDelta: ', ' },
+//       { type: 'text-delta', textDelta: 'world!' },
+//       {
+//         type: 'finish',
+//         finishReason: 'stop',
+//         usage: { promptTokens: NaN, completionTokens: NaN },
+//       },
+//     ]);
+//   });
 
-  it('should expose the raw response headers', async () => {
-    prepareStreamResponse({ content: [] });
+//   it('should expose the raw response headers', async () => {
+//     prepareStreamResponse({ content: [] });
 
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+//     server.responseHeaders = {
+//       'test-header': 'test-value',
+//     };
 
-    const { rawResponse } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
+//     const { rawResponse } = await model.doStream({
+//       inputFormat: 'prompt',
+//       mode: { type: 'regular' },
+//       prompt: TEST_PROMPT,
+//     });
 
-    expect(rawResponse?.headers).toStrictEqual({
-      // default headers:
-      'content-type': 'text/event-stream',
-      'cache-control': 'no-cache',
-      connection: 'keep-alive',
+//     expect(rawResponse?.headers).toStrictEqual({
+//       // default headers:
+//       'content-type': 'text/event-stream',
+//       'cache-control': 'no-cache',
+//       connection: 'keep-alive',
 
-      // custom header
-      'test-header': 'test-value',
-    });
-  });
+//       // custom header
+//       'test-header': 'test-value',
+//     });
+//   });
 
-  it('should pass the messages', async () => {
-    prepareStreamResponse({ content: [''] });
+//   it('should pass the messages', async () => {
+//     prepareStreamResponse({ content: [''] });
 
-    await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
+//     await model.doStream({
+//       inputFormat: 'prompt',
+//       mode: { type: 'regular' },
+//       prompt: TEST_PROMPT,
+//     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
-        },
-      ],
-      generationConfig: {},
-    });
-  });
+//     expect(await server.getRequestBodyJson()).toStrictEqual({
+//       contents: [
+//         {
+//           role: 'user',
+//           parts: [{ text: 'Hello' }],
+//         },
+//       ],
+//       generationConfig: {},
+//     });
+//   });
 
-  it('should pass custom headers', async () => {
-    prepareStreamResponse({ content: [] });
+//   it('should pass custom headers', async () => {
+//     prepareStreamResponse({ content: [] });
 
-    const provider = createGoogleGenerativeAI({
-      apiKey: 'test-api-key',
-      headers: {
-        'Custom-Header': 'test-header',
-      },
-    });
+//     const provider = createGoogleGenerativeAI({
+//       apiKey: 'test-api-key',
+//       headers: {
+//         'Custom-Header': 'test-header',
+//       },
+//     });
 
-    await provider.chat('models/gemini-pro').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
+//     await provider.chat('models/gemini-pro').doStream({
+//       inputFormat: 'prompt',
+//       mode: { type: 'regular' },
+//       prompt: TEST_PROMPT,
+//     });
 
-    const requestHeaders = await server.getRequestHeaders();
-    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
-  });
+//     const requestHeaders = await server.getRequestHeaders();
+//     expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+//   });
 
-  it('should pass the api key as Authorization header', async () => {
-    prepareStreamResponse({ content: [''] });
+//   it('should pass the api key as Authorization header', async () => {
+//     prepareStreamResponse({ content: [''] });
 
-    const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
+//     const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
 
-    await provider.chat('models/gemini-pro').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
+//     await provider.chat('models/gemini-pro').doStream({
+//       inputFormat: 'prompt',
+//       mode: { type: 'regular' },
+//       prompt: TEST_PROMPT,
+//     });
 
-    expect(
-      (await server.getRequestHeaders()).get('x-goog-api-key'),
-    ).toStrictEqual('test-api-key');
-  });
-});
+//     expect(
+//       (await server.getRequestHeaders()).get('x-goog-api-key'),
+//     ).toStrictEqual('test-api-key');
+//   });
+// });

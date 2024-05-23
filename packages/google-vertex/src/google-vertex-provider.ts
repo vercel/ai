@@ -27,7 +27,17 @@ Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_
   */
   project?: string;
 
+  // for testing
   generateId?: () => string;
+
+  // for testing
+  createVertexAI?: ({
+    project,
+    location,
+  }: {
+    project: string;
+    location: string;
+  }) => VertexAI;
 }
 
 /**
@@ -36,20 +46,26 @@ Create a Google Vertex AI provider instance.
 export function createGoogleVertex(
   options: GoogleVertexProviderSettings = {},
 ): GoogleVertexProvider {
-  const createVertexAI = () =>
-    new VertexAI({
-      // TODO introduce load environment variable
-      project: loadApiKey({
-        apiKey: options.project,
-        environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
-        description: 'Google Vertex project',
-      }),
-      location: loadApiKey({
-        apiKey: options.location,
-        environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
-        description: 'Google Vertex location',
-      }),
+  const createVertexAI = () => {
+    // TODO introduce load environment variable
+    const project = loadApiKey({
+      apiKey: options.project,
+      environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
+      description: 'Google Vertex project',
     });
+
+    // TODO introduce load environment variable
+    const location = loadApiKey({
+      apiKey: options.location,
+      environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
+      description: 'Google Vertex location',
+    });
+
+    return (
+      options.createVertexAI?.({ project, location }) ??
+      new VertexAI({ project, location })
+    );
+  };
 
   const createChatModel = (
     modelId: GoogleVertexModelId,

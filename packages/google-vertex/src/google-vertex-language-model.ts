@@ -1,10 +1,10 @@
 import { LanguageModelV1 } from '@ai-sdk/provider';
 import { VertexAI } from '@google-cloud/vertexai';
+import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
 import {
   GoogleVertexModelId,
   GoogleVertexSettings,
 } from './google-vertex-settings';
-import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
 import { mapGoogleVertexFinishReason } from './map-google-vertex-finish-reason';
 
 type GoogleVertexAIConfig = {
