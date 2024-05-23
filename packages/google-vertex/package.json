@@ -1,6 +1,6 @@
 {
-  "name": "@ai-sdk/google",
-  "version": "0.0.15",
+  "name": "@ai-sdk/google-vertex",
+  "version": "0.0.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,7 +30,8 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "0.0.6",
-    "@ai-sdk/provider-utils": "0.0.9"
+    "@ai-sdk/provider-utils": "0.0.9",
+    "@google-cloud/vertexai": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^18",
