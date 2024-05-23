@@ -7,6 +7,7 @@ import {
 } from '@google-cloud/vertexai';
 import { createGoogleVertex } from './google-vertex-provider';
 import { MockVertexAI } from './mock-vertex-ai';
+import { GoogleVertexSettings } from './google-vertex-settings';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -15,6 +16,8 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
 function createModel(options: {
   generateContent?: GenerativeModel['generateContent'];
   generateContentStream?: () => AsyncGenerator<GenerateContentResponse>;
+  modelId?: string;
+  settings?: GoogleVertexSettings;
 }) {
   const mock = new MockVertexAI(options);
 
@@ -26,7 +29,10 @@ function createModel(options: {
       mock.createVertexAI({ project, location }),
   });
 
-  return provider('gemini-1.0-pro-002');
+  return {
+    model: provider(options.modelId ?? 'gemini-1.0-pro-002', options.settings),
+    mockVertexAI: mock,
+  };
 }
 
 describe('doGenerate', () => {
@@ -65,7 +71,7 @@ describe('doGenerate', () => {
   }
 
   it('should extract text response', async () => {
-    const model = createModel({
+    const { model } = createModel({
       generateContent: prepareResponse({
         text: 'Hello, World!',
       }),
@@ -81,7 +87,7 @@ describe('doGenerate', () => {
   });
 
   it('should extract usage', async () => {
-    const model = createModel({
+    const { model } = createModel({
       generateContent: prepareResponse({
         usageMetadata: {
           promptTokenCount: 10,
@@ -104,7 +110,7 @@ describe('doGenerate', () => {
   });
 
   it('should extract finish reason', async () => {
-    const model = createModel({
+    const { model } = createModel({
       generateContent: prepareResponse({
         finishReason: 'MAX_TOKENS' as FinishReason,
       }),
@@ -118,11 +124,40 @@ describe('doGenerate', () => {
 
     expect(finishReason).toStrictEqual('length');
   });
+
+  it('should send model id and settings', async () => {
+    const { model, mockVertexAI } = createModel({
+      modelId: 'test-model',
+      settings: {
+        topK: 0.1,
+      },
+      generateContent: prepareResponse({}),
+    });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      temperature: 0.5,
+      maxTokens: 100,
+      topP: 0.9,
+    });
+
+    expect(mockVertexAI.lastModelParams).toStrictEqual({
+      model: 'test-model',
+      generationConfig: {
+        maxOutputTokens: 100,
+        temperature: 0.5,
+        topK: 0.1,
+        topP: 0.9,
+      },
+    });
+  });
 });
 
 describe('doStream', () => {
   it('should stream text deltas', async () => {
-    const model = createModel({
+    const { model } = createModel({
       generateContentStream: async function* () {
         yield {
           candidates: [

@@ -10,6 +10,8 @@ export class MockVertexAI {
   readonly generateContent: GenerativeModel['generateContent'];
   readonly generateContentStream: () => AsyncGenerator<GenerateContentResponse>;
 
+  lastModelParams?: ModelParams;
+
   constructor({
     generateContent = notImplemented,
     generateContentStream = notImplemented,
@@ -28,6 +30,8 @@ export class MockVertexAI {
         modelParams: ModelParams,
         requestOptions?: RequestOptions,
       ): GenerativeModel {
+        self.lastModelParams = modelParams;
+
         return {
           generateContent: self.generateContent,
           generateContentStream: async () => ({
