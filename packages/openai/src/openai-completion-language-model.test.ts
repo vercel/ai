@@ -137,7 +137,7 @@ describe('doGenerate', () => {
     );
   });
 
-  it('should finish reason', async () => {
+  it('should extract finish reason', async () => {
     prepareJsonResponse({
       content: '',
       finish_reason: 'stop',
