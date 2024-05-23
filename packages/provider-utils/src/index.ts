@@ -1,3 +1,4 @@
+export * from './convert-async-generator-to-readable-stream';
 export * from './extract-response-headers';
 export * from './generate-id';
 export * from './get-error-message';
