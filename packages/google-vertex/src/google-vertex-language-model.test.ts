@@ -89,6 +89,33 @@ describe('doGenerate', () => {
       completionTokens: 40,
     });
   });
+
+  it('should extract finish reason', async () => {
+    const model = createModel({
+      generateContent: async () => ({
+        response: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Hello, World!' }],
+                role: 'model',
+              },
+              index: 0,
+              finishReason: 'STOP' as FinishReason,
+            },
+          ],
+        },
+      }),
+    });
+
+    const { finishReason } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(finishReason).toStrictEqual('stop');
+  });
 });
 
 describe('doStream', () => {
