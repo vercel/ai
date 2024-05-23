@@ -55,6 +55,40 @@ describe('doGenerate', () => {
 
     expect(text).toStrictEqual('Hello, World!');
   });
+
+  it('should extract usage', async () => {
+    const model = createModel({
+      generateContent: async () => ({
+        response: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Hello, World!' }],
+                role: 'model',
+              },
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 40,
+            totalTokenCount: 52,
+          },
+        },
+      }),
+    });
+
+    const { usage } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toStrictEqual({
+      promptTokens: 10,
+      completionTokens: 40,
+    });
+  });
 });
 
 describe('doStream', () => {
