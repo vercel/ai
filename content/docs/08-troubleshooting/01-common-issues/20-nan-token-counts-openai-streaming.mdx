@@ -22,11 +22,11 @@ and we therefore made it opt-in.
 When you use `createOpenAI`, you can enable a `strict` compatibility model:
 
 ```tsx
-import { createOpenAI } from '@ai-sdk/openai'
+import { createOpenAI } from '@ai-sdk/openai';
 
 const openai = createOpenAI({
-  compatibility: 'strict'
-})
+  compatibility: 'strict',
+});
 ```
 
 This will enable the token counts in the stream.
