@@ -5,6 +5,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "latest",
     "@ai-sdk/google": "latest",
+    "@ai-sdk/google-vertex": "latest",
     "@ai-sdk/mistral": "latest",
     "@ai-sdk/openai": "latest",
     "ai": "latest",
