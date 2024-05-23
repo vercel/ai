@@ -30,17 +30,17 @@ The Google provider is available in the `@ai-sdk/google-vertex` module. You can 
 You can import the default provider instance `vertex` from `@ai-sdk/google-vertex`:
 
 ```ts
-import { vertex } from '@ai-sdk/google-vertex'
+import { vertex } from '@ai-sdk/google-vertex';
 ```
 
 If you need a customized setup, you can import `createVertex` from `@ai-sdk/google-vertex` and create a provider instance with your settings:
 
 ```ts
-import { createVertex } from '@ai-sdk/google-vertex'
+import { createVertex } from '@ai-sdk/google-vertex';
 
 const vertex = createVertex({
   // custom settings
-})
+});
 ```
 
 ## Language Models
@@ -49,7 +49,7 @@ You can create models that call the Vertex API using the provider instance.
 The first argument is the model id, e.g. `gemini-1.0-pro`.
 
 ```ts
-const model = vertex('gemini-1.0-pro')
+const model = vertex('gemini-1.0-pro');
 ```
 
 Google Vertex models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
@@ -57,8 +57,8 @@ You can pass them as an options argument:
 
 ```ts
 const model = vertex('gemini-1.0-pro', {
-  topK: 0.2
-})
+  topK: 0.2,
+});
 ```
 
 The following optional settings are available for Google Vertex models:
