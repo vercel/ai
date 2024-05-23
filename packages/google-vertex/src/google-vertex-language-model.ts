@@ -1,8 +1,9 @@
 import {
   LanguageModelV1,
+  LanguageModelV1CallOptions,
   LanguageModelV1FinishReason,
-  LanguageModelV1Prompt,
   LanguageModelV1StreamPart,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertAsyncGeneratorToReadableStream } from '@ai-sdk/provider-utils';
 import { GenerateContentResponse, VertexAI } from '@google-cloud/vertexai';
@@ -21,7 +22,7 @@ type GoogleVertexAIConfig = {
 export class GoogleVertexLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly provider = 'google-vertex';
-  readonly defaultObjectGenerationMode = 'json';
+  readonly defaultObjectGenerationMode = undefined;
 
   readonly modelId: GoogleVertexModelId;
   readonly settings: GoogleVertexSettings;
@@ -39,17 +40,48 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   }
 
   // TODO setting support
-  private getArgs({ prompt }: { prompt: LanguageModelV1Prompt }) {
-    const model = this.config.vertexAI.getGenerativeModel({
-      model: this.modelId,
-    });
+  private getArgs({ prompt, mode }: LanguageModelV1CallOptions) {
+    const type = mode.type;
 
-    const contentRequest = convertToGoogleVertexContentRequest(prompt);
+    switch (type) {
+      case 'regular': {
+        if (mode.tools?.length) {
+          throw new UnsupportedFunctionalityError({
+            functionality: 'tools',
+          });
+        }
 
-    return {
-      model,
-      contentRequest,
-    };
+        return {
+          model: this.config.vertexAI.getGenerativeModel({
+            model: this.modelId,
+          }),
+          contentRequest: convertToGoogleVertexContentRequest(prompt),
+        };
+      }
+
+      case 'object-json': {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'object-json mode',
+        });
+      }
+
+      case 'object-tool': {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'object-tool mode',
+        });
+      }
+
+      case 'object-grammar': {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'object-grammar mode',
+        });
+      }
+
+      default: {
+        const _exhaustiveCheck: never = type;
+        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
+      }
+    }
   }
 
   async doGenerate(
