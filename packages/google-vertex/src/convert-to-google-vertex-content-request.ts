@@ -34,27 +34,27 @@ export function convertToGoogleVertexContentRequest(
                 return { text: part.text };
               }
 
-              default: {
-                const _exhaustiveCheck = part;
-                throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
+              case 'image': {
+                if (part.image instanceof URL) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'URL image parts',
+                  });
+                } else {
+                  return {
+                    inlineData: {
+                      data: convertUint8ArrayToBase64(part.image),
+                      mimeType: part.mimeType ?? 'image/jpeg',
+                    },
+                  };
+                }
               }
 
-              // case 'image': {
-              //   if (part.image instanceof URL) {
-              //     throw new UnsupportedFunctionalityError({
-              //       functionality: 'URL image parts',
-              //     });
-              //   } else {
-              //     return {
-              //       type: 'image',
-              //       source: {
-              //         type: 'base64',
-              //         media_type: part.mimeType ?? 'image/jpeg',
-              //         data: convertUint8ArrayToBase64(part.image),
-              //       },
-              //     };
-              //   }
-              // }
+              default: {
+                const _exhaustiveCheck: never = part;
+                throw new UnsupportedFunctionalityError({
+                  functionality: `prompt part: ${_exhaustiveCheck}`,
+                });
+              }
             }
           }),
         });
@@ -89,22 +89,18 @@ export function convertToGoogleVertexContentRequest(
 
         break;
       }
-      // case 'tool': {
-      //   contents.push({
-      //     role: 'user',
-      //     content: content.map(part => ({
-      //       type: 'tool_result',
-      //       tool_use_id: part.toolCallId,
-      //       content: JSON.stringify(part.result),
-      //       is_error: part.isError,
-      //     })),
-      //   });
 
-      //   break;
-      // }
+      case 'tool': {
+        throw new UnsupportedFunctionalityError({
+          functionality: `role: tool`,
+        });
+      }
+
       default: {
-        const _exhaustiveCheck = role;
-        throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
+        const _exhaustiveCheck: never = role;
+        throw new UnsupportedFunctionalityError({
+          functionality: `role: ${_exhaustiveCheck}`,
+        });
       }
     }
   }
