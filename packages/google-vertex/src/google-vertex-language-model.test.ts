@@ -30,20 +30,44 @@ function createModel(options: {
 }
 
 describe('doGenerate', () => {
+  function prepareResponse({
+    text = '',
+    finishReason = 'STOP' as FinishReason,
+    usageMetadata = {
+      promptTokenCount: 0,
+      candidatesTokenCount: 0,
+      totalTokenCount: 0,
+    },
+  }: {
+    text?: string;
+    finishReason?: FinishReason;
+    usageMetadata?: {
+      promptTokenCount: number;
+      candidatesTokenCount: number;
+      totalTokenCount: number;
+    };
+  }) {
+    return async () => ({
+      response: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text }],
+              role: 'model',
+            },
+            index: 0,
+            finishReason,
+          },
+        ],
+        usageMetadata,
+      },
+    });
+  }
+
   it('should extract text response', async () => {
     const model = createModel({
-      generateContent: async () => ({
-        response: {
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'Hello, World!' }],
-                role: 'model',
-              },
-              index: 0,
-            },
-          ],
-        },
+      generateContent: prepareResponse({
+        text: 'Hello, World!',
       }),
     });
 
@@ -58,22 +82,11 @@ describe('doGenerate', () => {
 
   it('should extract usage', async () => {
     const model = createModel({
-      generateContent: async () => ({
-        response: {
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'Hello, World!' }],
-                role: 'model',
-              },
-              index: 0,
-            },
-          ],
-          usageMetadata: {
-            promptTokenCount: 10,
-            candidatesTokenCount: 40,
-            totalTokenCount: 52,
-          },
+      generateContent: prepareResponse({
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 40,
+          totalTokenCount: 52,
         },
       }),
     });
@@ -92,19 +105,8 @@ describe('doGenerate', () => {
 
   it('should extract finish reason', async () => {
     const model = createModel({
-      generateContent: async () => ({
-        response: {
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'Hello, World!' }],
-                role: 'model',
-              },
-              index: 0,
-              finishReason: 'STOP' as FinishReason,
-            },
-          ],
-        },
+      generateContent: prepareResponse({
+        finishReason: 'MAX_TOKENS' as FinishReason,
       }),
     });
 
@@ -114,7 +116,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(finishReason).toStrictEqual('stop');
+    expect(finishReason).toStrictEqual('length');
   });
 });
 
