@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.6
+
+### Patch Changes
+
+- 6a50ac4: feat (provider): add additional error types
+
 ## 0.0.5
 
 ### Patch Changes
