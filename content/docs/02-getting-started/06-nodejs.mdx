@@ -73,9 +73,9 @@ In this quickstart guide, you will explore the fundamental concepts behind Verce
 
 First, create an `index.ts` file in the root of your project and add the following code:
 
-```ts filename="index.ts"
+```ts filename="src/index.ts"
 import { openai } from '@ai-sdk/openai';
-import { Message, streamText } from 'ai';
+import { CoreMessage, streamText } from 'ai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 
@@ -86,7 +86,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: Message[] = [];
+const messages: CoreMessage[] = [];
 
 async function main() {
   while (true) {
@@ -95,7 +95,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = await streamText({
-      model: openai('gpt-3.5-turbo'),
+      model: openai('gpt-4-turbo'),
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
     });
