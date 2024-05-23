@@ -1,10 +1,10 @@
+import { generateId, loadSetting } from '@ai-sdk/provider-utils';
 import { VertexAI } from '@google-cloud/vertexai';
 import { GoogleVertexLanguageModel } from './google-vertex-language-model';
 import {
   GoogleVertexModelId,
   GoogleVertexSettings,
 } from './google-vertex-settings';
-import { generateId, loadApiKey } from '@ai-sdk/provider-utils';
 
 export interface GoogleVertexProvider {
   /**
@@ -47,24 +47,22 @@ export function createGoogleVertex(
   options: GoogleVertexProviderSettings = {},
 ): GoogleVertexProvider {
   const createVertexAI = () => {
-    // TODO introduce load environment variable
-    const project = loadApiKey({
-      apiKey: options.project,
-      environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
-      description: 'Google Vertex project',
-    });
+    const config = {
+      project: loadSetting({
+        settingValue: options.project,
+        settingName: 'project',
+        environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
+        description: 'Google Vertex project',
+      }),
+      location: loadSetting({
+        settingValue: options.location,
+        settingName: 'location',
+        environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
+        description: 'Google Vertex location',
+      }),
+    };
 
-    // TODO introduce load environment variable
-    const location = loadApiKey({
-      apiKey: options.location,
-      environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
-      description: 'Google Vertex location',
-    });
-
-    return (
-      options.createVertexAI?.({ project, location }) ??
-      new VertexAI({ project, location })
-    );
+    return options.createVertexAI?.(config) ?? new VertexAI(config);
   };
 
   const createChatModel = (

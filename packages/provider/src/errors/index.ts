@@ -7,6 +7,7 @@ export * from './invalid-response-data-error';
 export * from './invalid-tool-arguments-error';
 export * from './json-parse-error';
 export * from './load-api-key-error';
+export * from './load-setting-error';
 export * from './no-content-generated-error';
 export * from './no-object-generated-error';
 export * from './no-such-tool-error';

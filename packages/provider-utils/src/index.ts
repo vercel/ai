@@ -4,6 +4,7 @@ export * from './generate-id';
 export * from './get-error-message';
 export * from './is-abort-error';
 export * from './load-api-key';
+export * from './load-setting';
 export * from './parse-json';
 export * from './post-to-api';
 export * from './response-handler';
