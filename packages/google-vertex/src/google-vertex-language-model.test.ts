@@ -1,6 +1,10 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import { convertStreamToArray } from '@ai-sdk/provider-utils/test';
-import { FinishReason, GenerativeModel } from '@google-cloud/vertexai';
+import {
+  FinishReason,
+  GenerateContentResponse,
+  GenerativeModel,
+} from '@google-cloud/vertexai';
 import { createGoogleVertex } from './google-vertex-provider';
 import { MockVertexAI } from './mock-vertex-ai';
 
@@ -10,7 +14,7 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
 
 function createModel(options: {
   generateContent?: GenerativeModel['generateContent'];
-  generateContentStream?: GenerativeModel['generateContentStream'];
+  generateContentStream?: () => AsyncGenerator<GenerateContentResponse>;
 }) {
   const mock = new MockVertexAI(options);
 
@@ -56,50 +60,38 @@ describe('doGenerate', () => {
 describe('doStream', () => {
   it('should stream text deltas', async () => {
     const model = createModel({
-      generateContentStream: async () => ({
-        response: Promise.resolve({}),
-        stream: (async function* () {
-          yield {
-            candidates: [
-              {
-                content: { parts: [{ text: 'Hello, ' }], role: 'model' },
-                index: 0,
-              },
-            ],
-          };
-
-          yield {
-            candidates: [
-              {
-                content: { parts: [{ text: 'World!' }], role: 'model' },
-                index: 0,
-              },
-            ],
-          };
-
-          yield {
-            candidates: [
-              {
-                content: {
-                  role: 'model',
-                  parts: [
-                    {
-                      text: '',
-                    },
-                  ],
-                },
-                finishReason: 'STOP' as FinishReason,
-                index: 0,
-              },
-            ],
-            usageMetadata: {
-              promptTokenCount: 9,
-              candidatesTokenCount: 403,
-              totalTokenCount: 412,
+      generateContentStream: async function* () {
+        yield {
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello, ' }], role: 'model' },
+              index: 0,
             },
-          };
-        })(),
-      }),
+          ],
+        };
+        yield {
+          candidates: [
+            {
+              content: { parts: [{ text: 'World!' }], role: 'model' },
+              index: 0,
+            },
+          ],
+        };
+        yield {
+          candidates: [
+            {
+              content: { parts: [{ text: '' }], role: 'model' },
+              finishReason: 'STOP' as FinishReason,
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 9,
+            candidatesTokenCount: 403,
+            totalTokenCount: 412,
+          },
+        };
+      },
     });
 
     const { stream } = await model.doStream({

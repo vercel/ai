@@ -1,4 +1,5 @@
 import {
+  GenerateContentResponse,
   GenerativeModel,
   ModelParams,
   RequestOptions,
@@ -7,14 +8,14 @@ import {
 
 export class MockVertexAI {
   readonly generateContent: GenerativeModel['generateContent'];
-  readonly generateContentStream: GenerativeModel['generateContentStream'];
+  readonly generateContentStream: () => AsyncGenerator<GenerateContentResponse>;
 
   constructor({
     generateContent = notImplemented,
     generateContentStream = notImplemented,
   }: {
     generateContent?: GenerativeModel['generateContent'];
-    generateContentStream?: GenerativeModel['generateContentStream'];
+    generateContentStream?: () => AsyncGenerator<GenerateContentResponse>;
   }) {
     this.generateContent = generateContent;
     this.generateContentStream = generateContentStream;
@@ -29,8 +30,11 @@ export class MockVertexAI {
       ): GenerativeModel {
         return {
           generateContent: self.generateContent,
-          generateContentStream: self.generateContentStream,
-        } as GenerativeModel;
+          generateContentStream: async () => ({
+            response: Promise.resolve({}),
+            stream: self.generateContentStream?.(),
+          }),
+        } as unknown as GenerativeModel;
       },
     } as VertexAI;
   }
