@@ -1,8 +1,10 @@
 import {
   LanguageModelV1,
+  LanguageModelV1FinishReason,
   LanguageModelV1Prompt,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
+import { convertAsyncGeneratorToReadableStream } from '@ai-sdk/provider-utils';
 import { GenerateContentResponse, VertexAI } from '@google-cloud/vertexai';
 import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
 import {
@@ -10,7 +12,6 @@ import {
   GoogleVertexSettings,
 } from './google-vertex-settings';
 import { mapGoogleVertexFinishReason } from './map-google-vertex-finish-reason';
-import { convertAsyncGeneratorToReadableStream } from '@ai-sdk/provider-utils';
 
 type GoogleVertexAIConfig = {
   vertexAI: VertexAI;
@@ -54,13 +55,8 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    console.log('doGenerate', options);
-
     const { model, contentRequest } = this.getArgs(options);
-
     const { response } = await model.generateContent(contentRequest);
-
-    console.log(JSON.stringify(response, null, 2));
 
     const firstCandidate = response.candidates?.[0];
 
@@ -91,23 +87,39 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    console.log('doStream', options);
-
     const { model, contentRequest } = this.getArgs(options);
-
     const { stream } = await model.generateContentStream(contentRequest);
+
+    let finishReason: LanguageModelV1FinishReason = 'other';
+    let usage: { promptTokens: number; completionTokens: number } = {
+      promptTokens: Number.NaN,
+      completionTokens: Number.NaN,
+    };
 
     return {
       stream: convertAsyncGeneratorToReadableStream(stream).pipeThrough(
         new TransformStream<GenerateContentResponse, LanguageModelV1StreamPart>(
           {
             transform(chunk, controller) {
-              // console.log(JSON.stringify(chunk, null, 2));
+              const usageMetadata = chunk.usageMetadata;
+              if (usageMetadata != null) {
+                usage = {
+                  promptTokens: usageMetadata.promptTokenCount ?? NaN,
+                  completionTokens: usageMetadata.candidatesTokenCount ?? NaN,
+                };
+              }
 
               const firstCandidate = chunk.candidates?.[0];
 
               if (firstCandidate == null) {
                 return;
+              }
+
+              if (firstCandidate.finishReason != null) {
+                finishReason = mapGoogleVertexFinishReason({
+                  finishReason: firstCandidate.finishReason,
+                  hasToolCalls: false,
+                });
               }
 
               const textDelta = firstCandidate.content.parts
@@ -120,7 +132,13 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
               });
             },
 
-            flush(controller) {},
+            flush(controller) {
+              controller.enqueue({
+                type: 'finish',
+                finishReason,
+                usage,
+              });
+            },
           },
         ),
       ),

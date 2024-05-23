@@ -1,6 +1,6 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import { convertStreamToArray } from '@ai-sdk/provider-utils/test';
-import { GenerativeModel } from '@google-cloud/vertexai';
+import { FinishReason, GenerativeModel } from '@google-cloud/vertexai';
 import { createGoogleVertex } from './google-vertex-provider';
 import { MockVertexAI } from './mock-vertex-ai';
 
@@ -76,6 +76,28 @@ describe('doStream', () => {
               },
             ],
           };
+
+          yield {
+            candidates: [
+              {
+                content: {
+                  role: 'model',
+                  parts: [
+                    {
+                      text: '',
+                    },
+                  ],
+                },
+                finishReason: 'STOP' as FinishReason,
+                index: 0,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 9,
+              candidatesTokenCount: 403,
+              totalTokenCount: 412,
+            },
+          };
         })(),
       }),
     });
@@ -89,7 +111,12 @@ describe('doStream', () => {
     expect(await convertStreamToArray(stream)).toStrictEqual([
       { type: 'text-delta', textDelta: 'Hello, ' },
       { type: 'text-delta', textDelta: 'World!' },
-      // TODO: Add completion token count
+      { type: 'text-delta', textDelta: '' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 9, completionTokens: 403 },
+      },
     ]);
   });
 });
