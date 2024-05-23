@@ -30,3 +30,19 @@ it('should convert uint8 image parts', async () => {
     ],
   });
 });
+
+it('should throw an error for URL image parts', async () => {
+  expect(() => {
+    convertToGoogleVertexContentRequest([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            image: new URL('https://example.com/image.png'),
+          },
+        ],
+      },
+    ]);
+  }).toThrow('URL image parts');
+});

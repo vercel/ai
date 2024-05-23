@@ -70,19 +70,18 @@ export function convertToGoogleVertexContentRequest(
                 return { type: 'text', text: part.text };
               }
 
-              default: {
-                const _exhaustiveCheck = part;
-                throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
+              case 'tool-call': {
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'tool-call',
+                });
               }
 
-              // case 'tool-call': {
-              //   return {
-              //     type: 'tool_use',
-              //     id: part.toolCallId,
-              //     name: part.toolName,
-              //     input: part.args,
-              //   };
-              // }
+              default: {
+                const _exhaustiveCheck: never = part;
+                throw new UnsupportedFunctionalityError({
+                  functionality: `prompt part: ${_exhaustiveCheck}`,
+                });
+              }
             }
           }),
         });
