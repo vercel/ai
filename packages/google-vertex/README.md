@@ -1,7 +1,8 @@
 # Vercel AI SDK - Google Vertex AI Provider
 
 The Google provider for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
-It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` AI functions.
+It creates language model objects that can be used with the `generateText` and `streamText` AI functions.
+Tool calls are currently not supported.
 
 ## Setup
 
