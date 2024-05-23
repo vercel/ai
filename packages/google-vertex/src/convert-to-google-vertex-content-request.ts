@@ -15,7 +15,6 @@ export function convertToGoogleVertexContentRequest(
     switch (role) {
       case 'system': {
         if (systemInstruction != null) {
-          // TODO supported
           throw new UnsupportedFunctionalityError({
             functionality: 'Multiple system messages',
           });
