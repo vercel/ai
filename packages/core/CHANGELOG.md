@@ -1,5 +1,21 @@
 # ai
 
+## 3.1.14
+
+### Patch Changes
+
+- 6109c6a: feat (ai/react): add experimental_maxAutomaticRoundtrips to useChat
+
+## 3.1.13
+
+### Patch Changes
+
+- 60117c9: dependencies (ai/ui): add React 18.3 and 19 support (peer dependency)
+- Updated dependencies [6a50ac4]
+- Updated dependencies [6a50ac4]
+  - @ai-sdk/provider@0.0.6
+  - @ai-sdk/provider-utils@0.0.9
+
 ## 3.1.12
 
 ### Patch Changes
