@@ -90,6 +90,8 @@ Once the user confirms the execution, the tool result is appended to the assista
 and the server route is called again to execute the server-side tool.
 
 ```tsx filename='app/page.tsx'
+'use client';
+
 import { ToolInvocation } from 'ai';
 import { Message, useChat } from 'ai/react';
 
@@ -240,6 +242,8 @@ send another request to the server when all server-side tool results are receive
 </Note>
 
 ```tsx filename='app/page.tsx'
+'use client';
+
 import { useChat } from 'ai/react';
 
 export default function Chat() {
