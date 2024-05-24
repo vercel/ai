@@ -63,11 +63,11 @@ importers:
         specifier: 16.4.5
         version: 16.4.5
       zod:
-        specifier: 3.22.4
-        version: 3.22.4
+        specifier: 3.23.8
+        version: 3.23.8
       zod-to-json-schema:
         specifier: 3.22.4
-        version: 3.22.4(zod@3.22.4)
+        version: 3.22.4(zod@3.23.8)
     devDependencies:
       '@types/node':
         specifier: 20.11.20
@@ -157,11 +157,11 @@ importers:
         specifier: ^2.15.1
         version: 2.15.1(react@18.2.0)
       zod:
-        specifier: 3.22.4
-        version: 3.22.4
+        specifier: 3.23.8
+        version: 3.23.8
       zod-to-json-schema:
         specifier: 3.22.4
-        version: 3.22.4(zod@3.22.4)
+        version: 3.22.4(zod@3.23.8)
     devDependencies:
       '@types/d3-scale':
         specifier: ^4.0.8
@@ -336,7 +336,7 @@ importers:
     dependencies:
       '@inkeep/ai-api':
         specifier: ^0.1.8
-        version: 0.1.8(zod@3.23.4)
+        version: 0.1.8(zod@3.23.8)
       ai:
         specifier: latest
         version: link:../../packages/core
@@ -448,8 +448,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       zod:
-        specifier: 3.23.4
-        version: 3.23.4
+        specifier: 3.23.8
+        version: 3.23.8
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
@@ -702,11 +702,11 @@ importers:
         specifier: 16.4.5
         version: 16.4.5
       zod:
-        specifier: 3.22.4
-        version: 3.22.4
+        specifier: 3.23.8
+        version: 3.23.8
       zod-to-json-schema:
         specifier: 3.22.4
-        version: 3.22.4(zod@3.22.4)
+        version: 3.22.4(zod@3.23.8)
     devDependencies:
       '@types/node':
         specifier: 20.11.20
@@ -938,8 +938,8 @@ importers:
         specifier: 5.1.3
         version: 5.1.3
       zod:
-        specifier: 3.22.4
-        version: 3.22.4
+        specifier: 3.23.8
+        version: 3.23.8
 
   packages/core:
     dependencies:
@@ -990,7 +990,7 @@ importers:
         version: 3.3.8(typescript@5.1.3)
       zod-to-json-schema:
         specifier: 3.22.5
-        version: 3.22.5(zod@3.22.4)
+        version: 3.22.5(zod@3.23.8)
     devDependencies:
       '@anthropic-ai/sdk':
         specifier: 0.18.0
@@ -1086,8 +1086,8 @@ importers:
         specifier: 2.7.2
         version: 2.7.2(solid-js@1.8.7)(vite@4.5.0)
       zod:
-        specifier: 3.22.4
-        version: 3.22.4
+        specifier: 3.23.8
+        version: 3.23.8
 
   packages/google:
     dependencies:
@@ -1111,8 +1111,8 @@ importers:
         specifier: 5.1.3
         version: 5.1.3
       zod:
-        specifier: 3.22.4
-        version: 3.22.4
+        specifier: 3.23.8
+        version: 3.23.8
 
   packages/google-vertex:
     dependencies:
@@ -1139,8 +1139,8 @@ importers:
         specifier: 5.1.3
         version: 5.1.3
       zod:
-        specifier: 3.22.4
-        version: 3.22.4
+        specifier: 3.23.8
+        version: 3.23.8
 
   packages/mistral:
     dependencies:
@@ -1164,8 +1164,8 @@ importers:
         specifier: 5.1.3
         version: 5.1.3
       zod:
-        specifier: 3.22.4
-        version: 3.22.4
+        specifier: 3.23.8
+        version: 3.23.8
 
   packages/openai:
     dependencies:
@@ -1189,8 +1189,8 @@ importers:
         specifier: 5.1.3
         version: 5.1.3
       zod:
-        specifier: 3.22.4
-        version: 3.22.4
+        specifier: 3.23.8
+        version: 3.23.8
 
   packages/provider:
     dependencies:
@@ -1245,8 +1245,8 @@ importers:
         specifier: 5.1.3
         version: 5.1.3
       zod:
-        specifier: 3.22.4
-        version: 3.22.4
+        specifier: 3.23.8
+        version: 3.23.8
 
   tools/eslint-config:
     dependencies:
@@ -4311,14 +4311,14 @@ packages:
       vue: 3.3.8(typescript@5.1.6)
     dev: false
 
-  /@inkeep/ai-api@0.1.8(zod@3.23.4):
+  /@inkeep/ai-api@0.1.8(zod@3.23.8):
     resolution: {integrity: sha512-GGlwlGgmyl25SxIkWVQsu7lH08GShKDzOOxP7YPSAisl74hX7zT4Gtc1iF+R/joZwdYfNFb8iFIJP0A9gQc2TQ==}
     peerDependencies:
       zod: '>= 3'
     dependencies:
       decimal.js: 10.4.3
       jsonpath: 1.1.1
-      zod: 3.23.4
+      zod: 3.23.8
     dev: false
 
   /@ioredis/commands@1.2.0:
@@ -4688,8 +4688,8 @@ packages:
       flat: 5.0.2
       langsmith: 0.1.23(openai@4.47.1)
       uuid: 9.0.1
-      zod: 3.23.4
-      zod-to-json-schema: 3.22.5(zod@3.23.4)
+      zod: 3.23.8
+      zod-to-json-schema: 3.22.5(zod@3.23.8)
     transitivePeerDependencies:
       - encoding
       - openai
@@ -4709,8 +4709,8 @@ packages:
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 9.0.1
-      zod: 3.23.4
-      zod-to-json-schema: 3.22.5(zod@3.23.4)
+      zod: 3.23.8
+      zod-to-json-schema: 3.22.5(zod@3.23.8)
     transitivePeerDependencies:
       - openai
     dev: false
@@ -4722,8 +4722,8 @@ packages:
       '@langchain/core': 0.1.62(openai@4.47.1)
       js-tiktoken: 1.0.11
       openai: 4.47.1
-      zod: 3.23.4
-      zod-to-json-schema: 3.22.5(zod@3.23.4)
+      zod: 3.23.8
+      zod-to-json-schema: 3.22.5(zod@3.23.8)
     transitivePeerDependencies:
       - encoding
     dev: false
@@ -10181,7 +10181,7 @@ packages:
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@5.62.0)(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.0)(eslint@7.32.0)
       eslint-plugin-import: 2.29.0(@typescript-eslint/parser@5.62.0)(eslint-import-resolver-typescript@3.6.1)(eslint@7.32.0)
       eslint-plugin-jsx-a11y: 6.8.0(eslint@7.32.0)
-      eslint-plugin-react: 7.34.1(eslint@7.32.0)
+      eslint-plugin-react: 7.33.2(eslint@7.32.0)
       eslint-plugin-react-hooks: 5.0.0-canary-7118f5dd7-20230705(eslint@7.32.0)
       typescript: 5.1.6
     transitivePeerDependencies:
@@ -10503,7 +10503,6 @@ packages:
       resolve: 2.0.0-next.5
       semver: 6.3.1
       string.prototype.matchall: 4.0.10
-    dev: true
 
   /eslint-plugin-react@7.33.2(eslint@8.57.0):
     resolution: {integrity: sha512-73QQMKALArI8/7xGLNI/3LylrEYrlKZSb5C9+q3OtOewTnMQi5cT+aE9E41sLCmli3I9PGGmD1yiZydyo4FEPw==}
@@ -12795,8 +12794,8 @@ packages:
       p-retry: 4.6.2
       uuid: 9.0.1
       yaml: 2.3.4
-      zod: 3.23.4
-      zod-to-json-schema: 3.22.5(zod@3.23.4)
+      zod: 3.23.8
+      zod-to-json-schema: 3.22.5(zod@3.23.8)
     transitivePeerDependencies:
       - debug
       - encoding
@@ -13122,8 +13121,8 @@ packages:
       p-retry: 4.6.2
       uuid: 9.0.1
       yaml: 2.3.4
-      zod: 3.23.4
-      zod-to-json-schema: 3.20.3(zod@3.23.4)
+      zod: 3.23.8
+      zod-to-json-schema: 3.20.3(zod@3.23.8)
     transitivePeerDependencies:
       - encoding
     dev: true
@@ -13306,8 +13305,8 @@ packages:
       p-retry: 4.6.2
       uuid: 9.0.1
       yaml: 2.3.4
-      zod: 3.23.4
-      zod-to-json-schema: 3.22.5(zod@3.23.4)
+      zod: 3.23.8
+      zod-to-json-schema: 3.22.5(zod@3.23.8)
     transitivePeerDependencies:
       - '@aws-crypto/sha256-js'
       - '@aws-sdk/client-bedrock-agent-runtime'
@@ -19481,40 +19480,29 @@ packages:
       readable-stream: 3.6.2
     dev: true
 
-  /zod-to-json-schema@3.20.3(zod@3.23.4):
+  /zod-to-json-schema@3.20.3(zod@3.23.8):
     resolution: {integrity: sha512-/Q3wnyxAfCt94ZcrGiXXoiAfRqasxl9CX64LZ9fj+4dKH68zulUtU0uk1WMxQPfAxQ0ZI70dKzcoW7hHj+DwSQ==}
     peerDependencies:
       zod: ^3.20.0
     dependencies:
-      zod: 3.23.4
+      zod: 3.23.8
     dev: true
 
-  /zod-to-json-schema@3.22.4(zod@3.22.4):
+  /zod-to-json-schema@3.22.4(zod@3.23.8):
     resolution: {integrity: sha512-2Ed5dJ+n/O3cU383xSY28cuVi0BCQhF8nYqWU5paEpl7fVdqdAmiLdqLyfblbNdfOFwFfi/mqU4O1pwc60iBhQ==}
     peerDependencies:
       zod: ^3.22.4
     dependencies:
-      zod: 3.22.4
+      zod: 3.23.8
     dev: false
 
-  /zod-to-json-schema@3.22.5(zod@3.22.4):
+  /zod-to-json-schema@3.22.5(zod@3.23.8):
     resolution: {integrity: sha512-+akaPo6a0zpVCCseDed504KBJUQpEW5QZw7RMneNmKw+fGaML1Z9tUNLnHHAC8x6dzVRO1eB2oEMyZRnuBZg7Q==}
     peerDependencies:
       zod: ^3.22.4
     dependencies:
-      zod: 3.22.4
+      zod: 3.23.8
     dev: false
 
-  /zod-to-json-schema@3.22.5(zod@3.23.4):
-    resolution: {integrity: sha512-+akaPo6a0zpVCCseDed504KBJUQpEW5QZw7RMneNmKw+fGaML1Z9tUNLnHHAC8x6dzVRO1eB2oEMyZRnuBZg7Q==}
-    peerDependencies:
-      zod: ^3.22.4
-    dependencies:
-      zod: 3.23.4
-    dev: false
-
-  /zod@3.22.4:
-    resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
-
-  /zod@3.23.4:
-    resolution: {integrity: sha512-/AtWOKbBgjzEYYQRNfoGKHObgfAZag6qUJX1VbHo2PRBgS+wfWagEY2mizjfyAPcGesrJOcx/wcl0L9WnVrHFw==}
+  /zod@3.23.8:
+    resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
