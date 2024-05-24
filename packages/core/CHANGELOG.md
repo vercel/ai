@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.14
+
+### Patch Changes
+
+- 6109c6a: feat (ai/react): add experimental_maxAutomaticRoundtrips to useChat
+
 ## 3.1.13
 
 ### Patch Changes
