@@ -359,17 +359,20 @@ By default, it's set to 0, which will disable the feature.
       }
 
       // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage = messagesRef.current[messagesRef.current.length - 1];
+      const messages = messagesRef.current;
+      const lastMessage = messages[messages.length - 1];
       if (
+        // ensure there is a last message:
+        lastMessage != null &&
         // check if the feature is enabled:
         experimental_maxAutomaticRoundtrips > 0 &&
         // check that roundtrip is possible:
         isAssistantMessageWithCompletedToolCalls(lastMessage) &&
         // limit the number of automatic roundtrips:
-        countTrailingAssistantMessages(messagesRef.current) <=
+        countTrailingAssistantMessages(messages) <=
           experimental_maxAutomaticRoundtrips
       ) {
-        await triggerRequest({ messages: messagesRef.current });
+        await triggerRequest({ messages });
       }
     },
     [
