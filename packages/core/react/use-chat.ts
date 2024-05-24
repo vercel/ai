@@ -387,6 +387,7 @@ By default, it's set to 0, which will disable the feature.
       sendExtraMessageFields,
       experimental_onFunctionCall,
       experimental_onToolCall,
+      experimental_maxAutomaticRoundtrips,
       messagesRef,
       abortControllerRef,
       generateId,
