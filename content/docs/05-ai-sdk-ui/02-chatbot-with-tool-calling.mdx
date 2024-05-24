@@ -248,7 +248,6 @@ import { useChat } from 'ai/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: '/api/use-chat-tool-result-roundtrip',
     experimental_maxAutomaticRoundtrips: 2,
   });
 
