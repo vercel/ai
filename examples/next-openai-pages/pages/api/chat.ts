@@ -1,21 +1,25 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { StreamingTextResponse, streamText } from 'ai';
+import { streamText } from 'ai';
+import { NextApiRequest, NextApiResponse } from 'next';
 
+// Create an OpenAI Provider instance
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY ?? '',
 });
 
-export const dynamic = 'force-dynamic';
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
+  const { messages } = await req.body;
 
-// IMPORTANT: The Next.js Pages Router's API Routes do not support streaming responses.
-// see https://sdk.vercel.ai/docs/guides/frameworks/nextjs-pages
-export default async function handler(req: Request, res: Response) {
-  const { messages } = await req.json();
-
+  // Ask OpenAI for a streaming chat completion given the prompt
   const result = await streamText({
     model: openai('gpt-4-turbo-preview'),
     messages,
   });
 
-  return new StreamingTextResponse(result.toAIStream());
+  // write the AI stream to the response
+  // Note: this is sent as a single response, not a stream
+  result.pipeAIStreamToResponse(res);
 }
