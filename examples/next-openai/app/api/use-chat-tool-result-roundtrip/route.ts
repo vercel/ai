@@ -8,8 +8,6 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  console.log('messages:', JSON.stringify(messages, null, 2));
-
   const result = await streamText({
     model: openai('gpt-4-turbo'),
     system:

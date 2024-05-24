@@ -8,8 +8,6 @@ export default function Chat() {
     experimental_maxAutomaticRoundtrips: 2,
   });
 
-  console.log(messages);
-
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages

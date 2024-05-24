@@ -52,8 +52,6 @@ export async function parseComplexResponse({
   for await (const { type, value } of readDataStream(reader, {
     isAborted: () => abortControllerRef?.current === null,
   })) {
-    console.log('type:', type, 'value:', value);
-
     if (type === 'text') {
       if (prefixMap['text']) {
         prefixMap['text'] = {
@@ -192,8 +190,6 @@ export async function parseComplexResponse({
       .map(message => ({
         ...assignAnnotationsToMessage(message, message_annotations),
       })) as Message[];
-
-    console.log('merged:', merged);
 
     update(merged, [...prefixMap['data']]); // make a copy of the data array
   }
