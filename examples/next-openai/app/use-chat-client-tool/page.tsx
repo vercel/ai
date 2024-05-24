@@ -1,5 +1,3 @@
-'use client';
-
 import { ToolInvocation } from 'ai';
 import { Message, useChat } from 'ai/react';
 
