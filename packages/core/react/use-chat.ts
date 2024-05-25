@@ -487,7 +487,7 @@ By default, it's set to 0, which will disable the feature.
 
   const handleSubmit = useCallback(
     (
-      e: React.FormEvent<HTMLFormElement>,
+      e?: React.FormEvent<HTMLFormElement>,
       options: ChatRequestOptions = {},
       metadata?: Object,
     ) => {
@@ -498,7 +498,7 @@ By default, it's set to 0, which will disable the feature.
         };
       }
 
-      e.preventDefault();
+      e?.preventDefault?.();
       if (!input) return;
 
       append(
