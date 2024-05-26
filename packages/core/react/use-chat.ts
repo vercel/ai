@@ -219,6 +219,7 @@ export function useChat({
   sendExtraMessageFields,
   experimental_onFunctionCall,
   experimental_onToolCall,
+  experimental_maxAutomaticRoundtrips = 0,
   streamMode,
   onResponse,
   onFinish,
@@ -230,6 +231,19 @@ export function useChat({
 }: Omit<UseChatOptions, 'api'> & {
   api?: string | StreamingReactResponseAction;
   key?: string;
+  /**
+Maximal number of automatic roundtrips for tool calls.
+
+An automatic tool call roundtrip is a call to the server with the 
+tool call results when all tool calls in the last assistant 
+message have results.
+
+A maximum number is required to prevent infinite loops in the
+case of misconfigured tools.
+
+By default, it's set to 0, which will disable the feature.
+   */
+  experimental_maxAutomaticRoundtrips?: number;
 } = {}): UseChatHelpers & {
   experimental_addToolResult: ({
     toolCallId,
@@ -343,6 +357,23 @@ export function useChat({
       } finally {
         mutateLoading(false);
       }
+
+      // auto-submit when all tool calls in the last assistant message have results:
+      const messages = messagesRef.current;
+      const lastMessage = messages[messages.length - 1];
+      if (
+        // ensure there is a last message:
+        lastMessage != null &&
+        // check if the feature is enabled:
+        experimental_maxAutomaticRoundtrips > 0 &&
+        // check that roundtrip is possible:
+        isAssistantMessageWithCompletedToolCalls(lastMessage) &&
+        // limit the number of automatic roundtrips:
+        countTrailingAssistantMessages(messages) <=
+          experimental_maxAutomaticRoundtrips
+      ) {
+        await triggerRequest({ messages });
+      }
     },
     [
       mutate,
@@ -359,6 +390,7 @@ export function useChat({
       sendExtraMessageFields,
       experimental_onFunctionCall,
       experimental_onToolCall,
+      experimental_maxAutomaticRoundtrips,
       messagesRef,
       abortControllerRef,
       generateId,
@@ -526,16 +558,38 @@ export function useChat({
 
       // auto-submit when all tool calls in the last assistant message have results:
       const lastMessage = updatedMessages[updatedMessages.length - 1];
-      if (
-        lastMessage.role === 'assistant' &&
-        lastMessage.toolInvocations &&
-        lastMessage.toolInvocations.length > 0 &&
-        lastMessage.toolInvocations.every(
-          toolInvocation => 'result' in toolInvocation,
-        )
-      ) {
+      if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
         triggerRequest({ messages: updatedMessages });
       }
     },
   };
+}
+
+/**
+Check if the message is an assistant message with completed tool calls. 
+The message must have at least one tool invocation and all tool invocations
+must have a result.
+ */
+function isAssistantMessageWithCompletedToolCalls(message: Message) {
+  return (
+    message.role === 'assistant' &&
+    message.toolInvocations &&
+    message.toolInvocations.length > 0 &&
+    message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
+  );
+}
+
+/**
+Returns the number of trailing assistant messages in the array.
+ */
+function countTrailingAssistantMessages(messages: Message[]) {
+  let count = 0;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant') {
+      count++;
+    } else {
+      break;
+    }
+  }
+  return count;
 }
