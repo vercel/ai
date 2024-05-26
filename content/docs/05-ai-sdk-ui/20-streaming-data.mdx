@@ -5,20 +5,20 @@ description: Welcome to the Vercel AI SDK documentation!
 
 # Streaming Data
 
-Depending on your use case, you may want to stream additional data alongside the model's response. This can be achieved with [`StreamData`](/docs/reference/stream-helpers/stream-data).
+Depending on your use case, you may want to stream additional data alongside the model's response. This can be achieved with [`StreamData`](/docs/reference/stream-helpers/stream-data).
 
 ## What is StreamData
 
-The `StreamData` class allows you to stream arbitrary data to the client alongside your LLM response. This can be particularly useful in applications that need to augment AI responses with metadata, auxiliary information, or custom data structures that are relevant to the ongoing interaction.
+The `StreamData` class allows you to stream arbitrary data to the client alongside your LLM response. This can be particularly useful in applications that need to augment AI responses with metadata, auxiliary information, or custom data structures that are relevant to the ongoing interaction.
 
 ## How To Use StreamData
 
-To use `StreamData`, create a `StreamData` value on the server, append some data and then return it alongside the model response with [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response). On the client, the [ `useChat` ](/docs/reference/ai-sdk-ui/use-chat) hook returns `data`, which will contain the additional data.
+To use `StreamData`, create a `StreamData` value on the server, append some data and then return it alongside the model response with [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response). On the client, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook returns `data`, which will contain the additional data.
 
 ### On the server
 
 <Note>
-  While this example uses Next.js (App Router), StreamData is compatible with
+  While this example uses Next.js (App Router), `StreamData` is compatible with
   any framework.
 </Note>
 
