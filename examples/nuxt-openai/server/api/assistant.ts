@@ -13,11 +13,11 @@ export default defineEventHandler(async event => {
   const config = useRuntimeConfig(event);
 
   if (!config.openaiApiKey) {
-    throw new Error('OPENAI_API_KEY is not set');
+    throw new Error('NUXT_OPENAI_API_KEY is not set');
   }
 
   if (!config.assistantId) {
-    throw new Error('ASSISTANT_ID is not set');
+    throw new Error('NUXT_ASSISTANT_ID is not set');
   }
 
   const openai = new OpenAI({
