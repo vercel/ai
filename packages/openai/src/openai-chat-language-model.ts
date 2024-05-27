@@ -426,10 +426,6 @@ const openAIChatResponseSchema = z.object({
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiChatChunkSchema = z.object({
-  object: z.enum([
-    'chat.completion.chunk',
-    'chat.completion', // support for OpenAI-compatible providers such as Perplexity
-  ]),
   choices: z.array(
     z.object({
       delta: z.object({
