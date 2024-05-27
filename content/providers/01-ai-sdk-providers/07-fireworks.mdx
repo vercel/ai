@@ -43,7 +43,7 @@ const fireworks = createOpenAI({
 });
 ```
 
-## Models
+## Language Models
 
 You can create [Fireworks models](https://fireworks.ai/models) using a provider instance.
 The first argument is the model id, e.g. `accounts/fireworks/models/firefunction-v1`.
@@ -51,3 +51,25 @@ The first argument is the model id, e.g. `accounts/fireworks/models/firefunction
 ```ts
 const model = fireworks('accounts/fireworks/models/firefunction-v1');
 ```
+
+### Example
+
+You can use Fireworks language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai'
+import { generateText } from 'ai'
+
+const fireworks = createOpenAI({
+  apiKey: process.env.FIREWORKS_API_KEY ?? '',
+  baseURL: 'https://api.fireworks.ai/inference/v1'
+})
+
+const { text } = await generateText({
+  model: fireworks('accounts/fireworks/models/firefunction-v1')
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
+})
+```
+
+Fireworks language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
+(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
