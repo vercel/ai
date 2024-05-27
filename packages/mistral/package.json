@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/mistral",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,8 +29,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.6",
-    "@ai-sdk/provider-utils": "0.0.9"
+    "@ai-sdk/provider": "0.0.7",
+    "@ai-sdk/provider-utils": "0.0.10"
   },
   "devDependencies": {
     "@types/node": "^18",
