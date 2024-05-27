@@ -212,6 +212,11 @@ The full text that has been generated. Resolved when the response is finished.
   readonly text: Promise<string>;
 
   /**
+The tool calls that have been executed. Resolved when the response is finished.
+   */
+  readonly toolCalls: Promise<ToToolCall<TOOLS>[]>;
+
+  /**
 Optional raw response data.
    */
   readonly rawResponse?: {
@@ -258,7 +263,14 @@ Response headers.
       resolveText = resolve;
     });
 
-    // TODO toolCalls promise
+    // initialize toolCalls promise
+    let resolveToolCalls: (
+      value: ToToolCall<TOOLS>[] | PromiseLike<ToToolCall<TOOLS>[]>,
+    ) => void;
+    this.toolCalls = new Promise<ToToolCall<TOOLS>[]>(resolve => {
+      resolveToolCalls = resolve;
+    });
+
     // TODO toolResults promise
 
     // store information for onFinish callback:
@@ -275,21 +287,9 @@ Response headers.
         async transform(chunk, controller): Promise<void> {
           controller.enqueue(chunk);
 
-          // Note: tool executions might not be finished yet when the finish event is emitted.
-          if (chunk.type === 'finish') {
-            usage = chunk.usage;
-            resolveUsage(usage);
-
-            finishReason = chunk.finishReason;
-            resolveFinishReason(finishReason);
-
-            resolveText(text);
-          }
-
           // Create the full text from text deltas (for onFinish callback and text promise):
           if (chunk.type === 'text-delta') {
             text += chunk.textDelta;
-            resolveText(text);
           }
 
           // store tool calls for onFinish callback and toolCalls promise:
@@ -300,6 +300,19 @@ Response headers.
           // store tool results for onFinish callback and toolResults promise:
           if (chunk.type === 'tool-result') {
             toolResults.push(chunk);
+          }
+
+          // Note: tool executions might not be finished yet when the finish event is emitted.
+          if (chunk.type === 'finish') {
+            // store usage and finish reason for promises and onFinish callback:
+            usage = chunk.usage;
+            finishReason = chunk.finishReason;
+
+            // resolve promises that can be resolved now:
+            resolveUsage(usage);
+            resolveFinishReason(finishReason);
+            resolveText(text);
+            resolveToolCalls(toolCalls);
           }
         },
 
