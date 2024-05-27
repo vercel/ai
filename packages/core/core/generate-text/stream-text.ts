@@ -217,6 +217,11 @@ The tool calls that have been executed. Resolved when the response is finished.
   readonly toolCalls: Promise<ToToolCall<TOOLS>[]>;
 
   /**
+The tool results that have been generated. Resolved when the all tool executions are finished.
+   */
+  readonly toolResults: Promise<ToToolResult<TOOLS>[]>;
+
+  /**
 Optional raw response data.
    */
   readonly rawResponse?: {
@@ -271,7 +276,13 @@ Response headers.
       resolveToolCalls = resolve;
     });
 
-    // TODO toolResults promise
+    // initialize toolResults promise
+    let resolveToolResults: (
+      value: ToToolResult<TOOLS>[] | PromiseLike<ToToolResult<TOOLS>[]>,
+    ) => void;
+    this.toolResults = new Promise<ToToolResult<TOOLS>[]>(resolve => {
+      resolveToolResults = resolve;
+    });
 
     // store information for onFinish callback:
     let finishReason: FinishReason | undefined;
@@ -316,9 +327,13 @@ Response headers.
           }
         },
 
-        // invoke onFinish callback when the stream is about to close:
+        // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
         async flush(controller) {
           try {
+            // resolve toolResults promise:
+            resolveToolResults(toolResults);
+
+            // call onFinish callback:
             await self.onFinish?.({
               finishReason: finishReason ?? 'unknown',
               usage: usage ?? {

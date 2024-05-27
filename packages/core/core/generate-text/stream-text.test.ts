@@ -802,7 +802,75 @@ describe('result.toolCalls', () => {
   });
 });
 
-// TODO test result.toolResults
+describe('result.toolResults', () => {
+  it('should resolve with tool results', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: [
+              {
+                type: 'function',
+                name: 'tool1',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
+                },
+              },
+            ],
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        },
+      },
+      prompt: 'test-input',
+    });
+
+    // consume stream (runs in parallel)
+    convertAsyncIterableToArray(result.textStream);
+
+    assert.deepStrictEqual(await result.toolResults, [
+      {
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        args: { value: 'value' },
+        result: 'value-result',
+      },
+    ]);
+  });
+});
 
 describe('onFinish callback', () => {
   let result: Parameters<
