@@ -5,7 +5,7 @@ description: Overview of saving and restoring states
 
 # Saving and Restoring States
 
-The RSC API provides convenient methods for saving and restoring the state of your AI and UI state. This is useful for saving the state of your application after every model generation, and restoring it when the user revisits the generations.
+The RSC API provides convenient methods for saving and restoring AI and UI state. This is useful for saving the state of your application after every model generation, and restoring it when the user revisits the generations.
 
 ## AI State
 
@@ -55,7 +55,7 @@ export default async function RootLayout({
 
 ### Saving UI state
 
-The UI state cannot be saved directly, since the contents aren't yet serializable. Instead, you can use the AI state as proxy to store details about the UI state and use it to restore the UI state when needed. You can check out the [Restoring UI State](#restoring-ui-state) section for more details.
+The UI state cannot be saved directly, since the contents aren't yet serializable. Instead, you can use the AI state as proxy to store details about the UI state and use it to restore the UI state when needed.
 
 ### Restoring UI state
 
