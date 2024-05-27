@@ -12,6 +12,10 @@ export async function POST(req: Request) {
   const result = await streamText({
     model: openai('gpt-4-turbo'),
     messages,
+    async onFinish({ text, toolCalls, toolResults, usage, finishReason }) {
+      // implement your own logic here, e.g. for storing messages
+      // or recording token usage
+    },
   });
 
   // Respond with the stream
