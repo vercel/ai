@@ -1,5 +1,20 @@
 # @ai-sdk/openai
 
+## 0.0.16
+
+### Patch Changes
+
+- 2b18fa11: fix (provider/openai): remove object type validation
+
+## 0.0.15
+
+### Patch Changes
+
+- 24683b72: fix (providers): Zod is required dependency
+- Updated dependencies [8e780288]
+  - @ai-sdk/provider@0.0.7
+  - @ai-sdk/provider-utils@0.0.10
+
 ## 0.0.14
 
 ### Patch Changes

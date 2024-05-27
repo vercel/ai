@@ -56,7 +56,7 @@ export default function Home() {
         {conversation.map((message, index) => (
           <div key={index}>
             {message.role}: {message.content}
-            {message.display} // [!code highlight]
+            {message.display}
           </div>
         ))}
       </div>
@@ -88,12 +88,28 @@ export default function Home() {
 }
 ```
 
+```tsx filename='components/weather.tsx'
+export async function Weather({ city, unit }) {
+  const data = await fetch(
+    `https://api.example.com/weather?city=${city}&unit=${unit}`,
+  );
+
+  return (
+    <div>
+      <div>{data.temperature}</div>
+      <div>{data.unit}</div>
+      <div>{data.description}</div>
+    </div>
+  );
+}
+```
+
 ## Server
 
 ```tsx filename='app/actions.tsx'
 'use server';
 
-import { Weather } from '@ai-studio/components/weather';
+import { Weather } from '@/components/weather';
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { createStreamableUI } from 'ai/rsc';

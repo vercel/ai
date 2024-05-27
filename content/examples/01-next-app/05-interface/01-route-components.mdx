@@ -65,6 +65,44 @@ export default function Home() {
 }
 ```
 
+```tsx filename='components/stock.tsx'
+export async function Stock({ symbol, numOfMonths }) {
+  const data = await fetch(
+    `https://api.example.com/stock/${symbol}/${numOfMonths}`,
+  );
+
+  return (
+    <div>
+      <div>{symbol}</div>
+
+      <div>
+        {data.timeline.map(data => (
+          <div>
+            <div>{data.date}</div>
+            <div>{data.value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+```tsx filename='components/flight.tsx'
+export async function Flight({ flightNumber }) {
+  const data = await fetch(`https://api.example.com/flight/${flightNumber}`);
+
+  return (
+    <div>
+      <div>{flightNumber}</div>
+      <div>{data.status}</div>
+      <div>{data.source}</div>
+      <div>{data.destination}</div>
+    </div>
+  );
+}
+```
+
 ## Server
 
 ```tsx filename='app/actions.ts'
@@ -75,8 +113,8 @@ import { openai } from '@ai-sdk/openai';
 import { ReactNode } from 'react';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
-import { Stock } from '@ai-studio/components/stock';
-import { Flight } from '@ai-studio/components/flight';
+import { Stock } from '@/components/stock';
+import { Flight } from '@/components/flight';
 
 export interface ServerMessage {
   role: 'user' | 'assistant';

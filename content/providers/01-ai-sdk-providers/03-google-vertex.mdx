@@ -6,9 +6,6 @@ description: Learn how to use the Google Vertex AI provider.
 # Google Vertex Provider
 
 The Google Vertex provider for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
-It creates language model objects that can be used with the `generateText` and `streamText` AI functions.
-
-<Note type="warning">Tool calls are currently not supported.</Note>
 
 ## Setup
 
@@ -59,6 +56,8 @@ You can use the following optional settings to customize the Google Generative A
 
 ## Language Models
 
+<Note type="warning">Tool calls are currently not supported.</Note>
+
 You can create models that call the Vertex API using the provider instance.
 The first argument is the model id, e.g. `gemini-1.0-pro`.
 
@@ -84,6 +83,23 @@ The following optional settings are available for Google Vertex models:
   Models use nucleus sampling or combined Top-k and nucleus sampling.
   Top-k sampling considers the set of topK most probable tokens.
   Models running with nucleus sampling don't allow topK setting.
+
+### Example
+
+You can use Google Vertex language models to generate text with the `generateText` function:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex'
+import { generateText } from 'ai'
+
+const { text } = await generateText({
+  model: vertex('gemini-1.0-pro')
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
+})
+```
+
+Google Vertex language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
+(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
 ### Model Capabilities
 

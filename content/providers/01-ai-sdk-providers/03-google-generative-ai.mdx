@@ -6,7 +6,6 @@ description: Learn how to use Google Generative AI Provider.
 # Google Generative AI Provider
 
 The [Google Generative AI](https://ai.google/discover/generativeai/) provider contains language model support for the [Google Generative AI](https://ai.google.dev/api/rest) APIs.
-It creates language model objects that can be used with the `generateText` and `streamText` functions.
 
 ## Setup
 
@@ -86,6 +85,23 @@ The following optional settings are available for Google Generative AI models:
   Models use nucleus sampling or combined Top-k and nucleus sampling.
   Top-k sampling considers the set of topK most probable tokens.
   Models running with nucleus sampling don't allow topK setting.
+
+### Example
+
+You can use Google Generative AI language models to generate text with the `generateText` function:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google('models/gemini-pro'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Google Generative AI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
+(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
 ### Model Capabilities
 

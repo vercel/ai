@@ -77,7 +77,7 @@ export const AI = createAI<ServerMessage[], ClientMessage[]>({
     // based on the history from the database
 
     if (historyFromDB.length !== historyFromApp.length) {
-      return history.map(({ role, content }) => ({
+      return historyFromDB.map(({ role, content }) => ({
         id: nanoid(),
         role,
         display:
