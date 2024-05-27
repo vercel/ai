@@ -1,17 +1,15 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import { NextApiRequest, NextApiResponse } from 'next';
+
+export const runtime = 'edge';
 
 // Create an OpenAI Provider instance
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY ?? '',
 });
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
-  const { messages } = await req.body;
+export default async function handler(req: Request) {
+  const { messages } = await req.json();
 
   // Ask OpenAI for a streaming chat completion given the prompt
   const result = await streamText({
@@ -19,7 +17,6 @@ export default async function handler(
     messages,
   });
 
-  // write the AI stream to the response
-  // Note: this is sent as a single response, not a stream
-  result.pipeAIStreamToResponse(res);
+  // Edge environment: return the AI stream as a single response
+  return result.toAIStreamResponse();
 }

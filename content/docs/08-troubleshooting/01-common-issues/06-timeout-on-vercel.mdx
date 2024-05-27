@@ -1,6 +1,6 @@
 ---
 title: Getting Timeouts When Deploying on Vercel
-description: Troubleshooting errors related to streaming not working when deploying on Vercel.
+description: Learn how to fix timeouts and cut off responses when deploying to Vercel.
 ---
 
 # Getting Timeouts When Deploying on Vercel
@@ -8,20 +8,31 @@ description: Troubleshooting errors related to streaming not working when deploy
 ## Issue
 
 Streaming with the AI SDK works in my local dev environment.
-I'm using the app router and I'm deploying to Vercel.
-However, I'm getting timeouts.
+However, when I'm deploying to Vercel, longer responses get chopped off in the UI and I'm seeing timeouts in the Vercel logs.
 
 ## Solution
 
-Add the following to your route file:
+If you are using Next.js with the App Router, you can add the following to your route file:
 
 ```tsx
 export const maxDuration = 60;
-export const dynamic = 'force-dynamic';
 ```
 
-This will enforce dynamic behavior, which is required for streaming.
+This increases the maximum duration of the function to 60 seconds.
 
-## See also
+For other frameworks such as Svelte, you can set timeouts in your `vercel.json` file:
+
+```json
+{
+  "functions": {
+    "api/chat/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}
+```
+
+## Learn more
 
 - [Configuring Maximum Duration for Vercel Functions](https://vercel.com/docs/functions/configuring-functions/duration)
+- [Maximum Duration Limits](https://vercel.com/docs/functions/runtimes#max-duration)

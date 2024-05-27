@@ -1,0 +1,269 @@
+---
+title: Chatbot with Tool Calling
+description: Learn how to use tool calling with the useChat hook.
+---
+
+# Chatbot with Tool Calling
+
+<Note type="warning">
+  The tool calling functionality described here is experimental. It is currently
+  only available for React.
+</Note>
+
+With `useChat` and `streamText`, you can use tools in your chatbot application.
+The Vercel AI SDK supports both client and server side tool execution.
+
+The flow is as follows:
+
+1. In your server side route, the language model generates tool calls during the `streamText` call.
+   The messages from the client are converted to AI SDK Core messages using `convertToCoreMessages`.
+2. All tool calls are forwarded to the client.
+3. Server-side tools are executed using their `execute` method and their results are sent back to the client.
+4. The client-side tools are executed on the client.
+   The results of client side tool calls can be appended to last assigned message using `experimental_addToolResult`.
+5. When all tool calls are resolved, the client sends the updated messages with the tool results back to the server, triggering another `streamText` call.
+
+The tool call and tool executions are integrated into the assistant message as `toolInvocations`.
+A tool invocation is at first a tool call, and then it becomes a tool result when the tool is executed.
+The tool result contains all information about the tool call as well as the result of the tool execution.
+
+<Note>
+  In order to automatically send another request to the server when all tool
+  calls are server-side, you need to set `experimental_maxAutomaticRoundtrips`
+  to a value greater than 0 in the `useChat` options. It is disabled by default
+  for backward compatibility.
+</Note>
+
+## Example: Client-Side Tool Execution
+
+In this example, we'll define two tools.
+The client-side tool is a confirmation dialog that asks the user to confirm the execution of the server-side tool.
+The server-side tool is a simple fake tool that restarts an engine.
+
+### Server-side route
+
+Please note that only the `restartEngine` tool has an `execute` method and is executed on the server side.
+The `askForConfirmation` tool is executed on the client side.
+
+```tsx filename='app/api/chat/route.ts'
+import { openai } from '@ai-sdk/openai';
+import { convertToCoreMessages, streamText } from 'ai';
+import { z } from 'zod';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages: convertToCoreMessages(messages),
+    tools: {
+      restartEngine: {
+        description:
+          'Restarts the engine. ' +
+          'Always ask for confirmation before using this tool.',
+        parameters: z.object({}),
+        execute: async () => 'Engine restarted.',
+      },
+      askForConfirmation: {
+        description: 'Ask the user for confirmation.',
+        parameters: z.object({
+          message: z.string().describe('The message to ask for confirmation.'),
+        }),
+      },
+    },
+  });
+
+  return result.toAIStreamResponse();
+}
+```
+
+### Client-side page
+
+The client-side page uses the `useChat` hook to create a chatbot application with real-time message streaming.
+Tool invocations are displayed in the chat UI.
+
+If the tool is a confirmation dialog, the user can confirm or deny the execution of the server-side tool.
+Once the user confirms the execution, the tool result is appended to the assistant message using `experimental_addToolResult`,
+and the server route is called again to execute the server-side tool.
+
+```tsx filename='app/page.tsx'
+'use client';
+
+import { ToolInvocation } from 'ai';
+import { Message, useChat } from 'ai/react';
+
+export default function Chat() {
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    experimental_addToolResult,
+  } = useChat();
+
+  return (
+    <div>
+      {messages?.map((m: Message) => (
+        <div key={m.id}>
+          <strong>{`${m.role}: `}</strong>
+          {m.content}
+          {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
+            const toolCallId = toolInvocation.toolCallId;
+
+            // render confirmation tool
+            if (toolInvocation.toolName === 'askForConfirmation') {
+              return (
+                <div key={toolCallId}>
+                  {toolInvocation.args.message}
+                  <div>
+                    {'result' in toolInvocation ? (
+                      <b>{toolInvocation.result}</b>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() =>
+                            experimental_addToolResult({
+                              toolCallId,
+                              result: 'Yes, confirmed.',
+                            })
+                          }
+                        >
+                          Yes
+                        </button>
+                        <button
+                          onClick={() =>
+                            experimental_addToolResult({
+                              toolCallId,
+                              result: 'No, denied',
+                            })
+                          }
+                        >
+                          No
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            // other tools:
+            return 'result' in toolInvocation ? (
+              <div key={toolCallId}>
+                <strong>{`${toolInvocation.toolName}:`}</strong>
+                {toolInvocation.result}
+              </div>
+            ) : (
+              <div key={toolCallId}>Calling {toolInvocation.toolName}...</div>
+            );
+          })}
+          <br />
+          <br />
+        </div>
+      ))}
+
+      <form onSubmit={handleSubmit}>
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </div>
+  );
+}
+```
+
+## Example: Server-Side Tool Execution with Roundtrips
+
+In this example, we'll define a weather tool that shows the weather in a given city.
+
+When asked about the weather, the assistant will call the weather tool to get the weather information.
+The server will then respond with the weather information tool results.
+
+Once the client receives all tool results, it will send the updated messages back to the server for another roundtrip.
+The server will then generate a streaming text response that uses the information from the weather tool results.
+
+### Server-side route
+
+The server-side route defines a weather tool that returns the weather in a given city.
+
+```tsx filename='app/api/chat/route.ts'
+import { openai } from '@ai-sdk/openai';
+import { convertToCoreMessages, streamText } from 'ai';
+import { z } from 'zod';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    system:
+      'You are a weather bot that can use the weather tool ' +
+      'to get the weather in a given city. ' +
+      'Respond to the user with weather information in a friendly ' +
+      'and helpful manner.',
+    messages: convertToCoreMessages(messages),
+    tools: {
+      weather: {
+        description: 'show the weather in a given city to the user',
+        parameters: z.object({ city: z.string() }),
+        execute: async ({}: { city: string }) => {
+          // Random weather:
+          const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
+          return weatherOptions[
+            Math.floor(Math.random() * weatherOptions.length)
+          ];
+        },
+      },
+    },
+  });
+
+  return result.toAIStreamResponse();
+}
+```
+
+### Client-side page
+
+The page uses the `useChat` hook to create a chatbot application with real-time message streaming.
+We set `experimental_maxAutomaticRoundtrips` to 2 to automatically
+send another request to the server when all server-side tool results are received.
+
+<Note>
+  The `experimental_maxAutomaticRoundtrips` option is disabled by default for
+  backward compatibility. It also limits the number of automatic roundtrips to
+  prevent infinite client-server call loops.
+</Note>
+
+```tsx filename='app/page.tsx'
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    experimental_maxAutomaticRoundtrips: 2,
+  });
+
+  return (
+    <div>
+      {messages
+        .filter(m => m.content) // filter out empty messages
+        .map(m => (
+          <div key={m.id}>
+            <strong>{`${m.role}: `}</strong>
+            {m.content}
+            <br />
+            <br />
+          </div>
+        ))}
+
+      <form onSubmit={handleSubmit}>
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </div>
+  );
+}
+```
