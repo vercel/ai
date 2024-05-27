@@ -15,18 +15,18 @@ We split the user's message into two parts: the text and the image URL. We then 
 The last message is the user's message, and we add the image URL to it.
 
 ```tsx filename='app/api/chat/route.ts' highlight="8,9,23"
-import { openai } from '@ai-sdk/openai'
-import { convertToCoreMessages, streamText } from 'ai'
+import { openai } from '@ai-sdk/openai';
+import { convertToCoreMessages, streamText } from 'ai';
 
-export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   // 'data' contains the additional data that you have sent:
-  const { messages, data } = await req.json()
+  const { messages, data } = await req.json();
 
-  const initialMessages = messages.slice(0, -1)
-  const currentMessage = messages[messages.length - 1]
+  const initialMessages = messages.slice(0, -1);
+  const currentMessage = messages[messages.length - 1];
 
   // Call the language model
   const result = await streamText({
@@ -37,14 +37,14 @@ export async function POST(req: Request) {
         role: 'user',
         content: [
           { type: 'text', text: currentMessage.content },
-          { type: 'image', image: new URL(data.imageUrl) }
-        ]
-      }
-    ]
-  })
+          { type: 'image', image: new URL(data.imageUrl) },
+        ],
+      },
+    ],
+  });
 
   // Respond with the stream
-  return result.toAIStreamResponse()
+  return result.toAIStreamResponse();
 }
 ```
 
@@ -54,12 +54,12 @@ On the client we can send the image URL along with the user's message by adding 
 You can replace the `imageUrl` with the actual URL of the image you want to send.
 
 ```typescript filename='app/page.tsx' highlight="18-20"
-'use client'
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat()
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
   return (
     <div>
       {messages.map(m => (
@@ -72,8 +72,8 @@ export default function Chat() {
       <form
         onSubmit={e => {
           handleSubmit(e, {
-            data: { imageUrl: 'https://somewhere.com/image.png' }
-          })
+            data: { imageUrl: 'https://somewhere.com/image.png' },
+          });
         }}
       >
         <input
@@ -83,6 +83,6 @@ export default function Chat() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
