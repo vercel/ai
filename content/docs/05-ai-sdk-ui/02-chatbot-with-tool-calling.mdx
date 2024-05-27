@@ -211,10 +211,6 @@ export async function POST(req: Request) {
         description: 'show the weather in a given city to the user',
         parameters: z.object({ city: z.string() }),
         execute: async ({}: { city: string }) => {
-          // Random delay between 1000ms (1s) and 3000ms (3s):
-          const delay = Math.floor(Math.random() * (3000 - 1000 + 1)) + 1000;
-          await new Promise(resolve => setTimeout(resolve, delay));
-
           // Random weather:
           const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
           return weatherOptions[
