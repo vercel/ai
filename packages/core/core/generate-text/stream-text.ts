@@ -64,6 +64,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   messages,
   maxRetries,
   abortSignal,
+  onFinish,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -76,6 +77,15 @@ The language model to use.
 The tools that the model can call. The model needs to support calling tools.
     */
     tools?: TOOLS;
+
+    /**
+Callback that is called when the LLM response and all request tool executions 
+(for tools that have an `execute` function) are finished.
+     */
+    onFinish?: (event: {
+      finishReason: FinishReason;
+      usage: TokenUsage;
+    }) => Promise<void> | void;
   }): Promise<StreamTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
@@ -107,6 +117,7 @@ The tools that the model can call. The model needs to support calling tools.
     }),
     warnings,
     rawResponse,
+    onFinish,
   });
 }
 
@@ -141,6 +152,7 @@ A result object for accessing different stream types and additional information.
  */
 export class StreamTextResult<TOOLS extends Record<string, CoreTool>> {
   private originalStream: ReadableStream<TextStreamPart<TOOLS>>;
+  private onFinish?: Parameters<typeof streamText>[0]['onFinish'];
 
   /**
 Warnings from the model provider (e.g. unsupported settings).
@@ -160,7 +172,7 @@ The reason why the generation finished. Resolved when the response is finished.
   /**
 Optional raw response data.
    */
-  rawResponse?: {
+  readonly rawResponse?: {
     /**
 Response headers.
      */
@@ -171,15 +183,18 @@ Response headers.
     stream,
     warnings,
     rawResponse,
+    onFinish,
   }: {
     stream: ReadableStream<TextStreamPart<TOOLS>>;
     warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
     };
+    onFinish?: Parameters<typeof streamText>[0]['onFinish'];
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
+    this.onFinish = onFinish;
 
     // initialize usage promise
     let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
@@ -195,15 +210,48 @@ Response headers.
       resolveFinishReason = resolve;
     });
 
+    // store information for onFinish callback:
+    let finishReason: FinishReason | undefined;
+    let usage: TokenUsage | undefined;
+    // TODO text
+    // TODO toolCalls
+    // TODO toolResults
+
     // pipe chunks through a transformation stream that extracts metadata:
+    const self = this;
     this.originalStream = stream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
         async transform(chunk, controller): Promise<void> {
           controller.enqueue(chunk);
 
+          // Note: tool executions might not be finished yet when the finish event is emitted.
           if (chunk.type === 'finish') {
-            resolveUsage(chunk.usage);
-            resolveFinishReason(chunk.finishReason);
+            usage = chunk.usage;
+            resolveUsage(usage);
+
+            finishReason = chunk.finishReason;
+            resolveFinishReason(finishReason);
+          }
+        },
+
+        // invoke onFinish callback when the stream is about to close:
+        async flush(controller) {
+          try {
+            await self.onFinish?.({
+              finishReason: finishReason ?? 'unknown',
+              usage: usage ?? {
+                promptTokens: NaN,
+                completionTokens: NaN,
+                totalTokens: NaN,
+              },
+              // TODO text
+              // TODO toolCalls
+              // TODO toolResults
+              // TODO rawResponse
+              // TODO warnings
+            });
+          } catch (error) {
+            controller.error(error);
           }
         },
       }),

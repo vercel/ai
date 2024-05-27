@@ -697,3 +697,85 @@ describe('result.finishReason', () => {
     assert.strictEqual(await result.finishReason, 'stop');
   });
 });
+
+describe('onFinish callback', () => {
+  let result: Parameters<
+    Required<Parameters<typeof streamText>[0]>['onFinish']
+  >[0];
+
+  beforeEach(async () => {
+    const { textStream } = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: [
+              {
+                type: 'function',
+                name: 'tool1',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
+                },
+              },
+            ],
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+              { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        },
+      },
+      prompt: 'test-input',
+      onFinish: async event => {
+        result = event;
+      },
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(textStream);
+  });
+
+  it('should contain token usage', async () => {
+    assert.deepStrictEqual(result.usage, {
+      completionTokens: 10,
+      promptTokens: 3,
+      totalTokens: 13,
+    });
+  });
+
+  it('should contain finish reason', async () => {
+    assert.strictEqual(result.finishReason, 'stop');
+  });
+});
