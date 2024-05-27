@@ -96,7 +96,7 @@ Let's take a look at what is happening in this code:
 1. First, you define an asynchronous `POST` request and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
 2. Next, you call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 1). You can pass additional [settings](/docs/ai-sdk-core/settings) in this configuration object to further customise the models behaviour.
 3. The `streamText` function will return a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toAIStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function which converts the result to a streamed response object.
-.
+   .
 4. Finally, you send the result to the client to stream the response.
 
 This Route Handler creates a POST request endpoint at `/api/chat`.
