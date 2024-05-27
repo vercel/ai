@@ -3,10 +3,19 @@ title: Generating Text
 description: Learn how to generate text with the Vercel AI SDK.
 ---
 
-# Generating Text
+# Generating and Streaming Text
 
 Large language models (LLMs) can generate text in response to a prompt, which can contain instructions and information to process.
 For example, you can ask a model to come up with a recipe, draft an email, or summarize a document.
+
+The Vercel AI SDK Core provides two functions to generate text and stream it from LLMs:
+
+- [`generateText`](#generatetext): Generates text for a given prompt and model.
+- [`streamText`](#streamtext): Streams text from a given prompt and model.
+
+Advanced LLM features such as [tool calling](./tools-and-tool-calling) and [structured data generation](./generating-structured-data) are built on top of text generation.
+
+## `generateText`
 
 You can generate text using the [`generateText`](/docs/reference/ai-sdk-core/generate-text) function. This function is ideal for non-interactive use cases where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
 
@@ -32,7 +41,7 @@ const { text } = await generateText({
 });
 ```
 
-## Streaming Text
+## `streamText`
 
 Depending on your model and prompt, it can take a large language model (LLM) up to a minute to finish generating it's response. This delay can be unacceptable for interactive use cases such as chatbots or real-time applications, where users expect immediate responses.
 
@@ -73,4 +82,38 @@ while (true) {
 }
 ```
 
-Advanced LLM features such as [tool calling](./tools-and-tool-calling) and [structured data generation](./generating-structured-data) are built on top of text generation.
+### `onFinish` callback
+
+When using `streamText`, you can provide an `onFinish` callback that is triggered when the model finishes generating the response and all tool executions.
+
+```tsx
+import { streamText } from 'ai';
+
+const result = await streamText({
+  model,
+  prompt: 'Invent a new holiday and describe its traditions.',
+  onFinish({ text, toolCalls, toolResults, finishReason, usage }) {
+    // your own logic, e.g. for saving the chat history or recording usage
+  },
+});
+```
+
+### Result helper functions
+
+The result object of `streamText` contains several helper functions to make the integration into [AI SDK UI](/docs/ai-sdk-ui) easier:
+
+- `result.toAIStream()`: Creates an AI stream object (with tool calls etc.) that can be used with `StreamingTextResponse()` and `StreamData`.
+- `result.toAIStreamResponse()`: Creates an AI stream response (with tool calls etc.).
+- `result.toTextStreamResponse()`: Creates a simple text stream response.
+- `result.pipeTextStreamToResponse()`: Writes text delta output to a Node.js response-like object.
+- `result.pipeAIStreamToResponse()`: Writes AI stream delta output to a Node.js response-like object.
+
+### Result promises
+
+The result object of `streamText` contains several promises that resolve when all required data is available:
+
+- `result.text`: The generated text.
+- `result.toolCalls`: The tool calls made during text generation.
+- `result.toolResults`: The tool results from the tool calls.
+- `result.finishReason`: The reason the model finished generating text.
+- `result.usage`: The usage of the model during text generation.
