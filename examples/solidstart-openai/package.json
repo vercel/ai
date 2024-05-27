@@ -23,7 +23,8 @@
     "openai": "4.47.1",
     "solid-js": "1.8.7",
     "solid-start": "0.3.10",
-    "undici": "^5.15.1"
+    "undici": "^5.15.1",
+    "zod": "^3.23.8"
   },
   "engines": {
     "node": ">=16"
