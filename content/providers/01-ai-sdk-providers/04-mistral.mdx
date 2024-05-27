@@ -86,6 +86,23 @@ The following optional settings are available for Mistral models:
 
   Defaults to `false`.
 
+### Example
+
+You can use Mistral language models to generate text with the `generateText` function:
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: mistral('mistral-large-latest'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Mistral language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
+(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+
 ### Model Capabilities
 
 | Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
