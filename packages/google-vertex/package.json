@@ -39,11 +39,6 @@
     "tsup": "^8",
     "typescript": "5.1.3"
   },
-  "peerDependenciesMeta": {
-    "zod": {
-      "optional": true
-    }
-  },
   "engines": {
     "node": ">=18"
   },
