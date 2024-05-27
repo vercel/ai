@@ -6,9 +6,6 @@ description: Learn how to use the Google Vertex AI provider.
 # Google Vertex Provider
 
 The Google Vertex provider for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
-It creates language model objects that can be used with the `generateText` and `streamText` AI functions.
-
-<Note type="warning">Tool calls are currently not supported.</Note>
 
 ## Setup
 
@@ -58,6 +55,8 @@ You can use the following optional settings to customize the Google Generative A
   It uses the `GOOGLE_VERTEX_LOCATION` environment variable by default.
 
 ## Language Models
+
+<Note type="warning">Tool calls are currently not supported.</Note>
 
 You can create models that call the Vertex API using the provider instance.
 The first argument is the model id, e.g. `gemini-1.0-pro`.
