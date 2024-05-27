@@ -83,8 +83,45 @@ Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
      */
     onFinish?: (event: {
+      /**
+The reason why the generation finished.
+       */
       finishReason: FinishReason;
+
+      /**
+The token usage of the generated response.
+ */
       usage: TokenUsage;
+
+      /**
+The full text that has been generated.
+       */
+      text: string;
+
+      /**
+The tool calls that have been executed.
+       */
+      toolCalls?: ToToolCall<TOOLS>[];
+
+      /**
+The tool results that have been generated.
+       */
+      toolResults?: ToToolResult<TOOLS>[];
+
+      /**
+Optional raw response data.
+       */
+      rawResponse?: {
+        /**
+Response headers.
+         */
+        headers?: Record<string, string>;
+      };
+
+      /**
+Warnings from the model provider (e.g. unsupported settings).
+       */
+      warnings?: CallWarning[];
     }) => Promise<void> | void;
   }): Promise<StreamTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
@@ -160,7 +197,7 @@ Warnings from the model provider (e.g. unsupported settings).
   readonly warnings: CallWarning[] | undefined;
 
   /**
-The token usage of the generated text. Resolved when the response is finished.
+The token usage of the generated response. Resolved when the response is finished.
    */
   readonly usage: Promise<TokenUsage>;
 
@@ -168,6 +205,11 @@ The token usage of the generated text. Resolved when the response is finished.
 The reason why the generation finished. Resolved when the response is finished.
    */
   readonly finishReason: Promise<FinishReason>;
+
+  /**
+The full text that has been generated. Resolved when the response is finished.
+   */
+  readonly text: Promise<string>;
 
   /**
 Optional raw response data.
@@ -210,12 +252,21 @@ Response headers.
       resolveFinishReason = resolve;
     });
 
+    // initialize text promise
+    let resolveText: (value: string | PromiseLike<string>) => void;
+    this.text = new Promise<string>(resolve => {
+      resolveText = resolve;
+    });
+
+    // TODO toolCalls promise
+    // TODO toolResults promise
+
     // store information for onFinish callback:
     let finishReason: FinishReason | undefined;
     let usage: TokenUsage | undefined;
-    // TODO text
-    // TODO toolCalls
-    // TODO toolResults
+    let text = '';
+    const toolCalls: ToToolCall<TOOLS>[] = [];
+    const toolResults: ToToolResult<TOOLS>[] = [];
 
     // pipe chunks through a transformation stream that extracts metadata:
     const self = this;
@@ -231,6 +282,24 @@ Response headers.
 
             finishReason = chunk.finishReason;
             resolveFinishReason(finishReason);
+
+            resolveText(text);
+          }
+
+          // Create the full text from text deltas (for onFinish callback and text promise):
+          if (chunk.type === 'text-delta') {
+            text += chunk.textDelta;
+            resolveText(text);
+          }
+
+          // store tool calls for onFinish callback and toolCalls promise:
+          if (chunk.type === 'tool-call') {
+            toolCalls.push(chunk);
+          }
+
+          // store tool results for onFinish callback and toolResults promise:
+          if (chunk.type === 'tool-result') {
+            toolResults.push(chunk);
           }
         },
 
@@ -244,11 +313,15 @@ Response headers.
                 completionTokens: NaN,
                 totalTokens: NaN,
               },
-              // TODO text
-              // TODO toolCalls
-              // TODO toolResults
-              // TODO rawResponse
-              // TODO warnings
+              text,
+              toolCalls,
+              // The tool results are inferred as a never[] type, because they are
+              // optional and the execute method with an inferred result type is
+              // optional as well. Therefore we need to cast the toolResults to any.
+              // The type exposed to the users will be correctly inferred.
+              toolResults: toolResults as any,
+              rawResponse,
+              warnings,
             });
           } catch (error) {
             controller.error(error);

@@ -698,6 +698,10 @@ describe('result.finishReason', () => {
   });
 });
 
+// TODO test result.text
+// TODO test result.toolCalls
+// TODO test result.toolResults
+
 describe('onFinish callback', () => {
   let result: Parameters<
     Required<Parameters<typeof streamText>[0]>['onFinish']
@@ -759,7 +763,7 @@ describe('onFinish callback', () => {
       },
       prompt: 'test-input',
       onFinish: async event => {
-        result = event;
+        result = event as unknown as typeof result;
       },
     });
 
@@ -777,5 +781,32 @@ describe('onFinish callback', () => {
 
   it('should contain finish reason', async () => {
     assert.strictEqual(result.finishReason, 'stop');
+  });
+
+  it('should contain full text', async () => {
+    assert.strictEqual(result.text, 'Hello, world!');
+  });
+
+  it('should contain tool calls', async () => {
+    assert.deepStrictEqual(result.toolCalls, [
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        args: { value: 'value' },
+      },
+    ]);
+  });
+
+  it('should contain tool results', async () => {
+    assert.deepStrictEqual(result.toolResults, [
+      {
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        args: { value: 'value' },
+        result: 'value-result',
+      },
+    ]);
   });
 });
