@@ -53,6 +53,9 @@ If set and supported by the model, calls will generate deterministic results.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 
+@param onFinish - Callback that is called when the LLM response and all request tool executions 
+(for tools that have an `execute` function) are finished.
+
 @return
 A result object for accessing different stream types and additional information.
  */
@@ -64,6 +67,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   messages,
   maxRetries,
   abortSignal,
+  onFinish,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -76,6 +80,52 @@ The language model to use.
 The tools that the model can call. The model needs to support calling tools.
     */
     tools?: TOOLS;
+
+    /**
+Callback that is called when the LLM response and all request tool executions 
+(for tools that have an `execute` function) are finished.
+     */
+    onFinish?: (event: {
+      /**
+The reason why the generation finished.
+       */
+      finishReason: FinishReason;
+
+      /**
+The token usage of the generated response.
+ */
+      usage: TokenUsage;
+
+      /**
+The full text that has been generated.
+       */
+      text: string;
+
+      /**
+The tool calls that have been executed.
+       */
+      toolCalls?: ToToolCall<TOOLS>[];
+
+      /**
+The tool results that have been generated.
+       */
+      toolResults?: ToToolResult<TOOLS>[];
+
+      /**
+Optional raw response data.
+       */
+      rawResponse?: {
+        /**
+Response headers.
+         */
+        headers?: Record<string, string>;
+      };
+
+      /**
+Warnings from the model provider (e.g. unsupported settings).
+       */
+      warnings?: CallWarning[];
+    }) => Promise<void> | void;
   }): Promise<StreamTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
@@ -107,6 +157,7 @@ The tools that the model can call. The model needs to support calling tools.
     }),
     warnings,
     rawResponse,
+    onFinish,
   });
 }
 
@@ -141,6 +192,7 @@ A result object for accessing different stream types and additional information.
  */
 export class StreamTextResult<TOOLS extends Record<string, CoreTool>> {
   private originalStream: ReadableStream<TextStreamPart<TOOLS>>;
+  private onFinish?: Parameters<typeof streamText>[0]['onFinish'];
 
   /**
 Warnings from the model provider (e.g. unsupported settings).
@@ -148,7 +200,7 @@ Warnings from the model provider (e.g. unsupported settings).
   readonly warnings: CallWarning[] | undefined;
 
   /**
-The token usage of the generated text. Resolved when the response is finished.
+The token usage of the generated response. Resolved when the response is finished.
    */
   readonly usage: Promise<TokenUsage>;
 
@@ -158,9 +210,24 @@ The reason why the generation finished. Resolved when the response is finished.
   readonly finishReason: Promise<FinishReason>;
 
   /**
+The full text that has been generated. Resolved when the response is finished.
+   */
+  readonly text: Promise<string>;
+
+  /**
+The tool calls that have been executed. Resolved when the response is finished.
+   */
+  readonly toolCalls: Promise<ToToolCall<TOOLS>[]>;
+
+  /**
+The tool results that have been generated. Resolved when the all tool executions are finished.
+   */
+  readonly toolResults: Promise<ToToolResult<TOOLS>[]>;
+
+  /**
 Optional raw response data.
    */
-  rawResponse?: {
+  readonly rawResponse?: {
     /**
 Response headers.
      */
@@ -171,15 +238,18 @@ Response headers.
     stream,
     warnings,
     rawResponse,
+    onFinish,
   }: {
     stream: ReadableStream<TextStreamPart<TOOLS>>;
     warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
     };
+    onFinish?: Parameters<typeof streamText>[0]['onFinish'];
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
+    this.onFinish = onFinish;
 
     // initialize usage promise
     let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
@@ -195,15 +265,97 @@ Response headers.
       resolveFinishReason = resolve;
     });
 
+    // initialize text promise
+    let resolveText: (value: string | PromiseLike<string>) => void;
+    this.text = new Promise<string>(resolve => {
+      resolveText = resolve;
+    });
+
+    // initialize toolCalls promise
+    let resolveToolCalls: (
+      value: ToToolCall<TOOLS>[] | PromiseLike<ToToolCall<TOOLS>[]>,
+    ) => void;
+    this.toolCalls = new Promise<ToToolCall<TOOLS>[]>(resolve => {
+      resolveToolCalls = resolve;
+    });
+
+    // initialize toolResults promise
+    let resolveToolResults: (
+      value: ToToolResult<TOOLS>[] | PromiseLike<ToToolResult<TOOLS>[]>,
+    ) => void;
+    this.toolResults = new Promise<ToToolResult<TOOLS>[]>(resolve => {
+      resolveToolResults = resolve;
+    });
+
+    // store information for onFinish callback:
+    let finishReason: FinishReason | undefined;
+    let usage: TokenUsage | undefined;
+    let text = '';
+    const toolCalls: ToToolCall<TOOLS>[] = [];
+    const toolResults: ToToolResult<TOOLS>[] = [];
+
     // pipe chunks through a transformation stream that extracts metadata:
+    const self = this;
     this.originalStream = stream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
         async transform(chunk, controller): Promise<void> {
           controller.enqueue(chunk);
 
+          // Create the full text from text deltas (for onFinish callback and text promise):
+          if (chunk.type === 'text-delta') {
+            text += chunk.textDelta;
+          }
+
+          // store tool calls for onFinish callback and toolCalls promise:
+          if (chunk.type === 'tool-call') {
+            toolCalls.push(chunk);
+          }
+
+          // store tool results for onFinish callback and toolResults promise:
+          if (chunk.type === 'tool-result') {
+            toolResults.push(chunk);
+          }
+
+          // Note: tool executions might not be finished yet when the finish event is emitted.
           if (chunk.type === 'finish') {
-            resolveUsage(chunk.usage);
-            resolveFinishReason(chunk.finishReason);
+            // store usage and finish reason for promises and onFinish callback:
+            usage = chunk.usage;
+            finishReason = chunk.finishReason;
+
+            // resolve promises that can be resolved now:
+            resolveUsage(usage);
+            resolveFinishReason(finishReason);
+            resolveText(text);
+            resolveToolCalls(toolCalls);
+          }
+        },
+
+        // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
+        async flush(controller) {
+          try {
+            // resolve toolResults promise:
+            resolveToolResults(toolResults);
+
+            // call onFinish callback:
+            await self.onFinish?.({
+              finishReason: finishReason ?? 'unknown',
+              usage: usage ?? {
+                promptTokens: NaN,
+                completionTokens: NaN,
+                totalTokens: NaN,
+              },
+              text,
+              toolCalls,
+              // The tool results are inferred as a never[] type, because they are
+              // optional and the execute method with an inferred result type is
+              // optional as well. Therefore we need to cast the toolResults to any.
+              // The type exposed to the users will be correctly inferred.
+              toolResults: toolResults as any,
+              rawResponse,
+              warnings,
+            });
+          } catch (error) {
+            controller.error(error);
           }
         },
       }),

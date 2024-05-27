@@ -6,33 +6,30 @@ description: Welcome to the Vercel AI SDK documentation!
 # Storing Messages
 
 The ability to store message history is essential for chatbot use cases.
-
-The Vercel AI SDK simplifies the process of storing chat history through the `toAIStream` method, which is designed to manage stream life cycles with ease. This method supports various lifecycle callbacks such as `onFinal`.
+The Vercel AI SDK simplifies the process of storing chat history through the `onFinish` callback of the `streamText` function.
 
 ## Implementing Persistent Chat History
 
-To implement persistent chat storage, you can utilize the `onFinal` callback on the `toAIStream` method. This callback is triggered upon the completion of the model's response, making it an ideal place to handle the storage of each interaction.
+To implement persistent chat storage, you can utilize the `onFinish` callback on the `streamText` function.
+This callback is triggered upon the completion of the model's response and all tool executions,
+making it an ideal place to handle the storage of each interaction.
 
-```tsx highlight="14-18"
+```tsx highlight="10-13"
 'use server';
 
-import { Message, StreamingTextResponse, streamText } from 'ai';
+import { CoreMessage, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-export async function continueConversation(messages: Message[]) {
-  'use server';
-
+export async function continueConversation(messages: CoreMessage[]) {
   const result = await streamText({
     model: openai('gpt-4-turbo'),
     messages,
-  });
-
-  const stream = result.toAIStream({
-    async onFinal(completion) {
-      await saveChat(completion);
+    async onFinish({ text, toolCalls, toolResults, finishReason, usage }) {
+      // implement your own storage logic:
+      await saveChat({ text, toolCalls, toolResults });
     },
   });
 
-  return new StreamingTextResponse(stream);
+  return result.toAIStreamResponse();
 }
 ```
