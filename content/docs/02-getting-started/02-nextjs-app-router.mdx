@@ -11,9 +11,7 @@ Check out [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Stre
 
 ## Prerequisites
 
-Before you raise a frothy seed round and build a billion dollar business, you need to set-up your project.
-
-Make sure you have the following:
+To follow this quickstart, you'll need:
 
 - Node.js 18+ and pnpm installed on your local development machine.
 - An OpenAI API key.
@@ -93,17 +91,16 @@ export async function POST(req: Request) {
 
 Let's take a look at what is happening in this code:
 
-1. First, you define an asynchronous `POST` request and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
-2. Next, you call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 1). You can pass additional [settings](/docs/ai-sdk-core/settings) in this configuration object to further customise the models behaviour.
-3. The `streamText` function will return a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toAIStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function which converts the result to a streamed response object.
-   .
-4. Finally, you send the result to the client to stream the response.
+1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and provides the chatbot with the necessary context to make the next generation.
+2. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 1). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
+3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toAIStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function which converts the result to a streamed response object.
+4. Finally, return the result to the client to stream the response.
 
 This Route Handler creates a POST request endpoint at `/api/chat`.
 
 ## Wire up the UI
 
-Now that you have a Route Handler that can query an LLM, it's time to setup your frontend. Vercel AI SDK's [ UI ](docs/building-applications) package abstract the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
+Now that you have a Route Handler that can query an LLM, it's time to setup your frontend. Vercel AI SDK's [ UI ](docs/building-applications) package abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
 
 Update your root page (`app/page.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
@@ -234,7 +231,7 @@ export default function Chat() {
 
 Head back to your browser (http://localhost:3000) and enter a new message. You should see a JSON object appear with the value you sent from your API route!
 
-## Introducing `ai/rsc`
+## Introducing more granular control with `ai/rsc`
 
 So far, you have used Vercel AI SDK's [ UI ](/docs/ai-sdk-ui) package to connect your frontend to your API route. This package is framework agnostic and provides simple abstractions for quickly building chat-like interfaces with LLMs.
 
@@ -278,11 +275,11 @@ export async function continueConversation(messages: CoreMessage[]) {
 
 Let's take a look at what is happening in this code:
 
-1. First, you add the `"use server"` directive at the top of the file to indicate to Next.js that this file can only run on the server.
-2. Next, you define and export an async function (`continueConversation`) that takes one argument, `messages`, which is an array of type `Message`. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
-3. Next, you call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 2). You can pass additional [settings](/docs/ai-sdk-core/settings) in this configuration object to further customise the models behaviour.
-4. Next, you create a streamable value using the [ `createStreamableValue` ](/docs/reference/ai-sdk-rsc/create-streamable-value) function imported from the `ai/rsc` package. To use this function you pass model response as a text stream which can be accessed directly on the model response object (`result.textStream`).
-5. Finally, you return the value of the stream (`stream.value`).
+1. Add the `"use server"` directive at the top of the file to mark the function as a Server Action.
+2. Define and export an async function (`continueConversation`) that takes one argument, `messages`, which is an array of type `CoreMessage`. The `messages` variable contains a history of the conversation between you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
+3. Call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 2). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
+4. Create a streamable value using the [ `createStreamableValue` ](/docs/reference/ai-sdk-rsc/create-streamable-value) function imported from the `ai/rsc` package. To use this function you pass the model's response as a text stream which can be accessed directly on the model response object (`result.textStream`).
+5. Finally, return the value of the stream (`stream.value`).
 
 ### Update the UI
 
@@ -345,18 +342,18 @@ export default function Chat() {
 }
 ```
 
-Let's look at how your implementation has changed. As you are no longer using `useChat`, you have to manage your own state. You achieve this using the `useState` hook to manage the user\'s `input` and `messages` respectively. The biggest change in your implementation is how you manage the form submission behaviour:
+Let's look at how your implementation has changed. Without `useChat`, you have to manage your own state using the `useState` hook to manage the user\'s `input` and `messages`, respectively. The biggest change in your implementation is how you manage the form submission behaviour:
 
-1. First, you define a new variable that will house the existing `messages` and append the users message.
-2. Next, you update the `messages` state by passing the variable declared above to the `setMessages` function.
-3. Next, you clear the `input` state with `setInput("")`.
-4. Next, you call your Server Action just like any other asynchronous function, passing the `newMessages` variable declared in the first step. This function will return a streamable value.
-5. Next, you use an asynchronous for-loop in conjunction with the `readStreamableValue` function to iterate over the stream returned by the Server Action and read its value.
-6. Finally, you update the `messages` state with the content streamed via the Server Action.
+1. Define a new variable to house the existing `messages` and append the user's message.
+2. Update the `messages` state by passing `newMessages` to the `setMessages` function.
+3. Clear the `input` state with `setInput("")`.
+4. Call your Server Action just like any other asynchronous function, passing the `newMessages` variable declared in the first step. This function will return a streamable value.
+5. Use an asynchronous for-loop in conjunction with the `readStreamableValue` function to iterate over the stream returned by the Server Action and read its value.
+6. Finally, update the `messages` state with the content streamed via the Server Action.
 
 ## Streaming Additional Data
 
-If your use case requires that you stream additional data alongside the response from the model, this is as simple as returning an additional value in your Server Action.
+Stream additional data alongside the response from the model by simply returning an additional value in your Server Action.
 Update your `app/actions.tsx`with the following code:
 
 ```ts filename="app/actions.tsx" highlight="13,15"
@@ -444,7 +441,7 @@ export default function Chat() {
 
 In the code above, you first create a new variable to manage the state of the additional data (`data`). Then, you update the state of the additional data with `setData(result.data)`. Just like that, you've sent additional data alongside the model's response.
 
-The `ai/rsc` library is designed to give you complete control to easily work with streamable values. This unlocks LLM applications beyond the traditional chat format.
+The `ai/rsc` library is designed to give you complete control over streamable values. This unlocks LLM applications beyond the traditional chat format.
 
 ## Where to Next?
 
