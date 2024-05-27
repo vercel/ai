@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.16
+
+### Patch Changes
+
+- 2b18fa11: fix (provider/openai): remove object type validation
+
 ## 0.0.15
 
 ### Patch Changes
