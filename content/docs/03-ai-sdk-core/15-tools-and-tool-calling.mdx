@@ -9,11 +9,9 @@ While large language models have incredible generation capabilities,
 they struggle with discrete tasks (eg. mathematics) and interacting with the outside world (eg. getting the weather).
 Tools can be thought of as programs you give to a model which can be run as and when the model deems applicable.
 
-<Note>
-  When a model uses a tool, it is called a "tool call" and the output of the
-  tool is called a "tool result".
-</Note>
+## Tools
 
+A tool is an object that can be called by the model to perform a specific task.
 You can use tools with the `generateText` or `streamText` functions, by passing a tool(s) to the `tools` parameter.
 
 There are three elements of a tool, a description, parameters, and an optional execute function.
@@ -21,11 +19,6 @@ There are three elements of a tool, a description, parameters, and an optional e
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
 - **`parameters`**: A [Zod](https://zod.dev/) schema that defines the parameters. It is converted to a JSON schema that is consumed by the LLM, and also used to validate the LLM tool calls.
 - **`execute`**: An optional async function that is called with the arguments from the tool call and produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
-
-<Note>
-  You can use the `tool` helper function to infer the types of the `execute`
-  parameters.
-</Note>
 
 The `tools` parameter of `generateText` and `streamText` is an object that has the tool names as keys and the tools as values:
 
@@ -53,6 +46,52 @@ const result = await generateText({
 });
 ```
 
-If the LLM decides to use a tool, it will generate a tool call. Tools with an `execute` function are run automatically when these calls are generated.
+<Note>
+  You can use the `tool` helper function to infer the types of the `execute`
+  parameters.
+</Note>
+
+If the LLM decides to use a tool, it will generate a tool call.
+Tools with an `execute` function are run automatically when these calls are generated.
 The results of the tool executions are returned using tool result objects.
 Each tool result object has a `toolCallId`, a `toolName`, a typed `args` object, and a typed `result`.
+
+<Note>
+  When a model uses a tool, it is called a "tool call" and the output of the
+  tool is called a "tool result".
+</Note>
+
+## Tool Choice
+
+You can use the `toolChoice` setting to influence when a tool is selected.
+It supports the following settings:
+
+- `auto` (default): the model can choose whether and which tools to call.
+- `required`: the model must call a tool. It can choose which tool to call.
+- `none`: the model must not call tools
+- `{ type: 'tool', tooName: string (typed) }`: the model must call the specified tool
+
+```ts highlight="19"
+import { z } from 'zod';
+import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: openai('gpt-4-turbo'),
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+  },
+  toolChoice: 'required', // force the model to call a tool
+  prompt:
+    'What is the weather in San Francisco and what attractions should I visit?',
+});
+```

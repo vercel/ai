@@ -100,20 +100,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const functionDeclarations = mode.tools?.map(tool => ({
-          name: tool.name,
-          description: tool.description ?? '',
-          parameters: prepareJsonSchema(tool.parameters),
-        }));
-
         return {
           args: {
             generationConfig,
             contents,
-            tools:
-              functionDeclarations == null
-                ? undefined
-                : { functionDeclarations },
+            ...prepareToolsAndToolConfig(mode),
           },
           warnings,
         };
@@ -303,30 +294,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   }
 }
 
-// Removes all "additionalProperty" and "$schema" properties from the object (recursively)
-// (not supported by Google Generative AI)
-function prepareJsonSchema(jsonSchema: any): unknown {
-  if (typeof jsonSchema !== 'object') {
-    return jsonSchema;
-  }
-
-  if (Array.isArray(jsonSchema)) {
-    return jsonSchema.map(prepareJsonSchema);
-  }
-
-  const result: Record<string, any> = {};
-
-  for (const [key, value] of Object.entries(jsonSchema)) {
-    if (key === 'additionalProperties' || key === '$schema') {
-      continue;
-    }
-
-    result[key] = prepareJsonSchema(value);
-  }
-
-  return result;
-}
-
 function getToolCallsFromParts({
   parts,
   generateId,
@@ -414,3 +381,88 @@ const chunkSchema = z.object({
     })
     .optional(),
 });
+
+function prepareToolsAndToolConfig(
+  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+    type: 'regular';
+  },
+) {
+  // when the tools array is empty, change it to undefined to prevent errors:
+  const tools = mode.tools?.length ? mode.tools : undefined;
+
+  if (tools == null) {
+    return { tools: undefined, toolConfig: undefined };
+  }
+
+  const mappedTools = {
+    functionDeclarations: tools.map(tool => ({
+      name: tool.name,
+      description: tool.description ?? '',
+      parameters: prepareJsonSchema(tool.parameters),
+    })),
+  };
+
+  const toolChoice = mode.toolChoice;
+
+  if (toolChoice == null) {
+    return { tools: mappedTools, toolConfig: undefined };
+  }
+
+  const type = toolChoice.type;
+
+  switch (type) {
+    case 'auto':
+      return {
+        tools: mappedTools,
+        toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
+      };
+    case 'none':
+      return {
+        tools: mappedTools,
+        toolConfig: { functionCallingConfig: { mode: 'NONE' } },
+      };
+    case 'required':
+      return {
+        tools: mappedTools,
+        toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+      };
+    case 'tool':
+      return {
+        tools: mappedTools,
+        toolConfig: {
+          functionCallingConfig: {
+            mode: 'ANY',
+            allowedFunctionNames: [toolChoice.toolName],
+          },
+        },
+      };
+    default: {
+      const _exhaustiveCheck: never = type;
+      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
+    }
+  }
+}
+
+// Removes all "additionalProperty" and "$schema" properties from the object (recursively)
+// (not supported by Google Generative AI)
+function prepareJsonSchema(jsonSchema: any): unknown {
+  if (typeof jsonSchema !== 'object') {
+    return jsonSchema;
+  }
+
+  if (Array.isArray(jsonSchema)) {
+    return jsonSchema.map(prepareJsonSchema);
+  }
+
+  const result: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(jsonSchema)) {
+    if (key === 'additionalProperties' || key === '$schema') {
+      continue;
+    }
+
+    result[key] = prepareJsonSchema(value);
+  }
+
+  return result;
+}
