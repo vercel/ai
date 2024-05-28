@@ -4,7 +4,6 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
-  LanguageModelV1ToolChoice,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -17,10 +16,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
+import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import { openaiFailedResponseHandler } from './openai-error';
-import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -97,21 +96,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        // when the tools array is empty, change it to undefined to prevent OpenAI errors:
-        const tools = mode.tools?.length ? mode.tools : undefined;
-
-        return {
-          ...baseArgs,
-          tools: tools?.map(tool => ({
-            type: 'function',
-            function: {
-              name: tool.name,
-              description: tool.description,
-              parameters: tool.parameters,
-            },
-          })),
-          tool_choice: mapOpenAIChatToolChoice(mode.toolChoice),
-        };
+        const { tools, toolChoice } = prepareToolsAndToolChoice(mode);
+        return { ...baseArgs, tools, tool_choice: toolChoice };
       }
 
       case 'object-json': {
@@ -479,23 +465,51 @@ const openaiChatChunkSchema = z.object({
     .nullable(),
 });
 
-function mapOpenAIChatToolChoice(
-  toolChoice: LanguageModelV1ToolChoice = { type: 'auto' },
+function prepareToolsAndToolChoice(
+  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+    type: 'regular';
+  },
 ) {
+  // when the tools array is empty, change it to undefined to prevent OpenAI errors:
+  const tools = mode.tools?.length ? mode.tools : undefined;
+
+  if (tools == null) {
+    return { tools: undefined, toolChoice: undefined };
+  }
+
+  const openaiTools = tools.map(tool => ({
+    type: 'function',
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+    },
+  }));
+
+  const toolChoice = mode.toolChoice;
+
+  if (toolChoice == null) {
+    return { tools: openaiTools, toolChoice: undefined };
+  }
+
   const type = toolChoice.type;
 
   switch (type) {
     case 'auto':
-      return 'auto';
     case 'none':
-      return 'none';
     case 'required':
-      return 'required';
+      return {
+        tools: openaiTools,
+        toolChoice: type,
+      };
     case 'tool':
       return {
-        type: 'function',
-        function: {
-          name: toolChoice.toolName,
+        tools: openaiTools,
+        toolChoice: {
+          type: 'function',
+          function: {
+            name: toolChoice.toolName,
+          },
         },
       };
     default: {
