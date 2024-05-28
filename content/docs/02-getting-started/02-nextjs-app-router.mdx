@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
 Let's take a look at what is happening in this code:
 
-1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and provides the chatbot with the necessary context to make the next generation.
+1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the chatbot and provides the chatbot with the necessary context to make the next generation.
 2. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 1). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
 3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toAIStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function which converts the result to a streamed response object.
 4. Finally, return the result to the client to stream the response.
@@ -192,7 +192,7 @@ In this code, you:
 1. Create a new instance of `StreamData`.
 2. Append the data you want to stream alongside the model's response.
 3. Create a new AI stream with the `toAIStream` method on the `StreamTextResult` object.
-4. Listen for the onFinal callback on the AI Stream created above.
+4. Listen for the `onFinal` callback on the AI Stream created above.
 5. Pass the data alongside the stream to the new `StreamingTextResponse`.
 
 ### Update your frontend
