@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.8
+
+### Patch Changes
+
+- f39c0dd2: feat (provider): add toolChoice to language model specification
+
 ## 0.0.7
 
 ### Patch Changes

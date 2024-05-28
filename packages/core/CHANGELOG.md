@@ -1,5 +1,14 @@
 # ai
 
+## 3.1.16
+
+### Patch Changes
+
+- f39c0dd2: feat (core, rsc): add toolChoice setting
+- Updated dependencies [f39c0dd2]
+  - @ai-sdk/provider@0.0.8
+  - @ai-sdk/provider-utils@0.0.11
+
 ## 3.1.15
 
 ### Patch Changes

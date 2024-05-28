@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 0.0.17
+
+### Patch Changes
+
+- f39c0dd2: feat (provider): implement toolChoice support
+- Updated dependencies [f39c0dd2]
+  - @ai-sdk/provider@0.0.8
+  - @ai-sdk/provider-utils@0.0.11
+
 ## 0.0.16
 
 ### Patch Changes
