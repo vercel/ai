@@ -96,8 +96,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const { tools, toolChoice } = prepareToolsAndToolChoice(mode);
-        return { ...baseArgs, tools, tool_choice: toolChoice };
+        return { ...baseArgs, ...prepareToolsAndToolChoice(mode) };
       }
 
       case 'object-json': {
@@ -470,14 +469,14 @@ function prepareToolsAndToolChoice(
     type: 'regular';
   },
 ) {
-  // when the tools array is empty, change it to undefined to prevent OpenAI errors:
+  // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
 
   if (tools == null) {
-    return { tools: undefined, toolChoice: undefined };
+    return { tools: undefined, tool_choice: undefined };
   }
 
-  const openaiTools = tools.map(tool => ({
+  const mappedTools = tools.map(tool => ({
     type: 'function',
     function: {
       name: tool.name,
@@ -489,7 +488,7 @@ function prepareToolsAndToolChoice(
   const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
-    return { tools: openaiTools, toolChoice: undefined };
+    return { tools: mappedTools, tool_choice: undefined };
   }
 
   const type = toolChoice.type;
@@ -498,14 +497,11 @@ function prepareToolsAndToolChoice(
     case 'auto':
     case 'none':
     case 'required':
-      return {
-        tools: openaiTools,
-        toolChoice: type,
-      };
+      return { tools: mappedTools, tool_choice: type };
     case 'tool':
       return {
-        tools: openaiTools,
-        toolChoice: {
+        tools: mappedTools,
+        tool_choice: {
           type: 'function',
           function: {
             name: toolChoice.toolName,
