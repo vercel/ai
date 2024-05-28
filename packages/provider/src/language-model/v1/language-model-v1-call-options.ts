@@ -24,7 +24,22 @@ object-tool mode.
     | {
         // stream text & complete tool calls
         type: 'regular';
+
+        /**
+The tools that are available for the model.
+         */
+        // TODO Spec V2: make mandatory, but allow empty array for no tools.
         tools?: Array<LanguageModelV1FunctionTool>;
+
+        /**
+Specifies how the tool should be selected. Defaults to 'auto'.
+         */
+        // TODO Spec V2: make mandatory
+        toolChoice?:
+          | { type: 'auto' } // the tool selection is automatic (can be no tool)
+          | { type: 'none' } // no tool must be selected
+          | { type: 'required' } // one of the available tools must be selected
+          | { type: 'tool'; toolName: string }; // a specific tool must be selected:
       }
     | {
         // object generation with json mode enabled (streaming: text delta)
