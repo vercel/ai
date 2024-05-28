@@ -2,6 +2,7 @@ import { JSONSchema7 } from 'json-schema';
 import { LanguageModelV1CallSettings } from './language-model-v1-call-settings';
 import { LanguageModelV1FunctionTool } from './language-model-v1-function-tool';
 import { LanguageModelV1Prompt } from './language-model-v1-prompt';
+import { LanguageModelV1ToolChoice } from './language-model-v1-tool-choice';
 
 export type LanguageModelV1CallOptions = LanguageModelV1CallSettings & {
   /**
@@ -35,11 +36,7 @@ The tools that are available for the model.
 Specifies how the tool should be selected. Defaults to 'auto'.
          */
         // TODO Spec V2: make mandatory
-        toolChoice?:
-          | { type: 'auto' } // the tool selection is automatic (can be no tool)
-          | { type: 'none' } // no tool must be selected
-          | { type: 'required' } // one of the available tools must be selected
-          | { type: 'tool'; toolName: string }; // a specific tool must be selected:
+        toolChoice?: LanguageModelV1ToolChoice;
       }
     | {
         // object generation with json mode enabled (streaming: text delta)
