@@ -6,7 +6,6 @@ description: Learn how to use Mistral.
 # Mistral AI Provider
 
 The [Mistral AI](https://mistral.ai/) provider contains language model support for the Mistral chat API.
-It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` AI functions.
 
 ## Setup
 
@@ -23,6 +22,7 @@ The Mistral provider is available in the `@ai-sdk/mistral` module. You can insta
     <Snippet text="yarn add @ai-sdk/mistral" dark />
   </Tab>
 </Tabs>
+
 ## Provider Instance
 
 You can import the default provider instance `mistral` from `@ai-sdk/mistral`:
@@ -58,7 +58,7 @@ You can use the following optional settings to customize the Mistral provider in
 
   Custom headers to include in the requests.
 
-## Models
+## Language Models
 
 You can create models that call the [Mistral chat API](https://docs.mistral.ai/api/#operation/createChatCompletion) using provider instance.
 The first argument is the model id, e.g. `mistral-large-latest`.
@@ -85,9 +85,35 @@ The following optional settings are available for Mistral models:
 
   Defaults to `false`.
 
-## Model Capabilities
+### Example
+
+You can use Mistral language models to generate text with the `generateText` function:
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: mistral('mistral-large-latest'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Mistral language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
+(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+
+### Model Capabilities
 
 | Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `mistral-large-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `mistral-small-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+## Embedding Models
+
+You can create models that call the [Mistral embeddings API](https://docs.mistral.ai/api/#operation/createEmbedding)
+using the `.embedding()` factory method.
+
+```ts
+const model = mistral.embedding('mistral-embed');
+```

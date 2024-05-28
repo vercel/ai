@@ -2,10 +2,16 @@ import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
+import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
 import { CoreTool } from '../tool/tool';
-import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
-import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
+import {
+  CallWarning,
+  CoreToolChoice,
+  FinishReason,
+  LanguageModel,
+  LogProbs,
+} from '../types';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { TokenUsage, calculateTokenUsage } from './token-usage';
 import { ToToolCallArray, parseToolCall } from './tool-call';
@@ -48,6 +54,7 @@ A result object that contains the generated text, the results of the tool calls,
 export async function generateText<TOOLS extends Record<string, CoreTool>>({
   model,
   tools,
+  toolChoice,
   system,
   prompt,
   messages,
@@ -65,6 +72,11 @@ The language model to use.
 The tools that the model can call. The model needs to support calling tools.
 */
     tools?: TOOLS;
+
+    /**
+The tool choice strategy. Default: 'auto'.
+     */
+    toolChoice?: CoreToolChoice<TOOLS>;
   }): Promise<GenerateTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
@@ -72,15 +84,7 @@ The tools that the model can call. The model needs to support calling tools.
     return model.doGenerate({
       mode: {
         type: 'regular',
-        tools:
-          tools == null
-            ? undefined
-            : Object.entries(tools).map(([name, tool]) => ({
-                type: 'function',
-                name,
-                description: tool.description,
-                parameters: convertZodToJSONSchema(tool.parameters),
-              })),
+        ...prepareToolsAndToolChoice({ tools, toolChoice }),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,

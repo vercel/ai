@@ -5,6 +5,14 @@ description: Learn to use GoogleGenerativeAIStream helper function in your appli
 
 # `GoogleGenerativeAIStream`
 
+<Note type="warning">
+  GoogleGenerativeAIStream is part of the [legacy Google
+  integration](/providers/legacy-providers/google). It is not compatible with
+  the AI SDK 3.1 functions. It is recommended to use the [AI SDK Google
+  Generative AI Provider](/providers/ai-sdk-providers/google-generative-ai)
+  instead.
+</Note>
+
 The GoogleGenerativeAIStream function is a utility that transforms the output from Google's Generative AI SDK into a ReadableStream. It uses AIStream under the hood, applying a specific parser for the Google's response data structure. This works with the official Generative AI SDK, and it's supported in both Node.js, Edge Runtime, and browser environments.
 
 ## Import

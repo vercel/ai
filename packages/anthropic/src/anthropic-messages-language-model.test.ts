@@ -216,6 +216,57 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass tools and toolChoice', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'test-tool',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'claude-3-haiku-20240307',
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      max_tokens: 4096,
+      tools: [
+        {
+          name: 'test-tool',
+          input_schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      tool_choice: {
+        type: 'tool',
+        name: 'test-tool',
+      },
+    });
+  });
+
   it('should pass custom headers', async () => {
     prepareJsonResponse({ content: [] });
 
@@ -294,6 +345,113 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'stop',
         usage: { promptTokens: 17, completionTokens: 227 },
+      },
+    ]);
+  });
+
+  it('should stream tool deltas', async () => {
+    server.responseChunks = [
+      `data: {"type":"message_start","message":{"id":"msg_01GouTqNCGXzrj5LQ5jEkw67","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":441,"output_tokens":2},"content":[],"stop_reason":null}            }\n\n`,
+      `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}      }\n\n`,
+      `data: {"type": "ping"}\n\n`,
+      `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Okay"}    }\n\n`,
+      `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}   }\n\n`,
+      `data: {"type":"content_block_stop","index":0    }\n\n`,
+      `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_01DBsB4vvYLnBDzZ5rBSxSLs","name":"test-tool","input":{}}      }\n\n`,
+      `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}           }\n\n`,
+      `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value"}              }\n\n`,
+      `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\":"}      }\n\n`,
+      `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"Spark"}          }\n\n`,
+      `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"le"}          }\n\n`,
+      `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":" Day\\"}"}               }\n\n`,
+      `data: {"type":"content_block_stop","index":1              }\n\n`,
+      `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":65}           }\n\n`,
+      `data: {"type":"message_stop"           }\n\n`,
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'text-delta',
+        textDelta: 'Okay',
+      },
+      {
+        type: 'text-delta',
+        textDelta: '!',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '{"value',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '":',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '"Spark',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: 'le',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: ' Day"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        args: '{"value":"Sparkle Day"}',
+      },
+      {
+        type: 'finish',
+        finishReason: 'tool-calls',
+        usage: { promptTokens: 441, completionTokens: 65 },
       },
     ]);
   });

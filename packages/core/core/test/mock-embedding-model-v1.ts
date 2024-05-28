@@ -1,4 +1,5 @@
 import { EmbeddingModelV1 } from '@ai-sdk/provider';
+import { Embedding } from '../types';
 
 export class MockEmbeddingModelV1<VALUE> implements EmbeddingModelV1<VALUE> {
   readonly specificationVersion = 'v1';
@@ -29,6 +30,16 @@ export class MockEmbeddingModelV1<VALUE> implements EmbeddingModelV1<VALUE> {
     this.supportsParallelCalls = supportsParallelCalls;
     this.doEmbed = doEmbed;
   }
+}
+
+export function mockEmbed<VALUE>(
+  expectedValues: Array<VALUE>,
+  embeddings: Array<Embedding>,
+): EmbeddingModelV1<VALUE>['doEmbed'] {
+  return async ({ values }) => {
+    assert.deepStrictEqual(expectedValues, values);
+    return { embeddings };
+  };
 }
 
 function notImplemented(): never {

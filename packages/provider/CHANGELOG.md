@@ -1,5 +1,23 @@
 # @ai-sdk/provider
 
+## 0.0.8
+
+### Patch Changes
+
+- f39c0dd2: feat (provider): add toolChoice to language model specification
+
+## 0.0.7
+
+### Patch Changes
+
+- 8e780288: feat (ai/provider): add "unknown" finish reason (for models that don't provide a finish reason)
+
+## 0.0.6
+
+### Patch Changes
+
+- 6a50ac4: feat (provider): add additional error types
+
 ## 0.0.5
 
 ### Patch Changes

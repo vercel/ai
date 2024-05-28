@@ -13,14 +13,14 @@
     "ai": "latest",
     "next": "latest",
     "openai": "4.47.1",
-    "react": "18.2.0",
-    "react-dom": "^18.2.0",
-    "zod": "3.23.4"
+    "react": "^18",
+    "react-dom": "^18",
+    "zod": "3.23.8"
   },
   "devDependencies": {
     "@types/node": "^17.0.12",
-    "@types/react": "18.2.8",
-    "@types/react-dom": "18.2.4",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",
     "eslint": "^7.32.0",
     "eslint-config-next": "13.4.12",

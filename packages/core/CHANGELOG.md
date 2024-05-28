@@ -1,5 +1,58 @@
 # ai
 
+## 3.1.16
+
+### Patch Changes
+
+- f39c0dd2: feat (core, rsc): add toolChoice setting
+- Updated dependencies [f39c0dd2]
+  - @ai-sdk/provider@0.0.8
+  - @ai-sdk/provider-utils@0.0.11
+
+## 3.1.15
+
+### Patch Changes
+
+- 8e780288: feat (ai/core): add onFinish callback to streamText
+- 8e780288: feat (ai/core): add text, toolCalls, and toolResults promises to StreamTextResult (matching the generateText result API with async methods)
+- Updated dependencies [8e780288]
+  - @ai-sdk/provider@0.0.7
+  - @ai-sdk/provider-utils@0.0.10
+
+## 3.1.14
+
+### Patch Changes
+
+- 6109c6a: feat (ai/react): add experimental_maxAutomaticRoundtrips to useChat
+
+## 3.1.13
+
+### Patch Changes
+
+- 60117c9: dependencies (ai/ui): add React 18.3 and 19 support (peer dependency)
+- Updated dependencies [6a50ac4]
+- Updated dependencies [6a50ac4]
+  - @ai-sdk/provider@0.0.6
+  - @ai-sdk/provider-utils@0.0.9
+
+## 3.1.12
+
+### Patch Changes
+
+- ae05fb7: feat (ai/streams): add StreamData support to streamToResponse
+
+## 3.1.11
+
+### Patch Changes
+
+- a085d42: fix (ai/ui): decouple StreamData chunks from LLM stream
+
+## 3.1.10
+
+### Patch Changes
+
+- 3a21030: feat (ai/core): add embedMany function
+
 ## 3.1.9
 
 ### Patch Changes

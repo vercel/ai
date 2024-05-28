@@ -23,7 +23,7 @@ It contains the generated UI and other information for the client-side of the ap
 
 ## Creating the AI Context
 
-To start, you need create an React context using [`createAI`](/docs/reference/ai-sdk-rsc/create-ai), and wrap your application with it. Then, the AI and UI states will be available to all its children:
+To start, you need to create a React context using [`createAI`](/docs/reference/ai-sdk-rsc/create-ai), and wrap your application with it. Then, the AI and UI states will be available to all its children:
 
 ```tsx filename='app/actions.tsx'
 // Define the AI state and UI state types
@@ -104,7 +104,7 @@ The AI state can be accessed in Client Components using the [`useAIState`](/docs
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { useAIAtate } from 'ai/rsc';
+import { useAIState } from 'ai/rsc';
 
 export default function Page() {
   const [messages, setMessages] = useAIState();
@@ -177,9 +177,10 @@ To call the `sendMessage` action from the client, you can use the [`useActions`]
 'use client';
 
 import { useActions, useUIState } from 'ai/rsc';
+import { AI } from './actions';
 
 export default function Page() {
-  const { sendMessage } = useActions();
+  const { sendMessage } = useActions<typeof AI>();
   const [messages, setMessages] = useUIState();
 
   const handleSubmit = async event => {
