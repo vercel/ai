@@ -12,9 +12,9 @@ In order to understand multistep interfaces, it is important to understand two c
 - Function composition
 - Application context
 
-Function composition is the process of combining multiple functions to create a new function. This is a powerful concept that allows you to break down complex tasks into smaller, more manageable steps.
+**Function composition** is the process of combining multiple functions to create a new function. This is a powerful concept that allows you to break down complex tasks into smaller, more manageable steps.
 
-Application context refers to the state of the application at any given point in time. This includes the user's input, the output of the language model, and any other relevant information.
+**Application context** refers to the state of the application at any given point in time. This includes the user's input, the output of the language model, and any other relevant information.
 
 When designing multistep interfaces, you need to consider how the functions in your application can be composed together to form a coherent user experience as well as how the application context changes as the user progresses through the interface.
 
@@ -78,7 +78,7 @@ Function: searchFlights("New York", "London")
 Model: Here are the available flights from New York to London.
 User: I want to book flight number BA123 on 12th December for myself and my wife.
 Function: lookupFlight("BA123") -> "4 seats available"
-Model: Sure, there are seats available! can you provide the names of the passengers?
+Model: Sure, there are seats available! Can you provide the names of the passengers?
 User: John Doe and Jane Doe.
 Function: bookFlight("BA123", "12th December", ["John Doe", "Jane Doe"])
 Model: Your flight has been booked!
