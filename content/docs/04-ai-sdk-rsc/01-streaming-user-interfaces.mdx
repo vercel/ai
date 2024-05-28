@@ -36,7 +36,7 @@ export async function getWeather() {
 }
 ```
 
-In the example above, `'use server'` is used to indicate that the exported function is a Server Action function that can be requested by the client. Initially, we create a streamable UI and update it with a loading message. After 1 second, we mark it as done with the actual weather information. And the `.value` property contains the actual UI piece that can be sent to the client.
+In the example above, `'use server'` is used to indicate that the exported function is a Server Action that can be requested by the client. Initially, we create a streamable UI and update it with a loading message. After 1 second, we mark it as done with the actual weather information. And the `.value` property contains the actual UI piece that can be sent to the client.
 
 ## Reading a Streamable UI
 
