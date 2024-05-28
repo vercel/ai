@@ -43,7 +43,7 @@ describe('result.toolCalls', () => {
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'regular',
-            toolChoice: { type: 'auto' },
+            toolChoice: { type: 'required' },
             tools: [
               {
                 type: 'function',
@@ -97,6 +97,7 @@ describe('result.toolCalls', () => {
           parameters: z.object({ somethingElse: z.string() }),
         },
       },
+      toolChoice: 'required',
       prompt: 'test-input',
     });
 
