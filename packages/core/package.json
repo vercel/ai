@@ -110,7 +110,7 @@
     "@types/react-dom": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vitejs/plugin-react": "4.2.0",
-    "@vitejs/plugin-vue": "4.5.0",
+    "@vitejs/plugin-vue": "5.0.4",
     "cohere-ai": "^7.6.2",
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
