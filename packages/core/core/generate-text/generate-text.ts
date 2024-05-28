@@ -2,17 +2,17 @@ import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
+import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
 import { CoreTool } from '../tool/tool';
 import {
   CallWarning,
+  CoreToolChoice,
   FinishReason,
   LanguageModel,
   LogProbs,
-  CoreToolChoice,
 } from '../types';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
-import { prepareToolsAndToolChoice } from './prepare-tools-and-tool-choice';
 import { TokenUsage, calculateTokenUsage } from './token-usage';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
@@ -54,6 +54,7 @@ A result object that contains the generated text, the results of the tool calls,
 export async function generateText<TOOLS extends Record<string, CoreTool>>({
   model,
   tools,
+  toolChoice,
   system,
   prompt,
   messages,
@@ -83,10 +84,7 @@ The tool choice strategy. Default: 'auto'.
     return model.doGenerate({
       mode: {
         type: 'regular',
-        ...prepareToolsAndToolChoice({
-          tools,
-          toolChoice: settings.toolChoice,
-        }),
+        ...prepareToolsAndToolChoice({ tools, toolChoice }),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,

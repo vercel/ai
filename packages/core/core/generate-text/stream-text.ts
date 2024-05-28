@@ -8,26 +8,25 @@ import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
+import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
 import { CoreTool } from '../tool';
 import {
   CallWarning,
+  CoreToolChoice,
   FinishReason,
   LanguageModel,
   LogProbs,
-  CoreToolChoice,
 } from '../types';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
-import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
 import { TokenUsage } from './token-usage';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
-import { prepareToolsAndToolChoice } from './prepare-tools-and-tool-choice';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -69,6 +68,7 @@ A result object for accessing different stream types and additional information.
 export async function streamText<TOOLS extends Record<string, CoreTool>>({
   model,
   tools,
+  toolChoice,
   system,
   prompt,
   messages,
@@ -145,10 +145,7 @@ Warnings from the model provider (e.g. unsupported settings).
     model.doStream({
       mode: {
         type: 'regular',
-        ...prepareToolsAndToolChoice({
-          tools,
-          toolChoice: settings.toolChoice,
-        }),
+        ...prepareToolsAndToolChoice({ tools, toolChoice }),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,
