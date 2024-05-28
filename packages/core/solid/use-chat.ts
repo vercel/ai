@@ -1,4 +1,4 @@
-import { Accessor, Resource, Setter, createSignal } from 'solid-js';
+import { Accessor, Resource, Setter, createSignal, JSX } from 'solid-js';
 import { useSWRStore } from 'solid-swr-store';
 import { createSWRStore } from 'swr-store';
 import { callChatApi } from '../shared/call-chat-api';
@@ -52,6 +52,11 @@ export type UseChatHelpers = {
   input: Accessor<string>;
   /** Signal setter to update the input value */
   setInput: Setter<string>;
+  /** An input/textarea-ready onChange handler to control the value of the input */
+  handleInputChange: JSX.ChangeEventHandlerUnion<
+    HTMLInputElement | HTMLTextAreaElement,
+    Event
+  >;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void;
   /** Whether the API request is in progress */
@@ -306,6 +311,13 @@ export function useChat({
     setInput('');
   };
 
+  const handleInputChange: JSX.ChangeEventHandlerUnion<
+    HTMLInputElement | HTMLTextAreaElement,
+    Event
+  > = event => {
+    setInput(event.target.value);
+  };
+
   return {
     messages,
     append,
@@ -315,6 +327,7 @@ export function useChat({
     setMessages,
     input,
     setInput,
+    handleInputChange,
     handleSubmit,
     isLoading,
     data: streamData,
