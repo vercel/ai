@@ -6,6 +6,7 @@ import { Prompt } from '../prompt/prompt';
 import { CoreTool } from '../tool/tool';
 import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
+import { isNonEmptyObject } from '../util/is-non-empty-object';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { TokenUsage, calculateTokenUsage } from './token-usage';
 import { ToToolCallArray, parseToolCall } from './tool-call';
@@ -245,11 +246,4 @@ function mapToolChoice<TOOLS extends Record<string, CoreTool>>(
   return typeof toolChoice === 'string'
     ? { type: toolChoice }
     : { type: 'tool' as const, toolName: toolChoice.toolName as string };
-}
-
-// TODO extract to util
-function isNonEmptyObject(
-  object: Record<string, unknown> | undefined | null,
-): object is Record<string, unknown> {
-  return object != null && Object.keys(object).length > 0;
 }
