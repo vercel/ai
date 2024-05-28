@@ -99,9 +99,10 @@ export async function POST(req: Request) {
 
 Let's take a look at what is happening in this code:
 
-1. First, you define an asynchronous `POST` request and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
-2. Next, you call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 2). You can use pass additional [settings](/docs/ai-sdk-core/settings) in this configuration object to further customise the models behaviour.
-3. The `streamText` function will return a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toAIStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function, which streams the response to the client.
+1. Define an asynchronous `POST` request and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
+2. Call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 2). You can use pass additional [settings](/docs/ai-sdk-core/settings) in this configuration object to further customise the models behaviour.
+3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toAIStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function which converts the result to a streamed response object.
+4. Return the result to the client to stream the response.
 
 This Route Handler creates a POST request endpint at `/api/chat`.
 
@@ -231,6 +232,6 @@ Head back to your browser (http://localhost:3000) and enter a new message. You s
 
 ## Where to Next?
 
-You've built an AI chatbot using the Vercel AI SDK! Remember, your imagination is the limit when it comes to using AI to build apps, so feel free to experiment and extend the functionality of this application further.
+You've built an AI chatbot using the Vercel AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-ui/chatbot-with-tool-calling) or (persisting chat history)[/docs/ai-sdk-ui/storing-messages].
 
 If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.
