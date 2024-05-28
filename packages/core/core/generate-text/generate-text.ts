@@ -65,6 +65,15 @@ The language model to use.
 The tools that the model can call. The model needs to support calling tools.
 */
     tools?: TOOLS;
+
+    /**
+The tool choice strategy. Default: 'auto'.
+     */
+    toolChoice?:
+      | 'auto'
+      | 'none'
+      | 'required'
+      | { type: 'tool'; toolName: keyof TOOLS };
   }): Promise<GenerateTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
@@ -81,6 +90,7 @@ The tools that the model can call. The model needs to support calling tools.
                 description: tool.description,
                 parameters: convertZodToJSONSchema(tool.parameters),
               })),
+        toolChoice: mapToolChoice<TOOLS>(settings.toolChoice),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,
@@ -223,3 +233,15 @@ Logprobs for the completion.
  * @deprecated Use `generateText` instead.
  */
 export const experimental_generateText = generateText;
+
+function mapToolChoice<TOOLS extends Record<string, CoreTool>>(
+  toolChoice:
+    | 'auto'
+    | 'none'
+    | 'required'
+    | { type: 'tool'; toolName: keyof TOOLS } = 'auto',
+) {
+  return typeof toolChoice === 'string'
+    ? { type: toolChoice }
+    : { type: 'tool' as const, toolName: toolChoice.toolName as string };
+}

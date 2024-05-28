@@ -4,6 +4,7 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
+  LanguageModelV1ToolChoice,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -109,6 +110,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               parameters: tool.parameters,
             },
           })),
+          tool_choice: mapOpenAIChatToolChoice(mode.toolChoice),
         };
       }
 
@@ -476,3 +478,29 @@ const openaiChatChunkSchema = z.object({
     .optional()
     .nullable(),
 });
+
+function mapOpenAIChatToolChoice(
+  toolChoice: LanguageModelV1ToolChoice = { type: 'auto' },
+) {
+  const type = toolChoice.type;
+
+  switch (type) {
+    case 'auto':
+      return 'auto';
+    case 'none':
+      return 'none';
+    case 'required':
+      return 'required';
+    case 'tool':
+      return {
+        type: 'function',
+        function: {
+          name: toolChoice.toolName,
+        },
+      };
+    default: {
+      const _exhaustiveCheck: never = type;
+      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
+    }
+  }
+}
