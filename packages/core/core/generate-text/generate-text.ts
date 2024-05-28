@@ -4,10 +4,15 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { CoreTool } from '../tool/tool';
-import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
-import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
-import { isNonEmptyObject } from '../util/is-non-empty-object';
+import {
+  CallWarning,
+  FinishReason,
+  LanguageModel,
+  LogProbs,
+  CoreToolChoice,
+} from '../types';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
+import { prepareToolsAndToolChoice } from './prepare-tools-and-tool-choice';
 import { TokenUsage, calculateTokenUsage } from './token-usage';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
@@ -70,11 +75,7 @@ The tools that the model can call. The model needs to support calling tools.
     /**
 The tool choice strategy. Default: 'auto'.
      */
-    toolChoice?:
-      | 'auto'
-      | 'none'
-      | 'required'
-      | { type: 'tool'; toolName: keyof TOOLS };
+    toolChoice?: CoreToolChoice<TOOLS>;
   }): Promise<GenerateTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
@@ -82,17 +83,10 @@ The tool choice strategy. Default: 'auto'.
     return model.doGenerate({
       mode: {
         type: 'regular',
-        tools: isNonEmptyObject(tools)
-          ? Object.entries(tools).map(([name, tool]) => ({
-              type: 'function',
-              name,
-              description: tool.description,
-              parameters: convertZodToJSONSchema(tool.parameters),
-            }))
-          : undefined,
-        toolChoice: isNonEmptyObject(tools)
-          ? mapToolChoice<TOOLS>(settings.toolChoice)
-          : undefined,
+        ...prepareToolsAndToolChoice({
+          tools,
+          toolChoice: settings.toolChoice,
+        }),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,
@@ -235,15 +229,3 @@ Logprobs for the completion.
  * @deprecated Use `generateText` instead.
  */
 export const experimental_generateText = generateText;
-
-function mapToolChoice<TOOLS extends Record<string, CoreTool>>(
-  toolChoice:
-    | 'auto'
-    | 'none'
-    | 'required'
-    | { type: 'tool'; toolName: keyof TOOLS } = 'auto',
-) {
-  return typeof toolChoice === 'string'
-    ? { type: toolChoice }
-    : { type: 'tool' as const, toolName: toolChoice.toolName as string };
-}

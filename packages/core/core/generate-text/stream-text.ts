@@ -10,7 +10,13 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { CoreTool } from '../tool';
-import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
+import {
+  CallWarning,
+  FinishReason,
+  LanguageModel,
+  LogProbs,
+  CoreToolChoice,
+} from '../types';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -21,6 +27,7 @@ import { runToolsTransformation } from './run-tools-transformation';
 import { TokenUsage } from './token-usage';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+import { prepareToolsAndToolChoice } from './prepare-tools-and-tool-choice';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -82,6 +89,11 @@ The tools that the model can call. The model needs to support calling tools.
     tools?: TOOLS;
 
     /**
+The tool choice strategy. Default: 'auto'.
+     */
+    toolChoice?: CoreToolChoice<TOOLS>;
+
+    /**
 Callback that is called when the LLM response and all request tool executions 
 (for tools that have an `execute` function) are finished.
      */
@@ -133,15 +145,10 @@ Warnings from the model provider (e.g. unsupported settings).
     model.doStream({
       mode: {
         type: 'regular',
-        tools:
-          tools == null
-            ? undefined
-            : Object.entries(tools).map(([name, tool]) => ({
-                type: 'function',
-                name,
-                description: tool.description,
-                parameters: convertZodToJSONSchema(tool.parameters),
-              })),
+        ...prepareToolsAndToolChoice({
+          tools,
+          toolChoice: settings.toolChoice,
+        }),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,
