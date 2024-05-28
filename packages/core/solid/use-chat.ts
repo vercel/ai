@@ -90,10 +90,7 @@ export function useChat({
   body,
   streamMode,
   generateId = generateIdFunc,
-}: Omit<UseChatOptions, 'api'> & {
-  api?: string;
-  key?: string;
-} = {}): UseChatHelpers & {
+}: UseChatOptions = {}): UseChatHelpers & {
   experimental_addToolResult: ({
     toolCallId,
     result,
