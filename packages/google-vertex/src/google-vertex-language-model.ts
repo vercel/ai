@@ -98,6 +98,12 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
           });
         }
 
+        if (mode.toolChoice) {
+          throw new UnsupportedFunctionalityError({
+            functionality: 'toolChoice',
+          });
+        }
+
         return {
           model: this.config.vertexAI.getGenerativeModel({
             model: this.modelId,

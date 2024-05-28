@@ -108,6 +108,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
           });
         }
 
+        if (mode.toolChoice) {
+          throw new UnsupportedFunctionalityError({
+            functionality: 'toolChoice',
+          });
+        }
+
         return baseArgs;
       }
 

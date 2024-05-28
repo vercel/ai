@@ -8,14 +8,20 @@ import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
+import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
 import { CoreTool } from '../tool';
-import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
+import {
+  CallWarning,
+  CoreToolChoice,
+  FinishReason,
+  LanguageModel,
+  LogProbs,
+} from '../types';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
-import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
 import { TokenUsage } from './token-usage';
@@ -62,6 +68,7 @@ A result object for accessing different stream types and additional information.
 export async function streamText<TOOLS extends Record<string, CoreTool>>({
   model,
   tools,
+  toolChoice,
   system,
   prompt,
   messages,
@@ -80,6 +87,11 @@ The language model to use.
 The tools that the model can call. The model needs to support calling tools.
     */
     tools?: TOOLS;
+
+    /**
+The tool choice strategy. Default: 'auto'.
+     */
+    toolChoice?: CoreToolChoice<TOOLS>;
 
     /**
 Callback that is called when the LLM response and all request tool executions 
@@ -133,15 +145,7 @@ Warnings from the model provider (e.g. unsupported settings).
     model.doStream({
       mode: {
         type: 'regular',
-        tools:
-          tools == null
-            ? undefined
-            : Object.entries(tools).map(([name, tool]) => ({
-                type: 'function',
-                name,
-                description: tool.description,
-                parameters: convertZodToJSONSchema(tool.parameters),
-              })),
+        ...prepareToolsAndToolChoice({ tools, toolChoice }),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,

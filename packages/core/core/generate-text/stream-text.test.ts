@@ -13,7 +13,11 @@ describe('result.textStream', () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: undefined,
+            toolChoice: undefined,
+          });
           assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
           ]);
@@ -49,7 +53,11 @@ describe('result.fullStream', () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: undefined,
+            toolChoice: undefined,
+          });
           assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
           ]);
@@ -109,6 +117,7 @@ describe('result.fullStream', () => {
                 },
               },
             ],
+            toolChoice: { type: 'required' },
           });
           assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
@@ -139,6 +148,7 @@ describe('result.fullStream', () => {
           parameters: z.object({ value: z.string() }),
         },
       },
+      toolChoice: 'required',
       prompt: 'test-input',
     });
 
@@ -181,6 +191,7 @@ describe('result.fullStream', () => {
                 },
               },
             ],
+            toolChoice: { type: 'auto' },
           });
           assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
@@ -342,6 +353,7 @@ describe('result.toAIStream', () => {
                 },
               },
             ],
+            toolChoice: { type: 'auto' },
           });
           assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
@@ -627,7 +639,11 @@ describe('result.usage', () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: undefined,
+            toolChoice: undefined,
+          });
           assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
           ]);
@@ -667,7 +683,11 @@ describe('result.finishReason', () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: undefined,
+            toolChoice: undefined,
+          });
           assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
           ]);
@@ -703,7 +723,11 @@ describe('result.text', () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: undefined,
+            toolChoice: undefined,
+          });
           assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
           ]);
@@ -755,6 +779,7 @@ describe('result.toolCalls', () => {
                 },
               },
             ],
+            toolChoice: { type: 'auto' },
           });
           assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
@@ -823,6 +848,7 @@ describe('result.toolResults', () => {
                 },
               },
             ],
+            toolChoice: { type: 'auto' },
           });
           assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
@@ -897,6 +923,7 @@ describe('onFinish callback', () => {
                 },
               },
             ],
+            toolChoice: { type: 'auto' },
           });
           assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'test-input' }] },

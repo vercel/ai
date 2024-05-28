@@ -97,21 +97,8 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        // when the tools array is empty, change it to undefined to prevent OpenAI errors:
-        const tools = mode.tools?.length ? mode.tools : undefined;
-
         return {
-          args: {
-            ...baseArgs,
-            tools: tools?.map(tool => ({
-              type: 'function',
-              function: {
-                name: tool.name,
-                description: tool.description,
-                parameters: tool.parameters,
-              },
-            })),
-          },
+          args: { ...baseArgs, ...prepareToolsAndToolChoice(mode) },
           warnings,
         };
       }
@@ -355,3 +342,55 @@ const mistralChatChunkSchema = z.object({
     .optional()
     .nullable(),
 });
+
+function prepareToolsAndToolChoice(
+  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+    type: 'regular';
+  },
+) {
+  // when the tools array is empty, change it to undefined to prevent errors:
+  const tools = mode.tools?.length ? mode.tools : undefined;
+
+  if (tools == null) {
+    return { tools: undefined, tool_choice: undefined };
+  }
+
+  const mappedTools = tools.map(tool => ({
+    type: 'function',
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+    },
+  }));
+
+  const toolChoice = mode.toolChoice;
+
+  if (toolChoice == null) {
+    return { tools: mappedTools, tool_choice: undefined };
+  }
+
+  const type = toolChoice.type;
+
+  switch (type) {
+    case 'auto':
+    case 'none':
+      return { tools: mappedTools, tool_choice: type };
+    case 'required':
+      return { tools: mappedTools, tool_choice: 'any' };
+
+    // mistral does not support tool mode directly,
+    // so we filter the tools and force the tool choice through 'any'
+    case 'tool':
+      return {
+        tools: mappedTools.filter(
+          tool => tool.function.name === toolChoice.toolName,
+        ),
+        tool_choice: 'any',
+      };
+    default: {
+      const _exhaustiveCheck: never = type;
+      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
+    }
+  }
+}
