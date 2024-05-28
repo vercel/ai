@@ -81,16 +81,17 @@ The tool choice strategy. Default: 'auto'.
     return model.doGenerate({
       mode: {
         type: 'regular',
-        tools:
-          tools == null
-            ? undefined
-            : Object.entries(tools).map(([name, tool]) => ({
-                type: 'function',
-                name,
-                description: tool.description,
-                parameters: convertZodToJSONSchema(tool.parameters),
-              })),
-        toolChoice: mapToolChoice<TOOLS>(settings.toolChoice),
+        tools: isNonEmptyObject(tools)
+          ? Object.entries(tools).map(([name, tool]) => ({
+              type: 'function',
+              name,
+              description: tool.description,
+              parameters: convertZodToJSONSchema(tool.parameters),
+            }))
+          : undefined,
+        toolChoice: isNonEmptyObject(tools)
+          ? mapToolChoice<TOOLS>(settings.toolChoice)
+          : undefined,
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,
@@ -244,4 +245,11 @@ function mapToolChoice<TOOLS extends Record<string, CoreTool>>(
   return typeof toolChoice === 'string'
     ? { type: toolChoice }
     : { type: 'tool' as const, toolName: toolChoice.toolName as string };
+}
+
+// TODO extract to util
+function isNonEmptyObject(
+  object: Record<string, unknown> | undefined | null,
+): object is Record<string, unknown> {
+  return object != null && Object.keys(object).length > 0;
 }

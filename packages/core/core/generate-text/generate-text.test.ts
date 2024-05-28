@@ -14,7 +14,11 @@ describe('result.text', () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'regular', tools: undefined });
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: undefined,
+            toolChoice: undefined,
+          });
           assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
           ]);
@@ -39,6 +43,7 @@ describe('result.toolCalls', () => {
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'regular',
+            toolChoice: { type: 'auto' },
             tools: [
               {
                 type: 'function',
@@ -118,6 +123,7 @@ describe('result.toolResults', () => {
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'regular',
+            toolChoice: { type: 'auto' },
             tools: [
               {
                 type: 'function',
