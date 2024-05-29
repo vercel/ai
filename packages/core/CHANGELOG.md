@@ -1,5 +1,12 @@
 # ai
 
+## 3.1.18
+
+### Patch Changes
+
+- f9dee8ac: fix(ai/rsc): Fix types for createStreamableValue and createStreamableUI
+- 1c0ebf8e: feat (core): add responseMessages to generateText result
+
 ## 3.1.17
 
 ### Patch Changes
