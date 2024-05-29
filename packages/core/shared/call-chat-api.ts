@@ -1,7 +1,6 @@
 import { parseComplexResponse } from './parse-complex-response';
-import { IdGenerator, JSONValue, Message } from './types';
+import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
 import { createChunkDecoder } from './utils';
-import { ToolCall as CoreToolCall } from '../core/generate-text/tool-call';
 
 export async function callChatApi({
   api,
@@ -29,11 +28,7 @@ export async function callChatApi({
   onResponse?: (response: Response) => void | Promise<void>;
   onUpdate: (merged: Message[], data: JSONValue[] | undefined) => void;
   onFinish?: (message: Message) => void;
-  onToolCall?: ({
-    toolCall,
-  }: {
-    toolCall: CoreToolCall<string, unknown>;
-  }) => void | Promise<unknown> | unknown;
+  onToolCall?: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
 }) {
   const response = await fetch(api, {
