@@ -100,12 +100,7 @@ export async function parseComplexResponse({
       // In the future we should make this non-blocking, which
       // requires additional state management for error handling etc.
       if (onToolCall) {
-        console.log('onToolCall', value);
-
         const result = await onToolCall({ toolCall: value });
-
-        console.log('onToolCall result', result);
-
         if (result != null) {
           // store the result in the tool invocation
           prefixMap.text.toolInvocations[
