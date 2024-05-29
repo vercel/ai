@@ -15,25 +15,34 @@ This is useful when you want to stream:
 
 ## Creating a Streamable Value
 
-You can import `createStreamableValue` from `ai/rsc` and use it to create a streamable value.
+You can import `createStreamableValue` from `ai/rsc` and use it to create a streamable value. When working with RSCs, you can use it alongside any of the SDK's functions for generating responses from a model provider.
 
 ```tsx file='app/actions.ts'
 'use server';
 
+import { openai } from '@ai-sdk/openai';
 import { createStreamableValue } from 'ai/rsc';
+import { streamText } from 'ai';
 
-export const runThread = async () => {
-  const streamableStatus = createStreamableValue('thread.init');
+export const generateBedtimeStory = async (input: string) => {
+  const stream = createStreamableValue<string>();
 
-  setTimeout(() => {
-    streamableValue.update('thread.run.create');
-    streamableValue.update('thread.run.update');
-    streamableValue.update('thread.run.end');
-    streamableValue.done('thread.end');
-  }, 1000);
+  (async () => {
+    const result = await streamText({
+      model: openai('gpt-3.5-turbo'),
+      prompt:
+        'Write a bedtime story about open source software.',
+    });
+
+    for await (const partialStream of result.textStream) {
+      stream.append(partialStream)
+    };
+
+    stream.done();
+  })();
 
   return {
-    status: streamableStatus.value,
+    value: stream.value,
   };
 };
 ```
@@ -43,24 +52,31 @@ export const runThread = async () => {
 You can read streamable values on the client using `readStreamableValue`. It returns an async iterator that yields the value of the streamable as it is updated:
 
 ```tsx file='app/page.tsx'
+'use client'
+
 import { readStreamableValue } from 'ai/rsc';
-import { runThread } from '@/actions';
+import { generateBedtimeStory } from '@/actions';
 
 export default function Page() {
-  return (
-    <button
-      onClick={async () => {
-        const { status } = await runThread();
+  const [result, setResult] = useState('')
 
-        for await (const value of readStreamableValue(status)) {
-          console.log(value);
-        }
-      }}
-    >
-      Ask
-    </button>
+  return (
+    <>
+      <button
+        onClick={async () => {
+          const { value } = await generateBedtimeStory();
+
+          for await (const partialValue of readStreamableValue(value)) {
+            if (partialValue) setResult(partialValue);
+          }
+        }}
+      >
+        Generate Bedtime Story
+      </button>
+      <p>{result}</p>
+    </>
   );
 }
 ```
 
-To learn more, check out this (example)[/examples/next-app/basics/streaming-text-generation] that use `createStreamableValue` to stream text generation.
+To learn more, check out this [example](/examples/next-app/basics/streaming-text-generation) that use `createStreamableValue` to stream text generation.
