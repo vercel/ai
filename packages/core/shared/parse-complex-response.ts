@@ -10,10 +10,12 @@ import type {
 
 type PrefixMap = {
   text?: Message;
+  // @deprecated
   function_call?: Message & {
     role: 'assistant';
     function_call: FunctionCall;
   };
+  // @deprecated
   tool_calls?: Message & {
     role: 'assistant';
     tool_calls: ToolCall[];
