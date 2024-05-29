@@ -1,5 +1,13 @@
 # ai
 
+## 3.1.17
+
+### Patch Changes
+
+- 92b993b7: ai/rsc: improve getAIState and getMutableAIState types
+- 7de628e9: chore (ui): deprecate old function/tool call handling
+- 7de628e9: feat (ui): add onToolCall handler to useChat
+
 ## 3.1.16
 
 ### Patch Changes
