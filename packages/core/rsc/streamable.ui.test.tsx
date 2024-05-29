@@ -103,7 +103,7 @@ async function recursiveResolve(val: any): Promise<any> {
   return val;
 }
 
-async function simulateFlightServerRender(node: React.ReactElement) {
+async function simulateFlightServerRender(node: React.ReactNode) {
   async function traverse(node: any): Promise<any> {
     if (!node) return {};
 
@@ -318,7 +318,8 @@ describe('rsc - createStreamableUI()', () => {
     ui.append(<div>2</div>);
     ui.append(<div>3</div>);
 
-    const currentRsolved = ui.value.props.children.props.n;
+    const currentRsolved = (ui.value as React.ReactElement).props.children.props
+      .n;
     const tryResolve1 = await Promise.race([currentRsolved, nextTick()]);
     expect(tryResolve1).toBeDefined();
     const tryResolve2 = await Promise.race([tryResolve1.next, nextTick()]);
