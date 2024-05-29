@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
 Let's take a look at what is happening in this code:
 
-1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and provides the chatbot with the necessary context to make the next generation.
+1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the chatbot and provides the chatbot with the necessary context to make the next generation.
 2. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 1). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
 3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toAIStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function which converts the result to a streamed response object.
 4. Finally, return the result to the client to stream the response.
@@ -100,7 +100,7 @@ This Route Handler creates a POST request endpoint at `/api/chat`.
 
 ## Wire up the UI
 
-Now that you have a Route Handler that can query an LLM, it's time to setup your frontend. Vercel AI SDK's [ UI ](docs/building-applications) package abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
+Now that you have a Route Handler that can query an LLM, it's time to setup your frontend. Vercel AI SDK's [ UI ](/docs/ai-sdk-ui) package abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
 
 Update your root page (`app/page.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
@@ -192,7 +192,7 @@ In this code, you:
 1. Create a new instance of `StreamData`.
 2. Append the data you want to stream alongside the model's response.
 3. Create a new AI stream with the `toAIStream` method on the `StreamTextResult` object.
-4. Listen for the onFinal callback on the AI Stream created above.
+4. Listen for the `onFinal` callback on the AI Stream created above.
 5. Pass the data alongside the stream to the new `StreamingTextResponse`.
 
 ### Update your frontend
@@ -445,6 +445,6 @@ The `ai/rsc` library is designed to give you complete control over streamable va
 
 ## Where to Next?
 
-You've built an AI chatbot using the Vercel AI SDK! Remember, your imagination is the limit when it comes to using AI to build apps, so feel free to experiment and extend the functionality of this application further.
+You've built an AI chatbot using the Vercel AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-ui/chatbot-with-tool-calling) or introducing more granular control over (AI and UI states)[/docs/ai-sdk-rsc/ai-ui-states].
 
 If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.
