@@ -10,7 +10,18 @@ export default function Chat() {
     handleInputChange,
     handleSubmit,
     experimental_addToolResult,
-  } = useChat({ api: '/api/use-chat-client-tool' });
+  } = useChat({
+    api: '/api/use-chat-tools',
+    experimental_maxAutomaticRoundtrips: 5,
+
+    // run client-side tools that are automatically executed:
+    async experimental_onToolCall2({ toolCall }) {
+      if (toolCall.toolName === 'getLocation') {
+        const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+        return cities[Math.floor(Math.random() * cities.length)];
+      }
+    },
+  });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -21,7 +32,7 @@ export default function Chat() {
           {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
             const toolCallId = toolInvocation.toolCallId;
 
-            // render confirmation tool
+            // render confirmation tool (client-side tool with user interaction)
             if (toolInvocation.toolName === 'askForConfirmation') {
               return (
                 <div key={toolCallId} className="text-gray-500">
@@ -63,7 +74,7 @@ export default function Chat() {
             // other tools:
             return 'result' in toolInvocation ? (
               <div key={toolCallId} className="text-gray-500">
-                <strong>{`${toolInvocation.toolName}: `}</strong>
+                Tool call {`${toolInvocation.toolName}: `}
                 {toolInvocation.result}
               </div>
             ) : (

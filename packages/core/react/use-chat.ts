@@ -96,6 +96,11 @@ const getStreamedResponse = async (
   streamMode?: 'stream-data' | 'text',
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
+  onToolCall?: ({
+    toolCall,
+  }: {
+    toolCall: CoreToolCall<string, unknown>;
+  }) => void | Promise<unknown> | unknown,
   sendExtraMessageFields?: boolean,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
@@ -207,6 +212,7 @@ const getStreamedResponse = async (
       mutate([...chatRequest.messages, ...merged], false);
       mutateStreamData([...(existingData || []), ...(data || [])], false);
     },
+    onToolCall,
     onFinish,
     generateId,
   });
@@ -253,11 +259,12 @@ Invoked when a tool call is received.
 You can optionally return a result for the tool call,
 either synchronously or asynchronously.
    */
+  // TODO extract type
   experimental_onToolCall2?: ({
     toolCall,
   }: {
-    toolCall: CoreToolCall<string, any>;
-  }) => void | Promise<any> | any;
+    toolCall: CoreToolCall<string, unknown>;
+  }) => void | Promise<unknown> | unknown;
 } = {}): UseChatHelpers & {
   experimental_addToolResult: ({
     toolCallId,
@@ -345,6 +352,7 @@ either synchronously or asynchronously.
               streamMode,
               onFinish,
               onResponse,
+              experimental_onToolCall2,
               sendExtraMessageFields,
             ),
           experimental_onFunctionCall,
