@@ -16,7 +16,7 @@
     "@vue/reactivity": "^3.3.4",
     "@vue/runtime-core": "^3.3.4",
     "@vue/runtime-dom": "^3.3.4",
-    "@vue/shared": "^3.3.4",
+    "@vue/shared": "^3.4.27",
     "ai": "latest",
     "nuxt": "^3.6.5",
     "openai": "4.47.1",

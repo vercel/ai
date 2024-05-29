@@ -742,8 +742,8 @@ importers:
         specifier: ^3.3.4
         version: 3.3.8
       '@vue/shared':
-        specifier: ^3.3.4
-        version: 3.3.8
+        specifier: ^3.4.27
+        version: 3.4.27
       ai:
         specifier: latest
         version: link:../../packages/core
@@ -7547,6 +7547,10 @@ packages:
 
   /@vue/shared@3.3.8:
     resolution: {integrity: sha512-8PGwybFwM4x8pcfgqEQFy70NaQxASvOC5DJwLQfpArw1UDfUXrJkdxD3BhVTMS+0Lef/TU7YO0Jvr0jJY8T+mw==}
+
+  /@vue/shared@3.4.27:
+    resolution: {integrity: sha512-DL3NmY2OFlqmYYrzp39yi3LDkKxa5vZVwxWdQ3rG0ekuWscHraeIbnI8t+aZK7qhYqEqWKTUdijadunb9pnrgA==}
+    dev: true
 
   /@vue/test-utils@2.4.2(vue@3.3.8):
     resolution: {integrity: sha512-07lLjpG1o9tEBoWQfVOFhDT7+WFCdDeECoeSdzOuVgIi6nxb2JDLGNNOV6+3crPpyg/jMlIocj96UROcgomiGg==}
@@ -14352,7 +14356,7 @@ packages:
       '@unhead/dom': 1.8.3
       '@unhead/ssr': 1.8.3
       '@unhead/vue': 1.8.3(vue@3.3.8)
-      '@vue/shared': 3.3.8
+      '@vue/shared': 3.4.27
       acorn: 8.11.2
       c12: 1.5.1
       chokidar: 3.5.3
