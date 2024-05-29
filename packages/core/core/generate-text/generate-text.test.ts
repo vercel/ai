@@ -184,3 +184,88 @@ describe('result.toolResults', () => {
     ]);
   });
 });
+
+describe('result.responseMessages', () => {
+  it('should contain assistant response message when there are no tool calls', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          return {
+            ...dummyResponseValues,
+            text: 'Hello, world!',
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    assert.deepStrictEqual(result.responseMessages, [
+      { role: 'assistant', content: [{ type: 'text', text: 'Hello, world!' }] },
+    ]);
+  });
+
+  it('should contain assistant response message and tool message when there are tool calls with results', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          return {
+            ...dummyResponseValues,
+            text: 'Hello, world!',
+            toolCalls: [
+              {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: { value: 'value' },
+                result: 'result1',
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async args => {
+            assert.deepStrictEqual(args, { value: 'value' });
+            return 'result1';
+          },
+        },
+      },
+      prompt: 'test-input',
+    });
+
+    assert.deepStrictEqual(result.responseMessages, [
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Hello, world!' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            args: { value: 'value' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            result: 'result1',
+          },
+        ],
+      },
+    ]);
+  });
+});
