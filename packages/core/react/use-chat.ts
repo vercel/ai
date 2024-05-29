@@ -412,6 +412,7 @@ either synchronously or asynchronously.
       sendExtraMessageFields,
       experimental_onFunctionCall,
       experimental_onToolCall,
+      experimental_onToolCall2,
       experimental_maxAutomaticRoundtrips,
       messagesRef,
       abortControllerRef,
