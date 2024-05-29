@@ -22,12 +22,13 @@ async function main() {
       messages.push({ role: 'user', content: userInput });
     }
 
-    const { text, toolCalls, toolResults } = await generateText({
-      model: anthropic('claude-3-opus-20240229'),
-      tools: { weatherTool },
-      system: `You are a helpful, respectful and honest assistant.`,
-      messages,
-    });
+    const { text, toolCalls, toolResults, responseMessages } =
+      await generateText({
+        model: anthropic('claude-3-opus-20240229'),
+        tools: { weatherTool },
+        system: `You are a helpful, respectful and honest assistant.`,
+        messages,
+      });
 
     toolResponseAvailable = false;
 
@@ -49,14 +50,7 @@ async function main() {
 
     process.stdout.write('\n\n');
 
-    messages.push({
-      role: 'assistant',
-      content: [{ type: 'text', text }, ...(toolCalls ?? [])],
-    });
-
-    if (toolResults.length > 0) {
-      messages.push({ role: 'tool', content: toolResults });
-    }
+    messages.push(...responseMessages);
 
     toolResponseAvailable = toolCalls.length > 0;
   }
