@@ -1,4 +1,4 @@
-import { CoreAssistantMessage, CoreMessage, CoreToolMessage } from '../prompt';
+import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
@@ -256,7 +256,12 @@ function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
   if (toolResults.length > 0) {
     responseMessages.push({
       role: 'tool',
-      content: toolResults,
+      content: toolResults.map(result => ({
+        type: 'tool-result',
+        toolCallId: result.toolCallId,
+        toolName: result.toolName,
+        result: result.result,
+      })),
     });
   }
 
