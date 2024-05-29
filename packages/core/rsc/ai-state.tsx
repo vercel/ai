@@ -64,10 +64,12 @@ export function sealMutableAIState() {
  * @example const state = getAIState() // Get the entire AI state
  * @example const field = getAIState('key') // Get the value of the key
  */
-function getAIState<AI extends AIProvider = any>(): InferAIState<AI, any>;
+function getAIState<AI extends AIProvider = any>(): Readonly<
+  InferAIState<AI, any>
+>;
 function getAIState<AI extends AIProvider = any>(
   key: keyof InferAIState<AI, any>,
-): InferAIState<AI, any>[typeof key];
+): Readonly<InferAIState<AI, any>[typeof key]>;
 function getAIState<AI extends AIProvider = any>(
   ...args: [] | [key: keyof InferAIState<AI, any>]
 ) {
@@ -183,10 +185,10 @@ function getMutableAIState<AI extends AIProvider = any>(
             )}" field from the AI state because it's not an object.`,
           );
         }
-        return store.currentState[key];
+        return store.currentState[key] as Readonly<AIStateWithKey>;
       }
 
-      return store.currentState as AIState;
+      return store.currentState as Readonly<AIState>;
     },
     update: function update(newAIState: NewStateOrUpdater) {
       doUpdate(newAIState, false);
