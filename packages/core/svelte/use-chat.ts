@@ -260,6 +260,7 @@ export function useChat({
       function_call,
       tools,
       tool_choice,
+      data
     }: ChatRequestOptions = {},
   ) => {
     if (!message.id) {
@@ -273,6 +274,7 @@ export function useChat({
       ...(function_call !== undefined && { function_call }),
       ...(tools !== undefined && { tools }),
       ...(tool_choice !== undefined && { tool_choice }),
+      ...(data !== undefined && { data })
     };
     return triggerRequest(chatRequest);
   };
