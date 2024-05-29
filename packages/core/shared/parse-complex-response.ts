@@ -1,7 +1,12 @@
 import { generateId as generateIdFunction } from './generate-id';
 import { readDataStream } from './read-data-stream';
-import type { FunctionCall, JSONValue, Message, ToolCall } from './types';
-import { ToolCall as CoreToolCall } from '../core/generate-text/tool-call';
+import type {
+  FunctionCall,
+  JSONValue,
+  Message,
+  ToolCall,
+  UseChatOptions,
+} from './types';
 
 type PrefixMap = {
   text?: Message;
@@ -38,11 +43,7 @@ export async function parseComplexResponse({
     current: AbortController | null;
   };
   update: (merged: Message[], data: JSONValue[] | undefined) => void;
-  onToolCall?: ({
-    toolCall,
-  }: {
-    toolCall: CoreToolCall<string, unknown>;
-  }) => void | Promise<unknown> | unknown;
+  onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (prefixMap: PrefixMap) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;

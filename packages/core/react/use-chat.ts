@@ -96,11 +96,7 @@ const getStreamedResponse = async (
   streamMode?: 'stream-data' | 'text',
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
-  onToolCall?: ({
-    toolCall,
-  }: {
-    toolCall: CoreToolCall<string, unknown>;
-  }) => void | Promise<unknown> | unknown,
+  onToolCall?: UseChatOptions['onToolCall'],
   sendExtraMessageFields?: boolean,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
@@ -226,7 +222,7 @@ export function useChat({
   sendExtraMessageFields,
   experimental_onFunctionCall,
   experimental_onToolCall,
-  experimental_onToolCall2,
+  onToolCall,
   experimental_maxAutomaticRoundtrips = 0,
   streamMode,
   onResponse,
@@ -252,19 +248,6 @@ case of misconfigured tools.
 By default, it's set to 0, which will disable the feature.
    */
   experimental_maxAutomaticRoundtrips?: number;
-
-  /**
-Invoked when a tool call is received.
-
-You can optionally return a result for the tool call,
-either synchronously or asynchronously.
-   */
-  // TODO extract type
-  experimental_onToolCall2?: ({
-    toolCall,
-  }: {
-    toolCall: CoreToolCall<string, unknown>;
-  }) => void | Promise<unknown> | unknown;
 } = {}): UseChatHelpers & {
   experimental_addToolResult: ({
     toolCallId,
@@ -352,7 +335,7 @@ either synchronously or asynchronously.
               streamMode,
               onFinish,
               onResponse,
-              experimental_onToolCall2,
+              onToolCall,
               sendExtraMessageFields,
             ),
           experimental_onFunctionCall,
@@ -412,7 +395,7 @@ either synchronously or asynchronously.
       sendExtraMessageFields,
       experimental_onFunctionCall,
       experimental_onToolCall,
-      experimental_onToolCall2,
+      onToolCall,
       experimental_maxAutomaticRoundtrips,
       messagesRef,
       abortControllerRef,

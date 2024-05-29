@@ -15,7 +15,7 @@ export default function Chat() {
     experimental_maxAutomaticRoundtrips: 5,
 
     // run client-side tools that are automatically executed:
-    async experimental_onToolCall2({ toolCall }) {
+    async onToolCall({ toolCall }) {
       if (toolCall.toolName === 'getLocation') {
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
         return cities[Math.floor(Math.random() * cities.length)];
