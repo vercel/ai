@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
+import { ToolCall as CoreToolCall } from '../core/generate-text/tool-call';
 import { callChatApi } from '../shared/call-chat-api';
 import { generateId as generateIdFunc } from '../shared/generate-id';
 import { processChatStream } from '../shared/process-chat-stream';
@@ -219,6 +220,7 @@ export function useChat({
   sendExtraMessageFields,
   experimental_onFunctionCall,
   experimental_onToolCall,
+  experimental_onToolCall2,
   experimental_maxAutomaticRoundtrips = 0,
   streamMode,
   onResponse,
@@ -244,6 +246,18 @@ case of misconfigured tools.
 By default, it's set to 0, which will disable the feature.
    */
   experimental_maxAutomaticRoundtrips?: number;
+
+  /**
+Invoked when a tool call is received.
+
+You can optionally return a result for the tool call,
+either synchronously or asynchronously.
+   */
+  experimental_onToolCall2?: ({
+    toolCall,
+  }: {
+    toolCall: CoreToolCall<string, any>;
+  }) => void | Promise<any> | any;
 } = {}): UseChatHelpers & {
   experimental_addToolResult: ({
     toolCallId,
