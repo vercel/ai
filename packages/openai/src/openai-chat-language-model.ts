@@ -16,10 +16,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
+import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import { openaiFailedResponseHandler } from './openai-error';
-import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -96,20 +96,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        // when the tools array is empty, change it to undefined to prevent OpenAI errors:
-        const tools = mode.tools?.length ? mode.tools : undefined;
-
-        return {
-          ...baseArgs,
-          tools: tools?.map(tool => ({
-            type: 'function',
-            function: {
-              name: tool.name,
-              description: tool.description,
-              parameters: tool.parameters,
-            },
-          })),
-        };
+        return { ...baseArgs, ...prepareToolsAndToolChoice(mode) };
       }
 
       case 'object-json': {
@@ -426,10 +413,6 @@ const openAIChatResponseSchema = z.object({
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiChatChunkSchema = z.object({
-  object: z.enum([
-    'chat.completion.chunk',
-    'chat.completion', // support for OpenAI-compatible providers such as Perplexity
-  ]),
   choices: z.array(
     z.object({
       delta: z.object({
@@ -480,3 +463,54 @@ const openaiChatChunkSchema = z.object({
     .optional()
     .nullable(),
 });
+
+function prepareToolsAndToolChoice(
+  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+    type: 'regular';
+  },
+) {
+  // when the tools array is empty, change it to undefined to prevent errors:
+  const tools = mode.tools?.length ? mode.tools : undefined;
+
+  if (tools == null) {
+    return { tools: undefined, tool_choice: undefined };
+  }
+
+  const mappedTools = tools.map(tool => ({
+    type: 'function',
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+    },
+  }));
+
+  const toolChoice = mode.toolChoice;
+
+  if (toolChoice == null) {
+    return { tools: mappedTools, tool_choice: undefined };
+  }
+
+  const type = toolChoice.type;
+
+  switch (type) {
+    case 'auto':
+    case 'none':
+    case 'required':
+      return { tools: mappedTools, tool_choice: type };
+    case 'tool':
+      return {
+        tools: mappedTools,
+        tool_choice: {
+          type: 'function',
+          function: {
+            name: toolChoice.toolName,
+          },
+        },
+      };
+    default: {
+      const _exhaustiveCheck: never = type;
+      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
+    }
+  }
+}

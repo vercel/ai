@@ -1,13 +1,21 @@
 import { generateId as generateIdFunction } from './generate-id';
 import { readDataStream } from './read-data-stream';
-import type { FunctionCall, JSONValue, Message, ToolCall } from './types';
+import type {
+  FunctionCall,
+  JSONValue,
+  Message,
+  ToolCall,
+  UseChatOptions,
+} from './types';
 
 type PrefixMap = {
   text?: Message;
+  // @deprecated
   function_call?: Message & {
     role: 'assistant';
     function_call: FunctionCall;
   };
+  // @deprecated
   tool_calls?: Message & {
     role: 'assistant';
     tool_calls: ToolCall[];
@@ -27,6 +35,7 @@ export async function parseComplexResponse({
   reader,
   abortControllerRef,
   update,
+  onToolCall,
   onFinish,
   generateId = generateIdFunction,
   getCurrentDate = () => new Date(),
@@ -36,6 +45,7 @@ export async function parseComplexResponse({
     current: AbortController | null;
   };
   update: (merged: Message[], data: JSONValue[] | undefined) => void;
+  onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (prefixMap: PrefixMap) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;
@@ -85,6 +95,24 @@ export async function parseComplexResponse({
       }
 
       prefixMap.text.toolInvocations.push(value);
+
+      // invoke the onToolCall callback if it exists. This is blocking.
+      // In the future we should make this non-blocking, which
+      // requires additional state management for error handling etc.
+      if (onToolCall) {
+        console.log('onToolCall', value);
+
+        const result = await onToolCall({ toolCall: value });
+
+        console.log('onToolCall result', result);
+
+        if (result != null) {
+          // store the result in the tool invocation
+          prefixMap.text.toolInvocations[
+            prefixMap.text.toolInvocations.length - 1
+          ] = { ...value, result };
+        }
+      }
     } else if (type === 'tool_result') {
       // create message if it doesn't exist
       if (prefixMap.text == null) {

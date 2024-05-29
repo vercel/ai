@@ -5,16 +5,16 @@ description: Overview of the AI and UI states
 
 # Designing Multistep Interfaces
 
-Multistep interfaces refer to user interfaces that require multiple independent steps to be completed in order to achieve a specific task.
+Multistep interfaces refer to user interfaces that require multiple independent steps to be executed in order to complete a specific task.
 
 In order to understand multistep interfaces, it is important to understand two concepts:
 
 - Function composition
 - Application context
 
-Function composition is the process of combining multiple functions to create a new function. This is a powerful concept that allows you to break down complex tasks into smaller, more manageable steps.
+**Function composition** is the process of combining multiple functions to create a new function. This is a powerful concept that allows you to break down complex tasks into smaller, more manageable steps.
 
-Application context refers to the state of the application at any given point in time. This includes the user's input, the output of the language model, and any other relevant information.
+**Application context** refers to the state of the application at any given point in time. This includes the user's input, the output of the language model, and any other relevant information.
 
 When designing multistep interfaces, you need to consider how the functions in your application can be composed together to form a coherent user experience as well as how the application context changes as the user progresses through the interface.
 
@@ -22,7 +22,7 @@ When designing multistep interfaces, you need to consider how the functions in y
 
 The application context can be thought of as the conversation history between the user and the language model. The richer the context, the more information the model has to generate relevant responses.
 
-In the context of multistep interfaces, the application context becomes even more important. This is because the user's input in one step may affect the output of the model in the next step.
+In the context of multistep interfaces, the application context becomes even more important. This is because **the user's input in one step may affect the output of the model in the next step**.
 
 For example, consider a meal logging application that helps users track their daily food intake. The language model is provided with the following functions:
 
@@ -78,7 +78,7 @@ Function: searchFlights("New York", "London")
 Model: Here are the available flights from New York to London.
 User: I want to book flight number BA123 on 12th December for myself and my wife.
 Function: lookupFlight("BA123") -> "4 seats available"
-Model: Sure, there are seats available! can you provide the names of the passengers?
+Model: Sure, there are seats available! Can you provide the names of the passengers?
 User: John Doe and Jane Doe.
 Function: bookFlight("BA123", "12th December", ["John Doe", "Jane Doe"])
 Model: Your flight has been booked!
@@ -113,3 +113,164 @@ Model: Your wife's flight BA123 is confirmed and scheduled to depart on 12th Dec
 In this example, the `lookupBooking` function is used to provide the user with the status of their wife's upcoming flight. By composing this function with the existing functions, the model is able to generate a response that includes the booking status and the departure date of the flight without requiring the user to provide additional information.
 
 As a result, the more functions you design that can be composed together, the more complex and powerful your application can become.
+
+## Implementation
+
+The turn-by-turn implementation is the simplest form of multistep interfaces. In this implementation, the user and the model take turns during the conversation. For every user input, the model generates a response, and the conversation continues in this turn-by-turn fashion.
+
+In the following example, we specify two tools `searchFlights` and `lookupFlight` that the model can use to search for flights and lookup details for a specific flight.
+
+```tsx filename="actions.ts"
+import { createAI, streamUI } from 'ai/rsc';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+const searchFlights = async (
+  source: string,
+  destination: string,
+  date: string,
+) => {
+  return [
+    {
+      id: '1',
+      flightNumber: 'AA123',
+    },
+    {
+      id: '2',
+      flightNumber: 'AA456',
+    },
+  ];
+};
+
+const lookupFlight = async (flightNumber: string) => {
+  return {
+    flightNumber: flightNumber,
+    departureTime: '10:00 AM',
+    arrivalTime: '12:00 PM',
+  };
+};
+
+export async function submitUserMessage(input: string) {
+  'use server';
+
+  const ui = await streamUI({
+    model: openai('gpt-4-turbo'),
+    system: 'you are a flight booking assistant',
+    prompt: input,
+    text: async function ({ delta }) {
+      return delta;
+    },
+    tools: {
+      searchFlights: {
+        description: 'search for flights',
+        parameters: z.object({
+          source: z.string().describe('The origin of the flight'),
+          destination: z.string().describe('The destination of the flight'),
+          date: z.string().describe('The date of the flight'),
+        }),
+        generate: async function* ({ source, destination, date }) {
+          yield `Searching for flights from ${source} to ${destination} on ${date}...`;
+          const results = await searchFlights(source, destination, date);
+
+          return (
+            <div>
+              {results.map(result => (
+                <div key={result.id}>
+                  <div>{result.flightNumber}</div>
+                </div>
+              ))}
+            </div>
+          );
+        },
+      },
+      lookupFlight: {
+        description: 'lookup details for a flight',
+        parameters: z.object({
+          flightNumber: z.string().describe('The flight number'),
+        }),
+        generate: async function* ({ flightNumber }) {
+          yield `Looking up details for flight ${flightNumber}...`;
+          const details = await lookupFlight(flightNumber);
+
+          return (
+            <div>
+              <div>{details.flightNumber}</div>
+              <div>{details.departureTime}</div>
+              <div>{details.arrivalTime}</div>
+            </div>
+          );
+        },
+      },
+    },
+  });
+
+  return {
+    display: ui.value,
+  };
+}
+
+export const AI = createAI<any[], ReactNode[]>({
+  initialUIState: [],
+  initialAIState: [],
+  actions: {
+    submitUserMessage,
+  },
+});
+```
+
+During the conversation, you will notice that the model calls a tool for every user message. Since we're streaming user interfaces, it is possible to replace a user message with a user interaction, like a button click, to trigger the next step in the conversation.
+
+To support user interactions, we will have to convert the component into a client component and use the `useAction` hook to trigger the next step in the conversation.
+
+```tsx filename="components/flights.tsx"
+'use client';
+
+import { useActions, useUIState } from 'ai/rsc';
+import { ReactNode } from 'react';
+
+export const Flights = ({ results }: { results: any[] }) => {
+  const { submitUserMessage } = useActions();
+  const [, setMessages] = useUIState();
+
+  return (
+    <div>
+      {results.map(result => (
+        <div key={result.id}>
+          <div
+            onClick={async () => {
+              const { display } = await submitUserMessage(
+                `lookupFlight ${result.flightNumber}`,
+              );
+
+              setMessages((messages: ReactNode[]) => [...messages, display]);
+            }}
+          >
+            {result.flightNumber}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+```tsx filename="actions.ts"
+...
+searchFlights: {
+  description: 'search for flights',
+  parameters: z.object({
+    source: z.string().describe('The origin of the flight'),
+    destination: z.string().describe('The destination of the flight'),
+    date: z.string().describe('The date of the flight'),
+  }),
+  generate: async function* ({ source, destination, date }) {
+    yield `Searching for flights from ${source} to ${destination} on ${date}...`;
+    const results = await searchFlights(source, destination, date);
+
+    return (<Flights results={results} />);
+  },
+}
+...
+```
+
+In the above example, the `Flights` component is used to display the search results. When the user clicks on a flight number, the `lookupFlight` function is called with the flight number as a parameter. The `submitUserMessage` action is then called to trigger the next step in the conversation.

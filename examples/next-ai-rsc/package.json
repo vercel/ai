@@ -31,7 +31,7 @@
     "openai": "^4.47.1",
     "react": "^18",
     "react-dom": "^18",
-    "react-intersection-observer": "^9.8.0",
+    "react-intersection-observer": "^9.10.2",
     "react-textarea-autosize": "^8.5.3",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7",

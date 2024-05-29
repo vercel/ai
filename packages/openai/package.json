@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/openai",
-  "version": "0.0.14",
+  "version": "0.0.17",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,8 +29,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.6",
-    "@ai-sdk/provider-utils": "0.0.9"
+    "@ai-sdk/provider": "0.0.8",
+    "@ai-sdk/provider-utils": "0.0.11"
   },
   "devDependencies": {
     "@types/node": "^18",
@@ -41,11 +41,6 @@
   },
   "peerDependencies": {
     "zod": "^3.0.0"
-  },
-  "peerDependenciesMeta": {
-    "zod": {
-      "optional": true
-    }
   },
   "engines": {
     "node": ">=18"

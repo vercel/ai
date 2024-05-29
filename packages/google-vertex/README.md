@@ -1,8 +1,6 @@
 # Vercel AI SDK - Google Vertex AI Provider
 
-The Google provider for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
-It creates language model objects that can be used with the `generateText` and `streamText` AI functions.
-Tool calls are currently not supported.
+The **[Google Vertex provider](https://sdk.vercel.ai/providers/ai-sdk-providers/google-vertex)** for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
 
 ## Setup
 
@@ -20,12 +18,18 @@ You can import the default provider instance `vertex` from `@ai-sdk/google-verte
 import { vertex } from '@ai-sdk/google-vertex';
 ```
 
-If you need a customized setup, you can import `createVertex` from `@ai-sdk/google-vertex` and create a provider instance with your settings:
+## Example
 
 ```ts
-import { createVertex } from '@ai-sdk/google-vertex';
+import { vertex } from '@ai-sdk/google-vertex'
+import { generateText } from 'ai'
 
-const vertex = createVertex({
-  // custom settings
-});
+const { text } = await generateText({
+  model: vertex('gemini-1.0-pro')
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
+})
 ```
+
+## Documentation
+
+Please check out the **[Google Vertex provider](https://sdk.vercel.ai/providers/ai-sdk-providers/google-vertex)** for more information.

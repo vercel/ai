@@ -7,11 +7,14 @@ description: Overview of the AI and UI states
 
 There is a recurring pattern of having a state for the language model on the server, and a state for the UI on the client. However, it can get tricky to manage these two states separately and keep them in sync.
 
-For example, in a chat application, the **AI state** is usually the conversation history (messages) between the user and the assistant. The LLM reads this history so it can generate the next message. This value is also the source of truth for the current application state. On the client side, the **UI state** is the list of actual UI elements that are displayed to the user.
+For example, in a chat application:
+
+- The **AI state** is usually the conversation history (messages) between the user and the assistant. The LLM reads this history so it can generate the next message. This value is also the source of truth for the current application state.
+- On the client side, the **UI state** is the list of actual UI elements that are displayed to the user.
 
 In traditional text-based chat applications, the displayed UI elements are just plain text. They are identical to the conversation history passed to the AI. However with Generative UI, what gets presented to the user can be more complex, dynamic and hybrid than just plain text. This is where the AI and UI states can diverge.
 
-The RSC API gives you the flexibility to manage these two states separately, while providing a way to keep them in sync between your database, server and client.
+The RSC API gives you the flexibility to **manage these two states separately, while providing a way to keep them in sync between your database, server and client**.
 
 ## AI State
 
@@ -19,11 +22,11 @@ It contains the context the language model needs to read. For a chat app, the AI
 
 ## UI State
 
-It contains the generated UI and other information for the client-side of the application, that is displayed to the user. It is a fully client-side state (similar to `useState`) that can store anything from JS values to React elements. It can't be accessed from the server-side.
+It contains the generated UI and other information for the client-side of the application that is displayed to the user. It is a fully client-side state (similar to `useState`) that can store anything from JS values to React elements. It can't be accessed from the server-side.
 
 ## Creating the AI Context
 
-To start, you need create an React context using [`createAI`](/docs/reference/ai-sdk-rsc/create-ai), and wrap your application with it. Then, the AI and UI states will be available to all its children:
+To start, you need to create a React context using [`createAI`](/docs/reference/ai-sdk-rsc/create-ai), and wrap your application with it. Then, the AI and UI states will be available to all its children:
 
 ```tsx filename='app/actions.tsx'
 // Define the AI state and UI state types
@@ -56,7 +59,7 @@ export const AI = createAI({
 
 ## Using the AI Context
 
-The AI context can be used in any Server Component, to wrap the children components that need access to the AI. For example, you can wrap your root layout component with it
+The AI context can be used in any Server Component, to wrap the children components that need access to the AI. For example, you can wrap your root layout component with it:
 
 ```tsx filename='app/layout.tsx'
 import { type ReactNode } from 'react';
@@ -215,3 +218,5 @@ export default function Page() {
 ```
 
 When the user submits a message, the `sendMessage` action is called with the message content. The response from the action is then added to the UI state, updating the displayed messages.
+
+To learn more, check out this (example)[/examples/next-app/state-management/ai-ui-states] on managing AI and UI state using `ai/rsc`.

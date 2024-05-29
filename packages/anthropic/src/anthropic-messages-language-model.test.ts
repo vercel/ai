@@ -216,6 +216,57 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass tools and toolChoice', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'test-tool',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'claude-3-haiku-20240307',
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      max_tokens: 4096,
+      tools: [
+        {
+          name: 'test-tool',
+          input_schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      tool_choice: {
+        type: 'tool',
+        name: 'test-tool',
+      },
+    });
+  });
+
   it('should pass custom headers', async () => {
     prepareJsonResponse({ content: [] });
 

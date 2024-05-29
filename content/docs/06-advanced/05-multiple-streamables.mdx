@@ -42,7 +42,7 @@ The client side code is similar to the previous example, but the function call w
 
 ## Nested Streamable UIs
 
-You can stream UI components within other UI components. This allows you to create complex UIs that are built up from smaller, reusable components. In the example below, we pass a historyChart streamable as a prop to a StockCard component. The StockCard can render the historyChart streamable, and it will automatically update as the server responds with new data.
+You can stream UI components within other UI components. This allows you to create complex UIs that are built up from smaller, reusable components. In the example below, we pass a `historyChart` streamable as a prop to a `StockCard` component. The StockCard can render the `historyChart` streamable, and it will automatically update as the server responds with new data.
 
 ```tsx file='app/actions.ts'
 async function getStockHistoryChart({ symbol: string }) {

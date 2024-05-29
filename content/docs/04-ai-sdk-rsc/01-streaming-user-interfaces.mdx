@@ -36,11 +36,11 @@ export async function getWeather() {
 }
 ```
 
-In the example above, `'use server'` is used to indicate that the exported function is a Server Action function that can be requested by the client. Initially, we create a streamable UI and update it with a loading message. After 1 second, we mark it as done with the actual weather information. And the `.value` property contains the actual UI piece that can be sent to the client.
+In the example above, `'use server'` is used to indicate that the exported function is a Server Action that can be requested by the client. Initially, we create a streamable UI and update it with a loading message. After 1 second, we mark it as done with the actual weather information. And the `.value` property contains the actual UI piece that can be sent to the client.
 
 ## Reading a Streamable UI
 
-On the client side, you can request to the `getWeather` Server Action via a normal function call, render the returned UI like any other normal React components.
+On the client side, you can call the `getWeather` Server Action and render the returned UI like any other React component.
 
 ```tsx file='app/page.tsx'
 import { useState } from 'react';
@@ -69,4 +69,4 @@ export default function Page() {
 
 When the button is clicked, the `getWeather` function is called, and the returned UI is set to the `weather` state and rendered on the page. Users will see the loading message first and then the actual weather information after 1 second.
 
-You can also handle multiple streams in a single request, you can learn more about it in the [Multiple Streamables](/docs/advanced/multiple-streamables) guide.
+Learn more about handling multiple streams in a single request in the [Multiple Streamables](/docs/advanced/multiple-streamables) guide.

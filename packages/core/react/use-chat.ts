@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
+import { ToolCall as CoreToolCall } from '../core/generate-text/tool-call';
 import { callChatApi } from '../shared/call-chat-api';
 import { generateId as generateIdFunc } from '../shared/generate-id';
 import { processChatStream } from '../shared/process-chat-stream';
@@ -95,6 +96,7 @@ const getStreamedResponse = async (
   streamMode?: 'stream-data' | 'text',
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
+  onToolCall?: UseChatOptions['onToolCall'],
   sendExtraMessageFields?: boolean,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
@@ -206,6 +208,7 @@ const getStreamedResponse = async (
       mutate([...chatRequest.messages, ...merged], false);
       mutateStreamData([...(existingData || []), ...(data || [])], false);
     },
+    onToolCall,
     onFinish,
     generateId,
   });
@@ -219,6 +222,7 @@ export function useChat({
   sendExtraMessageFields,
   experimental_onFunctionCall,
   experimental_onToolCall,
+  onToolCall,
   experimental_maxAutomaticRoundtrips = 0,
   streamMode,
   onResponse,
@@ -331,6 +335,7 @@ By default, it's set to 0, which will disable the feature.
               streamMode,
               onFinish,
               onResponse,
+              onToolCall,
               sendExtraMessageFields,
             ),
           experimental_onFunctionCall,
@@ -390,6 +395,7 @@ By default, it's set to 0, which will disable the feature.
       sendExtraMessageFields,
       experimental_onFunctionCall,
       experimental_onToolCall,
+      onToolCall,
       experimental_maxAutomaticRoundtrips,
       messagesRef,
       abortControllerRef,

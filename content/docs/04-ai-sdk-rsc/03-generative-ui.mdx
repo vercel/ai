@@ -11,14 +11,14 @@ In this section we will learn more about generative user interfaces and their im
 
 ## Deterministic Routes and Probabilistic Routing
 
-The first implication of user interfaces being generative is that they are not deterministic in nature. This is because they depend on the generation output by the model. Since these generations are probabilistic in nature, it is possible for every user query to result in a different user interface being generated.
+Generative user interfaces are not deterministic in nature because they depend on the model's generation output. Since these generations are probabilistic in nature, it is possible for every user query to result in a different user interface.
 
-Users expect their experience using your application to be predictable, so non-deterministic user interfaces can sound like a bad idea at first. However, one way language models can be set up to limit their generations to a particular set of outputs is to use their ability to call functions.
+Users expect their experience using your application to be predictable, so non-deterministic user interfaces can sound like a bad idea at first. However, language models can be set up to limit their generations to a particular set of outputs using their ability to call functions.
 
-When language models are provided with a set of function definitions, and instructed that it can choose to execute any of them based on user query, it does either one of the following two things:
+When language models are provided with a set of function definitions and instructed to execute any of them based on user query, they do either one of the following things:
 
 - Execute a function that is most relevant to the user query.
-- Not execute any function if the user query is out of bounds the set of functions available to them.
+- Not execute any function if the user query is out of bounds of the set of functions available to them.
 
 ```tsx filename='app/actions.ts'
 const sendMessage = (prompt: string) =>
@@ -77,13 +77,13 @@ With generative user interfaces, the language model decides which user interface
 
 ### Routing by parameters
 
-For routes like
+For routes like:
 
 - `/profile/[username]`
 - `/search?q=[query]`
 - `/media/[id]`
 
-that has segments that are dependent on dynamic data, the language model can generate the correct parameters and render the user interface.
+that have segments dependent on dynamic data, the language model can generate the correct parameters and render the user interface.
 
 For example, when you're in a search application, you can ask the language model to search for artworks from different artists. The language model will call the search function with the artist's name as a parameter and render the search results.
 
@@ -116,3 +116,5 @@ For example, when you're in a calendar application, you can ask the language mod
 </div>
 
 Just by defining functions to lookup contacts, pull events from a calendar, and search for nearby locations, the model is able to sequentially navigate the routes for you.
+
+To learn more, check out these (examples)[/examples/next-app/interface] using the `streamUI` function to stream generative user interfaces to the client based on the response from the language model.
