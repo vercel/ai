@@ -9,20 +9,190 @@ Allows you to easily create a conversational user interface for your chatbot app
 
 ## Import
 
-### React
+<Tabs items={['React', 'Svelte', 'Vue', 'Solid']}>
+  <Tab>
+    <Snippet text="{`import { useChat } from 'ai/react'`}" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="{`import { useChat } from 'ai/svelte'`}" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="{`import { useChat } from 'ai/vue'`}" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="{`import { useChat } from 'ai/solid'`}" dark />
+  </Tab>
+</Tabs>
 
-<Snippet text={`import { useChat } from "ai/react"`} prompt={false} />
+## API Signature
 
-### Svelte
+### Parameters
 
-<Snippet text={`import { useChat } from "ai/svelte"`} prompt={false} />
+<PropertiesTable
+  content={[
+    {
+      name: 'api',
+      type: "string = '/api/chat'",
+      description: 'The chat completion API endpoint offered by the provider.',
+    },
+    {
+      name: 'id',
+      type: 'string',
+      description:
+        'An unique identifier for the chat. If not provided, a random one will be generated. When provided, the `useChat` hook with the same `id` will have shared states across components. This is useful when you have multiple components showing the same chat stream.',
+    },
+    {
+      name: 'initialInput',
+      type: "string = ''",
+      description: 'An optional string for the initial prompt input.',
+    },
+    {
+      name: 'initialMessages',
+      type: 'Messages[] = []',
+      description: 'An optional array of initial chat messages',
+    },
+    {
+      name: 'onToolCall',
+      type: '({toolCall: ToolCall}) => void | unknown| Promise<unknown>',
+      description:
+        'Optional callback function that is invoked when a tool call is received. Intended for automatic client-side tool execution. You can optionally return a result for the tool call, either synchronously or asynchronously.',
+    },
+    {
+      name: 'onResponse',
+      type: '(response: Response) => void',
+      description:
+        'An optional callback that will be called with the response from the API endpoint. Useful for throwing customized errors or logging',
+    },
+    {
+      name: 'onFinish',
+      type: '(message: Message) => void',
+      description:
+        'An optional callback function that is called when the completion stream ends.',
+    },
+    {
+      name: 'onError',
+      type: '(error: Error) => void',
+      description:
+        'An optional callback that will be called when the chat stream encounters an error.',
+    },
+    {
+      name: 'generateId',
+      type: '() => string',
+      description: `Optional. A way to provide a function that is going to be used for ids for messages. If not provided nanoid is used by default.`,
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string> | Headers',
+      description:
+        'An optional object of headers to be passed to the API endpoint.',
+    },
+    {
+      name: 'body',
+      type: 'any',
+      description:
+        'An optional, additional body object to be passed to the API endpoint.',
+    },
+    {
+      name: 'credentials',
+      type: "'omit' | 'same-origin' | 'include'",
+      description:
+        'An optional literal that sets the mode of credentials to be used on the request. Defaults to same-origin.',
+    },
+    {
+      name: 'sendExtraMessageFields',
+      type: 'boolean',
+      description:
+        "An optional boolean that determines whether to send extra fields you've added to `messages`. Defaults to `false` and only the `content` and `role` fields will be sent to the API endpoint.",
+    },
+    {
+      name: 'experimental_maxAutomaticRoundtrips',
+      type: 'number',
+      description:
+        'React only. Maximal number of automatic roundtrips for tool calls. An automatic tool call roundtrip is a call to the server with the  tool call results when all tool calls in the last assistant  message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
+    },
+  ]}
+/>
 
-### Vue
+### Returns
 
-<Snippet text={`import { useChat } from "ai/vue"`} prompt={false} />
+<PropertiesTable
+  content={[
+    {
+      name: 'messages',
+      type: 'Message[]',
+      description: 'The current array of chat messages.',
+    },
+    {
+      name: 'error',
+      type: 'Error | undefined',
+      description: 'An error object returned by SWR, if any.',
+    },
+    {
+      name: 'append',
+      type: '(message: Message | CreateMessage, chatRequestOptions: { options: { headers, body } }) => Promise<string | undefined>',
+      description:
+        'Function to append a message to the chat, triggering an API call for the AI response. It returns a promise that resolves to full response message content when the API call is successfully finished, or throws an error when the API call fails.',
+    },
+    {
+      name: 'reload',
+      type: '() => Promise<string | undefined>',
+      description:
+        "Function to reload the last AI chat response for the given chat history. If the last message isn't from the assistant, it will request the API to generate a new response.",
+    },
+    {
+      name: 'stop',
+      type: '() => void',
+      description: 'Function to abort the current API request.',
+    },
+    {
+      name: 'setMessages',
+      type: '(messages: Message[]) => void',
+      description:
+        'Function to update the `messages` state locally without triggering an API call.',
+    },
+    {
+      name: 'input',
+      type: 'string',
+      description: 'The current value of the input field.',
+    },
+    {
+      name: 'setInput',
+      type: 'React.Dispatch<React.SetStateAction<string>>',
+      description: 'Function to update the `input` value.',
+    },
+    {
+      name: 'handleInputChange',
+      type: '(event: any) => void',
+      description:
+        "Handler for the `onChange` event of the input field to control the input's value.",
+    },
+    {
+      name: 'handleSubmit',
+      type: '(event: React.FormEvent<HTMLFormElement>, chatRequestOptions?: ChatRequestOptions) => void',
+      description:
+        'Form submission handler that automatically resets the input field and appends a user message. You can use the `options` parameter to send additional data, headers and more to the server.',
+    },
+    {
+      name: 'isLoading',
+      type: 'boolean',
+      description:
+        'Boolean flag indicating whether a request is currently in progress.',
+    },
+    {
+      name: 'data',
+      type: 'JSONValue[]',
+      description: 'Data returned from experimental_StreamData',
+    },
+    {
+      name: 'experimental_addToolResult',
+      type: '({toolCallId: string; result: any;}) => void',
+      description:
+        'React only. Function to add a tool result to the chat. This will update the chat messages with the tool result and call the API route if all tool results for the last message are available.',
+    },
+  ]}
+/>
 
-### Solid
+## Learn more
 
-<Snippet text={`import { useChat } from "ai/solid"`} prompt={false} />
-
-<ReferenceTable packageName="react" functionName="useChat" />
+- [Chatbot](/docs/ai-sdk-ui/chatbot)
+- [Chatbot with Tools](/docs/ai-sdk-ui/chatbot-with-tool-calling)

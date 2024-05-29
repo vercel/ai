@@ -268,7 +268,7 @@ export type UseChatOptions = {
   experimental_onToolCall?: ToolCallHandler;
 
   /**
-Callback function that is invoked when a tool call is received.
+Optional callback function that is invoked when a tool call is received.
 Intended for automatic client-side tool execution.
 
 You can optionally return a result for the tool call,
