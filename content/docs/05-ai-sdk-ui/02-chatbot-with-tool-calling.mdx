@@ -191,12 +191,12 @@ export default function Chat() {
 
             // other tools:
             return 'result' in toolInvocation ? (
-              <div key={toolCallId}
+              <div key={toolCallId}>
                 Tool call {`${toolInvocation.toolName}: `}
                 {toolInvocation.result}
               </div>
             ) : (
-              <div key={toolCallId}
+              <div key={toolCallId}>
                 Calling {toolInvocation.toolName}...
               </div>
             )
