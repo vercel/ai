@@ -1,12 +1,3 @@
----
-title: AI SDK RSC
-description: Overview of the AI RSC
----
-
-import { UIPreviewCard, Card } from '@/components/home/card';
-import { EventPlanning } from '@/components/event-planning';
-import { Searching } from '@/components/home/searching';
-
 # AI SDK RSC Overview
 
 [React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components) (RSC) allow you to write UI that can be rendered on the server and streamed to the client. This allows language model generations and UI updates to be done from the server, making it easier to work with them in the same place and keep them in sync.
@@ -125,11 +116,11 @@ To recap, an application has to go through the following steps to render user in
 3. The tool call returns a JSON object that represents the user interface.
 4. The response is sent to the client.
 5. The client receives the response and checks if the latest message was a tool call.
-6. If it was a tool call, the client renders the user interface based on the JSON object returned by the function call.
+6. If it was a tool call, the client renders the user interface based on the JSON object returned by the tool call.
 
-Most applications have multiple functions that are called by the language model, and each function can return a different user interface.
+Most applications have multiple tools that are called by the language model, and each tool can return a different user interface.
 
-For example, a function that searches for courses can return a list of courses, while a function that searches for people can return a list of people. As this list grows, the complexity of your application will grow as well and it can become increasingly difficult to manage these user interfaces.
+For example, a tool that searches for courses can return a list of courses, while a tool that searches for people can return a list of people. As this list grows, the complexity of your application will grow as well and it can become increasingly difficult to manage these user interfaces.
 
 ```tsx filename='app/page.tsx'
 {
