@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.18
+
+### Patch Changes
+
+- fb42e760: feat (provider/openai): send user message content as text when possible
+
 ## 0.0.17
 
 ### Patch Changes

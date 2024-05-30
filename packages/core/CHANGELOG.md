@@ -1,5 +1,12 @@
 # ai
 
+## 3.1.21
+
+### Patch Changes
+
+- 213f2411: fix (core,streams): support ResponseInit variants
+- 09698bca: chore (streams): deprecate streaming helpers that have a provider replacement
+
 ## 3.1.20
 
 ### Patch Changes
