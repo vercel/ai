@@ -19,7 +19,7 @@ export function convertToOpenAIChatMessages(
       }
 
       case 'user': {
-        if (compatibility === 'strict') {
+        if (content.some(part => part.type === 'image')) {
           messages.push({
             role: 'user',
             content: content.map(part => {
@@ -46,22 +46,10 @@ export function convertToOpenAIChatMessages(
         } else {
           messages.push({
             role: 'user',
-            content: content
-              .map(part => {
-                switch (part.type) {
-                  case 'text': {
-                    return part.text;
-                  }
-                  case 'image': {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'image-part',
-                    });
-                  }
-                }
-              })
-              .join(''),
+            content: content.map(part => (part.type === 'text' ? part.text : '')).join(''),
           });
         }
+        
         break;
       }
 
