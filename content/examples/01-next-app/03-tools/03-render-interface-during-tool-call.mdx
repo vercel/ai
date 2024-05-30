@@ -1,11 +1,11 @@
 ---
-title: Render Interface during Function Call
-description: Learn to render a React component during a function call using the Vercel AI SDK in your Next.js application
+title: Render Interface during Tool Call
+description: Learn to render a React component during a tool call using the Vercel AI SDK in your Next.js application
 ---
 
-# Render Interface During Function Call
+# Render Interface During Tool Call
 
-An interesting consequence of language models that can call functions is that this ability can be used to render visual interfaces by streaming React components to the client.
+An interesting consequence of language models that can call tools is that this ability can be used to render visual interfaces by streaming React components to the client.
 
 <Browser>
   <ChatGeneration
@@ -38,7 +38,7 @@ An interesting consequence of language models that can call functions is that th
 
 ## Client
 
-We can make a few changes to our previous example where the assistant could get the weather for any city by calling the `getWeather` function. This time, instead of returning text during the function call, we will stream a React component that will be rendered on the client using `createStreamableUI` from `ai/rsc`.
+We can make a few changes to our previous example where the assistant could get the weather for any city by calling the `getWeather` tool. This time, instead of returning text during the tool call, we will stream a React component that will be rendered on the client using `createStreamableUI` from `ai/rsc`.
 
 ```tsx filename='app/page.tsx'
 'use client';
