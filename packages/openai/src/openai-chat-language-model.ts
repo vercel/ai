@@ -91,7 +91,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       seed,
 
       // messages:
-      messages: convertToOpenAIChatMessages(prompt, this.config.compatibility),
+      messages: convertToOpenAIChatMessages(prompt),
     };
 
     switch (type) {

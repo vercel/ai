@@ -1,13 +1,11 @@
 import {
   LanguageModelV1Prompt,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 
 export function convertToOpenAIChatMessages(
-  prompt: LanguageModelV1Prompt,
-  compatibility: 'strict' | 'compatible',
+  prompt: LanguageModelV1Prompt
 ): OpenAIChatPrompt {
   const messages: OpenAIChatPrompt = [];
 
@@ -49,7 +47,7 @@ export function convertToOpenAIChatMessages(
             content: content.map(part => (part.type === 'text' ? part.text : '')).join(''),
           });
         }
-        
+
         break;
       }
 
