@@ -115,8 +115,7 @@ By default, it's set to 0, which will disable the feature.
   let currentToolCalls: ToToolCallArray<TOOLS> = [];
   let currentToolResults: ToToolResultArray<TOOLS> = [];
   let roundtrips = 0;
-  const toolCalls: ToToolCallArray<TOOLS> = [];
-  const toolResults: ToToolResultArray<TOOLS> = [];
+  const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> = [];
 
   do {
     currentModelResponse = await retry(() => {
@@ -142,12 +141,14 @@ By default, it's set to 0, which will disable the feature.
         : await executeTools({ toolCalls: currentToolCalls, tools });
 
     // append to messages for potential next roundtrip:
+    const newResponseMessages = toResponseMessages({
+      text: currentModelResponse.text ?? '',
+      toolCalls: currentToolCalls,
+      toolResults: currentToolResults,
+    });
+    responseMessages.push(...newResponseMessages);
     promptMessages.push(
-      ...toResponseMessages({
-        text: currentModelResponse.text ?? '',
-        toolCalls: currentToolCalls,
-        toolResults: currentToolResults,
-      }).map(convertToLanguageModelMessage),
+      ...newResponseMessages.map(convertToLanguageModelMessage),
     );
   } while (
     // there are tool calls:
@@ -163,13 +164,14 @@ By default, it's set to 0, which will disable the feature.
     // If they need to check if the model did not return any text,
     // they can check the length of the string:
     text: currentModelResponse.text ?? '',
-    toolCalls,
-    toolResults,
+    toolCalls: currentToolCalls,
+    toolResults: currentToolResults,
     finishReason: currentModelResponse.finishReason,
     usage: calculateTokenUsage(currentModelResponse.usage),
     warnings: currentModelResponse.warnings,
     rawResponse: currentModelResponse.rawResponse,
     logprobs: currentModelResponse.logprobs,
+    responseMessages,
   });
 }
 
@@ -275,6 +277,7 @@ Logprobs for the completion.
       headers?: Record<string, string>;
     };
     logprobs: LogProbs | undefined;
+    responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -284,7 +287,7 @@ Logprobs for the completion.
     this.warnings = options.warnings;
     this.rawResponse = options.rawResponse;
     this.logprobs = options.logprobs;
-    this.responseMessages = toResponseMessages(options);
+    this.responseMessages = options.responseMessages;
   }
 }
 
