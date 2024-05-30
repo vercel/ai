@@ -437,6 +437,9 @@ function isCompletion(data: OpenAIStreamReturnTypes): data is Completion {
   );
 }
 
+/**
+ * @deprecated Use the [OpenAI provider](https://sdk.vercel.ai/providers/ai-sdk-providers/openai) instead.
+ */
 export function OpenAIStream(
   res: Response | AsyncIterableOpenAIStreamReturnTypes,
   callbacks?: OpenAIStreamCallbacks,
