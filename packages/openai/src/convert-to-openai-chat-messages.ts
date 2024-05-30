@@ -1,9 +1,13 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import {
+  LanguageModelV1Prompt,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 
 export function convertToOpenAIChatMessages(
   prompt: LanguageModelV1Prompt,
+  compatibility: 'strict' | 'compatible',
 ): OpenAIChatPrompt {
   const messages: OpenAIChatPrompt = [];
 
@@ -15,29 +19,49 @@ export function convertToOpenAIChatMessages(
       }
 
       case 'user': {
-        messages.push({
-          role: 'user',
-          content: content.map(part => {
-            switch (part.type) {
-              case 'text': {
-                return { type: 'text', text: part.text };
+        if (compatibility === 'strict') {
+          messages.push({
+            role: 'user',
+            content: content.map(part => {
+              switch (part.type) {
+                case 'text': {
+                  return { type: 'text', text: part.text };
+                }
+                case 'image': {
+                  return {
+                    type: 'image_url',
+                    image_url: {
+                      url:
+                        part.image instanceof URL
+                          ? part.image.toString()
+                          : `data:${
+                              part.mimeType ?? 'image/jpeg'
+                            };base64,${convertUint8ArrayToBase64(part.image)}`,
+                    },
+                  };
+                }
               }
-              case 'image': {
-                return {
-                  type: 'image_url',
-                  image_url: {
-                    url:
-                      part.image instanceof URL
-                        ? part.image.toString()
-                        : `data:${
-                            part.mimeType ?? 'image/jpeg'
-                          };base64,${convertUint8ArrayToBase64(part.image)}`,
-                  },
-                };
-              }
-            }
-          }),
-        });
+            }),
+          });
+        } else {
+          messages.push({
+            role: 'user',
+            content: content
+              .map(part => {
+                switch (part.type) {
+                  case 'text': {
+                    return part.text;
+                  }
+                  case 'image': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'image-part',
+                    });
+                  }
+                }
+              })
+              .join(''),
+          });
+        }
         break;
       }
 

@@ -91,7 +91,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       seed,
 
       // messages:
-      messages: convertToOpenAIChatMessages(prompt),
+      messages: convertToOpenAIChatMessages(prompt, this.config.compatibility),
     };
 
     switch (type) {
@@ -403,7 +403,6 @@ const openAIChatResponseSchema = z.object({
       finish_reason: z.string().optional().nullable(),
     }),
   ),
-  object: z.literal('chat.completion'),
   usage: z.object({
     prompt_tokens: z.number(),
     completion_tokens: z.number(),
