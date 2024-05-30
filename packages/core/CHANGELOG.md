@@ -1,5 +1,12 @@
 # ai
 
+## 3.1.19
+
+### Patch Changes
+
+- 9882d24b: fix (ui/svelte): send data to server
+- 131bbd3e: fix (ui): remove console.log statements
+
 ## 3.1.18
 
 ### Patch Changes
