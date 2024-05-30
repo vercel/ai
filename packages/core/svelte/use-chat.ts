@@ -270,11 +270,11 @@ export function useChat({
     const chatRequest: ChatRequest = {
       messages: get(messages).concat(message as Message),
       options,
+      data,
       ...(functions !== undefined && { functions }),
       ...(function_call !== undefined && { function_call }),
       ...(tools !== undefined && { tools }),
       ...(tool_choice !== undefined && { tool_choice }),
-      ...(data !== undefined && { data }),
     };
     return triggerRequest(chatRequest);
   };
