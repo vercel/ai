@@ -11,15 +11,15 @@ export class StreamingTextResponse extends Response {
     if (data) {
       processedStream = mergeStreams(data.stream, res);
     }
-    const headers = new Headers(init.headers ?? {})
+    const headers = new Headers(init?.headers ?? {});
     if (!headers.has('Content-Type')) {
-      headers.set('Content-Type', 'text/plain; charset=utf-8')
+      headers.set('Content-Type', 'text/plain; charset=utf-8');
     }
 
     super(processedStream as any, {
       ...init,
       status: 200,
-      headers
+      headers,
     });
   }
 }

@@ -598,13 +598,13 @@ Non-text-delta events are ignored.
 @param init Optional headers and status code.
    */
   toTextStreamResponse(init?: ResponseInit): Response {
-    const headers = new Headers(init.headers ?? {})
+    const headers = new Headers(init?.headers ?? {});
     if (!headers.has('Content-Type')) {
-      headers.set('Content-Type', 'text/plain; charset=utf-8')
+      headers.set('Content-Type', 'text/plain; charset=utf-8');
     }
     return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
       status: init?.status ?? 200,
-      headers
+      headers,
     });
   }
 }
