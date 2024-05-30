@@ -21,7 +21,9 @@ const result = await generateText({
 });
 ```
 
-## Parameters
+## API Signature
+
+### Parameters
 
 <PropertiesTable
   content={[
@@ -317,10 +319,17 @@ const result = await generateText({
       description:
         'An optional abort signal that can be used to cancel the call.',
     },
+    {
+      name: 'maxAutomaticRoundtrips',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of automatic roundtrips for tool calls. An automatic tool call roundtrip is another LLM call with the tool call results when all tool calls of the last assistant message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
+    },
   ]}
 />
 
-## Result Object
+### Returns
 
 <PropertiesTable
   content={[
