@@ -1,4 +1,5 @@
 import { mergeStreams } from '../core/util/merge-streams';
+import { prepareResponseHeaders } from '../core/util/prepare-response-headers';
 import { StreamData } from './stream-data';
 
 /**
@@ -11,15 +12,13 @@ export class StreamingTextResponse extends Response {
     if (data) {
       processedStream = mergeStreams(data.stream, res);
     }
-    const headers = new Headers(init?.headers ?? {});
-    if (!headers.has('Content-Type')) {
-      headers.set('Content-Type', 'text/plain; charset=utf-8');
-    }
 
     super(processedStream as any, {
       ...init,
       status: 200,
-      headers,
+      headers: prepareResponseHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
     });
   }
 }
