@@ -22,6 +22,7 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
 import { TokenUsage } from './token-usage';
@@ -600,10 +601,9 @@ Non-text-delta events are ignored.
   toTextStreamResponse(init?: ResponseInit): Response {
     return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
       status: init?.status ?? 200,
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        ...init?.headers,
-      },
+      headers: prepareResponseHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
     });
   }
 }
