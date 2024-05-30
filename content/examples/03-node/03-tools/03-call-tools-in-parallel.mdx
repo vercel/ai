@@ -1,21 +1,22 @@
 ---
-title: Call Functions in Parallel
-description: Learn how to call functions in parallel in a Node.js application.
+title: Call Tools in Parallel
+description: Learn how to call tools in parallel in a Node.js application.
 ---
 
-# Call Functions in Parallel
+# Call Tools in Parallel
 
-Some language models support calling tools in parallel. This is particularly useful when multiple functions are independent of each other and can be executed in parallel during the same generation step.
+Some language models support calling tools in parallel.
+This is particularly useful when multiple tools are independent of each other and can be executed in parallel during the same generation step.
 
-```ts file='index.ts'
-import { generateText } from 'ai';
+```ts
+import { generateText, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const result = await generateText({
   model: openai('gpt-4-turbo'),
   tools: {
-    weather: {
+    weather: tool({
       description: 'Get the weather in a location',
       parameters: z.object({
         location: z.string().describe('The location to get the weather for'),
@@ -24,8 +25,8 @@ const result = await generateText({
         location,
         temperature: 72 + Math.floor(Math.random() * 21) - 10,
       }),
-    },
-    cityAttractions: {
+    }),
+    cityAttractions: tool({
       parameters: z.object({ city: z.string() }),
       execute: async ({ city }: { city: string }) => {
         if (city === 'San Francisco') {
@@ -40,7 +41,7 @@ const result = await generateText({
           return { attractions: [] };
         }
       },
-    },
+    }),
   },
   prompt:
     'What is the weather in San Francisco and what attractions should I visit?',
