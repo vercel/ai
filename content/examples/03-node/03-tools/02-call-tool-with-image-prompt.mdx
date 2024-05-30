@@ -1,28 +1,24 @@
 ---
-title: Call Function with Image Prompt
-description: Learn how to make a language model call a function with an image prompt in a Node.js application.
+title: Call Tool with Image Prompt
+description: Learn how to make a language model call a tool with an image prompt in a Node.js application.
 ---
 
-# Call Function with Image Prompt
+# Call Tool with Image Prompt
 
 Some language models that support vision capabilities accept images as part of the prompt. Here are some of the different [formats](/docs/reference/ai-sdk-core/generate-text#content-image) you can use to include images as input.
 
-```ts file='index.ts'
-import { generateText } from 'ai';
+```ts
+import { generateText, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const result = await generateText({
   model: openai('gpt-4-turbo'),
-  maxTokens: 512,
   messages: [
     {
       role: 'user',
       content: [
-        {
-          type: 'text',
-          text: 'can you log this meal for me?',
-        },
+        { type: 'text', text: 'can you log this meal for me?' },
         {
           type: 'image',
           image: new URL(
@@ -33,7 +29,7 @@ const result = await generateText({
     },
   ],
   tools: {
-    logFood: {
+    logFood: tool({
       description: 'Log a food item',
       parameters: z.object({
         name: z.string(),
@@ -42,9 +38,7 @@ const result = await generateText({
       execute({ name, calories }) {
         storeInDatabase({ name, calories });
       },
-    },
+    }),
   },
 });
-
-console.log(result);
 ```
