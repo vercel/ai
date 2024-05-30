@@ -62,7 +62,7 @@ export async function POST(req: Request) {
   // Convert the response into a friendly text-stream
   const stream = OpenAIStream(response, {
     async onFinal(completion) {
-      // Cache the response. Note that this will also cache function calls.
+      // Cache the response. Note that this will also cache tool calls.
       await kv.set(key, completion);
       await kv.expire(key, 60 * 60);
     },
