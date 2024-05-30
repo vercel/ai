@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.20
+
+### Patch Changes
+
+- 0e1da476: feat (core): add maxAutomaticRoundtrips setting to generateText
+
 ## 3.1.19
 
 ### Patch Changes
