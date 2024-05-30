@@ -15,38 +15,34 @@ export function convertToOpenAIChatMessages(
       }
 
       case 'user': {
-        if (content.some(part => part.type === 'image')) {
-          messages.push({
-            role: 'user',
-            content: content.map(part => {
-              switch (part.type) {
-                case 'text': {
-                  return { type: 'text', text: part.text };
-                }
-                case 'image': {
-                  return {
-                    type: 'image_url',
-                    image_url: {
-                      url:
-                        part.image instanceof URL
-                          ? part.image.toString()
-                          : `data:${
-                              part.mimeType ?? 'image/jpeg'
-                            };base64,${convertUint8ArrayToBase64(part.image)}`,
-                    },
-                  };
-                }
-              }
-            }),
-          });
-        } else {
-          messages.push({
-            role: 'user',
-            content: content
-              .map(part => (part.type === 'text' ? part.text : ''))
-              .join(''),
-          });
+        if (content.length === 1 && content[0].type === 'text') {
+          messages.push({ role: 'user', content: content[0].text });
+          break;
         }
+
+        messages.push({
+          role: 'user',
+          content: content.map(part => {
+            switch (part.type) {
+              case 'text': {
+                return { type: 'text', text: part.text };
+              }
+              case 'image': {
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url:
+                      part.image instanceof URL
+                        ? part.image.toString()
+                        : `data:${
+                            part.mimeType ?? 'image/jpeg'
+                          };base64,${convertUint8ArrayToBase64(part.image)}`,
+                  },
+                };
+              }
+            }
+          }),
+        });
 
         break;
       }
