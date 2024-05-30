@@ -1,11 +1,9 @@
-import {
-  LanguageModelV1Prompt,
-} from '@ai-sdk/provider';
+import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 
 export function convertToOpenAIChatMessages(
-  prompt: LanguageModelV1Prompt
+  prompt: LanguageModelV1Prompt,
 ): OpenAIChatPrompt {
   const messages: OpenAIChatPrompt = [];
 
@@ -44,7 +42,9 @@ export function convertToOpenAIChatMessages(
         } else {
           messages.push({
             role: 'user',
-            content: content.map(part => (part.type === 'text' ? part.text : '')).join(''),
+            content: content
+              .map(part => (part.type === 'text' ? part.text : ''))
+              .join(''),
           });
         }
 
