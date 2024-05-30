@@ -268,4 +268,84 @@ describe('result.responseMessages', () => {
       },
     ]);
   });
+
+  it('should contain assistant response message and tool message from all roundtrips', async () => {
+    let responseCount = 0;
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          switch (responseCount++) {
+            case 0:
+              return {
+                ...dummyResponseValues,
+                toolCalls: [
+                  {
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    args: `{ "value": "value" }`,
+                  },
+                ],
+                toolResults: [
+                  {
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    args: { value: 'value' },
+                    result: 'result1',
+                  },
+                ],
+              };
+            case 1:
+              return {
+                ...dummyResponseValues,
+                text: 'Hello, world!',
+              };
+            default:
+              throw new Error(`Unexpected response count: ${responseCount}`);
+          }
+        },
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async args => {
+            assert.deepStrictEqual(args, { value: 'value' });
+            return 'result1';
+          },
+        },
+      },
+      prompt: 'test-input',
+      maxAutomaticRoundtrips: 2,
+    });
+
+    assert.deepStrictEqual(result.responseMessages, [
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: '' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            args: { value: 'value' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            result: 'result1',
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hello, world!' }],
+      },
+    ]);
+  });
 });
