@@ -1,11 +1,11 @@
 ---
-title: Call Functions in Parallel
-description: Learn to call functions in parallel using the Vercel AI SDK in your Next.js application
+title: Call Tools
+description: Learn to call tools using the Vercel AI SDK in your Next.js application
 ---
 
-# Call Functions in Parallel
+# Call Tools
 
-Some language models support calling functions in parallel. This is particularly useful when multiple functions are independent of each other and can be executed in parallel during the same generation step.
+Some models allow developers to provide a list of tools that can be called at any time during a generation. This is useful for extending the capabilites of a language model to either use logic or data to interact with systems external to the model.
 
 <Browser>
   <ChatGeneration
@@ -15,19 +15,18 @@ Some language models support calling functions in parallel. This is particularly
     ]}
     inputMessage={{
       role: 'User',
-      content: 'What is the weather in Paris and New York?',
+      content: 'What is 24 celsius in fahrenheit?',
     }}
     outputMessage={{
       role: 'Assistant',
-      content:
-        'The weather is 24°C in New York and 25°C in Paris. It is sunny in both cities.',
+      content: '24°C is 75.20°F',
     }}
   />
 </Browser>
 
 ## Client
 
-Let's modify our previous example to call `getWeather` function for multiple cities in parallel.
+Let's create a simple conversation between a user and model and place a button that will call `continueConversation`.
 
 ```tsx filename='app/page.tsx'
 'use client';
@@ -77,9 +76,11 @@ export default function Home() {
 
 ## Server
 
-Let's update the tools object to now use the `getWeather` function instead.
+Now, let's implement the `continueConversation` action that uses `generateText` to generate a response to the user's question. We will use the [`tools`](/docs/reference/ai-sdk-core/generate-text#tools) parameter to specify our own function called `celsiusToFahrenheit` that will convert a user given value in celsius to fahrenheit.
 
-```ts filename='app/actions.ts'
+We will use zod to specify the schema for the `celsiusToFahrenheit` function's parameters.
+
+```tsx filename='app/actions.ts'
 'use server';
 
 import { generateText } from 'ai';
@@ -91,32 +92,23 @@ export interface Message {
   content: string;
 }
 
-function getWeather({ city, unit }) {
-  // This function would normally make an
-  // API request to get the weather.
-
-  return { value: 25, description: 'Sunny' };
-}
-
 export async function continueConversation(history: Message[]) {
   'use server';
 
   const { text, toolResults } = await generateText({
     model: openai('gpt-3.5-turbo'),
-    system: 'You are a friendly weather assistant!',
+    system: 'You are a friendly assistant!',
     messages: history,
     tools: {
-      getWeather: {
-        description: 'Get the weather for a location',
+      celsiusToFahrenheit: {
+        description: 'Converts celsius to fahrenheit',
         parameters: z.object({
-          city: z.string().describe('The city to get the weather for'),
-          unit: z
-            .enum(['C', 'F'])
-            .describe('The unit to display the temperature in'),
+          value: z.string().describe('The value in celsius'),
         }),
-        execute: async ({ city, unit }) => {
-          const weather = getWeather({ city, unit });
-          return `It is currently 25°${weather.value} and ${weather.description} in ${city}!`;
+        execute: async ({ value }) => {
+          const celsius = parseFloat(value);
+          const fahrenheit = celsius * (9 / 5) + 32;
+          return `${celsius}°C is ${fahrenheit.toFixed(2)}°F`;
         },
       },
     },

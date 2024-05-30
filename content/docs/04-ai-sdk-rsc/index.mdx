@@ -1,229 +1,56 @@
 ---
 title: AI SDK RSC
-description: Overview of the AI RSC
+description: Learn about the Vercel AI SDK RSC.
 ---
 
-import { UIPreviewCard, Card } from '@/components/home/card';
-import { EventPlanning } from '@/components/event-planning';
-import { Searching } from '@/components/home/searching';
+# AI SDK Core
 
-# AI SDK RSC Overview
-
-[React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components) (RSC) allow you to write UI that can be rendered on the server and streamed to the client. This allows language model generations and UI updates to be done from the server, making it easier to work with them in the same place and keep them in sync.
-
-This overview will take you through:
-
-- how language models can go beyond text by rendering React components,
-- how development gets increasingly difficult when components are rendered on the client as your application grows,
-- how React Server Components help you stream them from the server instead.
-
-## Rendering User Interfaces with Language Models
-
-Language models generate text, so at first it may seem like you would only need to render text in your application.
-
-```tsx highlight="16" filename="app/actions.tsx"
-const text = generateText({
-  model: openai('gpt-3.5-turbo'),
-  system: 'You are a friendly assistant'
-  prompt: 'What is the weather in SF?'
-  tools: {
-    getWeather: {
-      description: 'Get the weather for a location',
-      parameters: z.object({
-        city: z.string().describe('The city to get the weather for'),
-        unit: z
-          .enum(['C', 'F'])
-          .describe('The unit to display the temperature in')
-      }),
-      execute: async ({ city, unit }) => {
-        const weather = getWeather({ city, unit })
-        return `It is currently ${weather.value}°${unit} and ${weather.description} in ${city}!`
-      }
-    }
-  }
-})
-```
-
-Above, the language model is passed a [tool](/docs/ai-sdk-core/tools-and-tool-calling) called `getWeather` that returns the weather information as text. However, instead of returning text, if you return a JSON object that represents the weather information, you can use it to render a React component instead.
-
-```tsx highlight="18-23" filename="app/action.ts"
-const text = generateText({
-  model: openai('gpt-3.5-turbo'),
-  system: 'You are a friendly assistant'
-  prompt: 'What is the weather in SF?'
-  tools: {
-    getWeather: {
-      description: 'Get the weather for a location',
-      parameters: z.object({
-        city: z.string().describe('The city to get the weather for'),
-        unit: z
-          .enum(['C', 'F'])
-          .describe('The unit to display the temperature in')
-      }),
-      execute: async ({ city, unit }) => {
-        const weather = getWeather({ city, unit })
-        const { temperature, unit, description, forecast } = weather
-
-        return {
-          temperature,
-          unit,
-          description,
-          forecast
-        }
-      }
-    }
-  }
-})
-```
-
-Now you can use the object returned by the `getWeather` function to conditionally render a React component `<WeatherCard/>` that displays the weather information by passing the object as props.
-
-```tsx filename="app/page.tsx"
-return (
-  <div>
-    {messages.map(message => {
-      if (message.role === 'function') {
-        const { name, content } = message
-        const { temperature, unit, description, forecast } = content;
-
-        return (
-          <WeatherCard
-            weather={{
-              temperature: 47,
-              unit: 'F',
-              description: 'sunny'
-              forecast,
-            }}
-          />
-        )
-      }
-    })}
-  </div>
-)
-```
-
-Here's a little preview of what that might look like.
-
-<div className="not-prose flex flex-col2">
-  <CardPlayer
-    type="weather"
-    title="Weather"
-    description="An example of an assistant that renders the weather information in a streamed component."
-  />
-</div>
-
-Rendering interfaces as part of language model generations elevates the user experience of your application, allowing people to interact with language models beyond text.
-
-They also make it easier for you to interpret [sequential tool calls](/docs/ai-sdk-rsc/multistep-interfaces) that take place in multiple steps and help identify and debug where the model reasoned incorrectly.
-
-## Rendering Multiple User Interfaces
-
-To recap, an application has to go through the following steps to render user interfaces as part of model generations:
-
-1. The user prompts the language model.
-2. The language model generates a response that includes a tool call.
-3. The tool call returns a JSON object that represents the user interface.
-4. The response is sent to the client.
-5. The client receives the response and checks if the latest message was a tool call.
-6. If it was a tool call, the client renders the user interface based on the JSON object returned by the function call.
-
-Most applications have multiple functions that are called by the language model, and each function can return a different user interface.
-
-For example, a function that searches for courses can return a list of courses, while a function that searches for people can return a list of people. As this list grows, the complexity of your application will grow as well and it can become increasingly difficult to manage these user interfaces.
-
-```tsx filename='app/page.tsx'
-{
-  message.role === 'tool' ? (
-    message.name === 'api-search-course' ? (
-      <Courses courses={message.content} />
-    ) : message.name === 'api-search-profile' ? (
-      <People people={message.content} />
-    ) : message.name === 'api-meetings' ? (
-      <Meetings meetings={message.content} />
-    ) : message.name === 'api-search-building' ? (
-      <Buildings buildings={message.content} />
-    ) : message.name === 'api-events' ? (
-      <Events events={message.content} />
-    ) : message.name === 'api-meals' ? (
-      <Meals meals={message.content} />
-    ) : null
-  ) : (
-    <div>{message.content}</div>
-  );
-}
-```
-
-## Rendering User Interfaces on the Server
-
-The **AI SDK RSC (`ai/rsc`)** takes advantage of RSCs to solve the problem of managing all your React components on the client side, allowing you to render React components on the server and stream them to the client.
-
-Rather than conditionally rendering user interfaces on the client based on the data returned by the language model, you can directly stream them from the server during a model generation.
-
-```tsx highlight="3,22-31,38" filename="app/action.ts"
-import { createStreamableUI } from 'ai/rsc'
-
-const uiStream = createStreamableUI();
-
-const text = generateText({
-  model: openai('gpt-3.5-turbo'),
-  system: 'you are a friendly assistant'
-  prompt: 'what is the weather in SF?'
-  tools: {
-    getWeather: {
-      description: 'Get the weather for a location',
-      parameters: z.object({
-        city: z.string().describe('The city to get the weather for'),
-        unit: z
-          .enum(['C', 'F'])
-          .describe('The unit to display the temperature in')
-      }),
-      execute: async ({ city, unit }) => {
-        const weather = getWeather({ city, unit })
-        const { temperature, unit, description, forecast } = weather
-
-        uiStream.done(
-          <WeatherCard
-            weather={{
-              temperature: 47,
-              unit: 'F',
-              description: 'sunny'
-              forecast,
-            }}
-          />
-        )
-      }
-    }
-  }
-})
-
-return {
-  display: uiStream.value
-}
-```
-
-The [`createStreamableUI`](/docs/reference/ai-sdk-rsc/create-streamable-ui) function belongs to the `ai/rsc` module and creates a stream that can send React components to the client.
-
-On the server, you render the `<WeatherCard/>` component with the props passed to it, and then stream it to the client. On the client side, you only need to render the UI that is streamed from the server.
-
-```tsx filename="app/page.tsx" highlight="4"
-return (
-  <div>
-    {messages.map(message => (
-      <div>{message.display}</div>
-    ))}
-  </div>
-);
-```
-
-Now the steps involved are simplified:
-
-1. The user prompts the language model.
-2. The language model generates a response that includes a tool call.
-3. The tool call renders a React component along with relevant props that represent the user interface.
-4. The response is streamed to the client and rendered directly.
-
-> **Note:** You can also render text on the server and stream it to the client using React Server Components. This way, all operations from language model generation to UI rendering can be done on the server, while the client only needs to render the UI that is streamed from the server.
-
-In the following sections, you will learn about how the `ai/rsc` module provides you with tools to confidently integrate generative user interfaces into your application.
-
-Check out this [example](/examples/next-app/interface/stream-component-updates) for a full illustration of how to stream component updates with React Server Components in Next.js App Router.
+<IndexCards
+  cards={[
+    {
+      title: 'Overview',
+      description: 'Learn about the Vercel AI SDK RSC.',
+      href: '/docs/ai-sdk-rsc/overview',
+    },
+    {
+      title: 'Streaming User Interfaces',
+      description: 'Learn how to stream user interfaces.',
+      href: '/docs/ai-sdk-rsc/streaming-user-interfaces',
+    },
+    {
+      title: 'Streaming Values',
+      description: 'Learn how to stream values.',
+      href: '/docs/ai-sdk-rsc/streaming-values',
+    },
+    {
+      title: 'Generative UI',
+      description: 'Learn how to create generative user interfaces.',
+      href: '/docs/ai-sdk-rsc/generative-ui',
+    },
+    {
+      title: 'AI and UI States',
+      description: 'Learn how to manage AI and UI states.',
+      href: '/docs/ai-sdk-rsc/ai-ui-states',
+    },
+    {
+      title: 'Saving and Restoring States',
+      description: 'Learn how to save and restore states.',
+      href: '/docs/ai-sdk-rsc/saving-and-restoring-states',
+    },
+    {
+      title: 'Multi-step Interfaces',
+      description: 'Learn how to build multi-step interfaces.',
+      href: '/docs/ai-sdk-rsc/multi-step-interfaces',
+    },
+    {
+      title: 'Error Handling',
+      description: 'Learn how to handle errors.',
+      href: '/docs/ai-sdk-rsc/error-handling',
+    },
+    {
+      title: 'Authentication',
+      description: 'Learn how to authenticate users.',
+      href: '/docs/ai-sdk-rsc/authentication',
+    },
+  ]}
+/>
