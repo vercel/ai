@@ -145,15 +145,17 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     const parts = firstCandidate.content.parts;
     const usageMetadata = response.usageMetadata;
 
+    const toolCalls = getToolCallsFromParts({
+      parts,
+      generateId: this.config.generateId,
+    });
+
     return {
       text: getTextFromParts(parts),
-      toolCalls: getToolCallsFromParts({
-        parts,
-        generateId: this.config.generateId,
-      }),
+      toolCalls,
       finishReason: mapGoogleVertexFinishReason({
         finishReason: firstCandidate.finishReason,
-        hasToolCalls: false,
+        hasToolCalls: toolCalls != null && toolCalls.length > 0,
       }),
       usage: {
         promptTokens: usageMetadata?.promptTokenCount ?? NaN,
@@ -180,6 +182,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     };
 
     const generateId = this.config.generateId;
+    let hasToolCalls = false;
 
     return {
       stream: convertAsyncGeneratorToReadableStream(stream).pipeThrough(
@@ -209,7 +212,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
               if (candidate.finishReason != null) {
                 finishReason = mapGoogleVertexFinishReason({
                   finishReason: candidate.finishReason,
-                  hasToolCalls: false,
+                  hasToolCalls,
                 });
               }
 
@@ -246,8 +249,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
                     args: toolCall.args,
                   });
 
-                  // TODO
-                  // hasToolCalls = true;
+                  hasToolCalls = true;
                 }
               }
             },
