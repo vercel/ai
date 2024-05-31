@@ -29,7 +29,7 @@ The flow is as follows:
    You can return the tool result from the callback.
 1. Client-side tool that require user interactions can be displayed in the UI.
    The tool calls and results are available in the `toolInvocations` property of the last assistant message.
-1. When the user interaction is done, `experimental_addToolResult` can be used to add the tool result to the chat.
+1. When the user interaction is done, `addToolResult` can be used to add the tool result to the chat.
 1. When there are tool calls in the last assistant message and all tool results are available, the client sends the updated messages back to the server.
    This triggers another iteration of this flow.
 
@@ -39,9 +39,9 @@ The tool result contains all information about the tool call as well as the resu
 
 <Note>
   In order to automatically send another request to the server when all tool
-  calls are server-side, you need to set `experimental_maxAutomaticRoundtrips`
-  to a value greater than 0 in the `useChat` options. It is disabled by default
-  for backward compatibility.
+  calls are server-side, you need to set `maxAutomaticRoundtrips` to a value
+  greater than 0 in the `useChat` options. It is disabled by default for
+  backward compatibility.
 </Note>
 
 ## Example
@@ -113,9 +113,9 @@ There are three things worth mentioning:
 1. The `toolInvocations` property of the last assistant message contains all tool calls and results.
    The client-side tool `askForConfirmation` is displayed in the UI.
    It asks the user for confirmation and displays the result once the user confirms or denies the execution.
-   The result is added to the chat using `experimental_addToolResult`.
+   The result is added to the chat using `addToolResult`.
 
-1. The `experimental_maxAutomaticRoundtrips` option is set to 5.
+1. The `maxAutomaticRoundtrips` option is set to 5.
    This enables several tool use iterations between the client and the server.
 
 ```tsx filename='app/page.tsx'
@@ -125,23 +125,23 @@ import { ToolInvocation } from 'ai';
 import { Message, useChat } from 'ai/react';
 
 export default function Chat() {
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit,
-    experimental_addToolResult,
-  } = useChat({
-    experimental_maxAutomaticRoundtrips: 5,
+  const { messages, input, handleInputChange, handleSubmit, addToolResult } =
+    useChat({
+      maxAutomaticRoundtrips: 5,
 
-    // run client-side tools that are automatically executed:
-    async onToolCall({ toolCall }) {
-      if (toolCall.toolName === 'getLocation') {
-        const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
-        return cities[Math.floor(Math.random() * cities.length)];
-      }
-    },
-  });
+      // run client-side tools that are automatically executed:
+      async onToolCall({ toolCall }) {
+        if (toolCall.toolName === 'getLocation') {
+          const cities = [
+            'New York',
+            'Los Angeles',
+            'Chicago',
+            'San Francisco',
+          ];
+          return cities[Math.floor(Math.random() * cities.length)];
+        }
+      },
+    });
 
   return (
     <div>
@@ -164,7 +164,7 @@ export default function Chat() {
                       <>
                         <button
                           onClick={() =>
-                            experimental_addToolResult({
+                            addToolResult({
                               toolCallId,
                               result: 'Yes, confirmed.',
                             })
@@ -174,7 +174,7 @@ export default function Chat() {
                         </button>
                         <button
                           onClick={() =>
-                            experimental_addToolResult({
+                            addToolResult({
                               toolCallId,
                               result: 'No, denied',
                             })

@@ -54,22 +54,48 @@ You can use the following optional settings to customize the Google Generative A
   The Google Cloud location that you want to use for the API calls, e.g. `us-central1`.
   It uses the `GOOGLE_VERTEX_LOCATION` environment variable by default.
 
+- **googleAuthOptions** _object_
+
+  Optional. The Authentication options used by the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs/):
+
+  - **authClient** _object_
+    An `AuthClient` to use.
+
+  - **keyFilename** _string_
+    Path to a .json, .pem, or .p12 key file.
+
+  - **keyFile** _string_
+    Path to a .json, .pem, or .p12 key file.
+
+  - **credentials** _object_
+    Object containing client_email and private_key properties, or the external account client options.
+
+  - **clientOptions** _object_
+    Options object passed to the constructor of the client.
+
+  - **scopes** _string | string[]_
+    Required scopes for the desired API request.
+
+  - **projectId** _string_
+    Your project ID.
+
+  - **universeDomain** _string_
+    The default service domain for a given Cloud universe.
+
 ## Language Models
 
-<Note type="warning">Tool calls are currently not supported.</Note>
-
 You can create models that call the Vertex API using the provider instance.
-The first argument is the model id, e.g. `gemini-1.0-pro`.
+The first argument is the model id, e.g. `gemini-1.5-pro`.
 
 ```ts
-const model = vertex('gemini-1.0-pro');
+const model = vertex('gemini-1.5-pro');
 ```
 
 Google Vertex models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = vertex('gemini-1.0-pro', {
+const model = vertex('gemini-1.5-pro', {
   topK: 0.2,
 });
 ```
@@ -93,17 +119,19 @@ import { vertex } from '@ai-sdk/google-vertex'
 import { generateText } from 'ai'
 
 const { text } = await generateText({
-  model: vertex('gemini-1.0-pro')
+  model: vertex('gemini-1.5-pro')
   prompt: 'Write a vegetarian lasagna recipe for 4 people.'
 })
 ```
 
-Google Vertex language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
+Google Vertex language models can also be used in the `streamText` and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
 ### Model Capabilities
 
 | Model                   | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ----------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gemini-1.0-pro`        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gemini-1.5-flash`      | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-pro`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.0-pro-vision` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gemini-1.0-pro`        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |

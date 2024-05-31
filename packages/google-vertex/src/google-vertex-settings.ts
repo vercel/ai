@@ -1,9 +1,10 @@
 // https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models
 export type GoogleVertexModelId =
-  // not GA accessible / tested:
-  // | 'gemini-1.5-flash'
-  // | 'gemini-1.5-pro'
-  'gemini-1.0-pro' | 'gemini-1.0-pro-vision' | (string & {});
+  | 'gemini-1.5-flash'
+  | 'gemini-1.5-pro'
+  | 'gemini-1.0-pro'
+  | 'gemini-1.0-pro-vision'
+  | (string & {});
 
 export interface GoogleVertexSettings {
   /**

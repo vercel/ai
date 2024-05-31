@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 0.0.4
+
+### Patch Changes
+
+- f727d197: fix (provider/vertex): correct assistant message conversion
+- f727d197: feat (provider/vertex): add tool call support
+- 94c60cd3: feat (provider/google): add googleAuthOptions provider configuration setting
+
 ## 0.0.3
 
 ### Patch Changes
