@@ -54,9 +54,9 @@ export function prepareFunctionDeclarationSchema(
       };
 
     case 'array':
-      // TODO
       throw new UnsupportedFunctionalityError({
-        functionality: 'Arrays are not supported in tool parameters',
+        functionality:
+          'arrays are not supported as root or as array parameters',
       });
 
     default: {
