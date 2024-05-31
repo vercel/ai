@@ -1071,9 +1071,15 @@ importers:
         specifier: 0.0.11
         version: link:../provider-utils
       '@google-cloud/vertexai':
-        specifier: ^1.2.0
+        specifier: 1.2.0
         version: 1.2.0
+      json-schema:
+        specifier: 0.4.0
+        version: 0.4.0
     devDependencies:
+      '@types/json-schema':
+        specifier: 7.0.15
+        version: 7.0.15
       '@types/node':
         specifier: ^18
         version: 18.18.9

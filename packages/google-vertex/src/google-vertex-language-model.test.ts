@@ -151,6 +151,7 @@ describe('doGenerate', () => {
         topK: 0.1,
         topP: 0.9,
       },
+      tools: undefined,
     });
   });
 });

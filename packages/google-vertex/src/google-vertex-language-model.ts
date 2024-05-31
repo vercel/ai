@@ -19,6 +19,7 @@ import {
   GoogleVertexSettings,
 } from './google-vertex-settings';
 import { mapGoogleVertexFinishReason } from './map-google-vertex-finish-reason';
+import { prepareToolParameters } from './prepare-tool-parameters';
 
 type GoogleVertexAIConfig = {
   vertexAI: VertexAI;
@@ -92,22 +93,11 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        if (mode.tools?.length) {
-          throw new UnsupportedFunctionalityError({
-            functionality: 'tools',
-          });
-        }
-
-        if (mode.toolChoice) {
-          throw new UnsupportedFunctionalityError({
-            functionality: 'toolChoice',
-          });
-        }
-
         return {
           model: this.config.vertexAI.getGenerativeModel({
             model: this.modelId,
             generationConfig,
+            tools: prepareTools(mode),
           }),
           contentRequest: convertToGoogleVertexContentRequest(prompt),
           warnings,
@@ -151,10 +141,30 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       throw new NoContentGeneratedError({ message: 'No candidates returned' });
     }
 
+    const parts = firstCandidate.content.parts;
+    const toolCalls: Array<{
+      toolCallType: 'function';
+      toolCallId: string;
+      toolName: string;
+      args: string;
+    }> = [];
+    for (const part of parts) {
+      if (part.functionCall != null) {
+        toolCalls.push({
+          toolCallType: 'function' as const,
+          toolCallId: this.config.generateId(),
+          toolName: part.functionCall.name,
+          args: JSON.stringify(part.functionCall.args),
+        });
+      }
+    }
+
     const usageMetadata = response.usageMetadata;
 
     return {
+      // TODO potential bug here, needs filtering
       text: firstCandidate.content.parts.map(part => part.text).join(''),
+      toolCalls,
       finishReason: mapGoogleVertexFinishReason({
         finishReason: firstCandidate.finishReason,
         hasToolCalls: false,
@@ -242,4 +252,40 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       warnings,
     };
   }
+}
+
+function prepareTools(
+  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+    type: 'regular';
+  },
+) {
+  // when the tools array is empty, change it to undefined to prevent errors:
+  const tools = mode.tools?.length ? mode.tools : undefined;
+
+  if (tools == null) {
+    return undefined;
+  }
+
+  const toolChoice = mode.toolChoice;
+
+  if (toolChoice?.type === 'none') {
+    return undefined;
+  }
+
+  if (toolChoice == null || toolChoice.type === 'auto') {
+    return [
+      {
+        functionDeclarations: tools.map(tool => ({
+          name: tool.name,
+          description: tool.description ?? '',
+          parameters: prepareToolParameters(tool.parameters),
+        })),
+      },
+    ];
+  }
+
+  // forcing tool calls or a specific tool call is not supported by Vertex:
+  throw new UnsupportedFunctionalityError({
+    functionality: `toolChoice: ${toolChoice.type}`,
+  });
 }
