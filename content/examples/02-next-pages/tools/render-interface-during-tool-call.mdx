@@ -5,7 +5,7 @@ description: Learn to render a React component during a tool call using the Verc
 
 # Render Interface During Tool Call
 
-An interesting consequence of language models that can call tools is that this ability can be used to render visual interfaces by streaming React components to the client.
+An interesting consequence of language models that can call [tools](/docs/ai-sdk-core/tools-and-tool-calling) is that this ability can be used to render visual interfaces by streaming React components to the client.
 
 <Browser>
   <ChatGeneration
@@ -38,7 +38,7 @@ An interesting consequence of language models that can call tools is that this a
 
 ## Client
 
-We can make a few changes to our previous example where the assistant could get the weather for any city by calling the `getWeatherInformation` tool. This time, instead of returning text during the tool call, we will render a React component that displays the weather information on the client.
+Let's build an assistant that gets the weather for any city by calling the `getWeatherInformation` tool. Instead of returning text during the tool call, we will render a React component that displays the weather information on the client.
 
 ```tsx filename='pages/index.tsx'
 import { ToolInvocation } from 'ai';
