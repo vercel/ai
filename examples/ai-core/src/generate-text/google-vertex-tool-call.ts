@@ -2,58 +2,32 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { generateText, tool } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
-import { weatherTool } from '../tools/weather-tool';
 
 dotenv.config();
 
 async function main() {
-  const result = await generateText({
+  const { text } = await generateText({
     model: vertex('gemini-1.5-pro'),
+    prompt: 'What is the weather in New York City? ',
     tools: {
-      weather: weatherTool,
-      cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+      weather: tool({
+        description: 'Get the weather in a location',
+        parameters: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          console.log('Getting weather for', location);
+          return {
+            location,
+            temperature: 72 + Math.floor(Math.random() * 21) - 10,
+          };
+        },
       }),
     },
-    prompt:
-      'What is the weather in San Francisco and what attractions should I visit?',
+    maxAutomaticRoundtrips: 5,
   });
 
-  // typed tool calls:
-  for (const toolCall of result.toolCalls) {
-    switch (toolCall.toolName) {
-      case 'cityAttractions': {
-        toolCall.args.city; // string
-        break;
-      }
-
-      case 'weather': {
-        toolCall.args.location; // string
-        break;
-      }
-    }
-  }
-
-  // typed tool results for tools with execute method:
-  for (const toolResult of result.toolResults) {
-    switch (toolResult.toolName) {
-      // NOT AVAILABLE (NO EXECUTE METHOD)
-      // case 'cityAttractions': {
-      //   toolResult.args.city; // string
-      //   toolResult.result;
-      //   break;
-      // }
-
-      case 'weather': {
-        toolResult.args.location; // string
-        toolResult.result.location; // string
-        toolResult.result.temperature; // number
-        break;
-      }
-    }
-  }
-
-  console.log(JSON.stringify(result, null, 2));
+  console.log(text);
 }
 
 main().catch(console.error);

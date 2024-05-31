@@ -63,35 +63,47 @@ export function convertToGoogleVertexContentRequest(
       case 'assistant': {
         contents.push({
           role: 'assistant',
-          parts: content.map(part => {
-            switch (part.type) {
-              case 'text': {
-                return { type: 'text', text: part.text };
-              }
+          parts: content
+            .filter(part => part.type !== 'text' || part.text.length > 0)
+            .map(part => {
+              switch (part.type) {
+                case 'text': {
+                  return { text: part.text };
+                }
 
-              case 'tool-call': {
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'tool-call',
-                });
-              }
+                case 'tool-call': {
+                  return {
+                    functionCall: {
+                      name: part.toolName,
+                      args: part.args as object,
+                    },
+                  };
+                }
 
-              default: {
-                const _exhaustiveCheck: never = part;
-                throw new UnsupportedFunctionalityError({
-                  functionality: `prompt part: ${_exhaustiveCheck}`,
-                });
+                default: {
+                  const _exhaustiveCheck: never = part;
+                  throw new UnsupportedFunctionalityError({
+                    functionality: `prompt part: ${_exhaustiveCheck}`,
+                  });
+                }
               }
-            }
-          }),
+            }),
         });
 
         break;
       }
 
       case 'tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: `role: tool`,
+        contents.push({
+          role: 'user',
+          parts: content.map(part => ({
+            functionResponse: {
+              name: part.toolName,
+              response: part.result as object,
+            },
+          })),
         });
+        break;
       }
 
       default: {
