@@ -8,17 +8,17 @@ description: Learn how to fix timeouts and cut off responses when deploying to V
 ## Issue
 
 Streaming with the AI SDK works in my local dev environment.
-However, when I'm deploying to Vercel, longer responses get chopped off in the UI and I'm seeing timeouts in the Vercel logs.
+However, when I'm deploying to Vercel, longer responses get chopped off in the UI and I'm seeing timeouts in the Vercel logs or I'm seeing the error: `Uncaught (in promise) Error: Connection closed`.
 
 ## Solution
 
-If you are using Next.js with the App Router, you can add the following to your route file:
+If you are using Next.js with the App Router, you can add the following to your route file or the page you are calling your Server Action from: 
 
 ```tsx
-export const maxDuration = 60;
+export const maxDuration = 30;
 ```
 
-This increases the maximum duration of the function to 60 seconds.
+This increases the maximum duration of the function to 30 seconds.
 
 For other frameworks such as Svelte, you can set timeouts in your `vercel.json` file:
 
@@ -26,7 +26,7 @@ For other frameworks such as Svelte, you can set timeouts in your `vercel.json` 
 {
   "functions": {
     "api/chat/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 30
     }
   }
 }
