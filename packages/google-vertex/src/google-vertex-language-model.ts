@@ -11,6 +11,7 @@ import { convertAsyncGeneratorToReadableStream } from '@ai-sdk/provider-utils';
 import {
   GenerateContentResponse,
   GenerationConfig,
+  Part,
   VertexAI,
 } from '@google-cloud/vertexai';
 import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
@@ -19,6 +20,7 @@ import {
   GoogleVertexSettings,
 } from './google-vertex-settings';
 import { mapGoogleVertexFinishReason } from './map-google-vertex-finish-reason';
+import { prepareFunctionDeclarationSchema } from './prepare-function-declaration-schema';
 
 type GoogleVertexAIConfig = {
   vertexAI: VertexAI;
@@ -92,22 +94,11 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        if (mode.tools?.length) {
-          throw new UnsupportedFunctionalityError({
-            functionality: 'tools',
-          });
-        }
-
-        if (mode.toolChoice) {
-          throw new UnsupportedFunctionalityError({
-            functionality: 'toolChoice',
-          });
-        }
-
         return {
           model: this.config.vertexAI.getGenerativeModel({
             model: this.modelId,
             generationConfig,
+            tools: prepareTools(mode),
           }),
           contentRequest: convertToGoogleVertexContentRequest(prompt),
           warnings,
@@ -151,13 +142,20 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       throw new NoContentGeneratedError({ message: 'No candidates returned' });
     }
 
+    const parts = firstCandidate.content.parts;
     const usageMetadata = response.usageMetadata;
 
+    const toolCalls = getToolCallsFromParts({
+      parts,
+      generateId: this.config.generateId,
+    });
+
     return {
-      text: firstCandidate.content.parts.map(part => part.text).join(''),
+      text: getTextFromParts(parts),
+      toolCalls,
       finishReason: mapGoogleVertexFinishReason({
         finishReason: firstCandidate.finishReason,
-        hasToolCalls: false,
+        hasToolCalls: toolCalls != null && toolCalls.length > 0,
       }),
       usage: {
         promptTokens: usageMetadata?.promptTokenCount ?? NaN,
@@ -183,6 +181,9 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       completionTokens: Number.NaN,
     };
 
+    const generateId = this.config.generateId;
+    let hasToolCalls = false;
+
     return {
       stream: convertAsyncGeneratorToReadableStream(stream).pipeThrough(
         new TransformStream<GenerateContentResponse, LanguageModelV1StreamPart>(
@@ -196,9 +197,9 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
                 };
               }
 
-              const firstCandidate = chunk.candidates?.[0];
+              const candidate = chunk.candidates?.[0];
 
-              if (firstCandidate == null) {
+              if (candidate == null) {
                 controller.enqueue({
                   type: 'error',
                   error: new NoContentGeneratedError({
@@ -208,21 +209,49 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
                 return;
               }
 
-              if (firstCandidate.finishReason != null) {
+              if (candidate.finishReason != null) {
                 finishReason = mapGoogleVertexFinishReason({
-                  finishReason: firstCandidate.finishReason,
-                  hasToolCalls: false,
+                  finishReason: candidate.finishReason,
+                  hasToolCalls,
                 });
               }
 
-              const textDelta = firstCandidate.content.parts
-                .map(part => part.text)
-                .join('');
+              const content = candidate.content;
 
-              controller.enqueue({
-                type: 'text-delta',
-                textDelta,
+              const deltaText = getTextFromParts(content.parts);
+              if (deltaText != null) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: deltaText,
+                });
+              }
+
+              const toolCallDeltas = getToolCallsFromParts({
+                parts: content.parts,
+                generateId,
               });
+
+              if (toolCallDeltas != null) {
+                for (const toolCall of toolCallDeltas) {
+                  controller.enqueue({
+                    type: 'tool-call-delta',
+                    toolCallType: 'function',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    argsTextDelta: toolCall.args,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    args: toolCall.args,
+                  });
+
+                  hasToolCalls = true;
+                }
+              }
             },
 
             flush(controller) {
@@ -242,4 +271,69 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       warnings,
     };
   }
+}
+
+function prepareTools(
+  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+    type: 'regular';
+  },
+) {
+  // when the tools array is empty, change it to undefined to prevent errors:
+  const tools = mode.tools?.length ? mode.tools : undefined;
+
+  if (tools == null) {
+    return undefined;
+  }
+
+  const toolChoice = mode.toolChoice;
+
+  if (toolChoice?.type === 'none') {
+    return undefined;
+  }
+
+  if (toolChoice == null || toolChoice.type === 'auto') {
+    return [
+      {
+        functionDeclarations: tools.map(tool => ({
+          name: tool.name,
+          description: tool.description ?? '',
+          parameters: prepareFunctionDeclarationSchema(tool.parameters),
+        })),
+      },
+    ];
+  }
+
+  // forcing tool calls or a specific tool call is not supported by Vertex:
+  throw new UnsupportedFunctionalityError({
+    functionality: `toolChoice: ${toolChoice.type}`,
+  });
+}
+
+function getToolCallsFromParts({
+  parts,
+  generateId,
+}: {
+  parts: Part[];
+  generateId: () => string;
+}) {
+  return parts.flatMap(part =>
+    part.functionCall == null
+      ? []
+      : {
+          toolCallType: 'function' as const,
+          toolCallId: generateId(),
+          toolName: part.functionCall.name,
+          args: JSON.stringify(part.functionCall.args),
+        },
+  );
+}
+
+function getTextFromParts(parts: Part[]) {
+  const textParts = parts.filter(part => 'text' in part) as Array<
+    Part & { text: string }
+  >;
+
+  return textParts.length === 0
+    ? undefined
+    : textParts.map(part => part.text).join('');
 }

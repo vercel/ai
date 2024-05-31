@@ -56,20 +56,18 @@ You can use the following optional settings to customize the Google Generative A
 
 ## Language Models
 
-<Note type="warning">Tool calls are currently not supported.</Note>
-
 You can create models that call the Vertex API using the provider instance.
-The first argument is the model id, e.g. `gemini-1.0-pro`.
+The first argument is the model id, e.g. `gemini-1.5-pro`.
 
 ```ts
-const model = vertex('gemini-1.0-pro');
+const model = vertex('gemini-1.5-pro');
 ```
 
 Google Vertex models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = vertex('gemini-1.0-pro', {
+const model = vertex('gemini-1.5-pro', {
   topK: 0.2,
 });
 ```
@@ -93,17 +91,19 @@ import { vertex } from '@ai-sdk/google-vertex'
 import { generateText } from 'ai'
 
 const { text } = await generateText({
-  model: vertex('gemini-1.0-pro')
+  model: vertex('gemini-1.5-pro')
   prompt: 'Write a vegetarian lasagna recipe for 4 people.'
 })
 ```
 
-Google Vertex language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
+Google Vertex language models can also be used in the `streamText` and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
 ### Model Capabilities
 
 | Model                   | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ----------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gemini-1.0-pro`        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gemini-1.5-flash`      | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-pro`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.0-pro-vision` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gemini-1.0-pro`        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
