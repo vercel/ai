@@ -54,6 +54,34 @@ You can use the following optional settings to customize the Google Generative A
   The Google Cloud location that you want to use for the API calls, e.g. `us-central1`.
   It uses the `GOOGLE_VERTEX_LOCATION` environment variable by default.
 
+- **googleAuthOptions** _object_
+
+  Optional. The Authentication options used by the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs/):
+
+  - **authClient** _object_
+    An `AuthClient` to use.
+
+  - **keyFilename** _string_
+    Path to a .json, .pem, or .p12 key file.
+
+  - **keyFile** _string_
+    Path to a .json, .pem, or .p12 key file.
+
+  - **credentials** _object_
+    Object containing client_email and private_key properties, or the external account client options.
+
+  - **clientOptions** _object_
+    Options object passed to the constructor of the client.
+
+  - **scopes** _string | string[]_
+    Required scopes for the desired API request.
+
+  - **projectId** _string_
+    Your project ID.
+
+  - **universeDomain** _string_
+    The default service domain for a given Cloud universe.
+
 ## Language Models
 
 You can create models that call the Vertex API using the provider instance.
