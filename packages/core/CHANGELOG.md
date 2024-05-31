@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.22
+
+### Patch Changes
+
+- 14bb8694: chore (ui): move maxAutomaticRoundtrips and addToolResult out of experimental
+
 ## 3.1.21
 
 ### Patch Changes
