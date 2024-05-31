@@ -1,5 +1,5 @@
 import { generateId, loadSetting } from '@ai-sdk/provider-utils';
-import { VertexAI } from '@google-cloud/vertexai';
+import { VertexAI, VertexInit } from '@google-cloud/vertexai';
 import { GoogleVertexLanguageModel } from './google-vertex-language-model';
 import {
   GoogleVertexModelId,
@@ -26,6 +26,14 @@ Your Google Vertex location. Defaults to the environment variable `GOOGLE_VERTEX
 Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_PROJECT`.
   */
   project?: string;
+
+  /**
+ Optional. The Authentication options provided by google-auth-library.
+Complete list of authentication options is documented in the
+GoogleAuthOptions interface:
+https://github.com/googleapis/google-auth-library-nodejs/blob/main/src/auth/googleauth.ts.
+   */
+  googleAuthOptions?: VertexInit['googleAuthOptions'];
 
   // for testing
   generateId?: () => string;
@@ -60,6 +68,7 @@ export function createVertex(
         environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
         description: 'Google Vertex location',
       }),
+      googleAuthOptions: options.googleAuthOptions,
     };
 
     return options.createVertexAI?.(config) ?? new VertexAI(config);
