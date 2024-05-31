@@ -19,7 +19,7 @@ import {
   GoogleVertexSettings,
 } from './google-vertex-settings';
 import { mapGoogleVertexFinishReason } from './map-google-vertex-finish-reason';
-import { prepareToolParameters } from './prepare-tool-parameters';
+import { prepareFunctionDeclarationSchema } from './prepare-function-declaration-schema';
 
 type GoogleVertexAIConfig = {
   vertexAI: VertexAI;
@@ -278,7 +278,7 @@ function prepareTools(
         functionDeclarations: tools.map(tool => ({
           name: tool.name,
           description: tool.description ?? '',
-          parameters: prepareToolParameters(tool.parameters),
+          parameters: prepareFunctionDeclarationSchema(tool.parameters),
         })),
       },
     ];
