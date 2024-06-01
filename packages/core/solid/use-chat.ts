@@ -1,4 +1,4 @@
-import { Accessor, Resource, Setter, createSignal } from 'solid-js';
+import { type Accessor, Resource, Setter, createSignal } from 'solid-js';
 import { useSWRStore } from 'solid-swr-store';
 import { createSWRStore } from 'swr-store';
 import { callChatApi } from '../shared/call-chat-api';
@@ -84,11 +84,16 @@ export function useChat({
   body,
   streamMode,
   generateId = generateIdFunc,
-}: UseChatOptions = {}): UseChatHelpers {
+}: Omit<UseChatOptions, 'api'> & {
+  api?: string | Accessor<string>;
+} = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
 
-  const key = `${api}|${chatId}`;
+  // Wraps the `api` in a function to support dynamic API endpoints via signals.
+  const getApi = typeof api === 'string' ? () => api : api;
+
+  const key = `${getApi()}|${chatId}`;
 
   // Because of the `initialData` option, the `data` will never be `undefined`:
   const messages = useSWRStore(chatApiStore, () => [key], {
@@ -141,7 +146,7 @@ export function useChat({
           const existingData = streamData() ?? [];
 
           return await callChatApi({
-            api,
+            api: getApi(),
             messages: sendExtraMessageFields
               ? chatRequest.messages
               : chatRequest.messages.map(

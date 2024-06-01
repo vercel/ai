@@ -71,11 +71,16 @@ export function useCompletion({
   onResponse,
   onFinish,
   onError,
-}: UseCompletionOptions = {}): UseCompletionHelpers {
+}: Omit<UseCompletionOptions, 'api'> & {
+  api?: string | Accessor<string>;
+} = {}): UseCompletionHelpers {
   // Generate an unique id for the completion if not provided.
   const completionId = id || `completion-${uniqueId++}`;
 
-  const key = `${api}|${completionId}`;
+  // Wraps the `api` in a function to support dynamic API endpoints via signals.
+  const getApi = typeof api === 'string' ? () => api : api;
+
+  const key = `${getApi()}|${completionId}`;
   const data = useSWRStore(completionApiStore, () => [key], {
     initialData: initialCompletion,
   });
@@ -105,7 +110,7 @@ export function useCompletion({
   ) => {
     const existingData = streamData() ?? [];
     return callCompletionApi({
-      api,
+      api: getApi(),
       prompt,
       credentials,
       headers: {
