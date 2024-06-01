@@ -9,7 +9,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
 
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   // eslint-disable-next-line turbo/no-undeclared-env-vars

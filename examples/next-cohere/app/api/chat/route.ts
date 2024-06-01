@@ -1,6 +1,7 @@
 import { CohereClient, Cohere } from 'cohere-ai';
 
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 const cohere = new CohereClient({
   token: process.env.COHERE_API_KEY || '',
