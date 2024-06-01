@@ -17,6 +17,10 @@ import { ClientMessage } from './actions';
 import { useActions, useUIState } from 'ai/rsc';
 import { nanoid } from 'nanoid';
 
+// Force the page to be dynamic and allow streaming responses up to 30 seconds
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
+
 export default function Home() {
   const [input, setInput] = useState<string>('');
   const [conversation, setConversation] = useUIState();
