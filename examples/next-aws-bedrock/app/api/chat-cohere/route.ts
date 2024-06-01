@@ -4,7 +4,8 @@ import {
 } from '@aws-sdk/client-bedrock-runtime';
 import { AWSBedrockCohereStream, StreamingTextResponse } from 'ai';
 
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 function buildPrompt(
   messages: { content: string; role: 'system' | 'user' | 'assistant' }[],
