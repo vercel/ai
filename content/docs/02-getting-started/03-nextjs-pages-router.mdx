@@ -83,7 +83,8 @@ Create a Route Handler (`app/api/chat/route.ts`) and add the following code:
 import { openai } from '@ai-sdk/openai';
 import { StreamingTextResponse, streamText } from 'ai';
 
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -162,9 +163,12 @@ Depending on your use case, you may want to stream additional data alongside the
 
 Make the following changes to your Route Handler (`app/api/chat/route.ts`)
 
-```ts filename="app/api/chat/route.ts" highlight="2,12-22"
+```ts filename="app/api/chat/route.ts" highlight="2,15-25"
 import { openai } from '@ai-sdk/openai';
 import { StreamingTextResponse, streamText, StreamData } from 'ai';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();

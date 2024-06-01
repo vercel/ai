@@ -22,11 +22,12 @@ To use `StreamData`, create a `StreamData` value on the server, append some data
   any framework.
 </Note>
 
-```tsx highlight="16-30"
+```tsx highlight="17-31"
 import { openai } from '@ai-sdk/openai';
 import { StreamingTextResponse, streamText, StreamData } from 'ai';
 
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
