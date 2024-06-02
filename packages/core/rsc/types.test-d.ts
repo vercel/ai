@@ -15,5 +15,11 @@ describe('StreamableValue type', () => {
     expectTypeOf<StreamableValue<string>>().not.toEqualTypeOf<
       StreamableValue<boolean>
     >();
+
+    expectTypeOf<StreamableValue<string>>().not.toEqualTypeOf<string>();
+
+    expectTypeOf<
+      StreamableValue<string>
+    >().not.toEqualTypeOf<'THIS IS NOT A STREAMABLE VALUE'>();
   });
 });
