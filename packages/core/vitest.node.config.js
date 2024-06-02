@@ -7,5 +7,8 @@ export default defineConfig({
     globals: true,
     include: ['**/*.test.ts', '**/*.test.tsx'],
     exclude: ['**/*.ui.test.ts', '**/*.ui.test.tsx', 'node_modules/**'],
+    typecheck: {
+      enabled: true,
+    }
   },
 });
