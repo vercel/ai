@@ -301,7 +301,19 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       arguments: toolCallDelta.function.arguments ?? '',
                     },
                   };
-
+                  // groq sends entire payload in first chunk, so check if arguments are parseable and therefore complete
+                  if (
+                    toolCallDelta.function?.arguments &&
+                    isParseableJson(toolCallDelta.function.arguments)
+                  ) {
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: toolCallDelta.id,
+                      toolName: toolCallDelta.function.name,
+                      args: toolCallDelta.function.arguments,
+                    });
+                  }
                   continue;
                 }
 
