@@ -7,6 +7,9 @@ import {
 import { InkeepAI } from '@inkeep/ai-api';
 import type { RecordsCited$ } from '@inkeep/ai-api/models/components';
 
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
 interface ChatRequestBody {
   messages: Array<{
     role: 'user' | 'assistant';

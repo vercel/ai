@@ -77,6 +77,9 @@ Create a route handler, `app/api/chat/route.ts` and add the following code:
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
@@ -161,9 +164,12 @@ Depending on your use case, you may want to stream additional data alongside the
 
 Make the following changes to your Route Handler (`app/api/chat/route.ts`):
 
-```ts filename="app/api/chat/route.ts" highlight="2,12-22"
+```ts filename="app/api/chat/route.ts" highlight="2,15-25"
 import { openai } from '@ai-sdk/openai';
 import { StreamingTextResponse, streamText, StreamData } from 'ai';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -295,6 +301,10 @@ import { useState } from 'react';
 import { continueConversation } from './actions';
 import { readStreamableValue } from 'ai/rsc';
 
+// Force the page to be dynamic and allow streaming responses up to 30 seconds
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
+
 export default function Chat() {
   const [messages, setMessages] = useState<CoreMessage[]>([]);
   const [input, setInput] = useState('');
@@ -379,15 +389,19 @@ The only change that you make here is to declare a new value (`data`) and return
 
 ### Update the UI
 
-Update your root route with the following code:
+Update your root page with the following code:
 
-```tsx filename="app/page.tsx" highlight="11, 14, 33"
+```tsx filename="app/page.tsx" highlight="15, 19, 37"
 'use client';
 
 import { type CoreMessage } from 'ai';
 import { useState } from 'react';
 import { continueConversation } from './actions';
 import { readStreamableValue } from 'ai/rsc';
+
+// Force the page to be dynamic and allow streaming responses up to 30 seconds
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 export default function Chat() {
   const [messages, setMessages] = useState<CoreMessage[]>([]);

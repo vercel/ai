@@ -110,6 +110,13 @@ Allows you to easily create a conversational user interface for your chatbot app
       description:
         'React only. Maximal number of automatic roundtrips for tool calls. An automatic tool call roundtrip is a call to the server with the  tool call results when all tool calls in the last assistant  message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
     },
+    {
+      name: 'streamMode',
+      type: "'text' | 'stream-data'",
+      optional: true,
+      description:
+        'An optional literal that sets the mode of the stream to be used. Defaults to `stream-data`. If set to `text`, the stream will be treated as a text stream.',
+    },
   ]}
 />
 
