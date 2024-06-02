@@ -85,9 +85,9 @@ return (
         return (
           <WeatherCard
             weather={{
-              temperature: 47,
-              unit: 'F',
-              description: 'sunny'
+              temperature,
+              unit,
+              description
               forecast,
             }}
           />
@@ -175,17 +175,9 @@ const text = generateText({
       }),
       execute: async ({ city, unit }) => {
         const weather = getWeather({ city, unit })
-        const { temperature, unit, description, forecast } = weather
 
         uiStream.done(
-          <WeatherCard
-            weather={{
-              temperature: 47,
-              unit: 'F',
-              description: 'sunny'
-              forecast,
-            }}
-          />
+          <WeatherCard weather={weather} />
         )
       }
     }
