@@ -155,7 +155,7 @@ The **AI SDK RSC (`ai/rsc`)** takes advantage of RSCs to solve the problem of ma
 
 Rather than conditionally rendering user interfaces on the client based on the data returned by the language model, you can directly stream them from the server during a model generation.
 
-```tsx highlight="3,22-31,38" filename="app/action.ts"
+```tsx highlight="3,21-23,30" filename="app/action.ts"
 import { createStreamableUI } from 'ai/rsc'
 
 const uiStream = createStreamableUI();
