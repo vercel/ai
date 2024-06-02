@@ -1,4 +1,3 @@
-'use server';
 
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
