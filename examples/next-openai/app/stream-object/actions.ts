@@ -1,4 +1,3 @@
-
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import { createStreamableValue } from 'ai/rsc';
