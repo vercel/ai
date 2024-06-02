@@ -22,10 +22,10 @@ These functions take a standardized approach to setting up [prompts](./ai-sdk-co
 - [`generateText`](/docs/reference/ai-sdk-core/generate-text): Generates text and [tool calls](./ai-sdk-core/tools-and-tool-calling).
   This function is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
 - [`streamText`](/docs/reference/ai-sdk-core/stream-text): Stream text and tool calls.
-  You can use the `streamText` function for interactive use cases such as chat bots and content streaming. You can also generate UI components with tools (see [Generative UI](./ai-sdk-rsc)).
+  You can use the `streamText` function for interactive use cases such as chat bots and content streaming. You can also generate UI components with tools (see [Generative UI](../ai-sdk-rsc)).
 
 - [`generateObject`](/docs/reference/ai-sdk-core/generate-object): Generates a typed, structured object that matches a [Zod](https://zod.dev/) schema.
   You can use this function to force the language model to return structured data, e.g. for information extraction, synthetic data generation, or classification tasks.
 
 - [`streamObject`](/docs/reference/ai-sdk-core/stream-object): Stream a structured object that matches a Zod schema.
-  You can use this function to stream generated UIs in combination with React Server Components (see [Generative UI](./ai-sdk-rsc)).
+  You can use this function to stream generated UIs in combination with React Server Components (see [Generative UI](../ai-sdk-rsc)).
