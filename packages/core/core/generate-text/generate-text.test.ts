@@ -315,7 +315,7 @@ describe('result.responseMessages', () => {
         },
       },
       prompt: 'test-input',
-      maxToolRountrips: 2,
+      maxToolRoundtrips: 2,
     });
 
     assert.deepStrictEqual(result.responseMessages, [
