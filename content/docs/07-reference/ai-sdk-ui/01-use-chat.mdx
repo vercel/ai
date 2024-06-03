@@ -178,6 +178,42 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: '(event: React.FormEvent<HTMLFormElement>, chatRequestOptions?: ChatRequestOptions) => void',
       description:
         'Form submission handler that automatically resets the input field and appends a user message. You can use the `options` parameter to send additional data, headers and more to the server.',
+      properties: [
+        {
+          type: 'ChatRequestOptions',
+          parameters: [
+            {
+              name: 'options',
+              type: 'RequestOptions',
+              description: 'The options to be passed to the fetch call.',
+              properties: [
+                {
+                  type: 'ChatRequestOptions',
+                  parameters: [
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string> | Headers',
+                      description:
+                        'An optional object of headers to be passed to the API endpoint.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'object',
+                      description:
+                        'An optional object to be passed to the API endpoint.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'data',
+              type: 'Record<string,string>',
+              description: 'Additional data to be sent to the server.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'isLoading',
