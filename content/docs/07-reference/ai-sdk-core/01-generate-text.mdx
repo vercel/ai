@@ -1,25 +1,29 @@
 ---
 title: generateText
-description: Generate text using the AI SDK Core
+description: API Reference for generateText.
 ---
 
-# `generateText`
+# `generateText()`
 
 Generates text and calls tools for a given prompt using a language model.
 
 It is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
 
-## Example
-
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
-const result = await generateText({
+const { text } = await generateText({
   model: openai('gpt-4-turbo'),
   prompt: 'Invent a new holiday and describe its traditions.',
 });
+
+console.log(text);
 ```
+
+## Import
+
+<Snippet text={`import { generateText } from "ai"`} prompt={false} />
 
 ## API Signature
 
@@ -320,7 +324,7 @@ const result = await generateText({
         'An optional abort signal that can be used to cancel the call.',
     },
     {
-      name: 'maxToolRoundtrips',
+      name: 'maxAutomaticRoundtrips',
       type: 'number',
       isOptional: true,
       description:
@@ -415,6 +419,6 @@ const result = await generateText({
   ]}
 />
 
-## More Examples
+## Examples
 
 <ExamplesList packageName="core" functionName="generateText" />
