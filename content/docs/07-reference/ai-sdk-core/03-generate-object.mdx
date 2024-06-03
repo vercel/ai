@@ -12,18 +12,14 @@ It can be used to force the language model to return structured data, e.g. for i
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
+import { z } from 'zod';
 
 const { object } = await generateObject({
   model: openai('gpt-4-turbo'),
   schema: z.object({
     recipe: z.object({
       name: z.string(),
-      ingredients: z.array(
-        z.object({
-          name: z.string(),
-          amount: z.string(),
-        }),
-      ),
+      ingredients: z.array(z.string()),
       steps: z.array(z.string()),
     }),
   }),

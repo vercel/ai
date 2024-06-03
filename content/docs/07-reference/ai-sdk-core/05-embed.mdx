@@ -1,16 +1,93 @@
 ---
 title: embed
-description: Embed a single value using the AI SDK Core
+description: API Reference for embed.
 ---
 
-# `embed`
+# `embed()`
 
 Generate an embedding for a single value using an embedding model.
 
 This is ideal for use cases where you need to embed a single value to e.g. retrieve similar items or to use the embedding in a downstream task.
 
+```ts
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: openai.embedding('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+});
+```
+
 ## Import
 
 <Snippet text={`import { embed } from "ai"`} prompt={false} />
 
-<ReferenceTable packageName="core" functionName="embed" />
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'EmbeddingModel',
+      description: `The embedding model to use. Example: openai.embedding('text-embedding-3-small')`,
+    },
+    {
+      name: 'value',
+      type: 'VALUE',
+      description: 'The value to embed. The type depends on the model.',
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of retries. Set to 0 to disable retries. Default: 2.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'An optional abort signal that can be used to cancel the call.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'value',
+      type: 'VALUE',
+      description: 'The value that was embedded.',
+    },
+    {
+      name: 'embedding',
+      type: 'number[]',
+      description: 'The embedding of the value.',
+    },
+    {
+      name: 'rawResponse',
+      type: 'RawResponse',
+      optional: true,
+      description: 'Optional raw response data.',
+      properties: [
+        {
+          type: 'RawResponse',
+          parameters: [
+            {
+              name: 'header',
+              optional: true,
+              type: 'Record<string, string>',
+              description: 'Response headers.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
