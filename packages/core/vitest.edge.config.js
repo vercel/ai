@@ -9,6 +9,6 @@ export default defineConfig({
     exclude: ['**/*.ui.test.ts', '**/*.ui.test.tsx', 'node_modules/**'],
     typecheck: {
       enabled: true,
-    }
+    },
   },
 });
