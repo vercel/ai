@@ -1,5 +1,81 @@
 # ai
 
+## 3.1.22
+
+### Patch Changes
+
+- 14bb8694: chore (ui): move maxAutomaticRoundtrips and addToolResult out of experimental
+
+## 3.1.21
+
+### Patch Changes
+
+- 213f2411: fix (core,streams): support ResponseInit variants
+- 09698bca: chore (streams): deprecate streaming helpers that have a provider replacement
+
+## 3.1.20
+
+### Patch Changes
+
+- 0e1da476: feat (core): add maxAutomaticRoundtrips setting to generateText
+
+## 3.1.19
+
+### Patch Changes
+
+- 9882d24b: fix (ui/svelte): send data to server
+- 131bbd3e: fix (ui): remove console.log statements
+
+## 3.1.18
+
+### Patch Changes
+
+- f9dee8ac: fix(ai/rsc): Fix types for createStreamableValue and createStreamableUI
+- 1c0ebf8e: feat (core): add responseMessages to generateText result
+
+## 3.1.17
+
+### Patch Changes
+
+- 92b993b7: ai/rsc: improve getAIState and getMutableAIState types
+- 7de628e9: chore (ui): deprecate old function/tool call handling
+- 7de628e9: feat (ui): add onToolCall handler to useChat
+
+## 3.1.16
+
+### Patch Changes
+
+- f39c0dd2: feat (core, rsc): add toolChoice setting
+- Updated dependencies [f39c0dd2]
+  - @ai-sdk/provider@0.0.8
+  - @ai-sdk/provider-utils@0.0.11
+
+## 3.1.15
+
+### Patch Changes
+
+- 8e780288: feat (ai/core): add onFinish callback to streamText
+- 8e780288: feat (ai/core): add text, toolCalls, and toolResults promises to StreamTextResult (matching the generateText result API with async methods)
+- Updated dependencies [8e780288]
+  - @ai-sdk/provider@0.0.7
+  - @ai-sdk/provider-utils@0.0.10
+
+## 3.1.14
+
+### Patch Changes
+
+- 6109c6a: feat (ai/react): add experimental_maxAutomaticRoundtrips to useChat
+
+## 3.1.13
+
+### Patch Changes
+
+- 60117c9: dependencies (ai/ui): add React 18.3 and 19 support (peer dependency)
+- Updated dependencies [6a50ac4]
+- Updated dependencies [6a50ac4]
+  - @ai-sdk/provider@0.0.6
+  - @ai-sdk/provider-utils@0.0.9
+
 ## 3.1.12
 
 ### Patch Changes

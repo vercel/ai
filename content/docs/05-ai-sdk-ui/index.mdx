@@ -1,16 +1,47 @@
 ---
 title: AI SDK UI
-description: Learn how to build your application with the Studio.
+description: Learn about the Vercel AI SDK UI.
 ---
 
-# Vercel AI SDK UI
+# AI SDK Core
 
-Vercel AI SDK UI is designed to help you build interactive chat, completion, and assistant applications with ease. It is framework-agnostic toolkit, streamlining the integration of advanced AI functionalities into your applications.
-
-Vercel AI SDK UI provides robust abstractions that simplify the complex tasks of managing chat streams and UI updates on the frontend, enabling you to develop dynamic AI-driven interfaces more efficiently. With three main hooks - **`useChat`**, **`useCompletion`**, and **`useAssistant`** - you can incorporate real-time chat capabilities, text completions, and interactive assistant features into your app.
-
-- **`useChat`** offers real-time streaming of chat messages, abstracting state management for inputs, messages, loading, and errors, allowing for seamless integration into any UI design.
-- **`useCompletion`** enables you to handle text completions in your applications, managing chat input state and automatically updating the UI as new completions are streamed from your AI provider.
-- **`useAssistant`** is designed to facilitate interaction with OpenAI-compatible assistant APIs, managing UI state and updating it automatically as responses are streamed.
-
-These hooks are designed to reduce the complexity and time required to implement AI interactions, letting you focus on creating exceptional user experiences.
+<IndexCards
+  cards={[
+    {
+      title: 'Overview',
+      description: 'Get an overview about the Vercel AI SDK UI.',
+      href: '/docs/ai-sdk-ui/overview',
+    },
+    {
+      title: 'Chatbot',
+      description: 'Learn how to integrate an interface for a chatbot.',
+      href: '/docs/ai-sdk-ui/chatbot',
+    },
+    {
+      title: 'Chatbot with tool calling',
+      description:
+        'Learn how to integrate an interface for a chatbot with tool calling.',
+      href: '/docs/ai-sdk-ui/chatbot-with-tool-calling',
+    },
+    {
+      title: 'Completion',
+      description: 'Learn how to integrate an interface for text completion.',
+      href: '/docs/ai-sdk-ui/completion',
+    },
+    {
+      title: 'OpenAI Assistants',
+      description: 'Learn how to integrate an interface for OpenAI Assistants.',
+      href: '/docs/ai-sdk-ui/openai-assistants',
+    },
+    {
+      title: 'Storing Messages',
+      description: 'Learn how to store messages.',
+      href: '/docs/ai-sdk-ui/storing-messages',
+    },
+    {
+      title: 'Streaming Data',
+      description: 'Learn how to stream data.',
+      href: '/docs/ai-sdk-ui/streaming-data',
+    },
+  ]}
+/>

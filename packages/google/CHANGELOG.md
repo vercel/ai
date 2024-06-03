@@ -1,5 +1,32 @@
 # @ai-sdk/google
 
+## 0.0.17
+
+### Patch Changes
+
+- f39c0dd2: feat (provider): implement toolChoice support
+- Updated dependencies [f39c0dd2]
+  - @ai-sdk/provider@0.0.8
+  - @ai-sdk/provider-utils@0.0.11
+
+## 0.0.16
+
+### Patch Changes
+
+- 24683b72: fix (providers): Zod is required dependency
+- Updated dependencies [8e780288]
+  - @ai-sdk/provider@0.0.7
+  - @ai-sdk/provider-utils@0.0.10
+
+## 0.0.15
+
+### Patch Changes
+
+- Updated dependencies [6a50ac4]
+- Updated dependencies [6a50ac4]
+  - @ai-sdk/provider@0.0.6
+  - @ai-sdk/provider-utils@0.0.9
+
 ## 0.0.14
 
 ### Patch Changes

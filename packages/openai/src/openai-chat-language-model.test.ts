@@ -263,8 +263,62 @@ describe('doGenerate', () => {
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      messages: [{ role: 'user', content: 'Hello' }],
       logprobs: false,
+    });
+  });
+
+  it('should pass tools and toolChoice', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'test-tool',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      logprobs: false,
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      ],
+      tool_choice: {
+        type: 'function',
+        function: { name: 'test-tool' },
+      },
     });
   });
 
@@ -558,7 +612,7 @@ describe('doStream', () => {
       stream: true,
       stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      messages: [{ role: 'user', content: 'Hello' }],
       logprobs: false,
     });
   });

@@ -8,6 +8,7 @@ Can be one of the following:
 - `tool-calls`: model triggered tool calls
 - `error`: model stopped because of an error
 - `other`: model stopped for other reasons
+- `unknown`: the model has not transmitted a finish reason
  */
 export type LanguageModelV1FinishReason =
   | 'stop' // model generated stop sequence
@@ -15,4 +16,5 @@ export type LanguageModelV1FinishReason =
   | 'content-filter' // content filter violation stopped the model
   | 'tool-calls' // model triggered tool calls
   | 'error' // model stopped because of an error
-  | 'other'; // model stopped for other reasons
+  | 'other' // model stopped for other reasons
+  | 'unknown'; // the model has not transmitted a finish reason

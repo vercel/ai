@@ -13,9 +13,7 @@ If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/p
 
 ## Prerequisites
 
-Before you raise a frothy seed round and build a billion dollar business, you need to set-up your project.
-
-Make sure you have the following:
+To follow this quickstart, you'll need:
 
 - Node.js 18+ and pnpm installed on your local development machine.
 - An OpenAI API key.
@@ -50,7 +48,17 @@ Install `ai` and `@ai-sdk/openai`, Vercel AI SDK's OpenAI provider.
   in the [providers](/providers) section.
 </Note>
 <div className="my-4">
-  <Snippet text="pnpm install ai @ai-sdk/openai zod" />
+  <Tabs items={['pnpm', 'npm', 'yarn']}>
+    <Tab>
+      <Snippet text="pnpm install ai @ai-sdk/openai zod" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="npm install ai @ai-sdk/openai zod" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="yarn add ai @ai-sdk/openai zod" dark />
+    </Tab>
+  </Tabs>
 </div>
 
 <Note type="secondary" fill>
@@ -76,7 +84,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 <Note>
   As long as you are on Next.js 13+, you can use Route Handlers (using the App
   Router) alongside the Pages Router. This is recommended to enable you to use
-  the Web APIs interface/signature
+  the Web APIs interface/signature and to better support streaming.
 </Note>
 
 Create a Route Handler (`app/api/chat/route.ts`) and add the following code:
@@ -84,6 +92,9 @@ Create a Route Handler (`app/api/chat/route.ts`) and add the following code:
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
 import { StreamingTextResponse, streamText } from 'ai';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -93,16 +104,16 @@ export async function POST(req: Request) {
     messages,
   });
 
-  return new StreamingTextResponse(result.toAIStream());
+  return result.toAIStreamResponse();
 }
 ```
 
 Let's take a look at what is happening in this code:
 
-1. First, you define an asynchronous `POST` request and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
-2. Next, you call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 2). You can use pass additional [settings](/docs/ai-sdk-core/settings) in this configuration object to further customise the models behaviour.
-3. The `streamText` function will return a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toAIStream` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream) function which will be used in the next step to convert the stream into a format compatible with `StreamingTextResponse`.
-4. Finally, you send the result to the client by a returning a new [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response), passing the AI Stream from the `result` object described in the previous step. This will set the required headers and response details to allow the client to stream the response.
+1. Define an asynchronous `POST` request and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
+2. Call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 2). You can use pass additional [settings](/docs/ai-sdk-core/settings) in this configuration object to further customise the models behaviour.
+3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toAIStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function which converts the result to a streamed response object.
+4. Return the result to the client to stream the response.
 
 This Route Handler creates a POST request endpint at `/api/chat`.
 
@@ -162,9 +173,12 @@ Depending on your use case, you may want to stream additional data alongside the
 
 Make the following changes to your Route Handler (`app/api/chat/route.ts`)
 
-```ts filename="app/api/chat/route.ts" highlight="2,12-22"
+```ts filename="app/api/chat/route.ts" highlight="2,15-25"
 import { openai } from '@ai-sdk/openai';
 import { StreamingTextResponse, streamText, StreamData } from 'ai';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -193,7 +207,7 @@ In this code, you:
 1. Create a new instance of `StreamData`.
 2. Append the data you want to stream alongside the model's response.
 3. Create a new AI stream with the `toAIStream` method on the `StreamTextResult` object.
-4. Listen for the onFinal callback on the AI Stream created above.
+4. Listen for the `onFinal` callback on the AI Stream created above.
 5. Pass the data alongside the stream to the new `StreamingTextResponse`.
 
 ### Update your frontend
@@ -232,6 +246,6 @@ Head back to your browser (http://localhost:3000) and enter a new message. You s
 
 ## Where to Next?
 
-You've built an AI chatbot using the Vercel AI SDK! Remember, your imagination is the limit when it comes to using AI to build apps, so feel free to experiment and extend the functionality of this application further.
+You've built an AI chatbot using the Vercel AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-ui/chatbot-with-tool-calling) or [persisting chat history](/docs/ai-sdk-ui/storing-messages).
 
 If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.

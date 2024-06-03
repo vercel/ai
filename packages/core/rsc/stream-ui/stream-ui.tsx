@@ -6,16 +6,17 @@ import {
 import { ReactNode } from 'react';
 import { z } from 'zod';
 
-import { CallSettings } from '../../core/prompt/call-settings';
-import { Prompt } from '../../core/prompt/prompt';
-import { createStreamableUI } from '../streamable';
-import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
-import { getValidatedPrompt } from '../../core/prompt/get-validated-prompt';
-import { convertZodToJSONSchema } from '../../core/util/convert-zod-to-json-schema';
-import { prepareCallSettings } from '../../core/prompt/prepare-call-settings';
-import { convertToLanguageModelPrompt } from '../../core/prompt/convert-to-language-model-prompt';
-import { createResolvablePromise } from '../utils';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
+import { CallSettings } from '../../core/prompt/call-settings';
+import { convertToLanguageModelPrompt } from '../../core/prompt/convert-to-language-model-prompt';
+import { getValidatedPrompt } from '../../core/prompt/get-validated-prompt';
+import { prepareCallSettings } from '../../core/prompt/prepare-call-settings';
+import { prepareToolsAndToolChoice } from '../../core/prompt/prepare-tools-and-tool-choice';
+import { Prompt } from '../../core/prompt/prompt';
+import { CoreToolChoice } from '../../core/types';
+import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
+import { createStreamableUI } from '../streamable';
+import { createResolvablePromise } from '../utils';
 
 type Streamable = ReactNode | Promise<ReactNode>;
 
@@ -75,6 +76,7 @@ export async function streamUI<
 >({
   model,
   tools,
+  toolChoice,
   system,
   prompt,
   messages,
@@ -96,6 +98,11 @@ export async function streamUI<
     tools?: {
       [name in keyof TOOLS]: RenderTool<TOOLS[name]>;
     };
+
+    /**
+The tool choice strategy. Default: 'auto'.
+     */
+    toolChoice?: CoreToolChoice<TOOLS>;
 
     text?: RenderText;
     initial?: ReactNode;
@@ -196,15 +203,7 @@ export async function streamUI<
     model.doStream({
       mode: {
         type: 'regular',
-        tools:
-          tools == null
-            ? undefined
-            : Object.entries(tools).map(([name, tool]) => ({
-                type: 'function',
-                name,
-                description: tool.description,
-                parameters: convertZodToJSONSchema(tool.parameters),
-              })),
+        ...prepareToolsAndToolChoice({ tools, toolChoice }),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,

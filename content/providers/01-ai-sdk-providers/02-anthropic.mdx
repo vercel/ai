@@ -6,7 +6,6 @@ description: Learn how to use Anthropic.
 # Anthropic Provider
 
 The [Anthropic](https://www.anthropic.com/) provider contains language model support for the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post).
-It creates language model objects that can be used with the `generateText`, `streamText`, and `generateObject` functions.
 
 ## Setup
 
@@ -85,6 +84,23 @@ The following optional settings are available for Anthropic models:
 
   Used to remove "long tail" low probability responses.
   Recommended for advanced use cases only. You usually only need to use temperature.
+
+### Example
+
+You can use Anthropic language models to generate text with the `generateText` function:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-3-haiku-20240307'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Anthropic language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
+(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
 ### Model Capabilities
 

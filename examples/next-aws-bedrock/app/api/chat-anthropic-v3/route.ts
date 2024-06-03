@@ -5,7 +5,8 @@ import {
 import { AWSBedrockAnthropicMessagesStream, StreamingTextResponse } from 'ai';
 import { experimental_buildAnthropicMessages } from 'ai/prompts';
 
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 const bedrockClient = new BedrockRuntimeClient({
   region: process.env.AWS_REGION ?? 'us-east-1',

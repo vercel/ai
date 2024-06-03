@@ -108,6 +108,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
           });
         }
 
+        if (mode.toolChoice) {
+          throw new UnsupportedFunctionalityError({
+            functionality: 'toolChoice',
+          });
+        }
+
         return baseArgs;
       }
 
@@ -289,7 +295,6 @@ const openAICompletionResponseSchema = z.object({
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiCompletionChunkSchema = z.object({
-  object: z.literal('text_completion'),
   choices: z.array(
     z.object({
       text: z.string(),

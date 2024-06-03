@@ -28,7 +28,7 @@
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
     "husky": "^8.0.0",
-    "lint-staged": "^13.2.2",
+    "lint-staged": "^15.2.4",
     "prettier": "2.8.8",
     "publint": "0.1.11",
     "turbo": "^1.10.13",
