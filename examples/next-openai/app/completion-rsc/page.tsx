@@ -3,8 +3,14 @@
 import { readStreamableValue } from 'ai/rsc';
 import { useState } from 'react';
 import { generateCompletion } from './generate-completion';
+import { unstable_noStore as noStore } from 'next/cache';
+
+// Force the page to be dynamic and allow streaming responses up to 30 seconds
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 export default function Chat() {
+  noStore();
   const [input, setInput] = useState('');
   const [completion, setCompletion] = useState('');
 

@@ -9,12 +9,14 @@ import {
   GenerateItineraryAI,
   submitItineraryRequest,
 } from './generate-itinerary';
+import { unstable_noStore as noStore } from 'next/cache';
 
 // Force the page to be dynamic and allow streaming responses up to 30 seconds
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 export default function ItineraryPage() {
+  noStore();
   const [destination, setDestination] = useState('');
   const [lengthOfStay, setLengthOfStay] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
