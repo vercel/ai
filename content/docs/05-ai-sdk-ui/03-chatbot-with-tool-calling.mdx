@@ -6,8 +6,8 @@ description: Learn how to use tools with the useChat hook.
 # Chatbot with Tools
 
 <Note type="warning">
-  The tool calling functionality described here currently only available for
-  React.
+  The tool calling functionality described here is currently only available for
+  **React**.
 </Note>
 
 With `useChat` and `streamText`, you can use tools in your chatbot application.
@@ -39,9 +39,10 @@ The tool result contains all information about the tool call as well as the resu
 
 <Note>
   In order to automatically send another request to the server when all tool
-  calls are server-side, you need to set `maxToolRoundtrips` to a value greater
-  than 0 in the `useChat` options. It is disabled by default for backward
-  compatibility.
+  calls are server-side, you need to set
+  [`maxToolRoundtrips`](/docs/reference/ai-sdk-ui/use-chat#max-tool-roundtrips)
+  to a value greater than 0 in the `useChat` options. It is disabled by default
+  for backward compatibility.
 </Note>
 
 ## Example
@@ -107,15 +108,15 @@ Tool invocations are displayed in the chat UI.
 
 There are three things worth mentioning:
 
-1. The `onToolCall` callback is used to handle client-side tools that should be automatically executed.
+1. The [`onToolCall`](/docs/reference/ai-sdk-ui/use-chat#on-tool-call) callback is used to handle client-side tools that should be automatically executed.
    In this example, the `getLocation` tool is a client-side tool that returns a random city.
 
-1. The `toolInvocations` property of the last assistant message contains all tool calls and results.
+2. The `toolInvocations` property of the last assistant message contains all tool calls and results.
    The client-side tool `askForConfirmation` is displayed in the UI.
    It asks the user for confirmation and displays the result once the user confirms or denies the execution.
    The result is added to the chat using `addToolResult`.
 
-1. The `maxToolRoundtrips` option is set to 5.
+3. The [`maxToolRoundtrips`](/docs/reference/ai-sdk-ui/use-chat#max-tool-roundtrips) option is set to 5.
    This enables several tool use iterations between the client and the server.
 
 ```tsx filename='app/page.tsx'
