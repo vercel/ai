@@ -93,7 +93,7 @@ function getAIState<AI extends AIProvider = any>(
 }
 
 /**
- * Get the mutable AI state. Note that you must call `.close()` when finishing
+ * Get the mutable AI state. Note that you must call `.done()` when finishing
  * updating the AI state.
  *
  * @example
