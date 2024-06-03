@@ -40,7 +40,7 @@ The tool result contains all information about the tool call as well as the resu
 <Note>
   In order to automatically send another request to the server when all tool
   calls are server-side, you need to set
-  [`maxToolRoundtrips`](/docs/reference/ai-sdk-ui/use-chat#max-automatic-roundtrips)
+  [`maxToolRoundtrips`](/docs/reference/ai-sdk-ui/use-chat#max-tool-roundtrips)
   to a value greater than 0 in the `useChat` options. It is disabled by default
   for backward compatibility.
 </Note>
@@ -116,7 +116,7 @@ There are three things worth mentioning:
    It asks the user for confirmation and displays the result once the user confirms or denies the execution.
    The result is added to the chat using `addToolResult`.
 
-3. The [`maxToolRoundtrips`](/docs/reference/ai-sdk-ui/use-chat#max-automatic-roundtrips) option is set to 5.
+3. The [`maxToolRoundtrips`](/docs/reference/ai-sdk-ui/use-chat#max-tool-roundtrips) option is set to 5.
    This enables several tool use iterations between the client and the server.
 
 ```tsx filename='app/page.tsx'
