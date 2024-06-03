@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.23
+
+### Patch Changes
+
+- c03cafe6: chore (core, ui): rename maxAutomaticRoundtrips to maxToolRoundtrips
+
 ## 3.1.22
 
 ### Patch Changes

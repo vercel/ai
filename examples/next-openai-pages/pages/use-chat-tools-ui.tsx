@@ -5,7 +5,7 @@ export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
       api: '/api/use-chat-tools-ui',
-      experimental_maxAutomaticRoundtrips: 5,
+      maxAutomaticRoundtrips: 5,
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {
@@ -22,9 +22,9 @@ export default function Chat() {
     });
 
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch gap-4">
+    <div className="flex flex-col w-full max-w-md gap-4 py-24 mx-auto stretch">
       {messages?.map((m: Message) => (
-        <div key={m.id} className="whitespace-pre-wrap flex flex-col gap-1">
+        <div key={m.id} className="flex flex-col gap-1 whitespace-pre-wrap">
           <strong>{`${m.role}: `}</strong>
           {m.content}
           {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
@@ -35,7 +35,7 @@ export default function Chat() {
               return (
                 <div
                   key={toolCallId}
-                  className="text-gray-500 flex flex-col gap-2"
+                  className="flex flex-col gap-2 text-gray-500"
                 >
                   {toolInvocation.args.message}
                   <div className="flex gap-2">
@@ -79,15 +79,15 @@ export default function Chat() {
                   key={toolCallId}
                   className="flex flex-col gap-2 p-4 bg-blue-400 rounded-lg"
                 >
-                  <div className="flex flex-row justify-between items-center">
-                    <div className="text-4xl text-blue-50 font-medium">
+                  <div className="flex flex-row items-center justify-between">
+                    <div className="text-4xl font-medium text-blue-50">
                       {toolInvocation.result.value}°
                       {toolInvocation.result.unit === 'celsius' ? 'C' : 'F'}
                     </div>
 
-                    <div className="h-9 w-9 bg-amber-400 rounded-full flex-shrink-0" />
+                    <div className="flex-shrink-0 rounded-full h-9 w-9 bg-amber-400" />
                   </div>
-                  <div className="flex flex-row gap-2 text-blue-50 justify-between">
+                  <div className="flex flex-row justify-between gap-2 text-blue-50">
                     {toolInvocation.result.weeklyForecast.map(
                       (forecast: any) => (
                         <div
@@ -104,7 +104,7 @@ export default function Chat() {
               ) : toolInvocation.toolName === 'getLocation' ? (
                 <div
                   key={toolCallId}
-                  className="text-gray-500 bg-gray-100 rounded-lg p-4"
+                  className="p-4 text-gray-500 bg-gray-100 rounded-lg"
                 >
                   User is in {toolInvocation.result}.
                 </div>

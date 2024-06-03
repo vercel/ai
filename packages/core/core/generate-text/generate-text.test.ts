@@ -315,7 +315,7 @@ describe('result.responseMessages', () => {
         },
       },
       prompt: 'test-input',
-      maxAutomaticRoundtrips: 2,
+      maxToolRoundtrips: 2,
     });
 
     assert.deepStrictEqual(result.responseMessages, [
@@ -350,7 +350,7 @@ describe('result.responseMessages', () => {
   });
 });
 
-describe('maxAutomaticRoundtrips', () => {
+describe('maxToolRoundtrips', () => {
   it('should return text, tool calls and tool results from last roundtrip', async () => {
     let responseCount = 0;
     const result = await generateText({
@@ -468,7 +468,7 @@ describe('maxAutomaticRoundtrips', () => {
         },
       },
       prompt: 'test-input',
-      maxAutomaticRoundtrips: 2,
+      maxToolRoundtrips: 2,
     });
 
     assert.deepStrictEqual(result.text, 'Hello, world!');
