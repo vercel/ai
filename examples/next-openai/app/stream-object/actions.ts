@@ -6,7 +6,6 @@ import { createStreamableValue } from 'ai/rsc';
 import { PartialNotification, notificationSchema } from './schema';
 
 export async function generateNotifications(context: string) {
-
   const notificationsStream = createStreamableValue<PartialNotification>();
 
   streamObject({
