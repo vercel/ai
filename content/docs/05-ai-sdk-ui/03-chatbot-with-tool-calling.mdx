@@ -39,9 +39,9 @@ The tool result contains all information about the tool call as well as the resu
 
 <Note>
   In order to automatically send another request to the server when all tool
-  calls are server-side, you need to set `maxAutomaticRoundtrips` to a value
-  greater than 0 in the `useChat` options. It is disabled by default for
-  backward compatibility.
+  calls are server-side, you need to set `maxToolRoundtrips` to a value greater
+  than 0 in the `useChat` options. It is disabled by default for backward
+  compatibility.
 </Note>
 
 ## Example
@@ -115,7 +115,7 @@ There are three things worth mentioning:
    It asks the user for confirmation and displays the result once the user confirms or denies the execution.
    The result is added to the chat using `addToolResult`.
 
-1. The `maxAutomaticRoundtrips` option is set to 5.
+1. The `maxToolRoundtrips` option is set to 5.
    This enables several tool use iterations between the client and the server.
 
 ```tsx filename='app/page.tsx'
@@ -127,7 +127,7 @@ import { Message, useChat } from 'ai/react';
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
-      maxAutomaticRoundtrips: 5,
+      maxToolRoundtrips: 5,
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {

@@ -224,6 +224,7 @@ export function useChat({
   onToolCall,
   experimental_maxAutomaticRoundtrips = 0,
   maxAutomaticRoundtrips = experimental_maxAutomaticRoundtrips,
+  maxToolRoundtrips = maxAutomaticRoundtrips,
   streamMode,
   onResponse,
   onFinish,
@@ -236,9 +237,15 @@ export function useChat({
   api?: string | StreamingReactResponseAction;
   key?: string;
   /**
-@deprecated Use `maxAutomaticRoundtrips` instead.
+@deprecated Use `maxToolRoundtrips` instead.
    */
   experimental_maxAutomaticRoundtrips?: number;
+
+  /**
+@deprecated Use `maxToolRoundtrips` instead.
+   */
+  maxAutomaticRoundtrips?: number;
+
   /**
 Maximal number of automatic roundtrips for tool calls.
 
@@ -251,7 +258,7 @@ case of misconfigured tools.
 
 By default, it's set to 0, which will disable the feature.
    */
-  maxAutomaticRoundtrips?: number;
+  maxToolRoundtrips?: number;
 } = {}): UseChatHelpers & {
   /**
    * @deprecated Use `addToolResult` instead.
@@ -384,11 +391,11 @@ By default, it's set to 0, which will disable the feature.
         // ensure there is a last message:
         lastMessage != null &&
         // check if the feature is enabled:
-        maxAutomaticRoundtrips > 0 &&
+        maxToolRoundtrips > 0 &&
         // check that roundtrip is possible:
         isAssistantMessageWithCompletedToolCalls(lastMessage) &&
         // limit the number of automatic roundtrips:
-        countTrailingAssistantMessages(messages) <= maxAutomaticRoundtrips
+        countTrailingAssistantMessages(messages) <= maxToolRoundtrips
       ) {
         await triggerRequest({ messages });
       }
@@ -409,7 +416,7 @@ By default, it's set to 0, which will disable the feature.
       experimental_onFunctionCall,
       experimental_onToolCall,
       onToolCall,
-      maxAutomaticRoundtrips,
+      maxToolRoundtrips,
       messagesRef,
       abortControllerRef,
       generateId,
