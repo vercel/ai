@@ -48,7 +48,17 @@ Install `ai` and `@ai-sdk/openai`, the Vercel AI package and Vercel AI SDK's [ O
   in the [providers](/providers) section.
 </Note>
 <div className="my-4">
-  <Snippet text="pnpm install ai @ai-sdk/openai zod" />
+  <Tabs items={['pnpm', 'npm', 'yarn']}>
+    <Tab>
+      <Snippet text="pnpm install ai @ai-sdk/openai zod" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="npm install ai @ai-sdk/openai zod" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="yarn add ai @ai-sdk/openai zod" dark />
+    </Tab>
+  </Tabs>
 </div>
 
 <Note type="secondary" fill>
@@ -391,7 +401,7 @@ The only change that you make here is to declare a new value (`data`) and return
 
 Update your root page with the following code:
 
-```tsx filename="app/page.tsx" highlight="15, 19, 38"
+```tsx filename="app/page.tsx" highlight="15, 19, 37"
 'use client';
 
 import { type CoreMessage } from 'ai';
