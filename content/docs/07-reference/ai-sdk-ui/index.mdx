@@ -3,6 +3,13 @@ title: AI SDK UI
 description: Reference documentation for the AI SDK UI
 ---
 
+# AI SDK UI
+
+[AI SDK UI](/docs/ai-sdk-ui) is designed to help you build interactive chat, completion, and assistant applications with ease.
+It is framework-agnostic toolkit, streamlining the integration of advanced AI functionalities into your applications.
+
+AI SDK UI contains the following functions:
+
 <IndexCards
   cards={[
     {
@@ -19,9 +26,25 @@ description: Reference documentation for the AI SDK UI
     },
     {
       title: 'useAssistant',
-      description:
-        'Use a hook to interact with language models in an assistant interface.',
+      description: 'Use a hook to interact with OpenAI assistants.',
       href: '/docs/reference/ai-sdk-ui/use-assistant',
     },
   ]}
 />
+
+## UI Framework Support
+
+AI SDK UI supports several framework: [React](https://react.dev/), [Svelte](https://svelte.dev/), [Vue.js](https://vuejs.org/), and [SolidJS](https://www.solidjs.com/).
+Here is a comparison of the supported functions across these frameworks:
+
+| Function                                                   | React               | Svelte              | Vue.js              | SolidJS             |
+| ---------------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| [useChat](/docs/reference/ai-sdk-ui/use-chat)              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [useChat](/docs/reference/ai-sdk-ui/use-chat) tool calling | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| [useCompletion](/docs/reference/ai-sdk-ui/use-completion)  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [useAssistant](/docs/reference/ai-sdk-ui/use-assistant)    | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+<Note>
+  [Contributions](https://github.com/vercel/ai/blob/main/CONTRIBUTING.md) are
+  welcome to implement missing features for non-React frameworks.
+</Note>
