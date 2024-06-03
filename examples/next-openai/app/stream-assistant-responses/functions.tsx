@@ -7,19 +7,19 @@ export const searchEmails = ({
 }) => {
   return [
     {
-      id: "123",
-      subject: "Q1 Investor Update",
-      date: "Apr 1, 2023",
+      id: '123',
+      subject: 'Q1 Investor Update',
+      date: 'Apr 1, 2023',
     },
     {
-      id: "234",
-      subject: "Q2 Investor Update",
-      date: "Jul 1, 2023",
+      id: '234',
+      subject: 'Q2 Investor Update',
+      date: 'Jul 1, 2023',
     },
     {
-      id: "345",
-      subject: "Q3 Investor Update",
-      date: "Oct 1, 2023",
+      id: '345',
+      subject: 'Q3 Investor Update',
+      date: 'Oct 1, 2023',
     },
   ];
 };

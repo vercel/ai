@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { StreamableValue, useStreamableValue } from "ai/rsc";
+import { StreamableValue, useStreamableValue } from 'ai/rsc';
 
 export function Message({ textStream }: { textStream: StreamableValue }) {
   const [text] = useStreamableValue(textStream);

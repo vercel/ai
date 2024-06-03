@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { ClientMessage } from "./actions";
-import { useActions } from "ai/rsc";
+import { useState } from 'react';
+import { ClientMessage } from './actions';
+import { useActions } from 'ai/rsc';
 
 export default function Home() {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ClientMessage[]>([]);
   const { submitMessage } = useActions();
 
   const handleSubmission = async () => {
-    setMessages((currentMessages) => [
+    setMessages(currentMessages => [
       ...currentMessages,
       {
-        id: "123",
-        status: "user.message.created",
+        id: '123',
+        status: 'user.message.created',
         text: input,
         gui: null,
       },
     ]);
 
     const response = await submitMessage(input);
-    setMessages((currentMessages) => [...currentMessages, response]);
-    setInput("");
+    setMessages(currentMessages => [...currentMessages, response]);
+    setInput('');
   };
 
   return (
@@ -31,10 +31,10 @@ export default function Home() {
         <input
           className="bg-zinc-100 w-full p-2 outline-none"
           value={input}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={event => setInput(event.target.value)}
           placeholder="Ask a question"
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
+          onKeyDown={event => {
+            if (event.key === 'Enter') {
               handleSubmission();
             }
           }}
@@ -49,7 +49,7 @@ export default function Home() {
 
       <div className="flex flex-col h-[calc(100dvh-56px)] overflow-y-scroll">
         <div>
-          {messages.map((message) => (
+          {messages.map(message => (
             <div key={message.id} className="flex flex-col gap-1 border-b p-2">
               <div className="flex flex-row justify-between">
                 <div className="text-sm text-zinc-500">{message.status}</div>
