@@ -13,12 +13,14 @@ description: Learn to stream assistant responses using the Vercel AI SDK in your
 import { useState } from 'react';
 import { ClientMessage, getAnswer } from './actions';
 import { nanoid } from 'ai';
+import { unstable_noStore as noStore } from 'next/cache';
 
 // Force the page to be dynamic and allow streaming responses up to 30 seconds
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 export default function Home() {
+  noStore();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ClientMessage[]>([]);
 
