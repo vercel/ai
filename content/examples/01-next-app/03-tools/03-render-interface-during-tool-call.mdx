@@ -110,7 +110,7 @@ export async function Weather({ city, unit }) {
 
 ## Server
 
-```tsx filename='app/actions.tsx'
+```tsx highlight="13,17,33-34,47" filename='app/actions.tsx'
 'use server';
 
 import { Weather } from '@/components/weather';
@@ -123,11 +123,11 @@ import { z } from 'zod';
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
-  display?: ReactNode; // [!code highlight]
+  display?: ReactNode;
 }
 
 export async function continueConversation(history: Message[]) {
-  const stream = createStreamableUI(); // [!code highlight]
+  const stream = createStreamableUI();
 
   const { text, toolResults } = await generateText({
     model: openai('gpt-3.5-turbo'),
@@ -143,8 +143,8 @@ export async function continueConversation(history: Message[]) {
             .describe('The unit to display the temperature in'),
         }),
         execute: async ({ city, unit }) => {
-          stream.done(<Weather city={city} unit={unit} />); // [!code highlight]
-          return `Here's the weather for ${city}!`; // [!code highlight]
+          stream.done(<Weather city={city} unit={unit} />);
+          return `Here's the weather for ${city}!`;
         },
       },
     },
@@ -157,7 +157,7 @@ export async function continueConversation(history: Message[]) {
         role: 'assistant' as const,
         content:
           text || toolResults.map(toolResult => toolResult.result).join(),
-        display: stream.value, // [!code highlight]
+        display: stream.value,
       },
     ],
   };

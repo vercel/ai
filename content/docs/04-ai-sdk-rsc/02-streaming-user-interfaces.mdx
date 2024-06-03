@@ -43,12 +43,11 @@ In the example above, `'use server'` is used to indicate that the exported funct
 On the client side, you can call the `getWeather` Server Action and render the returned UI like any other React component.
 
 ```tsx file='app/page.tsx'
-import { useState } from 'react';
-import { readStreamableValue } from 'ai/rsc';
+import { type ReactNode, useState } from 'react';
 import { getWeather } from '@/actions';
 
 export default function Page() {
-  const [weather, setWeather] = useState(null);
+  const [weather, setWeather] = useState<ReactNode | null>(null);
 
   return (
     <div>
