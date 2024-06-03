@@ -5,7 +5,7 @@ description: Learn to stream assistant responses using the Vercel AI SDK in your
 
 # Stream Assistant Responses
 
-In this example, you'll learn how to stream responses from OpenAI's [Assistant](https://platform.openai.com/docs/assistants/overview) using `ai/rsc`.
+In this example, you'll learn how to stream responses along with tool calls from OpenAI's [Assistant](https://platform.openai.com/docs/assistants/overview) using `ai/rsc`.
 
 ## Client
 
@@ -15,7 +15,7 @@ In your client component, you will create a simple chat interface that allows us
 'use client';
 
 import { useState } from 'react';
-import { ClientMessage } from './actions';
+import { ClientMessage, submitMessage } from './actions';
 import { useActions } from 'ai/rsc';
 
 export default function Home() {
@@ -68,6 +68,7 @@ export default function Home() {
               <div className="flex flex-row justify-between">
                 <div className="text-sm text-zinc-500">{message.status}</div>
               </div>
+              <div className="flex flex-col gap-2">{message.gui}</div>
               <div>{message.text}</div>
             </div>
           ))}
@@ -75,6 +76,18 @@ export default function Home() {
       </div>
     </div>
   );
+}
+```
+
+```tsx filename='app/message.tsx'
+'use client';
+
+import { StreamableValue, useStreamableValue } from 'ai/rsc';
+
+export function Message({ textStream }: { textStream: StreamableValue }) {
+  const [text] = useStreamableValue(textStream);
+
+  return <div>{text}</div>;
 }
 ```
 
@@ -103,6 +116,7 @@ import { nanoid } from 'ai';
 import { createAI, createStreamableUI, createStreamableValue } from 'ai/rsc';
 import { OpenAI } from 'openai';
 import { ReactNode } from 'react';
+import { searchEmails } from './function';
 import { Message } from './message';
 
 const openai = new OpenAI({
@@ -113,6 +127,7 @@ export interface ClientMessage {
   id: string;
   status: ReactNode;
   text: ReactNode;
+  gui: ReactNode;
 }
 
 const ASSISTANT_ID = 'asst_xxxx';
@@ -120,12 +135,12 @@ let THREAD_ID = '';
 let RUN_ID = '';
 
 export async function submitMessage(question: string): Promise<ClientMessage> {
-  const statusUIStream = createStreamableUI('thread.init');
-
+  const status = createStreamableUI('thread.init');
   const textStream = createStreamableValue('');
   const textUIStream = createStreamableUI(
     <Message textStream={textStream.value} />,
   );
+  const gui = createStreamableUI();
 
   const runQueue = [];
 
@@ -161,41 +176,103 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
         for await (const delta of latestRun.run) {
           const { data, event } = delta;
 
-          statusUIStream.update(event);
+          status.update(event);
 
           if (event === 'thread.created') {
             THREAD_ID = data.id;
           } else if (event === 'thread.run.created') {
             RUN_ID = data.id;
           } else if (event === 'thread.message.delta') {
-            data.delta.content?.map(part => {
+            data.delta.content?.map((part: any) => {
               if (part.type === 'text') {
                 if (part.text) {
-                  textStream.append(part.text.value as string);
+                  textStream.append(part.text.value);
                 }
               }
             });
+          } else if (event === 'thread.run.requires_action') {
+            if (data.required_action) {
+              if (data.required_action.type === 'submit_tool_outputs') {
+                const { tool_calls } = data.required_action.submit_tool_outputs;
+                const tool_outputs = [];
+
+                for (const tool_call of tool_calls) {
+                  const { id: toolCallId, function: fn } = tool_call;
+                  const { name, arguments: args } = fn;
+
+                  if (name === 'search_emails') {
+                    const { query, has_attachments } = JSON.parse(args);
+
+                    gui.append(
+                      <div className="flex flex-row gap-2 items-center">
+                        <div>
+                          Searching for emails: {query}, has_attachments:
+                          {has_attachments ? 'true' : 'false'}
+                        </div>
+                      </div>,
+                    );
+
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+
+                    const fakeEmails = searchEmails({ query, has_attachments });
+
+                    gui.append(
+                      <div className="flex flex-col gap-2">
+                        {fakeEmails.map(email => (
+                          <div
+                            key={email.id}
+                            className="p-2 bg-zinc-100 rounded-md flex flex-row gap-2 items-center justify-between"
+                          >
+                            <div className="flex flex-row gap-2 items-center">
+                              <div>{email.subject}</div>
+                            </div>
+                            <div className="text-zinc-500">{email.date}</div>
+                          </div>
+                        ))}
+                      </div>,
+                    );
+
+                    tool_outputs.push({
+                      tool_call_id: toolCallId,
+                      output: JSON.stringify(fakeEmails),
+                    });
+                  }
+                }
+
+                const nextRun: any =
+                  await openai.beta.threads.runs.submitToolOutputs(
+                    THREAD_ID,
+                    RUN_ID,
+                    {
+                      tool_outputs,
+                      stream: true,
+                    },
+                  );
+
+                runQueue.push({ id: nanoid(), run: nextRun });
+              }
+            }
           } else if (event === 'thread.run.failed') {
-            console.error(data);
+            console.log(data);
           }
         }
       }
     }
 
-    statusUIStream.done();
-    textStream.done();
+    status.done();
+    textUIStream.done();
+    gui.done();
   })();
 
   return {
     id: nanoid(),
-    status: statusUIStream.value,
+    status: status.value,
     text: textUIStream.value,
+    gui: gui.value,
   };
 }
 
 export const AI = createAI({
-  actions: {
-    submitMessage,
-  },
+  actions: { submitMessage },
 });
 ```
