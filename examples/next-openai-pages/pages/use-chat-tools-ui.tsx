@@ -5,7 +5,7 @@ export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
       api: '/api/use-chat-tools-ui',
-      maxToolRoundtrips: 5,
+      maxAutomaticRoundtrips: 5,
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {
