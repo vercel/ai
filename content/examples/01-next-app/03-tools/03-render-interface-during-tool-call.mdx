@@ -45,12 +45,14 @@ We can make a few changes to our previous example where the assistant could get 
 
 import { useState } from 'react';
 import { Message, continueConversation } from './actions';
+import { unstable_noStore as noStore } from 'next/cache';
 
 // Force the page to be dynamic and allow streaming responses up to 30 seconds
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 export default function Home() {
+  noStore();
   const [conversation, setConversation] = useState<Message[]>([]);
   const [input, setInput] = useState<string>('');
 
