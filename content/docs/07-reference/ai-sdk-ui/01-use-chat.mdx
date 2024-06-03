@@ -105,7 +105,7 @@ Allows you to easily create a conversational user interface for your chatbot app
         "An optional boolean that determines whether to send extra fields you've added to `messages`. Defaults to `false` and only the `content` and `role` fields will be sent to the API endpoint.",
     },
     {
-      name: 'maxAutomaticRoundtrips',
+      name: 'maxToolRoundtrips',
       type: 'number',
       description:
         'React only. Maximal number of automatic roundtrips for tool calls. An automatic tool call roundtrip is a call to the server with the  tool call results when all tool calls in the last assistant  message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
