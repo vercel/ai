@@ -30,17 +30,18 @@ It receives an assistant thread and a current message, and can send messages and
             {
               name: 'threadId',
               type: 'string',
-              description: 'The thread ID that the response is associated with.'
+              description:
+                'The thread ID that the response is associated with.',
             },
             {
               name: 'messageId',
               type: 'string',
               description:
-                'The id of the latest message the response is associated with.'
-            }
-          ]
-        }
-      ]
+                'The id of the latest message the response is associated with.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'process',
@@ -55,17 +56,17 @@ It receives an assistant thread and a current message, and can send messages and
               name: 'forwardStream',
               type: '(stream: AssistantStream) => Run | undefined',
               description:
-                'Forwards the assistant response stream to the client. Returns the Run object after it completes, or when it requires an action.'
+                'Forwards the assistant response stream to the client. Returns the Run object after it completes, or when it requires an action.',
             },
             {
               name: 'sendDataMessage',
               type: '(message: DataMessage) => void',
               description:
-                'Send a data message to the client. You can use this to provide information for rendering custom UIs while the assistant is processing the thread.'
-            }
-          ]
-        }
-      ]
-    }
+                'Send a data message to the client. You can use this to provide information for rendering custom UIs while the assistant is processing the thread.',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
