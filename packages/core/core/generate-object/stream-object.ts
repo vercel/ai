@@ -3,7 +3,7 @@ import {
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import { z } from 'zod';
-import { calculateTokenUsage } from '../generate-text/token-usage';
+import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
@@ -230,7 +230,7 @@ Default and recommended: 'auto' (best mode for the model).
   });
 }
 
-export type ObjectStreamPartInput =
+export type ObjectStreamInputPart =
   | {
       type: 'error';
       error: unknown;
@@ -247,7 +247,7 @@ export type ObjectStreamPartInput =
     };
 
 export type ObjectStreamPart<T> =
-  | ObjectStreamPartInput
+  | ObjectStreamInputPart
   | {
       type: 'object';
       object: DeepPartial<T>;
@@ -258,13 +258,18 @@ The result of a `streamObject` call that contains the partial object stream and 
  */
 export class StreamObjectResult<T> {
   private readonly originalStream: ReadableStream<
-    string | ObjectStreamPartInput
+    string | ObjectStreamInputPart
   >;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: CallWarning[] | undefined;
+
+  /**
+The token usage of the generated response. Resolved when the response is finished.
+   */
+  readonly usage: Promise<TokenUsage>;
 
   /**
 Optional raw response data.
@@ -281,7 +286,7 @@ Response headers.
     warnings,
     rawResponse,
   }: {
-    stream: ReadableStream<string | ObjectStreamPartInput>;
+    stream: ReadableStream<string | ObjectStreamInputPart>;
     warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
@@ -290,6 +295,40 @@ Response headers.
     this.originalStream = stream;
     this.warnings = warnings;
     this.rawResponse = rawResponse;
+
+    // initialize usage promise
+    let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
+    this.usage = new Promise<TokenUsage>(resolve => {
+      resolveUsage = resolve;
+    });
+
+    // store information for onFinish callback:
+    let usage: TokenUsage | undefined;
+
+    // pipe chunks through a transformation stream that extracts metadata:
+    this.originalStream = stream.pipeThrough(
+      new TransformStream<
+        string | ObjectStreamInputPart,
+        string | ObjectStreamInputPart
+      >({
+        async transform(chunk, controller): Promise<void> {
+          controller.enqueue(chunk);
+
+          if (typeof chunk === 'string') {
+            return;
+          }
+
+          // Note: tool executions might not be finished yet when the finish event is emitted.
+          if (chunk.type === 'finish') {
+            // store usage for promises and onFinish callback:
+            usage = calculateTokenUsage(chunk.usage);
+
+            // resolve promises that can be resolved now:
+            resolveUsage(usage);
+          }
+        },
+      }),
+    );
   }
 
   get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
