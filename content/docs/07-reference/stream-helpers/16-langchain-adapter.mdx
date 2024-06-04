@@ -1,0 +1,27 @@
+---
+title: LangChainAdapter
+description: API Reference for LangChainAdapter.
+---
+
+# `LangChainAdapter`
+
+The `LangChainAdapter` module provides a way to transform LangChain output streams into AI streams.
+See the [LangChain Adapter documentation](/providers/adapters/langchain) for more information.
+
+## Import
+
+<Snippet text={`import { LangChainAdapter } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Methods
+
+<PropertiesTable
+  content={[
+    {
+      name: 'toAIStream',
+      type: '(stream: ReadableStream<LangChainAIMessageChunk> | ReadableStream<string>, AIStreamCallbacksAndOptions) => AIStream',
+      description: 'Converts LangChain output streams to AIStream.',
+    },
+  ]}
+/>
