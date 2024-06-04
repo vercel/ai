@@ -12,7 +12,7 @@ import {
 } from './constants';
 import { createResolvablePromise, consumeStream } from './utils';
 import type { StreamablePatch, StreamableValue } from './types';
-import { StreamableUIClient } from './shared-client/client-wrapper';
+import { InternalStreamableUIClient } from './rsc-shared.mjs';
 
 // It's necessary to define the type manually here, otherwise TypeScript compiler
 // will not be able to infer the correct return type as it's circular.
@@ -91,7 +91,7 @@ function createStreamableUI(initialValue?: React.ReactNode) {
   warnUnclosedStream();
 
   const streamable: StreamableUIWrapper = {
-    value: <StreamableUIClient s={innerStreamable} />,
+    value: <InternalStreamableUIClient s={innerStreamable} />,
     update(value: React.ReactNode) {
       assertStream('.update()');
 

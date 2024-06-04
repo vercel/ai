@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react';
 import { StreamableValue } from '../types';
 import { readStreamableValue } from './streamable';
 
-export function StreamableUIClient<T>({ s }: { s: StreamableValue<T> }) {
+export function InternalStreamableUIClient<T>({
+  s,
+}: {
+  s: StreamableValue<T>;
+}) {
   const [value, setValue] = useState<T | undefined>(s.curr);
 
   useEffect(() => {
