@@ -63,13 +63,7 @@ exports[`result.value > should render text function returned ui 1`] = `
                 "next": {
                   "done": false,
                   "next": {
-                    "done": false,
-                    "next": {
-                      "done": true,
-                      "value": <h1>
-                        { "content": "Hello, world!" }
-                      </h1>,
-                    },
+                    "done": true,
                     "value": <h1>
                       { "content": "Hello, world!" }
                     </h1>,
@@ -115,22 +109,11 @@ exports[`result.value > should render tool call results 1`] = `
     "props": {
       "c": undefined,
       "n": {
-        "done": false,
-        "next": {
-          "done": false,
-          "next": {
-            "done": true,
-            "value": <div>
-              tool1: 
-              value
-            </div>,
-          },
-          "value": <div>
-            tool1: 
-            value
-          </div>,
-        },
-        "value": "",
+        "done": true,
+        "value": <div>
+          tool1: 
+          value
+        </div>,
       },
     },
     "type": "",
@@ -151,22 +134,11 @@ exports[`result.value > should render tool call results with generator render fu
       "n": {
         "done": false,
         "next": {
-          "done": false,
-          "next": {
-            "done": false,
-            "next": {
-              "done": true,
-              "value": <div>
-                tool: 
-                value
-              </div>,
-            },
-            "value": <div>
-              tool: 
-              value
-            </div>,
-          },
-          "value": "",
+          "done": true,
+          "value": <div>
+            tool: 
+            value
+          </div>,
         },
         "value": <div>
           Loading...

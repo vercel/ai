@@ -145,6 +145,7 @@ The tool choice strategy. Default: 'auto'.
     args: [payload: any] | [payload: any, options: any],
     renderer: undefined | Renderer<any>,
     res: ReturnType<typeof createStreamableUI>,
+    lastCall = false,
   ) {
     if (!renderer) return;
 
@@ -165,7 +166,13 @@ The tool choice strategy. Default: 'auto'.
         typeof value.then === 'function')
     ) {
       const node = await (value as Promise<React.ReactNode>);
-      res.update(node);
+
+      if (lastCall) {
+        res.done(node);
+      } else {
+        res.update(node);
+      }
+
       resolvable.resolve(void 0);
     } else if (
       value &&
@@ -179,7 +186,11 @@ The tool choice strategy. Default: 'auto'.
       >;
       while (true) {
         const { done, value } = await it.next();
-        res.update(value);
+        if (lastCall && done) {
+          res.done(value);
+        } else {
+          res.update(value);
+        }
         if (done) break;
       }
       resolvable.resolve(void 0);
@@ -187,12 +198,20 @@ The tool choice strategy. Default: 'auto'.
       const it = value as Generator<React.ReactNode, React.ReactNode, void>;
       while (true) {
         const { done, value } = it.next();
-        res.update(value);
+        if (lastCall && done) {
+          res.done(value);
+        } else {
+          res.update(value);
+        }
         if (done) break;
       }
       resolvable.resolve(void 0);
     } else {
-      res.update(value);
+      if (lastCall) {
+        res.done(value);
+      } else {
+        res.update(value);
+      }
       resolvable.resolve(void 0);
     }
   }
@@ -257,6 +276,7 @@ The tool choice strategy. Default: 'auto'.
               });
             }
 
+            hasToolCall = true;
             const parseResult = safeParseJSON({
               text: value.args,
               schema: tool.parameters,
@@ -280,6 +300,7 @@ The tool choice strategy. Default: 'auto'.
               ],
               tool.generate,
               ui,
+              true,
             );
 
             break;
@@ -297,11 +318,9 @@ The tool choice strategy. Default: 'auto'.
 
       if (hasToolCall) {
         await finished;
-        ui.done();
       } else {
-        handleRender([{ content, done: true }], textRender, ui);
+        handleRender([{ content, done: true }], textRender, ui, true);
         await finished;
-        ui.done();
       }
     } catch (error) {
       // During the stream rendering, we don't want to throw the error to the
