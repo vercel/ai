@@ -38,7 +38,11 @@ type LangChainAIMessageChunk = {
 };
 
 /**
-Converts the result of a LangChain Expression Language stream invocation to an AIStream.
+Converts LangChain output streams to AIStream. 
+
+The following streams are supported:
+- `LangChainAIMessageChunk` streams (LangChain `model.stream` output)
+- `string` streams (LangChain `StringOutputParser` output)
  */
 export function toAIStream(
   stream: ReadableStream<LangChainAIMessageChunk> | ReadableStream<string>,
