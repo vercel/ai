@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 0.0.5
+
+### Patch Changes
+
+- 7cab5e9c: feat (provider/vertex): add safety setting option on models
+
 ## 0.0.4
 
 ### Patch Changes
