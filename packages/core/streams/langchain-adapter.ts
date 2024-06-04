@@ -41,14 +41,16 @@ type LangChainAIMessageChunk = {
 Converts the result of a LangChain Expression Language stream invocation to an AIStream.
  */
 export function toAIStream(
-  stream: ReadableStream<LangChainAIMessageChunk>,
+  stream: ReadableStream<LangChainAIMessageChunk> | ReadableStream<string>,
   callbacks?: AIStreamCallbacksAndOptions,
 ) {
   return stream
     .pipeThrough(
-      new TransformStream({
+      new TransformStream<LangChainAIMessageChunk | string>({
         transform: async (chunk, controller) => {
-          if (typeof chunk.content === 'string') {
+          if (typeof chunk === 'string') {
+            controller.enqueue(chunk);
+          } else if (typeof chunk.content === 'string') {
             controller.enqueue(chunk.content);
           } else {
             const content: LangChainMessageContentComplex[] = chunk.content;
