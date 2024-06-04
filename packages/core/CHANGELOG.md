@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.25
+
+### Patch Changes
+
+- ff281126: fix(ai/rsc): Remove extra reconcilation of streamUI
+
 ## 3.1.24
 
 ### Patch Changes
