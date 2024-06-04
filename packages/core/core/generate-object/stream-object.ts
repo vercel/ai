@@ -257,7 +257,7 @@ export type ObjectStreamPart<T> =
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
 export class StreamObjectResult<T> {
-  readonly fullStream: ReadableStream<ObjectStreamPart<T>>;
+  readonly originalStream: ReadableStream<ObjectStreamPart<T>>;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
@@ -306,7 +306,7 @@ Response headers.
     let accumulatedText = '';
     let latestObject: DeepPartial<T> | undefined = undefined;
 
-    this.fullStream = stream.pipeThrough(
+    this.originalStream = stream.pipeThrough(
       new TransformStream<string | ObjectStreamInputPart, ObjectStreamPart<T>>({
         async transform(chunk, controller): Promise<void> {
           // process partial text chunks
@@ -353,7 +353,7 @@ Response headers.
   }
 
   get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
-    return createAsyncIterableStream(this.fullStream, {
+    return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
         switch (chunk.type) {
           case 'object':
@@ -372,6 +372,14 @@ Response headers.
             throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
           }
         }
+      },
+    });
+  }
+
+  get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
+    return createAsyncIterableStream(this.originalStream, {
+      transform(chunk, controller) {
+        controller.enqueue(chunk);
       },
     });
   }
