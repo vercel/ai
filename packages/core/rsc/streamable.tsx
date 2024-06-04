@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, isValidElement, ReactElement } from 'react';
 import type OpenAI from 'openai';
 import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
@@ -356,30 +356,54 @@ function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
     append(value: T) {
       assertStream('.append()');
 
-      if (
-        typeof currentValue !== 'string' &&
-        typeof currentValue !== 'undefined'
-      ) {
+      if (typeof currentValue === 'undefined') {
+        if (typeof value === 'string' || isValidElement(value)) {
+          currentPatchValue = undefined;
+          currentValue = value;
+        } else {
+          throw new Error(
+            `.append(): The value type can't be appended to the stream. Received: ${typeof value}`,
+          );
+        }
+      } else if (typeof currentValue === 'string') {
+        if (typeof value === 'string') {
+          currentPatchValue = [0, value];
+          (currentValue as string) = currentValue + value;
+        } else if (isValidElement(value)) {
+          currentPatchValue = [1, value];
+          (currentValue as unknown as ReactElement) = (
+            <>
+              {currentValue}
+              {value}
+            </>
+          );
+        } else {
+          throw new Error(
+            `.append(): The value type can't be appended to the stream. Received: ${typeof value}`,
+          );
+        }
+      } else if (isValidElement(currentValue)) {
+        if (typeof value === 'string' || isValidElement(value)) {
+          currentPatchValue = [1, value];
+          (currentValue as ReactElement) = (
+            <>
+              {currentValue}
+              {value}
+            </>
+          );
+        } else {
+          throw new Error(
+            `.append(): The value type can't be appended to the stream. Received: ${typeof value}`,
+          );
+        }
+      } else {
         throw new Error(
-          `.append(): The current value is not a string. Received: ${typeof currentValue}`,
-        );
-      }
-      if (typeof value !== 'string') {
-        throw new Error(
-          `.append(): The value is not a string. Received: ${typeof value}`,
+          `.append(): The current value doesn't support appending data. Type: ${typeof currentValue}`,
         );
       }
 
       const resolvePrevious = resolvable.resolve;
       resolvable = createResolvablePromise();
-
-      if (typeof currentValue === 'string') {
-        currentPatchValue = [0, value];
-        (currentValue as string) = currentValue + value;
-      } else {
-        currentPatchValue = undefined;
-        currentValue = value;
-      }
 
       currentPromise = resolvable.promise;
       resolvePrevious(createWrapped());
