@@ -104,6 +104,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           args: {
             generationConfig,
             contents,
+            safetySettings: this.settings.safetySettings,
             ...prepareToolsAndToolConfig(mode),
           },
           warnings,
@@ -118,6 +119,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               response_mime_type: 'application/json',
             },
             contents,
+            safetySettings: this.settings.safetySettings,
           },
           warnings,
         };
