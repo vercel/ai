@@ -105,9 +105,9 @@ export function Message({ textStream }: { textStream: StreamableValue }) {
 
 ## Server
 
-In your server action, you will create a function called `submitMessage` that add the user's message to the thread. The function will create a new thread if one does not exist and add the user's message to the thread. If a thread already exists, the function will add the user's message to the existing thread. The function will then create a run and stream the assistant's response to the client. Furthermore, the run queue is used to manage multiple runs in the same thread during the lifetime of the server action.
+In your server action, you will create a function called `submitMessage` that adds the user's message to the thread. The function will create a new thread if one does not exist and add the user's message to the thread. If a thread already exists, the function will add the user's message to the existing thread. The function will then create a run and stream the assistant's response to the client. Furthermore, the run queue is used to manage multiple runs in the same thread during the lifetime of the server action.
 
-In case the assistant requires a tool call, the server action will handle the tool call and return the output to the assistant. In this example, the assistant requires a tool call to search for emails. The server action will search for emails based on the query and has_attachments parameters and return the output to the assistant.
+In case the assistant requires a tool call, the server action will handle the tool call and return the output to the assistant. In this example, the assistant requires a tool call to search for emails. The server action will search for emails based on the `query` and `has_attachments` parameters and return the output to the both the assistant and the client.
 
 ```tsx filename='app/actions.ts'
 'use server';
@@ -275,4 +275,15 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
 export const AI = createAI({
   actions: { submitMessage },
 });
+```
+
+And finally, make sure to update your layout component to wrap the children with the `AI` component.
+
+```tsx filename="app/layout.tsx"
+import { ReactNode } from 'react';
+import { AI } from './actions';
+
+export default function Layout({ children }: { children: ReactNode }) {
+  return <AI>{children}</AI>;
+}
 ```
