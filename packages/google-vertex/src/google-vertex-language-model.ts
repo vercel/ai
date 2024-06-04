@@ -12,6 +12,7 @@ import {
   GenerateContentResponse,
   GenerationConfig,
   Part,
+  SafetySetting,
   VertexAI,
 } from '@google-cloud/vertexai';
 import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
@@ -99,6 +100,9 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
             model: this.modelId,
             generationConfig,
             tools: prepareTools(mode),
+            safetySettings: this.settings.safetySettings as
+              | undefined
+              | Array<SafetySetting>,
           }),
           contentRequest: convertToGoogleVertexContentRequest(prompt),
           warnings,
@@ -328,7 +332,11 @@ function getToolCallsFromParts({
   );
 }
 
-function getTextFromParts(parts: Part[]) {
+function getTextFromParts(parts: Part[] | undefined) {
+  if (parts == null) {
+    return undefined; // parts are sometimes undefined when using safety settings
+  }
+
   const textParts = parts.filter(part => 'text' in part) as Array<
     Part & { text: string }
   >;
