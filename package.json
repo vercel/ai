@@ -37,7 +37,7 @@
   "homepage": "https://sdk.vercel.ai/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "git+https://github.com/quilt-labs/ai.git"
   },
   "license": "Apache License",
   "bugs": {
