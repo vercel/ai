@@ -315,8 +315,36 @@ for await (const partialObject of partialObjectStream) {
 <PropertiesTable
   content={[
     {
+      name: 'usage',
+      type: 'Promise<TokenUsage>',
+      description:
+        'The token usage of the generated text. Resolved when the response is finished.',
+      properties: [
+        {
+          type: 'TokenUsage',
+          parameters: [
+            {
+              name: 'promptTokens',
+              type: 'number',
+              description: 'The total number of tokens in the prompt.',
+            },
+            {
+              name: 'completionTokens',
+              type: 'number',
+              description: 'The total number of tokens in the completion.',
+            },
+            {
+              name: 'totalTokens',
+              type: 'number',
+              description: 'The total number of tokens generated.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'partialObjectStream',
-      type: 'AsyncIterable<DeepPartial<T>> & ReadableStream<DeepPartial<T>>',
+      type: 'AsyncIterableStream<DeepPartial<T>>',
       description:
         'Note that the partial object is not validated. If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.',
     },
@@ -356,6 +384,10 @@ for await (const partialObject of partialObjectStream) {
         {
           type: 'FinishPart',
           parameters: [
+            {
+              name: 'type',
+              type: "'finish'",
+            },
             {
               name: 'finishReason',
               type: 'FinishReason',
