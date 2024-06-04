@@ -257,9 +257,7 @@ export type ObjectStreamPart<T> =
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
 export class StreamObjectResult<T> {
-  private readonly originalStream: ReadableStream<
-    string | ObjectStreamInputPart
-  >;
+  readonly fullStream: ReadableStream<ObjectStreamPart<T>>;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
@@ -292,7 +290,6 @@ Response headers.
       headers?: Record<string, string>;
     };
   }) {
-    this.originalStream = stream;
     this.warnings = warnings;
     this.rawResponse = rawResponse;
 
@@ -306,25 +303,49 @@ Response headers.
     let usage: TokenUsage | undefined;
 
     // pipe chunks through a transformation stream that extracts metadata:
-    this.originalStream = stream.pipeThrough(
-      new TransformStream<
-        string | ObjectStreamInputPart,
-        string | ObjectStreamInputPart
-      >({
-        async transform(chunk, controller): Promise<void> {
-          controller.enqueue(chunk);
+    let accumulatedText = '';
+    let latestObject: DeepPartial<T> | undefined = undefined;
 
+    this.fullStream = stream.pipeThrough(
+      new TransformStream<string | ObjectStreamInputPart, ObjectStreamPart<T>>({
+        async transform(chunk, controller): Promise<void> {
+          // process partial text chunks
           if (typeof chunk === 'string') {
+            accumulatedText += chunk;
+
+            const currentObject = parsePartialJson(
+              accumulatedText,
+            ) as DeepPartial<T>;
+
+            if (!isDeepEqualData(latestObject, currentObject)) {
+              latestObject = currentObject;
+
+              controller.enqueue({ type: 'object', object: currentObject });
+            }
+
             return;
           }
 
-          // Note: tool executions might not be finished yet when the finish event is emitted.
-          if (chunk.type === 'finish') {
-            // store usage for promises and onFinish callback:
-            usage = calculateTokenUsage(chunk.usage);
+          switch (chunk.type) {
+            case 'finish': {
+              // store usage for promises and onFinish callback:
+              usage = calculateTokenUsage(chunk.usage);
 
-            // resolve promises that can be resolved now:
-            resolveUsage(usage);
+              controller.enqueue({
+                ...chunk,
+                usage,
+              });
+
+              // resolve promises that can be resolved now:
+              resolveUsage(usage);
+
+              break;
+            }
+
+            default: {
+              controller.enqueue(chunk);
+              break;
+            }
           }
         },
       }),
@@ -332,58 +353,23 @@ Response headers.
   }
 
   get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
-    let accumulatedText = '';
-    let latestObject: DeepPartial<T> | undefined = undefined;
-
-    return createAsyncIterableStream(this.originalStream, {
+    return createAsyncIterableStream(this.fullStream, {
       transform(chunk, controller) {
-        if (typeof chunk === 'string') {
-          accumulatedText += chunk;
+        switch (chunk.type) {
+          case 'object':
+            controller.enqueue(chunk.object);
+            break;
 
-          const currentObject = parsePartialJson(
-            accumulatedText,
-          ) as DeepPartial<T>;
+          case 'finish':
+            break;
 
-          if (!isDeepEqualData(latestObject, currentObject)) {
-            latestObject = currentObject;
+          case 'error':
+            controller.error(chunk.error);
+            break;
 
-            controller.enqueue(currentObject);
-          }
-        } else if (chunk.type === 'error') {
-          throw chunk.error;
-        }
-      },
-    });
-  }
-
-  get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
-    let accumulatedText = '';
-    let latestObject: DeepPartial<T> | undefined = undefined;
-
-    return createAsyncIterableStream(this.originalStream, {
-      transform(chunk, controller) {
-        if (typeof chunk === 'string') {
-          accumulatedText += chunk;
-          const currentObject = parsePartialJson(
-            accumulatedText,
-          ) as DeepPartial<T>;
-
-          if (!isDeepEqualData(latestObject, currentObject)) {
-            latestObject = currentObject;
-
-            controller.enqueue({ type: 'object', object: currentObject });
-          }
-        } else {
-          switch (chunk.type) {
-            case 'finish':
-              controller.enqueue({
-                ...chunk,
-                usage: calculateTokenUsage(chunk.usage),
-              });
-              break;
-            default:
-              controller.enqueue(chunk);
-              break;
+          default: {
+            const _exhaustiveCheck: never = chunk;
+            throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
           }
         }
       },
