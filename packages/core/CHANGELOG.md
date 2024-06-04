@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.26
+
+### Patch Changes
+
+- 5ee44cae: feat (provider): langchain StringOutputParser support
+
 ## 3.1.25
 
 ### Patch Changes
