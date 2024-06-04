@@ -1,5 +1,12 @@
 # ai
 
+## 3.1.24
+
+### Patch Changes
+
+- 93cae126: fix(ai/rsc): Fix unsafe {} type in application code for StreamableValue
+- 08b5c509: feat (core): add tokenUsage to streamObject result
+
 ## 3.1.23
 
 ### Patch Changes
