@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.19
+
+### Patch Changes
+
+- beb8b739: fix (provider/openai): return unknown finish reasons as unknown
+
 ## 0.0.18
 
 ### Patch Changes
