@@ -2,15 +2,16 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import { convertUint8ArrayToBase64, download } from '@ai-sdk/provider-utils';
 import {
   AnthropicMessage,
   AnthropicMessagesPrompt,
+  AnthropicUserMessage,
 } from './anthropic-messages-prompt';
 
-export function convertToAnthropicMessagesPrompt(
+export async function convertToAnthropicMessagesPrompt(
   prompt: LanguageModelV1Prompt,
-): AnthropicMessagesPrompt {
+): Promise<AnthropicMessagesPrompt> {
   let system: string | undefined = undefined;
   const messages: AnthropicMessage[] = [];
 
@@ -28,34 +29,43 @@ export function convertToAnthropicMessagesPrompt(
       }
 
       case 'user': {
-        messages.push({
-          role: 'user',
-          content: content.map(part => {
-            switch (part.type) {
-              case 'text': {
-                return { type: 'text', text: part.text };
-              }
-              case 'image': {
-                if (part.image instanceof URL) {
-                  // TODO download
+        const anthropicContent: AnthropicUserMessage['content'] = [];
 
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'URL image parts',
-                  });
-                } else {
-                  return {
-                    type: 'image',
-                    source: {
-                      type: 'base64',
-                      media_type: part.mimeType ?? 'image/jpeg',
-                      data: convertUint8ArrayToBase64(part.image),
-                    },
-                  };
-                }
+        for (const part of content) {
+          switch (part.type) {
+            case 'text': {
+              anthropicContent.push({ type: 'text', text: part.text });
+              break;
+            }
+            case 'image': {
+              if (part.image instanceof URL) {
+                const { data, mimeType } = await download({
+                  url: part.image,
+                });
+
+                anthropicContent.push({
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: mimeType ?? 'image/jpeg',
+                    data: convertUint8ArrayToBase64(new Uint8Array(data)),
+                  },
+                });
+              } else {
+                anthropicContent.push({
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: part.mimeType ?? 'image/jpeg',
+                    data: convertUint8ArrayToBase64(part.image),
+                  },
+                });
               }
             }
-          }),
-        });
+          }
+        }
+
+        messages.push({ role: 'user', content: anthropicContent });
         break;
       }
 
