@@ -230,6 +230,21 @@ describe('doGenerate', () => {
     expect(response.finishReason).toStrictEqual('stop');
   });
 
+  it('should support unknown finish reason', async () => {
+    prepareJsonResponse({
+      content: '',
+      finish_reason: 'eos',
+    });
+
+    const response = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response.finishReason).toStrictEqual('unknown');
+  });
+
   it('should expose the raw response headers', async () => {
     prepareJsonResponse({ content: '' });
 

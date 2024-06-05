@@ -154,6 +154,23 @@ describe('doGenerate', () => {
     expect(finishReason).toStrictEqual('stop');
   });
 
+  it('should support unknown finish reason', async () => {
+    prepareJsonResponse({
+      content: '',
+      finish_reason: 'eos',
+    });
+
+    const { finishReason } = await provider
+      .completion('gpt-3.5-turbo-instruct')
+      .doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+    expect(finishReason).toStrictEqual('unknown');
+  });
+
   it('should expose the raw response headers', async () => {
     prepareJsonResponse({ content: '' });
 
