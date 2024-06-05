@@ -1,6 +1,7 @@
 import { CohereStream, StreamingTextResponse } from 'ai';
 
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request

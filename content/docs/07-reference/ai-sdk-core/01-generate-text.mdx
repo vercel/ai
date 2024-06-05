@@ -1,27 +1,33 @@
 ---
 title: generateText
-description: Generate text using the AI SDK Core
+description: API Reference for generateText.
 ---
 
-# `generateText`
+# `generateText()`
 
 Generates text and calls tools for a given prompt using a language model.
 
 It is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
 
-## Example
-
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
-const result = await generateText({
+const { text } = await generateText({
   model: openai('gpt-4-turbo'),
   prompt: 'Invent a new holiday and describe its traditions.',
 });
+
+console.log(text);
 ```
 
-## Parameters
+## Import
+
+<Snippet text={`import { generateText } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Parameters
 
 <PropertiesTable
   content={[
@@ -317,10 +323,17 @@ const result = await generateText({
       description:
         'An optional abort signal that can be used to cancel the call.',
     },
+    {
+      name: 'maxAutomaticRoundtrips',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of automatic roundtrips for tool calls. An automatic tool call roundtrip is another LLM call with the tool call results when all tool calls of the last assistant message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
+    },
   ]}
 />
 
-## Result Object
+### Returns
 
 <PropertiesTable
   content={[
@@ -397,9 +410,15 @@ const result = await generateText({
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
     },
+    {
+      name: 'responseMessages',
+      type: 'Array<CoreAssistantMessage | CoreToolMessage>',
+      description:
+        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+    },
   ]}
 />
 
-## More Examples
+## Examples
 
 <ExamplesList packageName="core" functionName="generateText" />

@@ -4,8 +4,8 @@ import {
   StreamingTestServer,
   convertStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { createOpenAI } from './openai-provider';
 import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
+import { createOpenAI } from './openai-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -230,6 +230,21 @@ describe('doGenerate', () => {
     expect(response.finishReason).toStrictEqual('stop');
   });
 
+  it('should support unknown finish reason', async () => {
+    prepareJsonResponse({
+      content: '',
+      finish_reason: 'eos',
+    });
+
+    const response = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response.finishReason).toStrictEqual('unknown');
+  });
+
   it('should expose the raw response headers', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -263,7 +278,7 @@ describe('doGenerate', () => {
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      messages: [{ role: 'user', content: 'Hello' }],
       logprobs: false,
     });
   });
@@ -298,7 +313,7 @@ describe('doGenerate', () => {
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      messages: [{ role: 'user', content: 'Hello' }],
       logprobs: false,
       tools: [
         {
@@ -575,6 +590,126 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should stream tool call that is sent in one chunk', async () => {
+    server.responseChunks = [
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+        `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\"}"}}]},` +
+        `"logprobs":null,"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":53,"completion_tokens":17,"total_tokens":70}}\n\n`,
+      'data: [DONE]\n\n',
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '{"value":"Sparkle Day"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        args: '{"value":"Sparkle Day"}',
+      },
+      {
+        type: 'finish',
+        finishReason: 'tool-calls',
+        logprobs: undefined,
+        usage: { promptTokens: 53, completionTokens: 17 },
+      },
+    ]);
+  });
+
+  it('should handle error stream parts', async () => {
+    server.responseChunks = [
+      `data: {"error":{"message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our ` +
+        `help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,
+      'data: [DONE]\n\n',
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'error',
+        error: {
+          message:
+            'The server had an error processing your request. Sorry about that! ' +
+            'You can retry your request, or contact us through our help center at ' +
+            'help.openai.com if you keep seeing this error.',
+          type: 'server_error',
+          code: null,
+          param: null,
+        },
+      },
+      {
+        finishReason: 'error',
+        logprobs: undefined,
+        type: 'finish',
+        usage: {
+          completionTokens: NaN,
+          promptTokens: NaN,
+        },
+      },
+    ]);
+  });
+
+  it('should handle unparsable stream parts', async () => {
+    server.responseChunks = [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const elements = await convertStreamToArray(stream);
+
+    expect(elements.length).toBe(2);
+    expect(elements[0].type).toBe('error');
+    expect(elements[1]).toStrictEqual({
+      finishReason: 'error',
+      logprobs: undefined,
+      type: 'finish',
+      usage: {
+        completionTokens: NaN,
+        promptTokens: NaN,
+      },
+    });
+  });
+
   it('should expose the raw response headers', async () => {
     prepareStreamResponse({ content: [] });
 
@@ -612,7 +747,7 @@ describe('doStream', () => {
       stream: true,
       stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      messages: [{ role: 'user', content: 'Hello' }],
       logprobs: false,
     });
   });

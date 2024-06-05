@@ -23,6 +23,9 @@ import { OpenAIStream, StreamingTextResponse } from 'ai';
 import { Ratelimit } from '@upstash/ratelimit';
 import { NextRequest } from 'next/server';
 
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
 // Create Rate limit
 const ratelimit = new Ratelimit({
   redis: kv,

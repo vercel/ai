@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 0.0.18
+
+### Patch Changes
+
+- 8022d73e: feat (provider/google): add safety setting option on models
+
 ## 0.0.17
 
 ### Patch Changes

@@ -26,3 +26,15 @@ export const dynamic = 'force-dynamic';
 ```
 
 This will enforce dynamic behavior, which is required for streaming.
+
+> **Note:** When deploying on Vercel you may also need the following workaround:
+
+```tsx
+import { unstable_noStore as noStore } from 'next/cache';
+
+export default async function Component() {
+  noStore();
+  const result = await generateText({...})
+  ...
+}
+```

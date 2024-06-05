@@ -1,5 +1,63 @@
 # ai
 
+## 3.1.26
+
+### Patch Changes
+
+- 5ee44cae: feat (provider): langchain StringOutputParser support
+
+## 3.1.25
+
+### Patch Changes
+
+- ff281126: fix(ai/rsc): Remove extra reconcilation of streamUI
+
+## 3.1.24
+
+### Patch Changes
+
+- 93cae126: fix(ai/rsc): Fix unsafe {} type in application code for StreamableValue
+- 08b5c509: feat (core): add tokenUsage to streamObject result
+
+## 3.1.23
+
+### Patch Changes
+
+- c03cafe6: chore (core, ui): rename maxAutomaticRoundtrips to maxToolRoundtrips
+
+## 3.1.22
+
+### Patch Changes
+
+- 14bb8694: chore (ui): move maxAutomaticRoundtrips and addToolResult out of experimental
+
+## 3.1.21
+
+### Patch Changes
+
+- 213f2411: fix (core,streams): support ResponseInit variants
+- 09698bca: chore (streams): deprecate streaming helpers that have a provider replacement
+
+## 3.1.20
+
+### Patch Changes
+
+- 0e1da476: feat (core): add maxAutomaticRoundtrips setting to generateText
+
+## 3.1.19
+
+### Patch Changes
+
+- 9882d24b: fix (ui/svelte): send data to server
+- 131bbd3e: fix (ui): remove console.log statements
+
+## 3.1.18
+
+### Patch Changes
+
+- f9dee8ac: fix(ai/rsc): Fix types for createStreamableValue and createStreamableUI
+- 1c0ebf8e: feat (core): add responseMessages to generateText result
+
 ## 3.1.17
 
 ### Patch Changes

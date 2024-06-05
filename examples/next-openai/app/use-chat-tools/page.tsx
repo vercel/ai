@@ -4,24 +4,24 @@ import { ToolInvocation } from 'ai';
 import { Message, useChat } from 'ai/react';
 
 export default function Chat() {
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit,
-    experimental_addToolResult,
-  } = useChat({
-    api: '/api/use-chat-tools',
-    experimental_maxAutomaticRoundtrips: 5,
+  const { messages, input, handleInputChange, handleSubmit, addToolResult } =
+    useChat({
+      api: '/api/use-chat-tools',
+      maxToolRoundtrips: 5,
 
-    // run client-side tools that are automatically executed:
-    async onToolCall({ toolCall }) {
-      if (toolCall.toolName === 'getLocation') {
-        const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
-        return cities[Math.floor(Math.random() * cities.length)];
-      }
-    },
-  });
+      // run client-side tools that are automatically executed:
+      async onToolCall({ toolCall }) {
+        if (toolCall.toolName === 'getLocation') {
+          const cities = [
+            'New York',
+            'Los Angeles',
+            'Chicago',
+            'San Francisco',
+          ];
+          return cities[Math.floor(Math.random() * cities.length)];
+        }
+      },
+    });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -45,7 +45,7 @@ export default function Chat() {
                         <button
                           className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                           onClick={() =>
-                            experimental_addToolResult({
+                            addToolResult({
                               toolCallId,
                               result: 'Yes, confirmed.',
                             })
@@ -56,7 +56,7 @@ export default function Chat() {
                         <button
                           className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                           onClick={() =>
-                            experimental_addToolResult({
+                            addToolResult({
                               toolCallId,
                               result: 'No, denied',
                             })

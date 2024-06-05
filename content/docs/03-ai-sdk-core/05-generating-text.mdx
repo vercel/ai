@@ -23,7 +23,7 @@ You can generate text using the [`generateText`](/docs/reference/ai-sdk-core/gen
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model,
+  model: yourModel,
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -34,7 +34,7 @@ You can use more [advanced prompts](./prompts) to generate text with more comple
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model,
+  model: yourModel,
   system:
     'You are a professional writer. You write simple, clear, and concise content.',
   prompt: `summarize the following article in 3-5 sentences:\n${article}`,
@@ -51,7 +51,7 @@ Vercel AI SDK Core provides the [`streamText`](/docs/reference/ai-sdk-core/strea
 import { streamText } from 'ai';
 
 const result = await streamText({
-  model,
+  model: yourModel,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
@@ -67,7 +67,7 @@ for await (const textPart of result.textStream) {
 import { streamText } from 'ai';
 
 const result = await streamText({
-  model,
+  model: yourModel,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
@@ -90,7 +90,7 @@ When using `streamText`, you can provide an `onFinish` callback that is triggere
 import { streamText } from 'ai';
 
 const result = await streamText({
-  model,
+  model: yourModel,
   prompt: 'Invent a new holiday and describe its traditions.',
   onFinish({ text, toolCalls, toolResults, finishReason, usage }) {
     // your own logic, e.g. for saving the chat history or recording usage

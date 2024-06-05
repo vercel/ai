@@ -1,5 +1,9 @@
+import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import {
+  convertToLanguageModelMessage,
+  convertToLanguageModelPrompt,
+} from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
@@ -23,7 +27,9 @@ Generate a text and call tools for a given prompt using a language model.
 This function does not stream the output. If you want to stream the output, use `streamText` instead.
 
 @param model - The language model to use.
+
 @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
+@param toolChoice - The tool choice strategy. Default: 'auto'.
 
 @param system - A system message that will be part of the prompt.
 @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
@@ -48,6 +54,8 @@ If set and supported by the model, calls will generate deterministic results.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 
+@param maxToolRoundtrips - Maximal number of automatic roundtrips for tool calls.
+
 @returns
 A result object that contains the generated text, the results of the tool calls, and additional information.
  */
@@ -60,6 +68,8 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   messages,
   maxRetries,
   abortSignal,
+  maxAutomaticRoundtrips = 0,
+  maxToolRoundtrips = maxAutomaticRoundtrips,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -77,44 +87,97 @@ The tools that the model can call. The model needs to support calling tools.
 The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: CoreToolChoice<TOOLS>;
+
+    /**
+@deprecated Use `maxToolRoundtrips` instead.
+     */
+    maxAutomaticRoundtrips?: number;
+
+    /**
+Maximal number of automatic roundtrips for tool calls.
+
+An automatic tool call roundtrip is another LLM call with the 
+tool call results when all tool calls of the last assistant 
+message have results.
+
+A maximum number is required to prevent infinite loops in the
+case of misconfigured tools.
+
+By default, it's set to 0, which will disable the feature.
+     */
+    maxToolRoundtrips?: number;
   }): Promise<GenerateTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
-  const modelResponse = await retry(() => {
-    return model.doGenerate({
-      mode: {
-        type: 'regular',
-        ...prepareToolsAndToolChoice({ tools, toolChoice }),
-      },
-      ...prepareCallSettings(settings),
-      inputFormat: validatedPrompt.type,
-      prompt: convertToLanguageModelPrompt(validatedPrompt),
-      abortSignal,
+
+  const mode = {
+    type: 'regular' as const,
+    ...prepareToolsAndToolChoice({ tools, toolChoice }),
+  };
+  const callSettings = prepareCallSettings(settings);
+  const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
+
+  let currentModelResponse: Awaited<ReturnType<LanguageModel['doGenerate']>>;
+  let currentToolCalls: ToToolCallArray<TOOLS> = [];
+  let currentToolResults: ToToolResultArray<TOOLS> = [];
+  let roundtrips = 0;
+  const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> = [];
+
+  do {
+    currentModelResponse = await retry(() => {
+      return model.doGenerate({
+        mode,
+        ...callSettings,
+        // once we have a roundtrip, we need to switch to messages format:
+        inputFormat: roundtrips === 0 ? validatedPrompt.type : 'messages',
+        prompt: promptMessages,
+        abortSignal,
+      });
     });
-  });
 
-  // parse tool calls:
-  const toolCalls: ToToolCallArray<TOOLS> = [];
-  for (const modelToolCall of modelResponse.toolCalls ?? []) {
-    toolCalls.push(parseToolCall({ toolCall: modelToolCall, tools }));
-  }
+    // parse tool calls:
+    currentToolCalls = (currentModelResponse.toolCalls ?? []).map(
+      modelToolCall => parseToolCall({ toolCall: modelToolCall, tools }),
+    );
 
-  // execute tools:
-  const toolResults =
-    tools == null ? [] : await executeTools({ toolCalls, tools });
+    // execute tools:
+    currentToolResults =
+      tools == null
+        ? []
+        : await executeTools({ toolCalls: currentToolCalls, tools });
+
+    // append to messages for potential next roundtrip:
+    const newResponseMessages = toResponseMessages({
+      text: currentModelResponse.text ?? '',
+      toolCalls: currentToolCalls,
+      toolResults: currentToolResults,
+    });
+    responseMessages.push(...newResponseMessages);
+    promptMessages.push(
+      ...newResponseMessages.map(convertToLanguageModelMessage),
+    );
+  } while (
+    // there are tool calls:
+    currentToolCalls.length > 0 &&
+    // all current tool calls have results:
+    currentToolResults.length === currentToolCalls.length &&
+    // the number of roundtrips is less than the maximum:
+    roundtrips++ < maxToolRoundtrips
+  );
 
   return new GenerateTextResult({
     // Always return a string so that the caller doesn't have to check for undefined.
     // If they need to check if the model did not return any text,
     // they can check the length of the string:
-    text: modelResponse.text ?? '',
-    toolCalls,
-    toolResults,
-    finishReason: modelResponse.finishReason,
-    usage: calculateTokenUsage(modelResponse.usage),
-    warnings: modelResponse.warnings,
-    rawResponse: modelResponse.rawResponse,
-    logprobs: modelResponse.logprobs,
+    text: currentModelResponse.text ?? '',
+    toolCalls: currentToolCalls,
+    toolResults: currentToolResults,
+    finishReason: currentModelResponse.finishReason,
+    usage: calculateTokenUsage(currentModelResponse.usage),
+    warnings: currentModelResponse.warnings,
+    rawResponse: currentModelResponse.rawResponse,
+    logprobs: currentModelResponse.logprobs,
+    responseMessages,
   });
 }
 
@@ -185,6 +248,15 @@ Warnings from the model provider (e.g. unsupported settings)
   readonly warnings: CallWarning[] | undefined;
 
   /**
+The response messages that were generated during the call. It consists of an assistant message,
+potentially containing tool calls. 
+When there are tool results, there is an additional tool message with the tool results that are available.
+If there are tools that do not have execute functions, they are not included in the tool results and
+need to be added separately.
+   */
+  readonly responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
+
+  /**
 Optional raw response data.
    */
   rawResponse?: {
@@ -211,6 +283,7 @@ Logprobs for the completion.
       headers?: Record<string, string>;
     };
     logprobs: LogProbs | undefined;
+    responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -220,7 +293,42 @@ Logprobs for the completion.
     this.warnings = options.warnings;
     this.rawResponse = options.rawResponse;
     this.logprobs = options.logprobs;
+    this.responseMessages = options.responseMessages;
   }
+}
+
+/**
+Converts the result of a `generateText` call to a list of response messages.
+ */
+function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
+  text,
+  toolCalls,
+  toolResults,
+}: {
+  text: string;
+  toolCalls: ToToolCallArray<TOOLS>;
+  toolResults: ToToolResultArray<TOOLS>;
+}): Array<CoreAssistantMessage | CoreToolMessage> {
+  const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> = [];
+
+  responseMessages.push({
+    role: 'assistant',
+    content: [{ type: 'text', text }, ...toolCalls],
+  });
+
+  if (toolResults.length > 0) {
+    responseMessages.push({
+      role: 'tool',
+      content: toolResults.map(result => ({
+        type: 'tool-result',
+        toolCallId: result.toolCallId,
+        toolName: result.toolName,
+        result: result.result,
+      })),
+    });
+  }
+
+  return responseMessages;
 }
 
 /**

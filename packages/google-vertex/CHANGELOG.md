@@ -1,5 +1,25 @@
 # @ai-sdk/google-vertex
 
+## 0.0.6
+
+### Patch Changes
+
+- 3a7a4ab6: fix (provider/vertex): fix undefined parts handling
+
+## 0.0.5
+
+### Patch Changes
+
+- 7cab5e9c: feat (provider/vertex): add safety setting option on models
+
+## 0.0.4
+
+### Patch Changes
+
+- f727d197: fix (provider/vertex): correct assistant message conversion
+- f727d197: feat (provider/vertex): add tool call support
+- 94c60cd3: feat (provider/google): add googleAuthOptions provider configuration setting
+
 ## 0.0.3
 
 ### Patch Changes

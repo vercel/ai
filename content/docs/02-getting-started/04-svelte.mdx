@@ -42,7 +42,17 @@ Install `ai` and `@ai-sdk/openai`, Vercel AI SDK's OpenAI provider.
   in the [providers](/providers) section.
 </Note>
 <div className="my-4">
-  <Snippet text="pnpm install ai @ai-sdk/openai zod" />
+  <Tabs items={['pnpm', 'npm', 'yarn']}>
+    <Tab>
+      <Snippet text="pnpm install ai @ai-sdk/openai zod" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="npm install ai @ai-sdk/openai zod" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="yarn add ai @ai-sdk/openai zod" dark />
+    </Tab>
+  </Tabs>
 </div>
 
 <Note type="secondary" fill>
@@ -62,6 +72,11 @@ OPENAI_API_KEY=xxxxxxxxx
 ```
 
 Replace `xxxxxxxxx` with your actual OpenAI API key.
+
+<Note className="mb-4">
+  Vercel AI SDK's OpenAI Provider will default to using the `OPENAI_API_KEY`
+  environment variable.
+</Note>
 
 ## Create an API route
 
@@ -217,6 +232,6 @@ Head back to your browser (http://localhost:5173) and enter a new message. You s
 
 ## Where to Next?
 
-You've built an AI chatbot using the Vercel AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-ui/chatbot-with-tool-calling) or (persisting chat history)[/docs/ai-sdk-ui/storing-messages].
+You've built an AI chatbot using the Vercel AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-ui/chatbot-with-tool-calling) or [persisting chat history](/docs/ai-sdk-ui/storing-messages).
 
 If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.

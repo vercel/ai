@@ -4,6 +4,7 @@ import {
   FinishReason,
   GenerateContentResponse,
   GenerativeModel,
+  Part,
 } from '@google-cloud/vertexai';
 import { createVertex } from './google-vertex-provider';
 import { MockVertexAI } from './mock-vertex-ai';
@@ -44,6 +45,7 @@ describe('doGenerate', () => {
       candidatesTokenCount: 0,
       totalTokenCount: 0,
     },
+    parts,
   }: {
     text?: string;
     finishReason?: FinishReason;
@@ -52,13 +54,14 @@ describe('doGenerate', () => {
       candidatesTokenCount: number;
       totalTokenCount: number;
     };
+    parts?: Part[];
   }) {
     return async () => ({
       response: {
         candidates: [
           {
             content: {
-              parts: [{ text }],
+              parts: parts ?? [{ text }],
               role: 'model',
             },
             index: 0,
@@ -109,6 +112,53 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should extract tool calls', async () => {
+    const { model } = createModel({
+      generateContent: prepareResponse({
+        parts: [
+          {
+            functionCall: {
+              name: 'test-tool',
+              args: { value: 'example value' },
+            },
+          },
+        ],
+      }),
+    });
+
+    const { toolCalls, finishReason, text } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(toolCalls).toStrictEqual([
+      {
+        toolCallId: 'test-id',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        args: '{"value":"example value"}',
+      },
+    ]);
+    expect(text).toStrictEqual(undefined);
+    expect(finishReason).toStrictEqual('tool-calls');
+  });
+
   it('should extract finish reason', async () => {
     const { model } = createModel({
       generateContent: prepareResponse({
@@ -151,6 +201,8 @@ describe('doGenerate', () => {
         topK: 0.1,
         topP: 0.9,
       },
+      tools: undefined,
+      safetySettings: undefined,
     });
   });
 });

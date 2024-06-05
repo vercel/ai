@@ -5,7 +5,7 @@ import {
 import { createStreamDataTransformer } from './stream-data';
 
 /**
-@deprecated Use LangChainAdapter.toAIStream() instead.
+ * @deprecated Use [LangChainAdapter](https://sdk.vercel.ai/providers/adapters/langchain) instead.
  */
 export function LangChainStream(callbacks?: AIStreamCallbacksAndOptions) {
   const stream = new TransformStream();

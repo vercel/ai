@@ -1,20 +1,454 @@
 ---
 title: streamObject
-description: Stream object using the AI SDK Core
+description: API Reference for streamObject
 ---
 
-# `streamObject`
+# `streamObject()`
 
 Streams a typed, structured object for a given prompt and zod schema using a language model.
 
 It can be used to force the language model to return structured data, e.g. for information extraction, synthetic data generation, or classification tasks.
 
+```ts
+import { openai } from '@ai-sdk/openai';
+import { streamObject } from 'ai';
+import { z } from 'zod';
+
+const { partialObjectStream } = await streamObject({
+  model: openai('gpt-4-turbo'),
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+});
+
+for await (const partialObject of partialObjectStream) {
+  console.clear();
+  console.log(partialObject);
+}
+```
+
 ## Import
 
 <Snippet text={`import { streamObject } from "ai"`} prompt={false} />
 
-<ReferenceTable packageName="core" functionName="streamObject" />
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'LanguageModel',
+      description: `The language model to use. Example: openai('gpt-4-turbo')`
+    },
+    {
+      name: 'mode',
+      type: "'auto' | 'json' | 'grammar' | 'tool'",
+      description:
+        "The mode to use for object generation. Not every model supports all modes. Defaults to 'auto'."
+    },
+    {
+        name: 'schema',
+        type: 'Zod Schema',
+        description: 'The schema that describes the shape of the object to generate. It is sent to the model to generate the object and used to validate the output.'
+    },
+    {
+      name: 'system',
+      type: 'string',
+      description:
+        'The system prompt to use that specifies the behavior of the model.'
+    },
+    {
+      name: 'prompt',
+      type: 'string',
+      description: 'The input prompt to generate the text from.'
+    },
+    {
+      name: 'messages',
+      type: 'Array<CoreSystemMessage | CoreUserMessage | CoreAssistantMessage | CoreToolMessage>',
+      description: 'A list of messages that represent a conversation.',
+      properties: [
+        {
+          type: 'CoreSystemMessage',
+          parameters: [
+            {
+              name: 'role',
+              type: "'system'",
+              description: 'The role for the system message.'
+            },
+            {
+              name: 'content',
+              type: 'string',
+              description: 'The content of the message.'
+            }
+          ]
+        },
+        {
+          type: 'CoreUserMessage',
+          parameters: [
+            {
+              name: 'role',
+              type: "'user'",
+              description: 'The role for the user message.'
+            },
+            {
+              name: 'content',
+              type: 'string | Array<TextPart | ImagePart>',
+              description: 'The content of the message.',
+              properties: [
+                {
+                  type: 'TextPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'text'",
+                      description: 'The type of the message part.'
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The text content of the message part.'
+                    }
+                  ]
+                },
+                {
+                  type: 'ImagePart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'image'",
+                      description: 'The type of the message part.'
+                    },
+                    {
+                      name: 'image',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The image content of the message part. String are base64 encoded content. URLs need to be represented with a URL object'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          type: 'CoreAssistantMessage',
+          parameters: [
+            {
+              name: 'role',
+              type: "'assistant'",
+              description: 'The role for the assistant message.'
+            },
+            {
+              name: 'content',
+              type: 'string | Array<TextPart | ToolCallPart>',
+              description: 'The content of the message.',
+              properties: [
+                {
+                  type: 'TextPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'text'",
+                      description: 'The type of the message part.'
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The text content of the message part.'
+                    }
+                  ]
+                },
+                {
+                  type: 'ToolCallPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'tool-call'",
+                      description: 'The type of the message part.'
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description: 'The id of the tool call.'
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description:
+                        'The name of the tool, which typically would be the name of the function.'
+                    },
+                    {
+                      name: 'args',
+                      type: 'object based on zod schema',
+                      description:
+                        'Parameters generated by the model to be used by the tool.'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          type: 'CoreToolMessage',
+          parameters: [
+            {
+              name: 'role',
+              type: "'tool'",
+              description: 'The role for the assistant message.'
+            },
+            {
+              name: 'content',
+              type: 'Array<ToolResultPart>',
+              description: 'The content of the message.',
+              properties: [
+                {
+                  type: 'ToolResultPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'tool-result'",
+                      description: 'The type of the message part.'
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'The id of the tool call the result corresponds to.'
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description:
+                        'The name of the tool the result corresponds to.'
+                    },
+                    {
+                      name: 'result',
+                      type: 'unknown',
+                      description:
+                        'The result returned by the tool after execution.'
+                    },
+                    {
+                      name: 'isError',
+                      type: 'boolean',
+                      isOptional: true,
+                      description:
+                        'Whether the result is an error or an error message.'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      name: 'maxTokens',
+      type: 'number',
+      isOptional: true,
+      description: 'Maximum number of tokens to generate.'
+    },
+    {
+      name: 'temperature',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Temperature setting. The value is passed through to the provider. The range depends on the provider and model. It is recommended to set either `temperature` or `topP`, but not both.'
+    },
+    {
+      name: 'topP',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Nucleus sampling. The value is passed through to the provider. The range depends on the provider and model. It is recommended to set either `temperature` or `topP`, but not both.'
+    },
+    {
+      name: 'presencePenalty',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Presence penalty setting. It affects the likelihood of the model to repeat information that is already in the prompt. The value is passed through to the provider. The range depends on the provider and model.'
+    },
+    {
+      name: 'frequencyPenalty',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Frequency penalty setting. It affects the likelihood of the model to repeatedly use the same words or phrases. The value is passed through to the provider. The range depends on the provider and model.'
+    },
+    {
+      name: 'seed',
+      type: 'number',
+      isOptional: true,
+      description:
+        'The seed (integer) to use for random sampling. If set and supported by the model, calls will generate deterministic results.'
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of retries. Set to 0 to disable retries. Default: 2.'
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'An optional abort signal that can be used to cancel the call.'
+    }
+
+]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'usage',
+      type: 'Promise<TokenUsage>',
+      description:
+        'The token usage of the generated text. Resolved when the response is finished.',
+      properties: [
+        {
+          type: 'TokenUsage',
+          parameters: [
+            {
+              name: 'promptTokens',
+              type: 'number',
+              description: 'The total number of tokens in the prompt.',
+            },
+            {
+              name: 'completionTokens',
+              type: 'number',
+              description: 'The total number of tokens in the completion.',
+            },
+            {
+              name: 'totalTokens',
+              type: 'number',
+              description: 'The total number of tokens generated.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'partialObjectStream',
+      type: 'AsyncIterableStream<DeepPartial<T>>',
+      description:
+        'Note that the partial object is not validated. If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.',
+    },
+    {
+      name: 'fullStream',
+      type: 'AsyncIterableStream<ObjectStreamPart<T>>',
+      description: 'The full stream of the object.',
+      properties: [
+        {
+          type: 'ObjectPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'object'",
+            },
+            {
+              name: 'object',
+              type: 'DeepPartial<T>',
+              description: 'The partial object that was generated.',
+            },
+          ],
+        },
+        {
+          type: 'ErrorPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'error'",
+            },
+            {
+              name: 'error',
+              type: 'unknown',
+              description: 'The error that occurred.',
+            },
+          ],
+        },
+        {
+          type: 'FinishPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'finish'",
+            },
+            {
+              name: 'finishReason',
+              type: 'FinishReason',
+            },
+            {
+              name: 'logprobs',
+              type: 'Logprobs',
+              optional: true,
+            },
+            {
+              name: 'usage',
+              type: 'Usage',
+              description: 'Token usage.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'rawResponse',
+      type: 'RawResponse',
+      optional: true,
+      description: 'Optional raw response data.',
+      properties: [
+        {
+          type: 'RawResponse',
+          parameters: [
+            {
+              name: 'header',
+              optional: true,
+              type: 'Record<string, string>',
+              description: 'Response headers.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'warnings',
+      type: 'Warning[] | undefined',
+      description:
+        'Warnings from the model provider (e.g. unsupported settings).',
+    },
+  ]}
+/>
 
 ## Examples
 
-<ExamplesList packageName="core" functionName="streamObject" />
+<ExampleLinks
+  examples={[
+    {
+      title: 'Streaming Object Generation (Next.js App Router)',
+      link: '/examples/next-app/basics/streaming-object-generation',
+    },
+    {
+      title: 'Streaming Partial Objects',
+      link: '/examples/node/streaming-structured-data/stream-object',
+    },
+    {
+      title: 'Recording Token Usage',
+      link: '/examples/node/streaming-structured-data/token-usage',
+    },
+  ]}
+/>

@@ -1,5 +1,23 @@
 # @ai-sdk/openai
 
+## 0.0.20
+
+### Patch Changes
+
+- a1d08f3e: fix (provider/openai): handle error chunks when streaming
+
+## 0.0.19
+
+### Patch Changes
+
+- beb8b739: fix (provider/openai): return unknown finish reasons as unknown
+
+## 0.0.18
+
+### Patch Changes
+
+- fb42e760: feat (provider/openai): send user message content as text when possible
+
 ## 0.0.17
 
 ### Patch Changes

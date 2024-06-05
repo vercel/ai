@@ -21,7 +21,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model,
+  model: yourModel,
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -40,7 +40,7 @@ const { object } = await generateObject({
 
 ## Specifying Generation Mode
 
-While some models (like OpenAI) natively support object generation, others require alternative methods, like modified function calling. The `generateObject` function allows you to specify the method it will use to return structured data.
+While some models (like OpenAI) natively support object generation, others require alternative methods, like modified [tool calling](/docs/ai-sdk-core/tools-and-tool-calling). The `generateObject` function allows you to specify the method it will use to return structured data.
 
 - `auto`: The provider will choose the best mode for the model.
 - `tool`: A tool with the JSON schema as parameters is provided and the provider is instructed to use it.

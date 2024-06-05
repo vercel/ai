@@ -1,9 +1,9 @@
 ---
 title: embedMany
-description: Embed several values using the AI SDK Core (batch embedding)
+description: API Reference for embedMany.
 ---
 
-# `embedMany`
+# `embedMany()`
 
 Embed several values using an embedding model. The type of the value is defined
 by the embedding model.
@@ -11,8 +11,70 @@ by the embedding model.
 `embedMany` automatically splits large requests into smaller chunks if the model
 has a limit on how many embeddings can be generated in a single call.
 
+```ts
+import { openai } from '@ai-sdk/openai';
+import { embedMany } from 'ai';
+
+const { embeddings } = await embedMany({
+  model: openai.embedding('text-embedding-3-small'),
+  values: [
+    'sunny day at the beach',
+    'rainy afternoon in the city',
+    'snowy night in the mountains',
+  ],
+});
+```
+
 ## Import
 
 <Snippet text={`import { embedMany } from "ai"`} prompt={false} />
 
-<ReferenceTable packageName="core" functionName="embedMany" />
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'EmbeddingModel',
+      description: `The embedding model to use. Example: openai.embedding('text-embedding-3-small')`,
+    },
+    {
+      name: 'values',
+      type: 'Array<VALUE>',
+      description: 'The values to embed. The type depends on the model.',
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of retries. Set to 0 to disable retries. Default: 2.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'An optional abort signal that can be used to cancel the call.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'values',
+      type: 'Array<VALUE>',
+      description: 'The values that were embedded.',
+    },
+    {
+      name: 'embeddings',
+      type: 'number[][]',
+      description: 'The embeddings. They are in the same order as the values.',
+    },
+  ]}
+/>

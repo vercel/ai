@@ -46,6 +46,9 @@ async function* streamable(stream: AsyncIterable<ChatCompletionResponseChunk>) {
   }
 }
 
+/*
+ * @deprecated Use the [Mistral provider](https://sdk.vercel.ai/providers/ai-sdk-providers/mistral) instead.
+ */
 export function MistralStream(
   response: AsyncGenerator<ChatCompletionResponseChunk, void, unknown>,
   callbacks?: AIStreamCallbacksAndOptions,
