@@ -86,7 +86,7 @@
     "json-schema": "0.4.0",
     "nanoid": "3.3.6",
     "solid-swr-store": "0.10.7",
-    "sswr": "2.0.0",
+    "sswr": "2.1.0",
     "swr": "2.2.0",
     "swr-store": "0.10.6",
     "swrv": "1.0.4",
