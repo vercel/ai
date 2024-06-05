@@ -13,8 +13,6 @@ A situation may arise when you need to generate text based on a prompt. For exam
 
 ## Client
 
-Let's create a simple React component that will call the `getAnswer` function when a button is clicked. The `getAnswer` function will call the `generateText` function from the `ai` module, which will then generate text based on the input prompt.
-
 Let's create a simple React component that will make a POST request to the `/api/completion` endpoint when a button is clicked. The endpoint will generate text based on the input prompt.
 
 ```tsx filename="pages/index.tsx"
@@ -54,7 +52,7 @@ export default function Page() {
 
 ## Server
 
-Let's create a simple API route that will generate text based on the input prompt. The route will call the `generateText` function from the `ai` module, which will then generate text based on the input prompt and return it.
+Let's create a route handler that will generate text based on the input prompt. The route will call the `generateText` function from the `ai` module, which will then generate text based on the input prompt and return it.
 
 ```typescript filename='app/api/completion/route.ts'
 import { generateText } from 'ai';

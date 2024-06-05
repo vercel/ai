@@ -76,7 +76,7 @@ export default function Page() {
 
 ## Server
 
-Now let's implement the `getNotifications` function. We'll use the `generateObject` function to generate the list of notifications based on the schema we defined earlier.
+Let's create a route handler that will generate an object based on the input prompt. The route will call the `generateObject` function from the `ai` module, which will then generate an object based on the input prompt and return it.
 
 ```typescript filename='app/api/completion/route.ts'
 import { generateObject } from 'ai';
