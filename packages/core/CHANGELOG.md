@@ -1,5 +1,16 @@
 # ai
 
+## 3.1.27
+
+### Patch Changes
+
+- c9198d4d: feat (ui): send annotation and data fields in useChat when sendExtraMessageFields is true
+- Updated dependencies [09295e2e]
+- Updated dependencies [09295e2e]
+- Updated dependencies [043a5de2]
+  - @ai-sdk/provider@0.0.9
+  - @ai-sdk/provider-utils@0.0.12
+
 ## 3.1.26
 
 ### Patch Changes

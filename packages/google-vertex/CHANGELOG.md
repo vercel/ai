@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 0.0.7
+
+### Patch Changes
+
+- 09295e2e: feat (@ai-sdk/google-vertex): automatically download image URLs
+- Updated dependencies [09295e2e]
+- Updated dependencies [09295e2e]
+- Updated dependencies [043a5de2]
+  - @ai-sdk/provider@0.0.9
+  - @ai-sdk/provider-utils@0.0.12
+
 ## 0.0.6
 
 ### Patch Changes

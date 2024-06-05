@@ -1,5 +1,14 @@
 # @ai-sdk/provider-utils
 
+## 0.0.12
+
+### Patch Changes
+
+- 09295e2e: feat (@ai-sdk/provider-utils): add download helper
+- 043a5de2: fix (provider-utils): rename to isParsableJson
+- Updated dependencies [09295e2e]
+  - @ai-sdk/provider@0.0.9
+
 ## 0.0.11
 
 ### Patch Changes

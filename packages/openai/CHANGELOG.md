@@ -1,5 +1,16 @@
 # @ai-sdk/openai
 
+## 0.0.21
+
+### Patch Changes
+
+- fca7d026: feat (provider/openai): support streaming tool calls that are sent in one chunk
+- Updated dependencies [09295e2e]
+- Updated dependencies [09295e2e]
+- Updated dependencies [043a5de2]
+  - @ai-sdk/provider@0.0.9
+  - @ai-sdk/provider-utils@0.0.12
+
 ## 0.0.20
 
 ### Patch Changes
