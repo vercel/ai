@@ -26,7 +26,7 @@ Chat completion can sometimes take a long time to finish, especially when the re
 
 Let's create a React component that imports the `useChat` hook from the `ai/react` module. The `useChat` hook will call the `/api/chat` endpoint when the user sends a message. The endpoint will generate the assistant's response based on the conversation history and stream it to the client.
 
-```tsx filename='app/page.tsx'
+```tsx filename='pages/index.tsx'
 import { useChat } from 'ai/react';
 
 export default function Page() {
@@ -58,19 +58,19 @@ export default function Page() {
 
 Next, let's create the `/api/chat` endpoint that generates the assistant's response based on the conversation history.
 
-```typescript filename='app/actions.ts'
-import { CoreMessage, generateText } from 'ai';
+```typescript filename='app/api/chat/route.ts'
+import { CoreMessage, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: CoreMessage[] } = await req.json();
 
-  const { responseMessages } = await generateText({
+  const result = await streamText({
     model: openai('gpt-4'),
     system: 'You are a helpful assistant.',
     messages,
   });
 
-  return Response.json({ messages: responseMessages });
+  return result.toAIStreamResponse();
 }
 ```

@@ -44,22 +44,24 @@ export default function Page() {
         }}
         onKeyDown={async event => {
           if (event.key === 'Enter') {
-            setMessages([...messages, { role: 'user', content: input }]);
+            setMessages(currentMessages => [
+              ...currentMessages,
+              { role: 'user', content: input },
+            ]);
 
-            await fetch('/api/chat', {
+            const response = await fetch('/api/generate-chat', {
               method: 'POST',
               body: JSON.stringify({
                 messages: [...messages, { role: 'user', content: input }],
               }),
-            }).then(async response => {
-              response.json().then(json => {
-                setMessages([
-                  ...messages,
-                  { role: 'user', content: input },
-                  ...json.messages,
-                ]);
-              });
             });
+
+            const { messages: newMessages } = await response.json();
+
+            setMessages(currentMessages => [
+              ...currentMessages,
+              ...newMessages,
+            ]);
           }
         }}
       />
