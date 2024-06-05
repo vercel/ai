@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.9
+
+### Patch Changes
+
+- 09295e2e: feat (@ai-sdk/provider): add DownloadError
+
 ## 0.0.8
 
 ### Patch Changes

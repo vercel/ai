@@ -873,10 +873,10 @@ importers:
   packages/anthropic:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.8
+        specifier: 0.0.9
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.11
+        specifier: 0.0.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -898,10 +898,10 @@ importers:
   packages/core:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.8
+        specifier: 0.0.9
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.11
+        specifier: 0.0.12
         version: link:../provider-utils
       eventsource-parser:
         specifier: 1.1.2
@@ -1046,10 +1046,10 @@ importers:
   packages/google:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.8
+        specifier: 0.0.9
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.11
+        specifier: 0.0.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1071,10 +1071,10 @@ importers:
   packages/google-vertex:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.8
+        specifier: 0.0.9
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.11
+        specifier: 0.0.12
         version: link:../provider-utils
       '@google-cloud/vertexai':
         specifier: 1.2.0
@@ -1102,10 +1102,10 @@ importers:
   packages/mistral:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.8
+        specifier: 0.0.9
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.11
+        specifier: 0.0.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1127,10 +1127,10 @@ importers:
   packages/openai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.8
+        specifier: 0.0.9
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.11
+        specifier: 0.0.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1174,7 +1174,7 @@ importers:
   packages/provider-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.8
+        specifier: 0.0.9
         version: link:../provider
       eventsource-parser:
         specifier: 1.1.2
