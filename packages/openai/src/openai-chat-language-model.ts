@@ -314,6 +314,33 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                     },
                   };
 
+                  const toolCall = toolCalls[index];
+
+                  // check if tool call is complete (some providers send the full tool call in one chunk)
+                  if (
+                    toolCall.function?.name != null &&
+                    toolCall.function?.arguments != null &&
+                    isParsableJson(toolCall.function.arguments)
+                  ) {
+                    // send delta
+                    controller.enqueue({
+                      type: 'tool-call-delta',
+                      toolCallType: 'function',
+                      toolCallId: toolCall.id,
+                      toolName: toolCall.function.name,
+                      argsTextDelta: toolCall.function.arguments,
+                    });
+
+                    // send tool call
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: toolCall.id ?? generateId(),
+                      toolName: toolCall.function.name,
+                      args: toolCall.function.arguments,
+                    });
+                  }
+
                   continue;
                 }
 
@@ -336,20 +363,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
                 // check if tool call is complete
                 if (
-                  toolCall.function?.name == null ||
-                  toolCall.function?.arguments == null ||
-                  !isParsableJson(toolCall.function.arguments)
+                  toolCall.function?.name != null &&
+                  toolCall.function?.arguments != null &&
+                  isParsableJson(toolCall.function.arguments)
                 ) {
-                  continue;
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: toolCall.id ?? generateId(),
+                    toolName: toolCall.function.name,
+                    args: toolCall.function.arguments,
+                  });
                 }
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id ?? generateId(),
-                  toolName: toolCall.function.name,
-                  args: toolCall.function.arguments,
-                });
               }
             }
           },
