@@ -126,7 +126,7 @@ export function InternalAIProvider({
 }
 
 export function useUIState<AI extends AIProvider = any>() {
-  type T = InferUIState<AI, any>;
+  type T = InferUIState<AI>;
 
   const state = React.useContext<
     [T, (v: T | ((v_: T) => T)) => void] | null | undefined
@@ -147,20 +147,20 @@ export function useUIState<AI extends AIProvider = any>() {
 
 // TODO: How do we avoid causing a re-render when the AI state changes but you
 // are only listening to a specific key? We need useSES perhaps?
-function useAIState<AI extends AIProvider = any>(): [
-  InferAIState<AI, any>,
-  (newState: ValueOrUpdater<InferAIState<AI, any>>) => void,
-];
-function useAIState<AI extends AIProvider = any>(
-  key: keyof InferAIState<AI, any>,
+function useAIState<
+  AI extends AIProvider = any,
+  _AIState = InferAIState<AI>,
+>(): [_AIState, (newState: ValueOrUpdater<_AIState>) => void];
+function useAIState<AI extends AIProvider = any, _AIState = InferAIState<AI>>(
+  key: keyof _AIState,
 ): [
-  InferAIState<AI, any>[typeof key],
-  (newState: ValueOrUpdater<InferAIState<AI, any>[typeof key]>) => void,
+  _AIState[typeof key],
+  (newState: ValueOrUpdater<_AIState[typeof key]>) => void,
 ];
-function useAIState<AI extends AIProvider = any>(
-  ...args: [] | [keyof InferAIState<AI, any>]
+function useAIState<AI extends AIProvider = any, _AIState = InferAIState<AI>>(
+  ...args: [] | [keyof _AIState]
 ) {
-  type T = InferAIState<AI, any>;
+  type T = InferAIState<AI>;
 
   const state = React.useContext<
     [T, (newState: ValueOrUpdater<T>) => void] | null | undefined
@@ -206,7 +206,7 @@ function useAIState<AI extends AIProvider = any>(
 }
 
 export function useActions<AI extends AIProvider = any>() {
-  type T = InferActions<AI, any>;
+  type T = InferActions<AI>;
 
   const actions = React.useContext<T>(InternalActionProvider);
   return actions;
