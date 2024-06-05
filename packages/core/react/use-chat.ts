@@ -110,8 +110,6 @@ const getStreamedResponse = async (
           role,
           content,
           name,
-          data,
-          annotations,
           toolInvocations,
           function_call,
           tool_calls,
@@ -120,8 +118,6 @@ const getStreamedResponse = async (
           role,
           content,
           ...(name !== undefined && { name }),
-          ...(data !== undefined && { data }),
-          ...(annotations !== undefined && { annotations }),
           ...(toolInvocations !== undefined && { toolInvocations }),
           // outdated function/tool call handling (TODO deprecate):
           tool_call_id,

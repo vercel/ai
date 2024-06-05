@@ -84,25 +84,17 @@ const getStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({
+        ({ role, content, name, function_call, tool_calls, tool_call_id }) => ({
           role,
           content,
-          name,
-          data,
-          annotations,
-          function_call,
-          tool_calls,
           tool_call_id,
-        }) => ({
-          role,
-          content,
           ...(name !== undefined && { name }),
-          ...(data !== undefined && { data }),
-          ...(annotations !== undefined && { annotations }),
-          // outdated function/tool call handling (TODO deprecate):
-          tool_call_id,
-          ...(function_call !== undefined && { function_call }),
-          ...(tool_calls !== undefined && { tool_calls }),
+          ...(function_call !== undefined && {
+            function_call: function_call,
+          }),
+          ...(tool_calls !== undefined && {
+            tool_calls: tool_calls,
+          }),
         }),
       );
 
