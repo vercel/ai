@@ -1,13 +1,13 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import dotenv from 'dotenv';
-import fs from 'node:fs';
 
 dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: vertex('gemini-1.0-pro-vision'),
+    model: google('models/gemini-pro-vision'),
+    maxTokens: 512,
     messages: [
       {
         role: 'user',
@@ -15,7 +15,9 @@ async function main() {
           { type: 'text', text: 'Describe the image in detail.' },
           {
             type: 'image',
-            image: fs.readFileSync('./data/comic-cat.png').toString('base64'),
+            image: new URL(
+              'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+            ),
           },
         ],
       },

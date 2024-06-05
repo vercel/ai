@@ -1,7 +1,6 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 import dotenv from 'dotenv';
-import fs from 'node:fs';
 
 dotenv.config();
 
@@ -15,7 +14,9 @@ async function main() {
           { type: 'text', text: 'Describe the image in detail.' },
           {
             type: 'image',
-            image: fs.readFileSync('./data/comic-cat.png').toString('base64'),
+            image: new URL(
+              'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+            ),
           },
         ],
       },
