@@ -41,7 +41,7 @@ export default function Page() {
 
 ## Server
 
-Let's create a route handler that will generate text based on the input prompt. The route will call the `streamText` function from the `ai` module, which will then generate text based on the input prompt and stream it to the client.
+Let's create a route handler for `/api/completion` that will generate text based on the input prompt. The route will call the `streamText` function from the `ai` module, which will then generate text based on the input prompt and stream it to the client.
 
 ```typescript filename='app/api/completion/route.ts'
 import { streamText } from 'ai';
