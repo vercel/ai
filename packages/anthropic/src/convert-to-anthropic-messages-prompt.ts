@@ -65,6 +65,8 @@ export async function convertToAnthropicMessagesPrompt({
                   data: convertUint8ArrayToBase64(data),
                 },
               });
+
+              break;
             }
           }
         }
