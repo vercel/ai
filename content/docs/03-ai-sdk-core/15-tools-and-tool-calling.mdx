@@ -96,3 +96,35 @@ const result = await generateText({
     'What is the weather in San Francisco and what attractions should I visit?',
 });
 ```
+
+## Tool Roundtrips
+
+<Note>Tool roundtrips are currently only supported by `generateText`.</Note>
+
+The large language model needs to know the tool results before it can continue generating text.
+This requires sending the tool results back to the model.
+You can enable this feature by setting the `maxToolRoundtrips` setting to a number greater than 0.
+
+```ts highlight="18"
+import { z } from 'zod';
+import { generateText, tool } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+  },
+  maxToolRoundtrips: 5, // allow up to 5 tool roundtrips
+  prompt:
+    'What is the weather in San Francisco and what attractions should I visit?',
+});
+```
