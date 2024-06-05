@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 0.0.6
+
+### Patch Changes
+
+- 3a7a4ab6: fix (provider/vertex): fix undefined parts handling
+
 ## 0.0.5
 
 ### Patch Changes
