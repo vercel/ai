@@ -320,6 +320,10 @@ function getToolCallsFromParts({
   parts: Part[];
   generateId: () => string;
 }) {
+  if (parts == null) {
+    return undefined; // parts are sometimes undefined when using safety settings
+  }
+
   return parts.flatMap(part =>
     part.functionCall == null
       ? []
