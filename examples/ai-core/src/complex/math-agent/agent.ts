@@ -41,7 +41,7 @@ async function main() {
       }),
     },
     toolChoice: 'required',
-    maxAutomaticRoundtrips: 10,
+    maxToolRoundtrips: 10,
   });
 }
 

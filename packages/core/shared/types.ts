@@ -208,20 +208,46 @@ export type ToolCallHandler = (
 ) => Promise<ChatRequest | void>;
 
 export type RequestOptions = {
+  /**
+An optional object of headers to be passed to the API endpoint.
+ */
   headers?: Record<string, string> | Headers;
+
+  /**
+An optional object to be passed to the API endpoint.
+   */
   body?: object;
 };
 
 export type ChatRequestOptions = {
+  /**
+The options to be passed to the fetch call.
+   */
   options?: RequestOptions;
-  // @deprecated
+
+  /**
+@deprecated
+*/
   functions?: Array<Function>;
-  // @deprecated
+
+  /**
+@deprecated
+*/
   function_call?: FunctionCall;
-  // @deprecated
+
+  /**
+@deprecated
+*/
   tools?: Array<Tool>;
-  // @deprecated
+
+  /**
+@deprecated
+*/
   tool_choice?: ToolChoice;
+
+  /**
+Additional data to be sent to the server.
+   */
   data?: Record<string, string>;
 };
 

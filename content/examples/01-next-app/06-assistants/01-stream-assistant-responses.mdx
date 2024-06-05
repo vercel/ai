@@ -5,76 +5,103 @@ description: Learn to stream assistant responses using the Vercel AI SDK in your
 
 # Stream Assistant Responses
 
+In this example, you'll learn how to stream responses from OpenAI's [Assistant API](https://platform.openai.com/docs/assistants/overview) using `ai/rsc`.
+
 ## Client
+
+In your client component, you will create a simple chat interface that allows users to send messages to the assistant and receive responses. The assistant's responses will be streamed in two parts: the status of the current run and the text content of the messages.
 
 ```tsx filename='app/page.tsx'
 'use client';
 
 import { useState } from 'react';
-import { ClientMessage, getAnswer } from './actions';
-import { nanoid } from 'ai';
-
-// Force the page to be dynamic and allow streaming responses up to 30 seconds
-export const dynamic = 'force-dynamic';
-export const maxDuration = 30;
+import { ClientMessage } from './actions';
+import { useActions } from 'ai/rsc';
 
 export default function Home() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ClientMessage[]>([]);
+  const { submitMessage } = useActions();
 
-  const handleUserSubmission = async () => {
+  const handleSubmission = async () => {
     setMessages(currentMessages => [
       ...currentMessages,
       {
-        id: nanoid(),
+        id: '123',
         status: 'user.message.created',
         text: input,
+        gui: null,
       },
     ]);
 
-    const response = await getAnswer(input);
+    const response = await submitMessage(input);
     setMessages(currentMessages => [...currentMessages, response]);
     setInput('');
   };
 
   return (
-    <div>
-      <div>
+    <div className="flex flex-col-reverse">
+      <div className="flex flex-row gap-2 p-2 bg-zinc-100 w-full">
         <input
+          className="bg-zinc-100 w-full p-2 outline-none"
           value={input}
           onChange={event => setInput(event.target.value)}
           placeholder="Ask a question"
           onKeyDown={event => {
             if (event.key === 'Enter') {
-              handleUserSubmission();
+              handleSubmission();
             }
           }}
         />
-        <button onClick={handleUserSubmission}>Send</button>
+        <button
+          className="p-2 bg-zinc-900 text-zinc-100 rounded-md"
+          onClick={handleSubmission}
+        >
+          Send
+        </button>
       </div>
 
-      <div>
-        {messages.map(message => (
-          <div>
-            <div>{message.status}</div>
-            <div>{message.text}</div>
-          </div>
-        ))}
+      <div className="flex flex-col h-[calc(100dvh-56px)] overflow-y-scroll">
+        <div>
+          {messages.map(message => (
+            <div key={message.id} className="flex flex-col gap-1 border-b p-2">
+              <div className="flex flex-row justify-between">
+                <div className="text-sm text-zinc-500">{message.status}</div>
+              </div>
+              <div>{message.text}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 ```
 
+```tsx filename='app/message.tsx'
+'use client';
+
+import { StreamableValue, useStreamableValue } from 'ai/rsc';
+
+export function Message({ textStream }: { textStream: StreamableValue }) {
+  const [text] = useStreamableValue(textStream);
+
+  return <div>{text}</div>;
+}
+```
+
 ## Server
+
+In your server action, you will create a function called `submitMessage` that adds the user's message to the thread. The function will create a new thread if one does not exist and add the user's message to the thread. If a thread already exists, the function will add the user's message to the existing thread. The function will then create a run and stream the assistant's response to the client. Furthermore, the run queue is used to manage multiple runs in the same thread during the lifetime of the server action.
 
 ```tsx filename='app/actions.ts'
 'use server';
 
 import { nanoid } from 'ai';
-import { createStreamableUI } from 'ai/rsc';
+import { createAI, createStreamableUI, createStreamableValue } from 'ai/rsc';
 import { OpenAI } from 'openai';
 import { ReactNode } from 'react';
+import { Message } from './message';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -86,13 +113,17 @@ export interface ClientMessage {
   text: ReactNode;
 }
 
-const ASSISTANT_ID = 'asst_XXXXXXXX';
+const ASSISTANT_ID = 'asst_xxxx';
 let THREAD_ID = '';
 let RUN_ID = '';
 
-export async function getAnswer(question: string): Promise<ClientMessage> {
-  const status = createStreamableUI('thread.init');
-  const text = createStreamableUI('');
+export async function submitMessage(question: string): Promise<ClientMessage> {
+  const statusUIStream = createStreamableUI('thread.init');
+
+  const textStream = createStreamableValue('');
+  const textUIStream = createStreamableUI(
+    <Message textStream={textStream.value} />,
+  );
 
   const runQueue = [];
 
@@ -128,7 +159,7 @@ export async function getAnswer(question: string): Promise<ClientMessage> {
         for await (const delta of latestRun.run) {
           const { data, event } = delta;
 
-          status.update(event);
+          statusUIStream.update(event);
 
           if (event === 'thread.created') {
             THREAD_ID = data.id;
@@ -138,25 +169,42 @@ export async function getAnswer(question: string): Promise<ClientMessage> {
             data.delta.content?.map(part => {
               if (part.type === 'text') {
                 if (part.text) {
-                  text.append(part.text.value);
+                  textStream.append(part.text.value as string);
                 }
               }
             });
           } else if (event === 'thread.run.failed') {
-            console.log(data);
+            console.error(data);
           }
         }
       }
     }
 
-    status.done();
-    text.done();
+    statusUIStream.done();
+    textStream.done();
   })();
 
   return {
     id: nanoid(),
-    status: status.value,
-    text: text.value,
+    status: statusUIStream.value,
+    text: textUIStream.value,
   };
+}
+
+export const AI = createAI({
+  actions: {
+    submitMessage,
+  },
+});
+```
+
+And finally, make sure to update your layout component to wrap the children with the `AI` component.
+
+```tsx filename="app/layout.tsx"
+import { ReactNode } from 'react';
+import { AI } from './actions';
+
+export default function Layout({ children }: { children: ReactNode }) {
+  return <AI>{children}</AI>;
 }
 ```

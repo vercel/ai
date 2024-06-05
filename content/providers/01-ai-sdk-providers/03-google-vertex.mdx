@@ -110,6 +110,30 @@ The following optional settings are available for Google Vertex models:
   Top-k sampling considers the set of topK most probable tokens.
   Models running with nucleus sampling don't allow topK setting.
 
+- **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
+
+  Optional. Safety settings for the model.
+
+  - **category** _string_
+
+    The category of the safety setting. Can be one of the following:
+
+    - `HARM_CATEGORY_UNSPECIFIED`
+    - `HARM_CATEGORY_HATE_SPEECH`
+    - `HARM_CATEGORY_DANGEROUS_CONTENT`
+    - `HARM_CATEGORY_HARASSMENT`
+    - `HARM_CATEGORY_SEXUALLY_EXPLICIT`
+
+  - **threshold** _string_
+
+    The threshold of the safety setting. Can be one of the following:
+
+    - `HARM_BLOCK_THRESHOLD_UNSPECIFIED`
+    - `BLOCK_LOW_AND_ABOVE`
+    - `BLOCK_MEDIUM_AND_ABOVE`
+    - `BLOCK_ONLY_HIGH`
+    - `BLOCK_NONE`
+
 ### Example
 
 You can use Google Vertex language models to generate text with the `generateText` function:

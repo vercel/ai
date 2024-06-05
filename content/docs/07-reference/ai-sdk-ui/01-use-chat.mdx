@@ -1,9 +1,9 @@
 ---
 title: useChat
-description: Reference documentation for the useChat hook in the AI SDK UI
+description: API reference for the useChat hook.
 ---
 
-# `useChat`
+# `useChat()`
 
 Allows you to easily create a conversational user interface for your chatbot application. It enables the streaming of chat messages from your AI provider, manages the state for chat input, and updates the UI automatically as new messages are received.
 
@@ -11,16 +11,16 @@ Allows you to easily create a conversational user interface for your chatbot app
 
 <Tabs items={['React', 'Svelte', 'Vue', 'Solid']}>
   <Tab>
-    <Snippet text="import { useChat } from 'ai/react'" dark />
+    <Snippet text="import { useChat } from 'ai/react'" dark prompt={false} />
   </Tab>
   <Tab>
-    <Snippet text="import { useChat } from 'ai/svelte'" dark />
+    <Snippet text="import { useChat } from 'ai/svelte'" dark prompt={false} />
   </Tab>
   <Tab>
-    <Snippet text="import { useChat } from 'ai/vue'" dark />
+    <Snippet text="import { useChat } from 'ai/vue'" dark prompt={false} />
   </Tab>
   <Tab>
-    <Snippet text="import { useChat } from 'ai/solid'" dark />
+    <Snippet text="import { useChat } from 'ai/solid'" dark prompt={false} />
   </Tab>
 </Tabs>
 
@@ -105,7 +105,7 @@ Allows you to easily create a conversational user interface for your chatbot app
         "An optional boolean that determines whether to send extra fields you've added to `messages`. Defaults to `false` and only the `content` and `role` fields will be sent to the API endpoint.",
     },
     {
-      name: 'maxAutomaticRoundtrips',
+      name: 'maxToolRoundtrips',
       type: 'number',
       description:
         'React only. Maximal number of automatic roundtrips for tool calls. An automatic tool call roundtrip is a call to the server with the  tool call results when all tool calls in the last assistant  message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
@@ -178,6 +178,42 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: '(event: React.FormEvent<HTMLFormElement>, chatRequestOptions?: ChatRequestOptions) => void',
       description:
         'Form submission handler that automatically resets the input field and appends a user message. You can use the `options` parameter to send additional data, headers and more to the server.',
+      properties: [
+        {
+          type: 'ChatRequestOptions',
+          parameters: [
+            {
+              name: 'options',
+              type: 'RequestOptions',
+              description: 'The options to be passed to the fetch call.',
+              properties: [
+                {
+                  type: 'ChatRequestOptions',
+                  parameters: [
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string> | Headers',
+                      description:
+                        'An optional object of headers to be passed to the API endpoint.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'object',
+                      description:
+                        'An optional object to be passed to the API endpoint.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'data',
+              type: 'Record<string,string>',
+              description: 'Additional data to be sent to the server.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'isLoading',
@@ -188,7 +224,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     {
       name: 'data',
       type: 'JSONValue[]',
-      description: 'Data returned from experimental_StreamData',
+      description: 'Data returned from StreamData',
     },
     {
       name: 'addToolResult',

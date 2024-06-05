@@ -22,13 +22,12 @@ There are three elements of a tool, a description, parameters, and an optional e
 
 The `tools` parameter of `generateText` and `streamText` is an object that has the tool names as keys and the tools as values:
 
-```ts highlight="7-18"
+```ts highlight="6-17"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
-import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: yourModel,
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -61,6 +60,9 @@ Each tool result object has a `toolCallId`, a `toolName`, a typed `args` object,
   tool is called a "tool result".
 </Note>
 
+Tool calling is not restricted to only text generation.
+You can also use it to [render user interfaces with Generative AI](/docs/ai-sdk-rsc/overview#rendering-user-interfaces-with-language-models).
+
 ## Tool Choice
 
 You can use the `toolChoice` setting to influence when a tool is selected.
@@ -71,13 +73,12 @@ It supports the following settings:
 - `none`: the model must not call tools
 - `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
 
-```ts highlight="19"
+```ts highlight="18"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
-import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: yourModel,
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -91,6 +92,38 @@ const result = await generateText({
     }),
   },
   toolChoice: 'required', // force the model to call a tool
+  prompt:
+    'What is the weather in San Francisco and what attractions should I visit?',
+});
+```
+
+## Tool Roundtrips
+
+<Note>Tool roundtrips are currently only supported by `generateText`.</Note>
+
+The large language model needs to know the tool results before it can continue generating text.
+This requires sending the tool results back to the model.
+You can enable this feature by setting the `maxToolRoundtrips` setting to a number greater than 0.
+
+```ts highlight="18"
+import { z } from 'zod';
+import { generateText, tool } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+  },
+  maxToolRoundtrips: 5, // allow up to 5 tool roundtrips
   prompt:
     'What is the weather in San Francisco and what attractions should I visit?',
 });

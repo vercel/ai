@@ -3,7 +3,7 @@ import {
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import { z } from 'zod';
-import { calculateTokenUsage } from '../generate-text/token-usage';
+import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
@@ -230,7 +230,7 @@ Default and recommended: 'auto' (best mode for the model).
   });
 }
 
-export type ObjectStreamPartInput =
+export type ObjectStreamInputPart =
   | {
       type: 'error';
       error: unknown;
@@ -247,7 +247,7 @@ export type ObjectStreamPartInput =
     };
 
 export type ObjectStreamPart<T> =
-  | ObjectStreamPartInput
+  | ObjectStreamInputPart
   | {
       type: 'object';
       object: DeepPartial<T>;
@@ -257,14 +257,17 @@ export type ObjectStreamPart<T> =
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
 export class StreamObjectResult<T> {
-  private readonly originalStream: ReadableStream<
-    string | ObjectStreamPartInput
-  >;
+  readonly originalStream: ReadableStream<ObjectStreamPart<T>>;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: CallWarning[] | undefined;
+
+  /**
+The token usage of the generated response. Resolved when the response is finished.
+   */
+  readonly usage: Promise<TokenUsage>;
 
   /**
 Optional raw response data.
@@ -281,72 +284,102 @@ Response headers.
     warnings,
     rawResponse,
   }: {
-    stream: ReadableStream<string | ObjectStreamPartInput>;
+    stream: ReadableStream<string | ObjectStreamInputPart>;
     warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
     };
   }) {
-    this.originalStream = stream;
     this.warnings = warnings;
     this.rawResponse = rawResponse;
-  }
 
-  get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
+    // initialize usage promise
+    let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
+    this.usage = new Promise<TokenUsage>(resolve => {
+      resolveUsage = resolve;
+    });
+
+    // store information for onFinish callback:
+    let usage: TokenUsage | undefined;
+
+    // pipe chunks through a transformation stream that extracts metadata:
     let accumulatedText = '';
     let latestObject: DeepPartial<T> | undefined = undefined;
 
+    this.originalStream = stream.pipeThrough(
+      new TransformStream<string | ObjectStreamInputPart, ObjectStreamPart<T>>({
+        async transform(chunk, controller): Promise<void> {
+          // process partial text chunks
+          if (typeof chunk === 'string') {
+            accumulatedText += chunk;
+
+            const currentObject = parsePartialJson(
+              accumulatedText,
+            ) as DeepPartial<T>;
+
+            if (!isDeepEqualData(latestObject, currentObject)) {
+              latestObject = currentObject;
+
+              controller.enqueue({ type: 'object', object: currentObject });
+            }
+
+            return;
+          }
+
+          switch (chunk.type) {
+            case 'finish': {
+              // store usage for promises and onFinish callback:
+              usage = calculateTokenUsage(chunk.usage);
+
+              controller.enqueue({
+                ...chunk,
+                usage,
+              });
+
+              // resolve promises that can be resolved now:
+              resolveUsage(usage);
+
+              break;
+            }
+
+            default: {
+              controller.enqueue(chunk);
+              break;
+            }
+          }
+        },
+      }),
+    );
+  }
+
+  get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
-        if (typeof chunk === 'string') {
-          accumulatedText += chunk;
+        switch (chunk.type) {
+          case 'object':
+            controller.enqueue(chunk.object);
+            break;
 
-          const currentObject = parsePartialJson(
-            accumulatedText,
-          ) as DeepPartial<T>;
+          case 'finish':
+            break;
 
-          if (!isDeepEqualData(latestObject, currentObject)) {
-            latestObject = currentObject;
+          case 'error':
+            controller.error(chunk.error);
+            break;
 
-            controller.enqueue(currentObject);
+          default: {
+            const _exhaustiveCheck: never = chunk;
+            throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
           }
-        } else if (chunk.type === 'error') {
-          throw chunk.error;
         }
       },
     });
   }
 
   get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
-    let accumulatedText = '';
-    let latestObject: DeepPartial<T> | undefined = undefined;
-
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
-        if (typeof chunk === 'string') {
-          accumulatedText += chunk;
-          const currentObject = parsePartialJson(
-            accumulatedText,
-          ) as DeepPartial<T>;
-
-          if (!isDeepEqualData(latestObject, currentObject)) {
-            latestObject = currentObject;
-
-            controller.enqueue({ type: 'object', object: currentObject });
-          }
-        } else {
-          switch (chunk.type) {
-            case 'finish':
-              controller.enqueue({
-                ...chunk,
-                usage: calculateTokenUsage(chunk.usage),
-              });
-              break;
-            default:
-              controller.enqueue(chunk);
-              break;
-          }
-        }
+        controller.enqueue(chunk);
       },
     });
   }

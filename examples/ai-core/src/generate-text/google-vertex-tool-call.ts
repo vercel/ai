@@ -24,7 +24,7 @@ async function main() {
         },
       }),
     },
-    maxAutomaticRoundtrips: 5,
+    maxToolRoundtrips: 5,
   });
 
   console.log(text);

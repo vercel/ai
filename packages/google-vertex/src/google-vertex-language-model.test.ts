@@ -202,6 +202,7 @@ describe('doGenerate', () => {
         topP: 0.9,
       },
       tools: undefined,
+      safetySettings: undefined,
     });
   });
 });
