@@ -19,7 +19,10 @@ import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
-import { openaiFailedResponseHandler } from './openai-error';
+import {
+  openAIErrorDataSchema,
+  openaiFailedResponseHandler,
+} from './openai-error';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -225,12 +228,21 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
+            // handle failed chunk parsing / validation:
             if (!chunk.success) {
+              finishReason = 'error';
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
 
             const value = chunk.value;
+
+            // handle error chunks:
+            if ('error' in value) {
+              finishReason = 'error';
+              controller.enqueue({ type: 'error', error: value.error });
+              return;
+            }
 
             if (value.usage != null) {
               usage = {
@@ -411,57 +423,60 @@ const openAIChatResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiChatChunkSchema = z.object({
-  choices: z.array(
-    z.object({
-      delta: z.object({
-        role: z.enum(['assistant']).optional(),
-        content: z.string().nullable().optional(),
-        tool_calls: z
-          .array(
-            z.object({
-              index: z.number(),
-              id: z.string().optional().nullable(),
-              type: z.literal('function').optional(),
-              function: z.object({
-                name: z.string().optional(),
-                arguments: z.string().optional(),
-              }),
-            }),
-          )
-          .optional(),
-      }),
-      logprobs: z
-        .object({
-          content: z
+const openaiChatChunkSchema = z.union([
+  z.object({
+    choices: z.array(
+      z.object({
+        delta: z.object({
+          role: z.enum(['assistant']).optional(),
+          content: z.string().nullable().optional(),
+          tool_calls: z
             .array(
               z.object({
-                token: z.string(),
-                logprob: z.number(),
-                top_logprobs: z.array(
-                  z.object({
-                    token: z.string(),
-                    logprob: z.number(),
-                  }),
-                ),
+                index: z.number(),
+                id: z.string().optional().nullable(),
+                type: z.literal('function').optional(),
+                function: z.object({
+                  name: z.string().optional(),
+                  arguments: z.string().optional(),
+                }),
               }),
             )
-            .nullable(),
-        })
-        .nullable()
-        .optional(),
-      finish_reason: z.string().nullable().optional(),
-      index: z.number(),
-    }),
-  ),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      completion_tokens: z.number(),
-    })
-    .optional()
-    .nullable(),
-});
+            .optional(),
+        }),
+        logprobs: z
+          .object({
+            content: z
+              .array(
+                z.object({
+                  token: z.string(),
+                  logprob: z.number(),
+                  top_logprobs: z.array(
+                    z.object({
+                      token: z.string(),
+                      logprob: z.number(),
+                    }),
+                  ),
+                }),
+              )
+              .nullable(),
+          })
+          .nullable()
+          .optional(),
+        finish_reason: z.string().nullable().optional(),
+        index: z.number(),
+      }),
+    ),
+    usage: z
+      .object({
+        prompt_tokens: z.number(),
+        completion_tokens: z.number(),
+      })
+      .optional()
+      .nullable(),
+  }),
+  openAIErrorDataSchema,
+]);
 
 function prepareToolsAndToolChoice(
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {

@@ -334,6 +334,68 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should handle error stream parts', async () => {
+    server.responseChunks = [
+      `data: {"error":{"message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our ` +
+        `help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,
+      'data: [DONE]\n\n',
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'error',
+        error: {
+          message:
+            'The server had an error processing your request. Sorry about that! ' +
+            'You can retry your request, or contact us through our help center at ' +
+            'help.openai.com if you keep seeing this error.',
+          type: 'server_error',
+          code: null,
+          param: null,
+        },
+      },
+      {
+        finishReason: 'error',
+        logprobs: undefined,
+        type: 'finish',
+        usage: {
+          completionTokens: NaN,
+          promptTokens: NaN,
+        },
+      },
+    ]);
+  });
+
+  it('should handle unparsable stream parts', async () => {
+    server.responseChunks = [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const elements = await convertStreamToArray(stream);
+
+    expect(elements.length).toBe(2);
+    expect(elements[0].type).toBe('error');
+    expect(elements[1]).toStrictEqual({
+      finishReason: 'error',
+      logprobs: undefined,
+      type: 'finish',
+      usage: {
+        completionTokens: NaN,
+        promptTokens: NaN,
+      },
+    });
+  });
+
   it('should expose the raw response headers', async () => {
     prepareStreamResponse({ content: [] });
 
