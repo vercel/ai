@@ -1,11 +1,12 @@
 import { download } from './download';
 import { DownloadError } from '@ai-sdk/provider';
 
-it('should download data successfully', async () => {
+it('should download data successfully and match expected bytes', async () => {
+  const expectedBytes = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
   const mockFetch = (() =>
     Promise.resolve({
       ok: true,
-      arrayBuffer: async () => new ArrayBuffer(8),
+      arrayBuffer: async () => expectedBytes.buffer,
       headers: {
         get: () => 'application/octet-stream',
       },
@@ -16,7 +17,7 @@ it('should download data successfully', async () => {
     fetchImplementation: mockFetch,
   });
 
-  expect(result.data.byteLength).toBe(8);
+  expect(result.data).toEqual(expectedBytes);
   expect(result.mimeType).toBe('application/octet-stream');
 });
 

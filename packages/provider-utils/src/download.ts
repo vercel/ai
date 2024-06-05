@@ -7,7 +7,7 @@ export async function download({
   url: URL;
   fetchImplementation?: typeof fetch;
 }): Promise<{
-  data: ArrayBuffer;
+  data: Uint8Array;
   mimeType: string | undefined;
 }> {
   const urlText = url.toString();
@@ -23,7 +23,7 @@ export async function download({
     }
 
     return {
-      data: await response.arrayBuffer(),
+      data: new Uint8Array(await response.arrayBuffer()),
       mimeType: response.headers.get('content-type') ?? undefined,
     };
   } catch (error) {

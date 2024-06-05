@@ -48,7 +48,7 @@ export async function convertToAnthropicMessagesPrompt(
                   source: {
                     type: 'base64',
                     media_type: mimeType ?? 'image/jpeg',
-                    data: convertUint8ArrayToBase64(new Uint8Array(data)),
+                    data: convertUint8ArrayToBase64(data),
                   },
                 });
               } else {
