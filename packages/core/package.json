@@ -32,6 +32,7 @@
     "test:ui:react": "vitest --config vitest.ui.react.config.js --run",
     "test:ui:solid": "vitest --config vitest.ui.solid.config.js --run",
     "test:ui:vue": "vitest --config vitest.ui.vue.config.js --run",
+    "test:e2e": "vitest --config vitest.ui.playwright.config.js --run",
     "test:edge:watch": "vitest --config vitest.edge.config.js",
     "test:node:watch": "vitest --config vitest.node.config.js",
     "test:ui:react:watch": "vitest --config vitest.ui.react.config.js",
