@@ -183,10 +183,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const args = this.getArgs(options);
 
-    const url = `${this.config.baseURL}/chat/completions`;
-
     const { responseHeaders, value: response } = await postJsonToApi({
-      url,
+      url: `${this.config.baseURL}/chat/completions`,
       headers: this.config.headers(),
       body: {
         ...args,
