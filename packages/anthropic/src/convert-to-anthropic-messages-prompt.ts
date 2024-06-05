@@ -42,29 +42,29 @@ export async function convertToAnthropicMessagesPrompt({
               break;
             }
             case 'image': {
+              let data: Uint8Array;
+              let mimeType: string | undefined;
+
               if (part.image instanceof URL) {
-                const { data, mimeType } = await downloadImplementation({
+                const downloadResult = await downloadImplementation({
                   url: part.image,
                 });
 
-                anthropicContent.push({
-                  type: 'image',
-                  source: {
-                    type: 'base64',
-                    media_type: mimeType ?? 'image/jpeg',
-                    data: convertUint8ArrayToBase64(data),
-                  },
-                });
+                data = downloadResult.data;
+                mimeType = downloadResult.mimeType;
               } else {
-                anthropicContent.push({
-                  type: 'image',
-                  source: {
-                    type: 'base64',
-                    media_type: part.mimeType ?? 'image/jpeg',
-                    data: convertUint8ArrayToBase64(part.image),
-                  },
-                });
+                data = part.image;
+                mimeType = part.mimeType;
               }
+
+              anthropicContent.push({
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: mimeType ?? 'image/jpeg',
+                  data: convertUint8ArrayToBase64(data),
+                },
+              });
             }
           }
         }
