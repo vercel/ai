@@ -11,7 +11,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  isParseableJson,
+  isParsableJson,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -338,7 +338,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 if (
                   toolCall.function?.name == null ||
                   toolCall.function?.arguments == null ||
-                  !isParseableJson(toolCall.function.arguments)
+                  !isParsableJson(toolCall.function.arguments)
                 ) {
                   continue;
                 }
