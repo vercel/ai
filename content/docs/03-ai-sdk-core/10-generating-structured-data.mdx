@@ -21,7 +21,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model,
+  model: yourModel,
   schema: z.object({
     recipe: z.object({
       name: z.string(),

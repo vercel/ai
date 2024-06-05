@@ -145,13 +145,21 @@ export function useChat({
             messages: sendExtraMessageFields
               ? chatRequest.messages
               : chatRequest.messages.map(
-                  ({ role, content, name, function_call }) => ({
+                  ({
+                    role,
+                    content,
+                    name,
+                    data,
+                    annotations,
+                    function_call,
+                  }) => ({
                     role,
                     content,
                     ...(name !== undefined && { name }),
-                    ...(function_call !== undefined && {
-                      function_call,
-                    }),
+                    ...(data !== undefined && { data }),
+                    ...(annotations !== undefined && { annotations }),
+                    // outdated function/tool call handling (TODO deprecate):
+                    ...(function_call !== undefined && { function_call }),
                   }),
                 ),
             body: {
