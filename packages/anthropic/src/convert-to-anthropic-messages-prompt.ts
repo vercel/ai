@@ -37,6 +37,8 @@ export function convertToAnthropicMessagesPrompt(
               }
               case 'image': {
                 if (part.image instanceof URL) {
+                  // TODO download
+
                   throw new UnsupportedFunctionalityError({
                     functionality: 'URL image parts',
                   });
