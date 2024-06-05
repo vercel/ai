@@ -9,9 +9,13 @@ import {
   AnthropicUserMessage,
 } from './anthropic-messages-prompt';
 
-export async function convertToAnthropicMessagesPrompt(
-  prompt: LanguageModelV1Prompt,
-): Promise<AnthropicMessagesPrompt> {
+export async function convertToAnthropicMessagesPrompt({
+  prompt,
+  downloadImplementation = download,
+}: {
+  prompt: LanguageModelV1Prompt;
+  downloadImplementation?: typeof download;
+}): Promise<AnthropicMessagesPrompt> {
   let system: string | undefined = undefined;
   const messages: AnthropicMessage[] = [];
 
@@ -39,7 +43,7 @@ export async function convertToAnthropicMessagesPrompt(
             }
             case 'image': {
               if (part.image instanceof URL) {
-                const { data, mimeType } = await download({
+                const { data, mimeType } = await downloadImplementation({
                   url: part.image,
                 });
 

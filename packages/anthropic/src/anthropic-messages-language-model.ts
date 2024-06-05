@@ -85,7 +85,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const messagesPrompt = await convertToAnthropicMessagesPrompt(prompt);
+    const messagesPrompt = await convertToAnthropicMessagesPrompt({ prompt });
 
     const baseArgs = {
       // model id:
