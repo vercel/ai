@@ -260,6 +260,11 @@ export class StreamObjectResult<T> {
   readonly originalStream: ReadableStream<ObjectStreamPart<T>>;
 
   /**
+The generated object (typed according to the schema). Resolved when the response is finished.
+   */
+  readonly object: Promise<T>;
+
+  /**
 Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: CallWarning[] | undefined;
@@ -297,6 +302,14 @@ Response headers.
     let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
     this.usage = new Promise<TokenUsage>(resolve => {
       resolveUsage = resolve;
+    });
+
+    // initialize object promise
+    let resolveObject: (value: T | PromiseLike<T>) => void;
+    let rejectObject: (reason?: any) => void;
+    this.object = new Promise<T>((resolve, reject) => {
+      resolveObject = resolve;
+      rejectObject = reject;
     });
 
     // store information for onFinish callback:
