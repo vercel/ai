@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.10
+
+### Patch Changes
+
+- 102ca22f: fix (@ai-sdk/provider): fix TypeValidationError.isTypeValidationError
+
 ## 0.0.9
 
 ### Patch Changes
