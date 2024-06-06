@@ -454,12 +454,12 @@ const openaiChatChunkSchema = z.union([
       z.object({
         delta: z.object({
           role: z.enum(['assistant']).optional(),
-          content: z.string().nullable().optional(),
+          content: z.string().nullish(),
           tool_calls: z
             .array(
               z.object({
                 index: z.number(),
-                id: z.string().optional().nullable(),
+                id: z.string().nullish(),
                 type: z.literal('function').optional(),
                 function: z.object({
                   name: z.string().optional(),
@@ -467,7 +467,7 @@ const openaiChatChunkSchema = z.union([
                 }),
               }),
             )
-            .optional(),
+            .nullish(),
         }),
         logprobs: z
           .object({
@@ -486,8 +486,7 @@ const openaiChatChunkSchema = z.union([
               )
               .nullable(),
           })
-          .nullable()
-          .optional(),
+          .nullish(),
         finish_reason: z.string().nullable().optional(),
         index: z.number(),
       }),
@@ -497,8 +496,7 @@ const openaiChatChunkSchema = z.union([
         prompt_tokens: z.number(),
         completion_tokens: z.number(),
       })
-      .optional()
-      .nullable(),
+      .nullish(),
   }),
   openAIErrorDataSchema,
 ]);
