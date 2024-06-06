@@ -95,6 +95,41 @@ Please note that most providers do not support all modes.
 Default and recommended: 'auto' (best mode for the model).
      */
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
+
+    /**
+Callback that is called when the LLM response and the final object validation are finished.
+     */
+    onFinish?: (event: {
+      /**
+The token usage of the generated response.
+*/
+      usage: TokenUsage;
+
+      /**
+The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.
+   */
+      object: T | undefined;
+
+      /**
+Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
+   */
+      error: unknown | undefined;
+
+      /**
+Optional raw response data.
+   */
+      rawResponse?: {
+        /**
+Response headers.
+     */
+        headers?: Record<string, string>;
+      };
+
+      /**
+Warnings from the model provider (e.g. unsupported settings).
+       */
+      warnings?: CallWarning[];
+    }) => void;
   }): Promise<StreamObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const jsonSchema = convertZodToJSONSchema(schema);
