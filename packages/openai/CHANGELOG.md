@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.24
+
+### Patch Changes
+
+- 0e78960c: fix (@ai-sdk/openai): make function name and arguments nullish
+
 ## 0.0.23
 
 ### Patch Changes
