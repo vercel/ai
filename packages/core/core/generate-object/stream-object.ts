@@ -20,6 +20,7 @@ import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { safeValidateTypes } from '@ai-sdk/provider-utils';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -227,6 +228,7 @@ Default and recommended: 'auto' (best mode for the model).
     stream: result.stream.pipeThrough(new TransformStream(transformer)),
     warnings: result.warnings,
     rawResponse: result.rawResponse,
+    schema,
   });
 }
 
@@ -257,17 +259,17 @@ export type ObjectStreamPart<T> =
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
 export class StreamObjectResult<T> {
-  readonly originalStream: ReadableStream<ObjectStreamPart<T>>;
-
-  /**
-The generated object (typed according to the schema). Resolved when the response is finished.
-   */
-  readonly object: Promise<T>;
+  private readonly originalStream: ReadableStream<ObjectStreamPart<T>>;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: CallWarning[] | undefined;
+
+  /**
+The generated object (typed according to the schema). Resolved when the response is finished.
+   */
+  readonly object: Promise<T>;
 
   /**
 The token usage of the generated response. Resolved when the response is finished.
@@ -288,21 +290,17 @@ Response headers.
     stream,
     warnings,
     rawResponse,
+    schema,
   }: {
     stream: ReadableStream<string | ObjectStreamInputPart>;
     warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
     };
+    schema: z.Schema<T>;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
-
-    // initialize usage promise
-    let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
-    this.usage = new Promise<TokenUsage>(resolve => {
-      resolveUsage = resolve;
-    });
 
     // initialize object promise
     let resolveObject: (value: T | PromiseLike<T>) => void;
@@ -310,6 +308,12 @@ Response headers.
     this.object = new Promise<T>((resolve, reject) => {
       resolveObject = resolve;
       rejectObject = reject;
+    });
+
+    // initialize usage promise
+    let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
+    this.usage = new Promise<TokenUsage>(resolve => {
+      resolveUsage = resolve;
     });
 
     // store information for onFinish callback:
@@ -344,13 +348,22 @@ Response headers.
               // store usage for promises and onFinish callback:
               usage = calculateTokenUsage(chunk.usage);
 
-              controller.enqueue({
-                ...chunk,
-                usage,
-              });
+              controller.enqueue({ ...chunk, usage });
 
               // resolve promises that can be resolved now:
               resolveUsage(usage);
+
+              // resolve the object promise with the latest object:
+              const validationResult = safeValidateTypes({
+                value: latestObject,
+                schema,
+              });
+
+              if (validationResult.success) {
+                resolveObject(validationResult.value);
+              } else {
+                rejectObject(validationResult.error);
+              }
 
               break;
             }
