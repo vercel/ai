@@ -67,6 +67,7 @@ export async function streamObject<T>({
   messages,
   maxRetries,
   abortSignal,
+  onFinish,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -129,7 +130,7 @@ Response headers.
 Warnings from the model provider (e.g. unsupported settings).
        */
       warnings?: CallWarning[];
-    }) => void;
+    }) => Promise<void> | void;
   }): Promise<StreamObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const jsonSchema = convertZodToJSONSchema(schema);
@@ -264,6 +265,7 @@ Warnings from the model provider (e.g. unsupported settings).
     warnings: result.warnings,
     rawResponse: result.rawResponse,
     schema,
+    onFinish,
   });
 }
 
@@ -326,6 +328,7 @@ Response headers.
     warnings,
     rawResponse,
     schema,
+    onFinish,
   }: {
     stream: ReadableStream<string | ObjectStreamInputPart>;
     warnings: CallWarning[] | undefined;
@@ -333,6 +336,7 @@ Response headers.
       headers?: Record<string, string>;
     };
     schema: z.Schema<T>;
+    onFinish: Parameters<typeof streamObject<T>>[0]['onFinish'];
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -353,6 +357,8 @@ Response headers.
 
     // store information for onFinish callback:
     let usage: TokenUsage | undefined;
+    let object: T | undefined;
+    let error: unknown | undefined;
 
     // pipe chunks through a transformation stream that extracts metadata:
     let accumulatedText = '';
@@ -395,9 +401,11 @@ Response headers.
               });
 
               if (validationResult.success) {
-                resolveObject(validationResult.value);
+                object = validationResult.value;
+                resolveObject(object);
               } else {
-                rejectObject(validationResult.error);
+                error = validationResult.error;
+                rejectObject(error);
               }
 
               break;
@@ -407,6 +415,26 @@ Response headers.
               controller.enqueue(chunk);
               break;
             }
+          }
+        },
+
+        // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
+        async flush(controller) {
+          try {
+            // call onFinish callback:
+            await onFinish?.({
+              usage: usage ?? {
+                promptTokens: NaN,
+                completionTokens: NaN,
+                totalTokens: NaN,
+              },
+              object,
+              error,
+              rawResponse,
+              warnings,
+            });
+          } catch (error) {
+            controller.error(error);
           }
         },
       }),
