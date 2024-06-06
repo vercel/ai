@@ -231,7 +231,7 @@ const { messages, input, handleSubmit, data } = useChat();
 
 <template>
   <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-    <pre>{JSON.stringify(data, null, 2)}</pre>
+    <pre>{{ JSON.stringify(data, null, 2) }}</pre>
     <div v-for="m in messages" key="m.id" class="whitespace-pre-wrap">
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
       {{ m.content }}
