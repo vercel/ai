@@ -67,6 +67,7 @@ export async function streamObject<T>({
   messages,
   maxRetries,
   abortSignal,
+  onFinish,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -95,6 +96,41 @@ Please note that most providers do not support all modes.
 Default and recommended: 'auto' (best mode for the model).
      */
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
+
+    /**
+Callback that is called when the LLM response and the final object validation are finished.
+     */
+    onFinish?: (event: {
+      /**
+The token usage of the generated response.
+*/
+      usage: TokenUsage;
+
+      /**
+The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.
+   */
+      object: T | undefined;
+
+      /**
+Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
+   */
+      error: unknown | undefined;
+
+      /**
+Optional raw response data.
+   */
+      rawResponse?: {
+        /**
+Response headers.
+     */
+        headers?: Record<string, string>;
+      };
+
+      /**
+Warnings from the model provider (e.g. unsupported settings).
+       */
+      warnings?: CallWarning[];
+    }) => Promise<void> | void;
   }): Promise<StreamObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const jsonSchema = convertZodToJSONSchema(schema);
@@ -229,6 +265,7 @@ Default and recommended: 'auto' (best mode for the model).
     warnings: result.warnings,
     rawResponse: result.rawResponse,
     schema,
+    onFinish,
   });
 }
 
@@ -291,6 +328,7 @@ Response headers.
     warnings,
     rawResponse,
     schema,
+    onFinish,
   }: {
     stream: ReadableStream<string | ObjectStreamInputPart>;
     warnings: CallWarning[] | undefined;
@@ -298,6 +336,7 @@ Response headers.
       headers?: Record<string, string>;
     };
     schema: z.Schema<T>;
+    onFinish: Parameters<typeof streamObject<T>>[0]['onFinish'];
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -318,6 +357,8 @@ Response headers.
 
     // store information for onFinish callback:
     let usage: TokenUsage | undefined;
+    let object: T | undefined;
+    let error: unknown | undefined;
 
     // pipe chunks through a transformation stream that extracts metadata:
     let accumulatedText = '';
@@ -360,9 +401,11 @@ Response headers.
               });
 
               if (validationResult.success) {
-                resolveObject(validationResult.value);
+                object = validationResult.value;
+                resolveObject(object);
               } else {
-                rejectObject(validationResult.error);
+                error = validationResult.error;
+                rejectObject(error);
               }
 
               break;
@@ -372,6 +415,26 @@ Response headers.
               controller.enqueue(chunk);
               break;
             }
+          }
+        },
+
+        // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
+        async flush(controller) {
+          try {
+            // call onFinish callback:
+            await onFinish?.({
+              usage: usage ?? {
+                promptTokens: NaN,
+                completionTokens: NaN,
+                totalTokens: NaN,
+              },
+              object,
+              error,
+              rawResponse,
+              warnings,
+            });
+          } catch (error) {
+            controller.error(error);
           }
         },
       }),
