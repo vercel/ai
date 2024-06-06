@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.30
+
+### Patch Changes
+
+- fcf4323b: fix (core): filter out empty assistant text messages
+
 ## 3.1.29
 
 ### Patch Changes
