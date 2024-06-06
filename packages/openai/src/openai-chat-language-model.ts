@@ -462,8 +462,8 @@ const openaiChatChunkSchema = z.union([
                 id: z.string().nullish(),
                 type: z.literal('function').optional(),
                 function: z.object({
-                  name: z.string().optional(),
-                  arguments: z.string().optional(),
+                  name: z.string().nullish(),
+                  arguments: z.string().nullish(),
                 }),
               }),
             )
