@@ -42,4 +42,8 @@ result.usage.then(recordTokenUsage);
 
 // use with async/await:
 recordTokenUsage(await result.usage);
+
+// note: the stream needs to be consumed because of backpressure
+for await (const partialObject of result.partialObjectStream) {
+}
 ```

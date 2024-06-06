@@ -343,6 +343,12 @@ for await (const partialObject of partialObjectStream) {
       ],
     },
     {
+      name: 'object',
+      type: 'Promise<T>',
+      description:
+        'The generated object (typed according to the schema). Resolved when the response is finished.',
+    },
+    {
       name: 'partialObjectStream',
       type: 'AsyncIterableStream<DeepPartial<T>>',
       description:
@@ -449,6 +455,10 @@ for await (const partialObject of partialObjectStream) {
     {
       title: 'Recording Token Usage',
       link: '/examples/node/streaming-structured-data/token-usage',
+    },
+    {
+      title: 'Recording Final Object',
+      link: '/examples/node/streaming-structured-data/object',
     },
   ]}
 />

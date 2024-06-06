@@ -35,7 +35,7 @@ async function main() {
   // use with async/await:
   recordTokenUsage(await result.usage);
 
-  // consume stream:
+  // note: the stream needs to be consumed because of backpressure
   for await (const partialObject of result.partialObjectStream) {
   }
 }

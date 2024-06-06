@@ -29,7 +29,7 @@ async function main() {
       console.error(error);
     });
 
-  // consume stream:
+  // note: the stream needs to be consumed because of backpressure
   for await (const partialObject of result.partialObjectStream) {
   }
 }
