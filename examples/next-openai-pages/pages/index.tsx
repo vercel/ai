@@ -21,11 +21,15 @@ const examples = [
     link: '/chat/generate-chat',
   },
   {
-    title: 'Generate chat completion (edge)',
+    title: 'Generate chat completion',
     link: '/chat/stream-chat',
   },
   {
-    title: 'Generate chat completion (edge)',
+    title: 'Generate chat completion (API route)',
+    link: '/chat/stream-chat-api-route',
+  },
+  {
+    title: 'Generate chat completion (edge runtime)',
     link: '/chat/stream-chat-edge',
   },
   {
@@ -59,7 +63,7 @@ export default function Home() {
     <main className={`flex flex-col gap-2 p-2 ${inter.className}`}>
       {examples.map((example, index) => (
         <Link key={example.link} className="flex flex-row" href={example.link}>
-          <div className="w-6 text-zinc-400">{index + 1}.</div>
+          <div className="w-8 text-zinc-400">{index + 1}.</div>
           <div className="hover:underline">{example.title}</div>
         </Link>
       ))}
