@@ -12,7 +12,7 @@ The object is fully typed. When the type validation according to the schema fail
 
 ```ts file='index.ts' highlight={"17-26"}
 import { openai } from '@ai-sdk/openai';
-import { streamObject, TokenUsage } from 'ai';
+import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const result = await streamObject({
