@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.23
+
+### Patch Changes
+
+- a68fe74a: fix (@ai-sdk/openai): allow null tool_calls value.
+
 ## 0.0.22
 
 ### Patch Changes
