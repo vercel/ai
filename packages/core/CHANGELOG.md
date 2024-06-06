@@ -1,5 +1,14 @@
 # ai
 
+## 3.1.28
+
+### Patch Changes
+
+- 102ca22f: feat (core): add object promise to streamObject result
+- Updated dependencies [102ca22f]
+  - @ai-sdk/provider@0.0.10
+  - @ai-sdk/provider-utils@0.0.13
+
 ## 3.1.27
 
 ### Patch Changes
