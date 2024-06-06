@@ -1,6 +1,6 @@
 ---
 title: Render Interface during Tool Call
-description: Learn to render a React component during a tool call using the Vercel AI SDK in your Next.js application
+description: Learn to render a React component during a tool call using the Vercel AI SDK in your Next.js Pages Router application
 ---
 
 # Render Interface During Tool Call
@@ -38,7 +38,7 @@ An interesting consequence of language models that can call [tools](/docs/ai-sdk
 
 ## Client
 
-Let's build an assistant that gets the weather for any city by calling the `getWeatherInformation` tool. Instead of returning text during the tool call, we will render a React component that displays the weather information on the client.
+Let's build an assistant that gets the weather for any city by calling the `getWeatherInformation` tool. Instead of returning text during the tool call, you will render a React component that displays the weather information on the client.
 
 ```tsx filename='pages/index.tsx'
 import { ToolInvocation } from 'ai';
