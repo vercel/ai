@@ -415,7 +415,7 @@ const openAIChatResponseSchema = z.object({
               }),
             }),
           )
-          .optional(),
+          .optional().nullable(),
       }),
       index: z.number(),
       logprobs: z
@@ -462,12 +462,12 @@ const openaiChatChunkSchema = z.union([
                 id: z.string().optional().nullable(),
                 type: z.literal('function').optional(),
                 function: z.object({
-                  name: z.string().optional(),
-                  arguments: z.string().optional(),
+                  name: z.string().optional().nullable(),
+                  arguments: z.string().optional().nullable(),
                 }),
               }),
             )
-            .optional(),
+            .optional().nullable(),
         }),
         logprobs: z
           .object({
