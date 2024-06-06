@@ -1,8 +1,8 @@
-import { Message, useAssistant } from "ai/react";
+import { Message, useAssistant } from 'ai/react';
 
 export default function Page() {
   const { status, messages, input, submitMessage, handleInputChange } =
-    useAssistant({ api: "/api/assistant" });
+    useAssistant({ api: '/api/assistant' });
 
   return (
     <div className="flex flex-col gap-2">
@@ -19,7 +19,7 @@ export default function Page() {
 
       <form onSubmit={submitMessage} className="fixed bottom-0 p-2 w-full">
         <input
-          disabled={status !== "awaiting_message"}
+          disabled={status !== 'awaiting_message'}
           value={input}
           onChange={handleInputChange}
           className="bg-zinc-100 w-full p-2"

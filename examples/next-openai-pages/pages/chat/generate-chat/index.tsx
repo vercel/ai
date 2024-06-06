@@ -1,8 +1,8 @@
-import { CoreMessage } from "ai";
-import { useState } from "react";
+import { CoreMessage } from 'ai';
+import { useState } from 'react';
 
 export default function Page() {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [messages, setMessages] = useState<CoreMessage[]>([]);
 
   return (
@@ -12,10 +12,10 @@ export default function Page() {
           <div key={`${message.role}-${index}`} className="flex flex-row gap-2">
             <div className="w-24 text-zinc-500">{`${message.role}: `}</div>
             <div className="w-full">
-              {typeof message.content === "string"
+              {typeof message.content === 'string'
                 ? message.content
                 : message.content
-                    .filter((part) => part.type === "text")
+                    .filter(part => part.type === 'text')
                     .map((part, partIndex) => (
                       // @ts-ignore
                       <div key={partIndex}>{part.text}</div>
@@ -28,29 +28,29 @@ export default function Page() {
       <div className="fixed bottom-0 p-2 w-full">
         <input
           value={input}
-          onChange={(event) => {
+          onChange={event => {
             setInput(event.target.value);
           }}
           className="bg-zinc-100 w-full p-2"
-          onKeyDown={async (event) => {
-            if (event.key === "Enter") {
-              setInput("");
+          onKeyDown={async event => {
+            if (event.key === 'Enter') {
+              setInput('');
 
-              setMessages((currentMessages) => [
+              setMessages(currentMessages => [
                 ...currentMessages,
-                { role: "user", content: input },
+                { role: 'user', content: input },
               ]);
 
-              const response = await fetch("/api/generate-chat", {
-                method: "POST",
+              const response = await fetch('/api/generate-chat', {
+                method: 'POST',
                 body: JSON.stringify({
-                  messages: [...messages, { role: "user", content: input }],
+                  messages: [...messages, { role: 'user', content: input }],
                 }),
               });
 
               const { messages: newMessages } = await response.json();
 
-              setMessages((currentMessages) => [
+              setMessages(currentMessages => [
                 ...currentMessages,
                 ...newMessages,
               ]);

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useCompletion } from "ai/react";
+import { useCompletion } from 'ai/react';
 
 export default function Page() {
   const { completion, complete } = useCompletion({
-    api: "/api/stream-text",
+    api: '/api/stream-text',
   });
 
   return (
@@ -12,7 +12,7 @@ export default function Page() {
       <div
         className="p-2 bg-zinc-100 cursor-pointer"
         onClick={async () => {
-          await complete("Why is the sky blue?");
+          await complete('Why is the sky blue?');
         }}
       >
         Generate

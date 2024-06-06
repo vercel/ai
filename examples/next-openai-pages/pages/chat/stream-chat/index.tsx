@@ -1,14 +1,14 @@
-import { useChat } from "ai/react";
+import { useChat } from 'ai/react';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange } = useChat({
-    api: "/api/stream-chat",
+    api: '/api/stream-chat',
   });
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col p-2 gap-2">
-        {messages.map((message) => (
+        {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
             <div className="w-24 text-zinc-500">{`${message.role}: `}</div>
             <div className="w-full">{message.content}</div>

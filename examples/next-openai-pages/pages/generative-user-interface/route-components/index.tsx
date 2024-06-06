@@ -1,18 +1,18 @@
-import { ToolInvocation } from "ai";
-import { useChat } from "ai/react";
+import { ToolInvocation } from 'ai';
+import { useChat } from 'ai/react';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
-      api: "/api/generative-ui-route",
+      api: '/api/generative-ui-route',
       maxToolRoundtrips: 5,
       async onToolCall({ toolCall }) {
-        if (toolCall.toolName === "getLocation") {
+        if (toolCall.toolName === 'getLocation') {
           const cities = [
-            "New York",
-            "Los Angeles",
-            "Chicago",
-            "San Francisco",
+            'New York',
+            'Los Angeles',
+            'Chicago',
+            'San Francisco',
           ];
 
           return cities[Math.floor(Math.random() * cities.length)];
@@ -24,12 +24,12 @@ export default function Page() {
     const toolCallId = tool.toolCallId;
 
     // render confirmation tool (client-side tool with user interaction)
-    if (tool.toolName === "askForConfirmation") {
+    if (tool.toolName === 'askForConfirmation') {
       return (
         <div key={toolCallId} className="flex flex-col gap-2 text-gray-500">
           {tool.args.message}
           <div className="flex gap-2">
-            {"result" in tool ? (
+            {'result' in tool ? (
               <div>{tool.result}</div>
             ) : (
               <>
@@ -38,7 +38,7 @@ export default function Page() {
                   onClick={() =>
                     addToolResult({
                       toolCallId,
-                      result: "Yes, confirmed.",
+                      result: 'Yes, confirmed.',
                     })
                   }
                 >
@@ -49,7 +49,7 @@ export default function Page() {
                   onClick={() =>
                     addToolResult({
                       toolCallId,
-                      result: "No, denied",
+                      result: 'No, denied',
                     })
                   }
                 >
@@ -63,15 +63,15 @@ export default function Page() {
     }
 
     // other tools:
-    return "result" in tool ? (
-      tool.toolName === "getWeatherInformation" ? (
+    return 'result' in tool ? (
+      tool.toolName === 'getWeatherInformation' ? (
         <div
           key={toolCallId}
           className="flex flex-col gap-2 p-4 bg-blue-400 rounded-lg"
         >
           <div className="flex flex-row items-center justify-between">
             <div className="text-4xl font-medium text-blue-50">
-              {tool.result.value}°{tool.result.unit === "celsius" ? "C" : "F"}
+              {tool.result.value}°{tool.result.unit === 'celsius' ? 'C' : 'F'}
             </div>
 
             <div className="flex-shrink-0 rounded-full h-9 w-9 bg-amber-300" />
@@ -85,7 +85,7 @@ export default function Page() {
             ))}
           </div>
         </div>
-      ) : tool.toolName === "getLocation" ? (
+      ) : tool.toolName === 'getLocation' ? (
         <div
           key={toolCallId}
           className="p-4 text-gray-500 bg-gray-100 rounded-lg"
@@ -108,14 +108,14 @@ export default function Page() {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col p-2 gap-2">
-        {messages.map((message) => (
+        {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
             <div className="w-24 text-zinc-500">{`${
-              message.toolInvocations ? "tool" : message.role
+              message.toolInvocations ? 'tool' : message.role
             }: `}</div>
             <div className="w-full">
               {message.toolInvocations
-                ? message.toolInvocations.map((tool) => renderToolResult(tool))
+                ? message.toolInvocations.map(tool => renderToolResult(tool))
                 : message.content}
             </div>
           </div>

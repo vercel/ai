@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState } from 'react';
 
 export default function Page() {
-  const [generation, setGeneration] = useState("");
+  const [generation, setGeneration] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   return (
@@ -11,13 +11,13 @@ export default function Page() {
         onClick={async () => {
           setIsLoading(true);
 
-          await fetch("/api/generate-text", {
-            method: "POST",
+          await fetch('/api/generate-text', {
+            method: 'POST',
             body: JSON.stringify({
-              prompt: "Why is the sky blue?",
+              prompt: 'Why is the sky blue?',
             }),
-          }).then((response) => {
-            response.json().then((json) => {
+          }).then(response => {
+            response.json().then(json => {
               setGeneration(json.text);
               setIsLoading(false);
             });
@@ -27,7 +27,7 @@ export default function Page() {
         Generate
       </div>
 
-      {isLoading ? "Loading..." : generation}
+      {isLoading ? 'Loading...' : generation}
     </div>
   );
 }

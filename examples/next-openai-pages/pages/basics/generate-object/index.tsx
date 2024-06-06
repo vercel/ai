@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState } from 'react';
 
 export default function Page() {
-  const [generation, setGeneration] = useState("");
+  const [generation, setGeneration] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   return (
@@ -11,13 +11,13 @@ export default function Page() {
         onClick={async () => {
           setIsLoading(true);
 
-          await fetch("/api/generate-object", {
-            method: "POST",
+          await fetch('/api/generate-object', {
+            method: 'POST',
             body: JSON.stringify({
-              prompt: "Messages during finals week.",
+              prompt: 'Messages during finals week.',
             }),
-          }).then((response) => {
-            response.json().then((json) => {
+          }).then(response => {
+            response.json().then(json => {
               console.log(json);
               setGeneration(JSON.stringify(json.object, null, 2));
               setIsLoading(false);
@@ -29,7 +29,7 @@ export default function Page() {
       </div>
 
       {isLoading ? (
-        "Loading..."
+        'Loading...'
       ) : (
         <pre className="text-sm w-full whitespace-pre-wrap">{generation}</pre>
       )}
