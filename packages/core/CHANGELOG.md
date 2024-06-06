@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.29
+
+### Patch Changes
+
+- 28427d3e: feat (core): add streamObject onFinish callback
+
 ## 3.1.28
 
 ### Patch Changes
