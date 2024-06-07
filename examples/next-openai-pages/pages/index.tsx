@@ -1,26 +1,72 @@
-'use client';
+import { Inter } from 'next/font/google';
+import Link from 'next/link';
 
-import { useChat } from 'ai/react';
+const inter = Inter({ subsets: ['latin'] });
 
-export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+const examples = [
+  {
+    title: 'Generate object',
+    link: '/basics/generate-object',
+  },
+  {
+    title: 'Generate text',
+    link: '/basics/generate-text',
+  },
+  {
+    title: 'Stream text',
+    link: '/basics/stream-text',
+  },
+  {
+    title: 'Generate chat completion',
+    link: '/chat/generate-chat',
+  },
+  {
+    title: 'Generate chat completion',
+    link: '/chat/stream-chat',
+  },
+  {
+    title: 'Generate chat completion (API route)',
+    link: '/chat/stream-chat-api-route',
+  },
+  {
+    title: 'Generate chat completion (edge runtime)',
+    link: '/chat/stream-chat-edge',
+  },
+  {
+    title: 'Stream chat completion',
+    link: '/chat/stream-chat',
+  },
+  {
+    title: 'Call tools',
+    link: '/tools/call-tool',
+  },
+  {
+    title: 'Call tools in parallel',
+    link: '/tools/call-tools-in-parallel',
+  },
+  {
+    title: 'Route components using language model',
+    link: '/generative-user-interface/route-components',
+  },
+  {
+    title: 'Stream OpenAI Assistant API response',
+    link: '/assistants/stream-assistant-response',
+  },
+  {
+    title: 'Stream OpenAI Assistant API response with tool calls',
+    link: '/assistants/stream-assistant-response-with-tools',
+  },
+];
+
+export default function Home() {
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
-        </div>
+    <main className={`flex flex-col gap-2 p-2 ${inter.className}`}>
+      {examples.map((example, index) => (
+        <Link key={example.link} className="flex flex-row" href={example.link}>
+          <div className="w-8 text-zinc-400">{index + 1}.</div>
+          <div className="hover:underline">{example.title}</div>
+        </Link>
       ))}
-
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-      </form>
-    </div>
+    </main>
   );
 }
