@@ -20,6 +20,7 @@ import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { safeValidateTypes } from '@ai-sdk/provider-utils';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -66,6 +67,7 @@ export async function streamObject<T>({
   messages,
   maxRetries,
   abortSignal,
+  onFinish,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -94,6 +96,41 @@ Please note that most providers do not support all modes.
 Default and recommended: 'auto' (best mode for the model).
      */
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
+
+    /**
+Callback that is called when the LLM response and the final object validation are finished.
+     */
+    onFinish?: (event: {
+      /**
+The token usage of the generated response.
+*/
+      usage: TokenUsage;
+
+      /**
+The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.
+   */
+      object: T | undefined;
+
+      /**
+Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
+   */
+      error: unknown | undefined;
+
+      /**
+Optional raw response data.
+   */
+      rawResponse?: {
+        /**
+Response headers.
+     */
+        headers?: Record<string, string>;
+      };
+
+      /**
+Warnings from the model provider (e.g. unsupported settings).
+       */
+      warnings?: CallWarning[];
+    }) => Promise<void> | void;
   }): Promise<StreamObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const jsonSchema = convertZodToJSONSchema(schema);
@@ -227,6 +264,8 @@ Default and recommended: 'auto' (best mode for the model).
     stream: result.stream.pipeThrough(new TransformStream(transformer)),
     warnings: result.warnings,
     rawResponse: result.rawResponse,
+    schema,
+    onFinish,
   });
 }
 
@@ -257,12 +296,17 @@ export type ObjectStreamPart<T> =
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
 export class StreamObjectResult<T> {
-  readonly originalStream: ReadableStream<ObjectStreamPart<T>>;
+  private readonly originalStream: ReadableStream<ObjectStreamPart<T>>;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: CallWarning[] | undefined;
+
+  /**
+The generated object (typed according to the schema). Resolved when the response is finished.
+   */
+  readonly object: Promise<T>;
 
   /**
 The token usage of the generated response. Resolved when the response is finished.
@@ -283,15 +327,27 @@ Response headers.
     stream,
     warnings,
     rawResponse,
+    schema,
+    onFinish,
   }: {
     stream: ReadableStream<string | ObjectStreamInputPart>;
     warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
     };
+    schema: z.Schema<T>;
+    onFinish: Parameters<typeof streamObject<T>>[0]['onFinish'];
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
+
+    // initialize object promise
+    let resolveObject: (value: T | PromiseLike<T>) => void;
+    let rejectObject: (reason?: any) => void;
+    this.object = new Promise<T>((resolve, reject) => {
+      resolveObject = resolve;
+      rejectObject = reject;
+    });
 
     // initialize usage promise
     let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
@@ -301,6 +357,8 @@ Response headers.
 
     // store information for onFinish callback:
     let usage: TokenUsage | undefined;
+    let object: T | undefined;
+    let error: unknown | undefined;
 
     // pipe chunks through a transformation stream that extracts metadata:
     let accumulatedText = '';
@@ -331,13 +389,24 @@ Response headers.
               // store usage for promises and onFinish callback:
               usage = calculateTokenUsage(chunk.usage);
 
-              controller.enqueue({
-                ...chunk,
-                usage,
-              });
+              controller.enqueue({ ...chunk, usage });
 
               // resolve promises that can be resolved now:
               resolveUsage(usage);
+
+              // resolve the object promise with the latest object:
+              const validationResult = safeValidateTypes({
+                value: latestObject,
+                schema,
+              });
+
+              if (validationResult.success) {
+                object = validationResult.value;
+                resolveObject(object);
+              } else {
+                error = validationResult.error;
+                rejectObject(error);
+              }
 
               break;
             }
@@ -346,6 +415,26 @@ Response headers.
               controller.enqueue(chunk);
               break;
             }
+          }
+        },
+
+        // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
+        async flush(controller) {
+          try {
+            // call onFinish callback:
+            await onFinish?.({
+              usage: usage ?? {
+                promptTokens: NaN,
+                completionTokens: NaN,
+                totalTokens: NaN,
+              },
+              object,
+              error,
+              rawResponse,
+              warnings,
+            });
+          } catch (error) {
+            controller.error(error);
           }
         },
       }),

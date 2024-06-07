@@ -305,7 +305,84 @@ for await (const partialObject of partialObjectStream) {
       isOptional: true,
       description:
         'An optional abort signal that can be used to cancel the call.'
-    }
+    },
+    {
+      name: 'onFinish',
+      type: '(result: OnFinishResult) => void',
+      isOptional: true,
+      description:
+        'Callback that is called when the LLM response and all request tool executions (for tools that have an `execute` function) are finished.',
+      properties: [
+        {
+          type: 'OnFinishResult',
+          parameters: [
+            {
+              name: 'usage',
+              type: 'TokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'TokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'object',
+              type: 'T | undefined',
+              description:
+                'The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.',
+            },
+            {
+              name:"error",
+              type:"unknown | undefined",
+              description:"Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema."
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
+              name: 'rawResponse',
+              type: 'RawResponse',
+              description: 'Optional raw response data.',
+              properties: [
+                {
+                  type: 'RawResponse',
+                  parameters: [
+                    {
+                      name: 'header',
+                      optional: true,
+                      type: 'Record<string, string>',
+                      description: 'Response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
 
 ]}
 />
@@ -341,6 +418,12 @@ for await (const partialObject of partialObjectStream) {
           ],
         },
       ],
+    },
+    {
+      name: 'object',
+      type: 'Promise<T>',
+      description:
+        'The generated object (typed according to the schema). Resolved when the response is finished.',
     },
     {
       name: 'partialObjectStream',
@@ -449,6 +532,10 @@ for await (const partialObject of partialObjectStream) {
     {
       title: 'Recording Token Usage',
       link: '/examples/node/streaming-structured-data/token-usage',
+    },
+    {
+      title: 'Recording Final Object',
+      link: '/examples/node/streaming-structured-data/object',
     },
   ]}
 />

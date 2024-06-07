@@ -428,7 +428,6 @@ describe('maxToolRoundtrips', () => {
                 {
                   role: 'assistant',
                   content: [
-                    { type: 'text', text: '' },
                     {
                       type: 'tool-call',
                       toolCallId: 'call-1',
