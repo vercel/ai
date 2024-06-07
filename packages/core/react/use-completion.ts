@@ -54,7 +54,7 @@ export type UseCompletionHelpers = {
    * </form>
    * ```
    */
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  handleSubmit: (e?: React.FormEvent<HTMLFormElement>) => void;
   /** Whether the API request is in progress */
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
@@ -175,8 +175,8 @@ export function useCompletion({
   const [input, setInput] = useState(initialInput);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
+    (e?: React.FormEvent<HTMLFormElement>) => {
+      e?.preventDefault?.();
       if (!input) return;
       return complete(input);
     },

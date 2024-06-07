@@ -64,7 +64,7 @@ export type UseChatHelpers = {
   ) => void;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
-    e: React.FormEvent<HTMLFormElement>,
+    e?: React.FormEvent<HTMLFormElement>,
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   metadata?: Object;

@@ -49,7 +49,7 @@ export type UseChatHelpers = {
   /** The current value of the input */
   input: Ref<string>;
   /** Form submission handler to automatically reset input and append a user message  */
-  handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void;
+  handleSubmit: (e?: any, chatRequestOptions?: ChatRequestOptions) => void;
   /** Whether the API request is in progress */
   isLoading: Ref<boolean | undefined>;
 
@@ -244,8 +244,8 @@ export function useChat({
 
   const input = ref(initialInput);
 
-  const handleSubmit = (e: any, options: ChatRequestOptions = {}) => {
-    e.preventDefault();
+  const handleSubmit = (e?: any, options: ChatRequestOptions = {}) => {
+    e?.preventDefault?.();
     const inputValue = input.value;
     if (!inputValue) return;
     append(
