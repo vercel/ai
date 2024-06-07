@@ -6,9 +6,6 @@ description: Learn how to use the Google Vertex AI provider.
 # Google Vertex Provider
 
 The Google Vertex provider for the [Vercel AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
-It creates language model objects that can be used with the `generateText` and `streamText` AI functions.
-
-<Note type="warning">Tool calls are currently not supported.</Note>
 
 ## Setup
 
@@ -57,20 +54,48 @@ You can use the following optional settings to customize the Google Generative A
   The Google Cloud location that you want to use for the API calls, e.g. `us-central1`.
   It uses the `GOOGLE_VERTEX_LOCATION` environment variable by default.
 
+- **googleAuthOptions** _object_
+
+  Optional. The Authentication options used by the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs/):
+
+  - **authClient** _object_
+    An `AuthClient` to use.
+
+  - **keyFilename** _string_
+    Path to a .json, .pem, or .p12 key file.
+
+  - **keyFile** _string_
+    Path to a .json, .pem, or .p12 key file.
+
+  - **credentials** _object_
+    Object containing client_email and private_key properties, or the external account client options.
+
+  - **clientOptions** _object_
+    Options object passed to the constructor of the client.
+
+  - **scopes** _string | string[]_
+    Required scopes for the desired API request.
+
+  - **projectId** _string_
+    Your project ID.
+
+  - **universeDomain** _string_
+    The default service domain for a given Cloud universe.
+
 ## Language Models
 
 You can create models that call the Vertex API using the provider instance.
-The first argument is the model id, e.g. `gemini-1.0-pro`.
+The first argument is the model id, e.g. `gemini-1.5-pro`.
 
 ```ts
-const model = vertex('gemini-1.0-pro');
+const model = vertex('gemini-1.5-pro');
 ```
 
 Google Vertex models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = vertex('gemini-1.0-pro', {
+const model = vertex('gemini-1.5-pro', {
   topK: 0.2,
 });
 ```
@@ -85,9 +110,52 @@ The following optional settings are available for Google Vertex models:
   Top-k sampling considers the set of topK most probable tokens.
   Models running with nucleus sampling don't allow topK setting.
 
+- **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
+
+  Optional. Safety settings for the model.
+
+  - **category** _string_
+
+    The category of the safety setting. Can be one of the following:
+
+    - `HARM_CATEGORY_UNSPECIFIED`
+    - `HARM_CATEGORY_HATE_SPEECH`
+    - `HARM_CATEGORY_DANGEROUS_CONTENT`
+    - `HARM_CATEGORY_HARASSMENT`
+    - `HARM_CATEGORY_SEXUALLY_EXPLICIT`
+
+  - **threshold** _string_
+
+    The threshold of the safety setting. Can be one of the following:
+
+    - `HARM_BLOCK_THRESHOLD_UNSPECIFIED`
+    - `BLOCK_LOW_AND_ABOVE`
+    - `BLOCK_MEDIUM_AND_ABOVE`
+    - `BLOCK_ONLY_HIGH`
+    - `BLOCK_NONE`
+
+### Example
+
+You can use Google Vertex language models to generate text with the `generateText` function:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex'
+import { generateText } from 'ai'
+
+const { text } = await generateText({
+  model: vertex('gemini-1.5-pro')
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
+})
+```
+
+Google Vertex language models can also be used in the `streamText` and `streamUI` functions
+(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+
 ### Model Capabilities
 
 | Model                   | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ----------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gemini-1.0-pro`        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gemini-1.5-flash`      | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-pro`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.0-pro-vision` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gemini-1.0-pro`        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |

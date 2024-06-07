@@ -84,17 +84,25 @@ const getStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({ role, content, name, function_call, tool_calls, tool_call_id }) => ({
+        ({
           role,
           content,
+          name,
+          data,
+          annotations,
+          function_call,
+          tool_calls,
           tool_call_id,
+        }) => ({
+          role,
+          content,
           ...(name !== undefined && { name }),
-          ...(function_call !== undefined && {
-            function_call: function_call,
-          }),
-          ...(tool_calls !== undefined && {
-            tool_calls: tool_calls,
-          }),
+          ...(data !== undefined && { data }),
+          ...(annotations !== undefined && { annotations }),
+          // outdated function/tool call handling (TODO deprecate):
+          tool_call_id,
+          ...(function_call !== undefined && { function_call }),
+          ...(tool_calls !== undefined && { tool_calls }),
         }),
       );
 
@@ -260,6 +268,7 @@ export function useChat({
       function_call,
       tools,
       tool_choice,
+      data,
     }: ChatRequestOptions = {},
   ) => {
     if (!message.id) {
@@ -269,6 +278,7 @@ export function useChat({
     const chatRequest: ChatRequest = {
       messages: get(messages).concat(message as Message),
       options,
+      data,
       ...(functions !== undefined && { functions }),
       ...(function_call !== undefined && { function_call }),
       ...(tools !== undefined && { tools }),

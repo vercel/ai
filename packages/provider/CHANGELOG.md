@@ -1,5 +1,29 @@
 # @ai-sdk/provider
 
+## 0.0.10
+
+### Patch Changes
+
+- 102ca22f: fix (@ai-sdk/provider): fix TypeValidationError.isTypeValidationError
+
+## 0.0.9
+
+### Patch Changes
+
+- 09295e2e: feat (@ai-sdk/provider): add DownloadError
+
+## 0.0.8
+
+### Patch Changes
+
+- f39c0dd2: feat (provider): add toolChoice to language model specification
+
+## 0.0.7
+
+### Patch Changes
+
+- 8e780288: feat (ai/provider): add "unknown" finish reason (for models that don't provide a finish reason)
+
 ## 0.0.6
 
 ### Patch Changes

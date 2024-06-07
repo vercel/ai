@@ -9,41 +9,53 @@ description: Reference documentation for the AI SDK Core
 These functions are designed to be easy to use and flexible, allowing you to generate text, structured data,
 and embeddings from language models and other AI models.
 
-AI SDK Core contains the following functions:
+AI SDK Core contains the following main functions:
 
 <IndexCards
   cards={[
     {
-      title: 'generateText',
+      title: 'generateText()',
       description: 'Generate text and call tools from a language model.',
       href: '/docs/reference/ai-sdk-core/generate-text',
     },
     {
-      title: 'streamText',
+      title: 'streamText()',
       description: 'Stream text and call tools from a language model.',
       href: '/docs/reference/ai-sdk-core/stream-text',
     },
     {
-      title: 'generateObject',
+      title: 'generateObject()',
       description: 'Generate structured data from a language model.',
       href: '/docs/reference/ai-sdk-core/generate-object',
     },
     {
-      title: 'streamObject',
+      title: 'streamObject()',
       description: 'Stream structured data from a language model.',
       href: '/docs/reference/ai-sdk-core/stream-object',
     },
     {
-      title: 'embed',
+      title: 'embed()',
       description:
         'Generate an embedding for a single value using an embedding model.',
       href: '/docs/reference/ai-sdk-core/embed',
     },
     {
-      title: 'embedMany',
+      title: 'embedMany()',
       description:
         'Generate embeddings for several values using an embedding model (batch embedding).',
       href: '/docs/reference/ai-sdk-core/embed-many',
+    },
+  ]}
+/>
+
+It also contains the following helper functions:
+
+<IndexCards
+  cards={[
+    {
+      title: 'tool()',
+      description: 'Type inference helper function for tools.',
+      href: '/docs/reference/ai-sdk-core/tool',
     },
   ]}
 />

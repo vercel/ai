@@ -1,5 +1,122 @@
 # ai
 
+## 3.1.30
+
+### Patch Changes
+
+- fcf4323b: fix (core): filter out empty assistant text messages
+
+## 3.1.29
+
+### Patch Changes
+
+- 28427d3e: feat (core): add streamObject onFinish callback
+
+## 3.1.28
+
+### Patch Changes
+
+- 102ca22f: feat (core): add object promise to streamObject result
+- Updated dependencies [102ca22f]
+  - @ai-sdk/provider@0.0.10
+  - @ai-sdk/provider-utils@0.0.13
+
+## 3.1.27
+
+### Patch Changes
+
+- c9198d4d: feat (ui): send annotation and data fields in useChat when sendExtraMessageFields is true
+- Updated dependencies [09295e2e]
+- Updated dependencies [09295e2e]
+- Updated dependencies [043a5de2]
+  - @ai-sdk/provider@0.0.9
+  - @ai-sdk/provider-utils@0.0.12
+
+## 3.1.26
+
+### Patch Changes
+
+- 5ee44cae: feat (provider): langchain StringOutputParser support
+
+## 3.1.25
+
+### Patch Changes
+
+- ff281126: fix(ai/rsc): Remove extra reconcilation of streamUI
+
+## 3.1.24
+
+### Patch Changes
+
+- 93cae126: fix(ai/rsc): Fix unsafe {} type in application code for StreamableValue
+- 08b5c509: feat (core): add tokenUsage to streamObject result
+
+## 3.1.23
+
+### Patch Changes
+
+- c03cafe6: chore (core, ui): rename maxAutomaticRoundtrips to maxToolRoundtrips
+
+## 3.1.22
+
+### Patch Changes
+
+- 14bb8694: chore (ui): move maxAutomaticRoundtrips and addToolResult out of experimental
+
+## 3.1.21
+
+### Patch Changes
+
+- 213f2411: fix (core,streams): support ResponseInit variants
+- 09698bca: chore (streams): deprecate streaming helpers that have a provider replacement
+
+## 3.1.20
+
+### Patch Changes
+
+- 0e1da476: feat (core): add maxAutomaticRoundtrips setting to generateText
+
+## 3.1.19
+
+### Patch Changes
+
+- 9882d24b: fix (ui/svelte): send data to server
+- 131bbd3e: fix (ui): remove console.log statements
+
+## 3.1.18
+
+### Patch Changes
+
+- f9dee8ac: fix(ai/rsc): Fix types for createStreamableValue and createStreamableUI
+- 1c0ebf8e: feat (core): add responseMessages to generateText result
+
+## 3.1.17
+
+### Patch Changes
+
+- 92b993b7: ai/rsc: improve getAIState and getMutableAIState types
+- 7de628e9: chore (ui): deprecate old function/tool call handling
+- 7de628e9: feat (ui): add onToolCall handler to useChat
+
+## 3.1.16
+
+### Patch Changes
+
+- f39c0dd2: feat (core, rsc): add toolChoice setting
+- Updated dependencies [f39c0dd2]
+  - @ai-sdk/provider@0.0.8
+  - @ai-sdk/provider-utils@0.0.11
+
+## 3.1.15
+
+### Patch Changes
+
+- 8e780288: feat (ai/core): add onFinish callback to streamText
+- 8e780288: feat (ai/core): add text, toolCalls, and toolResults promises to StreamTextResult (matching the generateText result API with async methods)
+- Updated dependencies [8e780288]
+  - @ai-sdk/provider@0.0.7
+  - @ai-sdk/provider-utils@0.0.10
+
 ## 3.1.14
 
 ### Patch Changes

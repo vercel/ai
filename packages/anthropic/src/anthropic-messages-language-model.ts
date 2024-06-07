@@ -50,7 +50,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
-  private getArgs({
+  private async getArgs({
     mode,
     prompt,
     maxTokens,
@@ -85,7 +85,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const messagesPrompt = convertToAnthropicMessagesPrompt(prompt);
+    const messagesPrompt = await convertToAnthropicMessagesPrompt({ prompt });
 
     const baseArgs = {
       // model id:
@@ -106,18 +106,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        // when the tools array is empty, change it to undefined to prevent OpenAI errors:
-        const tools = mode.tools?.length ? mode.tools : undefined;
-
         return {
-          args: {
-            ...baseArgs,
-            tools: tools?.map(tool => ({
-              name: tool.name,
-              description: tool.description,
-              input_schema: tool.parameters,
-            })),
-          },
+          args: { ...baseArgs, ...prepareToolsAndToolChoice(mode) },
           warnings,
         };
       }
@@ -162,7 +152,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
@@ -218,7 +208,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
@@ -466,3 +456,49 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
     type: z.literal('ping'),
   }),
 ]);
+
+function prepareToolsAndToolChoice(
+  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+    type: 'regular';
+  },
+) {
+  // when the tools array is empty, change it to undefined to prevent errors:
+  const tools = mode.tools?.length ? mode.tools : undefined;
+
+  if (tools == null) {
+    return { tools: undefined, tool_choice: undefined };
+  }
+
+  const mappedTools = tools.map(tool => ({
+    name: tool.name,
+    description: tool.description,
+    input_schema: tool.parameters,
+  }));
+
+  const toolChoice = mode.toolChoice;
+
+  if (toolChoice == null) {
+    return { tools: mappedTools, tool_choice: undefined };
+  }
+
+  const type = toolChoice.type;
+
+  switch (type) {
+    case 'auto':
+      return { tools: mappedTools, tool_choice: { type: 'auto' } };
+    case 'required':
+      return { tools: mappedTools, tool_choice: { type: 'any' } };
+    case 'none':
+      // Anthropic does not support 'none' tool choice, so we remove the tools:
+      return { tools: undefined, tool_choice: undefined };
+    case 'tool':
+      return {
+        tools: mappedTools,
+        tool_choice: { type: 'tool', name: toolChoice.toolName },
+      };
+    default: {
+      const _exhaustiveCheck: never = type;
+      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
+    }
+  }
+}

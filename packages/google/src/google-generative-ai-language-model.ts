@@ -51,7 +51,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
-  private getArgs({
+  private async getArgs({
     mode,
     prompt,
     maxTokens,
@@ -96,24 +96,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       topP,
     };
 
-    const contents = convertToGoogleGenerativeAIMessages(prompt);
+    const contents = await convertToGoogleGenerativeAIMessages({ prompt });
 
     switch (type) {
       case 'regular': {
-        const functionDeclarations = mode.tools?.map(tool => ({
-          name: tool.name,
-          description: tool.description ?? '',
-          parameters: prepareJsonSchema(tool.parameters),
-        }));
-
         return {
           args: {
             generationConfig,
             contents,
-            tools:
-              functionDeclarations == null
-                ? undefined
-                : { functionDeclarations },
+            safetySettings: this.settings.safetySettings,
+            ...prepareToolsAndToolConfig(mode),
           },
           warnings,
         };
@@ -127,6 +119,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               response_mime_type: 'application/json',
             },
             contents,
+            safetySettings: this.settings.safetySettings,
           },
           warnings,
         };
@@ -154,7 +147,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}:generateContent`,
@@ -195,7 +188,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}:streamGenerateContent?alt=sse`,
@@ -303,30 +296,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   }
 }
 
-// Removes all "additionalProperty" and "$schema" properties from the object (recursively)
-// (not supported by Google Generative AI)
-function prepareJsonSchema(jsonSchema: any): unknown {
-  if (typeof jsonSchema !== 'object') {
-    return jsonSchema;
-  }
-
-  if (Array.isArray(jsonSchema)) {
-    return jsonSchema.map(prepareJsonSchema);
-  }
-
-  const result: Record<string, any> = {};
-
-  for (const [key, value] of Object.entries(jsonSchema)) {
-    if (key === 'additionalProperties' || key === '$schema') {
-      continue;
-    }
-
-    result[key] = prepareJsonSchema(value);
-  }
-
-  return result;
-}
-
 function getToolCallsFromParts({
   parts,
   generateId,
@@ -414,3 +383,88 @@ const chunkSchema = z.object({
     })
     .optional(),
 });
+
+function prepareToolsAndToolConfig(
+  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+    type: 'regular';
+  },
+) {
+  // when the tools array is empty, change it to undefined to prevent errors:
+  const tools = mode.tools?.length ? mode.tools : undefined;
+
+  if (tools == null) {
+    return { tools: undefined, toolConfig: undefined };
+  }
+
+  const mappedTools = {
+    functionDeclarations: tools.map(tool => ({
+      name: tool.name,
+      description: tool.description ?? '',
+      parameters: prepareJsonSchema(tool.parameters),
+    })),
+  };
+
+  const toolChoice = mode.toolChoice;
+
+  if (toolChoice == null) {
+    return { tools: mappedTools, toolConfig: undefined };
+  }
+
+  const type = toolChoice.type;
+
+  switch (type) {
+    case 'auto':
+      return {
+        tools: mappedTools,
+        toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
+      };
+    case 'none':
+      return {
+        tools: mappedTools,
+        toolConfig: { functionCallingConfig: { mode: 'NONE' } },
+      };
+    case 'required':
+      return {
+        tools: mappedTools,
+        toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+      };
+    case 'tool':
+      return {
+        tools: mappedTools,
+        toolConfig: {
+          functionCallingConfig: {
+            mode: 'ANY',
+            allowedFunctionNames: [toolChoice.toolName],
+          },
+        },
+      };
+    default: {
+      const _exhaustiveCheck: never = type;
+      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
+    }
+  }
+}
+
+// Removes all "additionalProperty" and "$schema" properties from the object (recursively)
+// (not supported by Google Generative AI)
+function prepareJsonSchema(jsonSchema: any): unknown {
+  if (typeof jsonSchema !== 'object') {
+    return jsonSchema;
+  }
+
+  if (Array.isArray(jsonSchema)) {
+    return jsonSchema.map(prepareJsonSchema);
+  }
+
+  const result: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(jsonSchema)) {
+    if (key === 'additionalProperties' || key === '$schema') {
+      continue;
+    }
+
+    result[key] = prepareJsonSchema(value);
+  }
+
+  return result;
+}

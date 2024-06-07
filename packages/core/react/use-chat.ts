@@ -95,6 +95,7 @@ const getStreamedResponse = async (
   streamMode?: 'stream-data' | 'text',
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
+  onToolCall?: UseChatOptions['onToolCall'],
   sendExtraMessageFields?: boolean,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
@@ -109,6 +110,8 @@ const getStreamedResponse = async (
           role,
           content,
           name,
+          data,
+          annotations,
           toolInvocations,
           function_call,
           tool_calls,
@@ -117,6 +120,8 @@ const getStreamedResponse = async (
           role,
           content,
           ...(name !== undefined && { name }),
+          ...(data !== undefined && { data }),
+          ...(annotations !== undefined && { annotations }),
           ...(toolInvocations !== undefined && { toolInvocations }),
           // outdated function/tool call handling (TODO deprecate):
           tool_call_id,
@@ -206,6 +211,7 @@ const getStreamedResponse = async (
       mutate([...chatRequest.messages, ...merged], false);
       mutateStreamData([...(existingData || []), ...(data || [])], false);
     },
+    onToolCall,
     onFinish,
     generateId,
   });
@@ -219,7 +225,10 @@ export function useChat({
   sendExtraMessageFields,
   experimental_onFunctionCall,
   experimental_onToolCall,
+  onToolCall,
   experimental_maxAutomaticRoundtrips = 0,
+  maxAutomaticRoundtrips = experimental_maxAutomaticRoundtrips,
+  maxToolRoundtrips = maxAutomaticRoundtrips,
   streamMode,
   onResponse,
   onFinish,
@@ -232,6 +241,16 @@ export function useChat({
   api?: string | StreamingReactResponseAction;
   key?: string;
   /**
+@deprecated Use `maxToolRoundtrips` instead.
+   */
+  experimental_maxAutomaticRoundtrips?: number;
+
+  /**
+@deprecated Use `maxToolRoundtrips` instead.
+   */
+  maxAutomaticRoundtrips?: number;
+
+  /**
 Maximal number of automatic roundtrips for tool calls.
 
 An automatic tool call roundtrip is a call to the server with the 
@@ -243,9 +262,19 @@ case of misconfigured tools.
 
 By default, it's set to 0, which will disable the feature.
    */
-  experimental_maxAutomaticRoundtrips?: number;
+  maxToolRoundtrips?: number;
 } = {}): UseChatHelpers & {
+  /**
+   * @deprecated Use `addToolResult` instead.
+   */
   experimental_addToolResult: ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => void;
+  addToolResult: ({
     toolCallId,
     result,
   }: {
@@ -331,6 +360,7 @@ By default, it's set to 0, which will disable the feature.
               streamMode,
               onFinish,
               onResponse,
+              onToolCall,
               sendExtraMessageFields,
             ),
           experimental_onFunctionCall,
@@ -365,12 +395,11 @@ By default, it's set to 0, which will disable the feature.
         // ensure there is a last message:
         lastMessage != null &&
         // check if the feature is enabled:
-        experimental_maxAutomaticRoundtrips > 0 &&
+        maxToolRoundtrips > 0 &&
         // check that roundtrip is possible:
         isAssistantMessageWithCompletedToolCalls(lastMessage) &&
         // limit the number of automatic roundtrips:
-        countTrailingAssistantMessages(messages) <=
-          experimental_maxAutomaticRoundtrips
+        countTrailingAssistantMessages(messages) <= maxToolRoundtrips
       ) {
         await triggerRequest({ messages });
       }
@@ -390,7 +419,8 @@ By default, it's set to 0, which will disable the feature.
       sendExtraMessageFields,
       experimental_onFunctionCall,
       experimental_onToolCall,
-      experimental_maxAutomaticRoundtrips,
+      onToolCall,
+      maxToolRoundtrips,
       messagesRef,
       abortControllerRef,
       generateId,
@@ -518,6 +548,38 @@ By default, it's set to 0, which will disable the feature.
     setInput(e.target.value);
   };
 
+  const addToolResult = ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => {
+    const updatedMessages = messagesRef.current.map((message, index, arr) =>
+      // update the tool calls in the last assistant message:
+      index === arr.length - 1 &&
+      message.role === 'assistant' &&
+      message.toolInvocations
+        ? {
+            ...message,
+            toolInvocations: message.toolInvocations.map(toolInvocation =>
+              toolInvocation.toolCallId === toolCallId
+                ? { ...toolInvocation, result }
+                : toolInvocation,
+            ),
+          }
+        : message,
+    );
+
+    mutate(updatedMessages, false);
+
+    // auto-submit when all tool calls in the last assistant message have results:
+    const lastMessage = updatedMessages[updatedMessages.length - 1];
+    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
+      triggerRequest({ messages: updatedMessages });
+    }
+  };
+
   return {
     messages: messages || [],
     error,
@@ -531,37 +593,8 @@ By default, it's set to 0, which will disable the feature.
     handleSubmit,
     isLoading,
     data: streamData,
-    experimental_addToolResult: ({
-      toolCallId,
-      result,
-    }: {
-      toolCallId: string;
-      result: any;
-    }) => {
-      const updatedMessages = messagesRef.current.map((message, index, arr) =>
-        // update the tool calls in the last assistant message:
-        index === arr.length - 1 &&
-        message.role === 'assistant' &&
-        message.toolInvocations
-          ? {
-              ...message,
-              toolInvocations: message.toolInvocations.map(toolInvocation =>
-                toolInvocation.toolCallId === toolCallId
-                  ? { ...toolInvocation, result }
-                  : toolInvocation,
-              ),
-            }
-          : message,
-      );
-
-      mutate(updatedMessages, false);
-
-      // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage = updatedMessages[updatedMessages.length - 1];
-      if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-        triggerRequest({ messages: updatedMessages });
-      }
-    },
+    addToolResult,
+    experimental_addToolResult: addToolResult,
   };
 }
 

@@ -1,0 +1,165 @@
+---
+title: Render Interface during Tool Call
+description: Learn to render a React component during a tool call using the Vercel AI SDK in your Next.js application
+---
+
+# Render Interface During Tool Call
+
+An interesting consequence of language models that can call tools is that this ability can be used to render visual interfaces by streaming React components to the client.
+
+<Browser>
+  <ChatGeneration
+    history={[
+      { role: 'User', content: 'How is it going?' },
+      { role: 'Assistant', content: 'All good, how may I help you?' },
+    ]}
+    inputMessage={{
+      role: 'User',
+      content: 'What is the weather in San Francisco?',
+    }}
+    outputMessage={{
+      role: 'Assistant',
+      content: 'The weather is 24°C and sunny in San Francisco.',
+      display: (
+        <div className="py-4">
+          <WeatherCard
+            content={{
+              weather: {
+                temperature: 24,
+                condition: 'Sunny',
+              },
+            }}
+          />
+        </div>
+      ),
+    }}
+  />
+</Browser>
+
+## Client
+
+We can make a few changes to our previous example where the assistant could get the weather for any city by calling the `getWeather` tool. This time, instead of returning text during the tool call, we will stream a React component that will be rendered on the client using `createStreamableUI` from `ai/rsc`.
+
+```tsx filename='app/page.tsx'
+'use client';
+
+import { useState } from 'react';
+import { Message, continueConversation } from './actions';
+
+// Force the page to be dynamic and allow streaming responses up to 30 seconds
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
+
+export default function Home() {
+  const [conversation, setConversation] = useState<Message[]>([]);
+  const [input, setInput] = useState<string>('');
+
+  return (
+    <div>
+      <div>
+        {conversation.map((message, index) => (
+          <div key={index}>
+            {message.role}: {message.content}
+            {message.display}
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <input
+          type="text"
+          value={input}
+          onChange={event => {
+            setInput(event.target.value);
+          }}
+        />
+        <button
+          onClick={async () => {
+            const { messages } = await continueConversation([
+              // exclude React components from being sent back to the server:
+              ...conversation.map(({ role, content }) => ({ role, content })),
+              { role: 'user', content: input },
+            ]);
+
+            setConversation(messages);
+          }}
+        >
+          Send Message
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+```tsx filename='components/weather.tsx'
+export async function Weather({ city, unit }) {
+  const data = await fetch(
+    `https://api.example.com/weather?city=${city}&unit=${unit}`,
+  );
+
+  return (
+    <div>
+      <div>{data.temperature}</div>
+      <div>{data.unit}</div>
+      <div>{data.description}</div>
+    </div>
+  );
+}
+```
+
+## Server
+
+```tsx highlight="13,17,33-34,47" filename='app/actions.tsx'
+'use server';
+
+import { Weather } from '@/components/weather';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { createStreamableUI } from 'ai/rsc';
+import { ReactNode } from 'react';
+import { z } from 'zod';
+
+export interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+  display?: ReactNode;
+}
+
+export async function continueConversation(history: Message[]) {
+  const stream = createStreamableUI();
+
+  const { text, toolResults } = await generateText({
+    model: openai('gpt-3.5-turbo'),
+    system: 'You are a friendly weather assistant!',
+    messages: history,
+    tools: {
+      showWeather: {
+        description: 'Show the weather for a given location.',
+        parameters: z.object({
+          city: z.string().describe('The city to show the weather for.'),
+          unit: z
+            .enum(['C', 'F'])
+            .describe('The unit to display the temperature in'),
+        }),
+        execute: async ({ city, unit }) => {
+          stream.done(<Weather city={city} unit={unit} />);
+          return `Here's the weather for ${city}!`;
+        },
+      },
+    },
+  });
+
+  return {
+    messages: [
+      ...history,
+      {
+        role: 'assistant' as const,
+        content:
+          text || toolResults.map(toolResult => toolResult.result).join(),
+        display: stream.value,
+      },
+    ],
+  };
+}
+```

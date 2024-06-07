@@ -1,0 +1,37 @@
+---
+title: Call Tools with Roundtrips
+description: Learn how to call tools with automatic roundtrips in a Node.js application.
+---
+
+# Call Tools with Roundtrips
+
+Models call tools to gather information or perform actions that are not directly available to the model.
+When tool results are available, the model can use them to generate another response.
+
+You can enable automatic roundtrips in `generateText` by setting the `maxToolRoundtrips` option to
+a number greater than 0.
+This option specifies the maximum number of automatic roundtrips that can be made to prevent infinite loops.
+
+```ts highlight={"7"}
+import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+const { text } = await generateText({
+  model: openai('gpt-4-turbo'),
+  maxToolRoundtrips: 5,
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }: { location: string }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```

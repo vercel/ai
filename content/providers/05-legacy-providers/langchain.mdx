@@ -5,10 +5,10 @@ description: Learn how to use LangChain with the Vercel AI SDK.
 
 # LangChain
 
-<Note>
-  **It is recommended to use the [AI SDK Langchain
+<Note type="warning">
+  It is recommended to use the [AI SDK Langchain
   Adapter](/providers/adapters/langchain) instead of the legacy Langchain
-  provider.**
+  provider.
 </Note>
 
 [LangChain](https://js.langchain.com/docs/) is a framework for developing applications powered by language models.
@@ -137,4 +137,4 @@ For streaming with legacy or more complex chains or agents that don't support st
 Under the hood it is a wrapper over LangChain's [`callbacks`](https://js.langchain.com/docs/production/callbacks/).
 We wrap over these methods to provide which then write to the `stream` which can then be passed directly to [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response).
 
-You can see an example of how this looks from the [`LangChainStream` docs page](/docs/reference/stream-helpers/lang-chain-stream).
+You can see an example of how this looks from the [`LangChainStream` docs page](/docs/reference/stream-helpers/langchain-stream).

@@ -1,6 +1,6 @@
 ---
 title: Save and Restore States
-description: Learn to save and restore stats using the Vercel AI SDK in your Next.js application
+description: Learn to save and restore AI and UI states with onGetUIState and onSetAIState
 ---
 
 # Save and Restore AI State
@@ -41,6 +41,10 @@ import { useState } from 'react';
 import { ClientMessage } from './actions';
 import { useActions, useUIState } from 'ai/rsc';
 import { nanoid } from 'nanoid';
+
+// Force the page to be dynamic and allow streaming responses up to 30 seconds
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 export default function Home() {
   const [input, setInput] = useState<string>('');

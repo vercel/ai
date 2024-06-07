@@ -6,16 +6,17 @@ import {
 import { ReactNode } from 'react';
 import { z } from 'zod';
 
-import { CallSettings } from '../../core/prompt/call-settings';
-import { Prompt } from '../../core/prompt/prompt';
-import { createStreamableUI } from '../streamable';
-import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
-import { getValidatedPrompt } from '../../core/prompt/get-validated-prompt';
-import { convertZodToJSONSchema } from '../../core/util/convert-zod-to-json-schema';
-import { prepareCallSettings } from '../../core/prompt/prepare-call-settings';
-import { convertToLanguageModelPrompt } from '../../core/prompt/convert-to-language-model-prompt';
-import { createResolvablePromise } from '../utils';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
+import { CallSettings } from '../../core/prompt/call-settings';
+import { convertToLanguageModelPrompt } from '../../core/prompt/convert-to-language-model-prompt';
+import { getValidatedPrompt } from '../../core/prompt/get-validated-prompt';
+import { prepareCallSettings } from '../../core/prompt/prepare-call-settings';
+import { prepareToolsAndToolChoice } from '../../core/prompt/prepare-tools-and-tool-choice';
+import { Prompt } from '../../core/prompt/prompt';
+import { CoreToolChoice } from '../../core/types';
+import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
+import { createStreamableUI } from '../streamable';
+import { createResolvablePromise } from '../utils';
 
 type Streamable = ReactNode | Promise<ReactNode>;
 
@@ -75,6 +76,7 @@ export async function streamUI<
 >({
   model,
   tools,
+  toolChoice,
   system,
   prompt,
   messages,
@@ -96,6 +98,11 @@ export async function streamUI<
     tools?: {
       [name in keyof TOOLS]: RenderTool<TOOLS[name]>;
     };
+
+    /**
+The tool choice strategy. Default: 'auto'.
+     */
+    toolChoice?: CoreToolChoice<TOOLS>;
 
     text?: RenderText;
     initial?: ReactNode;
@@ -138,6 +145,7 @@ export async function streamUI<
     args: [payload: any] | [payload: any, options: any],
     renderer: undefined | Renderer<any>,
     res: ReturnType<typeof createStreamableUI>,
+    lastCall = false,
   ) {
     if (!renderer) return;
 
@@ -158,7 +166,13 @@ export async function streamUI<
         typeof value.then === 'function')
     ) {
       const node = await (value as Promise<React.ReactNode>);
-      res.update(node);
+
+      if (lastCall) {
+        res.done(node);
+      } else {
+        res.update(node);
+      }
+
       resolvable.resolve(void 0);
     } else if (
       value &&
@@ -172,7 +186,11 @@ export async function streamUI<
       >;
       while (true) {
         const { done, value } = await it.next();
-        res.update(value);
+        if (lastCall && done) {
+          res.done(value);
+        } else {
+          res.update(value);
+        }
         if (done) break;
       }
       resolvable.resolve(void 0);
@@ -180,12 +198,20 @@ export async function streamUI<
       const it = value as Generator<React.ReactNode, React.ReactNode, void>;
       while (true) {
         const { done, value } = it.next();
-        res.update(value);
+        if (lastCall && done) {
+          res.done(value);
+        } else {
+          res.update(value);
+        }
         if (done) break;
       }
       resolvable.resolve(void 0);
     } else {
-      res.update(value);
+      if (lastCall) {
+        res.done(value);
+      } else {
+        res.update(value);
+      }
       resolvable.resolve(void 0);
     }
   }
@@ -196,15 +222,7 @@ export async function streamUI<
     model.doStream({
       mode: {
         type: 'regular',
-        tools:
-          tools == null
-            ? undefined
-            : Object.entries(tools).map(([name, tool]) => ({
-                type: 'function',
-                name,
-                description: tool.description,
-                parameters: convertZodToJSONSchema(tool.parameters),
-              })),
+        ...prepareToolsAndToolChoice({ tools, toolChoice }),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,
@@ -258,6 +276,7 @@ export async function streamUI<
               });
             }
 
+            hasToolCall = true;
             const parseResult = safeParseJSON({
               text: value.args,
               schema: tool.parameters,
@@ -281,6 +300,7 @@ export async function streamUI<
               ],
               tool.generate,
               ui,
+              true,
             );
 
             break;
@@ -298,11 +318,9 @@ export async function streamUI<
 
       if (hasToolCall) {
         await finished;
-        ui.done();
       } else {
-        handleRender([{ content, done: true }], textRender, ui);
+        handleRender([{ content, done: true }], textRender, ui, true);
         await finished;
-        ui.done();
       }
     } catch (error) {
       // During the stream rendering, we don't want to throw the error to the

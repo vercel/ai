@@ -1,5 +1,42 @@
 # @ai-sdk/anthropic
 
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies [102ca22f]
+  - @ai-sdk/provider@0.0.10
+  - @ai-sdk/provider-utils@0.0.13
+
+## 0.0.18
+
+### Patch Changes
+
+- 09295e2e: feat (@ai-sdk/anthropic): automatically download image URLs
+- Updated dependencies [09295e2e]
+- Updated dependencies [09295e2e]
+- Updated dependencies [043a5de2]
+  - @ai-sdk/provider@0.0.9
+  - @ai-sdk/provider-utils@0.0.12
+
+## 0.0.17
+
+### Patch Changes
+
+- f39c0dd2: feat (provider): implement toolChoice support
+- Updated dependencies [f39c0dd2]
+  - @ai-sdk/provider@0.0.8
+  - @ai-sdk/provider-utils@0.0.11
+
+## 0.0.16
+
+### Patch Changes
+
+- 24683b72: fix (providers): Zod is required dependency
+- Updated dependencies [8e780288]
+  - @ai-sdk/provider@0.0.7
+  - @ai-sdk/provider-utils@0.0.10
+
 ## 0.0.15
 
 ### Patch Changes

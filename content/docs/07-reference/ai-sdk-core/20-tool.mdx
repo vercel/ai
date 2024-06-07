@@ -1,0 +1,79 @@
+---
+title: tool
+description: Helper function for tool type inference
+---
+
+# `tool()`
+
+Tool is a helper function that infers the tool paramaters for its `execute` method.
+
+It does not have any runtime behavior, but it helps TypeScript infer the types of the parameters for the `execute` method.
+
+Without this helper function, TypeScript is unable to connect the `parameters` property to the `execute` method,
+and the argument types of `execute` cannot be inferred.
+
+```ts highlight={"1,4,9,10"}
+import { tool } from 'ai';
+import { z } from 'zod';
+
+export const weatherTool = tool({
+  description: 'Get the weather in a location',
+  parameters: z.object({
+    location: z.string().describe('The location to get the weather for'),
+  }),
+  // location below is inferred to be a string:
+  execute: async ({ location }) => ({
+    location,
+    temperature: 72 + Math.floor(Math.random() * 21) - 10,
+  }),
+});
+```
+
+## Import
+
+<Snippet text={`import { tool } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'tool',
+      type: 'CoreTool',
+      description: `The tool definition.`,
+      properties: [
+        {
+          type: 'CoreTool',
+          parameters: [
+            {
+              name: 'description',
+              isOptional: true,
+              type: 'string',
+              description:
+                'Information about the purpose of the tool including details on how and when it can be used by the model.',
+            },
+            {
+              name: 'parameters',
+              type: 'zod schema',
+              description:
+                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model.',
+            },
+            {
+              name: 'execute',
+              isOptional: true,
+              type: 'async (parameters) => any',
+              description:
+                'An async function that is called with the arguments from the tool call and produces a result. If not provided, the tool will not be executed automatically.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
+
+### Returns
+
+The tool that was passed in.
