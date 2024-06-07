@@ -80,6 +80,7 @@
   "dependencies": {
     "@ai-sdk/provider": "0.0.10",
     "@ai-sdk/provider-utils": "0.0.13",
+    "@opentelemetry/api": "1.9.0",
     "secure-json-parse": "2.7.0",
     "eventsource-parser": "1.1.2",
     "jsondiffpatch": "0.6.0",

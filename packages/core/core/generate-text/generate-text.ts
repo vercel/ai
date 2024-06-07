@@ -8,6 +8,7 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { getTracer } from '../telemetry/get-tracer';
 import { CoreTool } from '../tool/tool';
 import {
   CallWarning,
@@ -107,77 +108,87 @@ By default, it's set to 0, which will disable the feature.
      */
     maxToolRoundtrips?: number;
   }): Promise<GenerateTextResult<TOOLS>> {
-  const retry = retryWithExponentialBackoff({ maxRetries });
-  const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
+  const tracer = await getTracer();
+  return tracer.startActiveSpan('generateText', async span => {
+    try {
+      const retry = retryWithExponentialBackoff({ maxRetries });
+      const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
 
-  const mode = {
-    type: 'regular' as const,
-    ...prepareToolsAndToolChoice({ tools, toolChoice }),
-  };
-  const callSettings = prepareCallSettings(settings);
-  const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
+      const mode = {
+        type: 'regular' as const,
+        ...prepareToolsAndToolChoice({ tools, toolChoice }),
+      };
+      const callSettings = prepareCallSettings(settings);
+      const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
 
-  let currentModelResponse: Awaited<ReturnType<LanguageModel['doGenerate']>>;
-  let currentToolCalls: ToToolCallArray<TOOLS> = [];
-  let currentToolResults: ToToolResultArray<TOOLS> = [];
-  let roundtrips = 0;
-  const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> = [];
+      let currentModelResponse: Awaited<
+        ReturnType<LanguageModel['doGenerate']>
+      >;
+      let currentToolCalls: ToToolCallArray<TOOLS> = [];
+      let currentToolResults: ToToolResultArray<TOOLS> = [];
+      let roundtrips = 0;
+      const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
+        [];
 
-  do {
-    currentModelResponse = await retry(() => {
-      return model.doGenerate({
-        mode,
-        ...callSettings,
-        // once we have a roundtrip, we need to switch to messages format:
-        inputFormat: roundtrips === 0 ? validatedPrompt.type : 'messages',
-        prompt: promptMessages,
-        abortSignal,
+      do {
+        currentModelResponse = await retry(() => {
+          return model.doGenerate({
+            mode,
+            ...callSettings,
+            // once we have a roundtrip, we need to switch to messages format:
+            inputFormat: roundtrips === 0 ? validatedPrompt.type : 'messages',
+            prompt: promptMessages,
+            abortSignal,
+          });
+        });
+
+        // parse tool calls:
+        currentToolCalls = (currentModelResponse.toolCalls ?? []).map(
+          modelToolCall => parseToolCall({ toolCall: modelToolCall, tools }),
+        );
+
+        // execute tools:
+        currentToolResults =
+          tools == null
+            ? []
+            : await executeTools({ toolCalls: currentToolCalls, tools });
+
+        // append to messages for potential next roundtrip:
+        const newResponseMessages = toResponseMessages({
+          text: currentModelResponse.text ?? '',
+          toolCalls: currentToolCalls,
+          toolResults: currentToolResults,
+        });
+        responseMessages.push(...newResponseMessages);
+        promptMessages.push(
+          ...newResponseMessages.map(convertToLanguageModelMessage),
+        );
+      } while (
+        // there are tool calls:
+        currentToolCalls.length > 0 &&
+        // all current tool calls have results:
+        currentToolResults.length === currentToolCalls.length &&
+        // the number of roundtrips is less than the maximum:
+        roundtrips++ < maxToolRoundtrips
+      );
+
+      return new GenerateTextResult({
+        // Always return a string so that the caller doesn't have to check for undefined.
+        // If they need to check if the model did not return any text,
+        // they can check the length of the string:
+        text: currentModelResponse.text ?? '',
+        toolCalls: currentToolCalls,
+        toolResults: currentToolResults,
+        finishReason: currentModelResponse.finishReason,
+        usage: calculateTokenUsage(currentModelResponse.usage),
+        warnings: currentModelResponse.warnings,
+        rawResponse: currentModelResponse.rawResponse,
+        logprobs: currentModelResponse.logprobs,
+        responseMessages,
       });
-    });
-
-    // parse tool calls:
-    currentToolCalls = (currentModelResponse.toolCalls ?? []).map(
-      modelToolCall => parseToolCall({ toolCall: modelToolCall, tools }),
-    );
-
-    // execute tools:
-    currentToolResults =
-      tools == null
-        ? []
-        : await executeTools({ toolCalls: currentToolCalls, tools });
-
-    // append to messages for potential next roundtrip:
-    const newResponseMessages = toResponseMessages({
-      text: currentModelResponse.text ?? '',
-      toolCalls: currentToolCalls,
-      toolResults: currentToolResults,
-    });
-    responseMessages.push(...newResponseMessages);
-    promptMessages.push(
-      ...newResponseMessages.map(convertToLanguageModelMessage),
-    );
-  } while (
-    // there are tool calls:
-    currentToolCalls.length > 0 &&
-    // all current tool calls have results:
-    currentToolResults.length === currentToolCalls.length &&
-    // the number of roundtrips is less than the maximum:
-    roundtrips++ < maxToolRoundtrips
-  );
-
-  return new GenerateTextResult({
-    // Always return a string so that the caller doesn't have to check for undefined.
-    // If they need to check if the model did not return any text,
-    // they can check the length of the string:
-    text: currentModelResponse.text ?? '',
-    toolCalls: currentToolCalls,
-    toolResults: currentToolResults,
-    finishReason: currentModelResponse.finishReason,
-    usage: calculateTokenUsage(currentModelResponse.usage),
-    warnings: currentModelResponse.warnings,
-    rawResponse: currentModelResponse.rawResponse,
-    logprobs: currentModelResponse.logprobs,
-    responseMessages,
+    } finally {
+      span.end();
+    }
   });
 }
 
