@@ -1,19 +1,16 @@
+import { CoreMessage, convertToCoreMessages, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { convertToCoreMessages, streamText } from 'ai';
-import { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
-export default async function handler(
-  request: NextApiRequest,
-  response: NextApiResponse,
-) {
-  const { messages } = await request.body;
+export async function POST(req: Request) {
+  const { messages }: { messages: CoreMessage[] } = await req.json();
 
   const result = await streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4'),
+    system: 'You are a helpful assistant.',
+    // @ts-expect-error TODO: fix messages type
     messages: convertToCoreMessages(messages),
     tools: {
-      // server-side tool with execute function:
       getWeatherInformation: {
         description: 'show the weather in a given city to the user',
         parameters: z.object({ city: z.string() }),
@@ -49,5 +46,5 @@ export default async function handler(
     },
   });
 
-  result.pipeAIStreamToResponse(response);
+  return result.toAIStreamResponse();
 }
