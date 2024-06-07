@@ -3,11 +3,7 @@ import {
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
-import {
-  DeepPartial,
-  isDeepEqualData,
-  parsePartialJson,
-} from '@ai-sdk/ui-utils';
+import type { DeepPartial } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
@@ -24,6 +20,7 @@ import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
+import { StreamingParser } from 'fn-stream';
 import { ServerResponse } from 'http';
 
 /**
@@ -41,13 +38,13 @@ This function streams the output. If you do not want to stream the output, use `
 @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
 
 @param maxTokens - Maximum number of tokens to generate.
-@param temperature - Temperature setting. 
+@param temperature - Temperature setting.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param presencePenalty - Presence penalty setting. 
+@param presencePenalty - Presence penalty setting.
 It affects the likelihood of the model to repeat information that is already in the prompt.
 The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
@@ -369,36 +366,40 @@ Response headers.
     let error: unknown | undefined;
 
     // pipe chunks through a transformation stream that extracts metadata:
-    let accumulatedText = '';
-    let delta = '';
     let latestObject: DeepPartial<T> | undefined = undefined;
+
+    const streamingParser = new StreamingParser({ stream: true });
 
     this.originalStream = stream.pipeThrough(
       new TransformStream<string | ObjectStreamInputPart, ObjectStreamPart<T>>({
         async transform(chunk, controller): Promise<void> {
           // process partial text chunks
           if (typeof chunk === 'string') {
-            accumulatedText += chunk;
-            delta += chunk;
+            let { events } = streamingParser.parseIncremental(chunk);
 
-            const currentObject = parsePartialJson(
-              accumulatedText,
-            ) as DeepPartial<T>;
+            if (chunk.length > 0) {
+              // filter for events that change values
+              events = events.filter(
+                event =>
+                  // @ts-expect-error TODO: fix type
+                  event.kind === 'partial' ||
+                  (event.kind === 'complete' &&
+                    typeof event.value !== 'object'),
+              );
 
-            if (!isDeepEqualData(latestObject, currentObject)) {
-              latestObject = currentObject;
-
-              controller.enqueue({
-                type: 'object',
-                object: currentObject,
-              });
+              if (events.length > 0) {
+                // @ts-expect-error
+                latestObject = structuredClone(streamingParser.root);
+                controller.enqueue({
+                  type: 'object',
+                  object: latestObject as DeepPartial<T>,
+                });
+              }
 
               controller.enqueue({
                 type: 'text-delta',
-                textDelta: delta,
+                textDelta: chunk,
               });
-
-              delta = '';
             }
 
             return;
@@ -406,14 +407,6 @@ Response headers.
 
           switch (chunk.type) {
             case 'finish': {
-              // send final text delta:
-              if (delta !== '') {
-                controller.enqueue({
-                  type: 'text-delta',
-                  textDelta: delta,
-                });
-              }
-
               // store usage for promises and onFinish callback:
               usage = calculateTokenUsage(chunk.usage);
 
@@ -471,8 +464,8 @@ Response headers.
 
   /**
 Stream of partial objects. It gets more complete as the stream progresses.
-  
-Note that the partial object is not validated. 
+
+Note that the partial object is not validated.
 If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.
    */
   get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
@@ -501,7 +494,7 @@ If you want to be certain that the actual content matches your schema, you need 
   }
 
   /**
-Text stream of the JSON representation of the generated object. It contains text chunks. 
+Text stream of the JSON representation of the generated object. It contains text chunks.
 When the stream is finished, the object is valid JSON that can be parsed.
    */
   get textStream(): AsyncIterableStream<string> {
@@ -542,7 +535,7 @@ Stream of different types of events, including partial objects, errors, and fini
 
   /**
 Writes text delta output to a Node.js response-like object.
-It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and
 writes each text delta as a separate chunk.
 
 @param response A Node.js response-like object (ServerResponse).

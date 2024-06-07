@@ -33,7 +33,8 @@
     "test:e2e": "playwright test",
     "test:edge:watch": "vitest --config vitest.edge.config.js",
     "test:node:watch": "vitest --config vitest.node.config.js",
-    "test:ui:react:watch": "vitest --config vitest.ui.react.config.js"
+    "test:ui:react:watch": "vitest --config vitest.ui.react.config.js",
+    "bench": "vitest --config vitest.node.config.js bench"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -83,8 +84,9 @@
     "@ai-sdk/ui-utils": "0.0.4",
     "@ai-sdk/vue": "0.0.4",
     "eventsource-parser": "1.1.2",
-    "jsondiffpatch": "0.6.0",
+    "fn-stream": "workspace:*",
     "json-schema": "0.4.0",
+    "jsondiffpatch": "0.6.0",
     "nanoid": "3.3.6",
     "secure-json-parse": "2.7.0",
     "sswr": "2.1.0",
@@ -117,6 +119,7 @@
     "react-server-dom-webpack": "18.3.0-canary-eb33bd747-20240312",
     "tsup": "^7.2.0",
     "typescript": "5.1.3",
+    "vite": "^5",
     "zod": "3.23.8"
   },
   "peerDependencies": {
