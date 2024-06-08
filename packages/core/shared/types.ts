@@ -99,15 +99,6 @@ export interface Function {
 export type IdGenerator = () => string;
 
 /**
-Tool invocations are either tool calls or tool results. For each assistant tool call,
-there is one tool invocation. While the call is in progress, the invocation is a tool call.
-Once the call is complete, the invocation is a tool result.
- */
-export type ToolInvocation =
-  | CoreToolCall<string, any>
-  | CoreToolResult<string, any, any>;
-
-/**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
 export interface Message {
