@@ -1,6 +1,7 @@
+// forwarding exports from ui-utils:
+export { formatStreamPart } from '@ai-sdk/ui-utils';
+
 export * from '../core/index';
-export * from '../shared/types';
-export * from '../shared/utils';
 export * from './ai-stream';
 export * from './anthropic-stream';
 export * from './assistant-response';

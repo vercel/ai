@@ -1,8 +1,3 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import useSWR, { KeyedMutator } from 'swr';
-import { callChatApi } from '../shared/call-chat-api';
-import { generateId as generateIdFunc } from '../shared/generate-id';
-import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
   ChatRequestOptions,
@@ -11,7 +6,14 @@ import type {
   JSONValue,
   Message,
   UseChatOptions,
-} from '../shared/types';
+} from '@ai-sdk/ui-utils';
+import {
+  callChatApi,
+  generateId as generateIdFunc,
+  processChatStream,
+} from '@ai-sdk/ui-utils';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import useSWR, { KeyedMutator } from 'swr';
 import type {
   ReactResponseRow,
   experimental_StreamingReactResponse,

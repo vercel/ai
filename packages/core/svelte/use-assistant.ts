@@ -1,13 +1,12 @@
 import { isAbortError } from '@ai-sdk/provider-utils';
-import { Readable, Writable, get, writable } from 'svelte/store';
-import { generateId } from '../shared/generate-id';
-import { readDataStream } from '../shared/read-data-stream';
 import type {
   AssistantStatus,
   CreateMessage,
   Message,
   UseAssistantOptions,
-} from '../shared/types';
+} from '@ai-sdk/ui-utils';
+import { generateId, readDataStream } from '@ai-sdk/ui-utils';
+import { Readable, Writable, get, writable } from 'svelte/store';
 
 let uniqueId = 0;
 

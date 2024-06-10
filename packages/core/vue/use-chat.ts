@@ -1,9 +1,3 @@
-import swrv from 'swrv';
-import type { Ref } from 'vue';
-import { ref, unref } from 'vue';
-import { callChatApi } from '../shared/call-chat-api';
-import { generateId as generateIdFunc } from '../shared/generate-id';
-import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
   ChatRequestOptions,
@@ -11,7 +5,15 @@ import type {
   JSONValue,
   Message,
   UseChatOptions,
-} from '../shared/types';
+} from '@ai-sdk/ui-utils';
+import {
+  callChatApi,
+  generateId as generateIdFunc,
+  processChatStream,
+} from '@ai-sdk/ui-utils';
+import swrv from 'swrv';
+import type { Ref } from 'vue';
+import { ref, unref } from 'vue';
 
 export type { CreateMessage, Message, UseChatOptions };
 

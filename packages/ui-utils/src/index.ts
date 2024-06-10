@@ -11,9 +11,9 @@ export { generateId as nanoid } from './generate-id';
 
 // Export stream data utilities for custom stream implementations,
 // both on the client and server side.
-export type { StreamPart } from './stream-parts';
-export { formatStreamPart, parseStreamPart } from './stream-parts';
 export { readDataStream } from './read-data-stream';
+export { formatStreamPart, parseStreamPart } from './stream-parts';
+export type { StreamPart } from './stream-parts';
 
 // simple decoder signatures:
 function createChunkDecoder(): (chunk: Uint8Array | undefined) => string;
@@ -58,3 +58,10 @@ export const isStreamStringEqualToType = (
 
 export type StreamString =
   `${(typeof StreamStringPrefixes)[keyof typeof StreamStringPrefixes]}:${string}\n`;
+
+export * from './types';
+
+export { callChatApi } from './call-chat-api';
+export { processChatStream } from './process-chat-stream';
+export { callCompletionApi } from './call-completion-api';
+export { parseComplexResponse } from './parse-complex-response';

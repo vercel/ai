@@ -9,9 +9,9 @@
  */
 
 import { mergeStreams } from '../core/util/merge-streams';
-import { parseComplexResponse } from '../shared/parse-complex-response';
-import { IdGenerator, JSONValue } from '../shared/types';
-import { nanoid } from '../shared/utils';
+import { parseComplexResponse } from '@ai-sdk/ui-utils';
+import { IdGenerator, JSONValue } from '@ai-sdk/ui-utils';
+import { nanoid } from '@ai-sdk/ui-utils';
 import { StreamData } from './stream-data';
 
 type UINode = string | JSX.Element | JSX.Element[] | null | undefined;

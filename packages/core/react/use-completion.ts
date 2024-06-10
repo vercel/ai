@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import useSWR from 'swr';
-import { callCompletionApi } from '../shared/call-completion-api';
 import {
   JSONValue,
   RequestOptions,
   UseCompletionOptions,
-} from '../shared/types';
+  callCompletionApi,
+} from '@ai-sdk/ui-utils';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import useSWR from 'swr';
 
 export type { UseCompletionOptions };
 

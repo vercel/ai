@@ -1,15 +1,15 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
 import { isAbortError } from '@ai-sdk/provider-utils';
-import { useCallback, useRef, useState } from 'react';
-import { generateId } from '../shared/generate-id';
-import { readDataStream } from '../shared/read-data-stream';
 import {
   AssistantStatus,
   CreateMessage,
   Message,
   UseAssistantOptions,
-} from '../shared/types';
+  generateId,
+  readDataStream,
+} from '@ai-sdk/ui-utils';
+import { useCallback, useRef, useState } from 'react';
 
 export type UseAssistantHelpers = {
   /**

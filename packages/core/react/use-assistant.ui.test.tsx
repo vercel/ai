@@ -1,7 +1,7 @@
+import { formatStreamPart } from '@ai-sdk/ui-utils';
 import '@testing-library/jest-dom/vitest';
 import { cleanup, findByText, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { formatStreamPart } from '../streams';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,

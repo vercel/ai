@@ -1,9 +1,3 @@
-import { Accessor, Resource, Setter, createSignal } from 'solid-js';
-import { useSWRStore } from 'solid-swr-store';
-import { createSWRStore } from 'swr-store';
-import { callChatApi } from '../shared/call-chat-api';
-import { generateId as generateIdFunc } from '../shared/generate-id';
-import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
   ChatRequestOptions,
@@ -11,7 +5,15 @@ import type {
   JSONValue,
   Message,
   UseChatOptions,
-} from '../shared/types';
+} from '@ai-sdk/ui-utils';
+import {
+  callChatApi,
+  generateId as generateIdFunc,
+  processChatStream,
+} from '@ai-sdk/ui-utils';
+import { Accessor, Resource, Setter, createSignal } from 'solid-js';
+import { useSWRStore } from 'solid-swr-store';
+import { createSWRStore } from 'swr-store';
 
 export type { CreateMessage, Message, UseChatOptions };
 

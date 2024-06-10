@@ -1,12 +1,12 @@
-import { Accessor, Resource, Setter, createSignal } from 'solid-js';
-import { useSWRStore } from 'solid-swr-store';
-import { createSWRStore } from 'swr-store';
-import { callCompletionApi } from '../shared/call-completion-api';
 import type {
   JSONValue,
   RequestOptions,
   UseCompletionOptions,
-} from '../shared/types';
+} from '@ai-sdk/ui-utils';
+import { callCompletionApi } from '@ai-sdk/ui-utils';
+import { Accessor, Resource, Setter, createSignal } from 'solid-js';
+import { useSWRStore } from 'solid-swr-store';
+import { createSWRStore } from 'swr-store';
 
 export type { UseCompletionOptions };
 
