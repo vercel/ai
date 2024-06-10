@@ -3,9 +3,16 @@ export {
   formatStreamPart,
   parseStreamPart,
   readDataStream,
+  parseComplexResponse,
 } from '@ai-sdk/ui-utils';
 export type {
+  AssistantStatus,
+  UseAssistantOptions,
   Message,
+  CreateMessage,
+  DataMessage,
+  AssistantMessage,
+  JSONValue,
   ChatRequest,
   ChatRequestOptions,
   Function,
@@ -17,6 +24,8 @@ export type {
   ToolCallHandler,
   ToolChoice,
   StreamPart,
+  IdGenerator,
+  RequestOptions,
 } from '@ai-sdk/ui-utils';
 
 // TODO remove nanoid export (breaking change)
