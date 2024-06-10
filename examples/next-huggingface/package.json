@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/react": "latest",
     "@huggingface/inference": "^2.5.1",
     "next": "latest",
     "ai": "latest",

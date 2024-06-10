@@ -130,7 +130,7 @@ Update your root page (`pages/index.vue`) with the following code to show a list
 
 ```tsx filename="pages/index.vue"
 <script setup lang="ts">
-import { useChat } from 'ai/vue';
+import { useChat } from '@ai-sdk/vue';
 
 const { messages, input, handleSubmit } = useChat();
 </script>
@@ -224,7 +224,7 @@ To access this data on the frontend, the `useChat` hook returns an optional valu
 
 ```tsx filename="pages/index.vue" highlight="4, 9"
 <script setup lang="ts">
-import { useChat } from 'ai/vue';
+import { useChat } from '@ai-sdk/vue';
 
 const { messages, input, handleSubmit, data } = useChat();
 </script>

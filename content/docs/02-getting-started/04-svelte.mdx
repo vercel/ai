@@ -121,7 +121,7 @@ Update your root page (`src/routes/+page.svelte`) with the following code to sho
 
 ```svelte filename="src/routes/+page.svelte"
 <script>
-  import { useChat } from 'ai/svelte';
+  import { useChat } from '@ai-sdk/svelte';
 
   const { input, handleSubmit, messages } = useChat();
 </script>
@@ -209,7 +209,7 @@ To access this data on the frontend, the `useChat` hook returns an optional valu
 
 ```svelte filename="src/routes/+page.svelte" highlight="4, 8"
 <script>
-  import { useChat } from 'ai/svelte';
+  import { useChat } from '@ai-sdk/svelte';
 
   const { input, handleSubmit, messages, data } = useChat();
 </script>

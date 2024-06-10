@@ -1,4 +1,4 @@
-import { Message, useAssistant } from 'ai/react';
+import { Message, useAssistant } from '@ai-sdk/react';
 
 export default function Page() {
   const { status, messages, input, submitMessage, handleInputChange } =

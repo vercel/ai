@@ -129,7 +129,7 @@ Now that you have an API route that can query an LLM, it's time to setup your fr
 Update your root page (`pages/index.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
 ```tsx filename="pages/index.tsx"
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -220,7 +220,7 @@ In this code, you:
 To access this data on the frontend, the `useChat` hook returns an optional value that stores this data. Update your root route with the following code to render the streamed data:
 
 ```tsx filename="pages/index.tsx" highlight="4, 7"
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, data } = useChat();

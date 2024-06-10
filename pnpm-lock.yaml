@@ -199,6 +199,9 @@ importers:
 
   examples/next-aws-bedrock:
     dependencies:
+      '@ai-sdk/react':
+        specifier: latest
+        version: link:../../packages/react
       '@aws-sdk/client-bedrock-runtime':
         specifier: 3.451.0
         version: 3.451.0
@@ -245,6 +248,9 @@ importers:
 
   examples/next-cohere:
     dependencies:
+      '@ai-sdk/react':
+        specifier: latest
+        version: link:../../packages/react
       ai:
         specifier: latest
         version: link:../../packages/core
@@ -291,6 +297,9 @@ importers:
 
   examples/next-huggingface:
     dependencies:
+      '@ai-sdk/react':
+        specifier: latest
+        version: link:../../packages/react
       '@huggingface/inference':
         specifier: ^2.5.1
         version: 2.6.4
@@ -337,6 +346,9 @@ importers:
 
   examples/next-inkeep:
     dependencies:
+      '@ai-sdk/react':
+        specifier: latest
+        version: link:../../packages/react
       '@inkeep/ai-api':
         specifier: ^0.1.8
         version: 0.1.8(zod@3.23.8)
@@ -383,6 +395,9 @@ importers:
 
   examples/next-langchain:
     dependencies:
+      '@ai-sdk/react':
+        specifier: latest
+        version: link:../../packages/react
       '@langchain/core':
         specifier: 0.1.63
         version: 0.1.63(openai@4.47.1)
@@ -438,6 +453,9 @@ importers:
       '@ai-sdk/openai':
         specifier: latest
         version: link:../../packages/openai
+      '@ai-sdk/react':
+        specifier: latest
+        version: link:../../packages/react
       ai:
         specifier: latest
         version: link:../../packages/core
@@ -487,6 +505,9 @@ importers:
 
   examples/next-openai-kasada-bot-protection:
     dependencies:
+      '@ai-sdk/react':
+        specifier: latest
+        version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
         version: 0.4.4
@@ -545,6 +566,9 @@ importers:
       '@ai-sdk/openai':
         specifier: latest
         version: link:../../packages/openai
+      '@ai-sdk/react':
+        specifier: latest
+        version: link:../../packages/react
       ai:
         specifier: latest
         version: link:../../packages/core
@@ -594,6 +618,9 @@ importers:
 
   examples/next-openai-rate-limits:
     dependencies:
+      '@ai-sdk/react':
+        specifier: latest
+        version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
         version: 0.4.4
@@ -649,6 +676,9 @@ importers:
 
   examples/next-replicate:
     dependencies:
+      '@ai-sdk/react':
+        specifier: latest
+        version: link:../../packages/react
       ai:
         specifier: latest
         version: link:../../packages/core

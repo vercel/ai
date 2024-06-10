@@ -87,7 +87,7 @@ By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use th
 ```tsx file="app/page.tsx" showLineNumbers
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -159,7 +159,7 @@ We can use the [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hook 
 ```tsx file="app/page.tsx" showLineNumbers
 'use client';
 
-import { useCompletion } from 'ai/react';
+import { useCompletion } from '@ai-sdk/react';
 
 export default function Chat() {
   const { completion, input, handleInputChange, handleSubmit, error } =
@@ -270,7 +270,7 @@ such as an image URL or a base64 encoded image to the server
 ```tsx file="app/page.tsx" showLineNumbers
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
