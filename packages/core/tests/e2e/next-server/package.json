@@ -1,9 +1,7 @@
 {
   "name": "ai-core-e2e-next-server",
   "scripts": {
-    "dev": "next",
-    "build": "next build",
-    "start": "next start"
+    "dev": "next"
   },
   "dependencies": {
     "next": "canary",

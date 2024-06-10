@@ -4,13 +4,6 @@ import { devices } from '@playwright/test';
 const PORT = process.env.PORT || 3000;
 const baseURL = `http://localhost:${PORT}`;
 
-const projects = [
-  {
-    name: 'chromium',
-    use: devices['Desktop Chrome'],
-  },
-];
-
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -30,7 +23,7 @@ const config: PlaywrightTestConfig = {
   projects: [
     {
       name: 'chromium',
-      use: projects[0].use,
+      use: devices['Desktop Chrome'],
     },
   ],
   use: {
