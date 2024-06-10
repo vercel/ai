@@ -1,5 +1,18 @@
 # ai
 
+## 3.1.31
+
+### Patch Changes
+
+- 85f209a4: chore: extracted ui library support into separate modules
+- 85f209a4: removed (streams): experimental_StreamingReactResponse was removed. Please use AI SDK RSC instead.
+- Updated dependencies [85f209a4]
+  - @ai-sdk/ui-utils@0.0.1
+  - @ai-sdk/svelte@0.0.1
+  - @ai-sdk/react@0.0.1
+  - @ai-sdk/solid@0.0.1
+  - @ai-sdk/vue@0.0.1
+
 ## 3.1.30
 
 ### Patch Changes
