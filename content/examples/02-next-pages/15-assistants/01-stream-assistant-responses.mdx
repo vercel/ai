@@ -10,7 +10,7 @@ description: Learn to stream assistant responses using the Vercel AI SDK in your
 Let's create a simple chat interface that allows users to send messages to the assistant and receive responses. You will integrate the `useAssistant` hook from `ai/react` to stream the messages and status.
 
 ```tsx filename='pages/index.tsx'
-import { Message, useAssistant } from 'ai/react';
+import { Message, useAssistant } from '@ai-sdk/react';
 
 export default function Page() {
   const { status, messages, input, submitMessage, handleInputChange } =

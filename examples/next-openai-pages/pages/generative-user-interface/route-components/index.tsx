@@ -1,5 +1,5 @@
 import { ToolInvocation } from 'ai';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
