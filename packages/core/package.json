@@ -76,15 +76,17 @@
   "dependencies": {
     "@ai-sdk/provider": "0.0.10",
     "@ai-sdk/provider-utils": "0.0.13",
+    "@ai-sdk/react": "0.0.0",
     "@ai-sdk/solid": "0.0.0",
     "@ai-sdk/svelte": "0.0.0",
     "@ai-sdk/ui-utils": "0.0.0",
     "@ai-sdk/vue": "0.0.0",
-    "secure-json-parse": "2.7.0",
     "eventsource-parser": "1.1.2",
     "jsondiffpatch": "0.6.0",
     "json-schema": "0.4.0",
     "nanoid": "3.3.6",
+    "secure-json-parse": "2.7.0",
+    "sswr": "2.1.0",
     "zod-to-json-schema": "3.22.5"
   },
   "devDependencies": {
@@ -119,7 +121,8 @@
   "peerDependencies": {
     "openai": "^4.42.0",
     "react": "^18 || ^19",
-    "zod": "^3.0.0"
+    "zod": "^3.0.0",
+    "svelte": "^3.0.0 || ^4.0.0"
   },
   "peerDependenciesMeta": {
     "react": {
@@ -129,6 +132,9 @@
       "optional": true
     },
     "openai": {
+      "optional": true
+    },
+    "svelte": {
       "optional": true
     }
   },

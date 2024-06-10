@@ -915,6 +915,9 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: 0.0.13
         version: link:../provider-utils
+      '@ai-sdk/react':
+        specifier: 0.0.0
+        version: link:../react
       '@ai-sdk/solid':
         specifier: 0.0.0
         version: link:../solid
@@ -945,6 +948,12 @@ importers:
       secure-json-parse:
         specifier: 2.7.0
         version: 2.7.0
+      sswr:
+        specifier: 2.1.0
+        version: 2.1.0(svelte@4.2.3)
+      svelte:
+        specifier: ^3.0.0 || ^4.0.0
+        version: 4.2.3
       zod-to-json-schema:
         specifier: 3.22.5
         version: 3.22.5(zod@3.23.8)
