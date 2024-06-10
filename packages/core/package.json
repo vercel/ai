@@ -89,6 +89,7 @@
     "solid-swr-store": "0.10.7",
     "swr": "2.2.0",
     "swr-store": "0.10.6",
+    "sswr": "2.1.0",
     "zod-to-json-schema": "3.22.5"
   },
   "devDependencies": {

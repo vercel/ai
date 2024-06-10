@@ -2,10 +2,16 @@
 export { formatStreamPart, generateId, nanoid } from '@ai-sdk/ui-utils';
 export type {
   Message,
+  ChatRequest,
+  ChatRequestOptions,
   Function,
   FunctionCall,
   FunctionCallHandler,
   ToolInvocation,
+  Tool,
+  ToolCall,
+  ToolCallHandler,
+  ToolChoice,
 } from '@ai-sdk/ui-utils';
 
 export * from '../core/index';
