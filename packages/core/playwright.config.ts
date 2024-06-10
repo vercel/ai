@@ -35,13 +35,15 @@ const config: PlaywrightTestConfig = {
   ],
   use: {
     baseURL,
+    trace: 'retain-on-failure',
+    userAgent: 'playwright-test bot',
   },
   webServer: {
     cwd: './tests/e2e/next-server',
     command: 'pnpm run dev',
     url: baseURL,
     timeout: 120 * 1000,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
   },
 };
 
