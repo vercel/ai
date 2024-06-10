@@ -1,11 +1,11 @@
-import '@testing-library/jest-dom/vitest';
-import { cleanup, findByText, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
-} from './tests/mock-fetch';
+} from '@ai-sdk/ui-utils/test';
+import '@testing-library/jest-dom/vitest';
+import { cleanup, findByText, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useCompletion } from './use-completion';
 
 describe('stream data stream', () => {

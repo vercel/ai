@@ -1,12 +1,12 @@
 /** @jsxImportSource solid-js */
-import { cleanup, findByText, render, screen } from '@solidjs/testing-library';
-import '@testing-library/jest-dom';
-import userEvent from '@testing-library/user-event';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
-} from './tests/mock-fetch';
+} from '@ai-sdk/ui-utils/test';
+import { cleanup, findByText, render, screen } from '@solidjs/testing-library';
+import '@testing-library/jest-dom';
+import userEvent from '@testing-library/user-event';
 import { useCompletion } from './use-completion';
 
 describe('stream data stream', () => {

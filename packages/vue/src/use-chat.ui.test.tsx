@@ -1,13 +1,13 @@
+import {
+  mockFetchDataStream,
+  mockFetchDataStreamWithGenerator,
+  mockFetchError,
+} from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { cleanup, findByText, render, screen } from '@testing-library/vue';
 import TestChatComponent from './TestChatComponent.vue';
 import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
-import {
-  mockFetchDataStream,
-  mockFetchDataStreamWithGenerator,
-  mockFetchError,
-} from './tests/mock-fetch';
 
 describe('stream data stream', () => {
   beforeEach(() => {

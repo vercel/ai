@@ -1,13 +1,13 @@
 /** @jsxImportSource solid-js */
-import { cleanup, findByText, render, screen } from '@solidjs/testing-library';
-import '@testing-library/jest-dom';
-import userEvent from '@testing-library/user-event';
-import { For } from 'solid-js';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
-} from './tests/mock-fetch';
+} from '@ai-sdk/ui-utils/test';
+import { cleanup, findByText, render, screen } from '@solidjs/testing-library';
+import '@testing-library/jest-dom';
+import userEvent from '@testing-library/user-event';
+import { For } from 'solid-js';
 import { useChat } from './use-chat';
 
 describe('stream data stream', () => {
