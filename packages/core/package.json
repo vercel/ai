@@ -85,9 +85,6 @@
     "jsondiffpatch": "0.6.0",
     "json-schema": "0.4.0",
     "nanoid": "3.3.6",
-    "swr": "2.2.0",
-    "swr-store": "0.10.6",
-    "sswr": "2.1.0",
     "zod-to-json-schema": "3.22.5"
   },
   "devDependencies": {

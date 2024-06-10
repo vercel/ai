@@ -5,7 +5,7 @@ import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
-} from '../tests/utils/mock-fetch';
+} from './tests/mock-fetch';
 import { useCompletion } from './use-completion';
 
 describe('stream data stream', () => {

@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
-} from '../tests/utils/mock-fetch';
+} from './tests/mock-fetch';
 import { useAssistant } from './use-assistant';
 
 describe('stream data stream', () => {

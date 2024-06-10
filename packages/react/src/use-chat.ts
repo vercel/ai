@@ -14,10 +14,6 @@ import {
 } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
-import type {
-  ReactResponseRow,
-  experimental_StreamingReactResponse,
-} from '../streams/streaming-react-response';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -76,16 +72,8 @@ export type UseChatHelpers = {
   data?: JSONValue[];
 };
 
-/**
-@deprecated Use AI SDK RSC instead: https://sdk.vercel.ai/docs/ai-sdk-rsc
- */
-type StreamingReactResponseAction = (payload: {
-  messages: Message[];
-  data?: Record<string, string>;
-}) => Promise<experimental_StreamingReactResponse>;
-
 const getStreamedResponse = async (
-  api: string | StreamingReactResponseAction,
+  api: string,
   chatRequest: ChatRequest,
   mutate: KeyedMutator<Message[]>,
   mutateStreamData: KeyedMutator<JSONValue[] | undefined>,
@@ -131,52 +119,6 @@ const getStreamedResponse = async (
           ...(tool_calls !== undefined && { tool_calls }),
         }),
       );
-
-  // TODO deprecated, remove in next major release
-  if (typeof api !== 'string') {
-    // In this case, we are handling a Server Action. No complex mode handling needed.
-
-    const replyId = generateId();
-    const createdAt = new Date();
-    let responseMessage: Message = {
-      id: replyId,
-      createdAt,
-      content: '',
-      role: 'assistant',
-    };
-
-    async function readRow(promise: Promise<ReactResponseRow>) {
-      const { content, ui, next } = await promise;
-
-      // TODO: Handle function calls.
-      responseMessage['content'] = content;
-      responseMessage['ui'] = await ui;
-
-      mutate([...chatRequest.messages, { ...responseMessage }], false);
-
-      if (next) {
-        await readRow(next);
-      }
-    }
-
-    try {
-      const promise = api({
-        messages: constructedMessagesPayload as Message[],
-        data: chatRequest.data,
-      }) as Promise<ReactResponseRow>;
-      await readRow(promise);
-    } catch (e) {
-      // Restore the previous messages if the request fails.
-      mutate(previousMessages, false);
-      throw e;
-    }
-
-    if (onFinish) {
-      onFinish(responseMessage);
-    }
-
-    return responseMessage;
-  }
 
   return await callChatApi({
     api,
@@ -240,7 +182,7 @@ export function useChat({
   body,
   generateId = generateIdFunc,
 }: Omit<UseChatOptions, 'api'> & {
-  api?: string | StreamingReactResponseAction;
+  api?: string;
   key?: string;
   /**
 @deprecated Use `maxToolRoundtrips` instead.

@@ -6,7 +6,7 @@ import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
-} from '../tests/utils/mock-fetch';
+} from './tests/mock-fetch';
 import { useChat } from './use-chat';
 
 describe('stream data stream', () => {
