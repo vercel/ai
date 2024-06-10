@@ -946,19 +946,19 @@ importers:
         specifier: 0.0.13
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../react
       '@ai-sdk/solid':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../solid
       '@ai-sdk/svelte':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../svelte
       '@ai-sdk/ui-utils':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../ui-utils
       '@ai-sdk/vue':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../vue
       eventsource-parser:
         specifier: 1.1.2
@@ -1238,7 +1238,7 @@ importers:
         specifier: 0.0.13
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19
@@ -1293,7 +1293,7 @@ importers:
   packages/solid:
     dependencies:
       '@ai-sdk/ui-utils':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../ui-utils
       solid-js:
         specifier: ^1.7.7
@@ -1351,7 +1351,7 @@ importers:
         specifier: 0.0.13
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../ui-utils
       sswr:
         specifier: 2.1.0
@@ -1404,7 +1404,7 @@ importers:
   packages/vue:
     dependencies:
       '@ai-sdk/ui-utils':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../ui-utils
       swrv:
         specifier: 1.0.4
