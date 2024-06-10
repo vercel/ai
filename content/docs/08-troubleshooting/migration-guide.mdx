@@ -8,14 +8,14 @@ description: Welcome to the Vercel AI SDK documentation!
 This guide will help you:
 
 - Upgrade to Vercel AI SDK 3.1
-- Migrate from Legacy Providers to Vercel AI SDK Core
-- Migrate from `render` to `streamUI`
+- Migrate from [Legacy Providers](/providers/legacy-providers) to Vercel AI SDK Core
+- Migrate from [`render`](/docs/reference/ai-sdk-rsc/render) to [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui)
 
-Upgrading to Vercel AI SDK 3.1 does not require using the newly released AI SDK Core API or `streamUI` function. You can continue to use Vercel AI SDK with existing (Legacy) providers.
+Upgrading to Vercel AI SDK 3.1 does not require using the newly released AI SDK Core API or [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui) function. You can continue to use Vercel AI SDK with [existing (Legacy) providers](/providers/legacy-providers).
 
-## **Upgrading**
+## Upgrading
 
-### **Vercel AI SDK**
+### Vercel AI SDK
 
 To update to Vercel AI SDK version 3.1, run the following command using your preferred package manager:
 
@@ -25,14 +25,14 @@ To update to Vercel AI SDK version 3.1, run the following command using your pre
 
 The release of Vercel AI SDK 3.1 introduces several new features that improve the way you build AI applications with the SDK:
 
-- AI SDK Core, a brand new unified API for interacting with large language models (LLMs)
-- `streamUI`, a new abstraction, built upon AI SDK Core functions that simplifies building streaming UIs.
+- AI SDK Core, a brand new unified API for interacting with large language models (LLMs).
+- [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui), a new abstraction, built upon AI SDK Core functions that simplifies building streaming UIs.
 
 ## Migrating from Legacy Providers to AI SDK Core
 
-Prior to AI SDK Core, you had to use a model providers SDK to query their models.
+Prior to AI SDK Core, you had to use a model provider's SDK to query their models.
 
-In the following Route Handler, you use the OpenAI SDK to query their model. You then pipe that response into the `OpenAIStream` function which returns a ReadableStream that you can pass to the client using a new `StreamingTextResponse`.
+In the following Route Handler, you use the OpenAI SDK to query their model. You then pipe that response into the [`OpenAIStream`](/docs/reference/stream-helpers/openai-stream) function which returns a [`ReadableStream`](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream) that you can pass to the client using a new [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response).
 
 ```tsx
 import OpenAI from 'openai';
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
   const response = await openai.chat.completions.create({
     model: 'gpt-4-turbo',
     stream: true,
-    messages: messages,
+    messages,
   });
 
   const stream = OpenAIStream(response);
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
 
 ## Migrating from `render` to `streamUI`
 
-The AI SDK RSC API was launched as part of version 3.0. This API introduced the `render` function, a helper function to create streamable UIs with OpenAI models. With the new AI SDK Core API, it became possible to make streamable UIs possible with any compatible provider.
+The AI SDK RSC API was launched as part of version 3.0. This API introduced the [`render`](/docs/reference/ai-sdk-rsc/render) function, a helper function to create streamable UIs with OpenAI models. With the new AI SDK Core API, it became possible to make streamable UIs possible with any compatible provider.
 
 The following example Server Action uses the `render` function using the model provider directly from OpenAI. You first create an OpenAI provider instance with the OpenAI SDK. Then, you pass it to the provider key of the render function alongside a tool that returns a React Server Component, defined in the `render` key of the tool.
 
@@ -92,8 +92,7 @@ import { getWeather } from '@/utils';
 
 const openai = new OpenAI();
 
-async function submitMessage(userInput) {
-  // 'What is the weather in SF?'
+async function submitMessage(userInput = 'What is the weather in SF?') {
   'use server';
 
   return render({
@@ -123,7 +122,7 @@ async function submitMessage(userInput) {
 }
 ```
 
-With the new `streamUI` function, you can now use any compatible AI SDK providers. In this example, you import the AI SDK OpenAI provider. Then, you pass it to the model key of the new `streamUI` function. Finally you declare a tool and return a React Server Component, defined in the `generate` key of the tool.
+With the new [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui) function, you can now use any compatible AI SDK provider. In this example, you import the AI SDK OpenAI provider. Then, you pass it to the [`model`](/docs/reference/ai-sdk-rsc/stream-ui#model) key of the new [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui) function. Finally, you declare a tool and return a React Server Component, defined in the [`generate`](/docs/reference/ai-sdk-rsc/stream-ui#tools-generate) key of the tool.
 
 ```tsx
 import { streamUI } from 'ai/rsc';
@@ -132,8 +131,7 @@ import { z } from 'zod';
 import { Spinner, Weather } from '@/components';
 import { getWeather } from '@/utils';
 
-async function submitMessage(userInput) {
-  // 'What is the weather in SF?'
+async function submitMessage(userInput = 'What is the weather in SF?') {
   'use server';
 
   const result = await streamUI({

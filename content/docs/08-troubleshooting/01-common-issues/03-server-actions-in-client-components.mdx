@@ -9,22 +9,26 @@ You may use Server Actions in client components, but sometimes you may encounter
 
 ## Issue
 
-- It is not allowed to define inline "use server" annotated Server Actions in Client Components.
+It is not allowed to define inline `"use server"` annotated Server Actions in Client Components.
 
 ## Solution
 
-To use Server Actions in a Client Component, you can either export them from a separate file with "use server" at the top, pass them down through props from a Server Component, or a combination of [`createAI`](/docs/reference/ai-sdk-rsc/create-ai) and [`useActions`](/docs/reference/ai-sdk-rsc/use-actions) hooks to access them.
+To use Server Actions in a Client Component, you can either:
+
+- Export them from a separate file with `"use server"` at the top. 
+- Pass them down through props from a Server Component.
+- Implement a combination of [`createAI`](/docs/reference/ai-sdk-rsc/create-ai) and [`useActions`](/docs/reference/ai-sdk-rsc/use-actions) hooks to access them.
 
 Learn more about [Server Actions and Mutations](https://nextjs.org/docs/app/api-reference/functions/server-actions#with-client-components).
 
 ```ts file='actions.ts'
-'use server'; // [!code ++]
+'use server';
 
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function getAnswer(question: string) {
-  'use server'; // [!code --]
+  'use server';
 
   const { text } = await generateText({
     model: openai.chat('gpt-3.5-turbo'),
