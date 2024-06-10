@@ -1,8 +1,6 @@
-export * from './generate-id';
 export * from './types';
 
-// TODO remove (breaking change)
-export { generateId as nanoid } from './generate-id';
+export { generateId } from '@ai-sdk/provider-utils';
 
 // Export stream data utilities for custom stream implementations,
 // both on the client and server side.

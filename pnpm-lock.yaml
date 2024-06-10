@@ -1381,9 +1381,9 @@ importers:
 
   packages/ui-utils:
     dependencies:
-      nanoid:
-        specifier: 3.3.6
-        version: 3.3.6
+      '@ai-sdk/provider-utils':
+        specifier: 0.0.13
+        version: link:../provider-utils
     devDependencies:
       '@types/node':
         specifier: ^18

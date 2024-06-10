@@ -1,4 +1,4 @@
-import { generateId as generateIdFunction } from './generate-id';
+import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { readDataStream } from './read-data-stream';
 import type {
   FunctionCall,

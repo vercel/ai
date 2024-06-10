@@ -1,5 +1,5 @@
 // forwarding exports from ui-utils:
-export { formatStreamPart, generateId, nanoid } from '@ai-sdk/ui-utils';
+export { formatStreamPart } from '@ai-sdk/ui-utils';
 export type {
   Message,
   ChatRequest,
@@ -13,6 +13,9 @@ export type {
   ToolCallHandler,
   ToolChoice,
 } from '@ai-sdk/ui-utils';
+
+// TODO remove nanoid export (breaking change)
+export { generateId, generateId as nanoid } from '@ai-sdk/provider-utils';
 
 export * from '../core/index';
 export * from './ai-stream';
