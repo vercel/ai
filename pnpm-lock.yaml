@@ -874,7 +874,7 @@ importers:
         version: 5.1.3
       vite:
         specifier: ^5
-        version: 5.2.11(@types/node@17.0.45)
+        version: 5.2.11(@types/node@18.18.9)
 
   packages/anthropic:
     dependencies:
@@ -909,6 +909,9 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: 0.0.13
         version: link:../provider-utils
+      '@ai-sdk/svelte':
+        specifier: 0.0.0
+        version: link:../svelte
       '@ai-sdk/ui-utils':
         specifier: 0.0.0
         version: link:../ui-utils
@@ -936,12 +939,6 @@ importers:
       solid-swr-store:
         specifier: 0.10.7
         version: 0.10.7(solid-js@1.8.7)(swr-store@0.10.6)
-      sswr:
-        specifier: 2.1.0
-        version: 2.1.0(svelte@4.2.3)
-      svelte:
-        specifier: ^3.0.0 || ^4.0.0
-        version: 4.2.3
       swr:
         specifier: 2.2.0
         version: 2.2.0(react@18.2.0)
@@ -1205,6 +1202,40 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
 
+  packages/svelte:
+    dependencies:
+      '@ai-sdk/provider-utils':
+        specifier: 0.0.13
+        version: link:../provider-utils
+      '@ai-sdk/ui-utils':
+        specifier: 0.0.0
+        version: link:../ui-utils
+      sswr:
+        specifier: 2.1.0
+        version: 2.1.0(svelte@4.2.3)
+      svelte:
+        specifier: ^3.0.0 || ^4.0.0
+        version: 4.2.3
+    devDependencies:
+      '@types/node':
+        specifier: ^18
+        version: 18.18.9
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      eslint:
+        specifier: ^7.32.0
+        version: 7.32.0
+      eslint-config-vercel-ai:
+        specifier: workspace:*
+        version: link:../../tools/eslint-config
+      tsup:
+        specifier: ^7.2.0
+        version: 7.2.0(typescript@5.1.3)
+      typescript:
+        specifier: 5.1.3
+        version: 5.1.3
+
   packages/ui-utils:
     dependencies:
       nanoid:
@@ -1249,8 +1280,8 @@ importers:
         specifier: ^8.0.1
         version: 8.0.1(@vue/compiler-sfc@3.3.8)(vue@3.3.8)
       '@types/node':
-        specifier: ^17.0.12
-        version: 17.0.45
+        specifier: ^18
+        version: 18.18.9
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
@@ -6829,7 +6860,7 @@ packages:
       sirv: 2.0.4
       svelte: 4.2.3
       tiny-glob: 0.2.9
-      vite: 5.2.11(@types/node@17.0.45)
+      vite: 5.2.11(@types/node@18.18.9)
     dev: true
 
   /@sveltejs/vite-plugin-svelte-inspector@2.1.0(@sveltejs/vite-plugin-svelte@3.1.0)(svelte@4.2.3)(vite@5.2.11):
@@ -6843,7 +6874,7 @@ packages:
       '@sveltejs/vite-plugin-svelte': 3.1.0(svelte@4.2.3)(vite@5.2.11)
       debug: 4.3.4
       svelte: 4.2.3
-      vite: 5.2.11(@types/node@17.0.45)
+      vite: 5.2.11(@types/node@18.18.9)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -6862,7 +6893,7 @@ packages:
       magic-string: 0.30.10
       svelte: 4.2.3
       svelte-hmr: 0.16.0(svelte@4.2.3)
-      vite: 5.2.11(@types/node@17.0.45)
+      vite: 5.2.11(@types/node@18.18.9)
       vitefu: 0.2.5(vite@5.2.11)
     transitivePeerDependencies:
       - supports-color
@@ -6974,7 +7005,7 @@ packages:
       '@vue/compiler-sfc': '>= 3'
       vue: '>= 3'
     dependencies:
-      '@babel/runtime': 7.23.2
+      '@babel/runtime': 7.24.6
       '@testing-library/dom': 9.3.3
       '@vue/compiler-sfc': 3.3.8
       '@vue/test-utils': 2.4.2(vue@3.3.8)
@@ -7526,7 +7557,7 @@ packages:
       vite: ^4.0.0 || ^5.0.0
       vue: ^3.2.25
     dependencies:
-      vite: 5.2.11(@types/node@17.0.45)
+      vite: 5.2.11(@types/node@18.18.9)
       vue: 3.3.8(typescript@5.1.3)
     dev: true
 
@@ -9242,7 +9273,7 @@ packages:
     engines: {node: ^10 || ^12.20.0 || ^14.13.0 || >=15.0.0}
     dependencies:
       mdn-data: 2.0.30
-      source-map-js: 1.0.2
+      source-map-js: 1.2.0
 
   /css-what@6.1.0:
     resolution: {integrity: sha512-HTUrgRJ7r4dsZKU6GjmpfRK1O76h97Z8MfS1G0FozR+oF2kG6Vfe8JE6zwrkbxigziPHinCJ+gCPjA9EaBDtRw==}
@@ -13556,6 +13587,7 @@ packages:
     engines: {node: '>=12'}
     dependencies:
       '@jridgewell/sourcemap-codec': 1.4.15
+    dev: true
 
   /magicast@0.2.11:
     resolution: {integrity: sha512-6saXbRDA1HMkqbsvHOU6HBjCVgZT460qheRkLhJQHWAbhXoWESI3Kn/dGGXyKs15FFKR85jsUqFx2sMK0wy/5g==}
@@ -17273,7 +17305,7 @@ packages:
       estree-walker: 3.0.3
       is-reference: 3.0.2
       locate-character: 3.0.0
-      magic-string: 0.30.5
+      magic-string: 0.30.10
       periscopic: 3.1.0
 
   /svg-tags@1.0.0:
@@ -18447,7 +18479,7 @@ packages:
       debug: 4.3.4
       pathe: 1.1.1
       picocolors: 1.0.0
-      vite: 5.2.11(@types/node@17.0.45)
+      vite: 5.2.11(@types/node@18.18.9)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -18720,7 +18752,7 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vite@5.2.11(@types/node@17.0.45):
+  /vite@5.2.11(@types/node@18.18.9):
     resolution: {integrity: sha512-HndV31LWW05i1BLPMUCE1B9E9GFbOu1MbenhS58FuK6owSO5qHm7GiCotrNY1YE5rMeQSFBGmT5ZaLEjFizgiQ==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -18748,7 +18780,7 @@ packages:
       terser:
         optional: true
     dependencies:
-      '@types/node': 17.0.45
+      '@types/node': 18.18.9
       esbuild: 0.20.2
       postcss: 8.4.38
       rollup: 4.14.1
@@ -18774,7 +18806,7 @@ packages:
       vite:
         optional: true
     dependencies:
-      vite: 5.2.11(@types/node@17.0.45)
+      vite: 5.2.11(@types/node@18.18.9)
     dev: true
 
   /vitest@1.6.0:
@@ -18819,7 +18851,7 @@ packages:
       strip-literal: 2.1.0
       tinybench: 2.5.1
       tinypool: 0.8.4
-      vite: 5.2.11(@types/node@17.0.45)
+      vite: 5.2.11(@types/node@18.18.9)
       vite-node: 1.6.0
       why-is-node-running: 2.2.2
     transitivePeerDependencies:
