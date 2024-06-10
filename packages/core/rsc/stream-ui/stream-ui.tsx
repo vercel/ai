@@ -277,6 +277,7 @@ export async function streamUI<
       let hasToolCall = false;
       let currentToolCallId = '';
       let currentUIStream = ui; // TODO: consider an undefined default
+      let replaceInitial = !!initial;
 
       const reader = forkedStream.getReader();
       while (true) {
@@ -285,6 +286,7 @@ export async function streamUI<
 
         switch (value.type) {
           case 'text-delta': {
+            replaceInitial = false;
             content += value.textDelta;
             handleRender(
               [{ content, done: false, delta: value.textDelta }],
@@ -312,11 +314,12 @@ export async function streamUI<
             hasToolCall = true;
             if (currentToolCallId !== value.toolCallId) {
               // start of a new tool call
-              const shouldReplaceInitial = !!initial && !currentToolCallId;
+              const shouldReplaceInitial = replaceInitial && !currentToolCallId;
               currentToolCallId = value.toolCallId;
               currentUIStream = createStreamableUI(initial);
               if (shouldReplaceInitial) {
                 ui.update(currentUIStream.value);
+                replaceInitial = false;
               } else {
                 ui.append(currentUIStream.value);
               }
