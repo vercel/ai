@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useChat } from 'ai/vue';
+import { useChat } from '@ai-sdk/vue';
 import { generateId } from 'ai';
 import type { FunctionCallHandler, Message } from 'ai';
 

@@ -82,7 +82,7 @@ export async function POST(req: Request) {
 <Note>
   Vercel AI SDK provides 2 utility helpers to make the above seamless: First, we
   pass the streaming `response` we receive from Perplexity to
-  [`OpenAIStream`](/docs/reference/stream-helpers/open-ai-stream). This method
+  [`OpenAIStream`](/docs/reference/stream-helpers/openai-stream). This method
   decodes/extracts the text tokens in the response and then re-encodes them
   properly for simple consumption. We can then pass that new stream directly to
   [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response).
@@ -99,7 +99,7 @@ By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use th
 ```tsx file="app/page.tsx" showLineNumbers
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -178,7 +178,7 @@ We can use the [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hook 
 ```tsx file="app/page.tsx" showLineNumbers
 'use client';
 
-import { useCompletion } from 'ai/react';
+import { useCompletion } from '@ai-sdk/react';
 
 export default function Completion() {
   const {

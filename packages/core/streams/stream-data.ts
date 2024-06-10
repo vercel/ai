@@ -1,5 +1,4 @@
-import { formatStreamPart } from '../shared/stream-parts';
-import { JSONValue } from '../shared/types';
+import { JSONValue, formatStreamPart } from '@ai-sdk/ui-utils';
 
 /**
  * A stream wrapper to send custom JSON-encoded data back to the client.

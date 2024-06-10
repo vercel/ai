@@ -51,7 +51,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
-  private getArgs({
+  private async getArgs({
     mode,
     prompt,
     maxTokens,
@@ -96,7 +96,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       topP,
     };
 
-    const contents = convertToGoogleGenerativeAIMessages(prompt);
+    const contents = await convertToGoogleGenerativeAIMessages({ prompt });
 
     switch (type) {
       case 'regular': {
@@ -104,6 +104,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           args: {
             generationConfig,
             contents,
+            safetySettings: this.settings.safetySettings,
             ...prepareToolsAndToolConfig(mode),
           },
           warnings,
@@ -118,6 +119,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               response_mime_type: 'application/json',
             },
             contents,
+            safetySettings: this.settings.safetySettings,
           },
           warnings,
         };
@@ -145,7 +147,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}:generateContent`,
@@ -186,7 +188,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}:streamGenerateContent?alt=sse`,

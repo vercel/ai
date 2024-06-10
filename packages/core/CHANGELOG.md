@@ -1,5 +1,56 @@
 # ai
 
+## 3.1.31
+
+### Patch Changes
+
+- 85f209a4: chore: extracted ui library support into separate modules
+- 85f209a4: removed (streams): experimental_StreamingReactResponse was removed. Please use AI SDK RSC instead.
+- Updated dependencies [85f209a4]
+  - @ai-sdk/ui-utils@0.0.1
+  - @ai-sdk/svelte@0.0.1
+  - @ai-sdk/react@0.0.1
+  - @ai-sdk/solid@0.0.1
+  - @ai-sdk/vue@0.0.1
+
+## 3.1.30
+
+### Patch Changes
+
+- fcf4323b: fix (core): filter out empty assistant text messages
+
+## 3.1.29
+
+### Patch Changes
+
+- 28427d3e: feat (core): add streamObject onFinish callback
+
+## 3.1.28
+
+### Patch Changes
+
+- 102ca22f: feat (core): add object promise to streamObject result
+- Updated dependencies [102ca22f]
+  - @ai-sdk/provider@0.0.10
+  - @ai-sdk/provider-utils@0.0.13
+
+## 3.1.27
+
+### Patch Changes
+
+- c9198d4d: feat (ui): send annotation and data fields in useChat when sendExtraMessageFields is true
+- Updated dependencies [09295e2e]
+- Updated dependencies [09295e2e]
+- Updated dependencies [043a5de2]
+  - @ai-sdk/provider@0.0.9
+  - @ai-sdk/provider-utils@0.0.12
+
+## 3.1.26
+
+### Patch Changes
+
+- 5ee44cae: feat (provider): langchain StringOutputParser support
+
 ## 3.1.25
 
 ### Patch Changes

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/react": "latest",
     "@aws-sdk/client-bedrock-runtime": "3.451.0",
     "ai": "latest",
     "next": "latest",

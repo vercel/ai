@@ -11,7 +11,7 @@ All Vercel AI SDK functions support the following common settings in addition to
 
 ```ts highlight="3-5"
 const result = await generateText({
-  model,
+  model: yourModel,
   maxTokens: 512,
   temperature: 0.3,
   maxRetries: 5,

@@ -11,16 +11,28 @@ Allows you to easily create a conversational user interface for your chatbot app
 
 <Tabs items={['React', 'Svelte', 'Vue', 'Solid']}>
   <Tab>
-    <Snippet text="import { useChat } from 'ai/react'" dark prompt={false} />
+    <Snippet
+      text="import { useChat } from '@ai-sdk/react'"
+      dark
+      prompt={false}
+    />
   </Tab>
   <Tab>
-    <Snippet text="import { useChat } from 'ai/svelte'" dark prompt={false} />
+    <Snippet
+      text="import { useChat } from '@ai-sdk/svelte'"
+      dark
+      prompt={false}
+    />
   </Tab>
   <Tab>
-    <Snippet text="import { useChat } from 'ai/vue'" dark prompt={false} />
+    <Snippet text="import { useChat } from '@ai-sdk/vue'" dark prompt={false} />
   </Tab>
   <Tab>
-    <Snippet text="import { useChat } from 'ai/solid'" dark prompt={false} />
+    <Snippet
+      text="import { useChat } from '@ai-sdk/solid'"
+      dark
+      prompt={false}
+    />
   </Tab>
 </Tabs>
 
@@ -102,7 +114,9 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'sendExtraMessageFields',
       type: 'boolean',
       description:
-        "An optional boolean that determines whether to send extra fields you've added to `messages`. Defaults to `false` and only the `content` and `role` fields will be sent to the API endpoint.",
+        "An optional boolean that determines whether to send extra fields you've added to `messages`." +
+        'Defaults to `false` and only the `content` and `role` fields will be sent to the API endpoint.' +
+        'If set to `true`, the `name`, `data`, and `annotations` fields will also be sent.',
     },
     {
       name: 'maxToolRoundtrips',

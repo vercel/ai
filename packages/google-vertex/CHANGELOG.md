@@ -1,5 +1,30 @@
 # @ai-sdk/google-vertex
 
+## 0.0.8
+
+### Patch Changes
+
+- Updated dependencies [102ca22f]
+  - @ai-sdk/provider@0.0.10
+  - @ai-sdk/provider-utils@0.0.13
+
+## 0.0.7
+
+### Patch Changes
+
+- 09295e2e: feat (@ai-sdk/google-vertex): automatically download image URLs
+- Updated dependencies [09295e2e]
+- Updated dependencies [09295e2e]
+- Updated dependencies [043a5de2]
+  - @ai-sdk/provider@0.0.9
+  - @ai-sdk/provider-utils@0.0.12
+
+## 0.0.6
+
+### Patch Changes
+
+- 3a7a4ab6: fix (provider/vertex): fix undefined parts handling
+
 ## 0.0.5
 
 ### Patch Changes

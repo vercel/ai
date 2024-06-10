@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useChat } from 'ai/vue';
+import { useChat } from '@ai-sdk/vue';
 
 const { messages, input, handleSubmit } = useChat();
 </script>

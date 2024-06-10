@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",
+    "@ai-sdk/solid": "latest",
     "@solidjs/meta": "0.29.3",
     "@solidjs/router": "0.8.2",
     "ai": "latest",

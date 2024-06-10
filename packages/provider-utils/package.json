@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "0.0.11",
+  "version": "0.0.13",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -16,7 +16,10 @@
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
-    "prettier-check": "prettier --check \"./**/*.ts*\""
+    "prettier-check": "prettier --check \"./**/*.ts*\"",
+    "test": "pnpm test:node && pnpm test:edge",
+    "test:edge": "vitest --config vitest.edge.config.js --run",
+    "test:node": "vitest --config vitest.node.config.js --run"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -33,7 +36,7 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.8",
+    "@ai-sdk/provider": "0.0.10",
     "eventsource-parser": "1.1.2",
     "nanoid": "3.3.6",
     "secure-json-parse": "2.7.0"

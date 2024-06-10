@@ -50,13 +50,13 @@ Install `ai` and `@ai-sdk/openai`, the Vercel AI package and Vercel AI SDK's [ O
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm install ai @ai-sdk/openai zod" dark />
+      <Snippet text="pnpm install ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai @ai-sdk/openai zod" dark />
+      <Snippet text="npm install ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai @ai-sdk/openai zod" dark />
+      <Snippet text="yarn add ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
   </Tabs>
 </div>
@@ -125,7 +125,7 @@ Update your root page (`app/page.tsx`) with the following code to show a list of
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -223,7 +223,7 @@ To access this data on the frontend, the `useChat` hook returns an optional valu
 ```tsx filename="app/page.tsx" highlight="6, 9"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, data } = useChat();
@@ -474,6 +474,6 @@ The `ai/rsc` library is designed to give you complete control over streamable va
 
 ## Where to Next?
 
-You've built an AI chatbot using the Vercel AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/ai-sdk-core/tools-and-tool-calling) or introducing more granular control over [AI and UI states](/docs/ai-sdk-rsc/ai-ui-states).
+You've built an AI chatbot using the Vercel AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-core/tools-and-tool-calling) or introducing more granular control over [AI and UI states](/docs/ai-sdk-rsc/ai-ui-states).
 
 If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.

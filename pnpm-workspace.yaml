@@ -3,3 +3,4 @@ packages:
   - 'packages/*'
   - 'tools/*'
   - 'examples/*'
+  - 'packages/core/tests/e2e/next-server'

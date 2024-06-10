@@ -1,7 +1,3 @@
-import { useSWR } from 'sswr';
-import { Readable, Writable, derived, get, writable } from 'svelte/store';
-import { callChatApi } from '../shared/call-chat-api';
-import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
   ChatRequestOptions,
@@ -10,8 +6,14 @@ import type {
   JSONValue,
   Message,
   UseChatOptions,
-} from '../shared/types';
-import { generateId as generateIdFunc } from '../shared/generate-id';
+} from '@ai-sdk/ui-utils';
+import {
+  callChatApi,
+  generateId as generateIdFunc,
+  processChatStream,
+} from '@ai-sdk/ui-utils';
+import { useSWR } from 'sswr';
+import { Readable, Writable, derived, get, writable } from 'svelte/store';
 export type { CreateMessage, Message, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -84,17 +86,25 @@ const getStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({ role, content, name, function_call, tool_calls, tool_call_id }) => ({
+        ({
           role,
           content,
+          name,
+          data,
+          annotations,
+          function_call,
+          tool_calls,
           tool_call_id,
+        }) => ({
+          role,
+          content,
           ...(name !== undefined && { name }),
-          ...(function_call !== undefined && {
-            function_call: function_call,
-          }),
-          ...(tool_calls !== undefined && {
-            tool_calls: tool_calls,
-          }),
+          ...(data !== undefined && { data }),
+          ...(annotations !== undefined && { annotations }),
+          // outdated function/tool call handling (TODO deprecate):
+          tool_call_id,
+          ...(function_call !== undefined && { function_call }),
+          ...(tool_calls !== undefined && { tool_calls }),
         }),
       );
 
@@ -141,6 +151,9 @@ let uniqueId = 0;
 
 const store: Record<string, Message[] | undefined> = {};
 
+/**
+ * @deprecated Use `useChat` from `@ai-sdk/svelte` instead.
+ */
 export function useChat({
   api = '/api/chat',
   id,
