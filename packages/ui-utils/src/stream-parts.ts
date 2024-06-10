@@ -7,7 +7,9 @@ import {
   JSONValue,
   ToolCall,
 } from './types';
-import { StreamString } from './index';
+
+export type StreamString =
+  `${(typeof StreamStringPrefixes)[keyof typeof StreamStringPrefixes]}:${string}\n`;
 
 export interface StreamPart<CODE extends string, NAME extends string, TYPE> {
   code: CODE;

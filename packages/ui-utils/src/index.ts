@@ -11,6 +11,4 @@ export { parseComplexResponse } from './parse-complex-response';
 export { processChatStream } from './process-chat-stream';
 export { readDataStream } from './read-data-stream';
 export { formatStreamPart, parseStreamPart } from './stream-parts';
-export type { StreamPart } from './stream-parts';
-export { isStreamStringEqualToType } from './stream-string';
-export type { StreamString } from './stream-string';
+export type { StreamPart, StreamString } from './stream-parts';
