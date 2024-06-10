@@ -1,0 +1,12 @@
+{
+  "name": "ai-core-e2e-next-server",
+  "scripts": {
+    "dev": "next"
+  },
+  "dependencies": {
+    "next": "canary",
+    "react": "rc",
+    "react-dom": "rc",
+    "ai": "workspace:*"
+  }
+}
