@@ -4,11 +4,7 @@
     "target": "ES2018",
     "stripInternal": true,
     "lib": ["dom", "dom.iterable", "esnext"],
-    "types": [
-      "@vitest/browser/providers/playwright",
-      "@types/node",
-      "vitest/globals"
-    ]
+    "types": ["@types/node", "vitest/globals"]
   },
   "include": ["."],
   "exclude": ["*/dist", "dist", "build", "node_modules"]
