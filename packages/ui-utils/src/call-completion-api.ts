@@ -1,6 +1,6 @@
 import { readDataStream } from './read-data-stream';
 import { JSONValue } from './types';
-import { createChunkDecoder } from './utils';
+import { createChunkDecoder } from './index';
 
 export async function callCompletionApi({
   api,

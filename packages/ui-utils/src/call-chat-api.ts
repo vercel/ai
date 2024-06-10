@@ -1,6 +1,6 @@
 import { parseComplexResponse } from './parse-complex-response';
 import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
-import { createChunkDecoder } from './utils';
+import { createChunkDecoder } from './index';
 
 export async function callChatApi({
   api,
