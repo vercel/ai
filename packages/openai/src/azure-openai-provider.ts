@@ -1,20 +1,20 @@
 import { loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
-import { AzureOpenAIChatSettings } from './azure-openai-chat-settings';
-import { AzureOpenAIChatLanguageModel } from './azure-openai-chat-language-model';
+import { OpenAIChatSettings } from './openai-chat-settings';
+import { OpenAIChatLanguageModel } from './openai-chat-language-model';
 
 export interface AzureOpenAIProvider {
   (
     deploymentId: string,
-    settings?: AzureOpenAIChatSettings,
-  ): AzureOpenAIChatLanguageModel;
+    settings?: OpenAIChatSettings,
+  ): OpenAIChatLanguageModel;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
   chat(
     deploymentId: string,
-    settings?: AzureOpenAIChatSettings,
-  ): AzureOpenAIChatLanguageModel;
+    settings?: OpenAIChatSettings,
+  ): OpenAIChatLanguageModel;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -53,17 +53,19 @@ export function createAzureOpenAI(
 
   const createChatModel = (
     deploymentName: string,
-    settings: AzureOpenAIChatSettings = {},
+    settings: OpenAIChatSettings = {},
   ) =>
-    new AzureOpenAIChatLanguageModel(deploymentName, settings, {
+    new OpenAIChatLanguageModel(deploymentName, settings, {
       provider: 'azure-openai.chat',
       headers: getHeaders,
-      resourceName: getResourceName,
+      url: ({ path, modelId }) =>
+        `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-05-01-preview`,
+      compatibility: 'compatible',
     });
 
   const provider = function (
     deploymentId: string,
-    settings?: AzureOpenAIChatSettings,
+    settings?: OpenAIChatSettings,
   ) {
     if (new.target) {
       throw new Error(
@@ -71,7 +73,7 @@ export function createAzureOpenAI(
       );
     }
 
-    return createChatModel(deploymentId, settings as AzureOpenAIChatSettings);
+    return createChatModel(deploymentId, settings as OpenAIChatSettings);
   };
 
   provider.chat = createChatModel;
