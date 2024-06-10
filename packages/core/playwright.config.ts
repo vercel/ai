@@ -15,7 +15,7 @@ const projects = [
  * See https://playwright.dev/docs/test-configuration.
  */
 const config: PlaywrightTestConfig = {
-  testDir: './tests/e2e',
+  testDir: './tests/e2e/spec',
   snapshotPathTemplate: './tests/e2e/__snapshots__/{testFilePath}/{arg}{ext}',
   timeout: 20_000,
   expect: {
