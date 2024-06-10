@@ -732,6 +732,9 @@ importers:
 
   examples/nuxt-openai:
     devDependencies:
+      '@ai-sdk/vue':
+        specifier: latest
+        version: link:../../packages/vue
       '@nuxt/devtools':
         specifier: 0.8.0
         version: 0.8.0(nuxt@3.8.1)(vite@4.5.0)
