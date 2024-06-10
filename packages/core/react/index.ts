@@ -18,3 +18,13 @@ export const useCompletion = useCompletionReact;
  * @deprecated Use `useAssistant` from `@ai-sdk/react` instead.
  */
 export const useAssistant = useAssistantReact;
+
+/**
+ * @deprecated Use `@ai-sdk/react` instead.
+ */
+export type {
+  CreateMessage,
+  Message,
+  UseChatOptions,
+  UseChatHelpers,
+} from '@ai-sdk/react';
