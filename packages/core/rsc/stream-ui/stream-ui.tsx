@@ -4,6 +4,7 @@ import {
   NoSuchToolError,
 } from '@ai-sdk/provider';
 import { ReactNode } from 'react';
+
 import { z } from 'zod';
 
 import { safeParseJSON } from '@ai-sdk/provider-utils';
@@ -274,6 +275,8 @@ export async function streamUI<
 
       let content = '';
       let hasToolCall = false;
+      let currentToolCallId = '';
+      let currentUIStream = ui; // TODO: consider an undefined default
 
       const reader = forkedStream.getReader();
       while (true) {
@@ -292,7 +295,32 @@ export async function streamUI<
           }
 
           case 'tool-call-delta': {
+            const toolName = value.toolName as keyof TOOLS & string;
+
+            if (!tools) {
+              throw new NoSuchToolError({ toolName: toolName });
+            }
+
+            const tool = tools[toolName];
+            if (!tool) {
+              throw new NoSuchToolError({
+                toolName,
+                availableTools: Object.keys(tools),
+              });
+            }
+
             hasToolCall = true;
+            if (currentToolCallId !== value.toolCallId) {
+              // start of a new tool call
+              const shouldReplaceInitial = !!initial && !currentToolCallId;
+              currentToolCallId = value.toolCallId;
+              currentUIStream = createStreamableUI(initial);
+              if (shouldReplaceInitial) {
+                ui.update(currentUIStream.value);
+              } else {
+                ui.append(currentUIStream.value);
+              }
+            }
             break;
           }
 
@@ -334,7 +362,7 @@ export async function streamUI<
                 },
               ],
               tool.generate,
-              ui,
+              currentUIStream,
               true,
             );
 
@@ -360,7 +388,12 @@ export async function streamUI<
       if (hasToolCall) {
         await finished;
       } else {
-        handleRender([{ content, done: true }], textRender, ui, true);
+        handleRender(
+          [{ content, done: true }],
+          textRender,
+          currentUIStream,
+          true,
+        );
         await finished;
       }
     } catch (error) {
