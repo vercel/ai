@@ -5,8 +5,12 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    include: ['**/*.test.ts', '**/*.test.tsx'],
-    exclude: ['**/*.ui.test.ts', '**/*.ui.test.tsx', '**/node_modules/**'],
+    include: ['**/*.test.ts{,x}'],
+    exclude: [
+      '**/*.ui.test.ts{,x}',
+      '**/*.e2e.test.ts{,x}',
+      '**/node_modules/**',
+    ],
     typecheck: {
       enabled: true,
     },
