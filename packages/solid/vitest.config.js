@@ -9,7 +9,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    include: ['solid/**/*.ui.test.ts', 'solid/**/*.ui.test.tsx'],
+    include: ['solisrcd/**/*.ui.test.ts', 'src/**/*.ui.test.tsx'],
     deps: {
       registerNodeLoader: true,
       inline: [/solid-js/],
