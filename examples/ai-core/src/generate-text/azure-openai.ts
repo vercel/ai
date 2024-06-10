@@ -11,7 +11,7 @@ const azureOpenAI = createAzureOpenAI({
 
 async function main() {
   const result = await generateText({
-    model: azureOpenAI('gpt-3.5-turbo'),
+    model: azureOpenAI('v0-gpt-35-turbo'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

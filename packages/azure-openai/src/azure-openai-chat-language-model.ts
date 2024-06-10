@@ -69,7 +69,7 @@ export class AzureOpenAIChatLanguageModel implements LanguageModelV1 {
 
     const url = `https://${this.config.resourceName()}.openai.azure.com/openai/deployments/${
       this.deploymentName
-    }/completions?api-version=2024-02-01`;
+    }/chat/completions?api-version=2024-02-01`;
 
     const baseArgs = {
       // standardized settings:
