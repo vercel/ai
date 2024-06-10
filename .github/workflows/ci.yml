@@ -10,6 +10,9 @@ jobs:
   test:
     name: 'Test'
     runs-on: ubuntu-latest
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     strategy:
       matrix:
         node-version: [18.x, 20.x]
