@@ -871,7 +871,7 @@ importers:
         version: 5.1.3
       vite:
         specifier: ^5
-        version: 5.2.11
+        version: 5.2.11(@types/node@17.0.45)
 
   packages/anthropic:
     dependencies:
@@ -909,6 +909,9 @@ importers:
       '@ai-sdk/ui-utils':
         specifier: 0.0.0
         version: link:../ui-utils
+      '@ai-sdk/vue':
+        specifier: 0.0.0
+        version: link:../vue
       eventsource-parser:
         specifier: 1.1.2
         version: 1.1.2
@@ -942,12 +945,6 @@ importers:
       swr-store:
         specifier: 0.10.6
         version: 0.10.6
-      swrv:
-        specifier: 1.0.4
-        version: 1.0.4(vue@3.3.8)
-      vue:
-        specifier: ^3.3.4
-        version: 3.3.8(typescript@5.1.3)
       zod-to-json-schema:
         specifier: 3.22.5
         version: 3.22.5(zod@3.23.8)
@@ -982,9 +979,6 @@ importers:
       '@testing-library/user-event':
         specifier: ^14.5.1
         version: 14.5.1(@testing-library/dom@10.1.0)
-      '@testing-library/vue':
-        specifier: ^8.0.1
-        version: 8.0.1(@vue/compiler-sfc@3.3.8)(vue@3.3.8)
       '@types/json-schema':
         specifier: 7.0.15
         version: 7.0.15
@@ -1003,9 +997,6 @@ importers:
       '@vitejs/plugin-react':
         specifier: 4.2.0
         version: 4.2.0(vite@4.5.0)
-      '@vitejs/plugin-vue':
-        specifier: 4.5.0
-        version: 4.5.0(vite@4.5.0)(vue@3.3.8)
       cohere-ai:
         specifier: ^7.6.2
         version: 7.6.2
@@ -1229,6 +1220,55 @@ importers:
       tsup:
         specifier: ^8
         version: 8.0.2(typescript@5.1.3)
+      typescript:
+        specifier: 5.1.3
+        version: 5.1.3
+
+  packages/vue:
+    dependencies:
+      '@ai-sdk/ui-utils':
+        specifier: 0.0.0
+        version: link:../ui-utils
+      swrv:
+        specifier: 1.0.4
+        version: 1.0.4(vue@3.3.8)
+      vue:
+        specifier: ^3.3.4
+        version: 3.3.8(typescript@5.1.3)
+    devDependencies:
+      '@testing-library/jest-dom':
+        specifier: ^6.4.5
+        version: 6.4.5(vitest@1.6.0)
+      '@testing-library/user-event':
+        specifier: ^14.5.1
+        version: 14.5.1(@testing-library/dom@10.1.0)
+      '@testing-library/vue':
+        specifier: ^8.0.1
+        version: 8.0.1(@vue/compiler-sfc@3.3.8)(vue@3.3.8)
+      '@types/node':
+        specifier: ^17.0.12
+        version: 17.0.45
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      '@vitejs/plugin-vue':
+        specifier: 4.5.0
+        version: 4.5.0(vite@5.2.11)(vue@3.3.8)
+      eslint:
+        specifier: ^7.32.0
+        version: 7.32.0
+      eslint-config-vercel-ai:
+        specifier: workspace:*
+        version: link:../../tools/eslint-config
+      jsdom:
+        specifier: ^24.0.0
+        version: 24.0.0
+      msw:
+        specifier: 2.0.9
+        version: 2.0.9(typescript@5.1.3)
+      tsup:
+        specifier: ^7.2.0
+        version: 7.2.0(typescript@5.1.3)
       typescript:
         specifier: 5.1.3
         version: 5.1.3
@@ -2865,7 +2905,6 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       regenerator-runtime: 0.14.0
-    dev: false
 
   /@babel/standalone@7.23.3:
     resolution: {integrity: sha512-ZfB6wyLVqr9ANl1F0l/0aqoNUE1/kcWlQHmk0wF9OTEKDK1whkXYLruRMt53zY556yS2+84EsOpr1hpjZISTRg==}
@@ -6787,7 +6826,7 @@ packages:
       sirv: 2.0.4
       svelte: 4.2.3
       tiny-glob: 0.2.9
-      vite: 5.2.11
+      vite: 5.2.11(@types/node@17.0.45)
     dev: true
 
   /@sveltejs/vite-plugin-svelte-inspector@2.1.0(@sveltejs/vite-plugin-svelte@3.1.0)(svelte@4.2.3)(vite@5.2.11):
@@ -6801,7 +6840,7 @@ packages:
       '@sveltejs/vite-plugin-svelte': 3.1.0(svelte@4.2.3)(vite@5.2.11)
       debug: 4.3.4
       svelte: 4.2.3
-      vite: 5.2.11
+      vite: 5.2.11(@types/node@17.0.45)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -6820,7 +6859,7 @@ packages:
       magic-string: 0.30.10
       svelte: 4.2.3
       svelte-hmr: 0.16.0(svelte@4.2.3)
-      vite: 5.2.11
+      vite: 5.2.11(@types/node@17.0.45)
       vitefu: 0.2.5(vite@5.2.11)
     transitivePeerDependencies:
       - supports-color
@@ -7473,7 +7512,18 @@ packages:
       vite: ^4.0.0 || ^5.0.0
       vue: ^3.2.25
     dependencies:
-      vite: 4.5.0(@types/node@17.0.45)
+      vite: 4.5.0(@types/node@20.9.0)
+      vue: 3.3.8(typescript@5.1.3)
+    dev: true
+
+  /@vitejs/plugin-vue@4.5.0(vite@5.2.11)(vue@3.3.8):
+    resolution: {integrity: sha512-a2WSpP8X8HTEww/U00bU4mX1QpLINNuz/2KMNpLsdu3BzOpak3AGI1CJYBTXcc4SPhaD0eNRUp7IyQK405L5dQ==}
+    engines: {node: ^14.18.0 || >=16.0.0}
+    peerDependencies:
+      vite: ^4.0.0 || ^5.0.0
+      vue: ^3.2.25
+    dependencies:
+      vite: 5.2.11(@types/node@17.0.45)
       vue: 3.3.8(typescript@5.1.3)
     dev: true
 
@@ -7583,9 +7633,9 @@ packages:
       '@vue/reactivity-transform': 3.3.8
       '@vue/shared': 3.3.8
       estree-walker: 2.0.2
-      magic-string: 0.30.5
+      magic-string: 0.30.10
       postcss: 8.4.38
-      source-map-js: 1.0.2
+      source-map-js: 1.2.0
 
   /@vue/compiler-ssr@3.3.8:
     resolution: {integrity: sha512-hXCqQL/15kMVDBuoBYpUnSYT8doDNwsjvm3jTefnXr+ytn294ySnT8NlsFHmTgKNjwpuFy7XVV8yTeLtNl/P6w==}
@@ -7604,7 +7654,7 @@ packages:
       '@vue/compiler-core': 3.3.8
       '@vue/shared': 3.3.8
       estree-walker: 2.0.2
-      magic-string: 0.30.5
+      magic-string: 0.30.10
 
   /@vue/reactivity@3.3.8:
     resolution: {integrity: sha512-ctLWitmFBu6mtddPyOKpHg8+5ahouoTCRtmAHZAXmolDtuZXfjL2T3OJ6DL6ezBPQB1SmMnpzjiWjCiMYmpIuw==}
@@ -13484,7 +13534,7 @@ packages:
     resolution: {integrity: sha512-0shqecEPgdFpnI3AP90epXyxZy9g6CRZ+SZ7BcqFwYmtFEnZ1jpevcV5HoyVnlDS9gCnc1UIg3Rsvp3Ci7r8OA==}
     engines: {node: '>=16.14.0'}
     dependencies:
-      magic-string: 0.30.5
+      magic-string: 0.30.10
     dev: true
 
   /magic-string@0.27.0:
@@ -13497,7 +13547,6 @@ packages:
     resolution: {integrity: sha512-iIRwTIf0QKV3UAnYK4PU8uiEc4SRh5jX0mwpIwETPpHdhVM4f53RSwS/vXvN1JhGX+Cs7B8qIq3d6AH49O5fAQ==}
     dependencies:
       '@jridgewell/sourcemap-codec': 1.4.15
-    dev: true
 
   /magic-string@0.30.5:
     resolution: {integrity: sha512-7xlpfBaQaP/T6Vh8MO/EqXSW5En6INHEvEXQiuff7Gku0PWjU3uf6w/j9o7O+SpB5fOAkrI5HeoNgwjEO0pFsA==}
@@ -16026,7 +16075,7 @@ packages:
   /regenerator-transform@0.15.2:
     resolution: {integrity: sha512-hfMp2BoF0qOk3uc5V20ALGDS2ddjQaLrdl7xrGXvAIow7qeWRM2VA2HuCHkUKk9slq3VwEwLNK3DFBqDfPGYtg==}
     dependencies:
-      '@babel/runtime': 7.24.0
+      '@babel/runtime': 7.24.6
 
   /regexp.prototype.flags@1.5.2:
     resolution: {integrity: sha512-NcDiDkTLuPR+++OCKB0nWafEmhg/Da8aUPLPMQbK+bxKKCm1/S5he+AqYa4PlMCVBalb4/yxIRub6qkEx5yJbw==}
@@ -17199,7 +17248,7 @@ packages:
     dependencies:
       '@types/pug': 2.0.9
       detect-indent: 6.1.0
-      magic-string: 0.30.5
+      magic-string: 0.30.10
       sorcery: 0.11.0
       strip-indent: 3.0.0
       svelte: 4.2.3
@@ -18395,7 +18444,7 @@ packages:
       debug: 4.3.4
       pathe: 1.1.1
       picocolors: 1.0.0
-      vite: 5.2.11
+      vite: 5.2.11(@types/node@17.0.45)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -18668,7 +18717,7 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vite@5.2.11:
+  /vite@5.2.11(@types/node@17.0.45):
     resolution: {integrity: sha512-HndV31LWW05i1BLPMUCE1B9E9GFbOu1MbenhS58FuK6owSO5qHm7GiCotrNY1YE5rMeQSFBGmT5ZaLEjFizgiQ==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -18696,6 +18745,7 @@ packages:
       terser:
         optional: true
     dependencies:
+      '@types/node': 17.0.45
       esbuild: 0.20.2
       postcss: 8.4.38
       rollup: 4.14.1
@@ -18721,7 +18771,7 @@ packages:
       vite:
         optional: true
     dependencies:
-      vite: 5.2.11
+      vite: 5.2.11(@types/node@17.0.45)
     dev: true
 
   /vitest@1.6.0:
@@ -18766,7 +18816,7 @@ packages:
       strip-literal: 2.1.0
       tinybench: 2.5.1
       tinypool: 0.8.4
-      vite: 5.2.11
+      vite: 5.2.11(@types/node@17.0.45)
       vite-node: 1.6.0
       why-is-node-running: 2.2.2
     transitivePeerDependencies:

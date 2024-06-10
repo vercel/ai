@@ -1,5 +1,11 @@
 // forwarding exports from ui-utils:
-export { formatStreamPart } from '@ai-sdk/ui-utils';
+export { formatStreamPart, generateId } from '@ai-sdk/ui-utils';
+export type {
+  Message,
+  Function,
+  FunctionCall,
+  FunctionCallHandler,
+} from '@ai-sdk/ui-utils';
 
 export * from '../core/index';
 export * from './ai-stream';

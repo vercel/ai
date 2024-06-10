@@ -1,13 +1,13 @@
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { cleanup, findByText, render, screen } from '@testing-library/vue';
+import TestCompletionComponent from './TestCompletionComponent.vue';
+import TestCompletionTextStreamComponent from './TestCompletionTextStreamComponent.vue';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
   mockFetchError,
-} from '../tests/utils/mock-fetch';
-import TestCompletionComponent from './TestCompletionComponent.vue';
-import TestCompletionTextStreamComponent from './TestCompletionTextStreamComponent.vue';
+} from './tests/mock-fetch';
 
 describe('stream data stream', () => {
   beforeEach(() => {
