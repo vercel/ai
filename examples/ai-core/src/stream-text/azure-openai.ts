@@ -1,16 +1,22 @@
 import { azureOpenAI } from '@ai-sdk/azure-openai';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 async function main() {
-  const result = await generateText({
+  const result = await streamText({
     model: azureOpenAI('v0-gpt-35-turbo'), // use your own deployment
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  console.log(result.text);
+  for await (const textPart of result.textStream) {
+    process.stdout.write(textPart);
+  }
+
+  console.log();
+  console.log('Token usage:', await result.usage);
+  console.log('Finish reason:', await result.finishReason);
 }
 
 main().catch(console.error);

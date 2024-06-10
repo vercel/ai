@@ -78,3 +78,8 @@ export function createAzureOpenAI(
 
   return provider as AzureOpenAIProvider;
 }
+
+/**
+Default Azure OpenAI provider instance.
+ */
+export const azureOpenAI = createAzureOpenAI({});
