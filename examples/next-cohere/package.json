@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/react": "latest",
     "ai": "latest",
     "cohere-ai": "^7.6.1",
     "next": "latest",

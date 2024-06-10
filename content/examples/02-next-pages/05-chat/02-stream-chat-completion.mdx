@@ -27,7 +27,7 @@ Chat completion can sometimes take a long time to finish, especially when the re
 Let's create a React component that imports the `useChat` hook from the `ai/react` module. The `useChat` hook will call the `/api/chat` endpoint when the user sends a message. The endpoint will generate the assistant's response based on the conversation history and stream it to the client.
 
 ```tsx filename='pages/index.tsx'
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const { messages, input, setInput, append } = useChat();
