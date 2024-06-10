@@ -789,6 +789,9 @@ importers:
       '@ai-sdk/openai':
         specifier: latest
         version: link:../../packages/openai
+      '@ai-sdk/solid':
+        specifier: latest
+        version: link:../../packages/solid
       '@solidjs/meta':
         specifier: 0.29.3
         version: 0.29.3(solid-js@1.8.7)
@@ -912,6 +915,9 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: 0.0.13
         version: link:../provider-utils
+      '@ai-sdk/solid':
+        specifier: 0.0.0
+        version: link:../solid
       '@ai-sdk/svelte':
         specifier: 0.0.0
         version: link:../svelte
@@ -1024,9 +1030,6 @@ importers:
       react-server-dom-webpack:
         specifier: 18.3.0-canary-eb33bd747-20240312
         version: 18.3.0-canary-eb33bd747-20240312(react-dom@18.2.0)(react@18.2.0)(webpack@5.89.0)
-      solid-js:
-        specifier: ^1.8.7
-        version: 1.8.7
       tsup:
         specifier: ^7.2.0
         version: 7.2.0(typescript@5.1.3)
