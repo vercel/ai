@@ -3,7 +3,8 @@
   "compilerOptions": {
     "target": "ES2018",
     "stripInternal": true,
-    "types": ["@vitest/browser/providers/playwright"]
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "types": ["@vitest/browser/providers/playwright", "node"]
   },
   "include": ["."],
   "exclude": ["*/dist", "dist", "build", "node_modules"]
