@@ -2,7 +2,6 @@ import {
   InvalidResponseDataError,
   LanguageModelV1,
   LanguageModelV1FinishReason,
-  LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -17,9 +16,7 @@ import {
 import { z } from 'zod';
 import { AzureOpenAIChatSettings } from './azure-openai-chat-settings';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
-import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
-import { OpenAIChatSettings } from './openai-chat-settings';
 import {
   openAIErrorDataSchema,
   openaiFailedResponseHandler,
@@ -40,9 +37,13 @@ export class AzureOpenAIChatLanguageModel implements LanguageModelV1 {
 
   private readonly config: AzureOpenAIChatConfig;
 
+  get modelId() {
+    return this.deploymentName;
+  }
+
   constructor(
     deploymentName: string,
-    settings: OpenAIChatSettings,
+    settings: AzureOpenAIChatSettings,
     config: AzureOpenAIChatConfig,
   ) {
     this.deploymentName = deploymentName;
@@ -66,7 +67,9 @@ export class AzureOpenAIChatLanguageModel implements LanguageModelV1 {
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
-    // TODO construct url
+    const url = `https://${this.config.resourceName()}.openai.azure.com/openai/deployments/${
+      this.deploymentName
+    }/completions?api-version=2024-02-01`;
 
     const baseArgs = {
       // standardized settings:
@@ -83,30 +86,42 @@ export class AzureOpenAIChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        return { ...baseArgs, ...prepareToolsAndToolChoice(mode) };
+        return {
+          url,
+          params: { ...baseArgs, ...prepareToolsAndToolChoice(mode) },
+        };
       }
 
       case 'object-json': {
         return {
-          ...baseArgs,
-          response_format: { type: 'json_object' },
+          url,
+          params: {
+            ...baseArgs,
+            response_format: { type: 'json_object' },
+          },
         };
       }
 
       case 'object-tool': {
         return {
-          ...baseArgs,
-          tool_choice: { type: 'function', function: { name: mode.tool.name } },
-          tools: [
-            {
+          url,
+          params: {
+            ...baseArgs,
+            tool_choice: {
               type: 'function',
-              function: {
-                name: mode.tool.name,
-                description: mode.tool.description,
-                parameters: mode.tool.parameters,
-              },
+              function: { name: mode.tool.name },
             },
-          ],
+            tools: [
+              {
+                type: 'function',
+                function: {
+                  name: mode.tool.name,
+                  description: mode.tool.description,
+                  parameters: mode.tool.parameters,
+                },
+              },
+            ],
+          },
         };
       }
 
@@ -126,12 +141,12 @@ export class AzureOpenAIChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const args = this.getArgs(options);
+    const { url, params } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/chat/completions`,
+      url,
       headers: this.config.headers(),
-      body: args,
+      body: params,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openAIChatResponseSchema,
@@ -139,7 +154,7 @@ export class AzureOpenAIChatLanguageModel implements LanguageModelV1 {
       abortSignal: options.abortSignal,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
+    const { messages: rawPrompt, ...rawSettings } = params;
     const choice = response.choices[0];
 
     return {
@@ -158,27 +173,20 @@ export class AzureOpenAIChatLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings: [],
-      logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
     };
   }
 
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const args = this.getArgs(options);
+    const { url, params } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/chat/completions`,
+      url,
       headers: this.config.headers(),
       body: {
-        ...args,
+        ...params,
         stream: true,
-
-        // only include stream_options when in strict compatibility mode:
-        stream_options:
-          this.config.compatibility === 'strict'
-            ? { include_usage: true }
-            : undefined,
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -187,7 +195,7 @@ export class AzureOpenAIChatLanguageModel implements LanguageModelV1 {
       abortSignal: options.abortSignal,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
+    const { messages: rawPrompt, ...rawSettings } = params;
 
     const toolCalls: Array<{
       id: string;
@@ -203,7 +211,6 @@ export class AzureOpenAIChatLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
-    let logprobs: LanguageModelV1LogProbs;
 
     return {
       stream: response.pipeThrough(
@@ -252,14 +259,6 @@ export class AzureOpenAIChatLanguageModel implements LanguageModelV1 {
                 type: 'text-delta',
                 textDelta: delta.content,
               });
-            }
-
-            const mappedLogprobs = mapOpenAIChatLogProbsOutput(
-              choice?.logprobs,
-            );
-            if (mappedLogprobs?.length) {
-              if (logprobs === undefined) logprobs = [];
-              logprobs.push(...mappedLogprobs);
             }
 
             if (delta.tool_calls != null) {
@@ -367,7 +366,6 @@ export class AzureOpenAIChatLanguageModel implements LanguageModelV1 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              logprobs,
               usage,
             });
           },
@@ -387,11 +385,11 @@ const openAIChatResponseSchema = z.object({
     z.object({
       message: z.object({
         role: z.literal('assistant'),
-        content: z.string().nullable().optional(),
+        content: z.string().nullish(),
         tool_calls: z
           .array(
             z.object({
-              id: z.string().optional().nullable(),
+              id: z.string().nullish(),
               type: z.literal('function'),
               function: z.object({
                 name: z.string(),
@@ -402,26 +400,7 @@ const openAIChatResponseSchema = z.object({
           .optional(),
       }),
       index: z.number(),
-      logprobs: z
-        .object({
-          content: z
-            .array(
-              z.object({
-                token: z.string(),
-                logprob: z.number(),
-                top_logprobs: z.array(
-                  z.object({
-                    token: z.string(),
-                    logprob: z.number(),
-                  }),
-                ),
-              }),
-            )
-            .nullable(),
-        })
-        .nullable()
-        .optional(),
-      finish_reason: z.string().optional().nullable(),
+      finish_reason: z.string().nullish(),
     }),
   ),
   usage: z.object({
@@ -453,24 +432,6 @@ const openaiChatChunkSchema = z.union([
             )
             .nullish(),
         }),
-        logprobs: z
-          .object({
-            content: z
-              .array(
-                z.object({
-                  token: z.string(),
-                  logprob: z.number(),
-                  top_logprobs: z.array(
-                    z.object({
-                      token: z.string(),
-                      logprob: z.number(),
-                    }),
-                  ),
-                }),
-              )
-              .nullable(),
-          })
-          .nullish(),
         finish_reason: z.string().nullable().optional(),
         index: z.number(),
       }),

@@ -44,6 +44,9 @@ importers:
       '@ai-sdk/anthropic':
         specifier: latest
         version: link:../../packages/anthropic
+      '@ai-sdk/azure-openai':
+        specifier: latest
+        version: link:../../packages/openai
       '@ai-sdk/google':
         specifier: latest
         version: link:../../packages/google

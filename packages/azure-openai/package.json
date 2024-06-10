@@ -1,6 +1,6 @@
 {
-  "name": "@ai-sdk/openai",
-  "version": "0.0.24",
+  "name": "@ai-sdk/azure-openai",
+  "version": "0.0.0",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",

@@ -32,7 +32,7 @@ API key for authenticating requests.
 /**
 Create an Azure OpenAI provider instance.
  */
-export function createOpenAI(
+export function createAzureOpenAI(
   options: AzureOpenAIProviderSettings = {},
 ): AzureOpenAIProvider {
   const getHeaders = () => ({

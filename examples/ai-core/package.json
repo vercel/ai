@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/anthropic": "latest",
+    "@ai-sdk/azure-openai": "latest",
     "@ai-sdk/google": "latest",
     "@ai-sdk/google-vertex": "latest",
     "@ai-sdk/mistral": "latest",
