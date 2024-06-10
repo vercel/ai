@@ -100,7 +100,13 @@ export function convertToLanguageModelMessage(
         };
       }
 
-      return { role: 'assistant', content: message.content };
+      return {
+        role: 'assistant',
+        content: message.content.filter(
+          // remove empty text parts:
+          part => part.type !== 'text' || part.text !== '',
+        ),
+      };
     }
 
     case 'tool': {

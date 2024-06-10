@@ -38,7 +38,8 @@ If you need a customized setup, you can import `createOpenAI` from `@ai-sdk/open
 import { createOpenAI } from '@ai-sdk/openai';
 
 const openai = createOpenAI({
-  // custom settings
+  // custom settings, e.g.
+  compatibility: 'strict', // strict mode, enable when using the OpenAI API
 });
 ```
 
@@ -70,7 +71,8 @@ You can use the following optional settings to customize the OpenAI provider ins
 
   OpenAI compatibility mode. Should be set to `strict` when using the OpenAI API,
   and `compatible` when using 3rd party providers. In `compatible` mode, newer
-  information such as streamOptions are not being sent. Defaults to 'compatible'.
+  information such as `streamOptions` are not being sent, resulting in `NaN`
+  token usage. Defaults to 'compatible'.
 
 ## Language Models
 

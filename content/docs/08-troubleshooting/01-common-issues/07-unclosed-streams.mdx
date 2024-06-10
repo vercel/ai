@@ -9,7 +9,7 @@ Sometimes streams are not closed properly, which can lead to unexpected behavior
 
 ## Issue
 
-- The streamable UI has been slow to update.
+The streamable UI has been slow to update.
 
 ## Solution
 
@@ -29,6 +29,6 @@ const submitMessage = async () => {
   stream.append('3');
   stream.done('4'); // [!code ++]
 
-  return stream.value,
+  return stream.value;
 };
 ```

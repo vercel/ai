@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useChat } from 'ai/svelte'
+  import { useChat } from '@ai-sdk/svelte'
   import type { FunctionCallHandler } from 'ai'
   import { nanoid } from 'ai'
 

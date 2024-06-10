@@ -1,11 +1,11 @@
-import { useSWR } from 'sswr';
-import { Readable, Writable, derived, get, writable } from 'svelte/store';
-import { callCompletionApi } from '../shared/call-completion-api';
 import type {
   JSONValue,
   RequestOptions,
   UseCompletionOptions,
-} from '../shared/types';
+} from '@ai-sdk/ui-utils';
+import { callCompletionApi } from '@ai-sdk/ui-utils';
+import { useSWR } from 'sswr';
+import { Readable, Writable, derived, get, writable } from 'svelte/store';
 
 export type { UseCompletionOptions };
 
@@ -52,6 +52,9 @@ let uniqueId = 0;
 
 const store: Record<string, any> = {};
 
+/**
+ * @deprecated Use `useCompletion` from `@ai-sdk/svelte` instead.
+ */
 export function useCompletion({
   api = '/api/completion',
   id,

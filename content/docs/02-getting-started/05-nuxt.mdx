@@ -44,13 +44,13 @@ Install `ai` and `@ai-sdk/openai`, Vercel AI SDK's OpenAI provider.
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm install ai @ai-sdk/openai zod" dark />
+      <Snippet text="pnpm install ai @ai-sdk/openai @ai-sdk/vue zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai @ai-sdk/openai zod" dark />
+      <Snippet text="npm install ai @ai-sdk/openai @ai-sdk/vue zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai @ai-sdk/openai zod" dark />
+      <Snippet text="yarn add ai @ai-sdk/openai @ai-sdk/vue zod" dark />
     </Tab>
   </Tabs>
 </div>
@@ -130,7 +130,7 @@ Update your root page (`pages/index.vue`) with the following code to show a list
 
 ```tsx filename="pages/index.vue"
 <script setup lang="ts">
-import { useChat } from 'ai/vue';
+import { useChat } from '@ai-sdk/vue';
 
 const { messages, input, handleSubmit } = useChat();
 </script>
@@ -166,7 +166,7 @@ With that, you have built everything you need for your chatbot! To start your ap
 
 <Snippet text="pnpm run dev" />
 
-Head to your browser and open http://localhost:5173. You should see an input field. Test it out by entering a message and see the AI chatbot respond in real-time! Vercel AI SDK makes it fast and easy to build AI chat interfaces with Nuxt.
+Head to your browser and open http://localhost:3000. You should see an input field. Test it out by entering a message and see the AI chatbot respond in real-time! Vercel AI SDK makes it fast and easy to build AI chat interfaces with Nuxt.
 
 ## Stream Data Alongside Response
 
@@ -224,14 +224,14 @@ To access this data on the frontend, the `useChat` hook returns an optional valu
 
 ```tsx filename="pages/index.vue" highlight="4, 9"
 <script setup lang="ts">
-import { useChat } from 'ai/vue';
+import { useChat } from '@ai-sdk/vue';
 
 const { messages, input, handleSubmit, data } = useChat();
 </script>
 
 <template>
   <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-    <pre>{JSON.stringify(data, null, 2)}</pre>
+    <pre>{{ JSON.stringify(data, null, 2) }}</pre>
     <div v-for="m in messages" key="m.id" class="whitespace-pre-wrap">
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
       {{ m.content }}
@@ -248,7 +248,7 @@ const { messages, input, handleSubmit, data } = useChat();
 </template>
 ```
 
-Head back to your browser (http://localhost:5173) and enter a new message. You should see a JSON object appear with the value you sent from your API route!
+Head back to your browser (http://localhost:3000) and enter a new message. You should see a JSON object appear with the value you sent from your API route!
 
 ## Where to Next?
 

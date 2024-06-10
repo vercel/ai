@@ -16,7 +16,7 @@ Text generation can sometimes take a long time to complete, especially when you'
 Let's create a simple React component that imports the `useCompletion` hook from the `ai/react` module. The `useCompletion` hook will call the `/api/completion` endpoint when a button is clicked. The endpoint will generate text based on the input prompt and stream it to the client.
 
 ```tsx filename="pages/index.tsx"
-import { useCompletion } from 'ai/react';
+import { useCompletion } from '@ai-sdk/react';
 
 export default function Page() {
   const { completion, complete } = useCompletion({
@@ -59,3 +59,7 @@ export async function POST(req: Request) {
   return result.toAIStreamResponse();
 }
 ```
+
+---
+
+<GithubLink link="https://github.com/vercel/ai/blob/main/examples/next-openai-pages/pages/basics/stream-text/index.tsx" />
