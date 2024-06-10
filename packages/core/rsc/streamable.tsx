@@ -91,7 +91,7 @@ function createStreamableUI(initialValue?: React.ReactNode) {
   warnUnclosedStream();
 
   const streamable: StreamableUIWrapper = {
-    value: <InternalStreamableUIClient s={innerStreamable} />,
+    value: <InternalStreamableUIClient s={innerStreamable.value} />,
     update(value: React.ReactNode) {
       assertStream('.update()');
 

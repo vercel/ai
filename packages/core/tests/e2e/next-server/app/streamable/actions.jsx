@@ -7,22 +7,35 @@ function sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+export async function streamableUIAppend() {
+  const streamable = createStreamableUI();
+  (async () => {
+    await sleep(10);
+    streamable.update(<p>foo</p>);
+    await sleep(10);
+    streamable.append(<p>bar</p>);
+    await sleep(10);
+    streamable.done();
+  })();
+  return streamable.value;
+}
+
 export async function streamableUI() {
   const streamable = createStreamableUI();
   (async () => {
-    await sleep();
+    await sleep(10);
     streamable.update(
       <ClientInfo>
         <p>I am a paragraph</p>
       </ClientInfo>,
     );
-    await sleep();
+    await sleep(10);
     streamable.update(
       <ClientInfo>
         <button>I am a button</button>
       </ClientInfo>,
     );
-    await sleep();
+    await sleep(10);
     streamable.done();
   })();
   return streamable.value;

@@ -19,7 +19,13 @@ export function Client({ actions }) {
 
   // Test `createStreamableUI` API
   async function testStreamableUI() {
+    setLog(null);
     const value = await actions.streamableUI();
+    setLog(value);
+  }
+  async function testStreamableUIAppend() {
+    setLog(null);
+    const value = await actions.streamableUIAppend();
     setLog(value);
   }
 
@@ -36,6 +42,9 @@ export function Client({ actions }) {
         </button>
         <button id="test-streamable-ui" onClick={testStreamableUI}>
           Test Streamable UI
+        </button>
+        <button id="test-streamable-ui-append" onClick={testStreamableUIAppend}>
+          Test Streamable UI (Append)
         </button>
       </div>
     </div>
