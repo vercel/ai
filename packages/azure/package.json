@@ -1,18 +1,17 @@
 {
-  "name": "@ai-sdk/openai",
-  "version": "0.0.27",
+  "name": "@ai-sdk/azure",
+  "version": "0.0.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist/**/*",
-    "internal/dist/**/*"
+    "dist/**/*"
   ],
   "scripts": {
     "build": "tsup",
-    "clean": "rm -rf dist && rm -rf internal/dist",
+    "clean": "rm -rf dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -27,15 +26,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    },
-    "./internal": {
-      "types": "./internal/dist/index.d.ts",
-      "import": "./internal/dist/index.mjs",
-      "module": "./internal/dist/index.mjs",
-      "require": "./internal/dist/index.js"
     }
   },
   "dependencies": {
+    "@ai-sdk/openai": "0.0.27",
     "@ai-sdk/provider": "0.0.10",
     "@ai-sdk/provider-utils": "0.0.13"
   },

@@ -26,9 +26,9 @@ import {
 
 type OpenAIChatConfig = {
   provider: string;
-  baseURL: string;
   compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
+  url: (options: { modelId: string; path: string }) => string;
 };
 
 export class OpenAIChatLanguageModel implements LanguageModelV1 {
@@ -145,7 +145,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/chat/completions`,
+      url: this.config.url({
+        path: '/chat/completions',
+        modelId: this.modelId,
+      }),
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -184,7 +187,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/chat/completions`,
+      url: this.config.url({
+        path: '/chat/completions',
+        modelId: this.modelId,
+      }),
       headers: this.config.headers(),
       body: {
         ...args,
@@ -452,23 +458,25 @@ const openaiChatChunkSchema = z.union([
   z.object({
     choices: z.array(
       z.object({
-        delta: z.object({
-          role: z.enum(['assistant']).optional(),
-          content: z.string().nullish(),
-          tool_calls: z
-            .array(
-              z.object({
-                index: z.number(),
-                id: z.string().nullish(),
-                type: z.literal('function').optional(),
-                function: z.object({
-                  name: z.string().nullish(),
-                  arguments: z.string().nullish(),
+        delta: z
+          .object({
+            role: z.enum(['assistant']).optional(),
+            content: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number(),
+                  id: z.string().nullish(),
+                  type: z.literal('function').optional(),
+                  function: z.object({
+                    name: z.string().nullish(),
+                    arguments: z.string().nullish(),
+                  }),
                 }),
-              }),
-            )
-            .nullish(),
-        }),
+              )
+              .nullish(),
+          })
+          .nullish(),
         logprobs: z
           .object({
             content: z

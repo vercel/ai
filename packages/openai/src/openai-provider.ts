@@ -116,7 +116,7 @@ export function createOpenAI(
   ) =>
     new OpenAIChatLanguageModel(modelId, settings, {
       provider: 'openai.chat',
-      baseURL,
+      url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       compatibility,
     });

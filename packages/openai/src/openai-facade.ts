@@ -74,6 +74,7 @@ Custom headers to include in the requests.
       provider: 'openai.chat',
       ...this.baseConfig,
       compatibility: 'strict',
+      url: ({ path }) => `${this.baseURL}${path}`,
     });
   }
 
