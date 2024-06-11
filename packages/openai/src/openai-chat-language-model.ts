@@ -458,23 +458,25 @@ const openaiChatChunkSchema = z.union([
   z.object({
     choices: z.array(
       z.object({
-        delta: z.object({
-          role: z.enum(['assistant']).optional(),
-          content: z.string().nullish(),
-          tool_calls: z
-            .array(
-              z.object({
-                index: z.number(),
-                id: z.string().nullish(),
-                type: z.literal('function').optional(),
-                function: z.object({
-                  name: z.string().nullish(),
-                  arguments: z.string().nullish(),
+        delta: z
+          .object({
+            role: z.enum(['assistant']).optional(),
+            content: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number(),
+                  id: z.string().nullish(),
+                  type: z.literal('function').optional(),
+                  function: z.object({
+                    name: z.string().nullish(),
+                    arguments: z.string().nullish(),
+                  }),
                 }),
-              }),
-            )
-            .nullish(),
-        }),
+              )
+              .nullish(),
+          })
+          .nullish(),
         logprobs: z
           .object({
             content: z
