@@ -356,20 +356,20 @@ function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
     append(value: T) {
       assertStream('.append()');
 
+      if (typeof value !== 'string' && !isValidElement(value)) {
+        throw new Error(
+          `.append(): The value type can't be appended to the stream. Received: ${typeof value}`,
+        );
+      }
+
       if (typeof currentValue === 'undefined') {
-        if (typeof value === 'string' || isValidElement(value)) {
-          currentPatchValue = undefined;
-          currentValue = value;
-        } else {
-          throw new Error(
-            `.append(): The value type can't be appended to the stream. Received: ${typeof value}`,
-          );
-        }
+        currentPatchValue = undefined;
+        currentValue = value;
       } else if (typeof currentValue === 'string') {
         if (typeof value === 'string') {
           currentPatchValue = [0, value];
           (currentValue as string) = currentValue + value;
-        } else if (isValidElement(value)) {
+        } else {
           currentPatchValue = [1, value];
           (currentValue as unknown as ReactElement) = (
             <>
@@ -377,25 +377,15 @@ function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
               {value}
             </>
           );
-        } else {
-          throw new Error(
-            `.append(): The value type can't be appended to the stream. Received: ${typeof value}`,
-          );
         }
       } else if (isValidElement(currentValue)) {
-        if (typeof value === 'string' || isValidElement(value)) {
-          currentPatchValue = [1, value];
-          (currentValue as ReactElement) = (
-            <>
-              {currentValue}
-              {value}
-            </>
-          );
-        } else {
-          throw new Error(
-            `.append(): The value type can't be appended to the stream. Received: ${typeof value}`,
-          );
-        }
+        currentPatchValue = [1, value];
+        (currentValue as ReactElement) = (
+          <>
+            {currentValue}
+            {value}
+          </>
+        );
       } else {
         throw new Error(
           `.append(): The current value doesn't support appending data. Type: ${typeof currentValue}`,
