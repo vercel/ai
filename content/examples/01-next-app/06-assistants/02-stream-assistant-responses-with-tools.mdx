@@ -109,7 +109,7 @@ In your server action, you will create a function called `submitMessage` that ad
 
 In case the assistant requires a tool call, the server action will handle the tool call and return the output to the assistant. In this example, the assistant requires a tool call to search for emails. The server action will search for emails based on the `query` and `has_attachments` parameters and return the output to the both the assistant and the client.
 
-```tsx filename='app/actions.ts'
+```tsx filename='app/actions.tsx'
 'use server';
 
 import { nanoid } from 'ai';
