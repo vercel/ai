@@ -1,6 +1,6 @@
 ---
 title: Multistep Interfaces
-description: Overview of the AI and UI states
+description: Overview of Building Multistep Interfaces with AI SDK RSC
 ---
 
 # Designing Multistep Interfaces
@@ -28,13 +28,13 @@ In order to build a multistep interface with `ai/rsc`, you will need a few thing
 - React component(s) that should be rendered when the tool is called
 - A page to render your chatbot
 
-The general flow that you will follow is the following:
+The general flow that you will follow is:
 
-- user sends a message (calls your Server Action with `useActions`, passing the message as an input)
-- message is appended to the AI State and then passed to the model alongside a number of tools
-- model can decide to call a tool, which will render the `<SomeTool />` component
-- within that component, you can add interactivity by using `useActions` to call the model with your Server Action and `useUIState` to append the model's response (`<SomeOtherTool />`) to the UI State
-- and so on...
+- User sends a message (calls your Server Action with `useActions`, passing the message as an input)
+- Message is appended to the AI State and then passed to the model alongside a number of tools
+- Model can decide to call a tool, which will render the `<SomeTool />` component
+- Within that component, you can add interactivity by using `useActions` to call the model with your Server Action and `useUIState` to append the model's response (`<SomeOtherTool />`) to the UI State
+- And so on...
 
 ## Implementation
 
@@ -42,7 +42,7 @@ The turn-by-turn implementation is the simplest form of multistep interfaces. In
 
 In the following example, you specify two tools (`searchFlights` and `lookupFlight`) that the model can use to search for flights and lookup details for a specific flight.
 
-```tsx filename="actions.tsx"
+```tsx filename="app/actions.tsx"
 import { createAI, streamUI } from 'ai/rsc';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -136,7 +136,26 @@ export const AI = createAI<any[], React.ReactNode[]>({
 });
 ```
 
-To call this Server Action, update your root page with the following:
+Next, wrap your application with your newly created context. 
+
+```tsx filename='app/layout.tsx'
+import { type ReactNode } from 'react';
+import { AI } from './actions';
+
+export default function RootLayout({
+  children,
+}: Readonly<{ children: ReactNode }>) {
+  return (
+    <AI>
+      <html lang="en">
+        <body>{children}</body>
+      </html>
+    </AI>
+  );
+}
+```
+
+To call your Server Action, update your root page with the following:
 
 ```tsx filename="app/page.tsx"
 'use client';
