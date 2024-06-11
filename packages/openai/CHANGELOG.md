@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.27
+
+### Patch Changes
+
+- fc9552ec: fix (@ai-sdk/azure): allow for nullish delta
+
 ## 0.0.26
 
 ### Patch Changes
