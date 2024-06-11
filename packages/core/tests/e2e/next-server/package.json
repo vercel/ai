@@ -10,5 +10,6 @@
     "react-dom": "rc",
     "zod": "*",
     "ai": "workspace:*"
-  }
+  },
+  "version": null
 }
