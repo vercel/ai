@@ -2,7 +2,10 @@ import { LanguageModel } from '../types';
 import { NoSuchModelError } from './no-such-model-error';
 
 export class ModelRegistry {
+  // id -> model
   private models: Record<string, LanguageModel> = {};
+
+  // prefix -> provider
   private providers: Record<string, (id: string) => LanguageModel> = {};
 
   registerLanguageModel({
@@ -16,44 +19,36 @@ export class ModelRegistry {
   }
 
   registerLanguageModelProvider({
-    id,
+    prefix,
     provider,
   }: {
-    id: string;
+    prefix: string;
     provider: (id: string) => LanguageModel;
   }): void {
-    this.providers[id] = provider;
+    this.providers[prefix] = provider;
   }
 
   /**
-Returns the language model with the given id. The model has to be registered with `registerLanguageModel`.
+Returns the language model with the given id.
+The id can either be a registered model id or use a provider prefix
 
-@param modelId - The id of the model to return.
+@param id - The id of the model to return.
    */
-  languageModel(modelId: string): LanguageModel;
-  /**
-Returns the language model with the given id. The model is provided by the provider with the given id.
-The provider has to be registered with `registerLanguageModelProvider`.
+  languageModel(id: string): LanguageModel {
+    const model = this.models[id];
 
-@param providerId - The id of the provider to use.
-@param modelId - The id of the model to return.
- */
-  languageModel(providerId: string, modelId: string): LanguageModel;
-  languageModel(id1: string, id2?: string): LanguageModel {
-    // if id2 is defined, we are using the registered model
-    if (id2 === undefined) {
-      const model = this.models[id1];
-
-      if (!model) {
-        throw new NoSuchModelError({ modelId: id1 });
-      }
-
+    if (model) {
       return model;
     }
 
-    // id2 is defined, we are using the provider
-    const provider = this.providers[id1];
+    if (!id.includes(':')) {
+      throw new NoSuchModelError({ modelId: id });
+    }
 
-    return provider(id2);
+    const [prefix, modelId] = id.split(':');
+
+    const provider = this.providers[prefix];
+
+    return provider(modelId);
   }
 }

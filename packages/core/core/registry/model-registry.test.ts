@@ -29,13 +29,13 @@ describe('language model providers', () => {
     const model = new MockLanguageModelV1();
 
     modelRegistry.registerLanguageModelProvider({
-      id: 'provider',
+      prefix: 'provider',
       provider: id => {
         expect(id).toEqual('model');
         return model;
       },
     });
 
-    expect(modelRegistry.languageModel('provider', 'model')).toEqual(model);
+    expect(modelRegistry.languageModel('provider:model')).toEqual(model);
   });
 });
