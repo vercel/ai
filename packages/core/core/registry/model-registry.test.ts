@@ -2,20 +2,40 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { ModelRegistry } from './model-registry';
 import { NoSuchModelError } from './no-such-model-error';
 
-it('should return registered language model', () => {
-  const modelRegistry = new ModelRegistry();
+describe('language models', () => {
+  it('should return registered language model', () => {
+    const modelRegistry = new ModelRegistry();
 
-  const model = new MockLanguageModelV1();
+    const model = new MockLanguageModelV1();
 
-  modelRegistry.registerLanguageModel({ id: 'test', model });
+    modelRegistry.registerLanguageModel({ id: 'test', model });
 
-  expect(modelRegistry.languageModel('test')).toEqual(model);
+    expect(modelRegistry.languageModel('test')).toEqual(model);
+  });
+
+  it("should throw NoSuchModelError if language model doesn't exist", () => {
+    const modelRegistry = new ModelRegistry();
+
+    expect(() => modelRegistry.languageModel('test')).toThrowError(
+      NoSuchModelError,
+    );
+  });
 });
 
-it("should throw NoSuchModelError if language model doesn't exist", () => {
-  const modelRegistry = new ModelRegistry();
+describe('language model providers', () => {
+  it('should return language model from provider', () => {
+    const modelRegistry = new ModelRegistry();
 
-  expect(() => modelRegistry.languageModel('test')).toThrowError(
-    NoSuchModelError,
-  );
+    const model = new MockLanguageModelV1();
+
+    modelRegistry.registerLanguageModelProvider({
+      id: 'provider',
+      provider: id => {
+        expect(id).toEqual('model');
+        return model;
+      },
+    });
+
+    expect(modelRegistry.languageModel('provider', 'model')).toEqual(model);
+  });
 });
