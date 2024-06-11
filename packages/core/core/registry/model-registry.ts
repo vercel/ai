@@ -1,11 +1,12 @@
 import { LanguageModel } from '../types';
 import { NoSuchModelError } from './no-such-model-error';
+import { NoSuchProviderError } from './no-such-provider-error';
 
 export class ModelRegistry {
-  // id -> model
+  // model id -> model
   private models: Record<string, LanguageModel> = {};
 
-  // prefix -> provider
+  // provider id -> provider
   private providers: Record<string, (id: string) => LanguageModel> = {};
 
   registerLanguageModel({
@@ -19,13 +20,13 @@ export class ModelRegistry {
   }
 
   registerLanguageModelProvider({
-    prefix,
+    id,
     provider,
   }: {
-    prefix: string;
+    id: string;
     provider: (id: string) => LanguageModel;
   }): void {
-    this.providers[prefix] = provider;
+    this.providers[id] = provider;
   }
 
   /**
@@ -35,7 +36,7 @@ The id can either be a registered model id or use a provider prefix
 @param id - The id of the model to return.
    */
   languageModel(id: string): LanguageModel {
-    const model = this.models[id];
+    let model = this.models[id];
 
     if (model) {
       return model;
@@ -45,12 +46,20 @@ The id can either be a registered model id or use a provider prefix
       throw new NoSuchModelError({ modelId: id });
     }
 
-    const [prefix, modelId] = id.split(':');
+    const [providerId, modelId] = id.split(':');
 
-    const provider = this.providers[prefix];
+    const provider = this.providers[providerId];
 
-    // TODO 2 errors
+    if (!provider) {
+      throw new NoSuchProviderError({ providerId });
+    }
 
-    return provider(modelId);
+    model = provider(modelId);
+
+    if (!model) {
+      throw new NoSuchModelError({ modelId: id });
+    }
+
+    return model;
   }
 }
