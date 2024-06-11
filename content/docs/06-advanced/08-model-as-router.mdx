@@ -1,6 +1,6 @@
 ---
-title: Generative User Interfaces
-description: Overview of the AI and UI states
+title: Language Models as Routers
+description: Generative User Interfaces and Language Models as Routers
 ---
 
 # Generative User Interfaces
@@ -30,19 +30,19 @@ const sendMessage = (prompt: string) =>
       getWeather: {
         description: 'Get the weather in a location',
         parameters: z.object({
-          location: z.string().describe('The location to get the weather for'),
+          location: z.string().describe('The location to get the weather for')
         }),
         execute: async ({ location }: { location: string }) => ({
           location,
-          temperature: 72 + Math.floor(Math.random() * 21) - 10,
-        }),
-      },
-    },
-  });
+          temperature: 72 + Math.floor(Math.random() * 21) - 10
+        })
+      }
+    }
+  })
 
-sendMessage('What is the weather in San Francisco?'); // getWeather is called
-sendMessage('What is the weather in New York?'); // getWeather is called
-sendMessage('What events are happening in London?'); // No function is called
+sendMessage('What is the weather in San Francisco?') // getWeather is called
+sendMessage('What is the weather in New York?') // getWeather is called
+sendMessage('What events are happening in London?') // No function is called
 ```
 
 This way, it is possible to ensure that the generations result in deterministic outputs, while the choice a model makes still remains to be probabilistic.
