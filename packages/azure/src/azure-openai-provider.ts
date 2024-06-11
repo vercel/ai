@@ -40,7 +40,7 @@ export function createAzure(
   const getHeaders = () => ({
     'api-key': loadApiKey({
       apiKey: options.apiKey,
-      environmentVariableName: 'AZURE_OPENAI_API_KEY',
+      environmentVariableName: 'AZURE_API_KEY',
       description: 'Azure OpenAI',
     }),
   });
@@ -49,7 +49,7 @@ export function createAzure(
     loadSetting({
       settingValue: options.resourceName,
       settingName: 'resourceName',
-      environmentVariableName: 'AZURE_OPENAI_RESOURCE_NAME',
+      environmentVariableName: 'AZURE_RESOURCE_NAME',
       description: 'Azure OpenAI resource name',
     });
 
