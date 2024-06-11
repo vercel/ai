@@ -3,17 +3,20 @@ title: Streaming Values
 description: Overview of streaming RSCs
 ---
 
-import { UIPreviewCard, Card } from '@/components/home/card'
-import { EventPlanning } from '@/components/home/event-planning'
-import { Searching } from '@/components/home/searching'
-import { Weather } from '@/components/home/weather'
+import { UIPreviewCard, Card } from '@/components/home/card';
+import { EventPlanning } from '@/components/home/event-planning';
+import { Searching } from '@/components/home/searching';
+import { Weather } from '@/components/home/weather';
 
 # Streaming Values
 
-The RSC API provides several utility functions to allow you to stream values from the server to the client. This is useful when you need more granular control over what you are streaming and how you are streaming it. 
+The RSC API provides several utility functions to allow you to stream values from the server to the client. This is useful when you need more granular control over what you are streaming and how you are streaming it.
 
 <Note>
-These utilities can also be paired with [AI SDK Core](/docs/ai-sdk-core) functions like [`streamText`](/docs/reference/ai-sdk-core/stream-text) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object) to easily stream LLM generations from the Server to the Client.
+  These utilities can also be paired with [AI SDK Core](/docs/ai-sdk-core)
+  functions like [`streamText`](/docs/reference/ai-sdk-core/stream-text) and
+  [`streamObject`](/docs/reference/ai-sdk-core/stream-object) to easily stream
+  LLM generations from the Server to the Client.
 </Note>
 
 There are two functions provided by the RSC API that allow you to create streamable values:
@@ -51,9 +54,9 @@ export const runThread = async () => {
   }, 1000);
 
   return {
-    status: streamableStatus.value
-  }
-}
+    status: streamableStatus.value,
+  };
+};
 ```
 
 ## Reading a Streamable Value
@@ -68,10 +71,10 @@ export default function Page() {
   return (
     <button
       onClick={async () => {
-        const { status } = await runThread()
+        const { status } = await runThread();
 
         for await (const value of readStreamableValue(status)) {
-          console.log(value)
+          console.log(value);
         }
       }}
     >
@@ -127,8 +130,8 @@ export default function Page() {
     <div>
       <button
         onClick={async () => {
-          const weatherUI = await getWeather()
-          setWeather(weatherUI)
+          const weatherUI = await getWeather();
+          setWeather(weatherUI);
         }}
       >
         What's the weather?

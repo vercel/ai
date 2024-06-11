@@ -82,20 +82,19 @@ export const AI = createAI<AIState, UIState>({
   },
 });
 ```
-<Note>
-  You must pass Server Actions to the `actions` object.
-</Note>
+
+<Note>You must pass Server Actions to the `actions` object.</Note>
 
 In this example, you define types for AI State and UI State, respectively.
 
 Next, wrap your application with your newly created context. With that, you can get and set AI and UI State across your entire application.
 
 ```tsx filename='app/layout.tsx'
-import { type ReactNode } from 'react'
-import { AI } from './actions'
+import { type ReactNode } from 'react';
+import { AI } from './actions';
 
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{ children: ReactNode }>) {
   return (
     <AI>
@@ -103,7 +102,7 @@ export default function RootLayout({
         <body>{children}</body>
       </html>
     </AI>
-  )
+  );
 }
 ```
 
@@ -165,7 +164,7 @@ export async function sendMessage(message: string) {
 
   const response = await generateText({
     model: openai('gpt-3.5-turbo'),
-    messages: [...history, { role: 'user', content: message }]
+    messages: [...history, { role: 'user', content: message }],
   });
 
   return response;
@@ -194,7 +193,7 @@ export async function sendMessage(message: string) {
 
   const response = await generateText({
     model: openai('gpt-3.5-turbo'),
-    messages: history.get()
+    messages: history.get(),
   });
 
   // Update the AI state again with the response from the model.
@@ -205,8 +204,8 @@ export async function sendMessage(message: string) {
 ```
 
 <Note>
-  It is important to update the AI State with new responses using `.update()` and `.done()` to keep the
-  conversation history in sync.
+  It is important to update the AI State with new responses using `.update()`
+  and `.done()` to keep the conversation history in sync.
 </Note>
 
 ## Calling Server Actions from the Client
@@ -228,16 +227,16 @@ export default function Page() {
 
     setMessages([
       ...messages,
-      { id: Date.now(), role: 'user', display: event.target.message.value }
-    ])
+      { id: Date.now(), role: 'user', display: event.target.message.value },
+    ]);
 
-    const response = await sendMessage(event.target.message.value)
+    const response = await sendMessage(event.target.message.value);
 
     setMessages([
       ...messages,
-      { id: Date.now(), role: 'assistant', display: response }
-    ])
-  }
+      { id: Date.now(), role: 'assistant', display: response },
+    ]);
+  };
 
   return (
     <>
@@ -251,7 +250,7 @@ export default function Page() {
         <button type="submit">Send</button>
       </form>
     </>
-  )
+  );
 }
 ```
 

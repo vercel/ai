@@ -6,13 +6,14 @@ description: An overview of Vercel AI SDK RSC.
 # AI SDK RSC
 
 <Note>
-  The `ai/rsc` package is compatible with frameworks that support React
-  Server Components. 
+  The `ai/rsc` package is compatible with frameworks that support React Server
+  Components.
 </Note>
 
 [React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components) (RSC) allow you to write UI that can be rendered on the server and streamed to the client. RSCs enable [ Server Actions ](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations#with-client-components), a new way to call server-side code directly from the client just like any other function with end-to-end type-safety. This combination opens the door to a new way of building AI applications, allowing the large language model (LLM) to generate and stream UI directly from the server to the client.
 
 ## AI SDK RSC Functions
+
 AI SDK RSC has various functions designed to help you build AI-native applications with React Server Components. These functions:
 
 1. Provide abstractions for building Generative UI applications.
@@ -28,6 +29,7 @@ AI SDK RSC has various functions designed to help you build AI-native applicatio
    - [`useStreamableValue`](/docs/reference/ai-sdk-rsc/use-streamable-value): hook that takes a streamable value created using `createStreamableValue` and returns the current value, error, and pending state.
 
 ## Templates
+
 Check out the following templates to see AI SDK RSC in action.
 
 <Templates type="generative-ui" />
