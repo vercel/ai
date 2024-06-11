@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.26
+
+### Patch Changes
+
+- 7530f861: fix (@ai-sdk/openai): add internal dist to bundle
+
 ## 0.0.25
 
 ### Patch Changes
