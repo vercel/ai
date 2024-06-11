@@ -1,6 +1,8 @@
+import {
+  OpenAIChatLanguageModel,
+  OpenAIChatSettings,
+} from '@ai-sdk/openai/internal';
 import { loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
-import { OpenAIChatSettings } from './openai-chat-settings';
-import { OpenAIChatLanguageModel } from './openai-chat-language-model';
 
 export interface AzureOpenAIProvider {
   (

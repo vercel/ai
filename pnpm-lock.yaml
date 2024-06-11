@@ -59,6 +59,9 @@ importers:
       '@ai-sdk/anthropic':
         specifier: latest
         version: link:../../packages/anthropic
+      '@ai-sdk/azure':
+        specifier: latest
+        version: link:../../packages/azure
       '@ai-sdk/google':
         specifier: latest
         version: link:../../packages/google
@@ -216,7 +219,7 @@ importers:
     dependencies:
       '@ai-sdk/react':
         specifier: latest
-        version: 0.0.1(react@18.2.0)(zod@3.23.8)
+        version: link:../../packages/react
       '@aws-sdk/client-bedrock-runtime':
         specifier: 3.451.0
         version: 3.451.0
@@ -265,7 +268,7 @@ importers:
     dependencies:
       '@ai-sdk/react':
         specifier: latest
-        version: 0.0.1(react@18.2.0)(zod@3.23.8)
+        version: link:../../packages/react
       ai:
         specifier: latest
         version: link:../../packages/core
@@ -314,7 +317,7 @@ importers:
     dependencies:
       '@ai-sdk/react':
         specifier: latest
-        version: 0.0.1(react@18.2.0)(zod@3.23.8)
+        version: link:../../packages/react
       '@huggingface/inference':
         specifier: ^2.5.1
         version: 2.6.4
@@ -363,7 +366,7 @@ importers:
     dependencies:
       '@ai-sdk/react':
         specifier: latest
-        version: 0.0.1(react@18.2.0)(zod@3.23.8)
+        version: link:../../packages/react
       '@inkeep/ai-api':
         specifier: ^0.1.8
         version: 0.1.8(zod@3.23.8)
@@ -412,7 +415,7 @@ importers:
     dependencies:
       '@ai-sdk/react':
         specifier: latest
-        version: 0.0.1(react@18.2.0)(zod@3.23.8)
+        version: link:../../packages/react
       '@langchain/core':
         specifier: 0.1.63
         version: 0.1.63(openai@4.47.1)
@@ -470,7 +473,7 @@ importers:
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: latest
-        version: 0.0.1(react@18.2.0)(zod@3.23.8)
+        version: link:../../packages/react
       ai:
         specifier: latest
         version: link:../../packages/core
@@ -522,7 +525,7 @@ importers:
     dependencies:
       '@ai-sdk/react':
         specifier: latest
-        version: 0.0.1(react@18.2.0)(zod@3.23.8)
+        version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
         version: 0.4.4
@@ -583,7 +586,7 @@ importers:
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: latest
-        version: 0.0.1(react@18.2.0)(zod@3.23.8)
+        version: link:../../packages/react
       ai:
         specifier: latest
         version: link:../../packages/core
@@ -635,7 +638,7 @@ importers:
     dependencies:
       '@ai-sdk/react':
         specifier: latest
-        version: 0.0.1(react@18.2.0)(zod@3.23.8)
+        version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
         version: 0.4.4
@@ -693,7 +696,7 @@ importers:
     dependencies:
       '@ai-sdk/react':
         specifier: latest
-        version: 0.0.1(react@18.2.0)(zod@3.23.8)
+        version: link:../../packages/react
       ai:
         specifier: latest
         version: link:../../packages/core
@@ -779,7 +782,7 @@ importers:
     devDependencies:
       '@ai-sdk/vue':
         specifier: latest
-        version: 0.0.1(vue@3.3.8)
+        version: link:../../packages/vue
       '@nuxt/devtools':
         specifier: 0.8.0
         version: 0.8.0(nuxt@3.8.1)(vite@4.5.0)
@@ -836,7 +839,7 @@ importers:
         version: link:../../packages/openai
       '@ai-sdk/solid':
         specifier: latest
-        version: 0.0.1(solid-js@1.8.7)
+        version: link:../../packages/solid
       '@solidjs/meta':
         specifier: 0.29.3
         version: 0.29.3(solid-js@1.8.7)
@@ -885,7 +888,7 @@ importers:
         version: link:../../packages/openai
       '@ai-sdk/svelte':
         specifier: latest
-        version: 0.0.1(svelte@4.2.3)
+        version: link:../../packages/svelte
       ai:
         specifier: latest
         version: link:../../packages/core
@@ -929,6 +932,34 @@ importers:
 
   packages/anthropic:
     dependencies:
+      '@ai-sdk/provider':
+        specifier: 0.0.10
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: 0.0.13
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: ^18
+        version: 18.18.9
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.0.2(typescript@5.1.3)
+      typescript:
+        specifier: 5.1.3
+        version: 5.1.3
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+
+  packages/azure:
+    dependencies:
+      '@ai-sdk/openai':
+        specifier: 0.0.24
+        version: link:../openai
       '@ai-sdk/provider':
         specifier: 0.0.10
         version: link:../provider
@@ -1505,102 +1536,6 @@ packages:
 
   /@adobe/css-tools@4.3.3:
     resolution: {integrity: sha512-rE0Pygv0sEZ4vBWHlAgJLGDU7Pm8xoO6p3wsEceb7GYAjScrOHpEo8KK/eVkAcnSM+slAEtXjA2JpdjLp4fJQQ==}
-    dev: true
-
-  /@ai-sdk/provider-utils@0.0.13(zod@3.23.8):
-    resolution: {integrity: sha512-cB2dPm9flj+yin5sjBLFcXdW8sZtAXLE/OLKgz9uHpHM55s7mnwZrDGfO6ot/ukHTxDDJunZLW7qSjgK/u0F1g==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
-    dependencies:
-      '@ai-sdk/provider': 0.0.10
-      eventsource-parser: 1.1.2
-      nanoid: 3.3.6
-      secure-json-parse: 2.7.0
-      zod: 3.23.8
-
-  /@ai-sdk/provider@0.0.10:
-    resolution: {integrity: sha512-NzkrtREQpHID1cTqY/C4CI30PVOaXWKYytDR2EcytmFgnP7Z6+CrGIA/YCnNhYAuUm6Nx+nGpRL/Hmyrv7NYzg==}
-    engines: {node: '>=18'}
-    dependencies:
-      json-schema: 0.4.0
-
-  /@ai-sdk/react@0.0.1(react@18.2.0)(zod@3.23.8):
-    resolution: {integrity: sha512-y6KXzxRR7vmAgDVnS/hnLPt3RztvWOisANBw47O1o1D2nDeUqTo8E/SNw2J8mzzlRInGaw40EREY8jEf9AcwWQ==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      react: ^18 || ^19
-    peerDependenciesMeta:
-      react:
-        optional: true
-    dependencies:
-      '@ai-sdk/provider-utils': 0.0.13(zod@3.23.8)
-      '@ai-sdk/ui-utils': 0.0.1(zod@3.23.8)
-      react: 18.2.0
-      swr: 2.2.0(react@18.2.0)
-    transitivePeerDependencies:
-      - zod
-    dev: false
-
-  /@ai-sdk/solid@0.0.1(solid-js@1.8.7):
-    resolution: {integrity: sha512-5WWdoqpemYW66rMZUYF4sbDtZfF96Vt8RtrzpLv+95ZUM1nY1elxAWpHCeOyYEjWJE5+eiKpUs6Jr5mP2/gz8Q==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      solid-js: ^1.7.7
-    peerDependenciesMeta:
-      solid-js:
-        optional: true
-    dependencies:
-      '@ai-sdk/ui-utils': 0.0.1(zod@3.23.8)
-      solid-js: 1.8.7
-      solid-swr-store: 0.10.7(solid-js@1.8.7)(swr-store@0.10.6)
-      swr-store: 0.10.6
-    transitivePeerDependencies:
-      - zod
-    dev: false
-
-  /@ai-sdk/svelte@0.0.1(svelte@4.2.3):
-    resolution: {integrity: sha512-bpjTLKOwdcXjJzboq15etT1hdnRI1ErPZweWSsu1/LJlEFzD1M0qpZQwWHwPquYkzeppXOgsLrUZ+9D2RoC47Q==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      svelte: ^3.0.0 || ^4.0.0
-    peerDependenciesMeta:
-      svelte:
-        optional: true
-    dependencies:
-      '@ai-sdk/provider-utils': 0.0.13(zod@3.23.8)
-      '@ai-sdk/ui-utils': 0.0.1(zod@3.23.8)
-      sswr: 2.1.0(svelte@4.2.3)
-      svelte: 4.2.3
-    transitivePeerDependencies:
-      - zod
-    dev: false
-
-  /@ai-sdk/ui-utils@0.0.1(zod@3.23.8):
-    resolution: {integrity: sha512-zOr1zIw/EH4fEQvDKsqYG3wY7GW32h8Wrx0lQpSAP59UCA4zgHBH6ogF5oj7+LUuWjT6be9S0G3l/tEPyRyxEw==}
-    engines: {node: '>=18'}
-    dependencies:
-      '@ai-sdk/provider-utils': 0.0.13(zod@3.23.8)
-    transitivePeerDependencies:
-      - zod
-
-  /@ai-sdk/vue@0.0.1(vue@3.3.8):
-    resolution: {integrity: sha512-B3qAW22FYGy1ltobnF7LiPAmARTrCkH15qjw4WAXCnvRohsYOFTDACOBEsXRfa1OHmqWsUOYeNtE/oPhK3ybqw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      vue: ^3.3.4
-    peerDependenciesMeta:
-      vue:
-        optional: true
-    dependencies:
-      '@ai-sdk/ui-utils': 0.0.1(zod@3.23.8)
-      swrv: 1.0.4(vue@3.3.8)
-      vue: 3.3.8(typescript@5.1.3)
-    transitivePeerDependencies:
-      - zod
     dev: true
 
   /@alloc/quick-lru@5.2.0:
@@ -11442,6 +11377,7 @@ packages:
   /eventsource-parser@1.1.2:
     resolution: {integrity: sha512-v0eOBUbiaFojBu2s2NPBfYUoRR9GjcDNvCXVaqEf5vVfpIAh9f8RCo4vXTP8c63QRKCFwoLpMpTdPwwhEKVgzA==}
     engines: {node: '>=14.18'}
+    dev: false
 
   /execa@5.1.1:
     resolution: {integrity: sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg==}
@@ -13057,6 +12993,7 @@ packages:
 
   /json-schema@0.4.0:
     resolution: {integrity: sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA==}
+    dev: false
 
   /json-stable-stringify-without-jsonify@1.0.1:
     resolution: {integrity: sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw==}
@@ -17068,6 +17005,7 @@ packages:
 
   /secure-json-parse@2.7.0:
     resolution: {integrity: sha512-6aU+Rwsezw7VR8/nyvKTx8QpWH9FrcYiXXlqC4z5d5XQBDRqtbfsRjnwGyqbi3gddNtWHuEk9OANUotL26qKUw==}
+    dev: false
 
   /seedrandom@3.0.5:
     resolution: {integrity: sha512-8OwmbklUNzwezjGInmZ+2clQmExQPvomqjL7LFqOYqtmuxRgQYqOD3mHaU+MvZn5FLUeVxVfQjwLZW/n/JFuqg==}
@@ -18061,6 +17999,7 @@ packages:
       vue: '>=3.2.26 < 4'
     dependencies:
       vue: 3.3.8(typescript@5.1.3)
+    dev: false
 
   /symbol-tree@3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
