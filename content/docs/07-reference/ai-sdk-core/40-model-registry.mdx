@@ -1,0 +1,151 @@
+---
+title: ModelRegistry
+description: Registry for managing multiple providers and models (API Reference)
+---
+
+# `ModelRegistry`
+
+When you work with multiple providers and models, it is often desirable to manage them in a central place
+and access the models through simple string ids.
+
+### Setup (Example)
+
+```ts highlight={"3,5,8-13,16-19,27-30"}
+import { anthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
+import { ModelRegistry } from 'ai';
+
+export const registry = new ModelRegistry();
+
+// register provide with prefix and custom setup
+registry.registerLanguageModelProvider({
+  id: 'openai',
+  provider: createOpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  }),
+});
+
+// register provide with prefix and default setup
+registry.registerLanguageModelProvider({
+  id: 'anthropic',
+  provider: anthropic,
+});
+
+// register specific model with id
+const groq = createOpenAI({
+  baseURL: 'https://api.groq.com/openai/v1',
+  apiKey: process.env.GROQ_API_KEY,
+});
+
+registry.registerLanguageModel({
+  id: 'llama3',
+  model: groq('llama3-8b-8192'),
+});
+```
+
+### Usage (Example)
+
+```ts highlight={"4"}
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: registry.languageModel('openai:gpt-4-turbo'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+## Import
+
+<Snippet text={`import { ModelRegistry } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Constructor
+
+Creates a new model registry.
+
+```ts
+const registry = new ModelRegistry();
+```
+
+### registerLanguageModel(\{ id: string, model: LanguageModel \})
+
+Registers a language model with a given id.
+
+<PropertiesTable
+  content={[
+    {
+      name: 'id',
+      type: 'string',
+      description: `The unique identifier for the model. It should be unique within the registry.`,
+    },
+    {
+      name: 'model',
+      type: 'LanguageModel',
+      description: `The language model to register.`,
+    },
+  ]}
+/>
+
+#### Example
+
+```ts
+registry.registerLanguageModel({
+  id: 'turbo',
+  model: openai('gpt-4-turbo'),
+});
+```
+
+### registerLanguageModelProvider(\{ id: string, provider: (id: string) => LanguageModel \})
+
+Registers a language model provider with a given id.
+
+<PropertiesTable
+  content={[
+    {
+      name: 'id',
+      type: 'string',
+      description: `The unique identifier for the provider. It should be unique within the registry.`,
+    },
+    {
+      name: 'provider',
+      type: '(id: string) => LanguageModel',
+      description: `The language model provider to register. It should return a language model for the given id.`,
+    },
+  ]}
+/>
+
+#### Example
+
+```ts
+registry.registerLanguageModelProvider({
+  id: 'anthropic',
+  provider: anthropic,
+});
+```
+
+### languageModel(id: string): LanguageModel
+
+Resolves a language model by id.
+The id can either be a registered model id or use a provider prefix.
+Provider ids are separated from the model id by a colon: `providerId:modelId`.
+The model id is then passed to the provider function to get the model.
+
+<PropertiesTable
+  content={[
+    {
+      name: 'id',
+      type: 'string',
+      description: `The id of the model to resolve.`,
+    },
+  ]}
+/>
+
+#### Example
+
+```ts highlight={"2"}
+const { text } = await generateText({
+  model: registry.languageModel('openai:gpt-4-turbo'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
