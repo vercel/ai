@@ -49,6 +49,8 @@ The id can either be a registered model id or use a provider prefix
 
     const provider = this.providers[prefix];
 
+    // TODO 2 errors
+
     return provider(modelId);
   }
 }
