@@ -18,7 +18,7 @@ test('createStreamableUI()', async ({ page }) => {
 
   // It should update the UI but reuse the same component instance and its state
   // to avoid re-mounting.
-  await expect(logs).toHaveText('(Rendered 2 times)I am a button');
+  await expect(logs).toHaveText('(Rendered 1 times)I am a button');
 });
 
 test('createStreamableUI() .append() method', async ({ page }) => {
