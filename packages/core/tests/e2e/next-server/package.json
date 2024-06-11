@@ -1,5 +1,6 @@
 {
   "name": "ai-core-e2e-next-server",
+  "private": true,
   "scripts": {
     "dev": "next"
   },
