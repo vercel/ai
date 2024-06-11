@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.32
+
+### Patch Changes
+
+- 3cabf078: fix(ai/rsc): Refactor streamable UI internal implementation
+
 ## 3.1.31
 
 ### Patch Changes
