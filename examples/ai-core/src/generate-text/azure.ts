@@ -1,4 +1,4 @@
-import { azure } from '@ai-sdk/openai';
+import { azure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 import dotenv from 'dotenv';
 
