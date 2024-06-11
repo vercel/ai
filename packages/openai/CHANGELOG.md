@@ -1,11 +1,5 @@
 # @ai-sdk/openai
 
-## 0.0.25
-
-### Patch Changes
-
-- 8b1362a7: chore (@ai-sdk/openai): expose models under /internal for reuse in other providers
-
 ## 0.0.24
 
 ### Patch Changes
