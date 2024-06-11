@@ -1,21 +1,20 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export function ClientInfo({ children }) {
-  const renderCounter = useRef(1);
+  const [renders, setRenders] = useState(0);
 
+  // Increment the render count whenever the children change.
+  // This can be used to verify that the component is re-rendered with the
+  // state kept.
   useEffect(() => {
-    renderCounter.current += 1;
-    return () => {
-      // Clean up double-effects during strict mode
-      renderCounter.current -= 1;
-    };
-  });
+    setRenders(r => r + 1);
+  }, [children]);
 
   return (
     <div>
-      <p>(Rendered {renderCounter.current} times)</p>
+      <p>{renders > 1 ? '(Rerendered) ' : ''}</p>
       {children}
     </div>
   );

@@ -18,7 +18,7 @@ test('createStreamableUI()', async ({ page }) => {
 
   // It should update the UI but reuse the same component instance and its state
   // to avoid re-mounting.
-  await expect(logs).toHaveText('(Rendered 1 times)I am a button');
+  await expect(logs).toHaveText('(Rerendered) I am a button');
 });
 
 test('createStreamableUI() .append() method', async ({ page }) => {
@@ -27,4 +27,12 @@ test('createStreamableUI() .append() method', async ({ page }) => {
 
   const logs = page.locator('#log');
   await expect(logs).toHaveText('foobar');
+});
+
+test('createStreamableUI() .error() method', async ({ page }) => {
+  await page.goto('/streamable');
+  await page.click('#test-streamable-ui-error');
+
+  const logs = page.locator('#log');
+  await expect(logs).toHaveText('Caught by Error Boundary: This is an error');
 });

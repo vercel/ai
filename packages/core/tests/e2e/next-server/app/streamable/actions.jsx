@@ -7,6 +7,17 @@ function sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+export async function streamableUIError() {
+  const streamable = createStreamableUI();
+  (async () => {
+    await sleep(10);
+    streamable.update(<p>foo</p>);
+    await sleep(10);
+    streamable.error('This is an error');
+  })();
+  return streamable.value;
+}
+
 export async function streamableUIAppend() {
   const streamable = createStreamableUI();
   (async () => {

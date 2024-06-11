@@ -1,7 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { readStreamableValue } from 'ai/rsc';
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return <div>Caught by Error Boundary: {this.state.error}</div>;
+    }
+    return this.props.children;
+  }
+}
 
 export function Client({ actions }) {
   const [log, setLog] = useState('');
@@ -28,6 +46,11 @@ export function Client({ actions }) {
     const value = await actions.streamableUIAppend();
     setLog(value);
   }
+  async function testStreamableUIError() {
+    setLog(null);
+    const value = await actions.streamableUIError();
+    setLog(<ErrorBoundary>{value}</ErrorBoundary>);
+  }
 
   return (
     <div>
@@ -45,6 +68,9 @@ export function Client({ actions }) {
         </button>
         <button id="test-streamable-ui-append" onClick={testStreamableUIAppend}>
           Test Streamable UI (Append)
+        </button>
+        <button id="test-streamable-ui-error" onClick={testStreamableUIError}>
+          Test Streamable UI (Error)
         </button>
       </div>
     </div>
