@@ -9,7 +9,7 @@ export const registry = new ModelRegistry();
 
 // register provide with prefix and custom setup
 registry.registerLanguageModelProvider({
-  prefix: 'openai',
+  id: 'openai',
   provider: createOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   }),
@@ -17,7 +17,7 @@ registry.registerLanguageModelProvider({
 
 // register provide with prefix and default setup
 registry.registerLanguageModelProvider({
-  prefix: 'anthropic',
+  id: 'anthropic',
   provider: anthropic,
 });
 
