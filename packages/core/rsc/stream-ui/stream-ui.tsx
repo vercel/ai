@@ -275,8 +275,10 @@ export async function streamUI<
 
       let content = '';
       let hasToolCall = false;
-      let currentToolCallId = '';
-      let currentUIStream = ui; // TODO: consider an undefined default
+      const uiStreams = {} as Record<
+        string,
+        ReturnType<typeof createStreamableUI>
+      >;
       let replaceInitial = !!initial;
 
       const reader = forkedStream.getReader();
@@ -312,16 +314,14 @@ export async function streamUI<
             }
 
             hasToolCall = true;
-            if (currentToolCallId !== value.toolCallId) {
-              // start of a new tool call
-              const shouldReplaceInitial = replaceInitial && !currentToolCallId;
-              currentToolCallId = value.toolCallId;
-              currentUIStream = createStreamableUI(initial);
-              if (shouldReplaceInitial) {
-                ui.update(currentUIStream.value);
+
+            if (!uiStreams[value.toolCallId]) {
+              uiStreams[value.toolCallId] = createStreamableUI(initial);
+              if (replaceInitial) {
+                ui.update(uiStreams[value.toolCallId].value);
                 replaceInitial = false;
               } else {
-                ui.append(currentUIStream.value);
+                ui.append(uiStreams[value.toolCallId].value);
               }
             }
             break;
@@ -356,6 +356,13 @@ export async function streamUI<
               });
             }
 
+            if (!uiStreams[value.toolCallId]) {
+              // expect uiStreams[value.toolCallId] to be defined (i.e. tool-call-delta precedes tool-call)
+              throw new Error(
+                'REPLACE ME -- Expected uiStreams[value.toolCallId] to be defined',
+              );
+            }
+
             handleRender(
               [
                 parseResult.value,
@@ -365,7 +372,7 @@ export async function streamUI<
                 },
               ],
               tool.generate,
-              currentUIStream,
+              uiStreams[value.toolCallId],
               true,
             );
 
@@ -391,12 +398,7 @@ export async function streamUI<
       if (hasToolCall) {
         await finished;
       } else {
-        handleRender(
-          [{ content, done: true }],
-          textRender,
-          currentUIStream,
-          true,
-        );
+        handleRender([{ content, done: true }], textRender, ui, true);
         await finished;
       }
     } catch (error) {
