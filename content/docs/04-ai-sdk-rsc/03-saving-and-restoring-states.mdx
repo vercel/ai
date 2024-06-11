@@ -30,7 +30,7 @@ export const AI = createAI<ServerMessage[], ClientMessage[]>({
 
 ### Restoring AI state
 
-The AI state can be restored using the [`initialAIState`](/docs/reference/ai-sdk-rsc/create-ai#initial-ai-state) prop passed to the context provider created by the [`createAI`](/docs/reference/ai-sdk-rsc/create-ai) function. In the following example, You restore the chat history from a database when the component is mounted.
+The AI state can be restored using the [`initialAIState`](/docs/reference/ai-sdk-rsc/create-ai#initial-ai-state) prop passed to the context provider created by the [`createAI`](/docs/reference/ai-sdk-rsc/create-ai) function. In the following example, you restore the chat history from a database when the component is mounted.
 
 ```tsx file='app/layout.tsx'
 import { ReactNode } from 'react';
@@ -59,7 +59,7 @@ The UI state cannot be saved directly, since the contents aren't yet serializabl
 
 ### Restoring UI state
 
-The UI state can be restored using the AI state as a proxy. In the following example, you restore the chat history from the AI state when the component is mounted. You use [`onGetUIState`](/docs/reference/ai-sdk-rsc/create-ai#on-get-ui-state) callback to listen for SSR events and restore the UI state.
+The UI state can be restored using the AI state as a proxy. In the following example, you restore the chat history from the AI state when the component is mounted. You use the [`onGetUIState`](/docs/reference/ai-sdk-rsc/create-ai#on-get-ui-state) callback to listen for SSR events and restore the UI state.
 
 ```tsx file='app/components/Chat.tsx'
 export const AI = createAI<ServerMessage[], ClientMessage[]>({

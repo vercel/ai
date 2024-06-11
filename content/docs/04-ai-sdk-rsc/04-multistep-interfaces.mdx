@@ -9,9 +9,9 @@ Multistep interfaces refer to user interfaces that require multiple independent 
 
 For example, if you wanted to build a Generative UI chatbot capable of booking flights, it could have three steps:
 
-- search all flights
-- pick flight
-- check availability
+- Search all flights
+- Pick flight
+- Check availability
 
 To build this kind of application you will leverage two concepts, **tool composition** and **application context**.
 
@@ -23,10 +23,10 @@ To build this kind of application you will leverage two concepts, **tool composi
 
 In order to build a multistep interface with `ai/rsc`, you will need a few things:
 
-- a Server Action that calls and returns the result from the `streamUI` function
-- a tool(s) (think sub-tasks necessary to complete your overall task)
-- a React component(s) that should be rendered when the tool is called
-- a page to render your chatbot
+- A Server Action that calls and returns the result from the `streamUI` function
+- Tool(s) (sub-tasks necessary to complete your overall task)
+- React component(s) that should be rendered when the tool is called
+- A page to render your chatbot
 
 The general flow that you will follow is the following:
 

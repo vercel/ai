@@ -5,7 +5,7 @@ description: Overview of the AI and UI states
 
 # Managing Generative UI State
 
-State is an essential part of any application. State is particularly important in AI applications as it is passed to large language models (LLMs) on each request to ensure it has the necessary context to produce a great generation. Traditional chatbots are text-based and have a structure that mirrors that of any chat application.
+State is an essential part of any application. State is particularly important in AI applications as it is passed to large language models (LLMs) on each request to ensure they have the necessary context to produce a great generation. Traditional chatbots are text-based and have a structure that mirrors that of any chat application.
 
 For example, in a chatbot, state is an array of `messages` where each `message` has:
 
@@ -15,11 +15,11 @@ For example, in a chatbot, state is an array of `messages` where each `message` 
 
 This state can be rendered in the UI and sent to the model without any modifications.
 
-With Generative UI, the model is now returning a React component, rather than a plain text message. The client can render that component without issue, but that state can't be sent back to the model because React components aren't serialisable. So, what can you do?
+With Generative UI, the model can now return a React component, rather than a plain text message. The client can render that component without issue, but that state can't be sent back to the model because React components aren't serialisable. So, what can you do?
 
 **The solution is to split the state in two, where one (AI State) becomes a proxy for the other (UI State)**.
 
-One way to understand this concept is through a Lego analogy. Imagine a 10,000 piece Lego model that, once built, cannot be easily transported because it is fragile. By taking the model apart, it can be easily transported, and then rebuilt following the steps outlined in the instructions pamphlet. In this way, the instructions pamphlet is a proxy to the physical structure. Similarly, AI State provides a serialisable (JSON) representation of your UI can be passed back and forth to the model.
+One way to understand this concept is through a Lego analogy. Imagine a 10,000 piece Lego model that, once built, cannot be easily transported because it is fragile. By taking the model apart, it can be easily transported, and then rebuilt following the steps outlined in the instructions pamphlet. In this way, the instructions pamphlet is a proxy to the physical structure. Similarly, AI State provides a serialisable (JSON) representation of your UI that can be passed back and forth to the model.
 
 ## What is AI and UI State?
 
@@ -38,7 +38,7 @@ For a chat app, the AI State is the conversation history (messages) between the 
 
 ### UI State
 
-UI State refers to the state of your application that is rendered on the client. It is a fully client-side state (similar to `useState`) that can store anything from JS values to React elements. UI state is a list of actual UI elements that are rendered on the client.
+UI State refers to the state of your application that is rendered on the client. It is a fully client-side state (similar to `useState`) that can store anything from Javascript values to React elements. UI state is a list of actual UI elements that are rendered on the client.
 
 <Note>**Note**: UI State can only be accessed client-side.</Note>
 
@@ -56,7 +56,7 @@ To use `ai/rsc` to manage AI and UI State in your application, you can create a 
 // Define the AI state and UI state types
 export type ServerMessage = {
   role: 'user' | 'assistant';
-  cntent: string;
+  content: string;
 };
 
 export type ClientMessage = {
