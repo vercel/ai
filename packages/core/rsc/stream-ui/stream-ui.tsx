@@ -391,6 +391,9 @@ export async function streamUI<
               warnings: result.warnings,
               rawResponse: result.rawResponse,
             });
+            if (hasToolCall) {
+              ui.done();
+            }
           }
         }
       }
