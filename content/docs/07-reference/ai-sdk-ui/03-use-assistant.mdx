@@ -129,6 +129,18 @@ This works in conjunction with [`AssistantResponse`](./assistant-response) in th
         'The current status of the assistant. This can be used to show a loading indicator.',
     },
     {
+      name: 'append',
+      type: '(message: Message | CreateMessage, chatRequestOptions: { options: { headers, body } }) => Promise<string | undefined>',
+      description:
+        "Append a user message to the current thread. This triggers the API call to fetch the assistant's response.",
+    },
+    {
+      name: 'stop',
+      type: '() => void',
+      description:
+        'Abort the current request from streaming the assistant response. Note that the run will still be in progress.',
+    },
+    {
       name: 'error',
       type: 'undefined | Error',
       description:
