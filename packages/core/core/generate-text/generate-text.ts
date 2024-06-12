@@ -8,6 +8,10 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import {
+  PromptTemplate,
+  PromptTemplateResult,
+} from '../template/prompt-template';
 import { CoreTool } from '../tool/tool';
 import {
   CallWarning,
@@ -63,6 +67,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   model,
   tools,
   toolChoice,
+  promptTemplate,
   system,
   prompt,
   messages,
@@ -73,6 +78,8 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   ...settings
 }: CallSettings &
   Prompt & {
+    promptTemplate?: Promise<PromptTemplateResult>;
+  } & {
     /**
 The language model to use.
      */
@@ -108,6 +115,14 @@ By default, it's set to 0, which will disable the feature.
     maxToolRoundtrips?: number;
   }): Promise<GenerateTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
+
+  // HACK for prototyping - TODO add prompt template into getValidatedPrompt instead
+  if (promptTemplate != null) {
+    const x = await promptTemplate;
+    system = x.system;
+    prompt = x.prompt;
+    messages = x.messages;
+  }
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
 
   const mode = {
