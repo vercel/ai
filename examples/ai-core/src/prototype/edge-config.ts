@@ -27,13 +27,13 @@ const result = await generateText({
   //
   // the generic type is optional and types the input values to the template
   // that come from the application flow
-  template: vercelEdgeTemplate<{
+  template: template<{
     language: 'French' | 'Spanish' | 'German';
     sentence: string;
   }>({
     // flag will be resolved and the output values will be used to set up
     // the model, settings, and prompt (depending on what is defined in edge config)
-    flag: promptFlag,
+    config: promptFlag,
 
     // pass in model registry to enable model lookup via string ids:
     // (could have inline option in addition to this)
