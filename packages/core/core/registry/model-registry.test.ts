@@ -1,63 +1,44 @@
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
-import { ModelRegistry } from './model-registry';
+import { InvalidModelIdError } from './invalid-model-id-error';
+import { createModelRegistry } from './model-registry';
 import { NoSuchModelError } from './no-such-model-error';
 import { NoSuchProviderError } from './no-such-provider-error';
 
-describe('language models', () => {
-  it('should return registered language model', () => {
-    const modelRegistry = new ModelRegistry();
+it('should return language model from provider', () => {
+  const model = new MockLanguageModelV1();
 
-    const model = new MockLanguageModelV1();
-
-    modelRegistry.registerLanguageModel({ id: 'test', model });
-
-    expect(modelRegistry.languageModel('test')).toEqual(model);
+  const modelRegistry = createModelRegistry({
+    provider: id => {
+      expect(id).toEqual('model');
+      return model;
+    },
   });
 
-  it("should throw NoSuchModelError if language model doesn't exist", () => {
-    const modelRegistry = new ModelRegistry();
-
-    expect(() => modelRegistry.languageModel('test')).toThrowError(
-      NoSuchModelError,
-    );
-  });
+  expect(modelRegistry.languageModel('provider:model')).toEqual(model);
 });
 
-describe('language model providers', () => {
-  it('should return language model from provider', () => {
-    const modelRegistry = new ModelRegistry();
+it('should throw NoSuchProviderError if provider does not exist', () => {
+  const modelRegistry = createModelRegistry({});
 
-    const model = new MockLanguageModelV1();
+  expect(() => modelRegistry.languageModel('provider:model')).toThrowError(
+    NoSuchProviderError,
+  );
+});
 
-    modelRegistry.registerLanguageModelProvider({
-      id: 'provider',
-      provider: id => {
-        expect(id).toEqual('model');
-        return model;
-      },
-    });
-
-    expect(modelRegistry.languageModel('provider:model')).toEqual(model);
+it('should throw NoSuchModelError if provider does not return a model', () => {
+  const modelRegistry = createModelRegistry({
+    provider: () => null as any,
   });
 
-  it('should throw NoSuchProviderError if provider does not exist', () => {
-    const modelRegistry = new ModelRegistry();
+  expect(() => modelRegistry.languageModel('provider:model')).toThrowError(
+    NoSuchModelError,
+  );
+});
 
-    expect(() => modelRegistry.languageModel('provider:model')).toThrowError(
-      NoSuchProviderError,
-    );
-  });
+it("should throw InvalidModelIdError if model id doesn't contain a colon", () => {
+  const modelRegistry = createModelRegistry({});
 
-  it('should throw NoSuchModelError if provider does not return a model', () => {
-    const modelRegistry = new ModelRegistry();
-
-    modelRegistry.registerLanguageModelProvider({
-      id: 'provider',
-      provider: () => null as any,
-    });
-
-    expect(() => modelRegistry.languageModel('provider:model')).toThrowError(
-      NoSuchModelError,
-    );
-  });
+  expect(() => modelRegistry.languageModel('model')).toThrowError(
+    InvalidModelIdError,
+  );
 });
