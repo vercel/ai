@@ -1,11 +1,11 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { createModelRegistry } from 'ai';
+import { experimental_createModelRegistry } from 'ai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const registry = createModelRegistry({
+export const registry = experimental_createModelRegistry({
   // register provider with prefix and default setup:
   anthropic,
 

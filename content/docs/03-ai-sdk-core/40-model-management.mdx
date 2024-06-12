@@ -5,6 +5,8 @@ description: Learn how to work with multiple providers and models
 
 # Model Management
 
+<Note>Mode management is an experimental feature.</Note>
+
 When you work with multiple providers and models, it is often desirable to manage them in a central place
 and access the models through simple string ids.
 
@@ -14,7 +16,7 @@ You can register multiple providers. The provider id will become the prefix of t
 
 ### Setup (Example)
 
-You can create a registry with multiple providers and models using `createModelRegistry`.
+You can create a registry with multiple providers and models using `experimental_createModelRegistry`.
 
 <Note>
   It is common to keep the registry setup in a separate file and import it where
@@ -24,7 +26,7 @@ You can create a registry with multiple providers and models using `createModelR
 ```ts filename={"registry.ts"}
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { createModelRegistry } from 'ai';
+import { experimental_createModelRegistry as createModelRegistry } from 'ai';
 
 export const registry = createModelRegistry({
   // register provider with prefix and default setup:

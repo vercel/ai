@@ -1,9 +1,11 @@
 ---
-title: createModelRegistry
+title: experimental_createModelRegistry
 description: Registry for managing multiple providers and models (API Reference)
 ---
 
-# `createModelRegistry()`
+# `experimental_createModelRegistry()`
+
+<Note>Mode management is an experimental feature.</Note>
 
 When you work with multiple providers and models, it is often desirable to manage them
 in a central place and access the models through simple string ids.
@@ -18,7 +20,7 @@ You can create a registry with multiple providers and models using `createModelR
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { createModelRegistry } from 'ai';
+import { experimental_createModelRegistry as createModelRegistry } from 'ai';
 
 export const registry = createModelRegistry({
   // register provider with prefix and default setup:
@@ -47,7 +49,10 @@ const { text } = await generateText({
 
 ## Import
 
-<Snippet text={`import { createModelRegistry } from "ai"`} prompt={false} />
+<Snippet
+  text={`import { experimental_createModelRegistry as createModelRegistry } from "ai"`}
+  prompt={false}
+/>
 
 ## API Signature
 
@@ -67,7 +72,7 @@ Registers a language model provider with a given id.
 
 ### Returns
 
-The `createModelRegistry` function returns a `ModelRegistry` instance. It has the following methods:
+The `experimental_createModelRegistry` function returns a `experimental_ModelRegistry` instance. It has the following methods:
 
 <PropertiesTable
   content={[

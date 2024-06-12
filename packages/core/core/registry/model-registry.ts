@@ -6,7 +6,7 @@ import { NoSuchProviderError } from './no-such-provider-error';
 /**
 Registry for managing models. It enables getting a model with a string id.
  */
-export type ModelRegistry = {
+export type experimental_ModelRegistry = {
   /**
 Returns the language model with the given id in the format `providerId:modelId`.
 The model id is then passed to the provider function to get the model.
@@ -24,9 +24,9 @@ The model id is then passed to the provider function to get the model.
 /**
  * Creates a model registry for the given providers.
  */
-export function createModelRegistry(
+export function experimental_createModelRegistry(
   providers: Record<string, (id: string) => LanguageModel>,
-): ModelRegistry {
+): experimental_ModelRegistry {
   const registry = new DefaultModelRegistry();
 
   for (const [id, provider] of Object.entries(providers)) {
@@ -36,7 +36,7 @@ export function createModelRegistry(
   return registry;
 }
 
-class DefaultModelRegistry implements ModelRegistry {
+class DefaultModelRegistry implements experimental_ModelRegistry {
   // Mapping of provider id to provider
   private providers: Record<string, (id: string) => LanguageModel> = {};
 
