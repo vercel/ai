@@ -23,7 +23,7 @@ export class MockLanguageModelV1 implements LanguageModelV1 {
     doGenerate?: LanguageModelV1['doGenerate'];
     doStream?: LanguageModelV1['doStream'];
     defaultObjectGenerationMode?: LanguageModelV1['defaultObjectGenerationMode'];
-  }) {
+  } = {}) {
     this.provider = provider;
     this.modelId = modelId;
     this.doGenerate = doGenerate;
