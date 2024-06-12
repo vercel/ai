@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, isValidElement, ReactElement } from 'react';
 import type OpenAI from 'openai';
 import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
@@ -10,12 +10,9 @@ import {
   STREAMABLE_VALUE_TYPE,
   DEV_DEFAULT_STREAMABLE_WARNING_TIME,
 } from './constants';
-import {
-  createResolvablePromise,
-  createSuspensedChunk,
-  consumeStream,
-} from './utils';
+import { createResolvablePromise, consumeStream } from './utils';
 import type { StreamablePatch, StreamableValue } from './types';
+import { InternalStreamableUIClient } from './rsc-shared.mjs';
 
 // It's necessary to define the type manually here, otherwise TypeScript compiler
 // will not be able to infer the correct return type as it's circular.
@@ -68,9 +65,9 @@ type StreamableUIWrapper = {
  * On the client side, it can be rendered as a normal React node.
  */
 function createStreamableUI(initialValue?: React.ReactNode) {
-  let currentValue = initialValue;
+  const innerStreamable = createStreamableValue<React.ReactNode>(initialValue);
+
   let closed = false;
-  let { row, resolve, reject } = createSuspensedChunk(initialValue);
 
   function assertStream(method: string) {
     if (closed) {
@@ -94,23 +91,11 @@ function createStreamableUI(initialValue?: React.ReactNode) {
   warnUnclosedStream();
 
   const streamable: StreamableUIWrapper = {
-    value: row,
+    value: <InternalStreamableUIClient s={innerStreamable.value} />,
     update(value: React.ReactNode) {
       assertStream('.update()');
 
-      // There is no need to update the value if it's referentially equal.
-      if (value === currentValue) {
-        warnUnclosedStream();
-        return streamable;
-      }
-
-      const resolvable = createResolvablePromise();
-      currentValue = value;
-
-      resolve({ value: currentValue, done: false, next: resolvable.promise });
-      resolve = resolvable.resolve;
-      reject = resolvable.reject;
-
+      innerStreamable.update(value);
       warnUnclosedStream();
 
       return streamable;
@@ -118,13 +103,7 @@ function createStreamableUI(initialValue?: React.ReactNode) {
     append(value: React.ReactNode) {
       assertStream('.append()');
 
-      const resolvable = createResolvablePromise();
-      currentValue = value;
-
-      resolve({ value, done: false, append: true, next: resolvable.promise });
-      resolve = resolvable.resolve;
-      reject = resolvable.reject;
-
+      innerStreamable.append(value);
       warnUnclosedStream();
 
       return streamable;
@@ -136,7 +115,7 @@ function createStreamableUI(initialValue?: React.ReactNode) {
         clearTimeout(warningTimeout);
       }
       closed = true;
-      reject(error);
+      innerStreamable.error(error);
 
       return streamable;
     },
@@ -148,11 +127,11 @@ function createStreamableUI(initialValue?: React.ReactNode) {
       }
       closed = true;
       if (args.length) {
-        resolve({ value: args[0], done: true });
+        innerStreamable.done(args[0]);
         return streamable;
       }
-      resolve({ value: currentValue, done: true });
 
+      innerStreamable.done();
       return streamable;
     },
   };
@@ -377,30 +356,44 @@ function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
     append(value: T) {
       assertStream('.append()');
 
-      if (
-        typeof currentValue !== 'string' &&
-        typeof currentValue !== 'undefined'
-      ) {
+      if (typeof value !== 'string' && !isValidElement(value)) {
         throw new Error(
-          `.append(): The current value is not a string. Received: ${typeof currentValue}`,
+          `.append(): The value type can't be appended to the stream. Received: ${typeof value}`,
         );
       }
-      if (typeof value !== 'string') {
+
+      if (typeof currentValue === 'undefined') {
+        currentPatchValue = undefined;
+        currentValue = value;
+      } else if (typeof currentValue === 'string') {
+        if (typeof value === 'string') {
+          currentPatchValue = [0, value];
+          (currentValue as string) = currentValue + value;
+        } else {
+          currentPatchValue = [1, value];
+          (currentValue as unknown as ReactElement) = (
+            <>
+              {currentValue}
+              {value}
+            </>
+          );
+        }
+      } else if (isValidElement(currentValue)) {
+        currentPatchValue = [1, value];
+        (currentValue as ReactElement) = (
+          <>
+            {currentValue}
+            {value}
+          </>
+        );
+      } else {
         throw new Error(
-          `.append(): The value is not a string. Received: ${typeof value}`,
+          `.append(): The current value doesn't support appending data. Type: ${typeof currentValue}`,
         );
       }
 
       const resolvePrevious = resolvable.resolve;
       resolvable = createResolvablePromise();
-
-      if (typeof currentValue === 'string') {
-        currentPatchValue = [0, value];
-        (currentValue as string) = currentValue + value;
-      } else {
-        currentPatchValue = undefined;
-        currentValue = value;
-      }
 
       currentPromise = resolvable.promise;
       resolvePrevious(createWrapped());

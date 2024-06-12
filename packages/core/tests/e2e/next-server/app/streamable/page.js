@@ -1,4 +1,9 @@
-import { streamableUI, streamableValue } from './actions';
+import {
+  streamableUI,
+  streamableValue,
+  streamableUIAppend,
+  streamableUIError,
+} from './actions';
 import { Client } from './client';
 
 export default function Page() {
@@ -7,6 +12,8 @@ export default function Page() {
       actions={{
         streamableUI,
         streamableValue,
+        streamableUIAppend,
+        streamableUIError,
       }}
     />
   );
