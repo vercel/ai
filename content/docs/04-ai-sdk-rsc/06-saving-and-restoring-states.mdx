@@ -61,7 +61,7 @@ The UI state cannot be saved directly, since the contents aren't yet serializabl
 
 The UI state can be restored using the AI state as a proxy. In the following example, we restore the chat history from the AI state when the component is mounted. We will use [`onGetUIState`](/docs/reference/ai-sdk-rsc/create-ai#on-get-ui-state) callback to listen for SSR events and restore the UI state.
 
-```tsx file='app/components/Chat.tsx'
+```tsx file='app/components/Chat.tsx'}
 export const AI = createAI<ServerMessage[], ClientMessage[]>({
   actions: {
     continueConversation,
@@ -78,7 +78,7 @@ export const AI = createAI<ServerMessage[], ClientMessage[]>({
 
     if (historyFromDB.length !== historyFromApp.length) {
       return historyFromDB.map(({ role, content }) => ({
-        id: nanoid(),
+        id: generateId(),
         role,
         display:
           role === 'function' ? (

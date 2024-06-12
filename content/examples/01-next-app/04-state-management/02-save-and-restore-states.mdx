@@ -40,7 +40,7 @@ export default function RootLayout({
 import { useState } from 'react';
 import { ClientMessage } from './actions';
 import { useActions, useUIState } from 'ai/rsc';
-import { nanoid } from 'nanoid';
+import { generateId } from 'ai';
 
 // Force the page to be dynamic and allow streaming responses up to 30 seconds
 export const dynamic = 'force-dynamic';
@@ -73,7 +73,7 @@ export default function Home() {
           onClick={async () => {
             setConversation((currentConversation: ClientMessage[]) => [
               ...currentConversation,
-              { id: nanoid(), role: 'user', display: input },
+              { id: generateId(), role: 'user', display: input },
             ]);
 
             const message = await continueConversation(input);
@@ -103,7 +103,7 @@ import { createAI, getAIState, getMutableAIState, streamUI } from 'ai/rsc';
 import { openai } from '@ai-sdk/openai';
 import { ReactNode } from 'react';
 import { z } from 'zod';
-import { nanoid } from 'nanoid';
+import { generateId } from 'ai';
 import { Stock } from '@ai-studio/components/stock';
 
 export interface ServerMessage {
@@ -167,7 +167,7 @@ export async function continueConversation(
   });
 
   return {
-    id: nanoid(),
+    id: generateId(),
     role: 'assistant',
     display: result.value,
   };
@@ -190,7 +190,7 @@ export const AI = createAI<ServerMessage[], ClientMessage[]>({
     const history: ServerMessage[] = getAIState();
 
     return history.map(({ role, content }) => ({
-      id: nanoid(),
+      id: generateId(),
       role,
       display:
         role === 'function' ? <Stock {...JSON.parse(content)} /> : content,
