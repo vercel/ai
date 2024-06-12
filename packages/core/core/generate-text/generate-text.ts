@@ -8,10 +8,7 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
-import {
-  PromptTemplate,
-  PromptTemplateResult,
-} from '../template/prompt-template';
+import { PromptTemplateResult } from '../template/prompt-template';
 import { CoreTool } from '../tool/tool';
 import {
   CallWarning,
