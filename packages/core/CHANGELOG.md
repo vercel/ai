@@ -1,5 +1,18 @@
 # ai
 
+## 3.1.33
+
+### Patch Changes
+
+- 6fb14b5d: chore (streams): deprecate nanoid export.
+- 05536768: feat (core): add experimental model registry
+
+## 3.1.32
+
+### Patch Changes
+
+- 3cabf078: fix(ai/rsc): Refactor streamable UI internal implementation
+
 ## 3.1.31
 
 ### Patch Changes
