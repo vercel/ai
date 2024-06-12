@@ -6,10 +6,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const registry = createModelRegistry({
-  // register provide with prefix and default setup:
+  // register provider with prefix and default setup:
   anthropic,
 
-  // register provide with prefix and custom setup:
+  // register provider with prefix and custom setup:
   openai: createOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   }),

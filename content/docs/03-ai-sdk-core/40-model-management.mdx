@@ -8,52 +8,39 @@ description: Learn how to work with multiple providers and models
 When you work with multiple providers and models, it is often desirable to manage them in a central place
 and access the models through simple string ids.
 
-The Vercel AI SDK provides the [`ModelRegistry`](/docs/reference/ai-sdk-core/model-registry) class for this purpose.
-You can register either individual models or providers with the registry and access them by their ids.
-If you register a provider, the provider id will become the prefix of the model id:
+The Vercel AI SDK provides a [`ModelRegistry`](/docs/reference/ai-sdk-core/model-registry) for this purpose.
+You can register multiple providers. The provider id will become the prefix of the model id:
 `providerId:modelId`.
 
 ### Setup (Example)
+
+You can create a registry with multiple providers and models using `createModelRegistry`.
 
 <Note>
   It is common to keep the registry setup in a separate file and import it where
   needed.
 </Note>
 
-```ts highlight={"3,5,8-13,16-19,27-30"} filename={"registry.ts"}
+```ts filename={"registry.ts"}
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { ModelRegistry } from 'ai';
+import { createModelRegistry } from 'ai';
 
-export const registry = new ModelRegistry();
+export const registry = createModelRegistry({
+  // register provider with prefix and default setup:
+  anthropic,
 
-// register provide with prefix and custom setup
-registry.registerLanguageModelProvider({
-  id: 'openai',
-  provider: createOpenAI({
+  // register provider with prefix and custom setup:
+  openai: createOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   }),
-});
-
-// register provide with prefix and default setup
-registry.registerLanguageModelProvider({
-  id: 'anthropic',
-  provider: anthropic,
-});
-
-// register specific model with id
-const groq = createOpenAI({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-registry.registerLanguageModel({
-  id: 'llama3',
-  model: groq('llama3-8b-8192'),
 });
 ```
 
 ### Usage (Example)
+
+You can access language models by using the `languageModel` method on the registry.
+The provider id will become the prefix of the model id: `providerId:modelId`.
 
 ```ts highlight={"5"}
 import { generateText } from 'ai';
