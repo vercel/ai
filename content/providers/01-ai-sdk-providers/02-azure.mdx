@@ -64,6 +64,11 @@ const model = azure('your-deployment-name');
 
 You need to pass your deployment name as the first argument.
 
+<Note>
+  The URL for calling AZURE will be constructed as follows:
+  `https://RESOURCE_NAME.openai.azure.com/openai/deployments/DEPLOYMENT_NAME/chat/completions?api-version=2024-05-01-preview`
+</Note>
+
 ### Example
 
 You can use OpenAI language models to generate text with the `generateText` function:
@@ -80,6 +85,12 @@ const { text } = await generateText({
 
 OpenAI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+
+<Note>
+  Azure OpenAI sends larger chunks than OpenAI. This can lead to the perception
+  that the response is slower. See [Troubleshooting: Azure OpenAI Slow To
+  Stream](http://localhost:3210/docs/troubleshooting/common-issues/azure-stream-slow)
+</Note>
 
 Azure OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
