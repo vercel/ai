@@ -26,6 +26,7 @@ export function createPromptTemplate<INPUT>(
 ): PromptTemplate<INPUT> {
   return async props => {
     const result = await template(props);
+
     // in the future, we will in inject more information for observability
     // (which is why a brand is used here - it'll force consumers to use this function)
     return { ...result, __promptTemplateBrand: promptTemplateBrand };
