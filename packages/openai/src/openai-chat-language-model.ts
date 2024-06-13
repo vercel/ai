@@ -84,6 +84,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
             : undefined
           : undefined,
       user: this.settings.user,
+      parallel_tool_calls: this.settings.parallelToolCalls,
 
       // standardized settings:
       max_tokens: maxTokens,
