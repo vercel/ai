@@ -7,6 +7,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, findByText, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useAssistant } from './use-assistant';
+import { firstRun } from './samples';
 
 describe('stream data stream', () => {
   const TestComponent = () => {
@@ -17,17 +18,17 @@ describe('stream data stream', () => {
     return (
       <div>
         <div data-testid="status">{status}</div>
-        {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
+        {messages.map((message, idx) => (
+          <div data-testid={`message-${idx}`} key={message.id}>
+            {message.role === 'user' ? 'User: ' : 'AI: '}
+            {message.content}
           </div>
         ))}
 
         <button
           data-testid="do-append"
           onClick={() => {
-            append({ role: 'user', content: 'hi' });
+            append({ role: 'user', content: 'hey!' });
           }}
         />
       </div>
@@ -46,39 +47,24 @@ describe('stream data stream', () => {
   it('should show streamed response', async () => {
     const { requestBody } = mockFetchDataStream({
       url: 'https://example.com/api/assistant',
-      chunks: [
-        formatStreamPart('assistant_control_data', {
-          threadId: 't0',
-          messageId: 'm0',
-        }),
-        formatStreamPart('assistant_message', {
-          id: 'm1',
-          role: 'assistant',
-          content: [{ type: 'text', text: { value: '' } }],
-        }),
-        // text parts:
-        '0:"Hello"\n',
-        '0:","\n',
-        '0:" world"\n',
-        '0:"."\n',
-      ],
+      chunks: firstRun.map(part => formatStreamPart('assistant_event', part)),
     });
 
     await userEvent.click(screen.getByTestId('do-append'));
 
     await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hey!');
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Hello, world.',
+      'AI: Hello! How can I assist you today?',
     );
 
     // check that correct information was sent to the server:
     expect(await requestBody).toStrictEqual(
       JSON.stringify({
         threadId: null,
-        message: 'hi',
+        message: 'hey!',
       }),
     );
   });
@@ -95,22 +81,11 @@ describe('stream data stream', () => {
         chunkGenerator: (async function* generate() {
           const encoder = new TextEncoder();
 
-          yield encoder.encode(
-            formatStreamPart('assistant_control_data', {
-              threadId: 't0',
-              messageId: 'm0',
-            }),
-          );
-
-          yield encoder.encode(
-            formatStreamPart('assistant_message', {
-              id: 'm1',
-              role: 'assistant',
-              content: [{ type: 'text', text: { value: '' } }],
-            }),
-          );
-
-          yield encoder.encode('0:"Hello"\n');
+          for (const streamPart of firstRun) {
+            yield encoder.encode(
+              formatStreamPart('assistant_event', streamPart),
+            );
+          }
 
           await finishGenerationPromise;
         })(),
@@ -119,14 +94,14 @@ describe('stream data stream', () => {
       await userEvent.click(screen.getByTestId('do-append'));
 
       await screen.findByTestId('status');
-      expect(screen.getByTestId('status')).toHaveTextContent('in_progress');
+      expect(screen.getByTestId('status')).toHaveTextContent(
+        'thread.run.completed',
+      );
 
       finishGeneration?.();
 
-      await findByText(await screen.findByTestId('status'), 'awaiting_message');
-      expect(screen.getByTestId('status')).toHaveTextContent(
-        'awaiting_message',
-      );
+      await findByText(await screen.findByTestId('status'), 'thread.idle');
+      expect(screen.getByTestId('status')).toHaveTextContent('thread.idle');
     });
   });
 });
