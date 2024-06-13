@@ -40,6 +40,12 @@ export function convertToOpenAIChatMessages(
                   },
                 };
               }
+              case 'file': {
+                return {
+                  type: 'text',
+                  text: '',
+                };
+              }
             }
           }),
         });
