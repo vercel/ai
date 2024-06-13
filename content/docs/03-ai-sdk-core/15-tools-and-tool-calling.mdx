@@ -128,3 +128,33 @@ const result = await generateText({
     'What is the weather in San Francisco and what attractions should I visit?',
 });
 ```
+
+## Pre-Built Tools
+
+When you work with tools, you typically need a mix of application specific tools and general purpose tools.
+There are several providers that offer pre-built tools that you can use out of the box:
+
+- **[agentic](https://github.com/transitive-bullshit/agentic)** - A collection of 20+ tools. Most tools connect to access external APIs such as [Exa](https://exa.ai/) or [E2B](https://e2b.dev/).
+- **[browserbase](https://github.com/browserbase/js-sdk?tab=readme-ov-file#vercel-ai-sdk-integration)** - Browser tool that runs a headless browser
+
+<Note>
+  Do you have open source tools or tool libraries that are compatible with the
+  Vercel AI SDK? Please [file a pull
+  request](https://github.com/vercel/ai/pulls) to add them to this list.
+</Note>
+
+## Prompt Engineering with Tools
+
+When you create prompts that include tools, getting good results can be tricky as the number and complexity of your tools increases.
+
+Here are a few tips to help you get the best results:
+
+1. Use a model that is strong at tool calling, such as `gpt-4` or `gpt-4-turbo`. Weaker models will often struggle to call tools effectively and flawlessly.
+1. Keep the number of tools low, e.g. to 5 or less.
+1. Keep the complexity of the tool parameters low. Complex Zod schemas with many nested and optional elements, unions, etc. can be challenging for the model to work with.
+1. Use semantically meaningful names for your tools, parameters, parameter properties, etc. The more information you pass to the model, the better it can understand what you want.
+1. Add `.describe("...")` to your Zod schema properties to give the model hints about what a particular property is for.
+1. When the output of a tool might be unclear to the model and there are dependencies between tools, use the `description` field of a tool to provide information about the output of the tool execution.
+1. You can include example input/outputs of tool calls in your prompt to help the model understand how to use the tools. Keep in mind that the tools work with JSON objects, so the examples should use JSON.
+
+In general, the goal should be to give the model all information it needs in a clear way.

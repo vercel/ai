@@ -1,5 +1,18 @@
 # ai
 
+## 3.1.35
+
+### Patch Changes
+
+- 06123501: feat (core): support https and data url strings in image parts
+
+## 3.1.34
+
+### Patch Changes
+
+- d25566ac: feat (core): add cosineSimilarity helper function
+- 87a5d27e: feat (core): introduce InvalidMessageRoleError.
+
 ## 3.1.33
 
 ### Patch Changes

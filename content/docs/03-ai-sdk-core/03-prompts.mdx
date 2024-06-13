@@ -76,15 +76,27 @@ const result = await generateText({
 Instead of sending a text in the `content` property, you can send an array of parts that include text and other data types.
 Currently image and text parts are supported.
 
-For models that support multi-modal inputs, user messages can include images. An `image` can be a base64-encoded image (`string`), an `ArrayBuffer`, a `Uint8Array`,
-a `Buffer`, or a `URL` object. It is possible to mix text and multiple images.
+For models that support multi-modal inputs, user messages can include images. An `image` can be one of the following:
+
+- base64-encoded image:
+  - `string` with base-64 encoded content
+  - data URL `string`, e.g. `data:image/png;base64,...`
+- binary image:
+  - `ArrayBuffer`
+  - `Uint8Array`
+  - `Buffer`
+- URL:
+  - http(s) URL `string`, e.g. `https://example.com/image.png`
+  - `URL` object, e.g. `new URL('https://example.com/image.png')`
+
+It is possible to mix text and multiple images.
 
 <Note type="warning">
   Not all models support all types of multi-modal inputs. Check the model's
   capabilities before using this feature.
 </Note>
 
-#### Example: Buffer images
+#### Example: Binary image (Buffer)
 
 ```ts highlight="8-11"
 const result = await generateText({
@@ -104,9 +116,7 @@ const result = await generateText({
 });
 ```
 
-#### Example: Base-64 encoded images
-
-<Note>You do not need a `data:...` prefix for the base64-encoded image.</Note>
+#### Example: Base-64 encoded image (string)
 
 ```ts highlight="8-11"
 const result = await generateText({
@@ -126,9 +136,9 @@ const result = await generateText({
 });
 ```
 
-#### Example: Image URLs
+#### Example: Image URL (string)
 
-```ts highlight="8-13"
+```ts highlight="8-12"
 const result = await generateText({
   model: yourModel,
   messages: [
@@ -138,9 +148,8 @@ const result = await generateText({
         { type: 'text', text: 'Describe the image in detail.' },
         {
           type: 'image',
-          image: new URL(
+          image:
             'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
-          ),
         },
       ],
     },

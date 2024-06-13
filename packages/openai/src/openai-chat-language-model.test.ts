@@ -146,7 +146,7 @@ describe('doGenerate', () => {
         | null;
     } | null;
     finish_reason?: string;
-  }) {
+  } = {}) {
     server.responseBodyJson = {
       id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
       object: 'chat.completion',
@@ -280,6 +280,33 @@ describe('doGenerate', () => {
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       logprobs: false,
+    });
+  });
+
+  it('should pass settings', async () => {
+    prepareJsonResponse();
+
+    await provider
+      .chat('gpt-3.5-turbo', {
+        logitBias: { 50256: -100 },
+        logprobs: 2,
+        parallelToolCalls: false,
+        user: 'test-user-id',
+      })
+      .doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      logprobs: true,
+      top_logprobs: 2,
+      logit_bias: { 50256: -100 },
+      parallel_tool_calls: false,
+      user: 'test-user-id',
     });
   });
 
