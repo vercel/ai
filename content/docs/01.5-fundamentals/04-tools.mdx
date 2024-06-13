@@ -21,7 +21,7 @@ There are three elements of a tool, a description, parameters, and an optional `
 - **`parameters`**: A [Zod schema](/docs/foundations/tools#schema-specification-and-validation-with-zod) that defines the parameters. It is converted to a JSON schema that is consumed by the LLM, and also used to validate the LLM tool calls.
 - **`execute`** or **`generate`**: An optional async or generator function that is called with the arguments from the tool call.
 
-## Tool Calls 
+## Tool Calls
 
 If the LLM decides to use a tool, it will generate a tool call.
 Tools with an `execute` or `generate` function are run automatically when these calls are generated.
@@ -101,4 +101,3 @@ const recipeSchema = z.object({
 ```
 
 These schemas can be used to define parameters for tool calls and generated structured objects with [`generateObject`](/docs/reference/ai-sdk-core/generate-object) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object).
-
