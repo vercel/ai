@@ -285,9 +285,8 @@ export async function streamUI<
       const reader = forkedStream.getReader();
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
 
-        if (wasPreviouslyText && value.type !== 'text-delta') {
+        if (wasPreviouslyText && (done || value.type !== 'text-delta')) {
           const textNodeId = `text-${textNodeIndex}`;
           if (!uiStreams[textNodeId]) {
             throw new Error('Expected text node to exist');
@@ -304,6 +303,8 @@ export async function streamUI<
           textNodeIndex++;
           wasPreviouslyText = false;
         }
+
+        if (done) break;
 
         switch (value.type) {
           case 'text-delta': {
