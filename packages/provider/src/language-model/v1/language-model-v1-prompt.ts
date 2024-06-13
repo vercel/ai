@@ -19,7 +19,11 @@ export type LanguageModelV1Message =
     }
   | {
       role: 'user';
-      content: Array<LanguageModelV1TextPart | LanguageModelV1ImagePart>;
+      content: Array<
+        | LanguageModelV1TextPart
+        | LanguageModelV1ImagePart
+        | LanguageModelV1FilePart
+      >;
     }
   | {
       role: 'assistant';
@@ -56,6 +60,21 @@ Image data as a Uint8Array (e.g. from a Blob or Buffer) or a URL.
   /**
 Optional mime type of the image.
    */
+  mimeType?: string;
+}
+
+/**
+File content part of a prompt. It contains a file in Google Storage.
+ */
+interface LanguageModelV1FilePart {
+  type: 'file';
+  /**
+  File data as a string.
+     */
+  file: string;
+  /**
+  Optional mime type of the image.
+     */
   mimeType?: string;
 }
 

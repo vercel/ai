@@ -60,6 +60,16 @@ export async function convertToGoogleGenerativeAIMessages({
 
               break;
             }
+            case 'file': {
+              parts.push({
+                fileData: {
+                  mimeType: part.mimeType ?? 'video/mp4',
+                  fileUri: part.file,
+                },
+              });
+
+              break;
+            }
           }
         }
 
