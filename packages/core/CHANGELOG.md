@@ -1,5 +1,11 @@
 # ai
 
+## 3.1.35
+
+### Patch Changes
+
+- 06123501: feat (core): support https and data url strings in image parts
+
 ## 3.1.34
 
 ### Patch Changes
