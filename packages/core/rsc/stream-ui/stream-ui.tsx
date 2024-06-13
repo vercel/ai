@@ -311,7 +311,7 @@ export async function streamUI<
             wasPreviouslyText = true;
             const textNodeId = `text-${textNodeIndex}`;
             if (!uiStreams[textNodeId]) {
-              uiStreams[textNodeId] = createStreamableUI(initial);
+              uiStreams[textNodeId] = createStreamableUI();
               if (replaceInitial) {
                 replaceInitial = false;
                 ui.update(uiStreams[textNodeId].value);
@@ -344,7 +344,7 @@ export async function streamUI<
             }
 
             if (!uiStreams[value.toolCallId]) {
-              uiStreams[value.toolCallId] = createStreamableUI(initial);
+              uiStreams[value.toolCallId] = createStreamableUI();
               if (replaceInitial) {
                 replaceInitial = false;
                 ui.update(uiStreams[value.toolCallId].value);
