@@ -287,11 +287,6 @@ export async function streamUI<
         const { done, value } = await reader.read();
         if (done) break;
 
-        if (replaceInitial) {
-          ui.update(<></>);
-          replaceInitial = false;
-        }
-
         if (wasPreviouslyText && value.type !== 'text-delta') {
           const textNodeId = `text-${textNodeIndex}`;
           if (!uiStreams[textNodeId]) {
@@ -316,7 +311,12 @@ export async function streamUI<
             const textNodeId = `text-${textNodeIndex}`;
             if (!uiStreams[textNodeId]) {
               uiStreams[textNodeId] = createStreamableUI(initial);
-              ui.append(uiStreams[textNodeId].value);
+              if (replaceInitial) {
+                replaceInitial = false;
+                ui.update(uiStreams[textNodeId].value);
+              } else {
+                ui.append(uiStreams[textNodeId].value);
+              }
             }
             content += value.textDelta;
             handleRender(
@@ -344,7 +344,12 @@ export async function streamUI<
 
             if (!uiStreams[value.toolCallId]) {
               uiStreams[value.toolCallId] = createStreamableUI(initial);
-              ui.append(uiStreams[value.toolCallId].value);
+              if (replaceInitial) {
+                replaceInitial = false;
+                ui.update(uiStreams[value.toolCallId].value);
+              } else {
+                ui.append(uiStreams[value.toolCallId].value);
+              }
             }
             break;
           }
