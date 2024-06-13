@@ -8,6 +8,7 @@ import { CoreMessage } from '../prompt/message';
 import { detectImageMimeType } from '../util/detect-image-mimetype';
 import { convertDataContentToUint8Array } from './data-content';
 import { ValidatedPrompt } from './get-validated-prompt';
+import { InvalidMessageRoleError } from './invalid-message-role-error';
 
 export function convertToLanguageModelPrompt(
   prompt: ValidatedPrompt,
@@ -47,7 +48,8 @@ export function convertToLanguageModelPrompt(
 export function convertToLanguageModelMessage(
   message: CoreMessage,
 ): LanguageModelV1Message {
-  switch (message.role) {
+  const role = message.role;
+  switch (role) {
     case 'system': {
       return { role: 'system', content: message.content };
     }
@@ -114,8 +116,8 @@ export function convertToLanguageModelMessage(
     }
 
     default: {
-      const _exhaustiveCheck: never = message;
-      throw new Error(`Unsupported message role: ${_exhaustiveCheck}`);
+      const _exhaustiveCheck: never = role;
+      throw new InvalidMessageRoleError({ role: _exhaustiveCheck });
     }
   }
 }
