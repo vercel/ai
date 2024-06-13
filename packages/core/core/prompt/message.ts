@@ -48,7 +48,7 @@ export type UserContent = string | Array<TextPart | ImagePart>;
 An assistant message. It can contain text, tool calls, or a combination of text and tool calls.
  */
 export type CoreAssistantMessage = {
-  role: 'assistant';
+  role: 'assistant'|'model';
   content: AssistantContent;
 };
 

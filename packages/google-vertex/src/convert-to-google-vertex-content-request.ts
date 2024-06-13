@@ -76,9 +76,9 @@ export async function convertToGoogleVertexContentRequest({
         break;
       }
 
-      case 'assistant': {
+      case 'model': {
         contents.push({
-          role: 'assistant',
+          role: 'model',
           parts: content
             .filter(part => part.type !== 'text' || part.text.length > 0)
             .map(part => {

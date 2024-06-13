@@ -108,6 +108,23 @@ export function convertToLanguageModelMessage(
         ),
       };
     }
+      
+    case 'model': {
+      if (typeof message.content === 'string') {
+        return {
+          role: 'model',
+          content: [{ type: 'text', text: message.content }],
+        };
+      }
+
+      return {
+        role: 'model',
+        content: message.content.filter(
+          // remove empty text parts:
+          part => part.type !== 'text' || part.text !== '',
+        ),
+      };
+    }
 
     case 'tool': {
       return message;
