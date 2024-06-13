@@ -288,7 +288,7 @@ export async function streamUI<
         if (done) break;
 
         if (replaceInitial) {
-          ui.update(null);
+          ui.update(<></>);
           replaceInitial = false;
         }
 
