@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.28
+
+### Patch Changes
+
+- f9db8fd6: feat (@ai-sdk/openai): add parallelToolCalls setting
+
 ## 0.0.27
 
 ### Patch Changes
