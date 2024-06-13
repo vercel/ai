@@ -184,7 +184,7 @@ export type ChatRequest = {
   functions?: Array<Function>;
   // @deprecated
   function_call?: FunctionCall;
-  data?: Record<string, string>;
+  data?: JSONValue;
   // @deprecated
   tools?: Array<Tool>;
   // @deprecated
@@ -248,7 +248,7 @@ The options to be passed to the fetch call.
   /**
 Additional data to be sent to the server.
    */
-  data?: Record<string, string>;
+  data?: JSONValue;
 };
 
 export type UseChatOptions = {
