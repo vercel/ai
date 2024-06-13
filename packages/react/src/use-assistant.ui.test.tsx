@@ -52,7 +52,7 @@ describe('stream data stream', () => {
           messageId: 'm0',
         }),
         formatStreamPart('assistant_message', {
-          id: 'm0',
+          id: 'm1',
           role: 'assistant',
           content: [{ type: 'text', text: { value: '' } }],
         }),
@@ -98,7 +98,7 @@ describe('stream data stream', () => {
           yield encoder.encode(
             formatStreamPart('assistant_control_data', {
               threadId: 't0',
-              messageId: 'm1',
+              messageId: 'm0',
             }),
           );
 

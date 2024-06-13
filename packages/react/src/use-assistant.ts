@@ -3,6 +3,7 @@
 import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   AssistantStatus,
+  AssistantStreamPart,
   CreateMessage,
   Message,
   UseAssistantOptions,
@@ -83,6 +84,11 @@ Abort the current request immediately, keep the generated tokens if any.
    * The error thrown during the assistant message processing, if any.
    */
   error: undefined | unknown;
+
+  /**
+   * The loading state of the assistant.
+   */
+  isLoading: boolean;
 };
 
 export function useAssistant({
@@ -96,8 +102,9 @@ export function useAssistant({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
-  const [status, setStatus] = useState<AssistantStatus>('awaiting_message');
+  const [status, setStatus] = useState<AssistantStatus>('thread.idle');
   const [error, setError] = useState<undefined | Error>(undefined);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (
     event:
@@ -123,7 +130,8 @@ export function useAssistant({
       data?: Record<string, string>;
     },
   ) => {
-    setStatus('in_progress');
+    setIsLoading(true);
+    setStatus('thread.message.created');
 
     setMessages(messages => [
       ...messages,
@@ -160,32 +168,40 @@ export function useAssistant({
         throw new Error('The response body is empty.');
       }
 
-      for await (const { type, value } of readDataStream(
-        result.body.getReader(),
-      )) {
-        switch (type) {
-          case 'assistant_message': {
-            setMessages(messages => [
-              ...messages,
-              {
-                id: value.id,
-                role: value.role,
-                content: value.content[0].text.value,
-              },
-            ]);
+      for await (const { value } of readDataStream(result.body.getReader())) {
+        const { event, data } = value as AssistantStreamPart;
+        setStatus(event);
+
+        switch (event) {
+          case 'thread.run.created': {
+            setThreadId(data.thread_id);
             break;
           }
 
-          case 'text': {
-            // text delta - add to last message:
+          case 'thread.message.created': {
+            setMessages(messages => [
+              ...messages,
+              {
+                id: data.id,
+                role: 'assistant',
+                content: '',
+              },
+            ]);
+
+            break;
+          }
+
+          case 'thread.message.delta': {
             setMessages(messages => {
+              const { delta } = data;
               const lastMessage = messages[messages.length - 1];
+
               return [
                 ...messages.slice(0, messages.length - 1),
                 {
-                  id: lastMessage.id,
-                  role: lastMessage.role,
-                  content: lastMessage.content + value,
+                  id: data.id,
+                  role: 'assistant',
+                  content: lastMessage.content + delta.content[0].text.value,
                 },
               ];
             });
@@ -193,34 +209,8 @@ export function useAssistant({
             break;
           }
 
-          case 'data_message': {
-            setMessages(messages => [
-              ...messages,
-              {
-                id: value.id ?? generateId(),
-                role: 'data',
-                content: '',
-                data: value.data,
-              },
-            ]);
-            break;
-          }
-
-          case 'assistant_control_data': {
-            setThreadId(value.threadId);
-
-            // set id of last message:
-            setMessages(messages => {
-              const lastMessage = messages[messages.length - 1];
-              lastMessage.id = value.messageId;
-              return [...messages.slice(0, messages.length - 1), lastMessage];
-            });
-
-            break;
-          }
-
           case 'error': {
-            setError(new Error(value));
+            setError(new Error(data));
             break;
           }
         }
@@ -239,7 +229,8 @@ export function useAssistant({
       setError(error as Error);
     } finally {
       abortControllerRef.current = null;
-      setStatus('awaiting_message');
+      setIsLoading(false);
+      setStatus('thread.idle');
     }
   };
 
@@ -270,6 +261,7 @@ export function useAssistant({
     status,
     error,
     stop,
+    isLoading,
   };
 }
 

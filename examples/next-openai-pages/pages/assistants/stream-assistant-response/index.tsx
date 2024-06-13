@@ -19,7 +19,7 @@ export default function Page() {
 
       <form onSubmit={submitMessage} className="fixed bottom-0 p-2 w-full">
         <input
-          disabled={status !== 'awaiting_message'}
+          disabled={status !== 'thread.idle'}
           value={input}
           onChange={handleInputChange}
           className="bg-zinc-100 w-full p-2"

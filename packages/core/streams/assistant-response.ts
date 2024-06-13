@@ -84,56 +84,26 @@ export function AssistantResponse(
 
       const forwardStream = async (stream: AssistantStream) => {
         let result: Run | undefined = undefined;
+        const streamDataForEvents = [
+          'thread.run.created',
+          'thread.message.created',
+          'thread.message.in_progress',
+          'thread.message.delta',
+        ];
 
-        for await (const value of stream) {
-          switch (value.event) {
-            case 'thread.message.created': {
-              controller.enqueue(
-                textEncoder.encode(
-                  formatStreamPart('assistant_message', {
-                    id: value.data.id,
-                    role: 'assistant',
-                    content: [{ type: 'text', text: { value: '' } }],
-                  }),
-                ),
-              );
-              break;
-            }
-
-            case 'thread.message.delta': {
-              const content = value.data.delta.content?.[0];
-
-              if (content?.type === 'text' && content.text?.value != null) {
-                controller.enqueue(
-                  textEncoder.encode(
-                    formatStreamPart('text', content.text.value),
-                  ),
-                );
-              }
-
-              break;
-            }
-
-            case 'thread.run.completed':
-            case 'thread.run.requires_action': {
-              result = value.data;
-              break;
-            }
-          }
+        for await (const { event, data } of stream) {
+          controller.enqueue(
+            textEncoder.encode(
+              formatStreamPart('assistant_event', {
+                event,
+                data: streamDataForEvents.includes(event) ? data : null,
+              }),
+            ),
+          );
         }
 
         return result;
       };
-
-      // send the threadId and messageId as the first message:
-      controller.enqueue(
-        textEncoder.encode(
-          formatStreamPart('assistant_control_data', {
-            threadId,
-            messageId,
-          }),
-        ),
-      );
 
       try {
         await process({

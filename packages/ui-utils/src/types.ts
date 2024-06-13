@@ -1,5 +1,6 @@
 import { ToolCall as CoreToolCall } from './duplicated/tool-call';
 import { ToolResult as CoreToolResult } from './duplicated/tool-result';
+import { AssistantStatus } from './use-assistant-types';
 
 export * from './use-assistant-types';
 
@@ -462,4 +463,9 @@ export type DataMessage = {
   id?: string; // optional id, implement if needed (e.g. for persistance)
   role: 'data';
   data: JSONValue; // application-specific data
+};
+
+export type AssistantStreamPart = {
+  event: AssistantStatus;
+  data: any;
 };
