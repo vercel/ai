@@ -44,7 +44,7 @@ describe('stream data stream', () => {
     cleanup();
   });
 
-  it('should show streamed response', async () => {
+  it('should show final response', async () => {
     const { requestBody } = mockFetchDataStream({
       url: 'https://example.com/api/assistant',
       chunks: firstRun.map(part => formatStreamPart('assistant_event', part)),
@@ -69,8 +69,8 @@ describe('stream data stream', () => {
     );
   });
 
-  describe('loading state', () => {
-    it('should show loading state', async () => {
+  describe('should show stream events', () => {
+    it('should show final event', async () => {
       let finishGeneration: ((value?: unknown) => void) | undefined;
       const finishGenerationPromise = new Promise(resolve => {
         finishGeneration = resolve;
@@ -91,17 +91,20 @@ describe('stream data stream', () => {
         })(),
       });
 
-      await userEvent.click(screen.getByTestId('do-append'));
-
       await screen.findByTestId('status');
-      expect(screen.getByTestId('status')).toHaveTextContent(
-        'thread.run.completed',
-      );
+      expect(screen.getByTestId('status')).toHaveTextContent('thread.idle');
+
+      await userEvent.click(screen.getByTestId('do-append'));
 
       finishGeneration?.();
 
-      await findByText(await screen.findByTestId('status'), 'thread.idle');
-      expect(screen.getByTestId('status')).toHaveTextContent('thread.idle');
+      await findByText(
+        await screen.findByTestId('status'),
+        'thread.run.completed',
+      );
+      expect(screen.getByTestId('status')).toHaveTextContent(
+        'thread.run.completed',
+      );
     });
   });
 });

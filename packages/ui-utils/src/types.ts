@@ -467,5 +467,5 @@ export type DataMessage = {
 
 export type AssistantStreamPart = {
   event: AssistantStatus;
-  data: any;
+  data?: any;
 };

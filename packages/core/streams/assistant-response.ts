@@ -1,5 +1,6 @@
 import {
   AssistantMessage,
+  AssistantStreamPart,
   DataMessage,
   formatStreamPart,
 } from '@ai-sdk/ui-utils';
@@ -84,21 +85,50 @@ export function AssistantResponse(
 
       const forwardStream = async (stream: AssistantStream) => {
         let result: Run | undefined = undefined;
-        const streamDataForEvents = [
-          'thread.run.created',
-          'thread.message.created',
-          'thread.message.in_progress',
-          'thread.message.delta',
-        ];
+
+        function sanitizeData(data: AssistantStreamPart['data']) {
+          const { object } = data;
+
+          switch (object) {
+            case 'thread.run.completed':
+            case 'thread.run': {
+              result = data as Run;
+
+              return {
+                id: data.id,
+                threadId: data.thread_id,
+                runId: data.run_id,
+                required_action: data.required_action,
+                status: data.status,
+              };
+            }
+
+            case 'thread.message':
+            case 'thread.message.delta': {
+              return {
+                id: data.id,
+                delta: data.delta,
+              };
+            }
+
+            default:
+              return null;
+          }
+        }
 
         for await (const { event, data } of stream) {
+          let streamPart: AssistantStreamPart = {
+            event,
+          };
+
+          const streamDataPart = sanitizeData(data);
+
+          if (streamDataPart) {
+            streamPart['data'] = streamDataPart;
+          }
+
           controller.enqueue(
-            textEncoder.encode(
-              formatStreamPart('assistant_event', {
-                event,
-                data: streamDataForEvents.includes(event) ? data : null,
-              }),
-            ),
+            textEncoder.encode(formatStreamPart('assistant_event', streamPart)),
           );
         }
 

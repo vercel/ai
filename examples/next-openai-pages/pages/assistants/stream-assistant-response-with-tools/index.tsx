@@ -1,8 +1,14 @@
 import { Message, useAssistant } from '@ai-sdk/react';
 
 export default function Page() {
-  const { status, messages, input, submitMessage, handleInputChange } =
-    useAssistant({ api: '/api/assistant-tools' });
+  const {
+    status,
+    messages,
+    input,
+    submitMessage,
+    handleInputChange,
+    isLoading,
+  } = useAssistant({ api: '/api/assistant-tools' });
 
   return (
     <div className="flex flex-col gap-2">
@@ -19,7 +25,7 @@ export default function Page() {
 
       <form onSubmit={submitMessage} className="fixed bottom-0 p-2 w-full">
         <input
-          disabled={status !== 'awaiting_message'}
+          disabled={isLoading}
           value={input}
           onChange={handleInputChange}
           className="bg-zinc-100 w-full p-2"

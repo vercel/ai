@@ -174,7 +174,7 @@ export function useAssistant({
 
         switch (event) {
           case 'thread.run.created': {
-            setThreadId(data.thread_id);
+            setThreadId(data.threadId);
             break;
           }
 
@@ -230,7 +230,6 @@ export function useAssistant({
     } finally {
       abortControllerRef.current = null;
       setIsLoading(false);
-      setStatus('thread.idle');
     }
   };
 
