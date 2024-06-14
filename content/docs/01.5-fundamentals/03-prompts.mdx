@@ -5,14 +5,13 @@ description: Learn about the Prompt structure used in the Vercel AI SDK.
 
 # Prompts
 
-Prompts are instructions that you give a large language model (LLM) to tell it what to do.
+Prompts are instructions that you give a [large language model (LLM)](/docs/foundations/overview#large-language-models) to tell it what to do.
 It's like when you ask someone for directions; the clearer your question, the better the directions you'll get.
 
 Many LLM providers offer complex interfaces for specifying prompts. They involve different roles and message types.
 While these interfaces are powerful, they can be hard to use and understand.
 
-The Vercel AI SDK simplifies prompting across compatible providers to text prompts or more elaborate message prompts.
-Both prompt types support system messages, and message prompts can be multi-modal.
+In order to simplify prompting across compatible providers, the Vercel AI SDK offers two categories of prompts: text prompts and message prompts.
 
 ## Text Prompts
 
@@ -20,7 +19,7 @@ Text prompts are strings.
 They are ideal for simple generation use cases,
 e.g. repeatedly generating content for variants of the same prompt text.
 
-You can set text prompts using the `prompt` property.
+You can set text prompts using the `prompt` property made available by AI SDK functions like [`generateText`](/docs/reference/ai-sdk-core/generate-text) or [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui).
 You can structure the text in any way and inject variables, e.g. using a template literal.
 
 ```ts highlight="3"
@@ -49,7 +48,7 @@ They are great for chat interfaces and more complex, multi-modal prompts.
 Each message has a `role` and a `content` property. The content can either be text (for user and assistant messages), or an array of relevant parts (data) for that message type.
 
 ```ts highlight="3-7"
-const result = await generateText({
+const result = await streamUI({
   model: yourModel,
   messages: [
     { role: 'user', content: 'Hi!' },
@@ -59,7 +58,7 @@ const result = await generateText({
 });
 ```
 
-<Note>
+<Note type="warning">
   Not all language models support all message and content types. For example,
   some models might not be capable of handling multi-modal inputs or tool
   messages. [Learn more about the capabilities of select
@@ -76,6 +75,20 @@ const result = await generateText({
 Instead of sending a text in the `content` property, you can send an array of parts that include text and other data types.
 Currently image and text parts are supported.
 
+For models that support multi-modal inputs, user messages can include images. An `image` can be one of the following:
+
+- base64-encoded image:
+  - `string` with base-64 encoded content
+  - data URL `string`, e.g. `data:image/png;base64,...`
+- binary image:
+  - `ArrayBuffer`
+  - `Uint8Array`
+  - `Buffer`
+- URL:
+  - http(s) URL `string`, e.g. `https://example.com/image.png`
+  - `URL` object, e.g. `new URL('https://example.com/image.png')`
+
+It is possible to mix text and multiple images.
 For models that support multi-modal inputs, user messages can include images. An `image` can be one of the following:
 
 - base64-encoded image:
@@ -160,15 +173,16 @@ const result = await generateText({
 ### Tool messages
 
 <Note>
-  Tools (also known as function calling) are programs that you can provide an
-  LLM to extend it's built-in functionality. This can be anything from calling
-  an external API to calling functions within your UI.
+  [Tools](/docs/foundations/tools) (also known as function calling) are programs
+  that you can provide an LLM to extend it's built-in functionality. This can be
+  anything from calling an external API to calling functions within your UI.
+  Learn more about Tools in [the next section](/docs/foundations/tools).
 </Note>
 
-For models that support [tool](/docs/ai-sdk-core/tools-and-tool-calling) calls, assistant messages can contain tool call parts, and tool messages can contain tool result parts.
+For models that support [tool](/docs/foundations/tools-and-tool-calling) calls, assistant messages can contain tool call parts, and tool messages can contain tool result parts.
 A single assistant message can call multiple tools, and a single tool message can contain multiple tool results.
 
-```ts highlight="3-43"
+```ts highlight="14-42"
 const result = await generateText({
   model: yourModel,
   messages: [
@@ -217,7 +231,7 @@ const result = await generateText({
 
 ## System Messages
 
-System messages are like character instructions that you would give an actor.
+System messages are the initial set of instructions given to models that help guide and constrain the models' behaviors and responses.
 You can set system prompts using the `system` property.
 System messages work with both the `prompt` and the `messages` properties.
 
