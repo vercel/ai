@@ -26,7 +26,7 @@ export interface OpenAIProvider {
     modelId: 'gpt-3.5-turbo-instruct',
     settings?: OpenAICompletionSettings,
   ): OpenAICompletionLanguageModel;
-  (
+  languageModel(
     modelId: OpenAIChatModelId,
     settings?: OpenAIChatSettings,
   ): OpenAIChatLanguageModel;
