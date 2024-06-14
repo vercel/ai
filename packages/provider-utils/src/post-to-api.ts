@@ -3,7 +3,8 @@ import { extractResponseHeaders } from './extract-response-headers';
 import { isAbortError } from './is-abort-error';
 import { ResponseHandler } from './response-handler';
 
-const originalFetch = fetch;
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
 
 export const postJsonToApi = async <T>({
   url,
@@ -20,7 +21,7 @@ export const postJsonToApi = async <T>({
   failedResponseHandler: ResponseHandler<APICallError>;
   successfulResponseHandler: ResponseHandler<T>;
   abortSignal?: AbortSignal;
-  fetch?: typeof originalFetch;
+  fetch?: ReturnType<typeof getOriginalFetch>;
 }) =>
   postToApi({
     url,
@@ -45,7 +46,7 @@ export const postToApi = async <T>({
   successfulResponseHandler,
   failedResponseHandler,
   abortSignal,
-  fetch = originalFetch,
+  fetch = getOriginalFetch(),
 }: {
   url: string;
   headers?: Record<string, string | undefined>;
@@ -56,7 +57,7 @@ export const postToApi = async <T>({
   failedResponseHandler: ResponseHandler<Error>;
   successfulResponseHandler: ResponseHandler<T>;
   abortSignal?: AbortSignal;
-  fetch?: typeof originalFetch;
+  fetch?: ReturnType<typeof getOriginalFetch>;
 }) => {
   try {
     // remove undefined headers:
