@@ -32,7 +32,7 @@ export type experimental_ModelRegistry = experimental_ProviderRegistry;
 export function experimental_createProviderRegistry(
   providers: Record<string, (id: string) => LanguageModel>,
 ): experimental_ProviderRegistry {
-  const registry = new DefaultModelRegistry();
+  const registry = new DefaultProviderRegistry();
 
   for (const [id, provider] of Object.entries(providers)) {
     registry.registerLanguageModelProvider({ id, provider });
@@ -41,7 +41,7 @@ export function experimental_createProviderRegistry(
   return registry;
 }
 
-class DefaultModelRegistry implements experimental_ProviderRegistry {
+class DefaultProviderRegistry implements experimental_ProviderRegistry {
   // Mapping of provider id to provider
   private providers: Record<string, (id: string) => LanguageModel> = {};
 
