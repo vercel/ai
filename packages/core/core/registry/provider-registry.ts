@@ -87,7 +87,10 @@ class DefaultProviderRegistry implements experimental_ProviderRegistry {
     const provider = this.providers[id];
 
     if (provider == null) {
-      throw new NoSuchProviderError({ providerId: id });
+      throw new NoSuchProviderError({
+        providerId: id,
+        availableProviders: Object.keys(this.providers),
+      });
     }
 
     return provider;
