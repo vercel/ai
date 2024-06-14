@@ -66,7 +66,7 @@ Optional mime type of the image.
 /**
 File content part of a prompt. It contains a file in Google Storage.
  */
-interface LanguageModelV1FilePart {
+export interface LanguageModelV1FilePart {
   type: 'file';
   /**
   File data as a string.
