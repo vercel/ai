@@ -6,7 +6,7 @@ import { NoSuchProviderError } from './no-such-provider-error';
 /**
 Registry for managing models. It enables getting a model with a string id.
  */
-export type experimental_ModelRegistry = {
+export type experimental_ProviderRegistry = {
   /**
 Returns the language model with the given id in the format `providerId:modelId`.
 The model id is then passed to the provider function to get the model.
@@ -22,12 +22,17 @@ The model id is then passed to the provider function to get the model.
 };
 
 /**
- * Creates a model registry for the given providers.
+ * @deprecated Use `experimental_ProviderRegistry` instead.
  */
-export function experimental_createModelRegistry(
+export type experimental_ModelRegistry = experimental_ProviderRegistry;
+
+/**
+ * Creates a registry for the given providers.
+ */
+export function experimental_createProviderRegistry(
   providers: Record<string, (id: string) => LanguageModel>,
-): experimental_ModelRegistry {
-  const registry = new DefaultModelRegistry();
+): experimental_ProviderRegistry {
+  const registry = new DefaultProviderRegistry();
 
   for (const [id, provider] of Object.entries(providers)) {
     registry.registerLanguageModelProvider({ id, provider });
@@ -36,7 +41,7 @@ export function experimental_createModelRegistry(
   return registry;
 }
 
-class DefaultModelRegistry implements experimental_ModelRegistry {
+class DefaultProviderRegistry implements experimental_ProviderRegistry {
   // Mapping of provider id to provider
   private providers: Record<string, (id: string) => LanguageModel> = {};
 
@@ -91,3 +96,9 @@ The model id is then passed to the provider function to get the model.
     return model;
   }
 }
+
+/**
+ * @deprecated Use `experimental_createProviderRegistry` instead.
+ */
+export const experimental_createModelRegistry =
+  experimental_createProviderRegistry;

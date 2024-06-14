@@ -1,28 +1,28 @@
 ---
-title: experimental_createModelRegistry
+title: experimental_createProviderRegistry
 description: Registry for managing multiple providers and models (API Reference)
 ---
 
-# `experimental_createModelRegistry()`
+# `experimental_createProviderRegistry()`
 
-<Note>Model management is an experimental feature.</Note>
+<Note>Provider management is an experimental feature.</Note>
 
 When you work with multiple providers and models, it is often desirable to manage them
 in a central place and access the models through simple string ids.
 
-`createModelRegistry` lets you create a registry with multiple providers that you
+`createProviderRegistry` lets you create a registry with multiple providers that you
 can access by their ids.
 
 ### Setup (Example)
 
-You can create a registry with multiple providers and models using `createModelRegistry`.
+You can create a registry with multiple providers and models using `createProviderRegistry`.
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { experimental_createModelRegistry as createModelRegistry } from 'ai';
+import { experimental_createProviderRegistry as createProviderRegistry } from 'ai';
 
-export const registry = createModelRegistry({
+export const registry = createProviderRegistry({
   // register provider with prefix and default setup:
   anthropic,
 
@@ -50,7 +50,7 @@ const { text } = await generateText({
 ## Import
 
 <Snippet
-  text={`import { experimental_createModelRegistry as createModelRegistry } from "ai"`}
+  text={`import { experimental_createProviderRegistry as createProviderRegistry } from "ai"`}
   prompt={false}
 />
 
@@ -72,7 +72,7 @@ Registers a language model provider with a given id.
 
 ### Returns
 
-The `experimental_createModelRegistry` function returns a `experimental_ModelRegistry` instance. It has the following methods:
+The `experimental_createProviderRegistry` function returns a `experimental_ProviderRegistry` instance. It has the following methods:
 
 <PropertiesTable
   content={[

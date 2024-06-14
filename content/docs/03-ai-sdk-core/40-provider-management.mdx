@@ -1,22 +1,22 @@
 ---
-title: Model Management
-description: Learn how to work with multiple providers and models
+title: Provider Management
+description: Learn how to work with multiple providers
 ---
 
-# Model Management
+# Provider Management
 
-<Note>Model management is an experimental feature.</Note>
+<Note>Provider management is an experimental feature.</Note>
 
 When you work with multiple providers and models, it is often desirable to manage them in a central place
 and access the models through simple string ids.
 
-The Vercel AI SDK provides a [`ModelRegistry`](/docs/reference/ai-sdk-core/model-registry) for this purpose.
+The Vercel AI SDK provides a [`ProviderRegistry`](/docs/reference/ai-sdk-core/provider-registry) for this purpose.
 You can register multiple providers. The provider id will become the prefix of the model id:
 `providerId:modelId`.
 
 ### Setup (Example)
 
-You can create a registry with multiple providers and models using `experimental_createModelRegistry`.
+You can create a registry with multiple providers and models using `experimental_createProviderRegistry`.
 
 <Note>
   It is common to keep the registry setup in a separate file and import it where
@@ -26,9 +26,9 @@ You can create a registry with multiple providers and models using `experimental
 ```ts filename={"registry.ts"}
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { experimental_createModelRegistry as createModelRegistry } from 'ai';
+import { experimental_createProviderRegistry as createProviderRegistry } from 'ai';
 
-export const registry = createModelRegistry({
+export const registry = createProviderRegistry({
   // register provider with prefix and default setup:
   anthropic,
 
