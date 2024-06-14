@@ -55,27 +55,11 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
-    const warnings: LanguageModelV1CallWarning[] = [];
-
-    if (frequencyPenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
-      });
-    }
-
-    if (presencePenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
-      });
-    }
-
     // Cohere distinguishes between the current message and the chat history
     const chatPrompt = convertToCohereChatPrompt(prompt);
     const [lastMessage, ...history] = chatPrompt;
 
-    const baseArgs = {
+    const args = {
       // model id:
       model: this.modelId,
 
@@ -83,10 +67,12 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       // none
 
       // standardized settings:
+      frequency_penalty: frequencyPenalty,
+      presence_penalty: presencePenalty,
       max_tokens: maxTokens,
       temperature,
-      top_p: topP,
-      random_seed: seed,
+      p: topP,
+      seed,
 
       // messages:
       chat_history: history,
@@ -96,10 +82,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        return {
-          args: { ...baseArgs },
-          warnings,
-        };
+        return args;
       }
 
       case 'object-json': {
@@ -130,7 +113,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const args = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
@@ -166,7 +149,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
         rawSettings,
       },
       rawResponse: { headers: responseHeaders },
-      warnings,
+      warnings: undefined,
     };
   }
 
