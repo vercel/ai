@@ -1,4 +1,4 @@
-import { LanguageModel } from '../types';
+import { EmbeddingModel, LanguageModel } from '../types';
 import { InvalidModelIdError } from './invalid-model-id-error';
 import { NoSuchModelError } from './no-such-model-error';
 import { NoSuchProviderError } from './no-such-provider-error';
@@ -19,52 +19,9 @@ The model id is then passed to the provider function to get the model.
 @returns {LanguageModel} The language model associated with the id.
    */
   languageModel(id: string): LanguageModel;
-};
-
-/**
- * @deprecated Use `experimental_ProviderRegistry` instead.
- */
-export type experimental_ModelRegistry = experimental_ProviderRegistry;
-
-/**
- * Creates a registry for the given providers.
- */
-export function experimental_createProviderRegistry(
-  providers: Record<string, (id: string) => LanguageModel>,
-): experimental_ProviderRegistry {
-  const registry = new DefaultProviderRegistry();
-
-  for (const [id, provider] of Object.entries(providers)) {
-    registry.registerLanguageModelProvider({ id, provider });
-  }
-
-  return registry;
-}
-
-class DefaultProviderRegistry implements experimental_ProviderRegistry {
-  // Mapping of provider id to provider
-  private providers: Record<string, (id: string) => LanguageModel> = {};
 
   /**
-Registers a language model provider with a given id.
-
-@param {string} id - The id of the provider.
-@param {(id: string) => LanguageModel} provider - The provider function to register.
-   */
-  registerLanguageModelProvider({
-    id,
-    provider,
-  }: {
-    id: string;
-    provider: (id: string) => LanguageModel;
-  }): void {
-    this.providers[id] = provider;
-  }
-
-  /**
-Returns the language model with the given id.
-The id can either be a registered model id or use a provider prefix.
-Provider ids are separated from the model id by a colon: `providerId:modelId`.
+Returns the text embedding model with the given id in the format `providerId:modelId`.
 The model id is then passed to the provider function to get the model.
 
 @param {string} id - The id of the model to return.
@@ -74,27 +31,43 @@ The model id is then passed to the provider function to get the model.
 
 @returns {LanguageModel} The language model associated with the id.
    */
-  languageModel(id: string): LanguageModel {
-    if (!id.includes(':')) {
-      throw new InvalidModelIdError({ id });
-    }
+  textEmbeddingModel(id: string): EmbeddingModel<string>;
+};
 
-    const [providerId, modelId] = id.split(':');
+/**
+ * @deprecated Use `experimental_ProviderRegistry` instead.
+ */
+export type experimental_ModelRegistry = experimental_ProviderRegistry;
 
-    const provider = this.providers[providerId];
+/**
+ * Provider for language and text embedding models. Compatible with the
+ * provider registry.
+ */
+interface Provider {
+  /**
+   * Returns a language model with the given id.
+   */
+  languageModel?: (modelId: string) => LanguageModel;
 
-    if (!provider) {
-      throw new NoSuchProviderError({ providerId });
-    }
+  /**
+   * Returns a text embedding model with the given id.
+   */
+  textEmbedding?: (modelId: string) => EmbeddingModel<string>;
+}
 
-    const model = provider(modelId);
+/**
+ * Creates a registry for the given providers.
+ */
+export function experimental_createProviderRegistry(
+  providers: Record<string, Provider>,
+): experimental_ProviderRegistry {
+  const registry = new DefaultProviderRegistry();
 
-    if (!model) {
-      throw new NoSuchModelError({ modelId: id });
-    }
-
-    return model;
+  for (const [id, provider] of Object.entries(providers)) {
+    registry.registerProvider({ id, provider });
   }
+
+  return registry;
 }
 
 /**
@@ -102,3 +75,54 @@ The model id is then passed to the provider function to get the model.
  */
 export const experimental_createModelRegistry =
   experimental_createProviderRegistry;
+
+class DefaultProviderRegistry implements experimental_ProviderRegistry {
+  private providers: Record<string, Provider> = {};
+
+  registerProvider({ id, provider }: { id: string; provider: Provider }): void {
+    this.providers[id] = provider;
+  }
+
+  private getProvider(id: string): Provider {
+    const provider = this.providers[id];
+
+    if (provider == null) {
+      throw new NoSuchProviderError({ providerId: id });
+    }
+
+    return provider;
+  }
+
+  private splitId(id: string): [string, string] {
+    if (!id.includes(':')) {
+      throw new InvalidModelIdError({ id });
+    }
+
+    return id.split(':') as [string, string];
+  }
+
+  languageModel(id: string): LanguageModel {
+    const [providerId, modelId] = this.splitId(id);
+    const model = this.getProvider(providerId).languageModel?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'language model' });
+    }
+
+    return model;
+  }
+
+  textEmbeddingModel(id: string): EmbeddingModel<string> {
+    const [providerId, modelId] = this.splitId(id);
+    const model = this.getProvider(providerId).textEmbedding?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({
+        modelId: id,
+        modelType: 'text embedding model',
+      });
+    }
+
+    return model;
+  }
+}

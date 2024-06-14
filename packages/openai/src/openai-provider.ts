@@ -45,6 +45,14 @@ Creates a model for text embeddings.
     modelId: OpenAIEmbeddingModelId,
     settings?: OpenAIEmbeddingSettings,
   ): OpenAIEmbeddingModel;
+
+  /**
+Creates a model for text embeddings.
+   */
+  textEmbedding(
+    modelId: OpenAIEmbeddingModelId,
+    settings?: OpenAIEmbeddingSettings,
+  ): OpenAIEmbeddingModel;
 }
 
 export interface OpenAIProviderSettings {
@@ -174,6 +182,7 @@ export function createOpenAI(
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
 
   return provider as OpenAIProvider;
 }

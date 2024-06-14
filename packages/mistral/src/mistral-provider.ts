@@ -35,6 +35,14 @@ Creates a model for text embeddings.
     modelId: MistralEmbeddingModelId,
     settings?: MistralEmbeddingSettings,
   ): MistralEmbeddingModel;
+
+  /**
+Creates a model for text embeddings.
+   */
+  textEmbedding(
+    modelId: MistralEmbeddingModelId,
+    settings?: MistralEmbeddingSettings,
+  ): MistralEmbeddingModel;
 }
 
 export interface MistralProviderSettings {
@@ -126,6 +134,7 @@ export function createMistral(
 
   provider.chat = createChatModel;
   provider.embedding = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
 
   return provider as MistralProvider;
 }
