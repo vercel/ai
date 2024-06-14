@@ -17,6 +17,14 @@ Creates a model for text generation.
   /**
 Creates a model for text generation.
 */
+  languageModel(
+    modelId: AnthropicMessagesModelId,
+    settings?: AnthropicMessagesSettings,
+  ): AnthropicMessagesLanguageModel;
+
+  /**
+Creates a model for text generation.
+*/
   chat(
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
@@ -108,6 +116,7 @@ export function createAnthropic(
     return createChatModel(modelId, settings);
   };
 
+  provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
 

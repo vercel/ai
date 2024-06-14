@@ -14,7 +14,7 @@ The Vercel AI SDK provides a [`ProviderRegistry`](/docs/reference/ai-sdk-core/pr
 You can register multiple providers. The provider id will become the prefix of the model id:
 `providerId:modelId`.
 
-### Setup (Example)
+### Setup
 
 You can create a registry with multiple providers and models using `experimental_createProviderRegistry`.
 
@@ -39,7 +39,7 @@ export const registry = createProviderRegistry({
 });
 ```
 
-### Usage (Example)
+### Language models
 
 You can access language models by using the `languageModel` method on the registry.
 The provider id will become the prefix of the model id: `providerId:modelId`.
@@ -51,5 +51,20 @@ import { registry } from './registry';
 const { text } = await generateText({
   model: registry.languageModel('openai:gpt-4-turbo'),
   prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+### Text embedding models
+
+You can access text embedding models by using the `textEmbeddingModel` method on the registry.
+The provider id will become the prefix of the model id: `providerId:modelId`.
+
+```ts highlight={"5"}
+import { embed } from 'ai';
+import { registry } from './registry';
+
+const { embedding } = await embed({
+  model: registry.textEmbeddingModel('openai:text-embedding-3-small'),
+  value: 'sunny day at the beach',
 });
 ```

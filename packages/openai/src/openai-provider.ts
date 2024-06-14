@@ -22,6 +22,15 @@ export interface OpenAIProvider {
     settings?: OpenAIChatSettings,
   ): OpenAIChatLanguageModel;
 
+  languageModel(
+    modelId: 'gpt-3.5-turbo-instruct',
+    settings?: OpenAICompletionSettings,
+  ): OpenAICompletionLanguageModel;
+  languageModel(
+    modelId: OpenAIChatModelId,
+    settings?: OpenAIChatSettings,
+  ): OpenAIChatLanguageModel;
+
   /**
 Creates an OpenAI chat model for text generation.
    */
@@ -42,6 +51,14 @@ Creates an OpenAI completion model for text generation.
 Creates a model for text embeddings.
    */
   embedding(
+    modelId: OpenAIEmbeddingModelId,
+    settings?: OpenAIEmbeddingSettings,
+  ): OpenAIEmbeddingModel;
+
+  /**
+Creates a model for text embeddings.
+   */
+  textEmbedding(
     modelId: OpenAIEmbeddingModelId,
     settings?: OpenAIEmbeddingSettings,
   ): OpenAIEmbeddingModel;
@@ -151,10 +168,10 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const provider = function (
+  const createLanguageModel = (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
-  ) {
+  ) => {
     if (new.target) {
       throw new Error(
         'The OpenAI model function cannot be called with the new keyword.',
@@ -171,9 +188,18 @@ export function createOpenAI(
     return createChatModel(modelId, settings as OpenAIChatSettings);
   };
 
+  const provider = function (
+    modelId: OpenAIChatModelId | OpenAICompletionModelId,
+    settings?: OpenAIChatSettings | OpenAICompletionSettings,
+  ) {
+    return createLanguageModel(modelId, settings);
+  };
+
+  provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
 
   return provider as OpenAIProvider;
 }
