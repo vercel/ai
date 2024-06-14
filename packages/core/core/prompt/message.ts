@@ -1,12 +1,13 @@
 import {
   ImagePart,
+  FilePart,
   TextPart,
   ToolCallPart,
   ToolResultPart,
 } from './content-part';
 
 /**
-A message that can be used in the `messages` field of a prompt. 
+A message that can be used in the `messages` field of a prompt.
 It can be a user message, an assistant message, or a tool message.
  */
 export type CoreMessage =
@@ -42,7 +43,7 @@ export type ExperimentalUserMessage = CoreUserMessage;
 /**
 Content of a user message. It can be a string or an array of text and image parts.
  */
-export type UserContent = string | Array<TextPart | ImagePart>;
+export type UserContent = string | Array<TextPart | ImagePart | FilePart>;
 
 /**
 An assistant message. It can contain text, tool calls, or a combination of text and tool calls.

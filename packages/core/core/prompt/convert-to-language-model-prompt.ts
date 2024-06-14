@@ -1,5 +1,6 @@
 import {
   LanguageModelV1ImagePart,
+  LanguageModelV1FilePart,
   LanguageModelV1Message,
   LanguageModelV1Prompt,
   LanguageModelV1TextPart,
@@ -66,11 +67,13 @@ export function convertToLanguageModelMessage(
       return {
         role: 'user',
         content: message.content.map(
-          (part): LanguageModelV1TextPart | LanguageModelV1ImagePart => {
+          (part): LanguageModelV1TextPart | LanguageModelV1ImagePart | LanguageModelV1FilePart => {
             switch (part.type) {
               case 'text': {
                 return part;
               }
+              case 'file':
+                return part;
 
               case 'image': {
                 if (part.image instanceof URL) {
