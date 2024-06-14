@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { CohereChatModelId, CohereChatSettings } from './cohere-chat-settings';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { cohereFailedResponseHandler } from './cohere-error';
+import { mapCohereFinishReason } from './map-cohere-finish-reason';
 
 type CohereChatConfig = {
   provider: string;
@@ -152,7 +153,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       //   toolName: toolCall.function.name,
       //   args: toolCall.function.arguments!,
       // })),
-      finishReason: 'stop', //TODO mapMistralFinishReason(choice.finish_reason),
+      finishReason: mapCohereFinishReason(response.finish_reason),
       usage: {
         promptTokens: response.meta.tokens.input_tokens,
         completionTokens: response.meta.tokens.output_tokens,
@@ -180,6 +181,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 // this approach limits breakages when the API changes and increases efficiency
 const cohereChatResponseSchema = z.object({
   text: z.string(),
+  finish_reason: z.string(),
   meta: z.object({
     tokens: z.object({
       input_tokens: z.number(),

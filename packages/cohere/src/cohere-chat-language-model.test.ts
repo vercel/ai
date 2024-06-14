@@ -17,6 +17,7 @@ describe('doGenerate', () => {
   function prepareJsonResponse({
     input = '',
     text = '',
+    finish_reason = 'COMPLETE',
     tokens = {
       input_tokens: 4,
       output_tokens: 30,
@@ -24,6 +25,7 @@ describe('doGenerate', () => {
   }: {
     input?: string;
     text?: string;
+    finish_reason?: string;
     tokens?: {
       input_tokens: number;
       output_tokens: number;
@@ -37,7 +39,7 @@ describe('doGenerate', () => {
         { role: 'USER', message: input },
         { role: 'CHATBOT', message: text },
       ],
-      finish_reason: 'COMPLETE',
+      finish_reason,
       meta: {
         api_version: { version: '1' },
         billed_units: { input_tokens: 9, output_tokens: 415 },
@@ -73,6 +75,20 @@ describe('doGenerate', () => {
       promptTokens: 20,
       completionTokens: 5,
     });
+  });
+
+  it('should extract finish reason', async () => {
+    prepareJsonResponse({
+      finish_reason: 'MAX_TOKENS',
+    });
+
+    const { finishReason } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(finishReason).toStrictEqual('length');
   });
 
   it('should expose the raw response headers', async () => {
