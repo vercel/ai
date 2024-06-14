@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 0.0.14
+
+### Patch Changes
+
+- 7910ae84: feat (providers): support custom fetch implementations
+
 ## 0.0.13
 
 ### Patch Changes

@@ -29,6 +29,7 @@ type OpenAIChatConfig = {
   compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
+  fetch?: typeof fetch;
 };
 
 export class OpenAIChatLanguageModel implements LanguageModelV1 {
@@ -157,6 +158,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         openAIChatResponseSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;
@@ -208,6 +210,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         openaiChatChunkSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;

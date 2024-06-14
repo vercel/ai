@@ -29,6 +29,7 @@ type OpenAICompletionConfig = {
   baseURL: string;
   compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
+  fetch?: typeof fetch;
 };
 
 export class OpenAICompletionLanguageModel implements LanguageModelV1 {
@@ -159,6 +160,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         openAICompletionResponseSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { prompt: rawPrompt, ...rawSettings } = args;
@@ -201,6 +203,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         openaiCompletionChunkSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { prompt: rawPrompt, ...rawSettings } = args;

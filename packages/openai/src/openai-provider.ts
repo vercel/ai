@@ -22,6 +22,15 @@ export interface OpenAIProvider {
     settings?: OpenAIChatSettings,
   ): OpenAIChatLanguageModel;
 
+  languageModel(
+    modelId: 'gpt-3.5-turbo-instruct',
+    settings?: OpenAICompletionSettings,
+  ): OpenAICompletionLanguageModel;
+  languageModel(
+    modelId: OpenAIChatModelId,
+    settings?: OpenAIChatSettings,
+  ): OpenAIChatLanguageModel;
+
   /**
 Creates an OpenAI chat model for text generation.
    */
@@ -42,6 +51,14 @@ Creates an OpenAI completion model for text generation.
 Creates a model for text embeddings.
    */
   embedding(
+    modelId: OpenAIEmbeddingModelId,
+    settings?: OpenAIEmbeddingSettings,
+  ): OpenAIEmbeddingModel;
+
+  /**
+Creates a model for text embeddings.
+   */
+  textEmbedding(
     modelId: OpenAIEmbeddingModelId,
     settings?: OpenAIEmbeddingSettings,
   ): OpenAIEmbeddingModel;
@@ -84,6 +101,12 @@ and `compatible` when using 3rd party providers. In `compatible` mode, newer
 information such as streamOptions are not being sent. Defaults to 'compatible'.
    */
   compatibility?: 'strict' | 'compatible';
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: typeof fetch;
 }
 
 /**
@@ -119,6 +142,7 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       compatibility,
+      fetch: options.fetch,
     });
 
   const createCompletionModel = (
@@ -130,6 +154,7 @@ export function createOpenAI(
       baseURL,
       headers: getHeaders,
       compatibility,
+      fetch: options.fetch,
     });
 
   const createEmbeddingModel = (
@@ -140,12 +165,13 @@ export function createOpenAI(
       provider: 'openai.embedding',
       baseURL,
       headers: getHeaders,
+      fetch: options.fetch,
     });
 
-  const provider = function (
+  const createLanguageModel = (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
-  ) {
+  ) => {
     if (new.target) {
       throw new Error(
         'The OpenAI model function cannot be called with the new keyword.',
@@ -162,9 +188,18 @@ export function createOpenAI(
     return createChatModel(modelId, settings as OpenAIChatSettings);
   };
 
+  const provider = function (
+    modelId: OpenAIChatModelId | OpenAICompletionModelId,
+    settings?: OpenAIChatSettings | OpenAICompletionSettings,
+  ) {
+    return createLanguageModel(modelId, settings);
+  };
+
+  provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
 
   return provider as OpenAIProvider;
 }

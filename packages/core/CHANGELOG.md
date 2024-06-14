@@ -1,5 +1,19 @@
 # ai
 
+## 3.1.36
+
+### Patch Changes
+
+- 4728c37f: feat (core): add text embedding model support to provider registry
+- 8c49166e: chore (core): rename experimental_createModelRegistry to experimental_createProviderRegistry
+- Updated dependencies [7910ae84]
+  - @ai-sdk/provider-utils@0.0.14
+  - @ai-sdk/react@0.0.2
+  - @ai-sdk/svelte@0.0.2
+  - @ai-sdk/ui-utils@0.0.2
+  - @ai-sdk/solid@0.0.2
+  - @ai-sdk/vue@0.0.2
+
 ## 3.1.35
 
 ### Patch Changes
