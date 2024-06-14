@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { cohere } from '@ai-sdk/cohere';
 import { generateText } from 'ai';
 import dotenv from 'dotenv';
 
@@ -6,7 +6,7 @@ dotenv.config();
 
 async function main() {
   const { text, usage } = await generateText({
-    model: openai('gpt-3.5-turbo'),
+    model: cohere('command-r-plus'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
