@@ -3,6 +3,8 @@ import { extractResponseHeaders } from './extract-response-headers';
 import { isAbortError } from './is-abort-error';
 import { ResponseHandler } from './response-handler';
 
+const originalFetch = fetch;
+
 export const postJsonToApi = async <T>({
   url,
   headers,
@@ -10,6 +12,7 @@ export const postJsonToApi = async <T>({
   failedResponseHandler,
   successfulResponseHandler,
   abortSignal,
+  fetch,
 }: {
   url: string;
   headers?: Record<string, string | undefined>;
@@ -17,6 +20,7 @@ export const postJsonToApi = async <T>({
   failedResponseHandler: ResponseHandler<APICallError>;
   successfulResponseHandler: ResponseHandler<T>;
   abortSignal?: AbortSignal;
+  fetch?: typeof originalFetch;
 }) =>
   postToApi({
     url,
@@ -31,6 +35,7 @@ export const postJsonToApi = async <T>({
     failedResponseHandler,
     successfulResponseHandler,
     abortSignal,
+    fetch,
   });
 
 export const postToApi = async <T>({
@@ -40,6 +45,7 @@ export const postToApi = async <T>({
   successfulResponseHandler,
   failedResponseHandler,
   abortSignal,
+  fetch = originalFetch,
 }: {
   url: string;
   headers?: Record<string, string | undefined>;
@@ -50,6 +56,7 @@ export const postToApi = async <T>({
   failedResponseHandler: ResponseHandler<Error>;
   successfulResponseHandler: ResponseHandler<T>;
   abortSignal?: AbortSignal;
+  fetch?: typeof originalFetch;
 }) => {
   try {
     // remove undefined headers:

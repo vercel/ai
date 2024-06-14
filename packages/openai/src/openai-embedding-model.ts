@@ -17,6 +17,7 @@ type OpenAIEmbeddingConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
+  fetch?: typeof fetch;
 };
 
 export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
@@ -78,6 +79,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
         openaiTextEmbeddingResponseSchema,
       ),
       abortSignal,
+      fetch: this.config.fetch,
     });
 
     return {
