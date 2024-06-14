@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 0.0.29
+
+### Patch Changes
+
+- 4728c37f: feat (core): add text embedding model support to provider registry
+- 7910ae84: feat (providers): support custom fetch implementations
+- Updated dependencies [7910ae84]
+  - @ai-sdk/provider-utils@0.0.14
+
 ## 0.0.28
 
 ### Patch Changes
