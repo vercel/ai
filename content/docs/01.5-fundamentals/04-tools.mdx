@@ -1,0 +1,103 @@
+---
+title: Tools
+description: Learn about tools with the Vercel AI SDK.
+---
+
+# Tools
+
+While [large language models (LLMs)](/docs/foundations/overview#large-language-models) have incredible generation capabilities,
+they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather).
+
+Tools can be thought of as programs you give to a model which can be run as and when the model deems applicable.
+
+## What is a tool?
+
+A tool is an object that can be called by the model to perform a specific task.
+You can use tools with functions across the AI SDK (like [`generateText`](/docs/reference/ai-sdk-core/generate-text) or [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui)) by passing a tool(s) to the `tools` parameter.
+
+There are three elements of a tool, a description, parameters, and an optional `execute` or `generate` function (dependent on the SDK function).
+
+- **`description`**: An optional description of the tool that can influence when the tool is picked.
+- **`parameters`**: A [Zod schema](/docs/foundations/tools#schema-specification-and-validation-with-zod) that defines the parameters. It is converted to a JSON schema that is consumed by the LLM, and also used to validate the LLM tool calls.
+- **`execute`** or **`generate`**: An optional async or generator function that is called with the arguments from the tool call.
+
+## Tool Calls
+
+If the LLM decides to use a tool, it will generate a tool call.
+Tools with an `execute` or `generate` function are run automatically when these calls are generated.
+The results of the tool calls are returned using tool result objects.
+Each tool result object has a `toolCallId`, a `toolName`, a typed `args` object, and a typed `result`.
+
+## Tool Choice
+
+You can use the `toolChoice` setting to influence when a tool is selected.
+It supports the following settings:
+
+- `auto` (default): the model can choose whether and which tools to call.
+- `required`: the model must call a tool. It can choose which tool to call.
+- `none`: the model must not call tools
+- `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
+
+```ts highlight="18"
+import { z } from 'zod';
+import { generateText, tool } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+  },
+  toolChoice: 'required', // force the model to call a tool
+  prompt:
+    'What is the weather in San Francisco and what attractions should I visit?',
+});
+```
+
+## Schema Specification and Validation with Zod
+
+Tool usage and structured object generation require the specification of schemas.
+The AI SDK uses [Zod](https://zod.dev/), the most popular JavaScript schema validation library, for schema specification and validation.
+
+You can install Zod with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm install zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add zod" dark />
+  </Tab>
+</Tabs>
+
+You can then specify schemas, for example:
+
+```ts
+import z from 'zod';
+
+const recipeSchema = z.object({
+  recipe: z.object({
+    name: z.string(),
+    ingredients: z.array(
+      z.object({
+        name: z.string(),
+        amount: z.string(),
+      }),
+    ),
+    steps: z.array(z.string()),
+  }),
+});
+```
+
+These schemas can be used to define parameters for tool calls and generated structured objects with [`generateObject`](/docs/reference/ai-sdk-core/generate-object) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object).
