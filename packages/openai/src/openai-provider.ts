@@ -22,6 +22,15 @@ export interface OpenAIProvider {
     settings?: OpenAIChatSettings,
   ): OpenAIChatLanguageModel;
 
+  languageModel(
+    modelId: 'gpt-3.5-turbo-instruct',
+    settings?: OpenAICompletionSettings,
+  ): OpenAICompletionLanguageModel;
+  (
+    modelId: OpenAIChatModelId,
+    settings?: OpenAIChatSettings,
+  ): OpenAIChatLanguageModel;
+
   /**
 Creates an OpenAI chat model for text generation.
    */
@@ -159,10 +168,10 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const provider = function (
+  const createLanguageModel = (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
-  ) {
+  ) => {
     if (new.target) {
       throw new Error(
         'The OpenAI model function cannot be called with the new keyword.',
@@ -179,6 +188,14 @@ export function createOpenAI(
     return createChatModel(modelId, settings as OpenAIChatSettings);
   };
 
+  const provider = function (
+    modelId: OpenAIChatModelId | OpenAICompletionModelId,
+    settings?: OpenAIChatSettings | OpenAICompletionSettings,
+  ) {
+    return createLanguageModel(modelId, settings);
+  };
+
+  provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;

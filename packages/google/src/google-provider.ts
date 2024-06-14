@@ -15,6 +15,11 @@ export interface GoogleGenerativeAIProvider {
     settings?: GoogleGenerativeAISettings,
   ): GoogleGenerativeAILanguageModel;
 
+  languageModel(
+    modelId: GoogleGenerativeAIModelId,
+    settings?: GoogleGenerativeAISettings,
+  ): GoogleGenerativeAILanguageModel;
+
   chat(
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
@@ -105,6 +110,7 @@ export function createGoogleGenerativeAI(
     return createChatModel(modelId, settings);
   };
 
+  provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
 

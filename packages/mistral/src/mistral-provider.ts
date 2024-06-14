@@ -23,6 +23,14 @@ export interface MistralProvider {
   /**
 Creates a model for text generation.
 */
+  languageModel(
+    modelId: MistralChatModelId,
+    settings?: MistralChatSettings,
+  ): MistralChatLanguageModel;
+
+  /**
+Creates a model for text generation.
+*/
   chat(
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
@@ -132,6 +140,7 @@ export function createMistral(
     return createChatModel(modelId, settings);
   };
 
+  provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

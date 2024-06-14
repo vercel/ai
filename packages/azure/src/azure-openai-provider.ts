@@ -13,6 +13,14 @@ export interface AzureOpenAIProvider {
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
+  languageModel(
+    deploymentId: string,
+    settings?: OpenAIChatSettings,
+  ): OpenAIChatLanguageModel;
+
+  /**
+Creates an Azure OpenAI chat model for text generation.
+   */
   chat(
     deploymentId: string,
     settings?: OpenAIChatSettings,
@@ -85,6 +93,7 @@ export function createAzure(
     return createChatModel(deploymentId, settings as OpenAIChatSettings);
   };
 
+  provider.languageModel = createChatModel;
   provider.chat = createChatModel;
 
   return provider as AzureOpenAIProvider;
