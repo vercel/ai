@@ -54,6 +54,12 @@ Custom headers to include in the requests.
      */
   headers?: Record<string, string>;
 
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: typeof fetch;
+
   generateId?: () => string;
 }
 
@@ -86,6 +92,7 @@ export function createAnthropic(
       provider: 'anthropic.messages',
       baseURL,
       headers: getHeaders,
+      fetch: options.fetch,
     });
 
   const provider = function (

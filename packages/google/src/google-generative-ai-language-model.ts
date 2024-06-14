@@ -26,6 +26,7 @@ type GoogleGenerativeAIConfig = {
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   generateId: () => string;
+  fetch?: typeof fetch;
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
@@ -156,6 +157,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(responseSchema),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { contents: rawPrompt, ...rawSettings } = args;
@@ -197,6 +199,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { contents: rawPrompt, ...rawSettings } = args;

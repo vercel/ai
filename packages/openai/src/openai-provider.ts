@@ -84,6 +84,12 @@ and `compatible` when using 3rd party providers. In `compatible` mode, newer
 information such as streamOptions are not being sent. Defaults to 'compatible'.
    */
   compatibility?: 'strict' | 'compatible';
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: typeof fetch;
 }
 
 /**
@@ -119,6 +125,7 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       compatibility,
+      fetch: options.fetch,
     });
 
   const createCompletionModel = (
@@ -130,6 +137,7 @@ export function createOpenAI(
       baseURL,
       headers: getHeaders,
       compatibility,
+      fetch: options.fetch,
     });
 
   const createEmbeddingModel = (
@@ -140,6 +148,7 @@ export function createOpenAI(
       provider: 'openai.embedding',
       baseURL,
       headers: getHeaders,
+      fetch: options.fetch,
     });
 
   const provider = function (
