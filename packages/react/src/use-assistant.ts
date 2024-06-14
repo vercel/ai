@@ -9,6 +9,7 @@ import {
   UseAssistantOptions,
   generateId,
   readDataStream,
+  AssistantThreadStatus,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useRef, useState } from 'react';
 
@@ -47,7 +48,7 @@ export type UseAssistantHelpers = {
   ) => Promise<void>;
 
   /**
-Abort the current request immediately, keep the generated tokens if any.
+   * Abort the current request immediately, keep the generated tokens if any.
    */
   stop: () => void;
 
@@ -81,14 +82,14 @@ Abort the current request immediately, keep the generated tokens if any.
   status: AssistantStatus;
 
   /**
+   * The current status of the thread. This can be used to get information about the most recent run.
+   */
+  threadStatus: AssistantThreadStatus;
+
+  /**
    * The error thrown during the assistant message processing, if any.
    */
   error: undefined | unknown;
-
-  /**
-   * The loading state of the assistant.
-   */
-  isLoading: boolean;
 };
 
 export function useAssistant({
@@ -102,9 +103,10 @@ export function useAssistant({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
-  const [status, setStatus] = useState<AssistantStatus>('thread.idle');
+  const [status, setStatus] = useState<AssistantStatus>('awaiting_message');
+  const [threadStatus, setThreadStatus] =
+    useState<AssistantThreadStatus>('thread.idle');
   const [error, setError] = useState<undefined | Error>(undefined);
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (
     event:
@@ -130,8 +132,7 @@ export function useAssistant({
       data?: Record<string, string>;
     },
   ) => {
-    setIsLoading(true);
-    setStatus('thread.message.created');
+    setThreadStatus('thread.message.created');
 
     setMessages(messages => [
       ...messages,
@@ -170,7 +171,8 @@ export function useAssistant({
 
       for await (const { value } of readDataStream(result.body.getReader())) {
         const { event, data } = value as AssistantStreamPart;
-        setStatus(event);
+        setStatus('in_progress');
+        setThreadStatus(event);
 
         switch (event) {
           case 'thread.run.created': {
@@ -229,7 +231,7 @@ export function useAssistant({
       setError(error as Error);
     } finally {
       abortControllerRef.current = null;
-      setIsLoading(false);
+      setStatus('awaiting_message');
     }
   };
 
@@ -258,9 +260,9 @@ export function useAssistant({
     handleInputChange,
     submitMessage,
     status,
+    threadStatus,
     error,
     stop,
-    isLoading,
   };
 }
 

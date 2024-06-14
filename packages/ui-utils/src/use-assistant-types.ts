@@ -1,7 +1,6 @@
-// Define a type for the assistant status
-export type AssistantStatus =
-  | 'in_progress' // TODO: deprecate
-  | 'awaiting_message' // TODO: deprecate
+export type AssistantStatus = 'in_progress' | 'awaiting_message';
+
+export type AssistantThreadStatus =
   | 'thread.idle'
   | 'thread.created'
   | 'thread.run.created'

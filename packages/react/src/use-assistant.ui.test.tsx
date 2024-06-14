@@ -11,13 +11,14 @@ import { firstRun } from './samples';
 
 describe('stream data stream', () => {
   const TestComponent = () => {
-    const { status, messages, append } = useAssistant({
+    const { status, messages, append, threadStatus } = useAssistant({
       api: '/api/assistant',
     });
 
     return (
       <div>
         <div data-testid="status">{status}</div>
+        <div data-testid="thread-status">{threadStatus}</div>
         {messages.map((message, idx) => (
           <div data-testid={`message-${idx}`} key={message.id}>
             {message.role === 'user' ? 'User: ' : 'AI: '}
@@ -69,7 +70,7 @@ describe('stream data stream', () => {
     );
   });
 
-  describe('should show stream events', () => {
+  describe('should show thread status', () => {
     it('should show final event', async () => {
       let finishGeneration: ((value?: unknown) => void) | undefined;
       const finishGenerationPromise = new Promise(resolve => {
@@ -91,19 +92,34 @@ describe('stream data stream', () => {
         })(),
       });
 
+      await screen.findByTestId('thread-status');
+      expect(screen.getByTestId('thread-status')).toHaveTextContent(
+        'thread.idle',
+      );
+
       await screen.findByTestId('status');
-      expect(screen.getByTestId('status')).toHaveTextContent('thread.idle');
+      expect(screen.getByTestId('status')).toHaveTextContent(
+        'awaiting_message',
+      );
 
       await userEvent.click(screen.getByTestId('do-append'));
+
+      await screen.findByTestId('status');
+      expect(screen.getByTestId('status')).toHaveTextContent('in_progress');
 
       finishGeneration?.();
 
       await findByText(
-        await screen.findByTestId('status'),
+        await screen.findByTestId('thread-status'),
         'thread.run.completed',
       );
-      expect(screen.getByTestId('status')).toHaveTextContent(
+      expect(screen.getByTestId('thread-status')).toHaveTextContent(
         'thread.run.completed',
+      );
+
+      await findByText(await screen.findByTestId('status'), 'awaiting_message');
+      expect(screen.getByTestId('status')).toHaveTextContent(
+        'awaiting_message',
       );
     });
   });

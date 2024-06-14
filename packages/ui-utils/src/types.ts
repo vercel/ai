@@ -1,6 +1,6 @@
 import { ToolCall as CoreToolCall } from './duplicated/tool-call';
 import { ToolResult as CoreToolResult } from './duplicated/tool-result';
-import { AssistantStatus } from './use-assistant-types';
+import { AssistantThreadStatus } from './use-assistant-types';
 
 export * from './use-assistant-types';
 
@@ -466,6 +466,6 @@ export type DataMessage = {
 };
 
 export type AssistantStreamPart = {
-  event: AssistantStatus;
+  event: AssistantThreadStatus;
   data?: any;
 };
