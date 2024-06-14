@@ -129,6 +129,12 @@ This works in conjunction with [`AssistantResponse`](./assistant-response) in th
         'The current status of the assistant. This can be used to show a loading indicator.',
     },
     {
+      name: 'threadStatus',
+      type: "'thread.idle' | 'thread.created' | 'thread.run.created' | 'thread.run.queued' | 'thread.run.in_progress' | 'thread.run.requires_action' | 'thread.run.completed' | 'thread.run.failed' | 'thread.run.cancelling' | 'thread.run.cancelled' | 'thread.run.expired' | 'thread.run.step.created' | 'thread.run.step.in_progress' | 'thread.run.step.delta' | 'thread.run.step.completed' | 'thread.run.step.failed' | 'thread.run.step.cancelled' | 'thread.run.step.expired' | 'thread.message.created' | 'thread.message.in_progress' | 'thread.message.delta' | 'thread.message.completed' | 'thread.message.incomplete' | 'error'",
+      description:
+        'The current status of the thread. This can be used to get information about the most recent run.',
+    },
+    {
       name: 'append',
       type: '(message: Message | CreateMessage, chatRequestOptions: { options: { headers, body } }) => Promise<string | undefined>',
       description:
