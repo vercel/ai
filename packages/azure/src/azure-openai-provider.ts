@@ -2,7 +2,9 @@ import {
   OpenAIChatLanguageModel,
   OpenAIChatSettings,
 } from '@ai-sdk/openai/internal';
+import { OpenAICompletionSettings } from '@ai-sdk/openai/openai-completion-settings.ts';
 import { loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
+import { AzureOpenAICompletionLanguageModel } from './azure-openai-completion-language-model'
 
 export interface AzureOpenAIProvider {
   (
@@ -25,6 +27,14 @@ Creates an Azure OpenAI chat model for text generation.
     deploymentId: string,
     settings?: OpenAIChatSettings,
   ): OpenAIChatLanguageModel;
+
+  /**
+* Creates an Azure OpenAI completion model for text generation.
+   */
+  completion(
+    modelId: string,
+    settings?: OpenAICompletionSettings,
+  ): AzureOpenAICompletionLanguageModel;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -80,6 +90,18 @@ export function createAzure(
       fetch: options.fetch,
     });
 
+  const createCompletionModel = (
+    modelId: string,
+    settings: OpenAICompletionSettings = {},
+  ) =>
+    new AzureOpenAICompletionLanguageModel(modelId, settings, {
+      provider: 'azure-openai.completion',
+      headers: getHeaders,
+      baseURL: `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}`,
+      compatibility: 'compatible',
+      fetch: options.fetch,
+    });
+
   const provider = function (
     deploymentId: string,
     settings?: OpenAIChatSettings,
@@ -90,11 +112,19 @@ export function createAzure(
       );
     }
 
+    if (modelId === 'gpt-35-turbo-instruct' || modelId === 'gpt-3.5-turbo-instruct') {
+      return createCompletionModel(
+        modelId,
+        settings as OpenAICompletionSettings,
+      );
+    }
+
     return createChatModel(deploymentId, settings as OpenAIChatSettings);
   };
 
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
+  provider.completion = createCompletionModel;
 
   return provider as AzureOpenAIProvider;
 }
