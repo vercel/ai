@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/openai/internal';
 import { OpenAICompletionSettings } from '@ai-sdk/openai/openai-completion-settings.ts';
 import { loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
-import { AzureOpenAICompletionLanguageModel } from './azure-openai-completion-language-model'
+import { AzureOpenAICompletionLanguageModel } from './azure-openai-completion-language-model';
 
 export interface AzureOpenAIProvider {
   (
@@ -29,7 +29,7 @@ Creates an Azure OpenAI chat model for text generation.
   ): OpenAIChatLanguageModel;
 
   /**
-* Creates an Azure OpenAI completion model for text generation.
+   * Creates an Azure OpenAI completion model for text generation.
    */
   completion(
     modelId: string,
@@ -112,7 +112,10 @@ export function createAzure(
       );
     }
 
-    if (modelId === 'gpt-35-turbo-instruct' || modelId === 'gpt-3.5-turbo-instruct') {
+    if (
+      modelId === 'gpt-35-turbo-instruct' ||
+      modelId === 'gpt-3.5-turbo-instruct'
+    ) {
       return createCompletionModel(
         modelId,
         settings as OpenAICompletionSettings,

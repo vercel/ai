@@ -102,7 +102,7 @@ describe('completions-doGenerate', () => {
         },
       ],
       usage,
-    }
+    };
   }
   it('should pass the api key as Authorization header', async () => {
     prepareJsonResponse();
