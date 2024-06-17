@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 0.0.15
+
+### Patch Changes
+
+- 85712895: feat (@ai-sdk/provider-utils): add createJsonStreamResponseHandler
+- 85712895: chore (@ai-sdk/provider-utils): move test helper to provider utils
+
 ## 0.0.14
 
 ### Patch Changes
