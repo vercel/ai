@@ -1,0 +1,131 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`rsc - streamUI() > should emit React Nodes with async render function 1`] = `
+{
+  "children": {},
+  "props": {
+    "s": {
+      "curr": undefined,
+      "next": {
+        "curr": <div>
+          Weather
+        </div>,
+      },
+      "type": Symbol(ui.streamable.value),
+    },
+  },
+  "type": "InternalStreamableUIClient",
+}
+`;
+
+exports[`rsc - streamUI() > should emit React Nodes with async streamUI function 1`] = `
+{
+  "children": {},
+  "props": {
+    "s": {
+      "curr": undefined,
+      "next": {
+        "curr": <div>
+          Weather
+        </div>,
+      },
+      "type": Symbol(ui.streamable.value),
+    },
+  },
+  "type": "InternalStreamableUIClient",
+}
+`;
+
+exports[`rsc - streamUI() > should emit React Nodes with generator render function 1`] = `
+{
+  "children": {},
+  "props": {
+    "s": {
+      "curr": undefined,
+      "next": {
+        "curr": <div>
+          Loading...
+        </div>,
+        "next": {
+          "curr": <div>
+            Weather
+          </div>,
+        },
+      },
+      "type": Symbol(ui.streamable.value),
+    },
+  },
+  "type": "InternalStreamableUIClient",
+}
+`;
+
+exports[`rsc - streamUI() > should emit React Nodes with generator streamUI function 1`] = `
+{
+  "children": {},
+  "props": {
+    "s": {
+      "curr": undefined,
+      "next": {
+        "curr": <div>
+          Loading...
+        </div>,
+        "next": {
+          "curr": <div>
+            Weather
+          </div>,
+        },
+      },
+      "type": Symbol(ui.streamable.value),
+    },
+  },
+  "type": "InternalStreamableUIClient",
+}
+`;
+
+exports[`rsc - streamUI() > should emit React Nodes with sync render function 1`] = `
+{
+  "children": {},
+  "props": {
+    "s": {
+      "curr": undefined,
+      "next": {
+        "curr": <div>
+          Weather
+        </div>,
+      },
+      "type": Symbol(ui.streamable.value),
+    },
+  },
+  "type": "InternalStreamableUIClient",
+}
+`;
+
+exports[`rsc - streamUI() > should emit React Nodes with sync streamUI function 1`] = `
+{
+  "children": {},
+  "props": {
+    "s": {
+      "curr": undefined,
+      "next": {
+        "curr": <div>
+          Weather
+        </div>,
+      },
+      "type": Symbol(ui.streamable.value),
+    },
+  },
+  "type": "InternalStreamableUIClient",
+}
+`;
+
+exports[`rsc - streamUI() onFinish callback > should contain final React node 1`] = `
+<InternalStreamableUIClient
+  s={
+    {
+      "curr": undefined,
+      "next": Promise {},
+      "type": Symbol(ui.streamable.value),
+    }
+  }
+/>
+`;
