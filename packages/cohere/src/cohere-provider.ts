@@ -29,11 +29,6 @@ The default prefix is `https://api.cohere.com/v1`.
   baseURL?: string;
 
   /**
-@deprecated Use `baseURL` instead.
-   */
-  baseUrl?: string;
-
-  /**
 API key that is being send using the `Authorization` header.
 It defaults to the `MISTRAL_API_KEY` environment variable.
    */
@@ -60,8 +55,7 @@ export function createCohere(
   options: CohereProviderSettings = {},
 ): CohereProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
-    'https://api.cohere.com/v1';
+    withoutTrailingSlash(options.baseURL) ?? 'https://api.cohere.com/v1';
 
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({

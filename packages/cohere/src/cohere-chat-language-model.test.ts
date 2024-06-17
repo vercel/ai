@@ -7,7 +7,7 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
 ];
 
 const provider = createCohere({ apiKey: 'test-api-key' });
-const model = provider.chat('command-r-plus');
+const model = provider('command-r-plus');
 
 describe('doGenerate', () => {
   const server = new JsonTestServer('https://api.cohere.com/v1/chat');
@@ -139,7 +139,7 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider.chat('command-r-plus').doGenerate({
+    await provider('command-r-plus').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -154,7 +154,7 @@ describe('doGenerate', () => {
 
     const provider = createCohere({ apiKey: 'test-api-key' });
 
-    await provider.chat('command-r-plus').doGenerate({
+    await provider('command-r-plus').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
