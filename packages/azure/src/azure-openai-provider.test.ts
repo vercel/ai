@@ -6,7 +6,7 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-describe('chat-doGenerate', () => {
+describe('chat', () => {
   const server = new JsonTestServer(
     'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-05-01-preview',
   );
@@ -58,7 +58,7 @@ describe('chat-doGenerate', () => {
   });
 });
 
-describe('completions-doGenerate', () => {
+describe('completion', () => {
   const server = new JsonTestServer(
     'https://test-resource.openai.azure.com/openai/deployments/gpt-3.5-turbo-instruct/completions?api-version=2024-05-01-preview',
   );
