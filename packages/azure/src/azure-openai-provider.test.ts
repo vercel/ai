@@ -92,7 +92,7 @@ describe('completions-doGenerate', () => {
       id: 'cmpl-96cAM1v77r4jXa4qb2NSmRREV5oWB',
       object: 'text_completion',
       created: 1711363706,
-      model: 'gpt-3.5-turbo-instruct',
+      model: 'gpt-35-turbo-instruct',
       choices: [
         {
           text: content,
@@ -113,7 +113,7 @@ describe('completions-doGenerate', () => {
       apiKey: 'test-api-key',
     });
 
-    await provider('test-deployment').doGenerate({
+    await provider('gpt-35-turbo-instruct').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,

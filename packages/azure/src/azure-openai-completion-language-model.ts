@@ -152,7 +152,10 @@ export class AzureOpenAICompletionLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `/completions`,
+      url: this.config.url({
+        path: '/completions',
+        modelId: this.modelId,
+      }),
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,

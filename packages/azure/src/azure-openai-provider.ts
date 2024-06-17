@@ -32,7 +32,7 @@ Creates an Azure OpenAI chat model for text generation.
    * Creates an Azure OpenAI completion model for text generation.
    */
   completion(
-    modelId: string,
+    deploymentId: string,
     settings?: OpenAICompletionSettings,
   ): AzureOpenAICompletionLanguageModel;
 }
