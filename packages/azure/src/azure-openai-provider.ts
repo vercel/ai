@@ -102,12 +102,11 @@ export function createAzure(
     modelId: string,
     settings: OpenAIEmbeddingSettings = {},
   ) =>
-    new OpenAIEmbeddingModel(modeId, settings, {
+    new OpenAIEmbeddingModel(modelId, settings, {
       provider: 'azure-openai.embeddings',
       headers: getHeaders,
       url: ({ path, modelId }) =>
         `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-05-01-preview`,
-      compatibility: 'compatible',
       fetch: options.fetch,
     });
 
