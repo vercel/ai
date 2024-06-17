@@ -97,7 +97,7 @@ export function createAzure(
     new AzureOpenAICompletionLanguageModel(deploymentName, settings, {
       provider: 'azure-openai.completion',
       headers: getHeaders,
-      url: ({ path, modelId}) =>
+      url: ({ path, modelId }) =>
         `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-05-01-preview`,
       compatibility: 'compatible',
       fetch: options.fetch,

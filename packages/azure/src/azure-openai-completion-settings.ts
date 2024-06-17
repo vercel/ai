@@ -1,5 +1,8 @@
 // https://platform.openai.com/docs/models
-export type AzureOpenAICompletionModelId = 'gpt-3.5-turbo-instruct' | 'gpt-35-turbo-instruct' | (string & {});
+export type AzureOpenAICompletionModelId =
+  | 'gpt-3.5-turbo-instruct'
+  | 'gpt-35-turbo-instruct'
+  | (string & {});
 
 export interface OpenAICompletionSettings {
   /**

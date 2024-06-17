@@ -106,7 +106,7 @@ describe('completions-doGenerate', () => {
   }
 
   it('should pass the api key as Authorization header', async () => {
-    prepareJsonCompletionResponse({content: 'Hello World!'});
+    prepareJsonCompletionResponse({ content: 'Hello World!' });
 
     const provider = createAzure({
       resourceName: 'test-resource',

@@ -28,10 +28,7 @@ type AzureOpenAICompletionConfig = {
   provider: string;
   compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
-  url: (options: {
-    modelId: string;
-    path: string;
-  }) => string;
+  url: (options: { modelId: string; path: string }) => string;
   fetch?: typeof fetch;
 };
 
