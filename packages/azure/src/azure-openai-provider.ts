@@ -105,19 +105,11 @@ export function createAzure(
 
   const provider = function (
     deploymentId: string,
-    type: 'chat' | 'completion' = 'chat',
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
   ) {
     if (new.target) {
       throw new Error(
         'The Azure OpenAI model function cannot be called with the new keyword.',
-      );
-    }
-
-    if (type === 'completion') {
-      return createCompletionModel(
-        deploymentId,
-        settings as OpenAICompletionSettings,
       );
     }
 
