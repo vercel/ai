@@ -124,6 +124,7 @@ const getStreamedResponse = async (
     api,
     messages: constructedMessagesPayload,
     body: {
+      messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadataRef.current.body,
       ...chatRequest.options?.body,

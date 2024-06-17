@@ -180,11 +180,12 @@ export type CreateMessage = Omit<Message, 'id'> & {
 export type ChatRequest = {
   messages: Message[];
   options?: RequestOptions;
+  data?: Record<string, string>;
+
   // @deprecated
   functions?: Array<Function>;
   // @deprecated
   function_call?: FunctionCall;
-  data?: Record<string, string>;
   // @deprecated
   tools?: Array<Tool>;
   // @deprecated

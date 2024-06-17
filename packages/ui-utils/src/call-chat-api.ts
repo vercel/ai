@@ -33,10 +33,7 @@ export async function callChatApi({
 }) {
   const response = await fetch(api, {
     method: 'POST',
-    body: JSON.stringify({
-      messages,
-      ...body,
-    }),
+    body: JSON.stringify(body),
     headers: {
       'Content-Type': 'application/json',
       ...headers,
