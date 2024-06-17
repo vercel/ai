@@ -60,7 +60,7 @@ describe('chat-doGenerate', () => {
 
 describe('completions-doGenerate', () => {
   const server = new JsonTestServer(
-    'https://test-resource.openai.azure.com/openai/deployments/test-deployment/completions?api-version=2024-05-01-preview',
+    'https://test-resource.openai.azure.com/openai/deployments/gpt-3.5-turbo-instruct/completions?api-version=2024-05-01-preview',
   );
 
   server.setupTestEnvironment();
