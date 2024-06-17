@@ -1,10 +1,12 @@
+import { TypeValidationError } from '@ai-sdk/provider';
+import {
+  convertArrayToReadableStream,
+  convertAsyncIterableToArray,
+} from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { convertArrayToReadableStream } from '../test/convert-array-to-readable-stream';
-import { convertAsyncIterableToArray } from '../test/convert-async-iterable-to-array';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { streamObject } from './stream-object';
-import { TypeValidationError } from '@ai-sdk/provider';
 
 describe('result.objectStream', () => {
   it('should send object deltas with json mode', async () => {
