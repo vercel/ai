@@ -118,7 +118,7 @@ export const createEventSourceResponseHandler =
     };
   };
 
-export const createJSONStreamResponseHandler =
+export const createJsonStreamResponseHandler =
   <T>(
     chunkSchema: ZodSchema<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
@@ -129,12 +129,24 @@ export const createJSONStreamResponseHandler =
       throw new EmptyResponseBodyError({});
     }
 
+    let buffer = '';
+
     return {
       responseHeaders,
       value: response.body.pipeThrough(new TextDecoderStream()).pipeThrough(
         new TransformStream<string, ParseResult<T>>({
-          transform(text, controller) {
-            controller.enqueue(safeParseJSON({ text, schema: chunkSchema }));
+          transform(chunkText, controller) {
+            if (chunkText.endsWith('\n')) {
+              controller.enqueue(
+                safeParseJSON({
+                  text: buffer + chunkText,
+                  schema: chunkSchema,
+                }),
+              );
+              buffer = '';
+            } else {
+              buffer += chunkText;
+            }
           },
         }),
       ),

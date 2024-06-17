@@ -6,9 +6,8 @@ import {
 } from '@ai-sdk/provider';
 import {
   ParseResult,
-  createEventSourceResponseHandler,
-  createJSONStreamResponseHandler,
   createJsonResponseHandler,
+  createJsonStreamResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -166,7 +165,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
         stream: true,
       },
       failedResponseHandler: cohereFailedResponseHandler,
-      successfulResponseHandler: createJSONStreamResponseHandler(
+      successfulResponseHandler: createJsonStreamResponseHandler(
         cohereChatChunkSchema,
       ),
       abortSignal: options.abortSignal,
@@ -270,6 +269,9 @@ const cohereChatChunkSchema = z.discriminatedUnion('event_type', [
   }),
   z.object({
     event_type: z.literal('citation-generation'),
+  }),
+  z.object({
+    event_type: z.literal('tool-calls-generation'),
   }),
   z.object({
     event_type: z.literal('stream-end'),
