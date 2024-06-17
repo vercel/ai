@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 0.0.31
+
+### Patch Changes
+
+- eba071dd: feat (@ai-sdk/azure): add azure openai completion support
+- 1ea890fe: feat (@ai-sdk/azure): add azure openai completion support
+
 ## 0.0.30
 
 ### Patch Changes
