@@ -1,6 +1,8 @@
 import {
   OpenAIChatLanguageModel,
   OpenAIChatSettings,
+  OpenAICompletionSettings,
+  OpenAICompletionLanguageModel,
 } from '@ai-sdk/openai/internal';
 import { loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
@@ -25,6 +27,14 @@ Creates an Azure OpenAI chat model for text generation.
     deploymentId: string,
     settings?: OpenAIChatSettings,
   ): OpenAIChatLanguageModel;
+
+  /**
+   * Creates an Azure OpenAI completion model for text generation.
+   */
+  completion(
+    deploymentId: string,
+    settings?: OpenAICompletionSettings,
+  ): OpenAICompletionLanguageModel;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -80,9 +90,22 @@ export function createAzure(
       fetch: options.fetch,
     });
 
+  const createCompletionModel = (
+    modelId: string,
+    settings: OpenAICompletionSettings = {},
+  ) =>
+    new OpenAICompletionLanguageModel(modelId, settings, {
+      provider: 'azure-openai.completion',
+      url: ({ path, modelId }) =>
+        `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-05-01-preview`,
+      compatibility: 'compatible',
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (
     deploymentId: string,
-    settings?: OpenAIChatSettings,
+    settings?: OpenAIChatSettings | OpenAICompletionSettings,
   ) {
     if (new.target) {
       throw new Error(
@@ -95,6 +118,7 @@ export function createAzure(
 
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
+  provider.completion = createCompletionModel;
 
   return provider as AzureOpenAIProvider;
 }
