@@ -992,7 +992,7 @@ importers:
         specifier: 0.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 0.0.13
+        specifier: 0.0.14
         version: link:../provider-utils
     devDependencies:
       '@types/node':

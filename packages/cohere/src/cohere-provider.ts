@@ -15,7 +15,7 @@ export interface CohereProvider {
   /**
 Creates a model for text generation.
 */
-  chat(
+  languageModel(
     modelId: CohereChatModelId,
     settings?: CohereChatSettings,
   ): CohereChatLanguageModel;
@@ -43,6 +43,12 @@ It defaults to the `MISTRAL_API_KEY` environment variable.
 Custom headers to include in the requests.
      */
   headers?: Record<string, string>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: typeof fetch;
 
   generateId?: () => string;
 }
@@ -75,6 +81,7 @@ export function createCohere(
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
+      fetch: options.fetch,
     });
 
   const provider = function (
@@ -90,7 +97,7 @@ export function createCohere(
     return createChatModel(modelId, settings);
   };
 
-  provider.chat = createChatModel;
+  provider.languageModel = createChatModel;
 
   return provider as CohereProvider;
 }

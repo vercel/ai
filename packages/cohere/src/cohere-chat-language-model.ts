@@ -1,16 +1,20 @@
 import {
   LanguageModelV1,
-  LanguageModelV1CallWarning,
+  LanguageModelV1FinishReason,
+  LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  ParseResult,
+  createEventSourceResponseHandler,
+  createJSONStreamResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { CohereChatModelId, CohereChatSettings } from './cohere-chat-settings';
-import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { cohereFailedResponseHandler } from './cohere-error';
+import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
 
 type CohereChatConfig = {
@@ -18,6 +22,7 @@ type CohereChatConfig = {
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   generateId: () => string;
+  fetch?: typeof fetch;
 };
 
 export class CohereChatLanguageModel implements LanguageModelV1 {
@@ -124,18 +129,13 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
         cohereChatResponseSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { chat_history, message, ...rawSettings } = args;
 
     return {
       text: response.text,
-      // toolCalls: choice.message.tool_calls?.map(toolCall => ({
-      //   toolCallType: 'function',
-      //   toolCallId: this.config.generateId(),
-      //   toolName: toolCall.function.name,
-      //   args: toolCall.function.arguments!,
-      // })),
       finishReason: mapCohereFinishReason(response.finish_reason),
       usage: {
         promptTokens: response.meta.tokens.input_tokens,
@@ -156,7 +156,86 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    throw new UnsupportedFunctionalityError({ functionality: 'streaming' });
+    const args = this.getArgs(options);
+
+    const { responseHeaders, value: response } = await postJsonToApi({
+      url: `${this.config.baseURL}/chat`,
+      headers: this.config.headers(),
+      body: {
+        ...args,
+        stream: true,
+      },
+      failedResponseHandler: cohereFailedResponseHandler,
+      successfulResponseHandler: createJSONStreamResponseHandler(
+        cohereChatChunkSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const { chat_history, message, ...rawSettings } = args;
+
+    let finishReason: LanguageModelV1FinishReason = 'other';
+    let usage: { promptTokens: number; completionTokens: number } = {
+      promptTokens: Number.NaN,
+      completionTokens: Number.NaN,
+    };
+
+    return {
+      stream: response.pipeThrough(
+        new TransformStream<
+          ParseResult<z.infer<typeof cohereChatChunkSchema>>,
+          LanguageModelV1StreamPart
+        >({
+          transform(chunk, controller) {
+            // handle failed chunk parsing / validation:
+            if (!chunk.success) {
+              finishReason = 'error';
+              controller.enqueue({ type: 'error', error: chunk.error });
+              return;
+            }
+
+            const value = chunk.value;
+            const type = value.event_type;
+
+            switch (type) {
+              case 'text-generation': {
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: value.text,
+                });
+                return;
+              }
+
+              case 'stream-end': {
+                finishReason = mapCohereFinishReason(value.finish_reason);
+              }
+
+              default: {
+                return;
+              }
+            }
+          },
+
+          flush(controller) {
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              usage,
+            });
+          },
+        }),
+      ),
+      rawCall: {
+        rawPrompt: {
+          chat_history,
+          message,
+        },
+        rawSettings,
+      },
+      rawResponse: { headers: responseHeaders },
+      warnings: [],
+    };
   }
 }
 
@@ -172,3 +251,28 @@ const cohereChatResponseSchema = z.object({
     }),
   }),
 });
+
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const cohereChatChunkSchema = z.discriminatedUnion('event_type', [
+  z.object({
+    event_type: z.literal('stream-start'),
+  }),
+  z.object({
+    event_type: z.literal('search-queries-generation'),
+  }),
+  z.object({
+    event_type: z.literal('search-results'),
+  }),
+  z.object({
+    event_type: z.literal('text-generation'),
+    text: z.string(),
+  }),
+  z.object({
+    event_type: z.literal('citation-generation'),
+  }),
+  z.object({
+    event_type: z.literal('stream-end'),
+    finish_reason: z.string(),
+  }),
+]);
