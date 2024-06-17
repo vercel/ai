@@ -1,8 +1,8 @@
 import {
   OpenAIChatLanguageModel,
   OpenAIChatSettings,
-  OpenAICompletionSettings, 
-  OpenAICompletionLanguageModel
+  OpenAICompletionSettings,
+  OpenAICompletionLanguageModel,
 } from '@ai-sdk/openai/internal';
 import { loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
