@@ -81,7 +81,6 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       // messages:
       chat_history: history,
       message: lastMessage.role === 'USER' ? lastMessage.message : undefined,
-      // TODO tool results
     };
 
     switch (type) {
