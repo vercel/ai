@@ -89,20 +89,6 @@ For models that support multi-modal inputs, user messages can include images. An
   - `URL` object, e.g. `new URL('https://example.com/image.png')`
 
 It is possible to mix text and multiple images.
-For models that support multi-modal inputs, user messages can include images. An `image` can be one of the following:
-
-- base64-encoded image:
-  - `string` with base-64 encoded content
-  - data URL `string`, e.g. `data:image/png;base64,...`
-- binary image:
-  - `ArrayBuffer`
-  - `Uint8Array`
-  - `Buffer`
-- URL:
-  - http(s) URL `string`, e.g. `https://example.com/image.png`
-  - `URL` object, e.g. `new URL('https://example.com/image.png')`
-
-It is possible to mix text and multiple images.
 
 <Note type="warning">
   Not all models support all types of multi-modal inputs. Check the model's
