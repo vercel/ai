@@ -81,10 +81,10 @@ describe('stream-parts', () => {
     });
 
     it('should parse an assistant event line', () => {
-      const input = 'b:[{"test":"value"}]';
+      const input = 'b:{"event":"value"}';
       const expectedOutput = {
         type: 'assistant_event',
-        value: [{ test: 'value' }],
+        value: { event: 'value' },
       };
       expect(parseStreamPart(input)).toEqual(expectedOutput);
     });
