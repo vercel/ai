@@ -71,11 +71,6 @@ const model = azure('your-deployment-name');
 
 You need to pass your deployment name as the first argument.
 
-<Note>
-  The URL for calling AZURE will be constructed as follows:
-  `https://RESOURCE_NAME.openai.azure.com/openai/deployments/DEPLOYMENT_NAME/chat/completions?api-version=2024-05-01-preview`
-</Note>
-
 ### Example
 
 You can use OpenAI language models to generate text with the `generateText` function:
@@ -100,6 +95,11 @@ OpenAI language models can also be used in the `streamText`, `generateObject`, `
 </Note>
 
 ### Chat Models
+
+<Note>
+  The URL for calling Azure chat models will be constructed as follows:
+  `https://RESOURCE_NAME.openai.azure.com/openai/deployments/DEPLOYMENT_NAME/chat/completions?api-version=2024-05-01-preview`
+</Note>
 
 Azure OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
@@ -158,14 +158,14 @@ The first argument is the model id.
 Currently only `gpt-35-turbo-instruct` is supported.
 
 ```ts
-const model = azure.completion('my-gpt-35-turbo-instruct-deployment');
+const model = azure.completion('your-gpt-35-turbo-instruct-deployment');
 ```
 
 OpenAI completion models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = azure.completion('my-gpt-35-turbo-instruct-deployment', {
+const model = azure.completion('your-gpt-35-turbo-instruct-deployment', {
   echo: true, // optional, echo the prompt in addition to the completion
   logitBias: {
     // optional likelihood for specific tokens
@@ -176,7 +176,7 @@ const model = azure.completion('my-gpt-35-turbo-instruct-deployment', {
 });
 ```
 
-The following optional settings are available for OpenAI completion models:
+The following optional settings are available for Azure OpenAI completion models:
 
 - **echo**: _boolean_
 
@@ -212,6 +212,36 @@ The following optional settings are available for OpenAI completion models:
 - **suffix** _string_
 
   The suffix that comes after a completion of inserted text.
+
+- **user** _string_
+
+  A unique identifier representing your end-user, which can help OpenAI to
+  monitor and detect abuse. Learn more.
+
+## Embedding Models
+
+You can create models that call the Azure OpenAI embeddings API
+using the `.embedding()` factory method.
+
+```ts
+const model = azure.embedding('your-embedding-deployment');
+```
+
+Azure OpenAI embedding models support several aditional settings.
+You can pass them as an options argument:
+
+```ts
+const model = azure.embedding('your-embedding-deployment', {
+  dimensions: 512 // optional, number of dimensions for the embedding
+  user: 'test-user' // optional unique user identifier
+})
+```
+
+The following optional settings are available for Azure OpenAI embedding models:
+
+- **dimensions**: _number_
+
+  Echo back the prompt in addition to the completion.
 
 - **user** _string_
 
