@@ -1,5 +1,19 @@
 # ai
 
+## 3.1.37
+
+### Patch Changes
+
+- 85712895: chore (@ai-sdk/provider-utils): move test helper to provider utils
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+  - @ai-sdk/react@0.0.3
+  - @ai-sdk/svelte@0.0.3
+  - @ai-sdk/ui-utils@0.0.3
+  - @ai-sdk/solid@0.0.3
+  - @ai-sdk/vue@0.0.3
+
 ## 3.1.36
 
 ### Patch Changes
