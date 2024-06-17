@@ -464,8 +464,3 @@ export type DataMessage = {
   role: 'data';
   data: JSONValue; // application-specific data
 };
-
-export type AssistantStreamPart = {
-  event: AssistantThreadStatus;
-  data?: any;
-};

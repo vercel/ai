@@ -1,10 +1,4 @@
-/*
- * Sample stream events from OpenAI Assistant API for testing
- */
-
-import { AssistantStreamPart } from '@ai-sdk/ui-utils';
-
-export const firstRun: AssistantStreamPart[] = [
+export const firstRun: any[] = [
   {
     event: 'thread.run.created',
     data: {

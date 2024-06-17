@@ -2,7 +2,7 @@ import { ToolCall as CoreToolCall } from './duplicated/tool-call';
 import { ToolResult as CoreToolResult } from './duplicated/tool-result';
 import {
   AssistantMessage,
-  AssistantStreamPart,
+  AssistantThreadStatus,
   DataMessage,
   FunctionCall,
   JSONValue,
@@ -307,14 +307,26 @@ const toolResultStreamPart: StreamPart<
 const assistantStreamPart: StreamPart<
   'b',
   'assistant_event',
-  AssistantStreamPart
+  {
+    event: AssistantThreadStatus;
+    data?: unknown;
+  }
 > = {
   code: 'b',
   name: 'assistant_event',
   parse: (value: JSONValue) => {
+    if (value == null || typeof value !== 'object' || !('event' in value)) {
+      throw new Error(
+        '"assistant_event" parts expect an object with "event" and an optional "data" property.',
+      );
+    }
+
     return {
       type: 'assistant_event',
-      value: value as unknown as AssistantStreamPart,
+      value: value as unknown as {
+        event: AssistantThreadStatus;
+        data?: unknown;
+      },
     };
   },
 };

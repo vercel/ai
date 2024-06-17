@@ -3,7 +3,6 @@
 import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   AssistantStatus,
-  AssistantStreamPart,
   CreateMessage,
   Message,
   UseAssistantOptions,
@@ -92,6 +91,10 @@ export type UseAssistantHelpers = {
   error: undefined | unknown;
 };
 
+/**
+ * The `StreamDataPart` represents the possible types of data parts present in an assistant stream event.
+ */
+
 export function useAssistant({
   api,
   threadId: threadIdParam,
@@ -132,6 +135,7 @@ export function useAssistant({
       data?: Record<string, string>;
     },
   ) => {
+    setStatus('in_progress');
     setThreadStatus('thread.message.created');
 
     setMessages(messages => [
@@ -170,50 +174,59 @@ export function useAssistant({
       }
 
       for await (const { value } of readDataStream(result.body.getReader())) {
-        const { event, data } = value as AssistantStreamPart;
-        setStatus('in_progress');
+        const { event, data } = value as {
+          event: AssistantThreadStatus;
+          data?: {
+            threadId: string;
+            id: string;
+            delta: { content: [{ text: { value: string } }] };
+          };
+        };
+
         setThreadStatus(event);
 
-        switch (event) {
-          case 'thread.run.created': {
-            setThreadId(data.threadId);
-            break;
-          }
+        if (data) {
+          switch (event) {
+            case 'thread.run.created': {
+              setThreadId(data.threadId);
+              break;
+            }
 
-          case 'thread.message.created': {
-            setMessages(messages => [
-              ...messages,
-              {
-                id: data.id,
-                role: 'assistant',
-                content: '',
-              },
-            ]);
-
-            break;
-          }
-
-          case 'thread.message.delta': {
-            setMessages(messages => {
-              const { delta } = data;
-              const lastMessage = messages[messages.length - 1];
-
-              return [
-                ...messages.slice(0, messages.length - 1),
+            case 'thread.message.created': {
+              setMessages(messages => [
+                ...messages,
                 {
                   id: data.id,
                   role: 'assistant',
-                  content: lastMessage.content + delta.content[0].text.value,
+                  content: '',
                 },
-              ];
-            });
+              ]);
 
-            break;
-          }
+              break;
+            }
 
-          case 'error': {
-            setError(new Error(data));
-            break;
+            case 'thread.message.delta': {
+              setMessages(messages => {
+                const { delta } = data;
+                const lastMessage = messages[messages.length - 1];
+
+                return [
+                  ...messages.slice(0, messages.length - 1),
+                  {
+                    id: data.id,
+                    role: 'assistant',
+                    content: lastMessage.content + delta.content[0].text.value,
+                  },
+                ];
+              });
+
+              break;
+            }
+
+            case 'error': {
+              setError(new Error('Internal server error.'));
+              break;
+            }
           }
         }
       }

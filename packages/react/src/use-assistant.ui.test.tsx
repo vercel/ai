@@ -7,7 +7,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, findByText, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useAssistant } from './use-assistant';
-import { firstRun } from './samples';
+import { firstRun } from './test-samples/use-assistant';
 
 describe('stream data stream', () => {
   const TestComponent = () => {
