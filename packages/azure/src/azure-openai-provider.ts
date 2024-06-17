@@ -114,7 +114,7 @@ export function createAzure(
   const provider = function (
     deploymentId: string,
     type: 'chat' | 'completion' | 'embeddings' = 'chat',
-    settings?: OpenAIChatSettings,
+    settings?: OpenAIChatSettings | OpenAIEmbeddingSettings,
   ) {
     if (new.target) {
       throw new Error(
