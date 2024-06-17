@@ -14,6 +14,11 @@ Creates a model for text generation.
     modelId: GoogleVertexModelId,
     settings?: GoogleVertexSettings,
   ): GoogleVertexLanguageModel;
+
+  languageModel: (
+    modelId: GoogleVertexModelId,
+    settings?: GoogleVertexSettings,
+  ) => GoogleVertexLanguageModel;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -96,7 +101,7 @@ export function createVertex(
     return createChatModel(modelId, settings);
   };
 
-  provider.chat = createChatModel;
+  provider.languageModel = createChatModel;
 
   return provider as GoogleVertexProvider;
 }
