@@ -91,13 +91,14 @@ export function createAzure(
     });
 
   const createCompletionModel = (
-    modelId: string,
+    deploymentName: string,
     settings: OpenAICompletionSettings = {},
   ) =>
-    new AzureOpenAICompletionLanguageModel(modelId, settings, {
+    new AzureOpenAICompletionLanguageModel(deploymentName, settings, {
       provider: 'azure-openai.completion',
       headers: getHeaders,
-      baseURL: `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}`,
+      url: ({ path, modelId}) =>
+        `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-05-01-preview`,
       compatibility: 'compatible',
       fetch: options.fetch,
     });
