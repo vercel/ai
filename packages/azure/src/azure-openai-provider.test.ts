@@ -1,4 +1,7 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import {
+  EmbeddingModelV1Embedding,
+  LanguageModelV1Prompt,
+} from '@ai-sdk/provider';
 import { JsonTestServer } from '@ai-sdk/provider-utils/test';
 import { createAzure } from './azure-openai-provider';
 
@@ -39,7 +42,7 @@ describe('chat', () => {
       };
     }
 
-    it('should pass the api key as Authorization header', async () => {
+    it('should pass the api key as api-key header', async () => {
       prepareJsonResponse();
 
       const provider = createAzure({
@@ -120,6 +123,116 @@ describe('completion', () => {
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
+      });
+
+      expect((await server.getRequestHeaders()).get('api-key')).toStrictEqual(
+        'test-api-key',
+      );
+    });
+  });
+});
+
+describe('embedding', () => {
+  const dummyEmbeddings = [
+    [0.1, 0.2, 0.3, 0.4, 0.5],
+    [0.6, 0.7, 0.8, 0.9, 1.0],
+  ];
+  const testValues = ['sunny day at the beach', 'rainy day in the city'];
+
+  const provider = createAzure({
+    resourceName: 'test-resource',
+    apiKey: 'test-api-key',
+  });
+
+  describe('doEmbed', () => {
+    const server = new JsonTestServer(
+      'https://test-resource.openai.azure.com/openai/deployments/my-embedding/embeddings?api-version=2024-05-01-preview',
+    );
+
+    const model = provider.embedding('my-embedding');
+
+    server.setupTestEnvironment();
+
+    function prepareJsonResponse({
+      embeddings = dummyEmbeddings,
+    }: {
+      embeddings?: EmbeddingModelV1Embedding[];
+    } = {}) {
+      server.responseBodyJson = {
+        object: 'list',
+        data: embeddings.map((embedding, i) => ({
+          object: 'embedding',
+          index: i,
+          embedding,
+        })),
+        model: 'my-embedding',
+        usage: { prompt_tokens: 8, total_tokens: 8 },
+      };
+    }
+
+    it('should extract embedding', async () => {
+      prepareJsonResponse();
+
+      const { embeddings } = await model.doEmbed({ values: testValues });
+
+      expect(embeddings).toStrictEqual(dummyEmbeddings);
+    });
+
+    it('should expose the raw response headers', async () => {
+      prepareJsonResponse();
+
+      server.responseHeaders = {
+        'test-header': 'test-value',
+      };
+
+      const { rawResponse } = await model.doEmbed({ values: testValues });
+
+      expect(rawResponse?.headers).toStrictEqual({
+        // default headers:
+        'content-type': 'application/json',
+
+        // custom header
+        'test-header': 'test-value',
+      });
+    });
+
+    it('should pass the model and the values', async () => {
+      prepareJsonResponse();
+
+      await model.doEmbed({ values: testValues });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'my-embedding',
+        input: testValues,
+        encoding_format: 'float',
+      });
+    });
+
+    it('should pass the dimensions setting', async () => {
+      prepareJsonResponse();
+
+      await provider
+        .embedding('my-embedding', { dimensions: 64 })
+        .doEmbed({ values: testValues });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'my-embedding',
+        input: testValues,
+        encoding_format: 'float',
+        dimensions: 64,
+      });
+    });
+
+    it('should pass the api key as api-key header', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        apiKey: 'test-api-key',
+      });
+
+      await provider.embedding('my-embedding').doEmbed({
+        values: testValues,
       });
 
       expect((await server.getRequestHeaders()).get('api-key')).toStrictEqual(
