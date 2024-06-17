@@ -1,6 +1,8 @@
 import {
   OpenAIChatLanguageModel,
   OpenAIChatSettings,
+  OpenAIEmbeddingModel,
+  OpenAIEmbeddingSettings,
 } from '@ai-sdk/openai/internal';
 import { loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
@@ -25,6 +27,22 @@ Creates an Azure OpenAI chat model for text generation.
     deploymentId: string,
     settings?: OpenAIChatSettings,
   ): OpenAIChatLanguageModel;
+
+  /**
+Creates an Azure OpenAI model for text embeddings.
+   */
+  embedding(
+    deploymentId: string,
+    settings?: OpenAIEmbeddingSettings,
+  ): OpenAIEmbeddingModel;
+
+  /**
+Creates an Azure OpenAI model for text embeddings.
+   */
+  textEmbedding(
+    deploymentId: string,
+    settings?: OpenAIEmbeddingSettings,
+  ): OpenAIEmbeddingModel;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -80,8 +98,22 @@ export function createAzure(
       fetch: options.fetch,
     });
 
+  const createEmbeddingModel = (
+    modelId: string,
+    settings: OpenAIEmbeddingSettings = {},
+  ) =>
+    new OpenAIEmbeddingModel(modeId, settings, {
+      provider: 'azure-openai.embeddings',
+      headers: getHeaders,
+      url: ({ path }) =>
+        `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-05-01-preview`,
+      compatibility: 'compatible',
+      fetch: options.fetch,
+    });
+
   const provider = function (
     deploymentId: string,
+    type: 'chat' | 'completion' | 'embeddings' = 'chat',
     settings?: OpenAIChatSettings,
   ) {
     if (new.target) {
@@ -95,6 +127,8 @@ export function createAzure(
 
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
+  provider.embedding = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
 
   return provider as AzureOpenAIProvider;
 }

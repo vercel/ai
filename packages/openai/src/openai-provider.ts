@@ -163,7 +163,7 @@ export function createOpenAI(
   ) =>
     new OpenAIEmbeddingModel(modelId, settings, {
       provider: 'openai.embedding',
-      baseURL,
+      url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
     });
