@@ -207,6 +207,12 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
               case 'stream-end': {
                 finishReason = mapCohereFinishReason(value.finish_reason);
+                const tokens = value.response.meta.tokens;
+
+                usage = {
+                  promptTokens: tokens.input_tokens,
+                  completionTokens: tokens.output_tokens,
+                };
               }
 
               default: {
@@ -275,5 +281,13 @@ const cohereChatChunkSchema = z.discriminatedUnion('event_type', [
   z.object({
     event_type: z.literal('stream-end'),
     finish_reason: z.string(),
+    response: z.object({
+      meta: z.object({
+        tokens: z.object({
+          input_tokens: z.number(),
+          output_tokens: z.number(),
+        }),
+      }),
+    }),
   }),
 ]);
