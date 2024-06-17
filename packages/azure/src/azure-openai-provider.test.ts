@@ -117,6 +117,7 @@ describe('completion', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      type: 'completion',
     });
 
     expect((await server.getRequestHeaders()).get('api-key')).toStrictEqual(

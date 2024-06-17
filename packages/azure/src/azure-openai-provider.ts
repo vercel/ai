@@ -105,6 +105,7 @@ export function createAzure(
 
   const provider = function (
     deploymentId: string,
+    type: 'chat' | 'completion' = 'chat',
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
   ) {
     if (new.target) {
@@ -113,10 +114,7 @@ export function createAzure(
       );
     }
 
-    if (
-      deploymentId === 'gpt-35-turbo-instruct' ||
-      deploymentId === 'gpt-3.5-turbo-instruct'
-    ) {
+    if (type === 'completion') {
       return createCompletionModel(
         deploymentId,
         settings as OpenAICompletionSettings,
