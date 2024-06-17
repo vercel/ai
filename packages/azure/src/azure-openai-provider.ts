@@ -105,7 +105,7 @@ export function createAzure(
 
   const provider = function (
     deploymentId: string,
-    settings?: OpenAIChatSettings,
+    settings?: OpenAIChatSettings | OpenAICompletionSettings,
   ) {
     if (new.target) {
       throw new Error(
