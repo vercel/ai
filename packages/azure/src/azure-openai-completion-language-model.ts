@@ -12,17 +12,17 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { convertToOpenAICompletionPrompt } from '@ai-sdk/openai/convert-to-openai-completion-prompt';
-import { mapOpenAICompletionLogProbs } from '@ai-sdk/openai/map-openai-completion-logprobs';
-import { mapOpenAIFinishReason } from '@ai-sdk/openai/map-openai-finish-reason';
+import { convertToOpenAICompletionPrompt } from '@ai-sdk/openai/src/convert-to-openai-completion-prompt';
+import { mapOpenAICompletionLogProbs } from '@ai-sdk/openai/src/map-openai-completion-logprobs';
+import { mapOpenAIFinishReason } from '@ai-sdk/openai/src/map-openai-finish-reason';
 import {
   OpenAICompletionModelId,
   OpenAICompletionSettings,
-} from '@ai-sdk/openai/openai-completion-settings';
+} from '@ai-sdk/openai/src/openai-completion-settings';
 import {
   openAIErrorDataSchema,
   openaiFailedResponseHandler,
-} from '@ai-sdk/openai/openai-error';
+} from '@ai-sdk/openai/src/openai-error';
 
 type AzureOpenAICompletionConfig = {
   provider: string;

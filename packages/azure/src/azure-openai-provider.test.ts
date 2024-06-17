@@ -65,7 +65,7 @@ describe('completions-doGenerate', () => {
 
   server.setupTestEnvironment();
 
-  function prepareJsonResponse({
+  function prepareJsonCompletionResponse({
     content = '',
     usage = {
       prompt_tokens: 4,
@@ -104,8 +104,9 @@ describe('completions-doGenerate', () => {
       usage,
     };
   }
+
   it('should pass the api key as Authorization header', async () => {
-    prepareJsonResponse();
+    prepareJsonCompletionResponse({content: 'Hello World!'});
 
     const provider = createAzure({
       resourceName: 'test-resource',

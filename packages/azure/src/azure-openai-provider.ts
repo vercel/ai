@@ -2,7 +2,7 @@ import {
   OpenAIChatLanguageModel,
   OpenAIChatSettings,
 } from '@ai-sdk/openai/internal';
-import { OpenAICompletionSettings } from '@ai-sdk/openai/openai-completion-settings.ts';
+import { OpenAICompletionSettings } from '@ai-sdk/openai/internal';
 import { loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 import { AzureOpenAICompletionLanguageModel } from './azure-openai-completion-language-model';
 
@@ -113,11 +113,11 @@ export function createAzure(
     }
 
     if (
-      modelId === 'gpt-35-turbo-instruct' ||
-      modelId === 'gpt-3.5-turbo-instruct'
+      deploymentId === 'gpt-35-turbo-instruct' ||
+      deploymentId === 'gpt-3.5-turbo-instruct'
     ) {
       return createCompletionModel(
-        modelId,
+        deploymentId,
         settings as OpenAICompletionSettings,
       );
     }
