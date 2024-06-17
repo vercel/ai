@@ -63,7 +63,7 @@ describe('chat', () => {
 describe('completion', () => {
   describe('doGenerate', () => {
     const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/gpt-3.5-turbo-instruct/completions?api-version=2024-05-01-preview',
+      'https://test-resource.openai.azure.com/openai/deployments/gpt-35-turbo-instruct/completions?api-version=2024-05-01-preview',
     );
 
     server.setupTestEnvironment();
@@ -116,11 +116,10 @@ describe('completion', () => {
         apiKey: 'test-api-key',
       });
 
-      await provider('gpt-35-turbo-instruct').doGenerate({
+      await provider.completion('gpt-35-turbo-instruct').doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
-        type: 'completion',
       });
 
       expect((await server.getRequestHeaders()).get('api-key')).toStrictEqual(
