@@ -1,5 +1,7 @@
-import { convertArrayToReadableStream } from '../core/test/convert-array-to-readable-stream';
-import { convertReadableStreamToArray } from '../core/test/convert-readable-stream-to-array';
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
 import { toAIStream } from './langchain-adapter';
 
 describe('toAIStream', () => {

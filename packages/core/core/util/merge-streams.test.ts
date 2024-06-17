@@ -1,7 +1,9 @@
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
 import { expect, it } from 'vitest';
 import { mergeStreams } from './merge-streams';
-import { convertReadableStreamToArray } from '../test/convert-readable-stream-to-array';
-import { convertArrayToReadableStream } from '../test/convert-array-to-readable-stream';
 
 it('should prioritize the first stream over the second stream', async () => {
   const stream1 = convertArrayToReadableStream(['1a', '1b', '1c']);

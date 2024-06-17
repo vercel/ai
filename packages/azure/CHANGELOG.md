@@ -1,5 +1,35 @@
 # @ai-sdk/azure
 
+## 0.0.7
+
+### Patch Changes
+
+- eba071dd: feat (@ai-sdk/azure): add azure openai completion support
+- 1ea890fe: feat (@ai-sdk/azure): add azure openai completion support
+- Updated dependencies [eba071dd]
+- Updated dependencies [1ea890fe]
+  - @ai-sdk/openai@0.0.31
+
+## 0.0.6
+
+### Patch Changes
+
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+  - @ai-sdk/openai@0.0.30
+
+## 0.0.5
+
+### Patch Changes
+
+- 4728c37f: feat (core): add text embedding model support to provider registry
+- 7910ae84: feat (providers): support custom fetch implementations
+- Updated dependencies [4728c37f]
+- Updated dependencies [7910ae84]
+  - @ai-sdk/openai@0.0.29
+  - @ai-sdk/provider-utils@0.0.14
+
 ## 0.0.4
 
 ### Patch Changes
