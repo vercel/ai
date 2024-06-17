@@ -25,6 +25,7 @@ type AnthropicMessagesConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
+  fetch?: typeof fetch;
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
@@ -163,6 +164,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         anthropicMessagesResponseSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;
@@ -222,6 +224,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         anthropicMessagesChunkSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;

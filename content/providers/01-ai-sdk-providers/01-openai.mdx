@@ -67,6 +67,13 @@ You can use the following optional settings to customize the OpenAI provider ins
 
   Custom headers to include in the requests.
 
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
 - **compatibility** _"strict" | "compatible"_
 
   OpenAI compatibility mode. Should be set to `strict` when using the OpenAI API,

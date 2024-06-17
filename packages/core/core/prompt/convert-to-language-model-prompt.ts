@@ -9,6 +9,7 @@ import { detectImageMimeType } from '../util/detect-image-mimetype';
 import { convertDataContentToUint8Array } from './data-content';
 import { ValidatedPrompt } from './get-validated-prompt';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
+import { getErrorMessage } from '@ai-sdk/provider-utils';
 
 export function convertToLanguageModelPrompt(
   prompt: ValidatedPrompt,
@@ -78,6 +79,54 @@ export function convertToLanguageModelMessage(
                     image: part.image,
                     mimeType: part.mimeType,
                   };
+                }
+
+                // try to convert string image parts to urls
+                if (typeof part.image === 'string') {
+                  try {
+                    const url = new URL(part.image);
+
+                    switch (url.protocol) {
+                      case 'http:':
+                      case 'https:': {
+                        return {
+                          type: 'image',
+                          image: url,
+                          mimeType: part.mimeType,
+                        };
+                      }
+                      case 'data:': {
+                        try {
+                          const [header, base64Content] = part.image.split(',');
+                          const mimeType = header.split(';')[0].split(':')[1];
+
+                          if (mimeType == null || base64Content == null) {
+                            throw new Error('Invalid data URL format');
+                          }
+
+                          return {
+                            type: 'image',
+                            image:
+                              convertDataContentToUint8Array(base64Content),
+                            mimeType,
+                          };
+                        } catch (error) {
+                          throw new Error(
+                            `Error processing data URL: ${getErrorMessage(
+                              message,
+                            )}`,
+                          );
+                        }
+                      }
+                      default: {
+                        throw new Error(
+                          `Unsupported URL protocol: ${url.protocol}`,
+                        );
+                      }
+                    }
+                  } catch (_ignored) {
+                    // not a URL
+                  }
                 }
 
                 const imageUint8 = convertDataContentToUint8Array(part.image);
