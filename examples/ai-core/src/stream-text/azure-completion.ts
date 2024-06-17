@@ -6,7 +6,7 @@ dotenv.config();
 
 async function main() {
   const result = await streamText({
-    model: azure.completion('gpt-4o'), // use your own deployment
+    model: azure.completion('my-gpt-35-turbo-instruct-deployment'), // use your own deployment
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
