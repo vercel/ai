@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/ui-utils",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -36,7 +36,7 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider-utils": "0.0.14"
+    "@ai-sdk/provider-utils": "0.0.15"
   },
   "devDependencies": {
     "@types/react": "^18",
