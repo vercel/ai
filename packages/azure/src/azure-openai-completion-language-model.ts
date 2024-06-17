@@ -12,17 +12,17 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { convertToOpenAICompletionPrompt } from '@ai-sdk/openai/src/convert-to-openai-completion-prompt';
-import { mapOpenAICompletionLogProbs } from '@ai-sdk/openai/src/map-openai-completion-logprobs';
-import { mapOpenAIFinishReason } from '@ai-sdk/openai/src/map-openai-finish-reason';
+import { convertToAzureOpenAICompletionPrompt } from './azure-convert-to-openai-completion-prompt';
+import { mapOpenAICompletionLogProbs } from './map-azure-openai-completion-logprobs';
+import { mapAzureOpenAIFinishReason } from './map-azure-openai-finish-reason';
 import {
-  OpenAICompletionModelId,
+  AzureOpenAICompletionModelId,
   OpenAICompletionSettings,
-} from '@ai-sdk/openai/src/openai-completion-settings';
+} from './azure-openai-completion-settings';
 import {
-  openAIErrorDataSchema,
+  AzureOpenAIErrorDataSchema,
   openaiFailedResponseHandler,
-} from '@ai-sdk/openai/src/openai-error';
+} from './azure-openai-error';
 
 type AzureOpenAICompletionConfig = {
   provider: string;
@@ -36,13 +36,13 @@ export class AzureOpenAICompletionLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = undefined;
 
-  readonly modelId: OpenAICompletionModelId;
+  readonly modelId: AzureOpenAICompletionModelId;
   readonly settings: OpenAICompletionSettings;
 
   private readonly config: AzureOpenAICompletionConfig;
 
   constructor(
-    modelId: OpenAICompletionModelId,
+    modelId: AzureOpenAICompletionModelId,
     settings: OpenAICompletionSettings,
     config: AzureOpenAICompletionConfig,
   ) {
@@ -69,7 +69,7 @@ export class AzureOpenAICompletionLanguageModel implements LanguageModelV1 {
     const type = mode.type;
 
     const { prompt: completionPrompt, stopSequences } =
-      convertToOpenAICompletionPrompt({ prompt, inputFormat });
+      convertToAzureOpenAICompletionPrompt({ prompt, inputFormat });
 
     const baseArgs = {
       // model id:
@@ -172,7 +172,7 @@ export class AzureOpenAICompletionLanguageModel implements LanguageModelV1 {
         promptTokens: response.usage.prompt_tokens,
         completionTokens: response.usage.completion_tokens,
       },
-      finishReason: mapOpenAIFinishReason(choice.finish_reason),
+      finishReason: mapAzureOpenAIFinishReason(choice.finish_reason),
       logprobs: mapOpenAICompletionLogProbs(choice.logprobs),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
@@ -248,7 +248,7 @@ export class AzureOpenAICompletionLanguageModel implements LanguageModelV1 {
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapOpenAIFinishReason(choice.finish_reason);
+              finishReason = mapAzureOpenAIFinishReason(choice.finish_reason);
             }
 
             if (choice?.text != null) {
@@ -334,5 +334,5 @@ const openaiCompletionChunkSchema = z.union([
       .optional()
       .nullable(),
   }),
-  openAIErrorDataSchema,
+  AzureOpenAIErrorDataSchema,
 ]);
