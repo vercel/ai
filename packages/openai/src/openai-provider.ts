@@ -151,7 +151,7 @@ export function createOpenAI(
   ) =>
     new OpenAICompletionLanguageModel(modelId, settings, {
       provider: 'openai.completion',
-      baseURL,
+      url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       compatibility,
       fetch: options.fetch,
