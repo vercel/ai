@@ -1,6 +1,6 @@
 ---
 title: Migrate 3.0 to 3.1
-description: Welcome to the Vercel AI SDK documentation!
+description: Learn how to migrate from Vercel AI SDK 3.0 to 3.1.
 ---
 
 # Migration Guide (3.0 to 3.1)
@@ -19,7 +19,7 @@ Upgrading to Vercel AI SDK 3.1 does not require using the newly released AI SDK 
 
 To update to Vercel AI SDK version 3.1, run the following command using your preferred package manager:
 
-<Snippet text="pnpm install ai@latest" />
+<Snippet text="pnpm install ai@3.1" />
 
 ## Next Steps
 
@@ -35,25 +35,25 @@ Prior to AI SDK Core, you had to use a model provider's SDK to query their model
 In the following Route Handler, you use the OpenAI SDK to query their model. You then pipe that response into the [`OpenAIStream`](/docs/reference/stream-helpers/openai-stream) function which returns a [`ReadableStream`](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream) that you can pass to the client using a new [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response).
 
 ```tsx
-import OpenAI from 'openai';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import OpenAI from 'openai'
+import { OpenAIStream, StreamingTextResponse } from 'ai'
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+  apiKey: process.env.OPENAI_API_KEY!
+})
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages } = await req.json()
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4-turbo',
     stream: true,
-    messages,
-  });
+    messages
+  })
 
-  const stream = OpenAIStream(response);
+  const stream = OpenAIStream(response)
 
-  return new StreamingTextResponse(stream);
+  return new StreamingTextResponse(stream)
 }
 ```
 
@@ -62,18 +62,18 @@ With Vercel AI SDK Core you have a unified API for any provider that implements 
 Let’s take a look at the example above, but refactored to utilize the AI SDK Core API alongside the AI SDK OpenAI provider. In this example, you import the LLM function you want to use from the `ai` package, import the OpenAI provider from `@ai-sdk/openai`, and then you call the model and return the response using the `toAIStreamResponse()` helper function.
 
 ```tsx
-import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai'
+import { openai } from '@ai-sdk/openai'
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages } = await req.json()
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages,
-  });
+    messages
+  })
 
-  return result.toAIStreamResponse();
+  return result.toAIStreamResponse()
 }
 ```
 
@@ -84,23 +84,23 @@ The AI SDK RSC API was launched as part of version 3.0. This API introduced the 
 The following example Server Action uses the `render` function using the model provider directly from OpenAI. You first create an OpenAI provider instance with the OpenAI SDK. Then, you pass it to the provider key of the render function alongside a tool that returns a React Server Component, defined in the `render` key of the tool.
 
 ```tsx
-import { render } from 'ai/rsc';
-import OpenAI from 'openai';
-import { z } from 'zod';
-import { Spinner, Weather } from '@/components';
-import { getWeather } from '@/utils';
+import { render } from 'ai/rsc'
+import OpenAI from 'openai'
+import { z } from 'zod'
+import { Spinner, Weather } from '@/components'
+import { getWeather } from '@/utils'
 
-const openai = new OpenAI();
+const openai = new OpenAI()
 
 async function submitMessage(userInput = 'What is the weather in SF?') {
-  'use server';
+  'use server'
 
   return render({
     provider: openai,
     model: 'gpt-4-turbo',
     messages: [
       { role: 'system', content: 'You are a helpful assistant' },
-      { role: 'user', content: userInput },
+      { role: 'user', content: userInput }
     ],
     text: ({ content }) => <p>{content}</p>,
     tools: {
@@ -108,31 +108,31 @@ async function submitMessage(userInput = 'What is the weather in SF?') {
         description: 'Get the current weather for a city',
         parameters: z
           .object({
-            city: z.string().describe('the city'),
+            city: z.string().describe('the city')
           })
           .required(),
         render: async function* ({ city }) {
-          yield <Spinner />;
-          const weather = await getWeather(city);
-          return <Weather info={weather} />;
-        },
-      },
-    },
-  });
+          yield <Spinner />
+          const weather = await getWeather(city)
+          return <Weather info={weather} />
+        }
+      }
+    }
+  })
 }
 ```
 
 With the new [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui) function, you can now use any compatible AI SDK provider. In this example, you import the AI SDK OpenAI provider. Then, you pass it to the [`model`](/docs/reference/ai-sdk-rsc/stream-ui#model) key of the new [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui) function. Finally, you declare a tool and return a React Server Component, defined in the [`generate`](/docs/reference/ai-sdk-rsc/stream-ui#tools-generate) key of the tool.
 
 ```tsx
-import { streamUI } from 'ai/rsc';
-import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
-import { Spinner, Weather } from '@/components';
-import { getWeather } from '@/utils';
+import { streamUI } from 'ai/rsc'
+import { openai } from '@ai-sdk/openai'
+import { z } from 'zod'
+import { Spinner, Weather } from '@/components'
+import { getWeather } from '@/utils'
 
 async function submitMessage(userInput = 'What is the weather in SF?') {
-  'use server';
+  'use server'
 
   const result = await streamUI({
     model: openai('gpt-4-turbo'),
@@ -144,18 +144,18 @@ async function submitMessage(userInput = 'What is the weather in SF?') {
         description: 'Get the current weather for a city',
         parameters: z
           .object({
-            city: z.string().describe('Name of the city'),
+            city: z.string().describe('Name of the city')
           })
           .required(),
         generate: async function* ({ city }) {
-          yield <Spinner />;
-          const weather = await getWeather(city);
-          return <Weather info={weather} />;
-        },
-      },
-    },
-  });
+          yield <Spinner />
+          const weather = await getWeather(city)
+          return <Weather info={weather} />
+        }
+      }
+    }
+  })
 
-  return result.value;
+  return result.value
 }
 ```
