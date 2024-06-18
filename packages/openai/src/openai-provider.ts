@@ -151,7 +151,7 @@ export function createOpenAI(
   ) =>
     new OpenAICompletionLanguageModel(modelId, settings, {
       provider: 'openai.completion',
-      baseURL,
+      url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       compatibility,
       fetch: options.fetch,
@@ -163,7 +163,7 @@ export function createOpenAI(
   ) =>
     new OpenAIEmbeddingModel(modelId, settings, {
       provider: 'openai.embedding',
-      baseURL,
+      url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
     });

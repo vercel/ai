@@ -185,7 +185,7 @@ Warnings from the model provider (e.g. unsupported settings).
 
       callOptions = {
         mode: { type: 'object-grammar', schema: jsonSchema },
-        ...settings,
+        ...prepareCallSettings(settings),
         inputFormat: validatedPrompt.type,
         prompt: convertToLanguageModelPrompt(validatedPrompt),
         abortSignal,
@@ -225,7 +225,7 @@ Warnings from the model provider (e.g. unsupported settings).
             parameters: jsonSchema,
           },
         },
-        ...settings,
+        ...prepareCallSettings(settings),
         inputFormat: validatedPrompt.type,
         prompt: convertToLanguageModelPrompt(validatedPrompt),
         abortSignal,

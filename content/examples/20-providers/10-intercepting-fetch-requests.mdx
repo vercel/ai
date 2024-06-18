@@ -1,0 +1,42 @@
+---
+title: Intercepting Fetch Requests
+description: Example of intercepting fetch requests with a provider.
+---
+
+# Intercepting Fetch Requests
+
+Many providers support setting a custom `fetch` function using the `fetch` argument in their factory function.
+
+A custom `fetch` function can be used to intercept and modify requests before they are sent to the provider's API,
+and to intercept and modify responses before they are returned to the caller.
+
+Use cases for intercepting requests include:
+
+- Logging requests and responses
+- Adding authentication headers
+- Modifying request bodies
+- Caching responses
+- Using a custom HTTP client
+
+## Example
+
+```ts file='index.ts' highlight="5-12"
+import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
+
+const openai = createOpenAI({
+  // example fetch wrapper that logs the URL:
+  fetch: async (url, options) => {
+    console.log(`Fetching ${url}`);
+    const result = await fetch(url, options);
+    console.log(`Fetched ${url}`);
+    console.log();
+    return result;
+  },
+});
+
+const { text } = await generateText({
+  model: openai('gpt-3.5-turbo'),
+  prompt: 'Why is the sky blue?',
+});
+```
