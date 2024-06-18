@@ -18,18 +18,18 @@ This example demonstrates how to create an agent that solves math problems.
 It has a calculator tool (using [math.js](https://mathjs.org/)) that it can call to evaluate mathematical expressions.
 
 ```ts file='main.ts'
-import { openai } from '@ai-sdk/openai'
-import { generateText, tool } from 'ai'
-import * as mathjs from 'mathjs'
-import { z } from 'zod'
+import { openai } from '@ai-sdk/openai';
+import { generateText, tool } from 'ai';
+import * as mathjs from 'mathjs';
+import { z } from 'zod';
 
 const problem =
   'A taxi driver earns $9461 per 1-hour work. ' +
   'If he works 12 hours a day and in 1 hour ' +
   'he uses 12-liters petrol with price $134 for 1-liter. ' +
-  'How much money does he earn in one day?'
+  'How much money does he earn in one day?';
 
-console.log(`PROBLEM: ${problem}`)
+console.log(`PROBLEM: ${problem}`);
 
 const { text: answer } = await generateText({
   model: openai('gpt-4-turbo'),
@@ -47,11 +47,11 @@ const { text: answer } = await generateText({
         'Example expressions: ' +
         "'1.2 * (2 + 4.5)', '12.7 cm to inch', 'sin(45 deg) ^ 2'.",
       parameters: z.object({ expression: z.string() }),
-      execute: async ({ expression }) => mathjs.evaluate(expression)
-    })
+      execute: async ({ expression }) => mathjs.evaluate(expression),
+    }),
   },
-  maxToolRoundtrips: 10
-})
+  maxToolRoundtrips: 10,
+});
 
-console.log(`ANSWER: ${answer}`)
+console.log(`ANSWER: ${answer}`);
 ```
