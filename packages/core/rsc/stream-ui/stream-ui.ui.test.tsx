@@ -190,8 +190,8 @@ describe('rsc - streamUI() onFinish callback', () => {
           },
         },
       },
-      onFinish: async event => {
-        result = event as unknown as typeof result;
+      onFinish: event => {
+        result = event;
       },
     });
 
