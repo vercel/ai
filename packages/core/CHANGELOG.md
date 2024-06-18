@@ -1,5 +1,15 @@
 # ai
 
+## 3.2.0
+
+### Minor Changes
+
+- 85ef6d18: chore (ai): AI SDK 3.2 release
+
+### Patch Changes
+
+- b965dd2d: fix (core): pass settings correctly for generateObject and streamObject
+
 ## 3.1.37
 
 ### Patch Changes
