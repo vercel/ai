@@ -1,4 +1,7 @@
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
+import { z } from 'zod';
+import { MockLanguageModelV1 } from '../../core/test/mock-language-model-v1';
 import {
   openaiChatCompletionChunks,
   openaiFunctionCallChunks,
@@ -7,10 +10,7 @@ import {
   DEFAULT_TEST_URL,
   createMockServer,
 } from '../../tests/utils/mock-server';
-import { z } from 'zod';
 import { streamUI } from './stream-ui';
-import { MockLanguageModelV1 } from '../../core/test/mock-language-model-v1';
-import { convertArrayToReadableStream } from '../../core/test/convert-array-to-readable-stream';
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
 
