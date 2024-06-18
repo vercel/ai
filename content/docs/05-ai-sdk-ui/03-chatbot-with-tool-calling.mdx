@@ -119,7 +119,7 @@ There are three things worth mentioning:
 3. The [`maxToolRoundtrips`](/docs/reference/ai-sdk-ui/use-chat#max-tool-roundtrips) option is set to 5.
    This enables several tool use iterations between the client and the server.
 
-```tsx filename='app/page.tsx'
+```tsx filename='app/page.tsx' highlight="9,12,26"
 'use client';
 
 import { ToolInvocation } from 'ai';
@@ -148,10 +148,12 @@ export default function Chat() {
     <div>
       {messages?.map((m: Message) => (
         <div key={m.id}>
-          <strong>{`${m.role}: `}</strong>
+          <strong>{m.role}:</strong>
           {m.content}
           {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
             const toolCallId = toolInvocation.toolCallId;
+            const addResult = (result: string) =>
+              addToolResult({ toolCallId, result });
 
             // render confirmation tool (client-side tool with user interaction)
             if (toolInvocation.toolName === 'askForConfirmation') {
@@ -163,26 +165,8 @@ export default function Chat() {
                       <b>{toolInvocation.result}</b>
                     ) : (
                       <>
-                        <button
-                          onClick={() =>
-                            addToolResult({
-                              toolCallId,
-                              result: 'Yes, confirmed.',
-                            })
-                          }
-                        >
-                          Yes
-                        </button>
-                        <button
-                          onClick={() =>
-                            addToolResult({
-                              toolCallId,
-                              result: 'No, denied',
-                            })
-                          }
-                        >
-                          No
-                        </button>
+                        <button onClick={() => addResult('Yes')}>Yes</button>
+                        <button onClick={() => addResult('No')}>No</button>
                       </>
                     )}
                   </div>
@@ -201,16 +185,11 @@ export default function Chat() {
             );
           })}
           <br />
-          <br />
         </div>
       ))}
 
       <form onSubmit={handleSubmit}>
-        <input
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
+        <input value={input} onChange={handleInputChange} />
       </form>
     </div>
   );
