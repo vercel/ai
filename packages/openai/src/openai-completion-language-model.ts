@@ -26,9 +26,10 @@ import {
 
 type OpenAICompletionConfig = {
   provider: string;
-  baseURL: string;
   compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
+  url: (options: { modelId: string; path: string }) => string;
+  fetch?: typeof fetch;
 };
 
 export class OpenAICompletionLanguageModel implements LanguageModelV1 {
@@ -151,7 +152,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/completions`,
+      url: this.config.url({
+        path: '/completions',
+        modelId: this.modelId,
+      }),
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -159,6 +163,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         openAICompletionResponseSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { prompt: rawPrompt, ...rawSettings } = args;
@@ -184,7 +189,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/completions`,
+      url: this.config.url({
+        path: '/completions',
+        modelId: this.modelId,
+      }),
       headers: this.config.headers(),
       body: {
         ...this.getArgs(options),
@@ -201,6 +209,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         openaiCompletionChunkSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { prompt: rawPrompt, ...rawSettings } = args;

@@ -129,7 +129,7 @@ for await (const partialObject of partialObjectStream) {
                       name: 'image',
                       type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
                       description:
-                        'The image content of the message part. String are base64 encoded content. URLs need to be represented with a URL object'
+                        'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.'
                     }
                   ]
                 }

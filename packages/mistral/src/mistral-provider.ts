@@ -23,6 +23,14 @@ export interface MistralProvider {
   /**
 Creates a model for text generation.
 */
+  languageModel(
+    modelId: MistralChatModelId,
+    settings?: MistralChatSettings,
+  ): MistralChatLanguageModel;
+
+  /**
+Creates a model for text generation.
+*/
   chat(
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
@@ -32,6 +40,14 @@ Creates a model for text generation.
 Creates a model for text embeddings.
    */
   embedding(
+    modelId: MistralEmbeddingModelId,
+    settings?: MistralEmbeddingSettings,
+  ): MistralEmbeddingModel;
+
+  /**
+Creates a model for text embeddings.
+   */
+  textEmbedding(
     modelId: MistralEmbeddingModelId,
     settings?: MistralEmbeddingSettings,
   ): MistralEmbeddingModel;
@@ -59,6 +75,12 @@ It defaults to the `MISTRAL_API_KEY` environment variable.
 Custom headers to include in the requests.
      */
   headers?: Record<string, string>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: typeof fetch;
 
   generateId?: () => string;
 }
@@ -91,6 +113,7 @@ export function createMistral(
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
+      fetch: options.fetch,
     });
 
   const createEmbeddingModel = (
@@ -101,6 +124,7 @@ export function createMistral(
       provider: 'mistral.embedding',
       baseURL,
       headers: getHeaders,
+      fetch: options.fetch,
     });
 
   const provider = function (
@@ -116,8 +140,10 @@ export function createMistral(
     return createChatModel(modelId, settings);
   };
 
+  provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.embedding = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
 
   return provider as MistralProvider;
 }

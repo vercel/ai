@@ -1,0 +1,70 @@
+---
+title: Provider Management
+description: Learn how to work with multiple providers
+---
+
+# Provider Management
+
+<Note>Provider management is an experimental feature.</Note>
+
+When you work with multiple providers and models, it is often desirable to manage them in a central place
+and access the models through simple string ids.
+
+The Vercel AI SDK provides a [`ProviderRegistry`](/docs/reference/ai-sdk-core/provider-registry) for this purpose.
+You can register multiple providers. The provider id will become the prefix of the model id:
+`providerId:modelId`.
+
+### Setup
+
+You can create a registry with multiple providers and models using `experimental_createProviderRegistry`.
+
+<Note>
+  It is common to keep the registry setup in a separate file and import it where
+  needed.
+</Note>
+
+```ts filename={"registry.ts"}
+import { anthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
+import { experimental_createProviderRegistry as createProviderRegistry } from 'ai';
+
+export const registry = createProviderRegistry({
+  // register provider with prefix and default setup:
+  anthropic,
+
+  // register provider with prefix and custom setup:
+  openai: createOpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  }),
+});
+```
+
+### Language models
+
+You can access language models by using the `languageModel` method on the registry.
+The provider id will become the prefix of the model id: `providerId:modelId`.
+
+```ts highlight={"5"}
+import { generateText } from 'ai';
+import { registry } from './registry';
+
+const { text } = await generateText({
+  model: registry.languageModel('openai:gpt-4-turbo'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+### Text embedding models
+
+You can access text embedding models by using the `textEmbeddingModel` method on the registry.
+The provider id will become the prefix of the model id: `providerId:modelId`.
+
+```ts highlight={"5"}
+import { embed } from 'ai';
+import { registry } from './registry';
+
+const { embedding } = await embed({
+  model: registry.textEmbeddingModel('openai:text-embedding-3-small'),
+  value: 'sunny day at the beach',
+});
+```

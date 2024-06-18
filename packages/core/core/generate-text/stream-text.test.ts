@@ -1,12 +1,14 @@
+import {
+  convertArrayToReadableStream,
+  convertAsyncIterableToArray,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { convertArrayToReadableStream } from '../test/convert-array-to-readable-stream';
-import { convertAsyncIterableToArray } from '../test/convert-async-iterable-to-array';
-import { convertReadableStreamToArray } from '../test/convert-readable-stream-to-array';
+import { formatStreamPart } from '../../streams';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { streamText } from './stream-text';
-import { formatStreamPart } from '../../streams';
 
 describe('result.textStream', () => {
   it('should send text deltas', async () => {

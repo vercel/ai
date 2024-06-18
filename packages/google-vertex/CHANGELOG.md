@@ -1,5 +1,21 @@
 # @ai-sdk/google-vertex
 
+## 0.0.10
+
+### Patch Changes
+
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+
+## 0.0.9
+
+### Patch Changes
+
+- 4728c37f: feat (core): add text embedding model support to provider registry
+- Updated dependencies [7910ae84]
+  - @ai-sdk/provider-utils@0.0.14
+
 ## 0.0.8
 
 ### Patch Changes

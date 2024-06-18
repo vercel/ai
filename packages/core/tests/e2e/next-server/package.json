@@ -8,6 +8,8 @@
     "next": "canary",
     "react": "rc",
     "react-dom": "rc",
+    "zod": "*",
     "ai": "workspace:*"
-  }
+  },
+  "version": null
 }

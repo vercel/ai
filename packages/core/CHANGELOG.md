@@ -1,5 +1,59 @@
 # ai
 
+## 3.1.37
+
+### Patch Changes
+
+- 85712895: chore (@ai-sdk/provider-utils): move test helper to provider utils
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+  - @ai-sdk/react@0.0.3
+  - @ai-sdk/svelte@0.0.3
+  - @ai-sdk/ui-utils@0.0.3
+  - @ai-sdk/solid@0.0.3
+  - @ai-sdk/vue@0.0.3
+
+## 3.1.36
+
+### Patch Changes
+
+- 4728c37f: feat (core): add text embedding model support to provider registry
+- 8c49166e: chore (core): rename experimental_createModelRegistry to experimental_createProviderRegistry
+- Updated dependencies [7910ae84]
+  - @ai-sdk/provider-utils@0.0.14
+  - @ai-sdk/react@0.0.2
+  - @ai-sdk/svelte@0.0.2
+  - @ai-sdk/ui-utils@0.0.2
+  - @ai-sdk/solid@0.0.2
+  - @ai-sdk/vue@0.0.2
+
+## 3.1.35
+
+### Patch Changes
+
+- 06123501: feat (core): support https and data url strings in image parts
+
+## 3.1.34
+
+### Patch Changes
+
+- d25566ac: feat (core): add cosineSimilarity helper function
+- 87a5d27e: feat (core): introduce InvalidMessageRoleError.
+
+## 3.1.33
+
+### Patch Changes
+
+- 6fb14b5d: chore (streams): deprecate nanoid export.
+- 05536768: feat (core): add experimental model registry
+
+## 3.1.32
+
+### Patch Changes
+
+- 3cabf078: fix(ai/rsc): Refactor streamable UI internal implementation
+
 ## 3.1.31
 
 ### Patch Changes

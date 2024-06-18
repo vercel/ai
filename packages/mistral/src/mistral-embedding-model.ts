@@ -17,6 +17,7 @@ type MistralEmbeddingConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
+  fetch?: typeof fetch;
 };
 
 export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
@@ -78,6 +79,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
         MistralTextEmbeddingResponseSchema,
       ),
       abortSignal,
+      fetch: this.config.fetch,
     });
 
     return {

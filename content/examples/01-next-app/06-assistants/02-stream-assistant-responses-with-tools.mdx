@@ -112,7 +112,7 @@ In case the assistant requires a tool call, the server action will handle the to
 ```tsx filename='app/actions.tsx'
 'use server';
 
-import { nanoid } from 'ai';
+import { generateId } from 'ai';
 import { createAI, createStreamableUI, createStreamableValue } from 'ai/rsc';
 import { OpenAI } from 'openai';
 import { ReactNode } from 'react';
@@ -156,7 +156,7 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
         stream: true,
       });
 
-      runQueue.push({ id: nanoid(), run });
+      runQueue.push({ id: generateId(), run });
     } else {
       const run = await openai.beta.threads.createAndRun({
         assistant_id: ASSISTANT_ID,
@@ -166,7 +166,7 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
         },
       });
 
-      runQueue.push({ id: nanoid(), run });
+      runQueue.push({ id: generateId(), run });
     }
 
     while (runQueue.length > 0) {
@@ -249,7 +249,7 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
                     },
                   );
 
-                runQueue.push({ id: nanoid(), run: nextRun });
+                runQueue.push({ id: generateId(), run: nextRun });
               }
             }
           } else if (event === 'thread.run.failed') {
@@ -265,7 +265,7 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
   })();
 
   return {
-    id: nanoid(),
+    id: generateId(),
     status: status.value,
     text: textUIStream.value,
     gui: gui.value,
