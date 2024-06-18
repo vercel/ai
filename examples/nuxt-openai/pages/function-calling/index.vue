@@ -51,7 +51,7 @@ const roleToColorMap: Record<Message['role'], string> = {
   <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
     <div
       v-for="m in messages"
-      key="m.id"
+      :key="m.id"
       class="whitespace-pre-wrap"
       :style="{ color: roleToColorMap[m.role] }"
     >
