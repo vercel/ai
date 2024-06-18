@@ -68,10 +68,5 @@
   },
   "keywords": [
     "ai"
-  ],
-  "pnpm": {
-    "overrides": {
-      "@smithy/types": "^3.1.0"
-    }
-  }
+  ]
 }
