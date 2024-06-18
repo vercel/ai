@@ -17,7 +17,7 @@ This happens when you create a streamable UI using [`createStreamableUI`](/docs/
 In order to fix this, you must ensure you close the stream by calling the [`.done()`](/docs/reference/ai-sdk-rsc/create-streamable-ui#done) method.
 This will ensure the stream is closed.
 
-```tsx file='app/actions.ts'
+```tsx file='app/actions.tsx'
 import { createStreamableUI } from 'ai/rsc';
 
 const submitMessage = async () => {
