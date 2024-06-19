@@ -28,13 +28,10 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   object: DeepPartial<RESULT> | undefined;
 };
 
-// should also support full objects
-// TODO no header -> text stream
-// TODO special header -> json stream
 function useObject<RESULT, INPUT = any>({
   api,
   id,
-  schema,
+  schema, // required, in the future we will use it for validation
   initialValue,
 }: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
   RESULT,
@@ -53,7 +50,6 @@ function useObject<RESULT, INPUT = any>({
 
   return {
     async setInput(input) {
-      // lets assume regular partial data stream
       const response = await fetch(api, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -63,7 +59,6 @@ function useObject<RESULT, INPUT = any>({
       let accumulatedText = '';
       let latestObject: DeepPartial<RESULT> | undefined = undefined;
 
-      // TODO handle empty body
       response.body!.pipeThrough(new TextDecoderStream()).pipeTo(
         new WritableStream<string>({
           write(chunk) {
