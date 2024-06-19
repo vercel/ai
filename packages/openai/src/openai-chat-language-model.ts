@@ -149,7 +149,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     // For azure, only include logprobs if it's defined. (#2024):
-    if (this.provider === 'azure-openai.chat' && args.logprobs === undefined) {
+    if (
+      this.config.compatibility === 'compatible' &&
+      this.provider === 'azure-openai.chat' &&
+      args.logprobs === undefined
+    ) {
       delete args.logprobs;
     }
 
@@ -197,7 +201,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     // For azure, only include logprobs if it's defined. (#2024):
-    if (this.provider === 'azure-openai.chat' && args.logprobs === undefined) {
+    if (
+      this.config.compatibility === 'compatible' &&
+      this.provider === 'azure-openai.chat' &&
+      args.logprobs === undefined
+    ) {
       delete args.logprobs;
     }
 
