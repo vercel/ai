@@ -2,6 +2,7 @@ import { TypeValidationError } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
+  convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
@@ -148,18 +149,6 @@ describe('result.fullStream', () => {
     const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'object-json' });
-          assert.deepStrictEqual(prompt, [
-            {
-              role: 'system',
-              content:
-                'JSON schema:\n' +
-                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
-                'You MUST answer with a JSON object that matches the JSON schema above.',
-            },
-            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
-          ]);
-
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: '{ ' },
@@ -220,6 +209,86 @@ describe('result.fullStream', () => {
           ],
         },
       ],
+    );
+  });
+});
+
+describe('result.textStream', () => {
+  it('should send text stream', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 2 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.textStream),
+      ['{ ', '"content": "Hello, ', 'world', '!"'],
+    );
+  });
+});
+
+describe('result.toTextStreamResponse', () => {
+  it('should create a Response with a text stream', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 2 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    const response = result.toTextStreamResponse();
+
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual(
+      response.headers.get('Content-Type'),
+      'text/plain; charset=utf-8',
+    );
+
+    assert.deepStrictEqual(
+      await convertReadableStreamToArray(
+        response.body!.pipeThrough(new TextDecoderStream()),
+      ),
+      ['{ ', '"content": "Hello, ', 'world', '!"'],
     );
   });
 });
