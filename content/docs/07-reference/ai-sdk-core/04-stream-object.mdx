@@ -429,12 +429,19 @@ for await (const partialObject of partialObjectStream) {
       name: 'partialObjectStream',
       type: 'AsyncIterableStream<DeepPartial<T>>',
       description:
-        'Note that the partial object is not validated. If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.',
+        'Stream of partial objects. It gets more complete as the stream progresses. Note that the partial object is not validated. If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.',
+    },
+    {
+      name: 'textStream',
+      type: 'AsyncIterableStream<string>',
+      description:
+        'Text stream of the JSON representation of the generated object. It contains text chunks. When the stream is finished, the object is valid JSON that can be parsed.',
     },
     {
       name: 'fullStream',
       type: 'AsyncIterableStream<ObjectStreamPart<T>>',
-      description: 'The full stream of the object.',
+      description:
+        'Stream of different types of events, including partial objects, errors, and finish events.',
       properties: [
         {
           type: 'ObjectPart',

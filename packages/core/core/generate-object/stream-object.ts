@@ -454,6 +454,12 @@ Response headers.
     );
   }
 
+  /**
+Stream of partial objects. It gets more complete as the stream progresses.
+  
+Note that the partial object is not validated. 
+If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.
+   */
   get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
@@ -478,6 +484,10 @@ Response headers.
     });
   }
 
+  /**
+Text stream of the JSON representation of the generated object. It contains text chunks. 
+When the stream is finished, the object is valid JSON that can be parsed.
+   */
   get textStream(): AsyncIterableStream<string> {
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
@@ -502,6 +512,9 @@ Response headers.
     });
   }
 
+  /**
+Stream of different types of events, including partial objects, errors, and finish events.
+   */
   get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
