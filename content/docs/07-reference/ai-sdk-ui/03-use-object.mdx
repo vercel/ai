@@ -85,7 +85,14 @@ export default function Page() {
       description:
         'The current value for the generated object. Updated as the API streams JSON chunks.',
     },
-  ]}
+    {
+      name: 'error',
+      type: 'undefined | unknown',
+      description: 'The error object if the API call fails.',
+
+    }
+
+]}
 />
 
 ## Examples

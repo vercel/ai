@@ -1,4 +1,4 @@
-import { mockFetchDataStream } from '@ai-sdk/ui-utils/test';
+import { mockFetchDataStream, mockFetchError } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -7,7 +7,7 @@ import { experimental_useObject } from './use-object';
 
 describe('text stream', () => {
   const TestComponent = () => {
-    const { object, setInput } = experimental_useObject({
+    const { object, error, setInput } = experimental_useObject({
       api: '/api/use-object',
       schema: z.object({ content: z.string() }),
     });
@@ -15,6 +15,7 @@ describe('text stream', () => {
     return (
       <div>
         <div data-testid="object">{JSON.stringify(object)}</div>
+        <div data-testid="error">{error?.toString()}</div>
         <button
           data-testid="submit-button"
           onClick={async () => setInput('test-input')}
@@ -55,6 +56,24 @@ describe('text stream', () => {
 
     it("should send 'test' to the API", async () => {
       expect(await mockFetch.requestBody).toBe(JSON.stringify('test-input'));
+    });
+
+    it('should not have an error', async () => {
+      await screen.findByTestId('error');
+      expect(screen.getByTestId('error')).toBeEmptyDOMElement();
+    });
+  });
+
+  describe('when the API returns a 404', () => {
+    beforeEach(async () => {
+      mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
+
+      await userEvent.click(screen.getByTestId('submit-button'));
+    });
+
+    it('should render error', async () => {
+      await screen.findByTestId('error');
+      expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
     });
   });
 });

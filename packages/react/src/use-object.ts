@@ -3,7 +3,7 @@ import {
   isDeepEqualData,
   parsePartialJson,
 } from '@ai-sdk/ui-utils';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import useSWR from 'swr';
 import z from 'zod';
 
@@ -41,6 +41,11 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
    * The current value for the generated object. Updated as the API streams JSON chunks.
    */
   object: DeepPartial<RESULT> | undefined;
+
+  /**
+   * The error object of the API request if any.
+   */
+  error: undefined | unknown;
 };
 
 function useObject<RESULT, INPUT = any>({
@@ -63,36 +68,55 @@ function useObject<RESULT, INPUT = any>({
     { fallbackData: initialValue },
   );
 
+  const [error, setError] = useState<undefined | unknown>(undefined);
+
   return {
     async setInput(input) {
-      const response = await fetch(api, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      });
+      try {
+        const response = await fetch(api, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input),
+        });
 
-      let accumulatedText = '';
-      let latestObject: DeepPartial<RESULT> | undefined = undefined;
+        if (!response.ok) {
+          throw new Error(
+            (await response.text()) ?? 'Failed to fetch the response.',
+          );
+        }
 
-      response.body!.pipeThrough(new TextDecoderStream()).pipeTo(
-        new WritableStream<string>({
-          write(chunk) {
-            accumulatedText += chunk;
+        if (response.body == null) {
+          throw new Error('The response body is empty.');
+        }
 
-            const currentObject = parsePartialJson(
-              accumulatedText,
-            ) as DeepPartial<RESULT>;
+        let accumulatedText = '';
+        let latestObject: DeepPartial<RESULT> | undefined = undefined;
 
-            if (!isDeepEqualData(latestObject, currentObject)) {
-              latestObject = currentObject;
+        response.body!.pipeThrough(new TextDecoderStream()).pipeTo(
+          new WritableStream<string>({
+            write(chunk) {
+              accumulatedText += chunk;
 
-              mutate(currentObject);
-            }
-          },
-        }),
-      );
+              const currentObject = parsePartialJson(
+                accumulatedText,
+              ) as DeepPartial<RESULT>;
+
+              if (!isDeepEqualData(latestObject, currentObject)) {
+                latestObject = currentObject;
+
+                mutate(currentObject);
+              }
+            },
+          }),
+        );
+
+        setError(undefined);
+      } catch (error) {
+        setError(error);
+      }
     },
     object: data,
+    error,
   };
 }
 
