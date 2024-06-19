@@ -187,10 +187,26 @@ describe('result.fullStream', () => {
     assert.deepStrictEqual(
       await convertAsyncIterableToArray(result.fullStream),
       [
-        { type: 'object', object: {} },
-        { type: 'object', object: { content: 'Hello, ' } },
-        { type: 'object', object: { content: 'Hello, world' } },
-        { type: 'object', object: { content: 'Hello, world!' } },
+        {
+          type: 'object',
+          object: {},
+          delta: '{ ',
+        },
+        {
+          type: 'object',
+          object: { content: 'Hello, ' },
+          delta: '"content": "Hello, ',
+        },
+        {
+          type: 'object',
+          object: { content: 'Hello, world' },
+          delta: 'world',
+        },
+        {
+          type: 'object',
+          object: { content: 'Hello, world!' },
+          delta: '!"',
+        },
         {
           type: 'finish',
           finishReason: 'stop',
