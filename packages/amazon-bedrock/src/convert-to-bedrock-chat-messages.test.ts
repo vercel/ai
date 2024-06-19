@@ -2,7 +2,7 @@ import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages
 
 describe('user messages', () => {
   it('should convert messages with image parts to multiple parts', async () => {
-    const result = convertToBedrockChatMessages([
+    const { messages } = convertToBedrockChatMessages([
       {
         role: 'user',
         content: [
@@ -16,7 +16,7 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(result).toEqual([
+    expect(messages).toEqual([
       {
         role: 'user',
         content: [
@@ -32,14 +32,29 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should convert messages with only a text part to a string content', async () => {
-    const result = convertToBedrockChatMessages([
+  it('should extract the system message', async () => {
+    const { system } = convertToBedrockChatMessages([
       {
-        role: 'user',
-        content: [{ type: 'text', text: 'Hello' }],
+        role: 'system',
+        content: 'Hello',
       },
     ]);
 
-    expect(result).toEqual([{ role: 'user', content: [{ text: 'Hello' }] }]);
+    expect(system).toEqual('Hello');
+  });
+
+  it('should throw an error if multiple system messages are provided', async () => {
+    expect(() =>
+      convertToBedrockChatMessages([
+        {
+          role: 'system',
+          content: 'Hello',
+        },
+        {
+          role: 'system',
+          content: 'World',
+        },
+      ]),
+    ).toThrowError();
   });
 });

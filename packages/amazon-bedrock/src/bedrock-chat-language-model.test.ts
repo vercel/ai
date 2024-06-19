@@ -11,6 +11,7 @@ import {
 import { convertStreamToArray } from '@ai-sdk/provider-utils/test';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
+  { role: 'system', content: 'System Prompt' },
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -123,8 +124,6 @@ describe('doGenerate', () => {
     await provider
       .chat('amazon.titan-tg1-large', {
         additionalModelRequestFields: { top_k: 10 },
-        system: [{ text: 'System Prompt' }],
-        additionalModelResponseFields: ['/[stop_reason]'],
       })
       .doGenerate({
         inputFormat: 'prompt',
@@ -141,7 +140,6 @@ describe('doGenerate', () => {
         messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
         additionalModelRequestFields: { top_k: 10 },
         system: [{ text: 'System Prompt' }],
-        additionalModelResponseFieldPaths: ['/[stop_reason]'],
         inferenceConfig: {
           maxTokens: 100,
           temperature: 0.5,
