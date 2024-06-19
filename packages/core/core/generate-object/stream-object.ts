@@ -24,6 +24,7 @@ import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
+import { ServerResponse } from 'http';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -507,6 +508,44 @@ Response headers.
         controller.enqueue(chunk);
       },
     });
+  }
+
+  /**
+Writes text delta output to a Node.js response-like object.
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+writes each text delta as a separate chunk.
+
+@param response A Node.js response-like object (ServerResponse).
+@param init Optional headers and status code.
+   */
+  pipeTextStreamToResponse(
+    response: ServerResponse,
+    init?: { headers?: Record<string, string>; status?: number },
+  ) {
+    response.writeHead(init?.status ?? 200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      ...init?.headers,
+    });
+
+    const reader = this.textStream
+      .pipeThrough(new TextEncoderStream())
+      .getReader();
+
+    const read = async () => {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          response.write(value);
+        }
+      } catch (error) {
+        throw error;
+      } finally {
+        response.end();
+      }
+    };
+
+    read();
   }
 
   /**

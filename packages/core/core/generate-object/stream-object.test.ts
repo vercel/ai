@@ -8,6 +8,7 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { streamObject } from './stream-object';
+import { createMockServerResponse } from '../test/mock-server-response';
 
 describe('result.objectStream', () => {
   it('should send object deltas with json mode', async () => {
@@ -288,6 +289,63 @@ describe('result.toTextStreamResponse', () => {
       await convertReadableStreamToArray(
         response.body!.pipeThrough(new TextDecoderStream()),
       ),
+      ['{ ', '"content": "Hello, ', 'world', '!"'],
+    );
+  });
+});
+
+describe('result.pipeTextStreamToResponse', async () => {
+  it('should write text deltas to a Node.js response-like object', async () => {
+    const mockResponse = createMockServerResponse();
+
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 2 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    result.pipeTextStreamToResponse(mockResponse);
+
+    // Wait for the stream to finish writing to the mock response
+    await new Promise(resolve => {
+      const checkIfEnded = () => {
+        if (mockResponse.ended) {
+          resolve(undefined);
+        } else {
+          setImmediate(checkIfEnded);
+        }
+      };
+      checkIfEnded();
+    });
+
+    const decoder = new TextDecoder();
+
+    assert.strictEqual(mockResponse.statusCode, 200);
+    assert.deepStrictEqual(mockResponse.headers, {
+      'Content-Type': 'text/plain; charset=utf-8',
+    });
+    assert.deepStrictEqual(
+      mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
       ['{ ', '"content": "Hello, ', 'world', '!"'],
     );
   });
