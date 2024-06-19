@@ -13,6 +13,4 @@ export const notificationSchema = z.object({
 });
 
 // define a type for the partial notifications during generation
-export type PartialNotification = DeepPartial<
-  z.infer<typeof notificationSchema>
->;
+export type PartialNotification = DeepPartial<typeof notificationSchema>;
