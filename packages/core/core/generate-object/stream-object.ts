@@ -23,6 +23,7 @@ import {
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { prepareResponseHeaders } from '../util/prepare-response-headers';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -292,6 +293,7 @@ export type ObjectStreamPart<T> =
   | {
       type: 'object';
       object: DeepPartial<T>;
+      delta: string;
     };
 
 /**
@@ -364,6 +366,7 @@ Response headers.
 
     // pipe chunks through a transformation stream that extracts metadata:
     let accumulatedText = '';
+    let delta = '';
     let latestObject: DeepPartial<T> | undefined = undefined;
 
     this.originalStream = stream.pipeThrough(
@@ -372,6 +375,7 @@ Response headers.
           // process partial text chunks
           if (typeof chunk === 'string') {
             accumulatedText += chunk;
+            delta += chunk;
 
             const currentObject = parsePartialJson(
               accumulatedText,
@@ -380,7 +384,13 @@ Response headers.
             if (!isDeepEqualData(latestObject, currentObject)) {
               latestObject = currentObject;
 
-              controller.enqueue({ type: 'object', object: currentObject });
+              controller.enqueue({
+                type: 'object',
+                object: currentObject,
+                delta,
+              });
+
+              delta = '';
             }
 
             return;
@@ -467,11 +477,51 @@ Response headers.
     });
   }
 
+  get textStream(): AsyncIterableStream<string> {
+    return createAsyncIterableStream(this.originalStream, {
+      transform(chunk, controller) {
+        switch (chunk.type) {
+          case 'object':
+            controller.enqueue(chunk.delta);
+            break;
+
+          case 'finish':
+            break;
+
+          case 'error':
+            controller.error(chunk.error);
+            break;
+
+          default: {
+            const _exhaustiveCheck: never = chunk;
+            throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
+          }
+        }
+      },
+    });
+  }
+
   get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
         controller.enqueue(chunk);
       },
+    });
+  }
+
+  /**
+Creates a simple text stream response.
+Each text delta is encoded as UTF-8 and sent as a separate chunk.
+Non-text-delta events are ignored.
+
+@param init Optional headers and status code.
+   */
+  toTextStreamResponse(init?: ResponseInit): Response {
+    return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
+      status: init?.status ?? 200,
+      headers: prepareResponseHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
     });
   }
 }
