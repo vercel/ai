@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.4
+
+### Patch Changes
+
+- 008725ec: chore (@ai-sdk/ui-utils): move functions
+
 ## 0.0.3
 
 ### Patch Changes

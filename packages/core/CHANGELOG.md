@@ -1,5 +1,19 @@
 # ai
 
+## 3.2.1
+
+### Patch Changes
+
+- 008725ec: feat (ai): add textStream, toTextStreamResponse(), and pipeTextStreamToResponse() to streamObject
+- 520fb2d5: feat (rsc): add streamUI onFinish callback
+- Updated dependencies [008725ec]
+- Updated dependencies [008725ec]
+  - @ai-sdk/react@0.0.4
+  - @ai-sdk/ui-utils@0.0.4
+  - @ai-sdk/solid@0.0.4
+  - @ai-sdk/svelte@0.0.4
+  - @ai-sdk/vue@0.0.4
+
 ## 3.2.0
 
 ### Minor Changes
