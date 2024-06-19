@@ -521,6 +521,18 @@ for await (const partialObject of partialObjectStream) {
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
     },
+    {
+      name: 'pipeTextStreamToResponse',
+      type: '(response: ServerResponse, init?: { headers?: Record<string, string>; status?: number } => void',
+      description:
+        'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
+    },
+    {
+      name: 'toTextStreamResponse',
+      type: '(init?: ResponseInit) => Response',
+      description:
+        'Creates a simple text stream response. Each text delta is encoded as UTF-8 and sent as a separate chunk. Non-text-delta events are ignored.',
+    },
   ]}
 />
 
