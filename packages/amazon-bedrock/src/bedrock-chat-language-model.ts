@@ -18,11 +18,9 @@ import {
   ConverseCommand,
   ConverseCommandInput,
   ConverseStreamCommand,
-  ConverseStreamCommandInput,
   ConverseStreamOutput,
   Tool,
   ToolConfiguration,
-  ToolSpecification,
 } from '@aws-sdk/client-bedrock-runtime';
 
 type BedrockChatConfig = BedrockRuntimeClientConfig & { provider: string };
@@ -85,18 +83,18 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    const { system, messages } = convertToBedrockChatMessages(prompt);
+
     const baseArgs: ConverseCommandInput = {
       modelId: this.modelId,
-      system: this.settings.system,
+      system: system ? [{ text: system }] : undefined,
       additionalModelRequestFields: this.settings.additionalModelRequestFields,
-      additionalModelResponseFieldPaths:
-        this.settings.additionalModelResponseFields,
       inferenceConfig: {
         maxTokens: maxTokens,
         temperature: temperature,
         topP: topP,
       },
-      messages: convertToBedrockChatMessages(prompt),
+      messages,
     };
 
     switch (type) {

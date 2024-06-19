@@ -1,6 +1,11 @@
 import { ContentBlock } from '@aws-sdk/client-bedrock-runtime';
 
-export type BedrockChatPrompt = Array<ChatCompletionMessageParam>;
+export type BedrockMessagesPrompt = {
+  system?: string;
+  messages: BedrockMessages;
+};
+
+export type BedrockMessages = Array<ChatCompletionMessageParam>;
 
 export type ChatCompletionMessageParam =
   | ChatCompletionUserMessageParam

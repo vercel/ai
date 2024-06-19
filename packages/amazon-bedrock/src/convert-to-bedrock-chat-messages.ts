@@ -1,14 +1,34 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
-import { BedrockChatPrompt } from './bedrock-chat-prompt';
-import { ImageBlock, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
+import {
+  LanguageModelV1Prompt,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
+import { BedrockMessages, BedrockMessagesPrompt } from './bedrock-chat-prompt';
+import {
+  ImageBlock,
+  ImageFormat,
+  ToolResultBlock,
+  ToolUseBlock,
+} from '@aws-sdk/client-bedrock-runtime';
 
 export function convertToBedrockChatMessages(
   prompt: LanguageModelV1Prompt,
-): BedrockChatPrompt {
-  const messages: BedrockChatPrompt = [];
+): BedrockMessagesPrompt {
+  let system: string | undefined = undefined;
+  const messages: BedrockMessages = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
+      case 'system': {
+        if (system != null) {
+          throw new UnsupportedFunctionalityError({
+            functionality: 'Multiple system messages',
+          });
+        }
+
+        system = content;
+        break;
+      }
+
       case 'user': {
         messages.push({
           role: 'user',
@@ -76,14 +96,16 @@ export function convertToBedrockChatMessages(
       }
 
       case 'tool':
-        throw new Error(
-          `Unsupported message role '${role}'. Please use the assistant role with toolUse content block instead.`,
-        );
-
-      case 'system':
-        throw new Error(
-          `Unsupported message role '${role}'. Please use the system options on the provider instead.`,
-        );
+        messages.push({
+          role: 'assistant',
+          content: content.map(part => ({
+            toolResult: {
+              toolUseId: part.toolCallId,
+              status: part.isError ? 'error' : 'success',
+              content: [{ text: JSON.stringify(part.result) }],
+            },
+          })),
+        });
 
       default: {
         throw new Error(`Unsupported role: ${role}`);
@@ -91,5 +113,5 @@ export function convertToBedrockChatMessages(
     }
   }
 
-  return messages;
+  return { system, messages };
 }

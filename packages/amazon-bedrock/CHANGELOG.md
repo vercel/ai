@@ -1,1 +1,0 @@
-# @ai-sdk/amazon-bedrock

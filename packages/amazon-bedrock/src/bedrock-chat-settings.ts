@@ -36,20 +36,4 @@ beyond the base set of inference parameters that Converse
 supports in the inferenceConfig field
 */
   additionalModelRequestFields?: Record<string, any>;
-
-  /**
-Additional model parameters field paths to return in the response.
-Converse returns the requested fields as a JSON Pointer object in
-the additionalModelResponseFields field.
-
-The following is example JSON for additionalModelResponseFieldPaths.
-
-[ "/stop_sequence" ]
-*/
-  additionalModelResponseFields?: string[];
-
-  /**
-A system prompt to pass to the model.
-   */
-  system?: SystemContentBlock[];
 }
