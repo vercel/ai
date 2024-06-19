@@ -8,8 +8,15 @@ import useSWR from 'swr';
 import z from 'zod';
 
 export type Experimental_UseObjectOptions<RESULT> = {
-  /** The API endpoint */
+  /**
+   * The API endpoint. It should stream JSON that matches the schema as chunked text.
+   */
   api: string;
+
+  /**
+   * A Zod schema that defines the shape of the complete object.
+   */
+  schema: z.Schema<RESULT>;
 
   /**
    * An unique identifier. If not provided, a random one will be
@@ -18,13 +25,21 @@ export type Experimental_UseObjectOptions<RESULT> = {
    */
   id?: string;
 
-  schema: z.Schema<RESULT>;
-
+  /**
+   * An optional value for the initial object.
+   */
   initialValue?: DeepPartial<RESULT>;
 };
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
+  /**
+   * Calls the API with the provided input as JSON body.
+   */
   setInput: (input: INPUT) => void;
+
+  /**
+   * The current value for the generated object. Updated as the API streams JSON chunks.
+   */
   object: DeepPartial<RESULT> | undefined;
 };
 
