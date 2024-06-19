@@ -42,7 +42,6 @@ rather than have users wait for it to complete before displaying the result.
 It is helpful to set up the schema in a separate file that is imported on both the client and server.
 
 ```ts filename='app/api/use-object/schema.ts'
-import { DeepPartial } from 'ai';
 import { z } from 'zod';
 
 // define a schema for the notifications
@@ -51,13 +50,9 @@ export const notificationSchema = z.object({
     z.object({
       name: z.string().describe('Name of a fictional person.'),
       message: z.string().describe('Message. Do not use emojis or links.'),
-      minutesAgo: z.number(),
     }),
   ),
 });
-
-// define a type for the partial notifications during generation
-export type PartialNotification = DeepPartial<typeof notificationSchema>;
 ```
 
 ## Client
@@ -89,22 +84,12 @@ export default function Page() {
         Generate notifications
       </button>
 
-      <div>
-        {object?.notifications?.map((notification, index) => (
-          <div key={index}>
-            <div>
-              <div>
-                <p>{notification?.name}</p>
-                <p>
-                  {notification?.minutesAgo}
-                  {notification?.minutesAgo != null ? ' minutes ago' : ''}
-                </p>
-              </div>
-              <p>{notification?.message}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      {object?.notifications?.map((notification, index) => (
+        <div key={index}>
+          <p>{notification?.name}</p>
+          <p>{notification?.message}</p>
+        </div>
+      ))}
     </div>
   );
 }
