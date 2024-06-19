@@ -75,7 +75,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       logit_bias: this.settings.logitBias,
       logprobs:
         this.settings.logprobs === true ||
-        typeof this.settings.logprobs === 'number',
+        typeof this.settings.logprobs === 'number'
+          ? this.settings.logprobs
+          : undefined,
       top_logprobs:
         typeof this.settings.logprobs === 'number'
           ? this.settings.logprobs
@@ -146,20 +148,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const args = this.getArgs(options);
 
+    // For azure, only include logprobs if it's defined. (#2024):
+    if (this.provider === 'azure-openai.chat' && args.logprobs === undefined) {
+      delete args.logprobs;
+    }
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
       }),
       headers: this.config.headers(),
-      body: {
-        ...args,
-
-        // For azure, only include logprobs if it's defined. (#2024):
-        ...(this.provider === 'azure-openai.chat' && args.logprobs !== false
-          ? { logprobs: args.logprobs }
-          : {}),
-      },
+      body: args,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openAIChatResponseSchema,
@@ -196,6 +196,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const args = this.getArgs(options);
 
+    // For azure, only include logprobs if it's defined. (#2024):
+    if (this.provider === 'azure-openai.chat' && args.logprobs === undefined) {
+      delete args.logprobs;
+    }
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
@@ -211,11 +216,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           this.config.compatibility === 'strict'
             ? { include_usage: true }
             : undefined,
-
-        // For azure, only include logprobs if it's defined and logprobs is not false:
-        ...(this.provider === 'azure-openai.chat' && args.logprobs !== false
-          ? { logprobs: args.logprobs }
-          : {}),
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
