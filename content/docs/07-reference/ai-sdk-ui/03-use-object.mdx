@@ -60,7 +60,7 @@ export default function Page() {
       name: 'id?',
       type: 'string',
       description:
-        'An unique identifier for the completion. If not provided, a random one will be generated. When provided, the `useObject` hook with the same `id` will have shared states across components.',
+        'Allows you to consume text streams that represent a JSON object and parse them into a complete object based on a Zod schema.',
     },
     {
       name: 'initialValue?',
@@ -84,6 +84,17 @@ export default function Page() {
       type: 'DeepPartial<RESULT> | undefined',
       description:
         'The current value for the generated object. Updated as the API streams JSON chunks.',
+    },
+  ]}
+/>
+
+## Examples
+
+<ExampleLinks
+  examples={[
+    {
+      title: 'Streaming Object Generation with useObject',
+      link: '/examples/next-pages/basics/streaming-object-generation',
     },
   ]}
 />
