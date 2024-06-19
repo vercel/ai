@@ -458,6 +458,20 @@ for await (const partialObject of partialObjectStream) {
           ],
         },
         {
+          type: 'TextDeltaPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'text-delta'",
+            },
+            {
+              name: 'textDelta',
+              type: 'string',
+              description: 'The text delta for the underlying raw JSON text.',
+            },
+          ],
+        },
+        {
           type: 'ErrorPart',
           parameters: [
             {

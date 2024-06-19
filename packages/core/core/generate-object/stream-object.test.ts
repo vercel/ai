@@ -180,22 +180,38 @@ describe('result.fullStream', () => {
         {
           type: 'object',
           object: {},
-          delta: '{ ',
+        },
+        {
+          type: 'text-delta',
+          textDelta: '{ ',
         },
         {
           type: 'object',
           object: { content: 'Hello, ' },
-          delta: '"content": "Hello, ',
+        },
+        {
+          type: 'text-delta',
+          textDelta: '"content": "Hello, ',
         },
         {
           type: 'object',
           object: { content: 'Hello, world' },
-          delta: 'world',
+        },
+        {
+          type: 'text-delta',
+          textDelta: 'world',
         },
         {
           type: 'object',
           object: { content: 'Hello, world!' },
-          delta: '!"',
+        },
+        {
+          type: 'text-delta',
+          textDelta: '!"',
+        },
+        {
+          type: 'text-delta',
+          textDelta: ' }',
         },
         {
           type: 'finish',
@@ -244,7 +260,7 @@ describe('result.textStream', () => {
 
     assert.deepStrictEqual(
       await convertAsyncIterableToArray(result.textStream),
-      ['{ ', '"content": "Hello, ', 'world', '!"'],
+      ['{ ', '"content": "Hello, ', 'world', '!"', ' }'],
     );
   });
 });
@@ -289,7 +305,7 @@ describe('result.toTextStreamResponse', () => {
       await convertReadableStreamToArray(
         response.body!.pipeThrough(new TextDecoderStream()),
       ),
-      ['{ ', '"content": "Hello, ', 'world', '!"'],
+      ['{ ', '"content": "Hello, ', 'world', '!"', ' }'],
     );
   });
 });
@@ -346,7 +362,7 @@ describe('result.pipeTextStreamToResponse', async () => {
     });
     assert.deepStrictEqual(
       mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
-      ['{ ', '"content": "Hello, ', 'world', '!"'],
+      ['{ ', '"content": "Hello, ', 'world', '!"', ' }'],
     );
   });
 });

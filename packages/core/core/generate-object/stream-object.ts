@@ -294,7 +294,10 @@ export type ObjectStreamPart<T> =
   | {
       type: 'object';
       object: DeepPartial<T>;
-      delta: string;
+    }
+  | {
+      type: 'text-delta';
+      textDelta: string;
     };
 
 /**
@@ -388,7 +391,11 @@ Response headers.
               controller.enqueue({
                 type: 'object',
                 object: currentObject,
-                delta,
+              });
+
+              controller.enqueue({
+                type: 'text-delta',
+                textDelta: delta,
               });
 
               delta = '';
@@ -399,6 +406,14 @@ Response headers.
 
           switch (chunk.type) {
             case 'finish': {
+              // send final text delta:
+              if (delta !== '') {
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: delta,
+                });
+              }
+
               // store usage for promises and onFinish callback:
               usage = calculateTokenUsage(chunk.usage);
 
@@ -468,6 +483,7 @@ If you want to be certain that the actual content matches your schema, you need 
             controller.enqueue(chunk.object);
             break;
 
+          case 'text-delta':
           case 'finish':
             break;
 
@@ -492,10 +508,11 @@ When the stream is finished, the object is valid JSON that can be parsed.
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
         switch (chunk.type) {
-          case 'object':
-            controller.enqueue(chunk.delta);
+          case 'text-delta':
+            controller.enqueue(chunk.textDelta);
             break;
 
+          case 'object':
           case 'finish':
             break;
 
