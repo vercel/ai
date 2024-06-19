@@ -17,7 +17,7 @@ describe('text stream', () => {
         <div data-testid="object">{JSON.stringify(object)}</div>
         <button
           data-testid="submit-button"
-          onClick={async () => setInput('test')}
+          onClick={async () => setInput('test-input')}
         >
           Generate
         </button>
@@ -34,17 +34,27 @@ describe('text stream', () => {
     cleanup();
   });
 
-  it('should render stream', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/use-object',
-      chunks: ['{ ', '"content": "Hello, ', 'world', '!"'],
+  describe("when the API returns 'Hello, world!'", () => {
+    let mockFetch: ReturnType<typeof mockFetchDataStream>;
+
+    beforeEach(async () => {
+      mockFetch = mockFetchDataStream({
+        url: 'https://example.com/api/use-object',
+        chunks: ['{ ', '"content": "Hello, ', 'world', '!"'],
+      });
+
+      await userEvent.click(screen.getByTestId('submit-button'));
     });
 
-    await userEvent.click(screen.getByTestId('submit-button'));
+    it('should render stream', async () => {
+      await screen.findByTestId('object');
+      expect(screen.getByTestId('object')).toHaveTextContent(
+        JSON.stringify({ content: 'Hello, world!' }),
+      );
+    });
 
-    await screen.findByTestId('object');
-    expect(screen.getByTestId('object')).toHaveTextContent(
-      JSON.stringify({ content: 'Hello, world!' }),
-    );
+    it("should send 'test' to the API", async () => {
+      expect(await mockFetch.requestBody).toBe(JSON.stringify('test-input'));
+    });
   });
 });
