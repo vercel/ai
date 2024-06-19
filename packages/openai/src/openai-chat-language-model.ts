@@ -154,12 +154,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       headers: this.config.headers(),
       body: {
         ...args,
-        
+
         // For azure, only include logprobs if it's defined. (#2024):
-        logprobs: 
-          args.logprobs && this.config.compatibility === 'compatible' && this.provider === 'azure-openai.chat'
-            ? args.logprobs
-            : undefined,
+        ...(this.provider === 'azure-openai.chat' && args.logprobs !== false
+          ? { logprobs: args.logprobs }
+          : {}),
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -212,12 +211,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           this.config.compatibility === 'strict'
             ? { include_usage: true }
             : undefined,
-        
-        // For azure, only include logprobs if it's defined. (#2024):
-        logprobs: 
-          args.logprobs && this.config.compatibility === 'compatible' && this.provider === 'azure-openai.chat'
-            ? args.logprobs
-            : undefined,
+
+        // For azure, only include logprobs if it's defined and logprobs is not false:
+        ...(this.provider === 'azure-openai.chat' && args.logprobs !== false
+          ? { logprobs: args.logprobs }
+          : {}),
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
