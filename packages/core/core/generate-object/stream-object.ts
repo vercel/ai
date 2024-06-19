@@ -2,6 +2,12 @@ import {
   LanguageModelV1CallOptions,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
+import { safeValidateTypes } from '@ai-sdk/provider-utils';
+import {
+  DeepPartial,
+  isDeepEqualData,
+  parsePartialJson,
+} from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
@@ -15,12 +21,8 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
-import { DeepPartial } from '../util/deep-partial';
-import { isDeepEqualData } from '../util/is-deep-equal-data';
-import { parsePartialJson } from '../util/parse-partial-json';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
-import { safeValidateTypes } from '@ai-sdk/provider-utils';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
