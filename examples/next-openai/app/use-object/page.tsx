@@ -1,10 +1,7 @@
 'use client';
 
 import { experimental_useObject as useObject } from '@ai-sdk/react';
-import {
-  PartialNotification,
-  notificationSchema,
-} from '../api/use-object/schema';
+import { notificationSchema } from '../api/use-object/schema';
 
 // Force the page to be dynamic and allow streaming responses up to 30 seconds
 export const dynamic = 'force-dynamic';
@@ -27,38 +24,27 @@ export default function Page() {
         Generate notifications
       </button>
 
-      <NotificationsView data={object} />
-    </div>
-  );
-}
-
-// separate component to display notifications:
-function NotificationsView({
-  data,
-}: {
-  data: PartialNotification | undefined;
-}) {
-  return (
-    <div className="flex flex-col gap-4 mt-4">
-      {data?.notifications?.map((notification, index) => (
-        <div
-          className="flex items-start gap-4 p-4 bg-gray-100 rounded-md dark:bg-gray-800"
-          key={index}
-        >
-          <div className="flex-1 space-y-1">
-            <div className="flex items-center justify-between">
-              <p className="font-medium">{notification?.name}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {notification?.minutesAgo}
-                {notification?.minutesAgo != null ? ' minutes ago' : ''}
+      <div className="flex flex-col gap-4 mt-4">
+        {object?.notifications?.map((notification, index) => (
+          <div
+            className="flex items-start gap-4 p-4 bg-gray-100 rounded-md dark:bg-gray-800"
+            key={index}
+          >
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="font-medium">{notification?.name}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {notification?.minutesAgo}
+                  {notification?.minutesAgo != null ? ' minutes ago' : ''}
+                </p>
+              </div>
+              <p className="text-gray-700 dark:text-gray-300">
+                {notification?.message}
               </p>
             </div>
-            <p className="text-gray-700 dark:text-gray-300">
-              {notification?.message}
-            </p>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
