@@ -74,13 +74,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       // model specific settings:
       logit_bias: this.settings.logitBias,
       logprobs:
-        this.settings.logprobs === undefined
-          ? false
-          : (this.settings.logprobs === this.settings.logprobs) === null ||
-            this.settings.logprobs === true ||
-            typeof this.settings.logprobs === 'number'
-          ? this.settings.logprobs
-          : false,
+        this.settings.logprobs === true ||
+        typeof this.settings.logprobs === 'number'
+          ? true
+          : undefined,
       top_logprobs:
         typeof this.settings.logprobs === 'number'
           ? this.settings.logprobs
@@ -151,17 +148,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const args = this.getArgs(options);
 
-    // For azure, only include logprobs if it's defined. (#2024):
-    if (
-      this.config.compatibility === 'compatible' &&
-      this.provider === 'azure-openai.chat' &&
-      (args.logprobs === undefined || args.logprobs === false)
-    ) {
-      if ('logprobs' in args) {
-        delete (args as { logprobs?: boolean | number }).logprobs;
-      }
-    }
-
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
@@ -204,17 +190,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const args = this.getArgs(options);
-
-    // For azure, only include logprobs if it's defined. (#2024):
-    if (
-      this.config.compatibility === 'compatible' &&
-      this.provider === 'azure-openai.chat' &&
-      (args.logprobs === undefined || args.logprobs === false)
-    ) {
-      if ('logprobs' in args) {
-        delete (args as { logprobs?: boolean | number }).logprobs;
-      }
-    }
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
