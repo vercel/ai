@@ -4,6 +4,7 @@ export type BedrockChatModelId =
   | 'amazon.titan-text-express-v1'
   | 'anthropic.claude-v2:1'
   | 'anthropic.claude-3-sonnet-20240229-v1:0'
+  | 'anthropic.claude-3-5-sonnet-20240620-v1:0'
   | 'anthropic.claude-3-haiku-20240307-v1:0'
   | 'anthropic.claude-3-opus-20240229-v1:0'
   | 'cohere.command-r-v1:0'
