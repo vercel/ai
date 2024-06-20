@@ -143,7 +143,7 @@ Default and recommended: 'auto' (best mode for the model).
       const generateResult = await retry(() =>
         model.doGenerate({
           mode: { type: 'object-grammar', schema: jsonSchema },
-          ...settings,
+          ...prepareCallSettings(settings),
           inputFormat: validatedPrompt.type,
           prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
@@ -182,7 +182,7 @@ Default and recommended: 'auto' (best mode for the model).
               parameters: jsonSchema,
             },
           },
-          ...settings,
+          ...prepareCallSettings(settings),
           inputFormat: validatedPrompt.type,
           prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,

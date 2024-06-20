@@ -97,7 +97,7 @@ A helper function to create a streamable UI from LLM providers. This function is
                       name: 'image',
                       type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
                       description:
-                        'The image content of the message part. String are base64 encoded content. URLs need to be represented with a URL object',
+                        'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
                     },
                   ],
                 },
@@ -329,6 +329,77 @@ A helper function to create a streamable UI from LLM providers. This function is
             },
             { name: 'delta', type: 'string', description: 'The delta.' },
             { name: 'done', type: 'boolean', description: 'Is it done?' },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'onFinish',
+      type: '(result: OnFinishResult) => void',
+      isOptional: true,
+      description:
+        'Callback that is called when the LLM response and all request tool executions (for tools that have a `generate` function) are finished.',
+      properties: [
+        {
+          type: 'OnFinishResult',
+          parameters: [
+            {
+              name: 'usage',
+              type: 'TokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'TokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'value',
+              type: 'ReactNode',
+              description: 'The final ui node that was generated.',
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
+              name: 'rawResponse',
+              type: 'RawResponse',
+              description: 'Optional raw response data.',
+              properties: [
+                {
+                  type: 'RawResponse',
+                  parameters: [
+                    {
+                      name: 'header',
+                      optional: true,
+                      type: 'Record<string, string>',
+                      description: 'Response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],

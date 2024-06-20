@@ -129,7 +129,7 @@ for await (const partialObject of partialObjectStream) {
                       name: 'image',
                       type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
                       description:
-                        'The image content of the message part. String are base64 encoded content. URLs need to be represented with a URL object'
+                        'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.'
                     }
                   ]
                 }
@@ -429,12 +429,19 @@ for await (const partialObject of partialObjectStream) {
       name: 'partialObjectStream',
       type: 'AsyncIterableStream<DeepPartial<T>>',
       description:
-        'Note that the partial object is not validated. If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.',
+        'Stream of partial objects. It gets more complete as the stream progresses. Note that the partial object is not validated. If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.',
+    },
+    {
+      name: 'textStream',
+      type: 'AsyncIterableStream<string>',
+      description:
+        'Text stream of the JSON representation of the generated object. It contains text chunks. When the stream is finished, the object is valid JSON that can be parsed.',
     },
     {
       name: 'fullStream',
       type: 'AsyncIterableStream<ObjectStreamPart<T>>',
-      description: 'The full stream of the object.',
+      description:
+        'Stream of different types of events, including partial objects, errors, and finish events.',
       properties: [
         {
           type: 'ObjectPart',
@@ -447,6 +454,20 @@ for await (const partialObject of partialObjectStream) {
               name: 'object',
               type: 'DeepPartial<T>',
               description: 'The partial object that was generated.',
+            },
+          ],
+        },
+        {
+          type: 'TextDeltaPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'text-delta'",
+            },
+            {
+              name: 'textDelta',
+              type: 'string',
+              description: 'The text delta for the underlying raw JSON text.',
             },
           ],
         },
@@ -514,6 +535,18 @@ for await (const partialObject of partialObjectStream) {
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
     },
+    {
+      name: 'pipeTextStreamToResponse',
+      type: '(response: ServerResponse, init?: { headers?: Record<string, string>; status?: number } => void',
+      description:
+        'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
+    },
+    {
+      name: 'toTextStreamResponse',
+      type: '(init?: ResponseInit) => Response',
+      description:
+        'Creates a simple text stream response. Each text delta is encoded as UTF-8 and sent as a separate chunk. Non-text-delta events are ignored.',
+    },
   ]}
 />
 
@@ -522,8 +555,12 @@ for await (const partialObject of partialObjectStream) {
 <ExampleLinks
   examples={[
     {
-      title: 'Streaming Object Generation (Next.js App Router)',
+      title: 'Streaming Object Generation with RSC',
       link: '/examples/next-app/basics/streaming-object-generation',
+    },
+    {
+      title: 'Streaming Object Generation with useObject',
+      link: '/examples/next-pages/basics/streaming-object-generation',
     },
     {
       title: 'Streaming Partial Objects',

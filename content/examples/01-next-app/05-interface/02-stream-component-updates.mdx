@@ -15,7 +15,7 @@ If you haven't noticed already, in our previous example we've been streaming rea
 import { useState } from 'react';
 import { ClientMessage } from './actions';
 import { useActions, useUIState } from 'ai/rsc';
-import { nanoid } from 'nanoid';
+import { generateId } from 'ai';
 
 // Force the page to be dynamic and allow streaming responses up to 30 seconds
 export const dynamic = 'force-dynamic';
@@ -48,7 +48,7 @@ export default function Home() {
           onClick={async () => {
             setConversation((currentConversation: ClientMessage[]) => [
               ...currentConversation,
-              { id: nanoid(), role: 'user', display: input },
+              { id: generateId(), role: 'user', display: input },
             ]);
 
             const message = await continueConversation(input);
@@ -69,14 +69,14 @@ export default function Home() {
 
 ## Server
 
-```tsx filename='app/actions.ts'
+```tsx filename='app/actions.tsx'
 'use server';
 
 import { createAI, getMutableAIState, streamUI } from 'ai/rsc';
 import { openai } from '@ai-sdk/openai';
 import { ReactNode } from 'react';
 import { z } from 'zod';
-import { nanoid } from 'nanoid';
+import { generateId } from 'ai';
 
 export interface ServerMessage {
   role: 'user' | 'assistant';
@@ -129,7 +129,7 @@ export async function continueConversation(
   });
 
   return {
-    id: nanoid(),
+    id: generateId(),
     role: 'assistant',
     display: result.value,
   };

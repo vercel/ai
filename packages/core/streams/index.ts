@@ -28,8 +28,14 @@ export type {
   RequestOptions,
 } from '@ai-sdk/ui-utils';
 
+import { generateId as generateIdImpl } from '@ai-sdk/provider-utils';
+export const generateId = generateIdImpl;
+
+/**
+@deprecated Use `generateId` instead.
+ */
 // TODO remove nanoid export (breaking change)
-export { generateId, generateId as nanoid } from '@ai-sdk/provider-utils';
+export const nanoid = generateIdImpl;
 
 export * from '../core/index';
 export * from './ai-stream';

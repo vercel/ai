@@ -2,7 +2,7 @@ import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import {
   JsonTestServer,
   StreamingTestServer,
-  convertStreamToArray,
+  convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { createOpenAI } from './openai-provider';
@@ -146,7 +146,7 @@ describe('doGenerate', () => {
         | null;
     } | null;
     finish_reason?: string;
-  }) {
+  } = {}) {
     server.responseBodyJson = {
       id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
       object: 'chat.completion',
@@ -280,6 +280,33 @@ describe('doGenerate', () => {
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       logprobs: false,
+    });
+  });
+
+  it('should pass settings', async () => {
+    prepareJsonResponse();
+
+    await provider
+      .chat('gpt-3.5-turbo', {
+        logitBias: { 50256: -100 },
+        logprobs: 2,
+        parallelToolCalls: false,
+        user: 'test-user-id',
+      })
+      .doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      logprobs: true,
+      top_logprobs: 2,
+      logit_bias: { 50256: -100 },
+      parallel_tool_calls: false,
+      user: 'test-user-id',
     });
   });
 
@@ -455,7 +482,7 @@ describe('doStream', () => {
     });
 
     // note: space moved to last chunk bc of trimming
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       { type: 'text-delta', textDelta: '' },
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
@@ -524,7 +551,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
         type: 'tool-call-delta',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
@@ -624,7 +651,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
         type: 'tool-call-delta',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
@@ -661,7 +688,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
         type: 'error',
         error: {
@@ -695,7 +722,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    const elements = await convertStreamToArray(stream);
+    const elements = await convertReadableStreamToArray(stream);
 
     expect(elements.length).toBe(2);
     expect(elements[0].type).toBe('error');

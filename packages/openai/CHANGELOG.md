@@ -1,5 +1,35 @@
 # @ai-sdk/openai
 
+## 0.0.31
+
+### Patch Changes
+
+- eba071dd: feat (@ai-sdk/azure): add azure openai completion support
+- 1ea890fe: feat (@ai-sdk/azure): add azure openai completion support
+
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+
+## 0.0.29
+
+### Patch Changes
+
+- 4728c37f: feat (core): add text embedding model support to provider registry
+- 7910ae84: feat (providers): support custom fetch implementations
+- Updated dependencies [7910ae84]
+  - @ai-sdk/provider-utils@0.0.14
+
+## 0.0.28
+
+### Patch Changes
+
+- f9db8fd6: feat (@ai-sdk/openai): add parallelToolCalls setting
+
 ## 0.0.27
 
 ### Patch Changes
