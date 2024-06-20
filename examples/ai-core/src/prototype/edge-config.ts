@@ -27,7 +27,7 @@ const result = await generateText({
   //
   // the generic type is optional and types the input values to the template
   // that come from the application flow
-  template: template<{
+  blueprint: createConfigBlueprint<{
     language: 'French' | 'Spanish' | 'German';
     sentence: string;
   }>({
