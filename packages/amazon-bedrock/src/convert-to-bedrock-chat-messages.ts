@@ -71,6 +71,12 @@ export async function convertToBedrockChatMessages({
             }
           }
         }
+
+        messages.push({
+          role: 'user',
+          content: bedrockMessageContent,
+        });
+
         break;
       }
 
