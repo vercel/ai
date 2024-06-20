@@ -1,6 +1,6 @@
 import { CallSettings } from '../prompt/call-settings';
 import { experimental_ProviderRegistry } from '../registry';
-import { Blueprint, createBlueprint } from './blueprint';
+import { Blueprint, BlueprintResult, createBlueprint } from './blueprint';
 import Mustache from 'mustache';
 
 export type SerializedBlueprint = {
@@ -54,4 +54,16 @@ export function loadSerializedBlueprint<T = any>({
     system: system?.(input),
     prompt: prompt?.(input),
   }));
+}
+
+export async function resolveSerializedBlueprint<T = any>({
+  registry,
+  blueprint,
+  input,
+}: {
+  registry?: experimental_ProviderRegistry;
+  blueprint: SerializedBlueprint;
+  input: T;
+}): Promise<BlueprintResult> {
+  return loadSerializedBlueprint({ registry, blueprint })(input);
 }

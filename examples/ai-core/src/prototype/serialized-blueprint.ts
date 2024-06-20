@@ -1,25 +1,22 @@
-import { generateText, loadSerializedBlueprint } from 'ai';
-import dotenv from 'dotenv';
+import { generateText, resolveSerializedBlueprint } from 'ai';
 import { registry } from '../registry/setup-registry';
-
-dotenv.config();
 
 const serializedBlueprint = {
   model: 'openai:gpt-4-turbo',
   system: `You are a translator who translates from "English" to "{{language}}".`,
   prompt: `Translate the following sentence:\n\n"{{sentence}}"`,
+  temperature: 0,
 };
-
-const translate = loadSerializedBlueprint({
-  registry,
-  blueprint: serializedBlueprint,
-});
 
 async function main() {
   const result = await generateText({
-    blueprint: translate({
-      sentence: 'Hello, how are you?',
-      language: 'French',
+    blueprint: resolveSerializedBlueprint({
+      registry,
+      blueprint: serializedBlueprint,
+      input: {
+        sentence: 'Hello, how are you?',
+        language: 'French',
+      },
     }),
   });
 

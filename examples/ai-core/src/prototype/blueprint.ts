@@ -1,8 +1,5 @@
 import { createBlueprint, generateText } from 'ai';
-import dotenv from 'dotenv';
 import { registry } from '../registry/setup-registry';
-
-dotenv.config();
 
 // could also be loaded from an external source (edge config)
 const translate = createBlueprint(
