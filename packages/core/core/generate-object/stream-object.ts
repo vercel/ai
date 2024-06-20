@@ -580,6 +580,7 @@ writes each text delta as a separate chunk.
 
   /**
 Creates a simple text stream response.
+The response has a `Content-Type` header set to `text/plain; charset=utf-8`.
 Each text delta is encoded as UTF-8 and sent as a separate chunk.
 Non-text-delta events are ignored.
 
