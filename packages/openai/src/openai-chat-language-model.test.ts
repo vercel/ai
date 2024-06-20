@@ -302,7 +302,7 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: true,
+      logprobs: 2,
       top_logprobs: 2,
       logit_bias: { 50256: -100 },
       parallel_tool_calls: false,

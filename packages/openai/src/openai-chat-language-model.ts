@@ -74,10 +74,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       // model specific settings:
       logit_bias: this.settings.logitBias,
       logprobs:
-        this.settings.logprobs === true ||
-        typeof this.settings.logprobs === 'number'
+        this.settings.logprobs === undefined
+          ? false
+          : (this.settings.logprobs === this.settings.logprobs) === null ||
+            this.settings.logprobs === true ||
+            typeof this.settings.logprobs === 'number'
           ? this.settings.logprobs
-          : undefined,
+          : false,
       top_logprobs:
         typeof this.settings.logprobs === 'number'
           ? this.settings.logprobs
@@ -152,9 +155,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     if (
       this.config.compatibility === 'compatible' &&
       this.provider === 'azure-openai.chat' &&
-      args.logprobs === undefined
+      (args.logprobs === undefined || args.logprobs === false)
     ) {
-      delete args.logprobs;
+      if ('logprobs' in args) {
+        delete (args as { logprobs?: boolean | number }).logprobs;
+      }
     }
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -204,9 +209,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     if (
       this.config.compatibility === 'compatible' &&
       this.provider === 'azure-openai.chat' &&
-      args.logprobs === undefined
+      (args.logprobs === undefined || args.logprobs === false)
     ) {
-      delete args.logprobs;
+      if ('logprobs' in args) {
+        delete (args as { logprobs?: boolean | number }).logprobs;
+      }
     }
 
     const { responseHeaders, value: response } = await postJsonToApi({
