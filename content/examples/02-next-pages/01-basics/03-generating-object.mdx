@@ -86,7 +86,7 @@ import { z } from 'zod';
 export async function POST(req: Request) {
   const { prompt }: { prompt: string } = await req.json();
 
-  const { object } = await generateObject({
+  const result = await generateObject({
     model: openai('gpt-4'),
     system: 'You generate three notifications for a messages app.',
     prompt,
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     }),
   });
 
-  return Response.json({ object });
+  return result.toJsonResponse();
 }
 ```
 
