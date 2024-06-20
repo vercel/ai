@@ -1,0 +1,107 @@
+---
+title: useObject
+description: API reference for the useObject hook.
+---
+
+# `experimental_useObject()`
+
+<Note>`useObject` is an experimental feature and only available in React.</Note>
+
+Allows you to consume text streams that represent a JSON object and parse them into a complete object based on a Zod schema.
+You can use it together with [`streamObject`](/docs/reference/ai-sdk-core/stream-object) in the backend.
+
+```tsx
+'use client';
+
+import { experimental_useObject as useObject } from '@ai-sdk/react';
+
+export default function Page() {
+  const { setInput, object } = useObject({
+    api: '/api/use-object',
+    schema: z.object({ content: z.string() }),
+  });
+
+  return (
+    <div>
+      <button onClick={() => setInput('example input')}>Generate</button>
+      {object?.content && <p>{object.content}</p>}
+    </div>
+  );
+}
+```
+
+## Import
+
+<Snippet
+  text="import { experimental_useObject as useObject } from '@ai-sdk/react'"
+  dark
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'api',
+      type: 'string',
+      description:
+        'The API endpoint. It should stream JSON that matches the schema as chunked text.',
+    },
+    {
+      name: 'schema',
+      type: 'ZodSchema<RESULT>',
+      description:
+        'A Zod schema that defines the shape of the complete object.',
+    },
+    {
+      name: 'id?',
+      type: 'string',
+      description:
+        'Allows you to consume text streams that represent a JSON object and parse them into a complete object based on a Zod schema.',
+    },
+    {
+      name: 'initialValue?',
+      type: 'DeepPartial<RESULT> | undefined',
+      description: 'An optional value for the initial object.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'setInput',
+      type: '(input: INPUT) => void',
+      description: 'Calls the API with the provided input as JSON body.',
+    },
+    {
+      name: 'object',
+      type: 'DeepPartial<RESULT> | undefined',
+      description:
+        'The current value for the generated object. Updated as the API streams JSON chunks.',
+    },
+    {
+      name: 'error',
+      type: 'undefined | unknown',
+      description: 'The error object if the API call fails.',
+
+    }
+
+]}
+/>
+
+## Examples
+
+<ExampleLinks
+  examples={[
+    {
+      title: 'Streaming Object Generation with useObject',
+      link: '/examples/next-pages/basics/streaming-object-generation',
+    },
+  ]}
+/>
