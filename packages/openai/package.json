@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/openai",
-  "version": "0.0.31",
+  "version": "0.0.32",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",

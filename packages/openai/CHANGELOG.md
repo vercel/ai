@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.32
+
+### Patch Changes
+
+- 1b37b8b9: fix (@ai-sdk/openai): only send logprobs settings when logprobs are requested
+
 ## 0.0.31
 
 ### Patch Changes
