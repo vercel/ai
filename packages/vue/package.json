@@ -25,6 +25,7 @@
     }
   },
   "dependencies": {
+    "@ai-sdk/provider-utils": "workspace:0.0.14",
     "@ai-sdk/ui-utils": "0.0.2",
     "swrv": "1.0.4"
   },
