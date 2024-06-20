@@ -48,7 +48,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
-  private getArgs({
+  private async getArgs({
     mode,
     prompt,
     maxTokens,
@@ -83,7 +83,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const { system, messages } = convertToBedrockChatMessages(prompt);
+    const { system, messages } = await convertToBedrockChatMessages({ prompt });
 
     const baseArgs: ConverseCommandInput = {
       modelId: this.modelId,
@@ -149,7 +149,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       ...this.config,
     });
 
-    const args = this.getArgs(options);
+    const args = await this.getArgs(options);
 
     const response = await client.send(new ConverseCommand(args));
 
@@ -189,7 +189,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       ...this.config,
     });
 
-    const args = this.getArgs(options);
+    const args = await this.getArgs(options);
 
     switch (options.mode.type) {
       case 'regular':

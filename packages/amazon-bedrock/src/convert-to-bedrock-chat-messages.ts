@@ -3,16 +3,18 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { BedrockMessages, BedrockMessagesPrompt } from './bedrock-chat-prompt';
-import {
-  ImageBlock,
-  ImageFormat,
-  ToolResultBlock,
-  ToolUseBlock,
-} from '@aws-sdk/client-bedrock-runtime';
+import { ContentBlock, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
+import { download } from '@ai-sdk/provider-utils';
 
-export function convertToBedrockChatMessages(
-  prompt: LanguageModelV1Prompt,
-): BedrockMessagesPrompt {
+type ConvertToBedrockChatMessagesArgs = {
+  prompt: LanguageModelV1Prompt;
+  downloadImplementation?: typeof download;
+};
+
+export async function convertToBedrockChatMessages({
+  prompt,
+  downloadImplementation = download,
+}: ConvertToBedrockChatMessagesArgs): Promise<BedrockMessagesPrompt> {
   let system: string | undefined = undefined;
   const messages: BedrockMessages = [];
 
@@ -30,28 +32,45 @@ export function convertToBedrockChatMessages(
       }
 
       case 'user': {
-        messages.push({
-          role: 'user',
-          content: content.map(part => {
-            if (part.type === 'image' && part.image instanceof URL) {
-              throw new Error(
-                'Image URLs are not supported in Bedrock. Please convert the image to a base64 string.',
-              );
+        const bedrockMessageContent: ContentBlock[] = [];
+
+        for (const part of content) {
+          switch (part.type) {
+            case 'text': {
+              bedrockMessageContent.push({ text: part.text });
+              break;
             }
 
-            return part.type === 'text'
-              ? { text: part.text }
-              : {
-                  image: {
-                    format: part.mimeType?.split('/')?.[1] as ImageFormat,
-                    source: {
-                      // TODO: support image URL
-                      bytes: part.image as Uint8Array,
-                    },
-                  } satisfies ImageBlock,
-                };
-          }),
-        });
+            case 'image': {
+              let data: Uint8Array;
+              let mimeType: string | undefined;
+
+              if (part.image instanceof URL) {
+                const downloadResult = await downloadImplementation({
+                  url: part.image,
+                });
+
+                data = downloadResult.data;
+                mimeType = downloadResult.mimeType;
+              } else {
+                data = part.image;
+                mimeType = part.mimeType;
+              }
+
+              bedrockMessageContent.push({
+                image: {
+                  format: (mimeType ?? part.mimeType)?.split(
+                    '/',
+                  )?.[1] as ImageFormat,
+                  source: {
+                    bytes: data ?? (part.image as Uint8Array),
+                  },
+                },
+              });
+              break;
+            }
+          }
+        }
         break;
       }
 
