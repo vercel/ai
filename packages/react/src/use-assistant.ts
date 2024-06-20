@@ -82,7 +82,7 @@ Abort the current request immediately, keep the generated tokens if any.
   /**
    * The error thrown during the assistant message processing, if any.
    */
-  error: undefined | unknown;
+  error: undefined | Error;
 };
 
 export function useAssistant({
@@ -155,6 +155,11 @@ export function useAssistant({
           data: requestOptions?.data,
         }),
       });
+
+
+      if(!result.ok) {
+        throw new Error(await result.text())
+      }
 
       if (result.body == null) {
         throw new Error('The response body is empty.');

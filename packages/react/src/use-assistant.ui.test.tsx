@@ -2,6 +2,7 @@ import { formatStreamPart } from '@ai-sdk/ui-utils';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
+  mockFetchError,
 } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import { cleanup, findByText, render, screen } from '@testing-library/react';
@@ -10,13 +11,14 @@ import { useAssistant } from './use-assistant';
 
 describe('stream data stream', () => {
   const TestComponent = () => {
-    const { status, messages, append } = useAssistant({
+    const { status, messages, error, append } = useAssistant({
       api: '/api/assistant',
     });
 
     return (
       <div>
         <div data-testid="status">{status}</div>
+        {error && <div data-testid="error">{error.toString()}</div>}
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={idx}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
@@ -81,6 +83,16 @@ describe('stream data stream', () => {
         message: 'hi',
       }),
     );
+  });
+
+
+  it('should show error response', async () => {
+    mockFetchError({ statusCode: 500, errorMessage: 'Internal Error' });
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('error');
+    expect(screen.getByTestId('error')).toHaveTextContent('Error: Internal Error');
   });
 
   describe('loading state', () => {
