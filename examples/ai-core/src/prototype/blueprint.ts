@@ -1,11 +1,11 @@
-import { createPromptTemplate, generateText } from 'ai';
+import { createBlueprint, generateText } from 'ai';
 import dotenv from 'dotenv';
 import { registry } from '../registry/setup-registry';
 
 dotenv.config();
 
 // could also be loaded from an external source (edge config)
-const translate = createPromptTemplate(
+const translate = createBlueprint(
   async ({
     sentence,
     language,
@@ -13,6 +13,7 @@ const translate = createPromptTemplate(
     sentence: string;
     language: 'French' | 'Spanish' | 'German';
   }) => ({
+    model: registry.languageModel('openai:gpt-4-turbo'),
     system: `You are a translator who translates from "English" to "${language}".`,
     prompt: `Translate the following sentence:\n\n"${sentence}"`,
   }),
@@ -20,8 +21,7 @@ const translate = createPromptTemplate(
 
 async function main() {
   const result = await generateText({
-    model: registry.languageModel('openai:gpt-4-turbo'),
-    promptTemplate: translate({
+    blueprint: translate({
       sentence: 'Hello, how are you?',
       language: 'French',
     }),

@@ -1,3 +1,4 @@
+import { BlueprintResult } from '../blueprint/blueprint';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import {
@@ -8,7 +9,6 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
-import { PromptTemplateResult } from '../template/prompt-template';
 import { CoreTool } from '../tool/tool';
 import {
   CallWarning,
@@ -61,26 +61,25 @@ If set and supported by the model, calls will generate deterministic results.
 A result object that contains the generated text, the results of the tool calls, and additional information.
  */
 export async function generateText<TOOLS extends Record<string, CoreTool>>({
-  model,
   tools,
   toolChoice,
-  promptTemplate,
-  system,
-  prompt,
-  messages,
+  blueprint,
   maxRetries,
   abortSignal,
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
-  ...settings
+  ...other
 }: CallSettings &
   Prompt & {
-    promptTemplate?: Promise<PromptTemplateResult>;
-  } & {
+    /**
+The blueprint to use.
+     */
+    blueprint?: Promise<BlueprintResult>;
+
     /**
 The language model to use.
      */
-    model: LanguageModel;
+    model?: LanguageModel;
 
     /**
 The tools that the model can call. The model needs to support calling tools.
@@ -113,13 +112,16 @@ By default, it's set to 0, which will disable the feature.
   }): Promise<GenerateTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
 
-  // HACK for prototyping - TODO add prompt template into getValidatedPrompt instead
-  if (promptTemplate != null) {
-    const x = await promptTemplate;
-    system = x.system;
-    prompt = x.prompt;
-    messages = x.messages;
+  const { model, system, prompt, messages, ...settings } = {
+    ...(blueprint != null ? await blueprint : {}),
+    ...other,
+  };
+
+  if (model == null) {
+    // TODO new dedicated error type
+    throw new Error('Missing language model');
   }
+
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
 
   const mode = {
