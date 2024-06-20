@@ -101,7 +101,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       case 'regular': {
         return {
           ...baseArgs,
-          ...prepareToolsAndToolChoice(mode),
+          toolConfig: {
+            ...prepareToolsAndToolChoice(mode),
+          },
         } satisfies ConverseCommandInput;
       }
 
@@ -169,7 +171,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
             toolCallType: 'function',
             toolCallId: part.toolUse?.toolUseId ?? tempId,
             toolName: part.toolUse?.name ?? `tool-${tempId}`,
-            args: part.toolUse?.input?.toString() ?? '',
+            args: JSON.stringify(part.toolUse?.input ?? ''),
           };
         }),
       finishReason: mapBedrockFinishReason(response.stopReason),
@@ -368,7 +370,7 @@ function prepareToolsAndToolChoice(
       name: tool.name,
       description: tool.description,
       inputSchema: {
-        json: JSON.stringify(tool.parameters),
+        json: tool.parameters as any,
       },
     },
   }));
@@ -383,9 +385,9 @@ function prepareToolsAndToolChoice(
 
   switch (type) {
     case 'auto':
-      return { tools: mappedTools, toolChoice: { auto: true } };
+      return { tools: mappedTools, toolChoice: { auto: {} } };
     case 'required':
-      return { tools: mappedTools, toolChoice: { any: true } };
+      return { tools: mappedTools, toolChoice: { any: {} } };
     case 'none':
       // Bedrock does not support 'none' tool choice, so we remove the tools:
       return { tools: undefined, toolChoice: undefined };
