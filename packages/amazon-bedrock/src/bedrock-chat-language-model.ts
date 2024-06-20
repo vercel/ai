@@ -99,11 +99,11 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
+        const toolConfig = prepareToolsAndToolChoice(mode);
+
         return {
           ...baseArgs,
-          toolConfig: {
-            ...prepareToolsAndToolChoice(mode),
-          },
+          ...(toolConfig.tools?.length ? { toolConfig } : {}),
         } satisfies ConverseCommandInput;
       }
 
