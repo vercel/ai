@@ -14,7 +14,6 @@ async function main() {
     switch (part.type) {
       case 'text-delta': {
         console.log('Text delta:', part.textDelta);
-        zzz;
         break;
       }
 
