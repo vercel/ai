@@ -1,6 +1,7 @@
 import { test } from '@fast-check/vitest';
-import { StreamingParser, ExtendedSyntaxError } from './parser';
-import { internalGetStateRoot, internalGetRoot } from './helpers/util';
+import { StreamingParser } from '../';
+import { internalGetRoot, internalGetStateRoot } from './helpers/util';
+import { ExtendedSyntaxError } from './parser';
 
 test('parse() - errors - empty documents', t => {
   const parser = new StreamingParser();

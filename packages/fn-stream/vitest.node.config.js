@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import { defineConfig } from 'vite';
 
 // https://vitejs.dev/config/

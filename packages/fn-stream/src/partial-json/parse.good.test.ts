@@ -6,7 +6,7 @@ import {
 } from './helpers/arbitrary';
 import { complete, partial } from './helpers/partials';
 import { internalGetRoot, internalGetStateRoot } from './helpers/util';
-import { StreamingParser } from './parser';
+import { StreamingParser } from '../';
 
 if (process.env.NODE_PROFILE) {
   beforeEach(() => {
