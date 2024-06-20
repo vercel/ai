@@ -11,7 +11,7 @@ test('parse() - errors - empty documents', t => {
       parser.parseComplete('');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid end of input at 1:1`,
+    `JSON: invalid end of input at 1:1`,
   );
 });
 
@@ -23,7 +23,7 @@ test('parse() - errors - comment', t => {
       parser.parse('/');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character '\/' at 1:1`,
+    `JSON: invalid character '\/' at 1:1`,
   );
 });
 
@@ -35,7 +35,7 @@ test('parse() - errors - invalid characters in values', t => {
       parser.parse('a');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character 'a' at 1:1`,
+    `JSON: invalid character 'a' at 1:1`,
   );
 });
 
@@ -47,7 +47,7 @@ test('parse() - errors - invalid property name', t => {
       parser.parse('{\\a:1}');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character '\\\\' at 1:2`,
+    `JSON: invalid character '\\\\' at 1:2`,
   );
 });
 
@@ -68,7 +68,7 @@ test('parse() - errors - invalid identifier start characters', t => {
       parser.parse('{\\u0021:1}');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character '\\\\' at 1:2`,
+    `JSON: invalid character '\\\\' at 1:2`,
   );
 });
 
@@ -80,7 +80,7 @@ test('parse() - errors - invalid characters following a sign', t => {
       parser.parse('-a');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character 'a' at 1:2`,
+    `JSON: invalid character 'a' at 1:2`,
   );
 });
 
@@ -92,7 +92,7 @@ test('parse() - errors - invalid characters following an exponent indicator', t 
       parser.parse('1ea');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character 'a' at 1:3`,
+    `JSON: invalid character 'a' at 1:3`,
   );
 });
 
@@ -104,7 +104,7 @@ test('parse() - errors - invalid characters following an exponent sign', t => {
       parser.parse('1e-a');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character 'a' at 1:4`,
+    `JSON: invalid character 'a' at 1:4`,
   );
 });
 
@@ -116,7 +116,7 @@ test('parse() - errors - invalid new lines in strings', t => {
       parser.parse('"\n"');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character '\\n' at 2:0`,
+    `JSON: invalid character '\\n' at 2:0`,
   );
 });
 
@@ -128,7 +128,7 @@ test('parse() - errors - invalid identifier start characters in property names',
       parser.parse('{!:1}');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character '!' at 1:2`,
+    `JSON: invalid character '!' at 1:2`,
   );
 });
 
@@ -140,7 +140,7 @@ test('parse() - errors - invalid characters following an array value', t => {
       parser.parse('[1!]');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character '!' at 1:3`,
+    `JSON: invalid character '!' at 1:3`,
   );
 });
 
@@ -152,7 +152,7 @@ test('parse() - errors - invalid characters in literals', t => {
       parser.parse('tru!');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character '!' at 1:4`,
+    `JSON: invalid character '!' at 1:4`,
   );
 });
 
@@ -164,7 +164,7 @@ test('parse() - errors - unterminated escapes', t => {
       parser.parseComplete('"\\');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid end of input at 1:3`,
+    `JSON: invalid end of input at 1:3`,
   );
 });
 
@@ -176,7 +176,7 @@ test('parse() - errors - invalid first digits in hexadecimal escapes', t => {
       parser.parse('"\\xg"');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character 'x' at 1:3`,
+    `JSON: invalid character 'x' at 1:3`,
   );
 });
 
@@ -188,7 +188,7 @@ test('parse() - errors - invalid second digits in hexadecimal escapes', t => {
       parser.parse('"\\x0g"');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character 'x' at 1:3`,
+    `JSON: invalid character 'x' at 1:3`,
   );
 });
 
@@ -200,7 +200,7 @@ test('parse() - errors - invalid unicode escapes', t => {
       parser.parse('"\\u000g"');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character 'g' at 1:7`,
+    `JSON: invalid character 'g' at 1:7`,
   );
 });
 
@@ -213,7 +213,7 @@ for (let i = 1; i <= 9; i++) {
         parser.parse(`"\\${i}"`);
       },
       ExtendedSyntaxError,
-      new RegExp(`^JSON5: invalid character '${i}' at 1:3`),
+      new RegExp(`^JSON: invalid character '${i}' at 1:3`),
     );
   });
 }
@@ -226,7 +226,7 @@ test('parse() - errors - octal escapes', t => {
       parser.parse(`"\\01"`);
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character '0' at 1:3`,
+    `JSON: invalid character '0' at 1:3`,
   );
 });
 
@@ -238,7 +238,7 @@ test('parse() - errors - multiple values', t => {
       parser.parse('1 2');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character '2' at 1:3`,
+    `JSON: invalid character '2' at 1:3`,
   );
 });
 
@@ -250,7 +250,7 @@ test('parse() - errors - control characters escaped in the message', t => {
       parser.parse('\x01');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character '\\x01' at 1:1`,
+    `JSON: invalid character '\\x01' at 1:1`,
   );
 });
 
@@ -274,7 +274,7 @@ test('parse() - errors - unclosed objects before property values', t => {
       parser.parse('{a:');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character 'a' at 1:2`,
+    `JSON: invalid character 'a' at 1:2`,
   );
 });
 
@@ -286,7 +286,7 @@ test('parse() - errors - unclosed objects after property values', t => {
       parser.parse('{a:1');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character 'a' at 1:2`,
+    `JSON: invalid character 'a' at 1:2`,
   );
 });
 
@@ -308,7 +308,7 @@ test('parse() - error - number with 0', t => {
   assert.throws(
     () => parser.parse('0x'),
     ExtendedSyntaxError,
-    `JSON5: invalid character 'x' at 1:2`,
+    `JSON: invalid character 'x' at 1:2`,
   );
 });
 
@@ -318,7 +318,7 @@ test('parse() - error - NaN', t => {
   assert.throws(
     () => parser.parse('NaN'),
     ExtendedSyntaxError,
-    `JSON5: invalid character 'N' at 1:1`,
+    `JSON: invalid character 'N' at 1:1`,
   );
 });
 
@@ -328,7 +328,7 @@ test('parse() - Infinity', t => {
   assert.throws(
     () => parser.parse('[Infinity,-Infinity]'),
     ExtendedSyntaxError,
-    `JSON5: invalid character 'I' at 1:2`,
+    `JSON: invalid character 'I' at 1:2`,
   );
 });
 
@@ -338,7 +338,7 @@ test('parse() - error - leading decimal points', t => {
   assert.throws(
     () => parser.parse('[.1,.23]'),
     ExtendedSyntaxError,
-    `JSON5: invalid character '.' at 1:2`,
+    `JSON: invalid character '.' at 1:2`,
   );
 });
 
@@ -348,7 +348,7 @@ test('parse() - error - trailing decimal points', t => {
   assert.throws(
     () => parser.parse('[0.]'),
     ExtendedSyntaxError,
-    `JSON5: invalid character ']' at 1:4`,
+    `JSON: invalid character ']' at 1:4`,
   );
 });
 
@@ -358,7 +358,7 @@ test('parse() - leading + in a number', t => {
   assert.throws(
     () => parser.parse('+1.23e100'),
     ExtendedSyntaxError,
-    `JSON5: invalid character '+' at 1:1`,
+    `JSON: invalid character '+' at 1:1`,
   );
 });
 
@@ -373,7 +373,7 @@ test('parse() - error - incorrectly completed partial string', t => {
       parser.parse('"{}');
     },
     ExtendedSyntaxError,
-    `JSON5: invalid character '{' at 1:6`,
+    `JSON: invalid character '{' at 1:6`,
   );
 });
 
@@ -396,7 +396,7 @@ for (const suffix of ['null', '"', '1', 'true', '{}', '[]']) {
         parser.parse(`"${suffix}`);
       },
       ExtendedSyntaxError,
-      `JSON5: invalid character '${errorChar}' at 1:6`,
+      `JSON: invalid character '${errorChar}' at 1:6`,
     );
   });
 }
@@ -417,7 +417,7 @@ for (const suffix of ['null', '"', '1', 'true', '{}', '[]']) {
     assert.throws(
       () => parser.parse(`]${suffix}`),
       ExtendedSyntaxError,
-      `JSON5: invalid character '${errorChar}' at 1:10`,
+      `JSON: invalid character '${errorChar}' at 1:10`,
     );
   });
 }

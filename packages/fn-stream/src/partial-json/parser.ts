@@ -1160,12 +1160,12 @@ export class StreamingParser<T extends JsonValue = any> {
   private invalidChar(c: string | EOF) {
     if (c === eof) {
       return this.syntaxError(
-        `JSON5: invalid end of input at ${this.line}:${this.column}`,
+        `JSON: invalid end of input at ${this.line}:${this.column}`,
       );
     }
 
     return this.syntaxError(
-      `JSON5: invalid character '${this.formatChar(c)}' at ${this.line}:${
+      `JSON: invalid character '${this.formatChar(c)}' at ${this.line}:${
         this.column
       }`,
     );
@@ -1173,7 +1173,7 @@ export class StreamingParser<T extends JsonValue = any> {
 
   private invalidEOF() {
     return this.syntaxError(
-      `JSON5: invalid end of input at ${this.line}:${this.column}`,
+      `JSON: invalid end of input at ${this.line}:${this.column}`,
     );
   }
 
@@ -1182,13 +1182,13 @@ export class StreamingParser<T extends JsonValue = any> {
   private invalidToken() {
     if (this.token.type === 'eof') {
       return this.syntaxError(
-        `JSON5: invalid end of input at ${this.line}:${this.column}`,
+        `JSON: invalid end of input at ${this.line}:${this.column}`,
       );
     }
 
     const c = String.fromCodePoint(String(this.token.value!).codePointAt(0)!);
     return this.syntaxError(
-      `JSON5: invalid character '${this.formatChar(c)}' at ${this.line}:${
+      `JSON: invalid character '${this.formatChar(c)}' at ${this.line}:${
         this.column
       }`,
     );
