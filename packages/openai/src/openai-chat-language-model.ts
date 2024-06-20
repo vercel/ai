@@ -75,7 +75,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       logit_bias: this.settings.logitBias,
       logprobs:
         this.settings.logprobs === true ||
-        typeof this.settings.logprobs === 'number',
+        typeof this.settings.logprobs === 'number'
+          ? true
+          : undefined,
       top_logprobs:
         typeof this.settings.logprobs === 'number'
           ? this.settings.logprobs
