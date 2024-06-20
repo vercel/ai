@@ -1,3 +1,5 @@
+// NOTE THIS IS A DRAFT, DOES NOT WORK
+
 import { flag } from '@vercel/flags/next';
 import { generateText } from 'ai';
 
