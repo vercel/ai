@@ -85,14 +85,15 @@ describe('stream data stream', () => {
     );
   });
 
-
   it('should show error response', async () => {
     mockFetchError({ statusCode: 500, errorMessage: 'Internal Error' });
 
     await userEvent.click(screen.getByTestId('do-append'));
 
     await screen.findByTestId('error');
-    expect(screen.getByTestId('error')).toHaveTextContent('Error: Internal Error');
+    expect(screen.getByTestId('error')).toHaveTextContent(
+      'Error: Internal Error',
+    );
   });
 
   describe('loading state', () => {

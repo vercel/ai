@@ -156,9 +156,8 @@ export function useAssistant({
         }),
       });
 
-
-      if(!result.ok) {
-        throw new Error(await result.text())
+      if (!result.ok) {
+        throw new Error(await result.text());
       }
 
       if (result.body == null) {
