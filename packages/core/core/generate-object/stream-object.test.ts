@@ -48,7 +48,6 @@ describe('result.objectStream', () => {
     assert.deepStrictEqual(
       await convertAsyncIterableToArray(result.partialObjectStream),
       [
-        {},
         { content: 'Hello, ' },
         { content: 'Hello, world' },
         { content: 'Hello, world!' },
@@ -136,10 +135,96 @@ describe('result.objectStream', () => {
     assert.deepStrictEqual(
       await convertAsyncIterableToArray(result.partialObjectStream),
       [
-        {},
         { content: 'Hello, ' },
         { content: 'Hello, world' },
         { content: 'Hello, world!' },
+      ],
+    );
+  });
+
+  it('should send array deltas with tool mode', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-tool',
+            tool: {
+              type: 'function',
+              name: 'json',
+              description: 'Respond with a JSON object.',
+              parameters: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                additionalProperties: false,
+                properties: { content: { type: 'string' } },
+                required: ['content'],
+                type: 'object',
+              },
+            },
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: '[{',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: '"content": ',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: `"Hello, `,
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: `world`,
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: `!"`,
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: ' }]',
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'tool',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.partialObjectStream),
+      [
+        [{ content: 'Hello, ' }],
+        [{ content: 'Hello, world' }],
+        [{ content: 'Hello, world!' }],
       ],
     );
   });
@@ -178,12 +263,12 @@ describe('result.fullStream', () => {
       await convertAsyncIterableToArray(result.fullStream),
       [
         {
-          type: 'object',
-          object: {},
+          type: 'text-delta',
+          textDelta: '{ ',
         },
         {
           type: 'text-delta',
-          textDelta: '{ ',
+          textDelta: '"content": ',
         },
         {
           type: 'object',
@@ -191,7 +276,7 @@ describe('result.fullStream', () => {
         },
         {
           type: 'text-delta',
-          textDelta: '"content": "Hello, ',
+          textDelta: '"Hello, ',
         },
         {
           type: 'object',
@@ -260,7 +345,7 @@ describe('result.textStream', () => {
 
     assert.deepStrictEqual(
       await convertAsyncIterableToArray(result.textStream),
-      ['{ ', '"content": "Hello, ', 'world', '!"', ' }'],
+      ['{ ', '"content": ','"Hello, ', 'world', '!"', ' }'],
     );
   });
 });
@@ -305,7 +390,7 @@ describe('result.toTextStreamResponse', () => {
       await convertReadableStreamToArray(
         response.body!.pipeThrough(new TextDecoderStream()),
       ),
-      ['{ ', '"content": "Hello, ', 'world', '!"', ' }'],
+      ['{ ', '"content": ','"Hello, ', 'world', '!"', ' }'],
     );
   });
 });
@@ -362,7 +447,7 @@ describe('result.pipeTextStreamToResponse', async () => {
     });
     assert.deepStrictEqual(
       mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
-      ['{ ', '"content": "Hello, ', 'world', '!"', ' }'],
+      ['{ ', '"content": ', '"Hello, ', 'world', '!"', ' }'],
     );
   });
 });

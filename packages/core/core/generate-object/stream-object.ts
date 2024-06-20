@@ -381,7 +381,7 @@ Response headers.
               // filter for events that change values
               events = events.filter(
                 event =>
-                  // @ts-expect-error TODO: fix type
+                  // @ts-ignore
                   event.kind === 'partial' ||
                   (event.kind === 'complete' &&
                     typeof event.value !== 'object'),
@@ -389,7 +389,7 @@ Response headers.
 
               if (events.length > 0) {
                 // @ts-expect-error
-                latestObject = structuredClone(streamingParser.root);
+                latestObject = streamingParser.root;
                 controller.enqueue({
                   type: 'object',
                   object: latestObject as DeepPartial<T>,
@@ -473,7 +473,7 @@ If you want to be certain that the actual content matches your schema, you need 
       transform(chunk, controller) {
         switch (chunk.type) {
           case 'object':
-            controller.enqueue(chunk.object);
+            controller.enqueue(structuredClone(chunk.object));
             break;
 
           case 'text-delta':
@@ -528,7 +528,7 @@ Stream of different types of events, including partial objects, errors, and fini
   get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
-        controller.enqueue(chunk);
+        controller.enqueue(structuredClone(chunk));
       },
     });
   }
