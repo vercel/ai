@@ -112,7 +112,7 @@ export async function convertToBedrockChatMessages({
         messages.push({
           role: 'assistant',
           content: [
-            { text: text },
+            ...(text ? [{ text }] : []),
             ...toolUse.map(toolUse => ({ toolUse: toolUse })),
           ],
         });
@@ -122,7 +122,7 @@ export async function convertToBedrockChatMessages({
 
       case 'tool':
         messages.push({
-          role: 'assistant',
+          role: 'user',
           content: content.map(part => ({
             toolResult: {
               toolUseId: part.toolCallId,
