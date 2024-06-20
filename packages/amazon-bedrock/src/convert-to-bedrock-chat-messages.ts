@@ -131,6 +131,7 @@ export async function convertToBedrockChatMessages({
             },
           })),
         });
+        break;
 
       default: {
         throw new Error(`Unsupported role: ${role}`);
