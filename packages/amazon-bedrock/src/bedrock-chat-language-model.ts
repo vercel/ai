@@ -162,12 +162,16 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
           .join('') ?? undefined,
       toolCalls: response.output?.message?.content
         ?.filter(part => !!part.toolUse)
-        ?.map(part => ({
-          toolCallType: 'function',
-          toolCallId: part.toolUse?.toolUseId ?? generateId(),
-          toolName: part.toolUse?.name ?? 'unknown',
-          args: part.toolUse?.input?.toString() ?? '',
-        })),
+        ?.map(part => {
+          const tempId = generateId();
+
+          return {
+            toolCallType: 'function',
+            toolCallId: part.toolUse?.toolUseId ?? tempId,
+            toolName: part.toolUse?.name ?? `tool-${tempId}`,
+            args: part.toolUse?.input?.toString() ?? '',
+          };
+        }),
       finishReason: mapBedrockFinishReason(response.stopReason),
       usage: {
         promptTokens: response.usage?.inputTokens ?? Number.NaN,
