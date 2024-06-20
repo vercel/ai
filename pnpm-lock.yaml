@@ -56,6 +56,9 @@ importers:
 
   examples/ai-core:
     dependencies:
+      '@ai-sdk/amazon-bedrock':
+        specifier: latest
+        version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
         specifier: latest
         version: link:../../packages/anthropic
