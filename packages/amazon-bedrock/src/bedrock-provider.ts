@@ -15,22 +15,6 @@ export interface AmazonBedrockProvider {
     modelId: BedrockChatModelId,
     settings?: BedrockChatSettings,
   ): BedrockChatLanguageModel;
-
-  /**
-Creates an Bedrock chat model for text generation.
-   */
-  chat(
-    modelId: BedrockChatModelId,
-    settings?: BedrockChatSettings,
-  ): BedrockChatLanguageModel;
-
-  /**
-Creates an Bedrock completion model for text generation.
-   */
-  completion(
-    modelId: BedrockChatModelId,
-    settings?: BedrockChatSettings,
-  ): BedrockChatLanguageModel;
 }
 
 /**
@@ -44,16 +28,8 @@ export function createAmazonBedrock(
     settings: BedrockChatSettings = {},
   ) =>
     new BedrockChatLanguageModel(modelId, settings, {
-      provider: 'bedrock.chat',
+      provider: 'bedrock',
       ...options,
-    });
-
-  const createCompletionModel = (
-    modelId: BedrockChatModelId,
-    settings: BedrockChatSettings = {},
-  ) =>
-    new BedrockChatLanguageModel(modelId, settings, {
-      provider: 'bedrock.completion',
     });
 
   const provider = function (
@@ -63,8 +39,7 @@ export function createAmazonBedrock(
     return createChatModel(modelId, settings);
   };
 
-  provider.chat = createChatModel;
-  provider.completion = createCompletionModel;
+  provider.languageModel = createChatModel;
 
   return provider as AmazonBedrockProvider;
 }
@@ -72,4 +47,4 @@ export function createAmazonBedrock(
 /**
 Default Bedrock provider instance.
  */
-export const bedrock = createAmazonBedrock({});
+export const bedrock = createAmazonBedrock();

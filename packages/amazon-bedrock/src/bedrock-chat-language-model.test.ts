@@ -25,7 +25,7 @@ const provider = createAmazonBedrock({
   },
 });
 
-const model = provider.chat('anthropic.claude-3-haiku-20240307-v1:0');
+const model = provider('anthropic.claude-3-haiku-20240307-v1:0');
 
 describe('doGenerate', () => {
   beforeEach(() => {
@@ -121,18 +121,16 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider
-      .chat('amazon.titan-tg1-large', {
-        additionalModelRequestFields: { top_k: 10 },
-      })
-      .doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-        maxTokens: 100,
-        temperature: 0.5,
-        topP: 0.5,
-      });
+    await provider('amazon.titan-tg1-large', {
+      additionalModelRequestFields: { top_k: 10 },
+    }).doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      maxTokens: 100,
+      temperature: 0.5,
+      topP: 0.5,
+    });
 
     expect(
       bedrockMock.commandCalls(ConverseCommand, {
