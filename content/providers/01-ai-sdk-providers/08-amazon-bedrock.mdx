@@ -76,19 +76,19 @@ Remember to replace `YOUR_ACCESS_KEY_ID`, `YOUR_SECRET_ACCESS_KEY`, and `YOUR_RE
 You can import the default provider instance `bedrock` from `@ai-sdk/amazon-bedrock`:
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock'
+import { bedrock } from '@ai-sdk/amazon-bedrock';
 ```
 
 If you need a customized setup, you can import `createAmazonBedrock` from `@ai-sdk/amazon-bedrock` and create a provider instance with your settings:
 
 ```ts
-import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock'
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 
 const bedrock = createAmazonBedrock({
   region: 'us-east-1',
   accessKeyId: 'xxxxxxxxx',
-  secretAccessKey: 'xxxxxxxxx'
-})
+  secretAccessKey: 'xxxxxxxxx',
+});
 ```
 
 You can use the following optional settings to customize the Amazon Bedrock provider instance:
@@ -114,7 +114,7 @@ You can create models that call the Bedrock API using the provider instance.
 The first argument is the model id, e.g. `meta.llama3-70b-instruct-v1:0`.
 
 ```ts
-const model = bedrock('meta.llama3-70b-instruct-v1:0')
+const model = bedrock('meta.llama3-70b-instruct-v1:0');
 ```
 
 Amazon Bedrock models also support some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
@@ -122,8 +122,8 @@ You can pass them as an options argument:
 
 ```ts
 const model = bedrock('anthropic.claude-3-sonnet-20240229-v1:0', {
-  additionalModelRequestFields: { top_k: 350 }
-})
+  additionalModelRequestFields: { top_k: 350 },
+});
 ```
 
 Documentation for additional settings based on the selected model can be found within the [Amazon Bedrock Inference Parameter Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html).
