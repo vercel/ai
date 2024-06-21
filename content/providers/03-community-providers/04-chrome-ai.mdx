@@ -24,10 +24,10 @@ The ChromeAI provider is available in the `chrome-ai` module. You can install it
 </Tabs>
 
 > ⚠️ Note:
-> * This module is under development and may contain errors and frequent incompatible changes.
-> * Chrome's implementation of [built-in AI with Gemini Nano](https://developer.chrome.com/docs/ai/built-in) is an experiment and will change as they test and address feedback.
-> * If you've never heard of it before, [follow these steps](#enable-ai-in-chrome) to turn on Chrome's built-in AI.
-
+>
+> - This module is under development and may contain errors and frequent incompatible changes.
+> - Chrome's implementation of [built-in AI with Gemini Nano](https://developer.chrome.com/docs/ai/built-in) is an experiment and will change as they test and address feedback.
+> - If you've never heard of it before, [follow these steps](#enable-ai-in-chrome) to turn on Chrome's built-in AI.
 
 ## Language Models
 
@@ -119,7 +119,7 @@ const { object } = await generateObject({
         z.object({
           name: z.string(),
           amount: z.string(),
-        })
+        }),
       ),
       steps: z.array(z.string()),
     }),
@@ -138,6 +138,7 @@ console.log(object);
 Chrome built-in AI is a preview feature, you need to use chrome version 127 or greater, now in [dev](https://www.google.com/chrome/dev/?extra=devchannel) or [canary](https://www.google.com/chrome/canary/) channel, [may release on stable chanel at Jul 17, 2024](https://chromestatus.com/roadmap).
 
 After then, you should turn on these flags:
-* [chrome://flags/#prompt-api-for-gemini-nano](chrome://flags/#prompt-api-for-gemini-nano): `Enabled`
-* [chrome://flags/#optimization-guide-on-device-model](chrome://flags/#optimization-guide-on-device-model): `Enabled BypassPrefRequirement`
-* [chrome://components/](chrome://components/): Click `Optimization Guide On Device Model` to download the model.
+
+- [chrome://flags/#prompt-api-for-gemini-nano](chrome://flags/#prompt-api-for-gemini-nano): `Enabled`
+- [chrome://flags/#optimization-guide-on-device-model](chrome://flags/#optimization-guide-on-device-model): `Enabled BypassPrefRequirement`
+- [chrome://components/](chrome://components/): Click `Optimization Guide On Device Model` to download the model.
