@@ -2,7 +2,7 @@ import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import {
   JsonTestServer,
   StreamingTestServer,
-  convertStreamToArray,
+  convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { createOpenAI } from './openai-provider';
@@ -279,7 +279,6 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: false,
     });
   });
 
@@ -341,7 +340,6 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: false,
       tools: [
         {
           type: 'function',
@@ -482,7 +480,7 @@ describe('doStream', () => {
     });
 
     // note: space moved to last chunk bc of trimming
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       { type: 'text-delta', textDelta: '' },
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
@@ -551,7 +549,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
         type: 'tool-call-delta',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
@@ -651,7 +649,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
         type: 'tool-call-delta',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
@@ -688,7 +686,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
         type: 'error',
         error: {
@@ -722,7 +720,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    const elements = await convertStreamToArray(stream);
+    const elements = await convertReadableStreamToArray(stream);
 
     expect(elements.length).toBe(2);
     expect(elements[0].type).toBe('error');
@@ -775,7 +773,6 @@ describe('doStream', () => {
       stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: false,
     });
   });
 

@@ -25,7 +25,7 @@ import { vertex } from '@ai-sdk/google-vertex'
 import { generateText } from 'ai'
 
 const { text } = await generateText({
-  model: vertex('gemini-1.0-pro')
+  model: vertex('gemini-1.5-flash')
   prompt: 'Write a vegetarian lasagna recipe for 4 people.'
 })
 ```

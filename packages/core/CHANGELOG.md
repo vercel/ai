@@ -1,5 +1,43 @@
 # ai
 
+## 3.2.1
+
+### Patch Changes
+
+- 008725ec: feat (ai): add textStream, toTextStreamResponse(), and pipeTextStreamToResponse() to streamObject
+- 520fb2d5: feat (rsc): add streamUI onFinish callback
+- Updated dependencies [008725ec]
+- Updated dependencies [008725ec]
+  - @ai-sdk/react@0.0.4
+  - @ai-sdk/ui-utils@0.0.4
+  - @ai-sdk/solid@0.0.4
+  - @ai-sdk/svelte@0.0.4
+  - @ai-sdk/vue@0.0.4
+
+## 3.2.0
+
+### Minor Changes
+
+- 85ef6d18: chore (ai): AI SDK 3.2 release
+
+### Patch Changes
+
+- b965dd2d: fix (core): pass settings correctly for generateObject and streamObject
+
+## 3.1.37
+
+### Patch Changes
+
+- 85712895: chore (@ai-sdk/provider-utils): move test helper to provider utils
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+  - @ai-sdk/react@0.0.3
+  - @ai-sdk/svelte@0.0.3
+  - @ai-sdk/ui-utils@0.0.3
+  - @ai-sdk/solid@0.0.3
+  - @ai-sdk/vue@0.0.3
+
 ## 3.1.36
 
 ### Patch Changes

@@ -77,18 +77,15 @@ export function mockFetchDataStreamWithGenerator({
       ok: true,
       status: 200,
       bodyUsed: false,
-      body: {
-        getReader() {
-          return {
-            read() {
-              return Promise.resolve(chunkGenerator.next());
-            },
-            releaseLock() {},
-            cancel() {},
-          };
+      body: new ReadableStream({
+        async start(controller) {
+          for await (const chunk of chunkGenerator) {
+            controller.enqueue(chunk);
+          }
+          controller.close();
         },
-      },
-    } as unknown as Response;
+      }),
+    } as Response;
   });
 
   return {

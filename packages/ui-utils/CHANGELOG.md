@@ -1,5 +1,19 @@
 # @ai-sdk/ui-utils
 
+## 0.0.4
+
+### Patch Changes
+
+- 008725ec: chore (@ai-sdk/ui-utils): move functions
+
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+
 ## 0.0.2
 
 ### Patch Changes

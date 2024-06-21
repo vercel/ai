@@ -4,7 +4,7 @@ import { streamUI } from 'ai/rsc';
 import { z } from 'zod';
 
 import { MockLanguageModelV1 } from '../../../../../core/test/mock-language-model-v1';
-import { convertArrayToReadableStream } from '../../../../../core/test/convert-array-to-readable-stream';
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 
 const mockTextModel = new MockLanguageModelV1({
   doStream: async () => {

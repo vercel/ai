@@ -11,6 +11,7 @@ import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { prepareResponseHeaders } from '../util/prepare-response-headers';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -143,7 +144,7 @@ Default and recommended: 'auto' (best mode for the model).
       const generateResult = await retry(() =>
         model.doGenerate({
           mode: { type: 'object-grammar', schema: jsonSchema },
-          ...settings,
+          ...prepareCallSettings(settings),
           inputFormat: validatedPrompt.type,
           prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
@@ -182,7 +183,7 @@ Default and recommended: 'auto' (best mode for the model).
               parameters: jsonSchema,
             },
           },
-          ...settings,
+          ...prepareCallSettings(settings),
           inputFormat: validatedPrompt.type,
           prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
@@ -287,6 +288,19 @@ Logprobs for the completion.
     this.warnings = options.warnings;
     this.rawResponse = options.rawResponse;
     this.logprobs = options.logprobs;
+  }
+
+  /**
+Converts the object to a JSON response.
+The response will have a status code of 200 and a content type of `application/json; charset=utf-8`.
+   */
+  toJsonResponse(init?: ResponseInit): Response {
+    return new Response(JSON.stringify(this.object), {
+      status: init?.status ?? 200,
+      headers: prepareResponseHeaders(init, {
+        contentType: 'application/json; charset=utf-8',
+      }),
+    });
   }
 }
 

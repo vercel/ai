@@ -1,5 +1,5 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
-import { convertStreamToArray } from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {
   FinishReason,
   GenerateContentResponse,
@@ -250,7 +250,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       { type: 'text-delta', textDelta: 'Hello, ' },
       { type: 'text-delta', textDelta: 'World!' },
       { type: 'text-delta', textDelta: '' },

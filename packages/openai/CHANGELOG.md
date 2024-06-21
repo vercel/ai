@@ -1,5 +1,26 @@
 # @ai-sdk/openai
 
+## 0.0.32
+
+### Patch Changes
+
+- 1b37b8b9: fix (@ai-sdk/openai): only send logprobs settings when logprobs are requested
+
+## 0.0.31
+
+### Patch Changes
+
+- eba071dd: feat (@ai-sdk/azure): add azure openai completion support
+- 1ea890fe: feat (@ai-sdk/azure): add azure openai completion support
+
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+
 ## 0.0.29
 
 ### Patch Changes
