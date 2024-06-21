@@ -7,6 +7,11 @@ description: Learn how to use the Chrome built-in Language Model.
 
 [jeasonstudio/chrome-ai](https://github.com/jeasonstudio/chrome-ai) is a community provider that uses [Chrome Built-in AI](https://developer.chrome.com/docs/ai/built-in) to provide language model support for the Vercel AI SDK.
 
+<Note type="warning">
+  This module is under development and may contain errors and frequent
+  incompatible changes.
+</Note>
+
 ## Setup
 
 The ChromeAI provider is available in the `chrome-ai` module. You can install it with:
@@ -23,11 +28,21 @@ The ChromeAI provider is available in the `chrome-ai` module. You can install it
   </Tab>
 </Tabs>
 
-> ⚠️ Note:
->
-> - This module is under development and may contain errors and frequent incompatible changes.
-> - Chrome's implementation of [built-in AI with Gemini Nano](https://developer.chrome.com/docs/ai/built-in) is an experiment and will change as they test and address feedback.
-> - If you've never heard of it before, [follow these steps](#enable-ai-in-chrome) to turn on Chrome's built-in AI.
+### Enabling AI in Chrome
+
+<Note type="warning">
+  Chrome's implementation of [built-in AI with Gemini
+  Nano](https://developer.chrome.com/docs/ai/built-in) is experimental and will
+  change as they test and address feedback.
+</Note>
+
+Chrome built-in AI is a preview feature, you need to use chrome version 127 or greater, now in [dev](https://www.google.com/chrome/dev/?extra=devchannel) or [canary](https://www.google.com/chrome/canary/) channel, [may release on stable chanel at Jul 17, 2024](https://chromestatus.com/roadmap).
+
+After then, you should turn on these flags:
+
+- [chrome://flags/#prompt-api-for-gemini-nano](chrome://flags/#prompt-api-for-gemini-nano): `Enabled`
+- [chrome://flags/#optimization-guide-on-device-model](chrome://flags/#optimization-guide-on-device-model): `Enabled BypassPrefRequirement`
+- [chrome://components/](chrome://components/): Click `Optimization Guide On Device Model` to download the model.
 
 ## Language Models
 
@@ -131,14 +146,7 @@ console.log(object);
 // { recipe: {...} }
 ```
 
-> Due to model reasons, `toolCall` and `streamObject` are not supported. We are making an effort to implement these functions by prompt engineering.
-
-## Enable AI in Chrome
-
-Chrome built-in AI is a preview feature, you need to use chrome version 127 or greater, now in [dev](https://www.google.com/chrome/dev/?extra=devchannel) or [canary](https://www.google.com/chrome/canary/) channel, [may release on stable chanel at Jul 17, 2024](https://chromestatus.com/roadmap).
-
-After then, you should turn on these flags:
-
-- [chrome://flags/#prompt-api-for-gemini-nano](chrome://flags/#prompt-api-for-gemini-nano): `Enabled`
-- [chrome://flags/#optimization-guide-on-device-model](chrome://flags/#optimization-guide-on-device-model): `Enabled BypassPrefRequirement`
-- [chrome://components/](chrome://components/): Click `Optimization Guide On Device Model` to download the model.
+<Note>
+  Due to model reasons, `toolCall` and `streamObject` are not supported. We are
+  making an effort to implement these functions by prompt engineering.
+</Note>
