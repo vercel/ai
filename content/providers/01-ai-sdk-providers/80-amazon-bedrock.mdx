@@ -43,25 +43,10 @@ Within your project add a `.env.local` file if you don't already have one. This 
 ```makefile
 AWS_ACCESS_KEY_ID=YOUR_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY=YOUR_SECRET_ACCESS_KEY
+AWS_REGION=YOUR_REGION
 ```
 
-Remember to replace `YOUR_ACCESS_KEY_ID` and `YOUR_SECRET_ACCESS_KEY` with the actual values from your AWS account.
-
-**Step 3: Using with @ai-sdk/amazon-bedrock**
-
-Here's an example of how to use the access key and secret key with the `@ai-sdk/amazon-bedrock`:
-
-```javascript
-import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
-
-const bedrock = createAmazonBedrock({
-  region: 'your-region',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
-```
+Remember to replace `YOUR_ACCESS_KEY_ID`, `YOUR_SECRET_ACCESS_KEY`, and `YOUR_REGION` with the actual values from your AWS account.
 
 ## Setup
 
@@ -94,14 +79,27 @@ import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 
 const bedrock = createAmazonBedrock({
   region: 'us-east-1',
-  credentials: {
-    accessKeyId: 'xxxxxxxxx',
-    secretAccessKey: 'xxxxxxxxx',
-  },
+  accessKeyId: 'xxxxxxxxx',
+  secretAccessKey: 'xxxxxxxxx',
 });
 ```
 
-Documentation for additional settings can be found within the [Bedrock Runtime Documentation](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/bedrock-runtime/).
+You can use the following optional settings to customize the Amazon Bedrock provider instance:
+
+- **region** _string_
+
+  The AWS region that you want to use for the API calls.
+  It uses the `AWS_REGION` environment variable by default.
+
+- **accessKeyId** _string_
+
+  The AWS access key ID that you want to use for the API calls.
+  It uses the `AWS_ACCESS_KEY_ID` environment variable by default.
+
+- **secretAccessKey** _string_
+
+  The AWS secret access key that you want to use for the API calls.
+  It uses the `AWS_SECRET_ACCESS_KEY` environment variable by default.
 
 ## Language Models
 

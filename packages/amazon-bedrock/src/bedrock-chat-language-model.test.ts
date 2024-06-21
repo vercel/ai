@@ -22,10 +22,8 @@ const bedrockMock = mockClient(BedrockRuntimeClient);
 
 const provider = createAmazonBedrock({
   region: 'us-east-1',
-  credentials: {
-    accessKeyId: 'test-access-key',
-    secretAccessKey: 'test-secret-key',
-  },
+  accessKeyId: 'test-access-key',
+  secretAccessKey: 'test-secret-key',
 });
 
 const model = provider('anthropic.claude-3-haiku-20240307-v1:0');

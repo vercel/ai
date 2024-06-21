@@ -5,10 +5,9 @@ import {
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { ParseResult, generateId } from '@ai-sdk/provider-utils';
+import { ParseResult } from '@ai-sdk/provider-utils';
 import {
   BedrockRuntimeClient,
-  BedrockRuntimeClientConfig,
   ConverseCommand,
   ConverseCommandInput,
   ConverseStreamCommand,
@@ -23,10 +22,14 @@ import {
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
 
-type BedrockChatConfig = BedrockRuntimeClientConfig & { provider: string };
+type BedrockChatConfig = {
+  client: BedrockRuntimeClient;
+  generateId: () => string;
+};
 
 export class BedrockChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
+  readonly provider = 'amazon-bedrock';
   readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: BedrockChatModelId;
@@ -42,10 +45,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     this.modelId = modelId;
     this.settings = settings;
     this.config = config;
-  }
-
-  get provider(): string {
-    return this.config.provider;
   }
 
   private async getArgs({
@@ -147,13 +146,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const client = new BedrockRuntimeClient({
-      ...this.config,
-    });
-
     const args = await this.getArgs(options);
 
-    const response = await client.send(new ConverseCommand(args));
+    const response = await this.config.client.send(new ConverseCommand(args));
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
@@ -164,16 +159,12 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
           .join('') ?? undefined,
       toolCalls: response.output?.message?.content
         ?.filter(part => !!part.toolUse)
-        ?.map(part => {
-          const tempId = generateId();
-
-          return {
-            toolCallType: 'function',
-            toolCallId: part.toolUse?.toolUseId ?? tempId,
-            toolName: part.toolUse?.name ?? `tool-${tempId}`,
-            args: JSON.stringify(part.toolUse?.input ?? ''),
-          };
-        }),
+        ?.map(part => ({
+          toolCallType: 'function',
+          toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
+          toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
+          args: JSON.stringify(part.toolUse?.input ?? ''),
+        })),
       finishReason: mapBedrockFinishReason(response.stopReason),
       usage: {
         promptTokens: response.usage?.inputTokens ?? Number.NaN,
@@ -187,17 +178,11 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const client = new BedrockRuntimeClient({
-      ...this.config,
-    });
-
     const args = await this.getArgs(options);
 
-    switch (options.mode.type) {
-      case 'regular':
-    }
-
-    const response = await client.send(new ConverseStreamCommand({ ...args }));
+    const response = await this.config.client.send(
+      new ConverseStreamCommand({ ...args }),
+    );
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
@@ -213,7 +198,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     const stream = new ReadableStream<any>({
       async start(controller) {
-        for await (let chunk of response.stream!) {
+        for await (const chunk of response.stream!) {
           controller.enqueue({ success: true, value: chunk });
         }
         controller.close();
@@ -288,29 +273,20 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
               };
             }
 
-            if (
-              value.contentBlockDelta &&
-              value.contentBlockDelta.delta?.text
-            ) {
+            if (value.contentBlockDelta?.delta?.text) {
               controller.enqueue({
                 type: 'text-delta',
                 textDelta: value.contentBlockDelta.delta.text,
               });
             }
 
-            if (
-              value.contentBlockStart &&
-              value.contentBlockStart.start?.toolUse
-            ) {
+            if (value.contentBlockStart?.start?.toolUse) {
               // store the tool name and id for the next chunk
               toolName = value.contentBlockStart.start.toolUse.name ?? '';
               toolId = value.contentBlockStart.start.toolUse.toolUseId ?? '';
             }
 
-            if (
-              value.contentBlockDelta &&
-              value.contentBlockDelta.delta?.toolUse
-            ) {
+            if (value.contentBlockDelta?.delta?.toolUse) {
               // continue to get the chunks of the tool call args
               toolCallArgs += value.contentBlockDelta.delta.toolUse.input ?? '';
 
