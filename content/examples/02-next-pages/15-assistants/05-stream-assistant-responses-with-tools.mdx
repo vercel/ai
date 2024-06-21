@@ -31,7 +31,7 @@ You will need to provide the list of tools on the OpenAI [Assistant Dashboard](h
 Let's create a simple chat interface that allows users to send messages to the assistant and receive responses. You will integrate the `useAssistant` hook from `ai/react` to stream the messages and status.
 
 ```tsx filename='pages/index.tsx'
-import { Message, useAssistant } from '@ai-sdk/react';
+import { Message, useAssistant } from 'ai/react';
 
 export default function Page() {
   const { status, messages, input, submitMessage, handleInputChange } =
