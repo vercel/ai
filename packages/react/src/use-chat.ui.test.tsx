@@ -338,7 +338,7 @@ describe('maxToolRoundtrips', () => {
 
   describe('single roundtrip with error response', () => {
     const TestComponent = () => {
-      const { messages, append } = useChat({
+      const { messages, append, error } = useChat({
         async onToolCall({ toolCall }) {
           mockFetchDataStream({
             url: 'https://example.com/api/chat',
@@ -355,6 +355,8 @@ describe('maxToolRoundtrips', () => {
 
       return (
         <div>
+          {error && <div data-testid="error">{error.toString()}</div>}
+
           {messages.map((m, idx) => (
             <div data-testid={`message-${idx}`} key={m.id}>
               {m.toolInvocations?.map((toolInvocation, toolIdx) =>
@@ -400,9 +402,9 @@ describe('maxToolRoundtrips', () => {
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      await screen.findByTestId('message-1');
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
+      await screen.findByTestId('error');
+      expect(screen.getByTestId('error')).toHaveTextContent(
+        'Error: Too many calls',
       );
     });
   });

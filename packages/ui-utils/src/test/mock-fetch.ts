@@ -79,7 +79,7 @@ export function mockFetchDataStreamWithGenerator({
 
   vi.spyOn(global, 'fetch').mockImplementation(async (url, init) => {
     if (maxCalls !== undefined && ++callCount >= maxCalls) {
-      fail('Max calls reached');
+      throw new Error('Too many calls');
     }
 
     requestBodyResolve?.(init!.body as string);
