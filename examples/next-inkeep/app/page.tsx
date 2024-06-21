@@ -1,6 +1,6 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
+import { useChat } from 'ai/react';
 import { useEffect, useState } from 'react';
 import { Message } from 'ai';
 import { InkeepOnFinalMetadata } from 'ai/streams';
