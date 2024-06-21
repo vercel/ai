@@ -57,8 +57,8 @@ describe('stream data stream', () => {
 
     expect(await requestBody).toStrictEqual(
       JSON.stringify({
-        threadId: null,
         message: 'hi',
+        threadId: null,
       }),
     );
   });
