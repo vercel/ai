@@ -6,12 +6,6 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { ParseResult, generateId } from '@ai-sdk/provider-utils';
-import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
-import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
-import {
-  BedrockChatModelId,
-  BedrockChatSettings,
-} from './bedrock-chat-settings';
 import {
   BedrockRuntimeClient,
   BedrockRuntimeClientConfig,
@@ -22,6 +16,12 @@ import {
   Tool,
   ToolConfiguration,
 } from '@aws-sdk/client-bedrock-runtime';
+import {
+  BedrockChatModelId,
+  BedrockChatSettings,
+} from './bedrock-chat-settings';
+import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
+import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
 
 type BedrockChatConfig = BedrockRuntimeClientConfig & { provider: string };
 
@@ -90,9 +90,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       system: system ? [{ text: system }] : undefined,
       additionalModelRequestFields: this.settings.additionalModelRequestFields,
       inferenceConfig: {
-        maxTokens: maxTokens,
-        temperature: temperature,
-        topP: topP,
+        maxTokens,
+        temperature,
+        topP,
       },
       messages,
     };

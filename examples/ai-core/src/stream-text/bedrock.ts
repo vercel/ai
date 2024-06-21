@@ -1,5 +1,4 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import dotenv from 'dotenv';
 
