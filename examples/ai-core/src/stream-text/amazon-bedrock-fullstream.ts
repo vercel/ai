@@ -1,9 +1,8 @@
-import { anthropic } from '@ai-sdk/anthropic';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { streamText } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
-import { bedrock } from '@ai-sdk/amazon-bedrock';
 
 dotenv.config();
 
