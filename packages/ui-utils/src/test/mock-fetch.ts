@@ -1,3 +1,4 @@
+import { fail } from 'node:assert';
 import { vi } from 'vitest';
 
 export function mockFetchTextStream({
@@ -40,9 +41,11 @@ export function mockFetchTextStream({
 export function mockFetchDataStream({
   url,
   chunks,
+  maxCalls,
 }: {
   url: string;
   chunks: string[];
+  maxCalls?: number;
 }) {
   async function* generateChunks() {
     const encoder = new TextEncoder();
@@ -54,22 +57,31 @@ export function mockFetchDataStream({
   return mockFetchDataStreamWithGenerator({
     url,
     chunkGenerator: generateChunks(),
+    maxCalls,
   });
 }
 
 export function mockFetchDataStreamWithGenerator({
   url,
   chunkGenerator,
+  maxCalls,
 }: {
   url: string;
   chunkGenerator: AsyncGenerator<Uint8Array, void, unknown>;
+  maxCalls?: number;
 }) {
   let requestBodyResolve: ((value?: unknown) => void) | undefined;
   const requestBodyPromise = new Promise(resolve => {
     requestBodyResolve = resolve;
   });
 
+  let callCount = 0;
+
   vi.spyOn(global, 'fetch').mockImplementation(async (url, init) => {
+    if (maxCalls !== undefined && ++callCount >= maxCalls) {
+      throw new Error('Too many calls');
+    }
+
     requestBodyResolve?.(init!.body as string);
 
     return {
