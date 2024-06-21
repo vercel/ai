@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 0.0.16
+
+### Patch Changes
+
+- 02f6a088: feat (provider-utils): add convertArrayToAsyncIterable test helper
+
 ## 0.0.15
 
 ### Patch Changes

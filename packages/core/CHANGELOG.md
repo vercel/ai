@@ -1,5 +1,31 @@
 # ai
 
+## 3.2.4
+
+### Patch Changes
+
+- Updated dependencies [3cb103bc]
+  - @ai-sdk/react@0.0.6
+
+## 3.2.3
+
+### Patch Changes
+
+- 89b7552b: chore (ai): remove deprecation from ai/react imports, add experimental_useObject
+- Updated dependencies [02f6a088]
+  - @ai-sdk/provider-utils@0.0.16
+  - @ai-sdk/react@0.0.5
+  - @ai-sdk/svelte@0.0.5
+  - @ai-sdk/ui-utils@0.0.5
+  - @ai-sdk/solid@0.0.5
+  - @ai-sdk/vue@0.0.5
+
+## 3.2.2
+
+### Patch Changes
+
+- 0565cd72: feat (ai/core): add toJsonResponse to generateObject result.
+
 ## 3.2.1
 
 ### Patch Changes

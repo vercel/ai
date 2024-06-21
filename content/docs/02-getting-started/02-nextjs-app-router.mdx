@@ -50,13 +50,13 @@ Install `ai` and `@ai-sdk/openai`, the Vercel AI package and Vercel AI SDK's [ O
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm install ai @ai-sdk/openai @ai-sdk/react zod" dark />
+      <Snippet text="pnpm install ai @ai-sdk/openai zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai @ai-sdk/openai @ai-sdk/react zod" dark />
+      <Snippet text="npm install ai @ai-sdk/openai zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai @ai-sdk/openai @ai-sdk/react zod" dark />
+      <Snippet text="yarn add ai @ai-sdk/openai zod" dark />
     </Tab>
   </Tabs>
 </div>
@@ -125,7 +125,7 @@ Update your root page (`app/page.tsx`) with the following code to show a list of
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from '@ai-sdk/react';
+import { useChat } from 'ai/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -223,7 +223,7 @@ To access this data on the frontend, the `useChat` hook returns an optional valu
 ```tsx filename="app/page.tsx" highlight="6, 9"
 'use client';
 
-import { useChat } from '@ai-sdk/react';
+import { useChat } from 'ai/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, data } = useChat();

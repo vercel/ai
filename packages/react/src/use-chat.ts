@@ -282,6 +282,8 @@ By default, it's set to 0, which will disable the feature.
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
+      const messageCount = messagesRef.current.length;
+
       try {
         mutateLoading(true);
         setError(undefined);
@@ -336,6 +338,8 @@ By default, it's set to 0, which will disable the feature.
       const messages = messagesRef.current;
       const lastMessage = messages[messages.length - 1];
       if (
+        // ensure we actually have new messages (to prevent infinite loops in case of errors):
+        messages.length > messageCount &&
         // ensure there is a last message:
         lastMessage != null &&
         // check if the feature is enabled:
