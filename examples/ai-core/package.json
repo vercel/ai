@@ -10,6 +10,7 @@
     "@ai-sdk/google-vertex": "latest",
     "@ai-sdk/mistral": "latest",
     "@ai-sdk/openai": "latest",
+    "@ai-sdk/amazon-bedrock": "latest",
     "ai": "latest",
     "dotenv": "16.4.5",
     "mathjs": "12.4.2",
