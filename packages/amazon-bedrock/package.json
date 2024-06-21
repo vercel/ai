@@ -7,12 +7,11 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist/**/*",
-    "internal/dist/**/*"
+    "dist/**/*"
   ],
   "scripts": {
     "build": "tsup",
-    "clean": "rm -rf dist && rm -rf internal/dist",
+    "clean": "rm -rf dist",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -35,7 +34,6 @@
     "@aws-sdk/client-bedrock-runtime": "3.602.0"
   },
   "devDependencies": {
-    "@smithy/types": "^3.1.0",
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
     "aws-sdk-client-mock": "^4.0.1",
