@@ -274,63 +274,136 @@ describe('onToolCall', () => {
 });
 
 describe('maxToolRoundtrips', () => {
-  const TestComponent = () => {
-    const { messages, append } = useChat({
-      async onToolCall({ toolCall }) {
-        mockFetchDataStream({
-          url: 'https://example.com/api/chat',
-          chunks: [formatStreamPart('text', 'final result')],
-        });
+  describe('single automatic tool roundtrip', () => {
+    const TestComponent = () => {
+      const { messages, append } = useChat({
+        async onToolCall({ toolCall }) {
+          mockFetchDataStream({
+            url: 'https://example.com/api/chat',
+            chunks: [formatStreamPart('text', 'final result')],
+          });
 
-        return `test-tool-response: ${toolCall.toolName} ${
-          toolCall.toolCallId
-        } ${JSON.stringify(toolCall.args)}`;
-      },
-      maxToolRoundtrips: 5,
+          return `test-tool-response: ${toolCall.toolName} ${
+            toolCall.toolCallId
+          } ${JSON.stringify(toolCall.args)}`;
+        },
+        maxToolRoundtrips: 5,
+      });
+
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.content}
+            </div>
+          ))}
+
+          <button
+            data-testid="do-append"
+            onClick={() => {
+              append({ role: 'user', content: 'hi' });
+            }}
+          />
+        </div>
+      );
+    };
+
+    beforeEach(() => {
+      render(<TestComponent />);
     });
 
-    return (
-      <div>
-        {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
-            {m.content}
-          </div>
-        ))}
-
-        <button
-          data-testid="do-append"
-          onClick={() => {
-            append({ role: 'user', content: 'hi' });
-          }}
-        />
-      </div>
-    );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
-
-  it('should automatically call api when tool call gets executed via onToolCall', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
-      chunks: [
-        formatStreamPart('tool_call', {
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-          args: { testArg: 'test-value' },
-        }),
-      ],
+    afterEach(() => {
+      vi.restoreAllMocks();
+      cleanup();
     });
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    it('should automatically call api when tool call gets executed via onToolCall', async () => {
+      mockFetchDataStream({
+        url: 'https://example.com/api/chat',
+        chunks: [
+          formatStreamPart('tool_call', {
+            toolCallId: 'tool-call-0',
+            toolName: 'test-tool',
+            args: { testArg: 'test-value' },
+          }),
+        ],
+      });
 
-    await screen.findByTestId('message-2');
-    expect(screen.getByTestId('message-2')).toHaveTextContent('final result');
+      await userEvent.click(screen.getByTestId('do-append'));
+
+      await screen.findByTestId('message-2');
+      expect(screen.getByTestId('message-2')).toHaveTextContent('final result');
+    });
+  });
+
+  describe('single roundtrip with error response', () => {
+    const TestComponent = () => {
+      const { messages, append } = useChat({
+        async onToolCall({ toolCall }) {
+          mockFetchDataStream({
+            url: 'https://example.com/api/chat',
+            chunks: [formatStreamPart('error', 'some failure')],
+            maxCalls: 1,
+          });
+
+          return `test-tool-response: ${toolCall.toolName} ${
+            toolCall.toolCallId
+          } ${JSON.stringify(toolCall.args)}`;
+        },
+        maxToolRoundtrips: 5,
+      });
+
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.toolInvocations?.map((toolInvocation, toolIdx) =>
+                'result' in toolInvocation ? (
+                  <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
+                    {toolInvocation.result}
+                  </div>
+                ) : null,
+              )}
+            </div>
+          ))}
+
+          <button
+            data-testid="do-append"
+            onClick={() => {
+              append({ role: 'user', content: 'hi' });
+            }}
+          />
+        </div>
+      );
+    };
+
+    beforeEach(() => {
+      render(<TestComponent />);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      cleanup();
+    });
+
+    it('should automatically call api when tool call gets executed via onToolCall', async () => {
+      mockFetchDataStream({
+        url: 'https://example.com/api/chat',
+        chunks: [
+          formatStreamPart('tool_call', {
+            toolCallId: 'tool-call-0',
+            toolName: 'test-tool',
+            args: { testArg: 'test-value' },
+          }),
+        ],
+      });
+
+      await userEvent.click(screen.getByTestId('do-append'));
+
+      await screen.findByTestId('message-1');
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
+      );
+    });
   });
 });
