@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "3.2.3",
+  "version": "3.2.4",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -77,7 +77,7 @@
   "dependencies": {
     "@ai-sdk/provider": "0.0.10",
     "@ai-sdk/provider-utils": "0.0.16",
-    "@ai-sdk/react": "0.0.5",
+    "@ai-sdk/react": "0.0.6",
     "@ai-sdk/solid": "0.0.5",
     "@ai-sdk/svelte": "0.0.5",
     "@ai-sdk/ui-utils": "0.0.5",
