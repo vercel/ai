@@ -5,6 +5,13 @@ description: Learn to stream object generations using the Vercel AI SDK in your 
 
 # Stream Object Generation
 
+<Note>
+  This example uses React Server Components (RSC). If you want to client side
+  rendering and hooks instead, check out the ["streaming object generation"
+  example with
+  useObject](/examples/next-pages/basics/streaming-object-generation).
+</Note>
+
 Object generation can sometimes take a long time to complete, especially when you're generating a large schema. In such cases, it is useful to stream the object generation process to the client in real-time. This allows the client to display the generated object as it is being generated, rather than have users wait for it to complete before displaying the result.
 
 <Browser>
