@@ -216,10 +216,14 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
+            function enqueueError(error: Error) {
+              finishReason = 'error';
+              controller.enqueue({ type: 'error', error });
+            }
+
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
-              controller.enqueue({ type: 'error', error: chunk.error });
+              enqueueError(chunk.error);
               return;
             }
 
@@ -227,35 +231,19 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
             // handle errors:
             if (value.internalServerException) {
-              finishReason = 'error';
-              controller.enqueue({
-                type: 'error',
-                error: value.internalServerException,
-              });
+              enqueueError(value.internalServerException);
               return;
             }
             if (value.modelStreamErrorException) {
-              finishReason = 'error';
-              controller.enqueue({
-                type: 'error',
-                error: value.modelStreamErrorException,
-              });
+              enqueueError(value.modelStreamErrorException);
               return;
             }
             if (value.throttlingException) {
-              finishReason = 'error';
-              controller.enqueue({
-                type: 'error',
-                error: value.throttlingException,
-              });
+              enqueueError(value.throttlingException);
               return;
             }
             if (value.validationException) {
-              finishReason = 'error';
-              controller.enqueue({
-                type: 'error',
-                error: value.validationException,
-              });
+              enqueueError(value.validationException);
               return;
             }
 
