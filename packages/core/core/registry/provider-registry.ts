@@ -97,11 +97,13 @@ class DefaultProviderRegistry implements experimental_ProviderRegistry {
   }
 
   private splitId(id: string): [string, string] {
-    if (!id.includes(':')) {
+    const index = id.indexOf(':');
+
+    if (index === -1) {
       throw new InvalidModelIdError({ id });
     }
 
-    return id.split(':') as [string, string];
+    return [id.slice(0, index), id.slice(index + 1)];
   }
 
   languageModel(id: string): LanguageModel {
