@@ -8,7 +8,10 @@ import {
   ConverseStreamOutput,
   StopReason,
 } from '@aws-sdk/client-bedrock-runtime';
-import { convertStreamToArray } from '@ai-sdk/provider-utils/test';
+import {
+  convertArrayToAsyncIterable,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'system', content: 'System Prompt' },
@@ -153,16 +156,6 @@ describe('doStream', () => {
     bedrockMock.reset();
   });
 
-  const createAsyncGenerator = (chunks: ConverseStreamOutput[]) => {
-    return {
-      async *[Symbol.asyncIterator]() {
-        for (const data of chunks) {
-          yield data;
-        }
-      },
-    };
-  };
-
   it('should stream text deltas', async () => {
     const streamData: ConverseStreamOutput[] = [
       { contentBlockDelta: { contentBlockIndex: 0, delta: { text: 'Hello' } } },
@@ -182,7 +175,7 @@ describe('doStream', () => {
     ];
 
     bedrockMock.on(ConverseStreamCommand).resolves({
-      stream: createAsyncGenerator(streamData),
+      stream: convertArrayToAsyncIterable(streamData),
     });
 
     const { stream } = await model.doStream({
@@ -191,7 +184,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
       { type: 'text-delta', textDelta: 'World!' },
@@ -228,7 +221,7 @@ describe('doStream', () => {
     ];
 
     bedrockMock.on(ConverseStreamCommand).resolves({
-      stream: createAsyncGenerator(streamData),
+      stream: convertArrayToAsyncIterable(streamData),
     });
 
     const { stream } = await model.doStream({
@@ -253,7 +246,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
         type: 'tool-call-delta',
         toolCallId: 'tool-use-id',
@@ -285,7 +278,7 @@ describe('doStream', () => {
 
   it('should handle error stream parts', async () => {
     bedrockMock.on(ConverseStreamCommand).resolves({
-      stream: createAsyncGenerator([
+      stream: convertArrayToAsyncIterable([
         {
           internalServerException: {
             message: 'Internal Server Error',
@@ -303,7 +296,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
         type: 'error',
         error: {
@@ -326,7 +319,7 @@ describe('doStream', () => {
 
   it('should pass the messages and the model', async () => {
     bedrockMock.on(ConverseStreamCommand).resolves({
-      stream: createAsyncGenerator([]),
+      stream: convertArrayToAsyncIterable([]),
     });
 
     await model.doStream({
