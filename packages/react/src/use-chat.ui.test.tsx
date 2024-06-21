@@ -8,6 +8,7 @@ import { cleanup, findByText, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { useChat } from './use-chat';
+import { formatStreamPart } from '@ai-sdk/ui-utils';
 
 describe('stream data stream', () => {
   const TestComponent = () => {
@@ -204,6 +205,70 @@ describe('text stream', () => {
     await screen.findByTestId('message-1-text-stream');
     expect(screen.getByTestId('message-1-text-stream')).toHaveTextContent(
       'AI: Hello, world.',
+    );
+  });
+});
+
+describe('onToolCall', () => {
+  const TestComponent = () => {
+    const { messages, append } = useChat({
+      async onToolCall({ toolCall }) {
+        return `test-tool-response: ${toolCall.toolName} ${
+          toolCall.toolCallId
+        } ${JSON.stringify(toolCall.args)}`;
+      },
+    });
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.toolInvocations?.map((toolInvocation, toolIdx) =>
+              'result' in toolInvocation ? (
+                <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
+                  {toolInvocation.result}
+                </div>
+              ) : null,
+            )}
+          </div>
+        ))}
+
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append({ role: 'user', content: 'hi' });
+          }}
+        />
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it("should invoke onToolCall when a tool call is received from the server's response", async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: [
+        formatStreamPart('tool_call', {
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        }),
+      ],
+    });
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
     );
   });
 });
