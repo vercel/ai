@@ -1,5 +1,11 @@
 # ai
 
+## 3.2.2
+
+### Patch Changes
+
+- 0565cd72: feat (ai/core): add toJsonResponse to generateObject result.
+
 ## 3.2.1
 
 ### Patch Changes
