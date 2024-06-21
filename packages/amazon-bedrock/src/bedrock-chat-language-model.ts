@@ -206,7 +206,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     });
 
     let toolName = '';
-    let toolId = '';
+    let toolCallId = '';
     let toolCallArgs = '';
 
     return {
@@ -270,8 +270,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
             if (value.contentBlockStart?.start?.toolUse) {
               // store the tool name and id for the next chunk
-              toolName = value.contentBlockStart.start.toolUse.name ?? '';
-              toolId = value.contentBlockStart.start.toolUse.toolUseId ?? '';
+              const toolUse = value.contentBlockStart.start.toolUse;
+              toolName = toolUse.name ?? '';
+              toolCallId = toolUse.toolUseId ?? '';
             }
 
             if (value.contentBlockDelta?.delta?.toolUse) {
@@ -281,24 +282,22 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
               controller.enqueue({
                 type: 'tool-call-delta',
                 toolCallType: 'function',
-                toolCallId: toolId,
-                toolName: toolName,
+                toolCallId,
+                toolName,
                 argsTextDelta:
                   value.contentBlockDelta.delta.toolUse.input ?? '',
               });
             }
 
-            if (value.contentBlockStop) {
-              // if the content is done and a tool call was made, send it
-              if (toolCallArgs.length > 0) {
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: toolId,
-                  toolName: toolName,
-                  args: toolCallArgs,
-                });
-              }
+            // if the content is done and a tool call was made, send it
+            if (value.contentBlockStop && toolCallArgs.length > 0) {
+              controller.enqueue({
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId,
+                toolName,
+                args: toolCallArgs,
+              });
             }
           },
 
