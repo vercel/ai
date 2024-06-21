@@ -948,6 +948,9 @@ importers:
         specifier: 3.602.0
         version: 3.602.0
     devDependencies:
+      '@smithy/types':
+        specifier: ^3.1.0
+        version: 3.1.0
       '@types/node':
         specifier: ^18
         version: 18.18.9
@@ -8097,7 +8100,6 @@ packages:
     engines: {node: '>=16.0.0'}
     dependencies:
       tslib: 2.6.2
-    dev: false
 
   /@smithy/url-parser@2.0.14:
     resolution: {integrity: sha512-kbu17Y1AFXi5lNlySdDj7ZzmvupyWKCX/0jNZ8ffquRyGdbDZb+eBh0QnWqsSmnZa/ctyWaTf7n4l/pXLExrnw==}
