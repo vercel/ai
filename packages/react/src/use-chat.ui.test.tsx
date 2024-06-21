@@ -272,3 +272,65 @@ describe('onToolCall', () => {
     );
   });
 });
+
+describe('maxToolRoundtrips', () => {
+  const TestComponent = () => {
+    const { messages, append } = useChat({
+      async onToolCall({ toolCall }) {
+        mockFetchDataStream({
+          url: 'https://example.com/api/chat',
+          chunks: [formatStreamPart('text', 'final result')],
+        });
+
+        return `test-tool-response: ${toolCall.toolName} ${
+          toolCall.toolCallId
+        } ${JSON.stringify(toolCall.args)}`;
+      },
+      maxToolRoundtrips: 5,
+    });
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.content}
+          </div>
+        ))}
+
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append({ role: 'user', content: 'hi' });
+          }}
+        />
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should automatically call api when tool call gets executed via onToolCall', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: [
+        formatStreamPart('tool_call', {
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        }),
+      ],
+    });
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('message-2');
+    expect(screen.getByTestId('message-2')).toHaveTextContent('final result');
+  });
+});
