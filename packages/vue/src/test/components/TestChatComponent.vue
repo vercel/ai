@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useChat } from './use-chat';
+import { useChat } from '../../use-chat';
 
 const { messages, append, data, error, isLoading } = useChat();
 </script>

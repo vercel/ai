@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { useCompletion } from './use-completion';
+import { useCompletion } from '../../use-completion';
 
-const { completion, handleSubmit, input, isLoading, error } = useCompletion({
-  streamMode: 'text',
-});
+const { completion, handleSubmit, input, isLoading, error } = useCompletion();
 </script>
 
 <template>
