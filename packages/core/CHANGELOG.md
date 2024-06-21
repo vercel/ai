@@ -1,5 +1,11 @@
 # ai
 
+## 3.2.5
+
+### Patch Changes
+
+- 4d426d0c: fix (ai): split provider and model ids correctly in the provider registry
+
 ## 3.2.4
 
 ### Patch Changes
