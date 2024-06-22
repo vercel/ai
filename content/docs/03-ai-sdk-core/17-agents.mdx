@@ -10,7 +10,7 @@ The model can make decisions based on the context of the conversation and the us
 
 One approach to implementing agents is to allow the LLM to choose the next step in a loop.
 With `generateText`, you can combine [tools](/docs/ai-sdk-core/tools-and-tool-calling) with `maxToolRoundtrips`.
-This makes is possible to implement basic agents that reason at each step and make decisions based on the context.
+This makes it possible to implement basic agents that reason at each step and make decisions based on the context.
 
 ## Example
 
@@ -24,9 +24,9 @@ import * as mathjs from 'mathjs';
 import { z } from 'zod';
 
 const problem =
-  'A taxi driver earns $9461 per 1-hour work. ' +
+  'A taxi driver earns $9461 per 1-hour of work. ' +
   'If he works 12 hours a day and in 1 hour ' +
-  'he uses 12-liters petrol with price $134 for 1-liter. ' +
+  'he uses 12 liters of petrol with a price  of $134 for 1 liter. ' +
   'How much money does he earn in one day?';
 
 console.log(`PROBLEM: ${problem}`);
