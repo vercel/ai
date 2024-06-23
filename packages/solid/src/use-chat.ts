@@ -132,7 +132,7 @@ const getStreamedResponse = async (
     messages: constructedMessagesPayload,
     body: {
       data: chatRequest.data,
-      ...extraMetadata.current.body,
+      ...extraMetadata.body,
       ...chatRequest.options?.body,
       ...(chatRequest.functions !== undefined && {
         functions: chatRequest.functions,
@@ -148,9 +148,9 @@ const getStreamedResponse = async (
       }),
     },
     streamMode,
-    credentials: extraMetadata.current.credentials,
+    credentials: extraMetadata.credentials,
     headers: {
-      ...extraMetadata.current.headers,
+      ...extraMetadata.headers,
       ...chatRequest.options?.headers,
     },
     abortController: () => abortController,
