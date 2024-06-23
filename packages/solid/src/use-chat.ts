@@ -2,6 +2,7 @@ import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
+  IdGenerator,
   JSONValue,
   Message,
   UseChatOptions,
@@ -11,9 +12,17 @@ import {
   generateId as generateIdFunc,
   processChatStream,
 } from '@ai-sdk/ui-utils';
-import { Accessor, Resource, Setter, createSignal } from 'solid-js';
+import {
+  Accessor,
+  JSX,
+  Resource,
+  Setter,
+  createEffect,
+  createSignal,
+  createUniqueId,
+} from 'solid-js';
 import { useSWRStore } from 'solid-swr-store';
-import { createSWRStore } from 'swr-store';
+import { MutationResult, createSWRStore } from 'swr-store';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -54,15 +63,111 @@ export type UseChatHelpers = {
   input: Accessor<string>;
   /** Signal setter to update the input value */
   setInput: Setter<string>;
+  /** An input/textarea-ready onChange handler to control the value of the input */
+  handleInputChange: (
+    e:
+      | (Event & { target: HTMLInputElement })
+      | (Event & { target: HTMLTextAreaElement }),
+  ) => void;
   /** Form submission handler to automatically reset input and append a user message */
-  handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void;
+  handleSubmit: (
+    e: Event & { target: HTMLFormElement },
+    chatRequestOptions?: ChatRequestOptions,
+  ) => void;
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;
   /** Additional data added on the server via StreamData */
   data: Accessor<JSONValue[] | undefined>;
 };
 
-let uniqueId = 0;
+const getStreamedResponse = async (
+  api: string,
+  chatRequest: ChatRequest,
+  mutate: (data: Message[]) => void,
+  setStreamData: Setter<JSONValue[] | undefined>,
+  streamData: Accessor<JSONValue[] | undefined>,
+  extraMetadata: any,
+  messagesRef: Message[],
+  abortController: AbortController | null,
+  generateId: IdGenerator,
+  streamMode?: 'stream-data' | 'text',
+  onFinish?: (message: Message) => void,
+  onResponse?: (response: Response) => void | Promise<void>,
+  onToolCall?: UseChatOptions['onToolCall'],
+  sendExtraMessageFields?: boolean,
+) => {
+  // Do an optimistic update to the chat state to show the updated messages
+  // immediately.
+  const previousMessages = messagesRef;
+  mutate(chatRequest.messages);
+
+  const constructedMessagesPayload = sendExtraMessageFields
+    ? chatRequest.messages
+    : chatRequest.messages.map(
+        ({
+          role,
+          content,
+          name,
+          data,
+          annotations,
+          toolInvocations,
+          function_call,
+          tool_calls,
+          tool_call_id,
+        }) => ({
+          role,
+          content,
+          ...(name !== undefined && { name }),
+          ...(data !== undefined && { data }),
+          ...(annotations !== undefined && { annotations }),
+          ...(toolInvocations !== undefined && { toolInvocations }),
+          // outdated function/tool call handling (TODO deprecate):
+          tool_call_id,
+          ...(function_call !== undefined && { function_call }),
+          ...(tool_calls !== undefined && { tool_calls }),
+        }),
+      );
+
+  return await callChatApi({
+    api,
+    messages: constructedMessagesPayload,
+    body: {
+      data: chatRequest.data,
+      ...extraMetadata.current.body,
+      ...chatRequest.options?.body,
+      ...(chatRequest.functions !== undefined && {
+        functions: chatRequest.functions,
+      }),
+      ...(chatRequest.function_call !== undefined && {
+        function_call: chatRequest.function_call,
+      }),
+      ...(chatRequest.tools !== undefined && {
+        tools: chatRequest.tools,
+      }),
+      ...(chatRequest.tool_choice !== undefined && {
+        tool_choice: chatRequest.tool_choice,
+      }),
+    },
+    streamMode,
+    credentials: extraMetadata.current.credentials,
+    headers: {
+      ...extraMetadata.current.headers,
+      ...chatRequest.options?.headers,
+    },
+    abortController: () => abortController,
+    restoreMessagesOnFailure() {
+      mutate(previousMessages);
+    },
+    onResponse,
+    onUpdate(merged, data) {
+      mutate([...chatRequest.messages, ...merged]);
+      setStreamData([...(streamData() || []), ...(data ?? [])]);
+    },
+    onToolCall,
+    onFinish,
+    generateId,
+  });
+};
 
 const store: Record<string, Message[] | undefined> = {};
 const chatApiStore = createSWRStore<Message[], string[]>({
@@ -78,6 +183,9 @@ export function useChat({
   initialInput = '',
   sendExtraMessageFields,
   experimental_onFunctionCall,
+  experimental_onToolCall,
+  onToolCall,
+  maxToolRoundtrips = 0,
   onResponse,
   onFinish,
   onError,
@@ -86,20 +194,46 @@ export function useChat({
   body,
   streamMode,
   generateId = generateIdFunc,
-}: UseChatOptions = {}): UseChatHelpers {
-  // Generate a unique ID for the chat if not provided.
-  const chatId = id || `chat-${uniqueId++}`;
+}: Omit<UseChatOptions, 'api'> & {
+  api?: string;
+  key?: string;
 
-  const key = `${api}|${chatId}`;
+  /**
+Maximal number of automatic roundtrips for tool calls.
+
+An automatic tool call roundtrip is a call to the server with the 
+tool call results when all tool calls in the last assistant 
+message have results.
+
+A maximum number is required to prevent infinite loops in the
+case of misconfigured tools.
+
+By default, it's set to 0, which will disable the feature.
+   */
+  maxToolRoundtrips?: number;
+} = {}): UseChatHelpers & {
+  addToolResult: ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => void;
+} {
+  // Generate a unique ID for the chat if not provided.
+  const hookId = createUniqueId();
+  const idKey = id || `chat-${hookId}`;
+  const chatKey =
+    typeof api === 'string' ? `${api}|${idKey}|messages` : `${idKey}|messages`;
 
   // Because of the `initialData` option, the `data` will never be `undefined`:
-  const messages = useSWRStore(chatApiStore, () => [key], {
+  const messages = useSWRStore(chatApiStore, () => [chatKey], {
     initialData: initialMessages,
   }) as Resource<Message[]>;
 
   const mutate = (data: Message[]) => {
-    store[key] = data;
-    return chatApiStore.mutate([key], {
+    store[chatKey] = data;
+    return chatApiStore.mutate([chatKey], {
       status: 'success',
       data,
     });
@@ -111,91 +245,59 @@ export function useChat({
   );
   const [isLoading, setIsLoading] = createSignal(false);
 
+  let messagesRef: Message[] = messages() || [];
+  createEffect(() => {
+    messagesRef = messages() || [];
+  });
+
   let abortController: AbortController | null = null;
-  async function triggerRequest(
-    messagesSnapshot: Message[],
-    { options, data }: ChatRequestOptions = {},
-  ) {
+
+  let extraMetadata = {
+    credentials,
+    headers,
+    body,
+  };
+  createEffect(() => {
+    extraMetadata = {
+      credentials,
+      headers,
+      body,
+    };
+  });
+
+  const triggerRequest = async (chatRequest: ChatRequest) => {
+    const messageCount = messagesRef.length;
+
     try {
       setError(undefined);
       setIsLoading(true);
 
       abortController = new AbortController();
 
-      const getCurrentMessages = () =>
-        chatApiStore.get([key], {
-          shouldRevalidate: false,
-        });
-
-      // Do an optimistic update to the chat state to show the updated messages
-      // immediately.
-      const previousMessages = getCurrentMessages();
-      mutate(messagesSnapshot);
-
-      let chatRequest: ChatRequest = {
-        messages: messagesSnapshot,
-        options,
-        data,
-      };
-
       await processChatStream({
-        getStreamedResponse: async () => {
-          const existingData = streamData() ?? [];
-
-          return await callChatApi({
+        getStreamedResponse: () =>
+          getStreamedResponse(
             api,
-            messages: sendExtraMessageFields
-              ? chatRequest.messages
-              : chatRequest.messages.map(
-                  ({
-                    role,
-                    content,
-                    name,
-                    data,
-                    annotations,
-                    function_call,
-                  }) => ({
-                    role,
-                    content,
-                    ...(name !== undefined && { name }),
-                    ...(data !== undefined && { data }),
-                    ...(annotations !== undefined && { annotations }),
-                    // outdated function/tool call handling (TODO deprecate):
-                    ...(function_call !== undefined && { function_call }),
-                  }),
-                ),
-            body: {
-              data: chatRequest.data,
-              ...body,
-              ...options?.body,
-            },
-            streamMode,
-            headers: {
-              ...headers,
-              ...options?.headers,
-            },
-            abortController: () => abortController,
-            credentials,
-            onResponse,
-            onUpdate(merged, data) {
-              mutate([...chatRequest.messages, ...merged]);
-              setStreamData([...existingData, ...(data ?? [])]);
-            },
-            onFinish,
-            restoreMessagesOnFailure() {
-              // Restore the previous messages if the request fails.
-              if (previousMessages.status === 'success') {
-                mutate(previousMessages.data);
-              }
-            },
+            chatRequest,
+            mutate,
+            setStreamData,
+            streamData,
+            extraMetadata,
+            messagesRef,
+            abortController,
             generateId,
-          });
-        },
+            streamMode,
+            onFinish,
+            onResponse,
+            onToolCall,
+            sendExtraMessageFields,
+          ),
         experimental_onFunctionCall,
+        experimental_onToolCall,
         updateChatRequest(newChatRequest) {
           chatRequest = newChatRequest;
         },
-        getCurrentMessages: () => getCurrentMessages().data,
+        getCurrentMessages: () => messagesRef,
       });
 
       abortController = null;
@@ -214,27 +316,81 @@ export function useChat({
     } finally {
       setIsLoading(false);
     }
-  }
 
-  const append: UseChatHelpers['append'] = async (message, options) => {
+    // auto-submit when all tool calls in the last assistant message have results:
+    const messages = messagesRef;
+    const lastMessage = messages[messages.length - 1];
+    if (
+      // ensure we actually have new messages (to prevent infinite loops in case of errors):
+      messages.length > messageCount &&
+      // ensure there is a last message:
+      lastMessage != null &&
+      // check if the feature is enabled:
+      maxToolRoundtrips > 0 &&
+      // check that roundtrip is possible:
+      isAssistantMessageWithCompletedToolCalls(lastMessage) &&
+      // limit the number of automatic roundtrips:
+      countTrailingAssistantMessages(messages) <= maxToolRoundtrips
+    ) {
+      await triggerRequest({ messages });
+    }
+  };
+
+  const append: UseChatHelpers['append'] = async (
+    message,
+    { options, functions, function_call, tools, tool_choice, data } = {},
+  ) => {
     if (!message.id) {
       message.id = generateId();
     }
-    return triggerRequest(
-      (messages() ?? []).concat(message as Message),
+
+    const chatRequest: ChatRequest = {
+      messages: messagesRef.concat(message as Message),
       options,
-    );
+      data,
+      ...(functions !== undefined && { functions }),
+      ...(function_call !== undefined && { function_call }),
+      ...(tools !== undefined && { tools }),
+      ...(tool_choice !== undefined && { tool_choice }),
+    };
+
+    return triggerRequest(chatRequest);
   };
 
-  const reload: UseChatHelpers['reload'] = async options => {
-    const messagesSnapshot = messages();
-    if (!messagesSnapshot || messagesSnapshot.length === 0) return null;
+  const reload: UseChatHelpers['reload'] = async ({
+    options,
+    functions,
+    function_call,
+    tools,
+    tool_choice,
+  } = {}) => {
+    if (messagesRef.length === 0) return null;
 
-    const lastMessage = messagesSnapshot[messagesSnapshot.length - 1];
+    // Remove last assistant message and retry last user message.
+    const lastMessage = messagesRef[messagesRef.length - 1];
     if (lastMessage.role === 'assistant') {
-      return triggerRequest(messagesSnapshot.slice(0, -1), options);
+      const chatRequest: ChatRequest = {
+        messages: messagesRef.slice(0, -1),
+        options,
+        ...(functions !== undefined && { functions }),
+        ...(function_call !== undefined && { function_call }),
+        ...(tools !== undefined && { tools }),
+        ...(tool_choice !== undefined && { tool_choice }),
+      };
+
+      return triggerRequest(chatRequest);
     }
-    return triggerRequest(messagesSnapshot, options);
+
+    const chatRequest: ChatRequest = {
+      messages: messagesRef,
+      options,
+      ...(functions !== undefined && { functions }),
+      ...(function_call !== undefined && { function_call }),
+      ...(tools !== undefined && { tools }),
+      ...(tool_choice !== undefined && { tool_choice }),
+    };
+
+    return triggerRequest(chatRequest);
   };
 
   const stop = () => {
@@ -246,11 +402,23 @@ export function useChat({
 
   const setMessages = (messages: Message[]) => {
     mutate(messages);
+    messagesRef = messages;
   };
 
   const [input, setInput] = createSignal(initialInput);
 
-  const handleSubmit = (e: any, options: ChatRequestOptions = {}) => {
+  const handleSubmit: UseChatHelpers['handleSubmit'] = (
+    e,
+    options = {},
+    metadata?: Object,
+  ) => {
+    if (metadata) {
+      extraMetadata = {
+        ...extraMetadata,
+        ...metadata,
+      };
+    }
+
     e.preventDefault();
     const inputValue = input();
     if (!inputValue) return;
@@ -263,8 +431,45 @@ export function useChat({
       },
       options,
     );
-
     setInput('');
+  };
+
+  const handleInputChange = (e: any) => {
+    setInput(e.target.value);
+  };
+
+  const addToolResult = ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => {
+    const messagesSnapshot = messages() ?? [];
+
+    const updatedMessages = messagesSnapshot.map((message, index, arr) =>
+      // update the tool calls in the last assistant message:
+      index === arr.length - 1 &&
+      message.role === 'assistant' &&
+      message.toolInvocations
+        ? {
+            ...message,
+            toolInvocations: message.toolInvocations.map(toolInvocation =>
+              toolInvocation.toolCallId === toolCallId
+                ? { ...toolInvocation, result }
+                : toolInvocation,
+            ),
+          }
+        : message,
+    );
+
+    mutate(updatedMessages);
+
+    // auto-submit when all tool calls in the last assistant message have results:
+    const lastMessage = updatedMessages[updatedMessages.length - 1];
+    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
+      triggerRequest({ messages: updatedMessages });
+    }
   };
 
   return {
@@ -276,8 +481,39 @@ export function useChat({
     setMessages,
     input,
     setInput,
+    handleInputChange,
     handleSubmit,
     isLoading,
     data: streamData,
+    addToolResult,
   };
+}
+
+/**
+Check if the message is an assistant message with completed tool calls. 
+The message must have at least one tool invocation and all tool invocations
+must have a result.
+ */
+function isAssistantMessageWithCompletedToolCalls(message: Message) {
+  return (
+    message.role === 'assistant' &&
+    message.toolInvocations &&
+    message.toolInvocations.length > 0 &&
+    message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
+  );
+}
+
+/**
+Returns the number of trailing assistant messages in the array.
+ */
+function countTrailingAssistantMessages(messages: Message[]) {
+  let count = 0;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant') {
+      count++;
+    } else {
+      break;
+    }
+  }
+  return count;
 }
