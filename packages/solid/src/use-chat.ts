@@ -14,7 +14,6 @@ import {
 } from '@ai-sdk/ui-utils';
 import {
   Accessor,
-  JSX,
   Resource,
   Setter,
   createEffect,
@@ -22,7 +21,7 @@ import {
   createUniqueId,
 } from 'solid-js';
 import { useSWRStore } from 'solid-swr-store';
-import { MutationResult, createSWRStore } from 'swr-store';
+import { createSWRStore } from 'swr-store';
 
 export type { CreateMessage, Message, UseChatOptions };
 
