@@ -65,12 +65,12 @@ export type UseChatHelpers = {
   /** An input/textarea-ready onChange handler to control the value of the input */
   handleInputChange: (
     e:
-      | (Event & { target: HTMLInputElement })
-      | (Event & { target: HTMLTextAreaElement }),
+      | (Event & { currentTarget: HTMLInputElement })
+      | (Event & { currentTarget: HTMLTextAreaElement }),
   ) => void;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
-    e: Event & { target: HTMLFormElement },
+    e: Event & { currentTarget: HTMLFormElement },
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   /** Whether the API request is in progress */
