@@ -175,29 +175,12 @@ const chatApiStore = createSWRStore<Message[], string[]>({
   },
 });
 
-export function useChat({
-  api = '/api/chat',
-  id,
-  initialMessages = [],
-  initialInput = '',
-  sendExtraMessageFields,
-  experimental_onFunctionCall,
-  experimental_onToolCall,
-  onToolCall,
-  maxToolRoundtrips = 0,
-  onResponse,
-  onFinish,
-  onError,
-  credentials,
-  headers,
-  body,
-  streamMode,
-  generateId = generateIdFunc,
-}: Omit<UseChatOptions, 'api'> & {
-  api?: string;
-  key?: string;
+export function useChat(
+  useChatOptions: Omit<UseChatOptions, 'api'> & {
+    api?: string;
+    key?: string;
 
-  /**
+    /**
 Maximal number of automatic roundtrips for tool calls.
 
 An automatic tool call roundtrip is a call to the server with the 
@@ -209,8 +192,9 @@ case of misconfigured tools.
 
 By default, it's set to 0, which will disable the feature.
    */
-  maxToolRoundtrips?: number;
-} = {}): UseChatHelpers & {
+    maxToolRoundtrips?: number;
+  } = {},
+): UseChatHelpers & {
   addToolResult: ({
     toolCallId,
     result,
@@ -221,13 +205,15 @@ By default, it's set to 0, which will disable the feature.
 } {
   // Generate a unique ID for the chat if not provided.
   const hookId = createUniqueId();
-  const idKey = id || `chat-${hookId}`;
+  const idKey = useChatOptions.id || `chat-${hookId}`;
   const chatKey =
-    typeof api === 'string' ? `${api}|${idKey}|messages` : `${idKey}|messages`;
+    typeof useChatOptions.api === 'string'
+      ? `${useChatOptions.api}|${idKey}|messages`
+      : `${idKey}|messages`;
 
   // Because of the `initialData` option, the `data` will never be `undefined`:
   const messages = useSWRStore(chatApiStore, () => [chatKey], {
-    initialData: initialMessages,
+    initialData: useChatOptions.initialMessages,
   }) as Resource<Message[]>;
 
   const mutate = (data: Message[]) => {
@@ -252,15 +238,15 @@ By default, it's set to 0, which will disable the feature.
   let abortController: AbortController | null = null;
 
   let extraMetadata = {
-    credentials,
-    headers,
-    body,
+    credentials: useChatOptions.credentials,
+    headers: useChatOptions.headers,
+    body: useChatOptions.body,
   };
   createEffect(() => {
     extraMetadata = {
-      credentials,
-      headers,
-      body,
+      credentials: useChatOptions.credentials,
+      headers: useChatOptions.headers,
+      body: useChatOptions.body,
     };
   });
 
@@ -276,7 +262,7 @@ By default, it's set to 0, which will disable the feature.
       await processChatStream({
         getStreamedResponse: () =>
           getStreamedResponse(
-            api,
+            useChatOptions.api || '/api/chat',
             chatRequest,
             mutate,
             setStreamData,
@@ -284,15 +270,15 @@ By default, it's set to 0, which will disable the feature.
             extraMetadata,
             messagesRef,
             abortController,
-            generateId,
-            streamMode,
-            onFinish,
-            onResponse,
-            onToolCall,
-            sendExtraMessageFields,
+            useChatOptions.generateId || generateIdFunc,
+            useChatOptions.streamMode,
+            useChatOptions.onFinish,
+            useChatOptions.onResponse,
+            useChatOptions.onToolCall,
+            useChatOptions.sendExtraMessageFields,
           ),
-        experimental_onFunctionCall,
-        experimental_onToolCall,
+        experimental_onFunctionCall: useChatOptions.experimental_onFunctionCall,
+        experimental_onToolCall: useChatOptions.experimental_onToolCall,
         updateChatRequest(newChatRequest) {
           chatRequest = newChatRequest;
         },
@@ -307,8 +293,8 @@ By default, it's set to 0, which will disable the feature.
         return null;
       }
 
-      if (onError && err instanceof Error) {
-        onError(err);
+      if (useChatOptions.onError && err instanceof Error) {
+        useChatOptions.onError(err);
       }
 
       setError(err as Error);
@@ -316,6 +302,7 @@ By default, it's set to 0, which will disable the feature.
       setIsLoading(false);
     }
 
+    const maxToolRoundtrips = useChatOptions.maxToolRoundtrips ?? 0;
     // auto-submit when all tool calls in the last assistant message have results:
     const messages = messagesRef;
     const lastMessage = messages[messages.length - 1];
@@ -340,7 +327,7 @@ By default, it's set to 0, which will disable the feature.
     { options, functions, function_call, tools, tool_choice, data } = {},
   ) => {
     if (!message.id) {
-      message.id = generateId();
+      message.id = useChatOptions.generateId?.() || generateIdFunc();
     }
 
     const chatRequest: ChatRequest = {
@@ -404,7 +391,7 @@ By default, it's set to 0, which will disable the feature.
     messagesRef = messages;
   };
 
-  const [input, setInput] = createSignal(initialInput);
+  const [input, setInput] = createSignal(useChatOptions.initialInput || '');
 
   const handleSubmit: UseChatHelpers['handleSubmit'] = (
     e,
