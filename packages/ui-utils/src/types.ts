@@ -182,13 +182,24 @@ export type ChatRequest = {
   options?: RequestOptions;
   data?: Record<string, string>;
 
-  // @deprecated
+  /**
+   * @deprecated
+   */
   functions?: Array<Function>;
-  // @deprecated
+
+  /**
+   * @deprecated
+   */
   function_call?: FunctionCall;
-  // @deprecated
+
+  /**
+   * @deprecated
+   */
   tools?: Array<Tool>;
-  // @deprecated
+
+  /**
+   * @deprecated
+   */
   tool_choice?: ToolChoice;
 };
 
