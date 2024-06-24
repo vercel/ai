@@ -49,5 +49,6 @@
     "integration-test": {
       "dependsOn": ["^build", "build"]
     }
-  }
+  },
+  "globalEnv": ["CI", "PORT"]
 }

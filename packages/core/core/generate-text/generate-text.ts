@@ -54,7 +54,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 
-@param maxAutomaticRoundtrips - Maximal number of automatic roundtrips for tool calls.
+@param maxToolRoundtrips - Maximal number of automatic roundtrips for tool calls.
 
 @returns
 A result object that contains the generated text, the results of the tool calls, and additional information.
@@ -69,6 +69,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   maxRetries,
   abortSignal,
   maxAutomaticRoundtrips = 0,
+  maxToolRoundtrips = maxAutomaticRoundtrips,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -88,6 +89,11 @@ The tool choice strategy. Default: 'auto'.
     toolChoice?: CoreToolChoice<TOOLS>;
 
     /**
+@deprecated Use `maxToolRoundtrips` instead.
+     */
+    maxAutomaticRoundtrips?: number;
+
+    /**
 Maximal number of automatic roundtrips for tool calls.
 
 An automatic tool call roundtrip is another LLM call with the 
@@ -99,7 +105,7 @@ case of misconfigured tools.
 
 By default, it's set to 0, which will disable the feature.
      */
-    maxAutomaticRoundtrips?: number;
+    maxToolRoundtrips?: number;
   }): Promise<GenerateTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
@@ -156,7 +162,7 @@ By default, it's set to 0, which will disable the feature.
     // all current tool calls have results:
     currentToolResults.length === currentToolCalls.length &&
     // the number of roundtrips is less than the maximum:
-    roundtrips++ < maxAutomaticRoundtrips
+    roundtrips++ < maxToolRoundtrips
   );
 
   return new GenerateTextResult({

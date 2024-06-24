@@ -12,6 +12,7 @@ import {
   GenerateContentResponse,
   GenerationConfig,
   Part,
+  SafetySetting,
   VertexAI,
 } from '@google-cloud/vertexai';
 import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
@@ -47,7 +48,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     this.config = config;
   }
 
-  private getArgs({
+  private async getArgs({
     prompt,
     mode,
     frequencyPenalty,
@@ -99,8 +100,11 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
             model: this.modelId,
             generationConfig,
             tools: prepareTools(mode),
+            safetySettings: this.settings.safetySettings as
+              | undefined
+              | Array<SafetySetting>,
           }),
-          contentRequest: convertToGoogleVertexContentRequest(prompt),
+          contentRequest: await convertToGoogleVertexContentRequest({ prompt }),
           warnings,
         };
       }
@@ -133,7 +137,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { model, contentRequest, warnings } = this.getArgs(options);
+    const { model, contentRequest, warnings } = await this.getArgs(options);
     const { response } = await model.generateContent(contentRequest);
 
     const firstCandidate = response.candidates?.[0];
@@ -172,7 +176,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { model, contentRequest, warnings } = this.getArgs(options);
+    const { model, contentRequest, warnings } = await this.getArgs(options);
     const { stream } = await model.generateContentStream(contentRequest);
 
     let finishReason: LanguageModelV1FinishReason = 'other';
@@ -316,6 +320,10 @@ function getToolCallsFromParts({
   parts: Part[];
   generateId: () => string;
 }) {
+  if (parts == null) {
+    return undefined; // parts are sometimes undefined when using safety settings
+  }
+
   return parts.flatMap(part =>
     part.functionCall == null
       ? []
@@ -328,7 +336,11 @@ function getToolCallsFromParts({
   );
 }
 
-function getTextFromParts(parts: Part[]) {
+function getTextFromParts(parts: Part[] | undefined) {
+  if (parts == null) {
+    return undefined; // parts are sometimes undefined when using safety settings
+  }
+
   const textParts = parts.filter(part => 'text' in part) as Array<
     Part & { text: string }
   >;

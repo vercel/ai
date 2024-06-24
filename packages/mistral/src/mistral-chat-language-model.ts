@@ -25,6 +25,7 @@ type MistralChatConfig = {
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   generateId: () => string;
+  fetch?: typeof fetch;
 };
 
 export class MistralChatLanguageModel implements LanguageModelV1 {
@@ -151,6 +152,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
         mistralChatResponseSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;
@@ -192,6 +194,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
         mistralChatChunkSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;

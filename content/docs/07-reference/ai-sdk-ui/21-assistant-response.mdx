@@ -1,0 +1,72 @@
+---
+title: AssistantResponse
+description: API reference for the AssistantResponse streaming helper.
+---
+
+# `AssistantResponse`
+
+The AssistantResponse class is designed to facilitate streaming assistant responses to the [`useAssistant`](/docs/reference/ai-sdk-ui/use-assistant) hook.
+It receives an assistant thread and a current message, and can send messages and data messages to the client.
+
+## Import
+
+<Snippet text={`import { AssistantResponse } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'settings',
+      type: 'Settings',
+      description:
+        'You can pass the id of thread and the latest message which helps establish the context for the response.',
+      properties: [
+        {
+          type: 'Settings',
+          parameters: [
+            {
+              name: 'threadId',
+              type: 'string',
+              description:
+                'The thread ID that the response is associated with.',
+            },
+            {
+              name: 'messageId',
+              type: 'string',
+              description:
+                'The id of the latest message the response is associated with.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'process',
+      type: 'AssistantResponseCallback',
+      description:
+        'A callback in which you can run the assistant on threads, and send messages and data messages to the client.',
+      properties: [
+        {
+          type: 'AssistantResponseCallback',
+          parameters: [
+            {
+              name: 'forwardStream',
+              type: '(stream: AssistantStream) => Run | undefined',
+              description:
+                'Forwards the assistant response stream to the client. Returns the Run object after it completes, or when it requires an action.',
+            },
+            {
+              name: 'sendDataMessage',
+              type: '(message: DataMessage) => void',
+              description:
+                'Send a data message to the client. You can use this to provide information for rendering custom UIs while the assistant is processing the thread.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>

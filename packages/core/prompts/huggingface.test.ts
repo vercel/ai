@@ -1,4 +1,4 @@
-import type { Message } from '../shared/types';
+import type { Message } from '@ai-sdk/ui-utils';
 import {
   experimental_buildLlama2Prompt,
   experimental_buildOpenAssistantPrompt,

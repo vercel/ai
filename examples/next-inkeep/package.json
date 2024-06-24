@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/react": "latest",
     "@inkeep/ai-api": "^0.1.8",
     "ai": "latest",
     "next": "latest",

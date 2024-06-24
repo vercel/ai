@@ -11,7 +11,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  isParseableJson,
+  isParsableJson,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -19,13 +19,17 @@ import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
-import { openaiFailedResponseHandler } from './openai-error';
+import {
+  openAIErrorDataSchema,
+  openaiFailedResponseHandler,
+} from './openai-error';
 
 type OpenAIChatConfig = {
   provider: string;
-  baseURL: string;
   compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
+  url: (options: { modelId: string; path: string }) => string;
+  fetch?: typeof fetch;
 };
 
 export class OpenAIChatLanguageModel implements LanguageModelV1 {
@@ -71,7 +75,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       logit_bias: this.settings.logitBias,
       logprobs:
         this.settings.logprobs === true ||
-        typeof this.settings.logprobs === 'number',
+        typeof this.settings.logprobs === 'number'
+          ? true
+          : undefined,
       top_logprobs:
         typeof this.settings.logprobs === 'number'
           ? this.settings.logprobs
@@ -81,6 +87,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
             : undefined
           : undefined,
       user: this.settings.user,
+      parallel_tool_calls: this.settings.parallelToolCalls,
 
       // standardized settings:
       max_tokens: maxTokens,
@@ -142,7 +149,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/chat/completions`,
+      url: this.config.url({
+        path: '/chat/completions',
+        modelId: this.modelId,
+      }),
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -150,6 +160,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         openAIChatResponseSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;
@@ -181,7 +192,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/chat/completions`,
+      url: this.config.url({
+        path: '/chat/completions',
+        modelId: this.modelId,
+      }),
       headers: this.config.headers(),
       body: {
         ...args,
@@ -198,6 +212,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         openaiChatChunkSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;
@@ -225,12 +240,21 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
+            // handle failed chunk parsing / validation:
             if (!chunk.success) {
+              finishReason = 'error';
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
 
             const value = chunk.value;
+
+            // handle error chunks:
+            if ('error' in value) {
+              finishReason = 'error';
+              controller.enqueue({ type: 'error', error: value.error });
+              return;
+            }
 
             if (value.usage != null) {
               usage = {
@@ -302,6 +326,33 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                     },
                   };
 
+                  const toolCall = toolCalls[index];
+
+                  // check if tool call is complete (some providers send the full tool call in one chunk)
+                  if (
+                    toolCall.function?.name != null &&
+                    toolCall.function?.arguments != null &&
+                    isParsableJson(toolCall.function.arguments)
+                  ) {
+                    // send delta
+                    controller.enqueue({
+                      type: 'tool-call-delta',
+                      toolCallType: 'function',
+                      toolCallId: toolCall.id,
+                      toolName: toolCall.function.name,
+                      argsTextDelta: toolCall.function.arguments,
+                    });
+
+                    // send tool call
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: toolCall.id ?? generateId(),
+                      toolName: toolCall.function.name,
+                      args: toolCall.function.arguments,
+                    });
+                  }
+
                   continue;
                 }
 
@@ -324,20 +375,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
                 // check if tool call is complete
                 if (
-                  toolCall.function?.name == null ||
-                  toolCall.function?.arguments == null ||
-                  !isParseableJson(toolCall.function.arguments)
+                  toolCall.function?.name != null &&
+                  toolCall.function?.arguments != null &&
+                  isParsableJson(toolCall.function.arguments)
                 ) {
-                  continue;
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: toolCall.id ?? generateId(),
+                    toolName: toolCall.function.name,
+                    args: toolCall.function.arguments,
+                  });
                 }
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id ?? generateId(),
-                  toolName: toolCall.function.name,
-                  args: toolCall.function.arguments,
-                });
               }
             }
           },
@@ -411,57 +460,60 @@ const openAIChatResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiChatChunkSchema = z.object({
-  choices: z.array(
-    z.object({
-      delta: z.object({
-        role: z.enum(['assistant']).optional(),
-        content: z.string().nullable().optional(),
-        tool_calls: z
-          .array(
-            z.object({
-              index: z.number(),
-              id: z.string().optional().nullable(),
-              type: z.literal('function').optional(),
-              function: z.object({
-                name: z.string().optional(),
-                arguments: z.string().optional(),
-              }),
-            }),
-          )
-          .optional(),
-      }),
-      logprobs: z
-        .object({
-          content: z
-            .array(
-              z.object({
-                token: z.string(),
-                logprob: z.number(),
-                top_logprobs: z.array(
-                  z.object({
-                    token: z.string(),
-                    logprob: z.number(),
+const openaiChatChunkSchema = z.union([
+  z.object({
+    choices: z.array(
+      z.object({
+        delta: z
+          .object({
+            role: z.enum(['assistant']).optional(),
+            content: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number(),
+                  id: z.string().nullish(),
+                  type: z.literal('function').optional(),
+                  function: z.object({
+                    name: z.string().nullish(),
+                    arguments: z.string().nullish(),
                   }),
-                ),
-              }),
-            )
-            .nullable(),
-        })
-        .nullable()
-        .optional(),
-      finish_reason: z.string().nullable().optional(),
-      index: z.number(),
-    }),
-  ),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      completion_tokens: z.number(),
-    })
-    .optional()
-    .nullable(),
-});
+                }),
+              )
+              .nullish(),
+          })
+          .nullish(),
+        logprobs: z
+          .object({
+            content: z
+              .array(
+                z.object({
+                  token: z.string(),
+                  logprob: z.number(),
+                  top_logprobs: z.array(
+                    z.object({
+                      token: z.string(),
+                      logprob: z.number(),
+                    }),
+                  ),
+                }),
+              )
+              .nullable(),
+          })
+          .nullish(),
+        finish_reason: z.string().nullable().optional(),
+        index: z.number(),
+      }),
+    ),
+    usage: z
+      .object({
+        prompt_tokens: z.number(),
+        completion_tokens: z.number(),
+      })
+      .nullish(),
+  }),
+  openAIErrorDataSchema,
+]);
 
 function prepareToolsAndToolChoice(
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {

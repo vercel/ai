@@ -8,7 +8,6 @@ dotenv.config();
 async function main() {
   const result = await generateText({
     model: vertex('gemini-1.0-pro-vision'),
-    maxTokens: 512,
     messages: [
       {
         role: 'user',

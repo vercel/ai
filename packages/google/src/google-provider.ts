@@ -1,4 +1,8 @@
-import { Google } from './google-facade';
+import {
+  generateId,
+  loadApiKey,
+  withoutTrailingSlash,
+} from '@ai-sdk/provider-utils';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import {
   GoogleGenerativeAIModelId,
@@ -7,6 +11,11 @@ import {
 
 export interface GoogleGenerativeAIProvider {
   (
+    modelId: GoogleGenerativeAIModelId,
+    settings?: GoogleGenerativeAISettings,
+  ): GoogleGenerativeAILanguageModel;
+
+  languageModel(
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
   ): GoogleGenerativeAILanguageModel;
@@ -48,6 +57,12 @@ Custom headers to include in the requests.
      */
   headers?: Record<string, string>;
 
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: typeof fetch;
+
   generateId?: () => string;
 }
 
@@ -57,7 +72,30 @@ Create a Google Generative AI provider instance.
 export function createGoogleGenerativeAI(
   options: GoogleGenerativeAIProviderSettings = {},
 ): GoogleGenerativeAIProvider {
-  const google = new Google(options);
+  const baseURL =
+    withoutTrailingSlash(options.baseURL ?? options.baseUrl) ??
+    'https://generativelanguage.googleapis.com/v1beta';
+
+  const getHeaders = () => ({
+    'x-goog-api-key': loadApiKey({
+      apiKey: options.apiKey,
+      environmentVariableName: 'GOOGLE_GENERATIVE_AI_API_KEY',
+      description: 'Google Generative AI',
+    }),
+    ...options.headers,
+  });
+
+  const createChatModel = (
+    modelId: GoogleGenerativeAIModelId,
+    settings: GoogleGenerativeAISettings = {},
+  ) =>
+    new GoogleGenerativeAILanguageModel(modelId, settings, {
+      provider: 'google.generative-ai',
+      baseURL,
+      headers: getHeaders,
+      generateId: options.generateId ?? generateId,
+      fetch: options.fetch,
+    });
 
   const provider = function (
     modelId: GoogleGenerativeAIModelId,
@@ -69,11 +107,12 @@ export function createGoogleGenerativeAI(
       );
     }
 
-    return google.chat(modelId, settings);
+    return createChatModel(modelId, settings);
   };
 
-  provider.chat = google.chat.bind(google);
-  provider.generativeAI = google.generativeAI.bind(google);
+  provider.languageModel = createChatModel;
+  provider.chat = createChatModel;
+  provider.generativeAI = createChatModel;
 
   return provider as GoogleGenerativeAIProvider;
 }

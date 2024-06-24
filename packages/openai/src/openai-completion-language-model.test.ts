@@ -2,7 +2,7 @@ import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import {
   JsonTestServer,
   StreamingTestServer,
-  convertStreamToArray,
+  convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from './openai-provider';
 import { mapOpenAICompletionLogProbs } from './map-openai-completion-logprobs';
@@ -154,6 +154,23 @@ describe('doGenerate', () => {
     expect(finishReason).toStrictEqual('stop');
   });
 
+  it('should support unknown finish reason', async () => {
+    prepareJsonResponse({
+      content: '',
+      finish_reason: 'eos',
+    });
+
+    const { finishReason } = await provider
+      .completion('gpt-3.5-turbo-instruct')
+      .doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+    expect(finishReason).toStrictEqual('unknown');
+  });
+
   it('should expose the raw response headers', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -303,7 +320,7 @@ describe('doStream', () => {
     });
 
     // note: space moved to last chunk bc of trimming
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
       { type: 'text-delta', textDelta: 'World!' },
@@ -315,6 +332,68 @@ describe('doStream', () => {
         usage: { promptTokens: 10, completionTokens: 362 },
       },
     ]);
+  });
+
+  it('should handle error stream parts', async () => {
+    server.responseChunks = [
+      `data: {"error":{"message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our ` +
+        `help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,
+      'data: [DONE]\n\n',
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'error',
+        error: {
+          message:
+            'The server had an error processing your request. Sorry about that! ' +
+            'You can retry your request, or contact us through our help center at ' +
+            'help.openai.com if you keep seeing this error.',
+          type: 'server_error',
+          code: null,
+          param: null,
+        },
+      },
+      {
+        finishReason: 'error',
+        logprobs: undefined,
+        type: 'finish',
+        usage: {
+          completionTokens: NaN,
+          promptTokens: NaN,
+        },
+      },
+    ]);
+  });
+
+  it('should handle unparsable stream parts', async () => {
+    server.responseChunks = [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const elements = await convertReadableStreamToArray(stream);
+
+    expect(elements.length).toBe(2);
+    expect(elements[0].type).toBe('error');
+    expect(elements[1]).toStrictEqual({
+      finishReason: 'error',
+      logprobs: undefined,
+      type: 'finish',
+      usage: {
+        completionTokens: NaN,
+        promptTokens: NaN,
+      },
+    });
   });
 
   it('should expose the raw response headers', async () => {

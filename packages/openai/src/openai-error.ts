@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
 
-const openAIErrorDataSchema = z.object({
+export const openAIErrorDataSchema = z.object({
   error: z.object({
     message: z.string(),
     type: z.string(),

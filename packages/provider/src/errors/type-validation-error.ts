@@ -18,12 +18,7 @@ export class TypeValidationError extends Error {
   }
 
   static isTypeValidationError(error: unknown): error is TypeValidationError {
-    return (
-      error instanceof Error &&
-      error.name === 'AI_TypeValidationError' &&
-      typeof (error as TypeValidationError).value === 'string' &&
-      typeof (error as TypeValidationError).cause === 'string'
-    );
+    return error instanceof Error && error.name === 'AI_TypeValidationError';
   }
 
   toJSON() {

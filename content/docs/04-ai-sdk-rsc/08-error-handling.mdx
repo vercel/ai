@@ -21,13 +21,11 @@ export async function getStreamedUI() {
 
   (async () => {
     ui.update(<div>loading</div>);
-    try {
-      const data = await fetchData();
-      ui.done(<div>{data}</div>);
-    } catch (e) {
-      ui.error(<div>Error: {e.message}</div>);
-    }
-  })();
+    const data = await fetchData();
+    ui.done(<div>{data}</div>);
+  })().catch(e => {
+    ui.error(<div>Error: {e.message}</div>);
+  });
 
   return ui.value;
 }

@@ -12,12 +12,6 @@ It does not have any runtime behavior, but it helps TypeScript infer the types o
 Without this helper function, TypeScript is unable to connect the `parameters` property to the `execute` method,
 and the argument types of `execute` cannot be inferred.
 
-## Import
-
-<Snippet text={`import { tool } from "ai"`} prompt={false} />
-
-### Example
-
 ```ts highlight={"1,4,9,10"}
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -34,6 +28,10 @@ export const weatherTool = tool({
   }),
 });
 ```
+
+## Import
+
+<Snippet text={`import { tool } from "ai"`} prompt={false} />
 
 ## API Signature
 

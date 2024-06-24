@@ -1,6 +1,43 @@
+// forwarding exports from ui-utils:
+export {
+  formatStreamPart,
+  parseStreamPart,
+  readDataStream,
+  parseComplexResponse,
+} from '@ai-sdk/ui-utils';
+export type {
+  AssistantStatus,
+  UseAssistantOptions,
+  Message,
+  CreateMessage,
+  DataMessage,
+  AssistantMessage,
+  JSONValue,
+  ChatRequest,
+  ChatRequestOptions,
+  Function,
+  FunctionCall,
+  FunctionCallHandler,
+  ToolInvocation,
+  Tool,
+  ToolCall,
+  ToolCallHandler,
+  ToolChoice,
+  StreamPart,
+  IdGenerator,
+  RequestOptions,
+} from '@ai-sdk/ui-utils';
+
+import { generateId as generateIdImpl } from '@ai-sdk/provider-utils';
+export const generateId = generateIdImpl;
+
+/**
+@deprecated Use `generateId` instead.
+ */
+// TODO remove nanoid export (breaking change)
+export const nanoid = generateIdImpl;
+
 export * from '../core/index';
-export * from '../shared/types';
-export * from '../shared/utils';
 export * from './ai-stream';
 export * from './anthropic-stream';
 export * from './assistant-response';
@@ -16,5 +53,4 @@ export * from './openai-stream';
 export * from './replicate-stream';
 export * from './stream-data';
 export * from './stream-to-response';
-export * from './streaming-react-response';
 export * from './streaming-text-response';

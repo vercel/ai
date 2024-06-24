@@ -23,7 +23,7 @@ export class MockEmbeddingModelV1<VALUE> implements EmbeddingModelV1<VALUE> {
     maxEmbeddingsPerCall?: EmbeddingModelV1<VALUE>['maxEmbeddingsPerCall'];
     supportsParallelCalls?: EmbeddingModelV1<VALUE>['supportsParallelCalls'];
     doEmbed?: EmbeddingModelV1<VALUE>['doEmbed'];
-  }) {
+  } = {}) {
     this.provider = provider;
     this.modelId = modelId;
     this.maxEmbeddingsPerCall = maxEmbeddingsPerCall;
