@@ -18,7 +18,7 @@ describe('stream data stream', () => {
       <div>
         <div data-testid="status">{status}</div>
         {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
+          <div data-testid={`message-${idx}`} key={idx}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
             {m.content}
           </div>

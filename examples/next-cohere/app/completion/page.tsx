@@ -1,6 +1,6 @@
 'use client';
 
-import { useCompletion } from '@ai-sdk/react';
+import { useCompletion } from 'ai/react';
 import { FormEventHandler, useState } from 'react';
 
 export default function Chat() {

@@ -32,7 +32,7 @@ Let's create a React component that imports the `useChat` hook from the `ai/reac
 We will use the `maxToolRoundtrips` to specify the maximum number of consecutive tool calls that can made before the model or the user responds with a text message. In this example, you will set it to `1` to allow for one round trip to happen.
 
 ```tsx filename='pages/index.tsx'
-import { useChat } from '@ai-sdk/react';
+import { useChat } from 'ai/react';
 
 export default function Page() {
   const { messages, input, setInput, append } = useChat({

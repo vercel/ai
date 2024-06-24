@@ -5,7 +5,15 @@ description: Learn how to use Cohere with the Vercel AI SDK.
 
 # Cohere
 
-Vercel AI SDK provides a set of utilities to make it easy to use Cohere's API. In this guide, we'll walk through how to use the utilities to create a text completion app.
+<Note type="warning">
+  The legacy Cohere integration is not compatible with the AI SDK 3.1 functions.
+  It is recommended to use the [AI SDK Cohere
+  Provider](../ai-sdk-providers/cohere) instead.
+</Note>
+
+Vercel AI SDK provides a set of utilities to make it easy to use Cohere's API. In
+this guide, we'll walk through how to use the utilities to create a text completion
+app.
 
 ## Guide: Chat Bot
 
@@ -108,7 +116,7 @@ By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use th
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client';
 
-import { useChat } from '@ai-sdk/react';
+import { useChat } from 'ai/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, data } = useChat();
@@ -219,7 +227,7 @@ By default, the [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hook
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client';
 
-import { useCompletion } from '@ai-sdk/react';
+import { useCompletion } from 'ai/react';
 
 export default function Chat() {
   const { completion, input, handleInputChange, handleSubmit, error } =

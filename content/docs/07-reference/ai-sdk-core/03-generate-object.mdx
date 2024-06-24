@@ -373,6 +373,12 @@ console.log(JSON.stringify(object, null, 2));
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
     },
+    {
+      name: 'toJsonResponse',
+      type: '(init?: ResponseInit) => Response',
+      description:
+        'Converts the object to a JSON response. The response will have a status code of 200 and a content type of `application/json; charset=utf-8`.',
+    },
   ]}
 />
 

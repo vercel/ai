@@ -279,7 +279,6 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: false,
     });
   });
 
@@ -341,7 +340,6 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: false,
       tools: [
         {
           type: 'function',
@@ -775,7 +773,6 @@ describe('doStream', () => {
       stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: false,
     });
   });
 

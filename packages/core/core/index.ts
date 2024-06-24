@@ -5,5 +5,5 @@ export * from './prompt';
 export * from './registry';
 export * from './tool';
 export * from './types';
-export type { DeepPartial } from './util/deep-partial';
+export type { DeepPartial } from '@ai-sdk/ui-utils';
 export { cosineSimilarity } from './util/cosine-similarity';

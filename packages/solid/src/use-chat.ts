@@ -55,7 +55,10 @@ export type UseChatHelpers = {
   /** Signal setter to update the input value */
   setInput: Setter<string>;
   /** Form submission handler to automatically reset input and append a user message */
-  handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void;
+  handleSubmit: (
+    event?: { preventDefault?: () => void },
+    chatRequestOptions?: ChatRequestOptions,
+  ) => void;
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;
   /** Additional data added on the server via StreamData */
@@ -253,8 +256,11 @@ export function useChat({
 
   const [input, setInput] = createSignal(initialInput);
 
-  const handleSubmit = (e: any, options: ChatRequestOptions = {}) => {
-    e.preventDefault();
+  const handleSubmit = (
+    event?: { preventDefault?: () => void },
+    options: ChatRequestOptions = {},
+  ) => {
+    event?.preventDefault?.();
     const inputValue = input();
     if (!inputValue) return;
 

@@ -249,8 +249,12 @@ export function useChat({
 
   const input = ref(initialInput);
 
-  const handleSubmit = (e: any, options: ChatRequestOptions = {}) => {
-    e.preventDefault();
+  const handleSubmit = (
+    event?: { preventDefault?: () => void },
+    options: ChatRequestOptions = {},
+  ) => {
+    event?.preventDefault?.();
+
     const inputValue = input.value;
     if (!inputValue) return;
     append(

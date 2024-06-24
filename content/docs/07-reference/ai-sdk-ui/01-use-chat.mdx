@@ -11,11 +11,7 @@ Allows you to easily create a conversational user interface for your chatbot app
 
 <Tabs items={['React', 'Svelte', 'Vue', 'Solid']}>
   <Tab>
-    <Snippet
-      text="import { useChat } from '@ai-sdk/react'"
-      dark
-      prompt={false}
-    />
+    <Snippet text="import { useChat } from 'ai/react'" dark prompt={false} />
   </Tab>
   <Tab>
     <Snippet
@@ -189,7 +185,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'handleSubmit',
-      type: '(event: React.FormEvent<HTMLFormElement>, chatRequestOptions?: ChatRequestOptions) => void',
+      type: '(event?: { preventDefault?: () => void }, chatRequestOptions?: ChatRequestOptions) => void',
       description:
         'Form submission handler that automatically resets the input field and appends a user message. You can use the `options` parameter to send additional data, headers and more to the server.',
       properties: [

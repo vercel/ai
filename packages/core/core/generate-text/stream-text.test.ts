@@ -570,16 +570,12 @@ describe('result.toTextStreamResponse', () => {
       'text/plain; charset=utf-8',
     );
 
-    // Read the chunks into an array
-    const reader = response.body!.getReader();
-    const chunks = [];
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      chunks.push(new TextDecoder().decode(value));
-    }
-
-    assert.deepStrictEqual(chunks, ['Hello', ', ', 'world!']);
+    assert.deepStrictEqual(
+      await convertReadableStreamToArray(
+        response.body!.pipeThrough(new TextDecoderStream()),
+      ),
+      ['Hello', ', ', 'world!'],
+    );
   });
 });
 

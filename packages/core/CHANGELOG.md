@@ -1,5 +1,78 @@
 # ai
 
+## 3.2.7
+
+### Patch Changes
+
+- d42b8907: feat (ui): make event in handleSubmit optional
+- Updated dependencies [d42b8907]
+  - @ai-sdk/svelte@0.0.6
+  - @ai-sdk/react@0.0.7
+  - @ai-sdk/solid@0.0.6
+  - @ai-sdk/vue@0.0.6
+
+## 3.2.6
+
+### Patch Changes
+
+- 74e28222: fix (ai/rsc): "could not find InternalStreamableUIClient" bug
+
+## 3.2.5
+
+### Patch Changes
+
+- 4d426d0c: fix (ai): split provider and model ids correctly in the provider registry
+
+## 3.2.4
+
+### Patch Changes
+
+- Updated dependencies [3cb103bc]
+  - @ai-sdk/react@0.0.6
+
+## 3.2.3
+
+### Patch Changes
+
+- 89b7552b: chore (ai): remove deprecation from ai/react imports, add experimental_useObject
+- Updated dependencies [02f6a088]
+  - @ai-sdk/provider-utils@0.0.16
+  - @ai-sdk/react@0.0.5
+  - @ai-sdk/svelte@0.0.5
+  - @ai-sdk/ui-utils@0.0.5
+  - @ai-sdk/solid@0.0.5
+  - @ai-sdk/vue@0.0.5
+
+## 3.2.2
+
+### Patch Changes
+
+- 0565cd72: feat (ai/core): add toJsonResponse to generateObject result.
+
+## 3.2.1
+
+### Patch Changes
+
+- 008725ec: feat (ai): add textStream, toTextStreamResponse(), and pipeTextStreamToResponse() to streamObject
+- 520fb2d5: feat (rsc): add streamUI onFinish callback
+- Updated dependencies [008725ec]
+- Updated dependencies [008725ec]
+  - @ai-sdk/react@0.0.4
+  - @ai-sdk/ui-utils@0.0.4
+  - @ai-sdk/solid@0.0.4
+  - @ai-sdk/svelte@0.0.4
+  - @ai-sdk/vue@0.0.4
+
+## 3.2.0
+
+### Minor Changes
+
+- 85ef6d18: chore (ai): AI SDK 3.2 release
+
+### Patch Changes
+
+- b965dd2d: fix (core): pass settings correctly for generateObject and streamObject
+
 ## 3.1.37
 
 ### Patch Changes

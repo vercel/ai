@@ -1,5 +1,24 @@
 # @ai-sdk/anthropic
 
+## 0.0.24
+
+### Patch Changes
+
+- 04800838: fix (@ai-sdk/anthropic): combine tool and user messages, combine system messages
+
+## 0.0.23
+
+### Patch Changes
+
+- Updated dependencies [02f6a088]
+  - @ai-sdk/provider-utils@0.0.16
+
+## 0.0.22
+
+### Patch Changes
+
+- 0a22b05b: feat (@ai-sdk/anthropic): add claude-3.5-sonnet model
+
 ## 0.0.21
 
 ### Patch Changes
