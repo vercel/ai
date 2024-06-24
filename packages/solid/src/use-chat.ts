@@ -5,7 +5,7 @@ import type {
   IdGenerator,
   JSONValue,
   Message,
-  UseChatOptions,
+  UseChatOptions as SharedUseChatOptions,
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
@@ -14,16 +14,18 @@ import {
 } from '@ai-sdk/ui-utils';
 import {
   Accessor,
+  JSX,
   Resource,
   Setter,
   createEffect,
+  createMemo,
   createSignal,
   createUniqueId,
 } from 'solid-js';
 import { useSWRStore } from 'solid-swr-store';
 import { createSWRStore } from 'swr-store';
 
-export type { CreateMessage, Message, UseChatOptions };
+export type { CreateMessage, Message };
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
@@ -63,14 +65,12 @@ export type UseChatHelpers = {
   /** Signal setter to update the input value */
   setInput: Setter<string>;
   /** An input/textarea-ready onChange handler to control the value of the input */
-  handleInputChange: (
-    e:
-      | (Event & { currentTarget: HTMLInputElement })
-      | (Event & { currentTarget: HTMLTextAreaElement }),
-  ) => void;
+  handleInputChange:
+    | JSX.EventHandlerUnion<HTMLInputElement, InputEvent>
+    | JSX.EventHandlerUnion<HTMLTextAreaElement, InputEvent>;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
-    e: Event & { currentTarget: HTMLFormElement },
+    e: Parameters<JSX.EventHandler<HTMLFormElement, SubmitEvent>>[0],
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   /** Whether the API request is in progress */
@@ -90,8 +90,8 @@ const getStreamedResponse = async (
   abortController: AbortController | null,
   generateId: IdGenerator,
   streamMode?: 'stream-data' | 'text',
-  onFinish?: (message: Message) => void,
-  onResponse?: (response: Response) => void | Promise<void>,
+  onFinish?: UseChatOptions['onFinish'],
+  onResponse?: UseChatOptions['onResponse'],
   onToolCall?: UseChatOptions['onToolCall'],
   sendExtraMessageFields?: boolean,
 ) => {
@@ -103,27 +103,13 @@ const getStreamedResponse = async (
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
     : chatRequest.messages.map(
-        ({
-          role,
-          content,
-          name,
-          data,
-          annotations,
-          toolInvocations,
-          function_call,
-          tool_calls,
-          tool_call_id,
-        }) => ({
+        ({ role, content, name, data, annotations, toolInvocations }) => ({
           role,
           content,
           ...(name !== undefined && { name }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
           ...(toolInvocations !== undefined && { toolInvocations }),
-          // outdated function/tool call handling (TODO deprecate):
-          tool_call_id,
-          ...(function_call !== undefined && { function_call }),
-          ...(tool_calls !== undefined && { tool_calls }),
         }),
       );
 
@@ -134,18 +120,6 @@ const getStreamedResponse = async (
       data: chatRequest.data,
       ...extraMetadata.body,
       ...chatRequest.options?.body,
-      ...(chatRequest.functions !== undefined && {
-        functions: chatRequest.functions,
-      }),
-      ...(chatRequest.function_call !== undefined && {
-        function_call: chatRequest.function_call,
-      }),
-      ...(chatRequest.tools !== undefined && {
-        tools: chatRequest.tools,
-      }),
-      ...(chatRequest.tool_choice !== undefined && {
-        tool_choice: chatRequest.tool_choice,
-      }),
     },
     streamMode,
     credentials: extraMetadata.credentials,
@@ -175,12 +149,10 @@ const chatApiStore = createSWRStore<Message[], string[]>({
   },
 });
 
-export function useChat(
-  useChatOptions: Omit<UseChatOptions, 'api'> & {
-    api?: string;
-    key?: string;
+export type UseChatOptions = Omit<SharedUseChatOptions, 'api'> & {
+  api?: string;
 
-    /**
+  /**
 Maximal number of automatic roundtrips for tool calls.
 
 An automatic tool call roundtrip is a call to the server with the 
@@ -191,9 +163,12 @@ A maximum number is required to prevent infinite loops in the
 case of misconfigured tools.
 
 By default, it's set to 0, which will disable the feature.
-   */
-    maxToolRoundtrips?: number;
-  } = {},
+ */
+  maxToolRoundtrips?: number;
+};
+
+export function useChat(
+  rawUseChatOptions: UseChatOptions | Accessor<UseChatOptions> = {},
 ): UseChatHelpers & {
   addToolResult: ({
     toolCallId,
@@ -203,22 +178,28 @@ By default, it's set to 0, which will disable the feature.
     result: any;
   }) => void;
 } {
+  const useChatOptions = createMemo(() => handleProps(rawUseChatOptions));
+  const generateId = createMemo(
+    () => useChatOptions().generateId() || generateIdFunc,
+  );
+
   // Generate a unique ID for the chat if not provided.
   const hookId = createUniqueId();
-  const idKey = useChatOptions.id || `chat-${hookId}`;
-  const chatKey =
-    typeof useChatOptions.api === 'string'
-      ? `${useChatOptions.api}|${idKey}|messages`
-      : `${idKey}|messages`;
+  const idKey = createMemo(() => useChatOptions().id() || `chat-${hookId}`);
+  const chatKey = createMemo(() =>
+    typeof useChatOptions().api() === 'string'
+      ? `${useChatOptions().api()}|${idKey()}|messages`
+      : `${idKey()}|messages`,
+  );
 
   // Because of the `initialData` option, the `data` will never be `undefined`:
-  const messages = useSWRStore(chatApiStore, () => [chatKey], {
-    initialData: useChatOptions.initialMessages,
+  const messages = useSWRStore(chatApiStore, () => [chatKey()], {
+    initialData: useChatOptions().initialMessages() || [],
   }) as Resource<Message[]>;
 
   const mutate = (data: Message[]) => {
-    store[chatKey] = data;
-    return chatApiStore.mutate([chatKey], {
+    store[chatKey()] = data;
+    return chatApiStore.mutate([chatKey()], {
       status: 'success',
       data,
     });
@@ -238,15 +219,15 @@ By default, it's set to 0, which will disable the feature.
   let abortController: AbortController | null = null;
 
   let extraMetadata = {
-    credentials: useChatOptions.credentials,
-    headers: useChatOptions.headers,
-    body: useChatOptions.body,
+    credentials: useChatOptions().credentials(),
+    headers: useChatOptions().headers(),
+    body: useChatOptions().body(),
   };
   createEffect(() => {
     extraMetadata = {
-      credentials: useChatOptions.credentials,
-      headers: useChatOptions.headers,
-      body: useChatOptions.body,
+      credentials: useChatOptions().credentials(),
+      headers: useChatOptions().headers(),
+      body: useChatOptions().body(),
     };
   });
 
@@ -262,7 +243,7 @@ By default, it's set to 0, which will disable the feature.
       await processChatStream({
         getStreamedResponse: () =>
           getStreamedResponse(
-            useChatOptions.api || '/api/chat',
+            useChatOptions().api() ?? '/api/chat',
             chatRequest,
             mutate,
             setStreamData,
@@ -270,15 +251,15 @@ By default, it's set to 0, which will disable the feature.
             extraMetadata,
             messagesRef,
             abortController,
-            useChatOptions.generateId || generateIdFunc,
-            useChatOptions.streamMode,
-            useChatOptions.onFinish,
-            useChatOptions.onResponse,
-            useChatOptions.onToolCall,
-            useChatOptions.sendExtraMessageFields,
+            generateId(),
+            useChatOptions().streamMode(),
+            useChatOptions().onFinish(),
+            useChatOptions().onResponse(),
+            useChatOptions().onToolCall(),
+            useChatOptions().sendExtraMessageFields(),
           ),
-        experimental_onFunctionCall: useChatOptions.experimental_onFunctionCall,
-        experimental_onToolCall: useChatOptions.experimental_onToolCall,
+        experimental_onFunctionCall:
+          useChatOptions().experimental_onFunctionCall(),
         updateChatRequest(newChatRequest) {
           chatRequest = newChatRequest;
         },
@@ -293,8 +274,8 @@ By default, it's set to 0, which will disable the feature.
         return null;
       }
 
-      if (useChatOptions.onError && err instanceof Error) {
-        useChatOptions.onError(err);
+      if (useChatOptions().onError() && err instanceof Error) {
+        useChatOptions().onError()!(err);
       }
 
       setError(err as Error);
@@ -302,7 +283,7 @@ By default, it's set to 0, which will disable the feature.
       setIsLoading(false);
     }
 
-    const maxToolRoundtrips = useChatOptions.maxToolRoundtrips ?? 0;
+    const maxToolRoundtrips = useChatOptions().maxToolRoundtrips() ?? 0;
     // auto-submit when all tool calls in the last assistant message have results:
     const messages = messagesRef;
     const lastMessage = messages[messages.length - 1];
@@ -324,32 +305,22 @@ By default, it's set to 0, which will disable the feature.
 
   const append: UseChatHelpers['append'] = async (
     message,
-    { options, functions, function_call, tools, tool_choice, data } = {},
+    { options, data } = {},
   ) => {
     if (!message.id) {
-      message.id = useChatOptions.generateId?.() || generateIdFunc();
+      message.id = generateId()();
     }
 
     const chatRequest: ChatRequest = {
       messages: messagesRef.concat(message as Message),
       options,
       data,
-      ...(functions !== undefined && { functions }),
-      ...(function_call !== undefined && { function_call }),
-      ...(tools !== undefined && { tools }),
-      ...(tool_choice !== undefined && { tool_choice }),
     };
 
     return triggerRequest(chatRequest);
   };
 
-  const reload: UseChatHelpers['reload'] = async ({
-    options,
-    functions,
-    function_call,
-    tools,
-    tool_choice,
-  } = {}) => {
+  const reload: UseChatHelpers['reload'] = async ({ options } = {}) => {
     if (messagesRef.length === 0) return null;
 
     // Remove last assistant message and retry last user message.
@@ -358,10 +329,6 @@ By default, it's set to 0, which will disable the feature.
       const chatRequest: ChatRequest = {
         messages: messagesRef.slice(0, -1),
         options,
-        ...(functions !== undefined && { functions }),
-        ...(function_call !== undefined && { function_call }),
-        ...(tools !== undefined && { tools }),
-        ...(tool_choice !== undefined && { tool_choice }),
       };
 
       return triggerRequest(chatRequest);
@@ -370,10 +337,6 @@ By default, it's set to 0, which will disable the feature.
     const chatRequest: ChatRequest = {
       messages: messagesRef,
       options,
-      ...(functions !== undefined && { functions }),
-      ...(function_call !== undefined && { function_call }),
-      ...(tools !== undefined && { tools }),
-      ...(tool_choice !== undefined && { tool_choice }),
     };
 
     return triggerRequest(chatRequest);
@@ -391,7 +354,7 @@ By default, it's set to 0, which will disable the feature.
     messagesRef = messages;
   };
 
-  const [input, setInput] = createSignal(useChatOptions.initialInput || '');
+  const [input, setInput] = createSignal(useChatOptions().initialInput() || '');
 
   const handleSubmit: UseChatHelpers['handleSubmit'] = (
     e,
@@ -502,4 +465,83 @@ function countTrailingAssistantMessages(messages: Message[]) {
     }
   }
   return count;
+}
+
+function handleProps(props: UseChatOptions | Accessor<UseChatOptions>) {
+  // Handle reactive and non-reactive useChatOptions
+  const id = createMemo(() =>
+    typeof props === 'function' ? props().id : props.id,
+  );
+  const api = createMemo(() =>
+    typeof props === 'function' ? props().api : props.api,
+  );
+  const credentials = createMemo(() =>
+    typeof props === 'function' ? props().credentials : props.credentials,
+  );
+  const headers = createMemo(() =>
+    typeof props === 'function' ? props().headers : props.headers,
+  );
+  const body = createMemo(() =>
+    typeof props === 'function' ? props().body : props.body,
+  );
+  const initialMessages = createMemo(() =>
+    typeof props === 'function'
+      ? props().initialMessages
+      : props.initialMessages,
+  );
+  const generateId = createMemo(() =>
+    typeof props === 'function' ? props().generateId : props.generateId,
+  );
+  const streamMode = createMemo(() =>
+    typeof props === 'function' ? props().streamMode : props.streamMode,
+  );
+  const onFinish = createMemo(() =>
+    typeof props === 'function' ? props().onFinish : props.onFinish,
+  );
+  const onResponse = createMemo(() =>
+    typeof props === 'function' ? props().onResponse : props.onResponse,
+  );
+  const onToolCall = createMemo(() =>
+    typeof props === 'function' ? props().onToolCall : props.onToolCall,
+  );
+  const sendExtraMessageFields = createMemo(() =>
+    typeof props === 'function'
+      ? props().sendExtraMessageFields
+      : props.sendExtraMessageFields,
+  );
+  const experimental_onFunctionCall = createMemo(() =>
+    typeof props === 'function'
+      ? props().experimental_onFunctionCall
+      : props.experimental_onFunctionCall,
+  );
+  const onError = createMemo(() =>
+    typeof props === 'function' ? props().onError : props.onError,
+  );
+  const maxToolRoundtrips = createMemo(() =>
+    typeof props === 'function'
+      ? props().maxToolRoundtrips
+      : props.maxToolRoundtrips,
+  );
+  const initialInput = createMemo(() =>
+    typeof props === 'function' ? props().initialInput : props.initialInput,
+  );
+
+  return {
+    id,
+    api,
+    credentials,
+    headers,
+    body,
+    initialMessages,
+    generateId,
+    streamMode,
+    onFinish,
+    onResponse,
+    onToolCall,
+    sendExtraMessageFields,
+    experimental_onFunctionCall,
+    onError,
+    maxToolRoundtrips,
+    initialInput,
+  };
 }
