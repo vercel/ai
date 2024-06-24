@@ -468,6 +468,9 @@ function countTrailingAssistantMessages(messages: Message[]) {
   return count;
 }
 
+/**
+ * Handle reactive and non-reactive useChatOptions
+ */
 function handleProps(props: UseChatOptions | Accessor<UseChatOptions>) {
   // Handle reactive and non-reactive useChatOptions
   const id = createMemo(() =>
