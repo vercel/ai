@@ -167,4 +167,53 @@ describe('tool messages', () => {
       system: undefined,
     });
   });
+
+
+  it('should combine user and tool messages', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'tool-1',
+              toolCallId: 'tool-call-1',
+              result: { test: 'This is a tool message' },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'This is a user message',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-call-1',
+              is_error: undefined,
+              content: JSON.stringify({ test: 'This is a tool message' }),
+            },
+            {
+              type: 'text',
+              text: 'This is a user message',
+            },
+          ],
+        },
+      ],
+      system: undefined,
+    });
+  });
 });
