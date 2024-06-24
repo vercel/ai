@@ -209,6 +209,81 @@ describe('text stream', () => {
   });
 });
 
+describe('prepareRequestBody', () => {
+  let bodyOptions: any;
+
+  const TestComponent = () => {
+    const { messages, append, isLoading } = useChat({
+      experimental_prepareRequestBody(options) {
+        bodyOptions = options;
+        return 'test-request-body';
+      },
+    });
+
+    return (
+      <div>
+        <div data-testid="loading">{isLoading.toString()}</div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+          </div>
+        ))}
+
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append(
+              { role: 'user', content: 'hi' },
+              {
+                data: { 'test-data-key': 'test-data-value' },
+                options: {
+                  body: { 'request-body-key': 'request-body-value' },
+                },
+              },
+            );
+          }}
+        />
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
+
+  afterEach(() => {
+    bodyOptions = undefined;
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should show streamed response', async () => {
+    const { requestBody } = mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+    });
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    expect(bodyOptions).toStrictEqual({
+      messages: [{ role: 'user', content: 'hi', id: expect.any(String) }],
+      requestData: { 'test-data-key': 'test-data-value' },
+      requestBody: { 'request-body-key': 'request-body-value' },
+    });
+
+    expect(await requestBody).toBe('"test-request-body"');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+  });
+});
+
 describe('onToolCall', () => {
   const TestComponent = () => {
     const { messages, append } = useChat({

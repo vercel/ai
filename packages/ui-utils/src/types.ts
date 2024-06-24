@@ -461,7 +461,7 @@ export type JSONValue =
   | string
   | number
   | boolean
-  | { [x: string]: JSONValue }
+  | { [value: string]: JSONValue }
   | Array<JSONValue>;
 
 export type AssistantMessage = {

@@ -87,14 +87,10 @@ const getStreamedResponse = async (
   onResponse?: (response: Response) => void | Promise<void>,
   onToolCall?: UseChatOptions['onToolCall'],
   sendExtraMessageFields?: boolean,
-  experimental_prepareRequestBody?: ({
-    messages,
-    data,
-  }: {
+  experimental_prepareRequestBody?: (options: {
     messages: Message[];
-    data?: Record<string, string>;
-    chatRequestBody?: object;
-    extraMetadataBody?: object;
+    requestData?: Record<string, string>;
+    requestBody?: object;
   }) => JSONValue,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
@@ -134,9 +130,8 @@ const getStreamedResponse = async (
     messages: constructedMessagesPayload,
     body: experimental_prepareRequestBody?.({
       messages: chatRequest.messages,
-      data: chatRequest.data,
-      chatRequestBody: chatRequest.options?.body,
-      extraMetadataBody: extraMetadataRef.current.body,
+      requestData: chatRequest.data,
+      requestBody: chatRequest.options?.body,
     }) ?? {
       messages: constructedMessagesPayload,
       data: chatRequest.data,
@@ -214,15 +209,15 @@ export function useChat({
    * Experimental (React only). When a function is provided, it will be used
    * to prepare the request body for the chat API. This can be useful for
    * customizing the request body based on the messages and data in the chat.
+   *
+   * @param messages The current messages in the chat.
+   * @param requestData The data object passed in the chat request.
+   * @param requestBody The request body object passed in the chat request.
    */
-  experimental_prepareRequestBody?: ({
-    messages,
-    data,
-  }: {
+  experimental_prepareRequestBody?: (options: {
     messages: Message[];
-    data?: Record<string, string>;
-    chatRequestBody?: object;
-    extraMetadataBody?: object;
+    requestData?: Record<string, string>;
+    requestBody?: object;
   }) => JSONValue;
 
   /**
