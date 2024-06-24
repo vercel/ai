@@ -206,7 +206,6 @@ describe('tool messages', () => {
     });
   });
 
-
   it('should combine user and tool messages', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
