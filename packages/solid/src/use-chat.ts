@@ -65,9 +65,10 @@ export type UseChatHelpers = {
   /** Signal setter to update the input value */
   setInput: Setter<string>;
   /** An input/textarea-ready onChange handler to control the value of the input */
-  handleInputChange:
-    | JSX.EventHandlerUnion<HTMLInputElement, InputEvent>
-    | JSX.EventHandlerUnion<HTMLTextAreaElement, InputEvent>;
+  handleInputChange: JSX.ChangeEventHandlerUnion<
+    HTMLInputElement | HTMLTextAreaElement,
+    Event
+  >;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
     e: Parameters<JSX.EventHandler<HTMLFormElement, SubmitEvent>>[0],
@@ -383,7 +384,7 @@ export function useChat(
     setInput('');
   };
 
-  const handleInputChange = (e: any) => {
+  const handleInputChange: UseChatHelpers['handleInputChange'] = (e: any) => {
     setInput(e.target.value);
   };
 

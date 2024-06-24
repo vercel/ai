@@ -8,23 +8,23 @@
   },
   "type": "module",
   "devDependencies": {
-    "autoprefixer": "^10.4.13",
-    "postcss": "^8.4.21",
-    "solid-start-node": "0.3.10",
-    "tailwindcss": "^3.2.4",
-    "typescript": "^4.9.4",
-    "vite": "^4.1.4"
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "solid-start-node": "0.3.11",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.5.2",
+    "vite": "^5.3.1"
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",
     "@ai-sdk/solid": "latest",
-    "@solidjs/meta": "0.29.3",
-    "@solidjs/router": "0.8.2",
-    "ai": "latest",
-    "openai": "4.47.1",
-    "solid-js": "1.8.7",
-    "solid-start": "0.3.10",
-    "undici": "^5.15.1"
+    "@solidjs/meta": "0.29.4",
+    "@solidjs/router": "0.13.6",
+    "ai": "^3.2.6",
+    "openai": "4.52.0",
+    "solid-js": "1.8.17",
+    "solid-start": "0.3.11",
+    "undici": "^6.19.2"
   },
   "engines": {
     "node": ">=16"
