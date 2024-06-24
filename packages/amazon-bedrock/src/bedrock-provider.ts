@@ -43,8 +43,8 @@ Create an Amazon Bedrock provider instance.
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
-  const createBedrockRuntimeClient = () => {
-    return new BedrockRuntimeClient(
+  const createBedrockRuntimeClient = () =>
+    new BedrockRuntimeClient(
       options.bedrockConfiguration ?? {
         region: loadSetting({
           settingValue: options.region,
@@ -68,7 +68,6 @@ export function createAmazonBedrock(
         },
       },
     );
-  };
 
   const createChatModel = (
     modelId: BedrockChatModelId,
