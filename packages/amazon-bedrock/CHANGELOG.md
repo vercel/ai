@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.2
+
+### Patch Changes
+
+- 542a2b28: feat (@ai-sdk/bedrock): support custom bedrock configuration
+
 ## 0.0.1
 
 ### Patch Changes
