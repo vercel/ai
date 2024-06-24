@@ -6,8 +6,8 @@ import {
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { cleanup, findByText, render, screen } from '@testing-library/vue';
-import TestCompletionComponent from './TestCompletionComponent.vue';
-import TestCompletionTextStreamComponent from './TestCompletionTextStreamComponent.vue';
+import TestCompletionComponent from './test/components/TestCompletionComponent.vue';
+import TestCompletionTextStreamComponent from './test/components/TestCompletionTextStreamComponent.vue';
 
 describe('stream data stream', () => {
   beforeEach(() => {
