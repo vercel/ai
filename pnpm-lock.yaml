@@ -1057,7 +1057,7 @@ importers:
         specifier: 0.0.16
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 0.0.5
+        specifier: 0.0.6
         version: link:../react
       '@ai-sdk/solid':
         specifier: 0.0.5
@@ -1188,13 +1188,13 @@ importers:
         version: link:../../..
       next:
         specifier: canary
-        version: 15.0.0-canary.39(@playwright/test@1.44.1)(react-dom@19.0.0-rc-6fb39ec9e9-20240621)(react@19.0.0-rc-6fb39ec9e9-20240621)
+        version: 15.0.0-canary.39(@playwright/test@1.44.1)(react-dom@19.0.0-rc-3563387fe3-20240621)(react@19.0.0-rc-3563387fe3-20240621)
       react:
         specifier: rc
-        version: 19.0.0-rc-6fb39ec9e9-20240621
+        version: 19.0.0-rc-3563387fe3-20240621
       react-dom:
         specifier: rc
-        version: 19.0.0-rc-6fb39ec9e9-20240621(react@19.0.0-rc-6fb39ec9e9-20240621)
+        version: 19.0.0-rc-3563387fe3-20240621(react@19.0.0-rc-3563387fe3-20240621)
       zod:
         specifier: '*'
         version: 3.23.8
@@ -15830,7 +15830,7 @@ packages:
       - babel-plugin-macros
     dev: true
 
-  /next@15.0.0-canary.39(@playwright/test@1.44.1)(react-dom@19.0.0-rc-6fb39ec9e9-20240621)(react@19.0.0-rc-6fb39ec9e9-20240621):
+  /next@15.0.0-canary.39(@playwright/test@1.44.1)(react-dom@19.0.0-rc-3563387fe3-20240621)(react@19.0.0-rc-3563387fe3-20240621):
     resolution: {integrity: sha512-tBwXM7A0qP6IPDe3XMuw/mqKV1nXvWr78+OuAxaS9JPKDbMESGl9NqpNiC93+84HnBc0I8R3ntNo8kAKsfz/GQ==}
     engines: {node: '>=18.17.0'}
     hasBin: true
@@ -15858,9 +15858,9 @@ packages:
       caniuse-lite: 1.0.30001591
       graceful-fs: 4.2.11
       postcss: 8.4.31
-      react: 19.0.0-rc-6fb39ec9e9-20240621
-      react-dom: 19.0.0-rc-6fb39ec9e9-20240621(react@19.0.0-rc-6fb39ec9e9-20240621)
-      styled-jsx: 5.1.6(react@19.0.0-rc-6fb39ec9e9-20240621)
+      react: 19.0.0-rc-3563387fe3-20240621
+      react-dom: 19.0.0-rc-3563387fe3-20240621(react@19.0.0-rc-3563387fe3-20240621)
+      styled-jsx: 5.1.6(react@19.0.0-rc-3563387fe3-20240621)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.0.0-canary.39
       '@next/swc-darwin-x64': 15.0.0-canary.39
@@ -17636,13 +17636,13 @@ packages:
       react: 18.2.0
       scheduler: 0.23.0
 
-  /react-dom@19.0.0-rc-6fb39ec9e9-20240621(react@19.0.0-rc-6fb39ec9e9-20240621):
-    resolution: {integrity: sha512-9ZQAP6QOTxnSgVY5hgLf/PeUdiaqIwhg3gUISJAfPHOvC7Tx5DPQVako4WeEKlpv/p2/FpZ2rg9LixmJNo3aWw==}
+  /react-dom@19.0.0-rc-3563387fe3-20240621(react@19.0.0-rc-3563387fe3-20240621):
+    resolution: {integrity: sha512-nKVSxUP1sfPYfCxpJWKiVq0xlLRNKZTVDUA4Wnk6h1fq02IiBTZwU3BA7HJEivjsm0QzBsMctL2kl1jAleWZ5g==}
     peerDependencies:
-      react: 19.0.0-rc-6fb39ec9e9-20240621
+      react: 19.0.0-rc-3563387fe3-20240621
     dependencies:
-      react: 19.0.0-rc-6fb39ec9e9-20240621
-      scheduler: 0.25.0-rc-6fb39ec9e9-20240621
+      react: 19.0.0-rc-3563387fe3-20240621
+      scheduler: 0.25.0-rc-3563387fe3-20240621
     dev: false
 
   /react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607):
@@ -17718,8 +17718,8 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /react@19.0.0-rc-6fb39ec9e9-20240621:
-    resolution: {integrity: sha512-ashnvHQNUODMGu8UorIoqEkOqg7PdXTigC6kAZAH3b2yktrqWWVasDswj/DAPE4WMEr/bPGZrhyuNEf92WFOTQ==}
+  /react@19.0.0-rc-3563387fe3-20240621:
+    resolution: {integrity: sha512-euYgnMufgCGN0vAuIiSDAXB8Uog8LAJKQPhDtccHpY9vvu4+Uz43NCF5/tGRd7y0TXN48LRUbBfnU5+0dWfoiA==}
     engines: {node: '>=0.10.0'}
     dev: false
 
@@ -18169,8 +18169,8 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /scheduler@0.25.0-rc-6fb39ec9e9-20240621:
-    resolution: {integrity: sha512-qsMC+CLz4695d5X1TT3BXSr0quV9gpp4q2DdCMHMCUITvDgwuEAhTcfSmi2wk6hm+oB1YgeMyjKuXLXr2CBHsQ==}
+  /scheduler@0.25.0-rc-3563387fe3-20240621:
+    resolution: {integrity: sha512-BZfteLABepXgAsOrP1H+33NjBb+Xz1kDPstBlb0zQ0V+PHgyGCPaF8rF38i+TnnB84d0fQ2Lb+MhBUMqpZMhsw==}
     dev: false
 
   /scheduler@0.25.0-rc-cc1ec60d0d-20240607:
@@ -18985,7 +18985,7 @@ packages:
       react: 18.2.0
     dev: false
 
-  /styled-jsx@5.1.6(react@19.0.0-rc-6fb39ec9e9-20240621):
+  /styled-jsx@5.1.6(react@19.0.0-rc-3563387fe3-20240621):
     resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
     engines: {node: '>= 12.0.0'}
     peerDependencies:
@@ -18999,7 +18999,7 @@ packages:
         optional: true
     dependencies:
       client-only: 0.0.1
-      react: 19.0.0-rc-6fb39ec9e9-20240621
+      react: 19.0.0-rc-3563387fe3-20240621
     dev: false
 
   /styled-jsx@5.1.6(react@19.0.0-rc-cc1ec60d0d-20240607):

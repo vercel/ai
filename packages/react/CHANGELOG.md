@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.6
+
+### Patch Changes
+
+- 3cb103bc: fix (ai/react): prevent infinite tool call loop
+
 ## 0.0.5
 
 ### Patch Changes
