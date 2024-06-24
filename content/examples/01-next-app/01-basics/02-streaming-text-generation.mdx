@@ -68,8 +68,7 @@ import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { createStreamableValue } from 'ai/rsc';
 
-export async function generate(input: string) { 
-
+export async function generate(input: string) {
   const stream = createStreamableValue('');
 
   (async () => {
