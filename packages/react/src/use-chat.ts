@@ -87,6 +87,15 @@ const getStreamedResponse = async (
   onResponse?: (response: Response) => void | Promise<void>,
   onToolCall?: UseChatOptions['onToolCall'],
   sendExtraMessageFields?: boolean,
+  experimental_prepareRequestBody?: ({
+    messages,
+    data,
+  }: {
+    messages: Message[];
+    data?: Record<string, string>;
+    chatRequestBody?: object;
+    extraMetadataBody?: object;
+  }) => JSONValue,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -123,7 +132,12 @@ const getStreamedResponse = async (
   return await callChatApi({
     api,
     messages: constructedMessagesPayload,
-    body: {
+    body: experimental_prepareRequestBody?.({
+      messages: chatRequest.messages,
+      data: chatRequest.data,
+      chatRequestBody: chatRequest.options?.body,
+      extraMetadataBody: extraMetadataRef.current.body,
+    }) ?? {
       messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadataRef.current.body,
@@ -171,6 +185,7 @@ export function useChat({
   experimental_onFunctionCall,
   experimental_onToolCall,
   onToolCall,
+  experimental_prepareRequestBody,
   experimental_maxAutomaticRoundtrips = 0,
   maxAutomaticRoundtrips = experimental_maxAutomaticRoundtrips,
   maxToolRoundtrips = maxAutomaticRoundtrips,
@@ -194,6 +209,21 @@ export function useChat({
 @deprecated Use `maxToolRoundtrips` instead.
    */
   maxAutomaticRoundtrips?: number;
+
+  /**
+   * Experimental (React only). When a function is provided, it will be used
+   * to prepare the request body for the chat API. This can be useful for
+   * customizing the request body based on the messages and data in the chat.
+   */
+  experimental_prepareRequestBody?: ({
+    messages,
+    data,
+  }: {
+    messages: Message[];
+    data?: Record<string, string>;
+    chatRequestBody?: object;
+    extraMetadataBody?: object;
+  }) => JSONValue;
 
   /**
 Maximal number of automatic roundtrips for tool calls.
@@ -309,6 +339,7 @@ By default, it's set to 0, which will disable the feature.
               onResponse,
               onToolCall,
               sendExtraMessageFields,
+              experimental_prepareRequestBody,
             ),
           experimental_onFunctionCall,
           experimental_onToolCall,
@@ -368,6 +399,7 @@ By default, it's set to 0, which will disable the feature.
       sendExtraMessageFields,
       experimental_onFunctionCall,
       experimental_onToolCall,
+      experimental_prepareRequestBody,
       onToolCall,
       maxToolRoundtrips,
       messagesRef,
