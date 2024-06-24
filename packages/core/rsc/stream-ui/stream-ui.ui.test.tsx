@@ -1,45 +1,7 @@
-import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import assert from 'node:assert';
-import { z } from 'zod';
+import { convertArrayToReadableStream } from '../../core/test/convert-array-to-readable-stream';
 import { MockLanguageModelV1 } from '../../core/test/mock-language-model-v1';
-import {
-  openaiChatCompletionChunks,
-  openaiFunctionCallChunks,
-} from '../../tests/snapshots/openai-chat';
-import {
-  DEFAULT_TEST_URL,
-  createMockServer,
-} from '../../tests/utils/mock-server';
 import { streamUI } from './stream-ui';
-
-const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
-
-const server = createMockServer([
-  {
-    url: DEFAULT_TEST_URL,
-    chunks: openaiChatCompletionChunks,
-    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
-    suffix: 'data: [DONE]',
-  },
-  {
-    url: FUNCTION_CALL_TEST_URL,
-    chunks: openaiFunctionCallChunks,
-    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
-    suffix: 'data: [DONE]',
-  },
-]);
-
-beforeAll(() => {
-  server.listen();
-});
-
-afterEach(() => {
-  server.resetHandlers();
-});
-
-afterAll(() => {
-  server.close();
-});
+import { z } from 'zod';
 
 async function recursiveResolve(val: any): Promise<any> {
   if (val && typeof val === 'object' && typeof val.then === 'function') {
@@ -62,8 +24,8 @@ async function recursiveResolve(val: any): Promise<any> {
 }
 
 async function simulateFlightServerRender(node: React.ReactNode) {
-  async function traverse(node: React.ReactNode): Promise<any> {
-    if (!node || typeof node !== 'object' || !('props' in node)) return {}; // only traverse React elements
+  async function traverse(node: any): Promise<any> {
+    if (!node) return {};
 
     // Let's only do one level of promise resolution here. As it's only for testing purposes.
     const props = await recursiveResolve({ ...node.props } || {});
@@ -87,6 +49,22 @@ async function simulateFlightServerRender(node: React.ReactNode) {
   return traverse(node);
 }
 
+const mockTextModel = new MockLanguageModelV1({
+  doStream: async () => {
+    return {
+      stream: convertArrayToReadableStream([
+        { type: 'text-delta', textDelta: '{ ' },
+        { type: 'text-delta', textDelta: '"content": ' },
+        { type: 'text-delta', textDelta: `"Hello, ` },
+        { type: 'text-delta', textDelta: `world` },
+        { type: 'text-delta', textDelta: `!"` },
+        { type: 'text-delta', textDelta: ' }' },
+      ]),
+      rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+    };
+  },
+});
+
 const mockToolModel = new MockLanguageModelV1({
   doStream: async () => {
     return {
@@ -95,14 +73,8 @@ const mockToolModel = new MockLanguageModelV1({
           type: 'tool-call',
           toolCallType: 'function',
           toolCallId: 'call-1',
-          toolName: 'get_current_weather',
-          args: `{}`,
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          logprobs: undefined,
-          usage: { completionTokens: 10, promptTokens: 3 },
+          toolName: 'tool1',
+          args: `{ "value": "value" }`,
         },
       ]),
       rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -110,108 +82,91 @@ const mockToolModel = new MockLanguageModelV1({
   },
 });
 
-describe('rsc - streamUI()', () => {
-  it('should emit React Nodes with sync streamUI function', async () => {
-    const ui = await streamUI({
-      model: mockToolModel,
-      messages: [],
-      tools: {
-        get_current_weather: {
-          description: 'Get the current weather',
-          parameters: z.object({}),
-          generate: () => {
-            return <div>Weather</div>;
-          },
-        },
-      },
+describe('result.value', () => {
+  it('should render text', async () => {
+    const result = await streamUI({
+      model: mockTextModel,
+      prompt: '',
     });
 
-    const rendered = await simulateFlightServerRender(ui.value);
+    const rendered = await simulateFlightServerRender(result.value);
     expect(rendered).toMatchSnapshot();
   });
 
-  it('should emit React Nodes with async streamUI function', async () => {
-    const ui = await streamUI({
+  it('should render text function returned ui', async () => {
+    const result = await streamUI({
+      model: mockTextModel,
+      prompt: '',
+      text: ({ content }) => <h1>{content}</h1>,
+    });
+
+    const rendered = await simulateFlightServerRender(result.value);
+    expect(rendered).toMatchSnapshot();
+  });
+
+  it('should render tool call results', async () => {
+    const result = await streamUI({
       model: mockToolModel,
-      messages: [],
+      prompt: '',
       tools: {
-        get_current_weather: {
-          description: 'Get the current weather',
-          parameters: z.object({}),
-          generate: async () => {
+        tool1: {
+          description: 'test tool 1',
+          parameters: z.object({
+            value: z.string(),
+          }),
+          generate: async ({ value }) => {
             await new Promise(resolve => setTimeout(resolve, 100));
-            return <div>Weather</div>;
+            return <div>tool1: {value}</div>;
           },
         },
       },
     });
 
-    const rendered = await simulateFlightServerRender(ui.value);
+    const rendered = await simulateFlightServerRender(result.value);
     expect(rendered).toMatchSnapshot();
   });
 
-  it('should emit React Nodes with generator streamUI function', async () => {
-    const ui = await streamUI({
+  it('should render tool call results with generator render function', async () => {
+    const result = await streamUI({
       model: mockToolModel,
-      messages: [],
+      prompt: '',
       tools: {
-        get_current_weather: {
-          description: 'Get the current weather',
-          parameters: z.object({}),
-          generate: async function* () {
+        tool1: {
+          description: 'test tool 1',
+          parameters: z.object({
+            value: z.string(),
+          }),
+          generate: async function* ({ value }) {
             yield <div>Loading...</div>;
             await new Promise(resolve => setTimeout(resolve, 100));
-            return <div>Weather</div>;
+            return <div>tool: {value}</div>;
           },
         },
       },
     });
 
-    const rendered = await simulateFlightServerRender(ui.value);
+    const rendered = await simulateFlightServerRender(result.value);
     expect(rendered).toMatchSnapshot();
   });
-});
 
-describe('rsc - streamUI() onFinish callback', () => {
-  let result: Parameters<
-    Required<Parameters<typeof streamUI>[0]>['onFinish']
-  >[0];
-
-  beforeEach(async () => {
-    const ui = await streamUI({
-      model: mockToolModel,
-      messages: [],
-      tools: {
-        get_current_weather: {
-          description: 'Get the current weather',
-          parameters: z.object({}),
-          generate: () => {
-            return 'Weather';
+  it('should show better error messages if legacy options are passed', async () => {
+    try {
+      await streamUI({
+        model: mockToolModel,
+        prompt: '',
+        tools: {
+          tool1: {
+            description: 'test tool 1',
+            parameters: z.object({
+              value: z.string(),
+            }),
+            // @ts-expect-error
+            render: async function* () {},
           },
         },
-      },
-      onFinish: event => {
-        result = event;
-      },
-    });
-
-    // consume stream
-    await simulateFlightServerRender(ui.value);
-  });
-
-  it('should contain token usage', () => {
-    assert.deepStrictEqual(result.usage, {
-      completionTokens: 10,
-      promptTokens: 3,
-      totalTokens: 13,
-    });
-  });
-
-  it('should contain finish reason', async () => {
-    assert.strictEqual(result.finishReason, 'stop');
-  });
-
-  it('should contain final React node', async () => {
-    expect(result.value).toMatchSnapshot();
+      });
+    } catch (e) {
+      expect(e).toMatchSnapshot();
+    }
   });
 });

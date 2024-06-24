@@ -1195,9 +1195,6 @@ importers:
       react-dom:
         specifier: rc
         version: 19.0.0-rc-3563387fe3-20240621(react@19.0.0-rc-3563387fe3-20240621)
-      zod:
-        specifier: '*'
-        version: 3.23.8
 
   packages/google:
     dependencies:
