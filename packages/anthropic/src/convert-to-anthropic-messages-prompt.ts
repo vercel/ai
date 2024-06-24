@@ -29,11 +29,12 @@ export async function convertToAnthropicMessagesPrompt({
       case 'system': {
         if (system != null) {
           throw new UnsupportedFunctionalityError({
-            functionality: 'Multiple system messages',
+            functionality:
+              'Multiple system messages that are separated by user/assistant messages',
           });
         }
 
-        system = block.messages[0].content;
+        system = block.messages.map(({ content }) => content).join('\n');
         break;
       }
 

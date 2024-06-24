@@ -1,5 +1,43 @@
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 
+describe('system messages', () => {
+  it('should convert a single system message into an anthropic system message', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'system',
+          content: 'This is a system message',
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [],
+      system: 'This is a system message',
+    });
+  });
+
+  it('should convert multiple system messages into an anthropic system message separated by a newline', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'system',
+          content: 'This is a system message',
+        },
+        {
+          role: 'system',
+          content: 'This is another system message',
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [],
+      system: 'This is a system message\nThis is another system message',
+    });
+  });
+});
+
 describe('user messages', () => {
   it('should download images for user image parts with URLs', async () => {
     const result = await convertToAnthropicMessagesPrompt({
