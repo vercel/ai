@@ -1,7 +1,5 @@
 import {
-  OpenAIStream,
   StreamingTextResponse,
-  StreamData,
   streamText,
   convertToCoreMessages,
   tool,
