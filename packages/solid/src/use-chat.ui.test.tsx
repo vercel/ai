@@ -346,7 +346,6 @@ describe('maxToolRoundtrips', () => {
           mockFetchDataStream({
             url: 'https://example.com/api/chat',
             chunks: [formatStreamPart('error', 'some failure')],
-            maxCalls: 1,
           });
 
           return `test-tool-response: ${toolCall.toolName} ${
