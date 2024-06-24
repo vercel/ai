@@ -8,7 +8,7 @@ import {
 } from 'ai';
 import { APIEvent } from '@solidjs/start/server';
 import { openai } from '@ai-sdk/openai';
-import { z } from 'vinxi';
+import { z } from 'zod';
 
 export const POST = async (event: APIEvent) => {
   const { messages } = await event.request.json();

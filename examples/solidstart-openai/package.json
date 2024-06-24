@@ -1,33 +1,28 @@
 {
   "name": "solidstart-openai",
-  "private": true,
-  "scripts": {
-    "dev": "solid-start dev",
-    "build": "solid-start build",
-    "start": "solid-start start"
-  },
   "type": "module",
+  "scripts": {
+    "dev": "vinxi dev",
+    "build": "vinxi build",
+    "start": "vinxi start"
+  },
   "devDependencies": {
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
-    "solid-start-node": "0.3.11",
-    "tailwindcss": "^3.4.4",
-    "typescript": "^5.5.2",
-    "vite": "^5.3.1"
+    "tailwindcss": "^3.4.3",
+    "vinxi": "^0.3.12"
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",
-    "@ai-sdk/solid": "latest",
+    "@ai-sdk/solid": "workspace:*",
     "@solidjs/meta": "0.29.4",
-    "@solidjs/router": "0.13.6",
+    "@solidjs/router": "^0.13.6",
+    "@solidjs/start": "^1.0.2",
     "ai": "^3.2.6",
-    "openai": "4.52.0",
-    "solid-js": "1.8.17",
-    "solid-start": "0.3.11",
-    "undici": "^6.19.2"
+    "solid-js": "^1.8.17",
+    "zod": "^3.23.8"
   },
   "engines": {
-    "node": ">=16"
-  },
-  "version": "0.0.0"
+    "node": ">=18"
+  }
 }
