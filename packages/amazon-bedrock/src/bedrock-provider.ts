@@ -19,7 +19,7 @@ export interface AmazonBedrockProviderSettings {
    * other options. When this is provided, the region, accessKeyId, and
    * secretAccessKey settings are ignored.
    */
-  bedrockConfiguration?: BedrockRuntimeClientConfig;
+  bedrockOptions?: BedrockRuntimeClientConfig;
 
   // for testing
   generateId?: () => string;
@@ -45,7 +45,7 @@ export function createAmazonBedrock(
 ): AmazonBedrockProvider {
   const createBedrockRuntimeClient = () =>
     new BedrockRuntimeClient(
-      options.bedrockConfiguration ?? {
+      options.bedrockOptions ?? {
         region: loadSetting({
           settingValue: options.region,
           settingName: 'region',
