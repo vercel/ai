@@ -1,5 +1,16 @@
 # ai
 
+## 3.2.7
+
+### Patch Changes
+
+- d42b8907: feat (ui): make event in handleSubmit optional
+- Updated dependencies [d42b8907]
+  - @ai-sdk/svelte@0.0.6
+  - @ai-sdk/react@0.0.7
+  - @ai-sdk/solid@0.0.6
+  - @ai-sdk/vue@0.0.6
+
 ## 3.2.6
 
 ### Patch Changes

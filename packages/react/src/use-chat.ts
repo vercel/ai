@@ -62,7 +62,7 @@ export type UseChatHelpers = {
   ) => void;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
-    e: React.FormEvent<HTMLFormElement>,
+    event?: { preventDefault?: () => void },
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   metadata?: Object;
@@ -465,7 +465,7 @@ By default, it's set to 0, which will disable the feature.
 
   const handleSubmit = useCallback(
     (
-      e: React.FormEvent<HTMLFormElement>,
+      event?: { preventDefault?: () => void },
       options: ChatRequestOptions = {},
       metadata?: Object,
     ) => {
@@ -476,7 +476,8 @@ By default, it's set to 0, which will disable the feature.
         };
       }
 
-      e.preventDefault();
+      event?.preventDefault?.();
+
       if (!input) return;
 
       append(
