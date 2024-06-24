@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.24
+
+### Patch Changes
+
+- 04800838: fix (@ai-sdk/anthropic): combine tool and user messages, combine system messages
+
 ## 0.0.23
 
 ### Patch Changes
