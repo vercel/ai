@@ -84,3 +84,87 @@ describe('user messages', () => {
     });
   });
 });
+
+describe('tool messages', () => {
+  it('should convert a single tool result into an anthropic user message', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'tool-1',
+              toolCallId: 'tool-call-1',
+              result: { test: 'This is a tool message' },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-call-1',
+              is_error: undefined,
+              content: JSON.stringify({ test: 'This is a tool message' }),
+            },
+          ],
+        },
+      ],
+      system: undefined,
+    });
+  });
+
+  it('should convert multiple tool results into an anthropic user message', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'tool-1',
+              toolCallId: 'tool-call-1',
+              result: { test: 'This is a tool message' },
+            },
+            {
+              type: 'tool-result',
+              toolName: 'tool-2',
+              toolCallId: 'tool-call-2',
+              result: { something: 'else' },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-call-1',
+              is_error: undefined,
+              content: JSON.stringify({ test: 'This is a tool message' }),
+            },
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-call-2',
+              is_error: undefined,
+              content: JSON.stringify({ something: 'else' }),
+            },
+          ],
+        },
+      ],
+      system: undefined,
+    });
+  });
+});
