@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.6
+
+### Patch Changes
+
+- 54bf4083: feat (ai/react): control request body in useChat
+
 ## 0.0.5
 
 ### Patch Changes

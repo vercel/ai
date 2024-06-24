@@ -1,5 +1,8 @@
 import { generateId, loadSetting } from '@ai-sdk/provider-utils';
-import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
+import {
+  BedrockRuntimeClient,
+  BedrockRuntimeClientConfig,
+} from '@aws-sdk/client-bedrock-runtime';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import {
   BedrockChatModelId,
@@ -10,6 +13,13 @@ export interface AmazonBedrockProviderSettings {
   region?: string;
   accessKeyId?: string;
   secretAccessKey?: string;
+
+  /**
+   * Complete Bedrock configuration for setting advanced authentication and
+   * other options. When this is provided, the region, accessKeyId, and
+   * secretAccessKey settings are ignored.
+   */
+  bedrockOptions?: BedrockRuntimeClientConfig;
 
   // for testing
   generateId?: () => string;
@@ -33,32 +43,31 @@ Create an Amazon Bedrock provider instance.
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
-  const createBedrockRuntimeClient = () => {
-    const config = {
-      region: loadSetting({
-        settingValue: options.region,
-        settingName: 'region',
-        environmentVariableName: 'AWS_REGION',
-        description: 'AWS region',
-      }),
-      credentials: {
-        accessKeyId: loadSetting({
-          settingValue: options.accessKeyId,
-          settingName: 'accessKeyId',
-          environmentVariableName: 'AWS_ACCESS_KEY_ID',
-          description: 'AWS access key ID',
+  const createBedrockRuntimeClient = () =>
+    new BedrockRuntimeClient(
+      options.bedrockOptions ?? {
+        region: loadSetting({
+          settingValue: options.region,
+          settingName: 'region',
+          environmentVariableName: 'AWS_REGION',
+          description: 'AWS region',
         }),
-        secretAccessKey: loadSetting({
-          settingValue: options.secretAccessKey,
-          settingName: 'secretAccessKey',
-          environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
-          description: 'AWS secret access key',
-        }),
+        credentials: {
+          accessKeyId: loadSetting({
+            settingValue: options.accessKeyId,
+            settingName: 'accessKeyId',
+            environmentVariableName: 'AWS_ACCESS_KEY_ID',
+            description: 'AWS access key ID',
+          }),
+          secretAccessKey: loadSetting({
+            settingValue: options.secretAccessKey,
+            settingName: 'secretAccessKey',
+            environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
+            description: 'AWS secret access key',
+          }),
+        },
       },
-    };
-
-    return new BedrockRuntimeClient(config);
-  };
+    );
 
   const createChatModel = (
     modelId: BedrockChatModelId,
