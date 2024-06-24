@@ -43,7 +43,7 @@ export type UseCompletionHelpers = {
    * </form>
    * ```
    */
-  handleSubmit: (e: any) => void;
+  handleSubmit: (event?: { preventDefault?: () => void }) => void;
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;
   /** Additional data added on the server via StreamData */
@@ -145,11 +145,11 @@ export function useCompletion({
 
   const [input, setInput] = createSignal(initialInput);
 
-  const handleSubmit = (e: any) => {
-    e.preventDefault();
+  const handleSubmit = (event?: { preventDefault?: () => void }) => {
+    event?.preventDefault?.();
+
     const inputValue = input();
-    if (!inputValue) return;
-    return complete(inputValue);
+    return inputValue ? complete(inputValue) : undefined;
   };
 
   return {
