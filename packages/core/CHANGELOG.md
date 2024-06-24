@@ -1,5 +1,11 @@
 # ai
 
+## 3.2.6
+
+### Patch Changes
+
+- 74e28222: fix (ai/rsc): "could not find InternalStreamableUIClient" bug
+
 ## 3.2.5
 
 ### Patch Changes
