@@ -2,14 +2,7 @@ import { For, JSX } from 'solid-js';
 import { useChat } from '@ai-sdk/solid';
 
 export default function Chat() {
-  const { messages, input, setInput, handleSubmit } = useChat();
-
-  const handleInputChange: JSX.ChangeEventHandlerUnion<
-    HTMLInputElement,
-    Event
-  > = e => {
-    setInput(e.target.value);
-  };
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
 
   return (
     <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">

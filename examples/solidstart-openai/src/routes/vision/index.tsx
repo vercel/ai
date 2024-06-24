@@ -2,16 +2,9 @@ import { For, JSX } from 'solid-js';
 import { useChat } from '@ai-sdk/solid';
 
 export default function Chat() {
-  const { messages, input, setInput, handleSubmit } = useChat({
+  const { messages, input, handleInputChange, handleSubmit } = useChat(() => ({
     api: '/api/chat-with-vision',
-  });
-
-  const handleInputChange: JSX.ChangeEventHandlerUnion<
-    HTMLInputElement,
-    Event
-  > = e => {
-    setInput(e.target.value);
-  };
+  }));
 
   return (
     <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">

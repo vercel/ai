@@ -3,9 +3,11 @@ import { useChat } from '@ai-sdk/solid';
 import { For } from 'solid-js';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, data } = useChat({
-    api: '/api/chat-with-tools',
-  });
+  const { messages, input, handleInputChange, handleSubmit, data } = useChat(
+    () => ({
+      api: '/api/chat-with-tools',
+    }),
+  );
 
   // Generate a map of message role to text color
   const roleToColorMap: Record<Message['role'], string> = {
