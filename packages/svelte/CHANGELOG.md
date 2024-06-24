@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 0.0.6
+
+### Patch Changes
+
+- d42b8907: feat (ui): make event in handleSubmit optional
+
 ## 0.0.5
 
 ### Patch Changes

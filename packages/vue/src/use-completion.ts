@@ -41,7 +41,7 @@ export type UseCompletionHelpers = {
    * </form>
    * ```
    */
-  handleSubmit: (e: any) => void;
+  handleSubmit: (event?: { preventDefault?: () => void }) => void;
   /** Whether the API request is in progress */
   isLoading: Ref<boolean | undefined>;
 
@@ -155,11 +155,10 @@ export function useCompletion({
 
   const input = ref(initialInput);
 
-  const handleSubmit = (e: any) => {
-    e.preventDefault();
+  const handleSubmit = (event?: { preventDefault?: () => void }) => {
+    event?.preventDefault?.();
     const inputValue = input.value;
-    if (!inputValue) return;
-    return complete(inputValue);
+    return inputValue ? complete(inputValue) : undefined;
   };
 
   return {
