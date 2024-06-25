@@ -746,7 +746,7 @@ importers:
         specifier: latest
         version: link:../../packages/openai
       '@ai-sdk/solid':
-        specifier: workspace:*
+        specifier: latest
         version: link:../../packages/solid
       '@solidjs/meta':
         specifier: 0.29.4
