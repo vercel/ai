@@ -25,12 +25,7 @@ const { object } = await generateObject({
   schema: z.object({
     recipe: z.object({
       name: z.string(),
-      ingredients: z.array(
-        z.object({
-          name: z.string(),
-          amount: z.string(),
-        }),
-      ),
+      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
       steps: z.array(z.string()),
     }),
   }),
@@ -38,11 +33,11 @@ const { object } = await generateObject({
 });
 ```
 
-## Specifying Generation Mode
+### Specifying Generation Mode
 
 While some models (like OpenAI) natively support object generation, others require alternative methods, like modified [tool calling](/docs/ai-sdk-core/tools-and-tool-calling). The `generateObject` function allows you to specify the method it will use to return structured data.
 
-- `auto`: The provider will choose the best mode for the model.
+- `auto`: The provider will choose the best mode for the model. This recommended mode is used by default.
 - `tool`: A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
 - `json`: The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled.
 - `grammar`: The provider is instructed to convert the JSON schema into a provider specific grammar and use it to select the output tokens.
@@ -66,4 +61,30 @@ for await (const partialObject of partialObjectStream) {
 }
 ```
 
-You can also use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](../ai-sdk-rsc)).
+You can use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](../ai-sdk-rsc))) or the [`useObject`](/docs/reference/ai-sdk-ui/use-object) hook.
+
+## Guide
+
+### Generating Arrays
+
+Most models require an object as the top-level schema. If you want to generate an array, you can wrap it in an object with a single descriptive key and use destructuring to access the array.
+
+```ts highlight="2,5-6"
+const {
+  object: { users },
+} = await generateObject({
+  model: yourModel,
+  schema: z.object({
+    users: z.array(
+      z.object({
+        login: z.string(),
+        fullName: z.string(),
+        age: z.number(),
+      }),
+    ),
+  }),
+  prompt: 'Generate a list of fake user profiles for testing.',
+});
+
+console.log('users', users);
+```
