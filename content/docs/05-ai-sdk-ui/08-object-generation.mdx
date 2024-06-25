@@ -47,18 +47,14 @@ import { experimental_useObject as useObject } from 'ai/react';
 import { notificationSchema } from './api/notifications/schema';
 
 export default function Page() {
-  const { setInput, object } = useObject({
+  const { object, submit } = useObject({
     api: '/api/notifications',
     schema: notificationSchema,
   });
 
   return (
     <div>
-      <button
-        onClick={async () => {
-          setInput('Messages during finals week.');
-        }}
-      >
+      <button onClick={() => submit('Messages during finals week.')}>
         Generate notifications
       </button>
 
