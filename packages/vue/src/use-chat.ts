@@ -53,7 +53,7 @@ export type UseChatHelpers = {
   /** Form submission handler to automatically reset input and append a user message  */
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    chatRequestOptions?: ChatRequestOptions
+    chatRequestOptions?: ChatRequestOptions,
   ) => void;
   /** Whether the API request is in progress */
   isLoading: Ref<boolean | undefined>;
