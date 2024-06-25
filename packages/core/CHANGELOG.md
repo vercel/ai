@@ -1,5 +1,17 @@
 # ai
 
+## 3.2.8
+
+### Patch Changes
+
+- 54bf4083: feat (ai/react): control request body in useChat
+- Updated dependencies [54bf4083]
+  - @ai-sdk/ui-utils@0.0.6
+  - @ai-sdk/react@0.0.8
+  - @ai-sdk/solid@0.0.7
+  - @ai-sdk/svelte@0.0.7
+  - @ai-sdk/vue@0.0.7
+
 ## 3.2.7
 
 ### Patch Changes
