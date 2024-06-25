@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.9
+
+### Patch Changes
+
+- 321a7d0e: feat (ai/react): add isLoading to useObject
+
 ## 0.0.8
 
 ### Patch Changes

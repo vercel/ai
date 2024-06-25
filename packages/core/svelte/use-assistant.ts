@@ -53,7 +53,7 @@ Abort the current request immediately, keep the generated tokens if any.
    * Form submission handler that automatically resets the input field and appends a user message.
    */
   submitMessage: (
-    e: any,
+    event?: { preventDefault?: () => void },
     requestOptions?: { data?: Record<string, string> },
   ) => Promise<void>;
 
@@ -230,10 +230,10 @@ export function useAssistant({
 
   // Function to handle form submission
   async function submitMessage(
-    e: any,
+    event?: { preventDefault?: () => void },
     requestOptions?: { data?: Record<string, string> },
   ) {
-    e.preventDefault();
+    event?.preventDefault?.();
     const inputValue = get(input);
     if (!inputValue) return;
 
