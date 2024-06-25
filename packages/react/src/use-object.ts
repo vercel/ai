@@ -46,6 +46,11 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
    * The error object of the API request if any.
    */
   error: undefined | unknown;
+
+  /**
+   * Flag that indicates whether an API request is in progress.
+   */
+  isLoading: boolean;
 };
 
 function useObject<RESULT, INPUT = any>({
@@ -69,10 +74,13 @@ function useObject<RESULT, INPUT = any>({
   );
 
   const [error, setError] = useState<undefined | unknown>(undefined);
+  const [isLoading, setIsLoading] = useState(false);
 
   return {
     async setInput(input) {
       try {
+        setIsLoading(true);
+
         const response = await fetch(api, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -92,7 +100,7 @@ function useObject<RESULT, INPUT = any>({
         let accumulatedText = '';
         let latestObject: DeepPartial<RESULT> | undefined = undefined;
 
-        response.body!.pipeThrough(new TextDecoderStream()).pipeTo(
+        response.body.pipeThrough(new TextDecoderStream()).pipeTo(
           new WritableStream<string>({
             write(chunk) {
               accumulatedText += chunk;
@@ -113,10 +121,13 @@ function useObject<RESULT, INPUT = any>({
         setError(undefined);
       } catch (error) {
         setError(error);
+      } finally {
+        setIsLoading(false);
       }
     },
     object: data,
     error,
+    isLoading,
   };
 }
 
