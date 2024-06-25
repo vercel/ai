@@ -33,9 +33,14 @@ export type Experimental_UseObjectOptions<RESULT> = {
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   /**
-   * Calls the API with the provided input as JSON body.
+   * @deprecated Use `submit` instead.
    */
   setInput: (input: INPUT) => void;
+
+  /**
+   * Calls the API with the provided input as JSON body.
+   */
+  submit: (input: INPUT) => void;
 
   /**
    * The current value for the generated object. Updated as the API streams JSON chunks.
@@ -76,55 +81,58 @@ function useObject<RESULT, INPUT = any>({
   const [error, setError] = useState<undefined | unknown>(undefined);
   const [isLoading, setIsLoading] = useState(false);
 
-  return {
-    async setInput(input) {
-      try {
-        setIsLoading(true);
+  const submit = async (input: INPUT) => {
+    try {
+      setIsLoading(true);
 
-        const response = await fetch(api, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(input),
-        });
+      const response = await fetch(api, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
 
-        if (!response.ok) {
-          throw new Error(
-            (await response.text()) ?? 'Failed to fetch the response.',
-          );
-        }
-
-        if (response.body == null) {
-          throw new Error('The response body is empty.');
-        }
-
-        let accumulatedText = '';
-        let latestObject: DeepPartial<RESULT> | undefined = undefined;
-
-        response.body.pipeThrough(new TextDecoderStream()).pipeTo(
-          new WritableStream<string>({
-            write(chunk) {
-              accumulatedText += chunk;
-
-              const currentObject = parsePartialJson(
-                accumulatedText,
-              ) as DeepPartial<RESULT>;
-
-              if (!isDeepEqualData(latestObject, currentObject)) {
-                latestObject = currentObject;
-
-                mutate(currentObject);
-              }
-            },
-          }),
+      if (!response.ok) {
+        throw new Error(
+          (await response.text()) ?? 'Failed to fetch the response.',
         );
-
-        setError(undefined);
-      } catch (error) {
-        setError(error);
-      } finally {
-        setIsLoading(false);
       }
-    },
+
+      if (response.body == null) {
+        throw new Error('The response body is empty.');
+      }
+
+      let accumulatedText = '';
+      let latestObject: DeepPartial<RESULT> | undefined = undefined;
+
+      response.body.pipeThrough(new TextDecoderStream()).pipeTo(
+        new WritableStream<string>({
+          write(chunk) {
+            accumulatedText += chunk;
+
+            const currentObject = parsePartialJson(
+              accumulatedText,
+            ) as DeepPartial<RESULT>;
+
+            if (!isDeepEqualData(latestObject, currentObject)) {
+              latestObject = currentObject;
+
+              mutate(currentObject);
+            }
+          },
+        }),
+      );
+
+      setError(undefined);
+    } catch (error) {
+      setError(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    setInput: submit, // Deprecated
+    submit,
     object: data,
     error,
     isLoading,
