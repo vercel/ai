@@ -6,33 +6,61 @@ description: Welcome to the Vercel AI SDK documentation!
 # Storing Messages
 
 The ability to store message history is essential for chatbot use cases.
+The Vercel AI SDK simplifies the process of storing chat history through the `onFinish` callback of the `streamText` function.
 
-The Vercel AI SDK simplifies the process of storing chat history through the `toAIStream` method, which is designed to manage stream life cycles with ease. This method supports various lifecycle callbacks like `onFinal`.
+`onFinish` is called after the model's response and all tool executions have completed.
+It provides the final text, tool calls, tool results, and usage information,
+making it an ideal place to e.g. store the chat history in a database.
 
 ## Implementing Persistent Chat History
 
-To implement persistent chat storage, you can utilize the `onFinal` callback on the `toAIStream` method. This callback is triggered at the completion of the model's response, making it an ideal place to handle the storage of each interaction.
+To implement persistent chat storage, you can utilize the `onFinish` callback on the `streamText` function.
+This callback is triggered upon the completion of the model's response and all tool executions,
+making it an ideal place to handle the storage of each interaction.
 
-```tsx highlight="14-18"
-'use server';
+### API Route Example
 
-import { Message, StreamingTextResponse, streamText } from 'ai';
+```tsx highlight="13-16"
 import { openai } from '@ai-sdk/openai';
+import { streamText, convertToCoreMessages } from 'ai';
 
-export async function continueConversation(messages: Message[]) {
-  'use server';
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages,
-  });
-
-  const stream = result.toAIStream({
-    async onFinal(completion) {
-      await saveChat(completion);
+    messages: convertToCoreMessages(messages),
+    async onFinish({ text, toolCalls, toolResults, usage, finishReason }) {
+      // implement your own storage logic:
+      await saveChat({ text, toolCalls, toolResults });
     },
   });
 
-  return new StreamingTextResponse(stream);
+  return result.toAIStreamResponse();
+}
+```
+
+### Server Action Example
+
+```tsx highlight="10-13"
+'use server';
+
+import { openai } from '@ai-sdk/openai';
+import { CoreMessage, streamText } from 'ai';
+
+export async function continueConversation(messages: CoreMessage[]) {
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages,
+    async onFinish({ text, toolCalls, toolResults, finishReason, usage }) {
+      // implement your own storage logic:
+      await saveChat({ text, toolCalls, toolResults });
+    },
+  });
+
+  return result.toAIStreamResponse();
 }
 ```

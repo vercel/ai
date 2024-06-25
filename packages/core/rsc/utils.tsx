@@ -57,7 +57,7 @@ export function createSuspensedChunk(initialValue: React.ReactNode) {
       <Suspense fallback={initialValue}>
         <R c={initialValue} n={promise} />
       </Suspense>
-    ),
+    ) as React.ReactNode,
     resolve,
     reject,
   };

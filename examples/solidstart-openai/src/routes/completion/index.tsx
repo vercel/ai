@@ -1,4 +1,4 @@
-import { useCompletion } from 'ai/solid';
+import { useCompletion } from '@ai-sdk/solid';
 import { JSX } from 'solid-js';
 
 export default function Chat() {

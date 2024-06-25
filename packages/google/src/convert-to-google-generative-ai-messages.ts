@@ -1,16 +1,17 @@
-import {
-  LanguageModelV1Prompt,
-  UnsupportedFunctionalityError,
-} from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { convertUint8ArrayToBase64, download } from '@ai-sdk/provider-utils';
 import {
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIPrompt,
 } from './google-generative-ai-prompt';
 
-export function convertToGoogleGenerativeAIMessages(
-  prompt: LanguageModelV1Prompt,
-): GoogleGenerativeAIPrompt {
+export async function convertToGoogleGenerativeAIMessages({
+  prompt,
+  downloadImplementation = download,
+}: {
+  prompt: LanguageModelV1Prompt;
+  downloadImplementation?: typeof download;
+}): Promise<GoogleGenerativeAIPrompt> {
   const messages: GoogleGenerativeAIPrompt = [];
 
   for (const { role, content } of prompt) {
@@ -26,30 +27,43 @@ export function convertToGoogleGenerativeAIMessages(
       }
 
       case 'user': {
-        messages.push({
-          role: 'user',
-          parts: content.map(part => {
-            switch (part.type) {
-              case 'text': {
-                return { text: part.text };
-              }
-              case 'image': {
-                if (part.image instanceof URL) {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'URL image parts',
-                  });
-                } else {
-                  return {
-                    inlineData: {
-                      mimeType: part.mimeType ?? 'image/jpeg',
-                      data: convertUint8ArrayToBase64(part.image),
-                    },
-                  };
-                }
-              }
+        const parts: GoogleGenerativeAIContentPart[] = [];
+
+        for (const part of content) {
+          switch (part.type) {
+            case 'text': {
+              parts.push({ text: part.text });
+              break;
             }
-          }),
-        });
+            case 'image': {
+              let data: Uint8Array;
+              let mimeType: string | undefined;
+
+              if (part.image instanceof URL) {
+                const downloadResult = await downloadImplementation({
+                  url: part.image,
+                });
+
+                data = downloadResult.data;
+                mimeType = downloadResult.mimeType;
+              } else {
+                data = part.image;
+                mimeType = part.mimeType;
+              }
+
+              parts.push({
+                inlineData: {
+                  mimeType: mimeType ?? 'image/jpeg',
+                  data: convertUint8ArrayToBase64(data),
+                },
+              });
+
+              break;
+            }
+          }
+        }
+
+        messages.push({ role: 'user', parts });
         break;
       }
 

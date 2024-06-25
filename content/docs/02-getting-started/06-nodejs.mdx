@@ -11,9 +11,7 @@ If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/p
 
 ## Prerequisites
 
-Before you raise a frothy seed round and build a billion dollar AI startup, you need to set-up your project.
-
-Make sure you have the following:
+To follow this quickstart, you'll need:
 
 - Node.js 18+ and pnpm installed on your local development machine.
 - An OpenAI API key.
@@ -64,6 +62,11 @@ OPENAI_API_KEY=xxxxxxxxx
 ```
 
 Replace `xxxxxxxxx` with your actual OpenAI API key.
+
+<Note className="mb-4">
+  Vercel AI SDK's OpenAI Provider will default to using the `OPENAI_API_KEY`
+  environment variable.
+</Note>
 
 ## Build Your Application
 
@@ -118,20 +121,20 @@ main().catch(console.error);
 **Let's take a closer look at the code**:
 
 1. **Import Libraries and Configure Environment:**
-   - You start by importing necessary libraries for handling the OpenAI SDK, messaging, and environmental variables.
+   - Import necessary libraries for handling the OpenAI SDK, messaging, and environment variables.
    - You call `dotenv.config();` to load environment variables, ensuring secure access to your OpenAI API key.
 2. **Setup Command Line Interface:**
-   - You set up a readline interface for taking input from the terminal, enabling interactive sessions directly from the command line.
+   - Set up a readline interface for taking input from the terminal, enabling interactive sessions directly from the command line.
 3. **Initialize Your Message Storage:**
-   - You define an array called `messages` to store the history of your conversation. This history is crucial for the AI to maintain context in ongoing dialogues.
+   - Define an array called `messages` to store the history of your conversation. This history is crucial for the AI to maintain context in ongoing dialogues.
 4. **Define the Main Function:**
-   - In your `main` function, which is asynchronous, you manage the chat process:
-     - You continuously prompt for and capture user input, storing it in `userInput`.
-     - You add this input to the `messages` array as a user message.
-     - You call the `streamText` function with the model, system instructions, and the accumulated messages to generate an AI response.
-     - You iterate over the text stream returned by the `streamText` function (`result.textStream`) and print the contents of the stream to the terminal
+   - In your `main` function, which is asynchronous, manage the chat process:
+     - Prompt for and capture user input, storing it in `userInput`.
+     - Add user input to the `messages` array as a user message.
+     - Call the `streamText` function with the model, system instructions, and the accumulated messages to generate an AI response.
+     - Iterate over the text stream returned by the `streamText` function (`result.textStream`) and print the contents of the stream to the terminal
 5. **Handle Errors and Execute:**
-   - You invoke the `main` function with error handling to catch and log any issues, allowing your program to either recover or exit gracefully when errors occur.
+   - Invoke the `main` function with error handling to catch and log any issues, allowing your program to either recover or exit gracefully when errors occur.
 
 Head back to the terminal and run the following command:
 
@@ -141,6 +144,6 @@ Type in a message and hit enter. You should see the model's response stream in a
 
 ## Where to Next?
 
-You've built an AI chatbot using the Vercel AI SDK! Remember, your imagination is the limit when it comes to using AI to build apps, so feel free to experiment and extend the functionality of this application further.
+You've built an AI chatbot using the Vercel AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-core/tools-and-tool-calling) or [generating structured data](/docs/ai-sdk-core/generating-structured-data).
 
 If you are looking to leverage the broader capabilities of LLMs, Vercel [ AI SDK Core ](/docs/ai-sdk-core) provides a comprehensive set of lower-level tools and APIs that will help you unlock a wider range of AI functionalities beyond the chatbot paradigm.

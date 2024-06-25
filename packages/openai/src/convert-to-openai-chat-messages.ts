@@ -15,6 +15,11 @@ export function convertToOpenAIChatMessages(
       }
 
       case 'user': {
+        if (content.length === 1 && content[0].type === 'text') {
+          messages.push({ role: 'user', content: content[0].text });
+          break;
+        }
+
         messages.push({
           role: 'user',
           content: content.map(part => {
@@ -38,6 +43,7 @@ export function convertToOpenAIChatMessages(
             }
           }),
         });
+
         break;
       }
 

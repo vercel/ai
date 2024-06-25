@@ -1,5 +1,5 @@
 <script>
-	import { useAssistant } from 'ai/svelte'
+	import { useAssistant } from '@ai-sdk/svelte'
 	const { messages, input, submitMessage } = useAssistant({
 		api: '/api/assistant',
 	});

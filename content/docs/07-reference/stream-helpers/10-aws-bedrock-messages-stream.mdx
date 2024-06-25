@@ -1,9 +1,15 @@
 ---
-title: AWSBedrockMessagesStream
-description: Learn to use AWSBedrockMessagesStream helper function in your application.
+title: AWSBedrockAnthropicMessagesStream
+description: Learn to use AWSBedrockAnthropicMessagesStream helper function in your application.
 ---
 
-# `AWSBedrockMessagesStream`
+# `AWSBedrockAnthropicMessagesStream`
+
+<Note type="warning">
+  AWSBedrockAnthropicMessagesStream is part of the [legacy AWS Bedrock
+  integration](/providers/legacy-providers/aws-bedrock). It is not compatible
+  with the AI SDK 3.1 functions.
+</Note>
 
 The AWS Bedrock stream functions are utilties that transform the outputs from the AWS Bedrock API into a ReadableStream. It uses AIStream under the hood and handle parsing Bedrock's response.
 
@@ -12,7 +18,7 @@ The AWS Bedrock stream functions are utilties that transform the outputs from th
 ### React
 
 <Snippet
-  text={`import { AWSBedrockMessagesStream } from "ai"`}
+  text={`import { AWSBedrockAnthropicMessagesStream } from "ai"`}
   prompt={false}
 />
 

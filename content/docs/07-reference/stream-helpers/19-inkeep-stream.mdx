@@ -5,6 +5,12 @@ description: Learn to use InkeepStream helper function in your application.
 
 # `InkeepStream`
 
+<Note type="warning">
+  InkeepStream is part of the [legacy Inkeep
+  integration](/providers/legacy-providers/inkeep). It is not compatible with
+  the AI SDK 3.1 functions.
+</Note>
+
 The InkeepStream function is a utility that transforms the output from [Inkeep](https://inkeep.com)'s API into a ReadableStream. It uses AIStream under the hood, applying a specific parser for the Inkeep's response data structure.
 
 This works with the official Inkeep API, and it's supported in both Node.js, the Edge Runtime, and browser environments.

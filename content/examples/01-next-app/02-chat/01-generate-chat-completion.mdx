@@ -1,6 +1,6 @@
 ---
 title: Generation Chat Completion
-description: Learn to generate chat completions using the Vercel AI SDK in your Next.js application
+description: Learn to generate chat completions using the Vercel AI SDK in your Next.js App Router application
 ---
 
 # Generate Chat Completion
@@ -32,6 +32,10 @@ Let's create a simple conversation between a user and a model, and place a butto
 
 import { useState } from 'react';
 import { Message, continueConversation } from './actions';
+
+// Force the page to be dynamic and allow streaming responses up to 30 seconds
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 export default function Home() {
   const [conversation, setConversation] = useState<Message[]>([]);

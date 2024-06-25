@@ -1,8 +1,8 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { LangChainAdapter, StreamData, StreamingTextResponse } from 'ai';
 
-export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();

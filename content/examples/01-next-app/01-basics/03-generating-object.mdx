@@ -1,9 +1,15 @@
 ---
 title: Generating Structured Data
-description: Learn to generate sturctured data using the Vercel AI SDK in your Next.js application
+description: Learn to generate sturctured data using the Vercel AI SDK in your Next.js App Router application
 ---
 
 # Generate Object
+
+<Note>
+  This example uses React Server Components (RSC). If you want to client side
+  rendering and hooks instead, check out the ["generate object" example with
+  useState](/examples/next-pages/basics/generating-object).
+</Note>
 
 Earlier functions like `generateText` and `streamText` gave us the ability to generate unstructured text. However, if you want to generate structured data like JSON, you can provide a schema that describes the structure of your desired object to the `generateObject` function.
 
@@ -44,6 +50,10 @@ Let's create a simple React component that will call the `getNotifications` func
 
 import { useState } from 'react';
 import { getNotifications } from './actions';
+
+// Force the page to be dynamic and allow streaming responses up to 30 seconds
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 export default function Home() {
   const [generation, setGeneration] = useState<string>('');

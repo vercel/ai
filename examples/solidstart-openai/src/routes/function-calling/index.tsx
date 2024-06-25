@@ -1,5 +1,5 @@
 import { FunctionCallHandler, Message, generateId } from 'ai';
-import { useChat } from 'ai/solid';
+import { useChat } from '@ai-sdk/solid';
 import { For, JSX } from 'solid-js';
 
 export default function Chat() {

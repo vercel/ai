@@ -13,19 +13,23 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
+import { mapOpenAICompletionLogProbs } from './map-openai-completion-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAICompletionModelId,
   OpenAICompletionSettings,
 } from './openai-completion-settings';
-import { openaiFailedResponseHandler } from './openai-error';
-import { mapOpenAICompletionLogProbs } from './map-openai-completion-logprobs';
+import {
+  openAIErrorDataSchema,
+  openaiFailedResponseHandler,
+} from './openai-error';
 
 type OpenAICompletionConfig = {
   provider: string;
-  baseURL: string;
   compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
+  url: (options: { modelId: string; path: string }) => string;
+  fetch?: typeof fetch;
 };
 
 export class OpenAICompletionLanguageModel implements LanguageModelV1 {
@@ -108,6 +112,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
           });
         }
 
+        if (mode.toolChoice) {
+          throw new UnsupportedFunctionalityError({
+            functionality: 'toolChoice',
+          });
+        }
+
         return baseArgs;
       }
 
@@ -142,7 +152,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/completions`,
+      url: this.config.url({
+        path: '/completions',
+        modelId: this.modelId,
+      }),
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -150,6 +163,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         openAICompletionResponseSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { prompt: rawPrompt, ...rawSettings } = args;
@@ -175,7 +189,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/completions`,
+      url: this.config.url({
+        path: '/completions',
+        modelId: this.modelId,
+      }),
       headers: this.config.headers(),
       body: {
         ...this.getArgs(options),
@@ -192,6 +209,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         openaiCompletionChunkSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { prompt: rawPrompt, ...rawSettings } = args;
@@ -210,12 +228,21 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
+            // handle failed chunk parsing / validation:
             if (!chunk.success) {
+              finishReason = 'error';
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
 
             const value = chunk.value;
+
+            // handle error chunks:
+            if ('error' in value) {
+              finishReason = 'error';
+              controller.enqueue({ type: 'error', error: value.error });
+              return;
+            }
 
             if (value.usage != null) {
               usage = {
@@ -288,31 +315,30 @@ const openAICompletionResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiCompletionChunkSchema = z.object({
-  object: z.literal('text_completion'),
-  choices: z.array(
-    z.object({
-      text: z.string(),
-      finish_reason: z
-        .enum(['stop', 'length', 'content_filter'])
-        .optional()
-        .nullable(),
-      index: z.number(),
-      logprobs: z
-        .object({
-          tokens: z.array(z.string()),
-          token_logprobs: z.array(z.number()),
-          top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
-        })
-        .nullable()
-        .optional(),
-    }),
-  ),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      completion_tokens: z.number(),
-    })
-    .optional()
-    .nullable(),
-});
+const openaiCompletionChunkSchema = z.union([
+  z.object({
+    choices: z.array(
+      z.object({
+        text: z.string(),
+        finish_reason: z.string().nullish(),
+        index: z.number(),
+        logprobs: z
+          .object({
+            tokens: z.array(z.string()),
+            token_logprobs: z.array(z.number()),
+            top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
+          })
+          .nullable()
+          .optional(),
+      }),
+    ),
+    usage: z
+      .object({
+        prompt_tokens: z.number(),
+        completion_tokens: z.number(),
+      })
+      .optional()
+      .nullable(),
+  }),
+  openAIErrorDataSchema,
+]);

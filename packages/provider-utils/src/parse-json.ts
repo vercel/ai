@@ -108,7 +108,7 @@ export function safeParseJSON<T>({
   }
 }
 
-export function isParseableJson(input: string): boolean {
+export function isParsableJson(input: string): boolean {
   try {
     SecureJSON.parse(input);
     return true;
@@ -116,3 +116,8 @@ export function isParseableJson(input: string): boolean {
     return false;
   }
 }
+
+/**
+@deprecated Use `isParsableJson` instead.  
+ */
+export const isParseableJson = isParsableJson;

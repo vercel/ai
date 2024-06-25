@@ -51,6 +51,11 @@ tokens that were generated.
   logprobs?: boolean | number;
 
   /**
+Whether to enable parallel function calling during tool use. Default to true.
+   */
+  parallelToolCalls?: boolean;
+
+  /**
 A unique identifier representing your end-user, which can help OpenAI to
 monitor and detect abuse. Learn more.
 */

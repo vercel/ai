@@ -177,6 +177,8 @@ async function* streamable(
  * Accepts either a fetch Response from the Anthropic `POST /v1/complete` endpoint,
  * or the return value of `await client.completions.create({ stream: true })`
  * from the `@anthropic-ai/sdk` package.
+ *
+ * @deprecated Use the [Anthropic provider](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic) instead.
  */
 export function AnthropicStream(
   res:

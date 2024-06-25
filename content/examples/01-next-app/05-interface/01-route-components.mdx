@@ -1,6 +1,6 @@
 ---
 title: Route Components
-description: Learn to route components using the Vercel AI SDK in your Next.js application
+description: Learn to route components using the Vercel AI SDK in your Next.js App Router application
 ---
 
 # Route Components
@@ -17,7 +17,11 @@ When we define multiple functions in [`tools`](/docs/reference/ai-sdk-core/gener
 import { useState } from 'react';
 import { ClientMessage } from './actions';
 import { useActions, useUIState } from 'ai/rsc';
-import { nanoid } from 'nanoid';
+import { generateId } from 'ai';
+
+// Force the page to be dynamic and allow streaming responses up to 30 seconds
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 export default function Home() {
   const [input, setInput] = useState<string>('');
@@ -46,7 +50,7 @@ export default function Home() {
           onClick={async () => {
             setConversation((currentConversation: ClientMessage[]) => [
               ...currentConversation,
-              { id: nanoid(), role: 'user', display: input },
+              { id: generateId(), role: 'user', display: input },
             ]);
 
             const message = await continueConversation(input);
@@ -65,18 +69,56 @@ export default function Home() {
 }
 ```
 
+```tsx filename='components/stock.tsx'
+export async function Stock({ symbol, numOfMonths }) {
+  const data = await fetch(
+    `https://api.example.com/stock/${symbol}/${numOfMonths}`,
+  );
+
+  return (
+    <div>
+      <div>{symbol}</div>
+
+      <div>
+        {data.timeline.map(data => (
+          <div>
+            <div>{data.date}</div>
+            <div>{data.value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+```tsx filename='components/flight.tsx'
+export async function Flight({ flightNumber }) {
+  const data = await fetch(`https://api.example.com/flight/${flightNumber}`);
+
+  return (
+    <div>
+      <div>{flightNumber}</div>
+      <div>{data.status}</div>
+      <div>{data.source}</div>
+      <div>{data.destination}</div>
+    </div>
+  );
+}
+```
+
 ## Server
 
-```tsx filename='app/actions.ts'
+```tsx filename='app/actions.tsx'
 'use server';
 
 import { createAI, getMutableAIState, streamUI } from 'ai/rsc';
 import { openai } from '@ai-sdk/openai';
 import { ReactNode } from 'react';
 import { z } from 'zod';
-import { nanoid } from 'nanoid';
-import { Stock } from '@ai-studio/components/stock';
-import { Flight } from '@ai-studio/components/flight';
+import { generateId } from 'ai';
+import { Stock } from '@/components/stock';
+import { Flight } from '@/components/flight';
 
 export interface ServerMessage {
   role: 'user' | 'assistant';
@@ -156,7 +198,7 @@ export async function continueConversation(
   });
 
   return {
-    id: nanoid(),
+    id: generateId(),
     role: 'assistant',
     display: result.value,
   };

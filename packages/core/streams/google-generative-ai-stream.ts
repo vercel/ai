@@ -48,6 +48,9 @@ async function* streamable(response: {
   }
 }
 
+/**
+ * @deprecated Use the [Google Generative AI provider](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai) instead.
+ */
 export function GoogleGenerativeAIStream(
   response: {
     stream: AsyncIterable<GenerateContentResponse>;

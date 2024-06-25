@@ -1,4 +1,4 @@
-import { Message } from '../shared/types';
+import { Message } from '@ai-sdk/ui-utils';
 
 export function experimental_buildOpenAIMessages(
   messages: Message[],

@@ -1,20 +1,19 @@
-import { formatStreamPart } from '../shared/stream-parts';
 import {
   CreateMessage,
   FunctionCall,
   JSONValue,
   ToolCall,
-} from '../shared/types';
-import { createChunkDecoder } from '../shared/utils';
-
+  createChunkDecoder,
+  formatStreamPart,
+} from '@ai-sdk/ui-utils';
 import {
   AIStream,
+  FunctionCallPayload,
+  ToolCallPayload,
+  createCallbacksTransformer,
+  readableFromAsyncIterable,
   trimStartOfStreamHelper,
   type AIStreamCallbacksAndOptions,
-  FunctionCallPayload,
-  readableFromAsyncIterable,
-  createCallbacksTransformer,
-  ToolCallPayload,
 } from './ai-stream';
 import { AzureChatCompletions } from './azure-openai-types';
 import { createStreamDataTransformer } from './stream-data';
@@ -437,6 +436,9 @@ function isCompletion(data: OpenAIStreamReturnTypes): data is Completion {
   );
 }
 
+/**
+ * @deprecated Use the [OpenAI provider](https://sdk.vercel.ai/providers/ai-sdk-providers/openai) instead.
+ */
 export function OpenAIStream(
   res: Response | AsyncIterableOpenAIStreamReturnTypes,
   callbacks?: OpenAIStreamCallbacks,

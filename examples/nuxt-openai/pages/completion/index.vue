@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { useCompletion } from 'ai/vue';
+import { useCompletion } from '@ai-sdk/vue';
 
 const { completion, input, handleSubmit, data } = useCompletion();
 </script>
 
 <template>
   <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-    <h4 class="text-xl font-bold text-gray-900 md:text-xl pb-4">
+    <h4 class="pb-4 text-xl font-bold text-gray-900 md:text-xl">
       useCompletion Example
     </h4>
     <pre>{{ data != null ? JSON.stringify(data, null, 2) : '' }}</pre>

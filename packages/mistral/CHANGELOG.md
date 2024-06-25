@@ -1,5 +1,65 @@
 # @ai-sdk/mistral
 
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies [02f6a088]
+  - @ai-sdk/provider-utils@0.0.16
+
+## 0.0.18
+
+### Patch Changes
+
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+
+## 0.0.17
+
+### Patch Changes
+
+- 4728c37f: feat (core): add text embedding model support to provider registry
+- 7910ae84: feat (providers): support custom fetch implementations
+- Updated dependencies [7910ae84]
+  - @ai-sdk/provider-utils@0.0.14
+
+## 0.0.16
+
+### Patch Changes
+
+- Updated dependencies [102ca22f]
+  - @ai-sdk/provider@0.0.10
+  - @ai-sdk/provider-utils@0.0.13
+
+## 0.0.15
+
+### Patch Changes
+
+- Updated dependencies [09295e2e]
+- Updated dependencies [09295e2e]
+- Updated dependencies [043a5de2]
+  - @ai-sdk/provider@0.0.9
+  - @ai-sdk/provider-utils@0.0.12
+
+## 0.0.14
+
+### Patch Changes
+
+- f39c0dd2: feat (provider): implement toolChoice support
+- Updated dependencies [f39c0dd2]
+  - @ai-sdk/provider@0.0.8
+  - @ai-sdk/provider-utils@0.0.11
+
+## 0.0.13
+
+### Patch Changes
+
+- 24683b72: fix (providers): Zod is required dependency
+- Updated dependencies [8e780288]
+  - @ai-sdk/provider@0.0.7
+  - @ai-sdk/provider-utils@0.0.10
+
 ## 0.0.12
 
 ### Patch Changes

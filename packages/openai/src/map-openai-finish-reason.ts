@@ -14,6 +14,6 @@ export function mapOpenAIFinishReason(
     case 'tool_calls':
       return 'tool-calls';
     default:
-      return 'other';
+      return 'unknown';
   }
 }
