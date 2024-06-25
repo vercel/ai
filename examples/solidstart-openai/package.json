@@ -1,5 +1,6 @@
 {
   "name": "solidstart-openai",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vinxi dev",
