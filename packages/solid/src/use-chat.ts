@@ -132,7 +132,7 @@ export function useChat({
 
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
-      const previousMessages = getCurrentMessages();
+      const previousMessages = messagesSnapshot;
       mutate(messagesSnapshot);
 
       let chatRequest: ChatRequest = {
@@ -187,9 +187,7 @@ export function useChat({
             onFinish,
             restoreMessagesOnFailure() {
               // Restore the previous messages if the request fails.
-              if (previousMessages.status === 'success') {
-                mutate(previousMessages.data);
-              }
+              mutate(previousMessages);
             },
             generateId,
           });

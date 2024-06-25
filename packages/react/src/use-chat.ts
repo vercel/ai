@@ -90,7 +90,7 @@ const getStreamedResponse = async (
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
-  const previousMessages = messagesRef.current;
+  const previousMessages = chatRequest.messages;
   mutate(chatRequest.messages, false);
 
   const constructedMessagesPayload = sendExtraMessageFields
