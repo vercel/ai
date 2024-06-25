@@ -101,7 +101,7 @@ const getStreamedResponse = async (
   const previousMessages = messagesRef;
   mutate(chatRequest.messages);
 
-  const existingStreamData = streamData() || [];
+  const existingStreamData = streamData() ?? [];
 
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
@@ -199,7 +199,7 @@ export function useChat(
   );
 
   // Because of the `initialData` option, the `data` will never be `undefined`:
-  const messages = useSWRStore(chatApiStore, () => [chatKey()] as const, {
+  const messages = useSWRStore(chatApiStore, () => [chatKey()], {
     initialData: useChatOptions().initialMessages() || [],
   }) as Resource<Message[]>;
   createEffect(() => {
