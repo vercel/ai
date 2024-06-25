@@ -7,20 +7,20 @@ import {
 import { cleanup, findByText, render, screen } from '@solidjs/testing-library';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
-import { For } from 'solid-js';
+import { For, createSignal } from 'solid-js';
 import { useChat } from './use-chat';
 import { formatStreamPart } from '@ai-sdk/ui-utils';
 
 describe('stream data stream', () => {
   const TestComponent = () => {
-    const { messages, append, error, data, isLoading } = useChat();
+    const [id, setId] = createSignal('first-id');
+    const { messages, append, error, data, isLoading } = useChat({ id: id() });
 
     return (
       <div>
         <div data-testid="loading">{isLoading().toString()}</div>
         <div data-testid="error">{error()?.toString()}</div>
         <div data-testid="data">{JSON.stringify(data())}</div>
-
         <For each={messages()}>
           {(m, idx) => (
             <div data-testid={`message-${idx()}`}>
@@ -29,11 +29,16 @@ describe('stream data stream', () => {
             </div>
           )}
         </For>
-
         <button
-          data-testid="button"
+          data-testid="do-append"
           onClick={() => {
             append({ role: 'user', content: 'hi' });
+          }}
+        />
+        <button
+          data-testid="do-change-id"
+          onClick={() => {
+            setId('second-id');
           }}
         />
       </div>
@@ -85,10 +90,6 @@ describe('stream data stream', () => {
     mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
 
     await userEvent.click(screen.getByTestId('do-append'));
-
-    // TODO bug? the user message does not show up
-    // await screen.findByTestId('message-0');
-    // expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
     await screen.findByTestId('error');
     expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
