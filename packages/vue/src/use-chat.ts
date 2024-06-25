@@ -138,29 +138,32 @@ export function useChat({
         getStreamedResponse: async () => {
           const existingData = (streamData.value ?? []) as JSONValue[];
 
+          const constructedMessagesPayload = sendExtraMessageFields
+            ? chatRequest.messages
+            : chatRequest.messages.map(
+                ({
+                  role,
+                  content,
+                  name,
+                  data,
+                  annotations,
+                  function_call,
+                }) => ({
+                  role,
+                  content,
+                  ...(name !== undefined && { name }),
+                  ...(data !== undefined && { data }),
+                  ...(annotations !== undefined && { annotations }),
+                  // outdated function/tool call handling (TODO deprecate):
+                  ...(function_call !== undefined && { function_call }),
+                }),
+              );
+
           return await callChatApi({
             api,
-            messages: sendExtraMessageFields
-              ? chatRequest.messages
-              : chatRequest.messages.map(
-                  ({
-                    role,
-                    content,
-                    name,
-                    data,
-                    annotations,
-                    function_call,
-                  }) => ({
-                    role,
-                    content,
-                    ...(name !== undefined && { name }),
-                    ...(data !== undefined && { data }),
-                    ...(annotations !== undefined && { annotations }),
-                    // outdated function/tool call handling (TODO deprecate):
-                    ...(function_call !== undefined && { function_call }),
-                  }),
-                ),
+            messages: constructedMessagesPayload,
             body: {
+              messages: constructedMessagesPayload,
               data: chatRequest.data,
               ...unref(body), // Use unref to unwrap the ref value
               ...options?.body,
