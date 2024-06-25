@@ -7,14 +7,16 @@ import {
 import { cleanup, findByText, render, screen } from '@solidjs/testing-library';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
-import { For, createSignal } from 'solid-js';
+import { For, createEffect, createSignal } from 'solid-js';
 import { useChat } from './use-chat';
 import { formatStreamPart } from '@ai-sdk/ui-utils';
 
 describe('stream data stream', () => {
   const TestComponent = () => {
     const [id, setId] = createSignal('first-id');
-    const { messages, append, error, data, isLoading } = useChat({ id: id() });
+    const { messages, append, error, data, isLoading } = useChat(() => ({
+      id: id(),
+    }));
 
     return (
       <div>
@@ -155,9 +157,9 @@ describe('stream data stream', () => {
 
 describe('text stream', () => {
   const TestComponent = () => {
-    const { messages, append } = useChat({
+    const { messages, append } = useChat(() => ({
       streamMode: 'text',
-    });
+    }));
 
     return (
       <div>
@@ -211,13 +213,13 @@ describe('text stream', () => {
 
 describe('onToolCall', () => {
   const TestComponent = () => {
-    const { messages, append } = useChat({
+    const { messages, append } = useChat(() => ({
       async onToolCall({ toolCall }) {
         return `test-tool-response: ${toolCall.toolName} ${
           toolCall.toolCallId
         } ${JSON.stringify(toolCall.args)}`;
       },
-    });
+    }));
 
     return (
       <div>
@@ -280,7 +282,7 @@ describe('onToolCall', () => {
 describe('maxToolRoundtrips', () => {
   describe('single automatic tool roundtrip', () => {
     const TestComponent = () => {
-      const { messages, append } = useChat({
+      const { messages, append } = useChat(() => ({
         async onToolCall({ toolCall }) {
           mockFetchDataStream({
             url: 'https://example.com/api/chat',
@@ -292,7 +294,7 @@ describe('maxToolRoundtrips', () => {
           } ${JSON.stringify(toolCall.args)}`;
         },
         maxToolRoundtrips: 5,
-      });
+      }));
 
       return (
         <div>
@@ -342,11 +344,12 @@ describe('maxToolRoundtrips', () => {
 
   describe('single roundtrip with error response', () => {
     const TestComponent = () => {
-      const { messages, append, error } = useChat({
+      const { messages, append, error } = useChat(() => ({
         async onToolCall({ toolCall }) {
           mockFetchDataStream({
             url: 'https://example.com/api/chat',
             chunks: [formatStreamPart('error', 'some failure')],
+            maxCalls: 1,
           });
 
           return `test-tool-response: ${toolCall.toolName} ${
@@ -354,7 +357,7 @@ describe('maxToolRoundtrips', () => {
           } ${JSON.stringify(toolCall.args)}`;
         },
         maxToolRoundtrips: 5,
-      });
+      }));
 
       return (
         <div>
