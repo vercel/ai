@@ -17,7 +17,6 @@ import {
   JSX,
   Resource,
   Setter,
-  createDeferred,
   createEffect,
   createMemo,
   createSignal,
