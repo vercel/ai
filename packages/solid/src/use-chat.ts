@@ -17,7 +17,6 @@ import {
   JSX,
   Resource,
   Setter,
-  createDeferred,
   createEffect,
   createMemo,
   createSignal,
@@ -102,7 +101,7 @@ const getStreamedResponse = async (
   const previousMessages = messagesRef;
   mutate(chatRequest.messages);
 
-  const existingStreamData = streamData() || [];
+  const existingStreamData = streamData() ?? [];
 
   const constructedMessagesPayload = sendExtraMessageFields
     ? chatRequest.messages
@@ -148,7 +147,6 @@ const getStreamedResponse = async (
 
 const store: Record<string, Message[] | undefined> = {};
 const chatApiStore = createSWRStore<Message[], string[]>({
-  key: key => key,
   get: async (key: string) => {
     return store[key] ?? [];
   },
@@ -192,7 +190,7 @@ export function useChat(
   // Generate a unique ID for the chat if not provided.
   const hookId = createUniqueId();
 
-  const idKey = createMemo(() => useChatOptions().id() || `chat-${hookId}`);
+  const idKey = createMemo(() => useChatOptions().id() ?? `chat-${hookId}`);
   const chatKey = createMemo(() =>
     typeof useChatOptions().api() === 'string'
       ? `${useChatOptions().api()}|${idKey()}|messages`
@@ -201,10 +199,10 @@ export function useChat(
 
   // Because of the `initialData` option, the `data` will never be `undefined`:
   const messages = useSWRStore(chatApiStore, () => [chatKey()], {
-    initialData: useChatOptions().initialMessages() || [],
+    initialData: useChatOptions().initialMessages() ?? [],
   }) as Resource<Message[]>;
   createEffect(() => {
-    chatApiStore.trigger([chatKey()]);
+    chatApiStore.trigger([chatKey()], false);
   });
 
   const mutate = (data: Message[]) => {
