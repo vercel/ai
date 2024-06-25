@@ -9,6 +9,13 @@ import userEvent from '@testing-library/user-event';
 import { useCompletion } from './use-completion';
 
 describe('stream data stream', () => {
+  let onFinishResult:
+    | {
+        prompt: string;
+        completion: string;
+      }
+    | undefined;
+
   const TestComponent = () => {
     const {
       completion,
@@ -17,7 +24,11 @@ describe('stream data stream', () => {
       handleInputChange,
       input,
       isLoading,
-    } = useCompletion();
+    } = useCompletion({
+      onFinish(prompt, completion) {
+        onFinishResult = { prompt, completion };
+      },
+    });
 
     return (
       <div>
@@ -38,6 +49,7 @@ describe('stream data stream', () => {
 
   beforeEach(() => {
     render(<TestComponent />);
+    onFinishResult = undefined;
   });
 
   afterEach(() => {
@@ -45,16 +57,30 @@ describe('stream data stream', () => {
     cleanup();
   });
 
-  it('should render stream', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/completion',
-      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+  describe('render simple stream', () => {
+    beforeEach(async () => {
+      mockFetchDataStream({
+        url: 'https://example.com/api/completion',
+        chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      });
+
+      await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
     });
 
-    await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
+    it('should render stream', async () => {
+      await screen.findByTestId('completion');
+      expect(screen.getByTestId('completion')).toHaveTextContent(
+        'Hello, world.',
+      );
+    });
 
-    await screen.findByTestId('completion');
-    expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
+    it("should call 'onFinish' callback", async () => {
+      await screen.findByTestId('completion');
+      expect(onFinishResult).toEqual({
+        prompt: 'hi',
+        completion: 'Hello, world.',
+      });
+    });
   });
 
   describe('loading state', () => {
