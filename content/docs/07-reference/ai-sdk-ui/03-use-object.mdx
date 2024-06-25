@@ -89,10 +89,14 @@ export default function Page() {
       name: 'error',
       type: 'undefined | unknown',
       description: 'The error object if the API call fails.',
-
-    }
-
-]}
+    },
+    {
+      name: 'isLoading',
+      type: 'boolean',
+      description:
+        'Boolean flag indicating whether a request is currently in progress.',
+    },
+  ]}
 />
 
 ## Examples
