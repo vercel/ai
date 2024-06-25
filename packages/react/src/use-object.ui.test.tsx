@@ -9,7 +9,7 @@ import { experimental_useObject } from './use-object';
 
 describe('text stream', () => {
   const TestComponent = () => {
-    const { object, error, setInput, isLoading } = experimental_useObject({
+    const { object, error, submit, isLoading } = experimental_useObject({
       api: '/api/use-object',
       schema: z.object({ content: z.string() }),
     });
@@ -21,7 +21,7 @@ describe('text stream', () => {
         <div data-testid="error">{error?.toString()}</div>
         <button
           data-testid="submit-button"
-          onClick={async () => setInput('test-input')}
+          onClick={() => submit('test-input')}
         >
           Generate
         </button>
