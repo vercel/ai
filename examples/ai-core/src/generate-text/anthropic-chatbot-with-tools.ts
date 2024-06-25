@@ -24,7 +24,7 @@ async function main() {
 
     const { text, toolCalls, toolResults, responseMessages } =
       await generateText({
-        model: anthropic('claude-3-opus-20240229'),
+        model: anthropic('claude-3-5-sonnet-20240620'),
         tools: { weatherTool },
         system: `You are a helpful, respectful and honest assistant.`,
         messages,
