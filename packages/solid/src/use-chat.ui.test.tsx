@@ -7,7 +7,7 @@ import {
 import { cleanup, findByText, render, screen } from '@solidjs/testing-library';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
-import { For, createEffect, createSignal } from 'solid-js';
+import { For, createSignal } from 'solid-js';
 import { useChat } from './use-chat';
 import { formatStreamPart } from '@ai-sdk/ui-utils';
 

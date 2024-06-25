@@ -200,7 +200,7 @@ export function useChat(
   );
 
   // Because of the `initialData` option, the `data` will never be `undefined`:
-  const messages = useSWRStore(chatApiStore, () => [chatKey()] as const, {
+  const messages = useSWRStore(chatApiStore, () => [chatKey()], {
     initialData: useChatOptions().initialMessages() || [],
   }) as Resource<Message[]>;
   createEffect(() => {
