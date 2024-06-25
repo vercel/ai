@@ -3,7 +3,7 @@ import {
   isDeepEqualData,
   parsePartialJson,
 } from '@ai-sdk/ui-utils';
-import { useId, useState } from 'react';
+import { useCallback, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
 import z from 'zod';
 
@@ -51,6 +51,11 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
    * Flag that indicates whether an API request is in progress.
    */
   isLoading: boolean;
+
+  /**
+   * Abort the current request immediately, keep the current partial object if any.
+   */
+  stop: () => void;
 };
 
 function useObject<RESULT, INPUT = any>({
@@ -76,14 +81,26 @@ function useObject<RESULT, INPUT = any>({
   const [error, setError] = useState<undefined | unknown>(undefined);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Abort controller to cancel the current API call.
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const stop = useCallback(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+  }, []);
+
   return {
     async setInput(input) {
       try {
         setIsLoading(true);
 
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
+
         const response = await fetch(api, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: abortController.signal,
           body: JSON.stringify(input),
         });
 
@@ -123,11 +140,13 @@ function useObject<RESULT, INPUT = any>({
         setError(error);
       } finally {
         setIsLoading(false);
+        abortControllerRef.current = null;
       }
     },
     object: data,
     error,
     isLoading,
+    stop,
   };
 }
 
