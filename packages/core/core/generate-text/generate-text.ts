@@ -123,6 +123,13 @@ By default, it's set to 0, which will disable the feature.
   const baseTelemetryAttributes = {
     'ai.model.provider': model.provider,
     'ai.model.id': model.modelId,
+    // settings:
+    'ai.settings.maxRetries': maxRetries,
+    ...Object.entries(settings ?? {}).reduce((attributes, [key, value]) => {
+      attributes[`ai.settings.${key}`] = value;
+      return attributes;
+    }, {} as Record<string, AttributeValue>),
+    // special telemetry information
     'ai.telemetry.functionId': telemetry?.functionId,
     // add metadata as attributes:
     ...Object.entries(telemetry?.metadata ?? {}).reduce(
@@ -138,7 +145,12 @@ By default, it's set to 0, which will disable the feature.
   return tracer.startActiveSpan(
     'ai.generateText',
     {
-      attributes: baseTelemetryAttributes,
+      attributes: {
+        ...baseTelemetryAttributes,
+        // specific settings that only make sense on the outer level:
+        'ai.prompt': JSON.stringify({ system, prompt, messages }),
+        'ai.settings.maxToolRoundtrips': maxToolRoundtrips,
+      },
     },
     async span => {
       try {
@@ -182,13 +194,24 @@ By default, it's set to 0, which will disable the feature.
               },
               async span => {
                 try {
-                  return model.doGenerate({
+                  const result = await model.doGenerate({
                     mode,
                     ...callSettings,
                     inputFormat: currentInputFormat,
                     prompt: promptMessages,
                     abortSignal,
                   });
+
+                  // Add response information to the span:
+                  span.setAttributes({
+                    'ai.finishReason': result.finishReason,
+                    'ai.usage.promptTokens': result.usage.promptTokens,
+                    'ai.usage.completionTokens': result.usage.completionTokens,
+                    'ai.result.text': result.text,
+                    'ai.result.toolCalls': JSON.stringify(result.toolCalls),
+                  });
+
+                  return result;
                 } catch (error) {
                   if (error instanceof Error) {
                     span.recordException({
