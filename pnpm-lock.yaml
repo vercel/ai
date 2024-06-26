@@ -746,8 +746,8 @@ importers:
         specifier: latest
         version: 0.0.33(zod@3.23.8)
       '@ai-sdk/solid':
-        specifier: latest
-        version: 0.0.7(solid-js@1.8.17)(zod@3.23.8)
+        specifier: workspace:*
+        version: link:../../packages/solid
       '@solidjs/meta':
         specifier: 0.29.4
         version: 0.29.4(solid-js@1.8.17)
@@ -950,7 +950,7 @@ importers:
         version: 0.0.16(zod@3.23.8)
       '@ai-sdk/react':
         specifier: 0.0.10
-        version: link:../react
+        version: 0.0.10(react@18.2.0)(zod@3.23.8)
       '@ai-sdk/solid':
         specifier: 0.0.7
         version: 0.0.7(solid-js@1.8.17)(zod@3.23.8)
@@ -1561,6 +1561,18 @@ packages:
   '@ai-sdk/provider@0.0.10':
     resolution: {integrity: sha512-NzkrtREQpHID1cTqY/C4CI30PVOaXWKYytDR2EcytmFgnP7Z6+CrGIA/YCnNhYAuUm6Nx+nGpRL/Hmyrv7NYzg==}
     engines: {node: '>=18'}
+
+  '@ai-sdk/react@0.0.10':
+    resolution: {integrity: sha512-T3z5PdidmAe3FJLODwdhD19ohKelqhfgV2l8jbpMQ1m7AYGGMbMPLOBVXpi5SqDTtJ6znx5Hj7cEQ61+peACyw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      react: ^18 || ^19
+      zod: ^3.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
+      zod:
+        optional: true
 
   '@ai-sdk/react@0.0.9':
     resolution: {integrity: sha512-auyMSRjPvnqY0fSOZxCmsZJAPoNczhG/vcioRNc6bTj7ILP2C+l4tanIP1QBFUhO4b6Xen8CakqmRMybUGCkMg==}
@@ -12049,6 +12061,15 @@ snapshots:
   '@ai-sdk/provider@0.0.10':
     dependencies:
       json-schema: 0.4.0
+
+  '@ai-sdk/react@0.0.10(react@18.2.0)(zod@3.23.8)':
+    dependencies:
+      '@ai-sdk/provider-utils': 0.0.16(zod@3.23.8)
+      '@ai-sdk/ui-utils': 0.0.6(zod@3.23.8)
+      swr: 2.2.0(react@18.2.0)
+    optionalDependencies:
+      react: 18.2.0
+      zod: 3.23.8
 
   '@ai-sdk/react@0.0.9(react@18.2.0)(zod@3.23.8)':
     dependencies:

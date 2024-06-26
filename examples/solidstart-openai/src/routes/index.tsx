@@ -1,16 +1,12 @@
-import { For, JSX, createEffect } from 'solid-js';
+import { For } from 'solid-js';
 import { useChat } from '@ai-sdk/solid';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
 
-  createEffect(() => {
-    console.log(messages());
-  });
-
   return (
     <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      <For each={messages()} fallback={<div>No messages</div>}>
+      <For each={messages()}>
         {m => (
           <div class="whitespace-pre-wrap">
             {m.role === 'user' ? 'User: ' : 'AI: '}
