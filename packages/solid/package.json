@@ -25,7 +25,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/ui-utils": "0.0.6"
+    "@ai-sdk/ui-utils": "0.0.6",
+    "swr-store": "0.10.6",
+    "solid-swr-store": "0.10.7"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.5",
