@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 0.0.9
+
+### Patch Changes
+
+- 827ef450: feat (ai/ui): improve error handling in useAssistant
+
 ## 0.0.8
 
 ### Patch Changes

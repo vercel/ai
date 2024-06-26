@@ -1,5 +1,17 @@
 # ai
 
+## 3.2.11
+
+### Patch Changes
+
+- c908f741: chore (ui/solid): update solidjs useChat and useCompletion to feature parity with React
+- 827ef450: feat (ai/ui): improve error handling in useAssistant
+- Updated dependencies [c908f741]
+- Updated dependencies [827ef450]
+  - @ai-sdk/solid@0.0.8
+  - @ai-sdk/svelte@0.0.9
+  - @ai-sdk/react@0.0.11
+
 ## 3.2.10
 
 ### Patch Changes
