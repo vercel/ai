@@ -69,7 +69,7 @@ export type UseChatHelpers = {
   >;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
-    e?: { preventDefault?: () => void },
+    event?: { preventDefault?: () => void },
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   /** Whether the API request is in progress */
@@ -174,7 +174,9 @@ export function useChat(
     result: any;
   }) => void;
 } {
-  const useChatOptions = createMemo(() => handleProps(rawUseChatOptions));
+  const useChatOptions = createMemo(() =>
+    convertToAccessorOptions(rawUseChatOptions),
+  );
 
   const api = createMemo(() => useChatOptions().api?.() ?? '/api/chat');
   const generateId = createMemo(
@@ -349,7 +351,7 @@ export function useChat(
   );
 
   const handleSubmit: UseChatHelpers['handleSubmit'] = (
-    e,
+    event,
     options = {},
     metadata?: Object,
   ) => {
@@ -360,7 +362,7 @@ export function useChat(
       };
     }
 
-    e?.preventDefault?.();
+    event?.preventDefault?.();
     const inputValue = input();
     if (!inputValue) return;
 
@@ -462,12 +464,18 @@ function countTrailingAssistantMessages(messages: Message[]) {
 /**
  * Handle reactive and non-reactive useChatOptions
  */
-function handleProps(props: UseChatOptions | Accessor<UseChatOptions>) {
-  return Object.entries(typeof props === 'function' ? props() : props).reduce(
-    (acc, [k, v]) => {
-      // @ts-ignore
-      acc[k as keyof UseChatOptions] = createMemo(() => v);
-      return acc;
+function convertToAccessorOptions(
+  useChatOptions: UseChatOptions | Accessor<UseChatOptions>,
+) {
+  const resolvedOptions =
+    typeof useChatOptions === 'function' ? useChatOptions() : useChatOptions;
+
+  return Object.entries(resolvedOptions).reduce(
+    (reactiveOptions, [key, value]) => {
+      reactiveOptions[key as keyof UseChatOptions] = createMemo(
+        () => value,
+      ) as any;
+      return reactiveOptions;
     },
     {} as {
       [K in keyof UseChatOptions]: Accessor<UseChatOptions[K]>;
