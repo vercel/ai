@@ -4,6 +4,7 @@ import { APIEvent } from '@solidjs/start/server';
 
 export const POST = async (event: APIEvent) => {
   const { messages } = await event.request.json();
+  console.log('messages', messages);
 
   const result = await streamText({
     model: openai('gpt-3.5-turbo'),

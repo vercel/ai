@@ -17,6 +17,7 @@ import {
   JSX,
   Resource,
   Setter,
+  createComputed,
   createEffect,
   createMemo,
   createSignal,
@@ -190,7 +191,7 @@ export function useChat(
   // Generate a unique ID for the chat if not provided.
   const hookId = createUniqueId();
 
-  const idKey = createMemo(() => useChatOptions().id() ?? `chat-${hookId}`);
+  const idKey = createMemo(() => useChatOptions().id() || `chat-${hookId}`);
   const chatKey = createMemo(() =>
     typeof useChatOptions().api() === 'string'
       ? `${useChatOptions().api()}|${idKey()}|messages`
@@ -199,10 +200,10 @@ export function useChat(
 
   // Because of the `initialData` option, the `data` will never be `undefined`:
   const messages = useSWRStore(chatApiStore, () => [chatKey()], {
-    initialData: useChatOptions().initialMessages() ?? [],
+    initialData: useChatOptions().initialMessages() || [],
   }) as Resource<Message[]>;
-  createEffect(() => {
-    chatApiStore.trigger([chatKey()], false);
+  createComputed(() => {
+    chatApiStore.trigger([chatKey()]);
   });
 
   const mutate = (data: Message[]) => {
