@@ -187,7 +187,7 @@ export function useChat(
   const chatKey = createMemo(() => `${api()}|${idKey()}|messages`);
 
   const messages = createMemo(() => {
-    return store[chatKey()] ?? useChatOptions().initialMessages?.();
+    return store[chatKey()] ?? useChatOptions().initialMessages?.() ?? [];
   });
 
   const mutate = (data: Message[]) => {
