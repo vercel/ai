@@ -69,7 +69,7 @@ export type UseChatHelpers = {
   >;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
-    e: Parameters<JSX.EventHandler<HTMLFormElement, SubmitEvent>>[0],
+    e?: Parameters<JSX.EventHandler<HTMLFormElement, SubmitEvent>>[0],
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   /** Whether the API request is in progress */
@@ -358,7 +358,7 @@ export function useChat(
       };
     }
 
-    e.preventDefault();
+    e?.preventDefault();
     const inputValue = input();
     if (!inputValue) return;
 

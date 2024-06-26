@@ -7,6 +7,12 @@
     "build": "vinxi build",
     "start": "vinxi start"
   },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "vinxi": "^0.3.12"
+  },
   "dependencies": {
     "@ai-sdk/openai": "latest",
     "@ai-sdk/solid": "workspace:*",
@@ -14,11 +20,7 @@
     "@solidjs/router": "^0.13.6",
     "@solidjs/start": "^1.0.2",
     "ai": "latest",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.38",
     "solid-js": "^1.8.17",
-    "tailwindcss": "^3.4.3",
-    "vinxi": "^0.3.12",
     "zod": "^3.23.8"
   },
   "engines": {
