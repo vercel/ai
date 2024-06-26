@@ -118,7 +118,7 @@ This works in conjunction with [`AssistantResponse`](./assistant-response) in th
     },
     {
       name: 'submitMessage',
-      type: '(event?: React.FormEvent<HTMLFormElement>) => void',
+      type: '(event?: { preventDefault?: () => void }) => void',
       description:
         'Form submission handler that automatically resets the input field and appends a user message.',
     },

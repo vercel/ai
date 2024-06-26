@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateObject({
-    model: anthropic('claude-3-opus-20240229'),
+    model: anthropic('claude-3-5-sonnet-20240620'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),

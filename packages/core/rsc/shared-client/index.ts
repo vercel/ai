@@ -8,4 +8,3 @@ export {
   useSyncUIState,
   InternalAIProvider,
 } from './context';
-export { InternalStreamableUIClient } from './client-wrapper';

@@ -1,5 +1,32 @@
 # @ai-sdk/react
 
+## 0.0.10
+
+### Patch Changes
+
+- 5b04204b: chore (ai/react): rename useChat setInput to submit
+- 8f482903: feat (ai/react): add stop() helper to useObject
+
+## 0.0.9
+
+### Patch Changes
+
+- 321a7d0e: feat (ai/react): add isLoading to useObject
+
+## 0.0.8
+
+### Patch Changes
+
+- 54bf4083: feat (ai/react): control request body in useChat
+- Updated dependencies [54bf4083]
+  - @ai-sdk/ui-utils@0.0.6
+
+## 0.0.7
+
+### Patch Changes
+
+- d42b8907: feat (ui): make event in handleSubmit optional
+
 ## 0.0.6
 
 ### Patch Changes

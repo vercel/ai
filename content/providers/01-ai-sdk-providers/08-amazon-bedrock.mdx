@@ -108,6 +108,19 @@ You can use the following optional settings to customize the Amazon Bedrock prov
   The AWS secret access key that you want to use for the API calls.
   It uses the `AWS_SECRET_ACCESS_KEY` environment variable by default.
 
+- **bedrockOptions** _object_
+
+  Optional. The configuration options used by the [Amazon Bedrock Library](https://docs.aws.amazon.com/AWSJavaScraiptSDK/v3/latest/Package/-aws-sdk-client-bedrock-runtime/)
+  (`BedrockRuntimeClientConfig`), including:
+
+  - **region** _string_
+    The AWS region that you want to use for the API calls.
+
+  - **credentials** _object_
+    The AWS credentials that you want to use for the API calls.
+
+  When `bedrockOptions` are provided, the `region`, `accessKeyId`, and `secretAccessKey` settings are ignored.
+
 ## Language Models
 
 You can create models that call the Bedrock API using the provider instance.
@@ -153,11 +166,11 @@ Amazon Bedrock language models can also be used in the `streamText` function
 | ------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `amazon.titan-tg1-large`                    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `amazon.titan-text-express-v1`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `anthropic.claude-v2:1`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `anthropic.claude-3-5-sonnet-20240620-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic.claude-3-opus-20240229-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-sonnet-20240229-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-haiku-20240307-v1:0`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic.claude-3-opus-20240229-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic.claude-3-5-sonnet-20240620-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic.claude-v2:1`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `cohere.command-r-v1:0`                     | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `cohere.command-r-plus-v1:0`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `meta.llama2-13b-chat-v1`                   | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |

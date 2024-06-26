@@ -51,7 +51,10 @@ export type UseChatHelpers = {
   /** The current value of the input */
   input: Ref<string>;
   /** Form submission handler to automatically reset input and append a user message  */
-  handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void;
+  handleSubmit: (
+    event?: { preventDefault?: () => void },
+    chatRequestOptions?: ChatRequestOptions,
+  ) => void;
   /** Whether the API request is in progress */
   isLoading: Ref<boolean | undefined>;
 
@@ -138,29 +141,32 @@ export function useChat({
         getStreamedResponse: async () => {
           const existingData = (streamData.value ?? []) as JSONValue[];
 
+          const constructedMessagesPayload = sendExtraMessageFields
+            ? chatRequest.messages
+            : chatRequest.messages.map(
+                ({
+                  role,
+                  content,
+                  name,
+                  data,
+                  annotations,
+                  function_call,
+                }) => ({
+                  role,
+                  content,
+                  ...(name !== undefined && { name }),
+                  ...(data !== undefined && { data }),
+                  ...(annotations !== undefined && { annotations }),
+                  // outdated function/tool call handling (TODO deprecate):
+                  ...(function_call !== undefined && { function_call }),
+                }),
+              );
+
           return await callChatApi({
             api,
-            messages: sendExtraMessageFields
-              ? chatRequest.messages
-              : chatRequest.messages.map(
-                  ({
-                    role,
-                    content,
-                    name,
-                    data,
-                    annotations,
-                    function_call,
-                  }) => ({
-                    role,
-                    content,
-                    ...(name !== undefined && { name }),
-                    ...(data !== undefined && { data }),
-                    ...(annotations !== undefined && { annotations }),
-                    // outdated function/tool call handling (TODO deprecate):
-                    ...(function_call !== undefined && { function_call }),
-                  }),
-                ),
+            messages: constructedMessagesPayload,
             body: {
+              messages: constructedMessagesPayload,
               data: chatRequest.data,
               ...unref(body), // Use unref to unwrap the ref value
               ...options?.body,
@@ -246,8 +252,12 @@ export function useChat({
 
   const input = ref(initialInput);
 
-  const handleSubmit = (e: any, options: ChatRequestOptions = {}) => {
-    e.preventDefault();
+  const handleSubmit = (
+    event?: { preventDefault?: () => void },
+    options: ChatRequestOptions = {},
+  ) => {
+    event?.preventDefault?.();
+
     const inputValue = input.value;
     if (!inputValue) return;
     append(
