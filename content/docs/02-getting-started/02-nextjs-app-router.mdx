@@ -333,7 +333,8 @@ export default function Chat() {
       ))}
 
       <form
-        action={async () => {
+        onSubmit={async e => {
+          e.preventDefault();
           const newMessages: CoreMessage[] = [
             ...messages,
             { content: input, role: 'user' },
@@ -433,7 +434,8 @@ export default function Chat() {
       ))}
 
       <form
-        action={async () => {
+        onSubmit={async e => {
+          e.preventDefault();
           const newMessages: CoreMessage[] = [
             ...messages,
             { content: input, role: 'user' },
