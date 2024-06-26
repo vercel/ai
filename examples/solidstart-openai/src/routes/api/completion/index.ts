@@ -13,9 +13,16 @@ export const POST = async (event: APIEvent) => {
 
   // optional: use stream data
   const data = new StreamData();
-
   data.append({ test: 'value' });
 
   // Respond with the stream
-  return new StreamingTextResponse(result.toAIStream(), {}, data);
+  return new StreamingTextResponse(
+    result.toAIStream({
+      onFinal: () => {
+        data.close();
+      },
+    }),
+    {},
+    data,
+  );
 };
