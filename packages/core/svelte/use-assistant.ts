@@ -1,13 +1,12 @@
 import { isAbortError } from '@ai-sdk/provider-utils';
-import { Readable, Writable, get, writable } from 'svelte/store';
-import { generateId } from '../shared/generate-id';
-import { readDataStream } from '../shared/read-data-stream';
 import type {
   AssistantStatus,
   CreateMessage,
   Message,
   UseAssistantOptions,
-} from '../shared/types';
+} from '@ai-sdk/ui-utils';
+import { generateId, readDataStream } from '@ai-sdk/ui-utils';
+import { Readable, Writable, get, writable } from 'svelte/store';
 
 let uniqueId = 0;
 
@@ -54,7 +53,7 @@ Abort the current request immediately, keep the generated tokens if any.
    * Form submission handler that automatically resets the input field and appends a user message.
    */
   submitMessage: (
-    e: any,
+    event?: { preventDefault?: () => void },
     requestOptions?: { data?: Record<string, string> },
   ) => Promise<void>;
 
@@ -69,6 +68,9 @@ Abort the current request immediately, keep the generated tokens if any.
   error: Readable<undefined | Error>;
 };
 
+/**
+ * @deprecated Use `useAssistant` from `@ai-sdk/svelte` instead.
+ */
 export function useAssistant({
   api,
   threadId: threadIdParam,
@@ -228,10 +230,10 @@ export function useAssistant({
 
   // Function to handle form submission
   async function submitMessage(
-    e: any,
+    event?: { preventDefault?: () => void },
     requestOptions?: { data?: Record<string, string> },
   ) {
-    e.preventDefault();
+    event?.preventDefault?.();
     const inputValue = get(input);
     if (!inputValue) return;
 

@@ -1,4 +1,4 @@
-import { Message } from '../shared/types';
+import { Message } from '@ai-sdk/ui-utils';
 
 /**
  * A prompt constructor for Anthropic models.

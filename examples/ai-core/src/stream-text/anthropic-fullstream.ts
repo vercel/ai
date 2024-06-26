@@ -8,7 +8,7 @@ dotenv.config();
 
 async function main() {
   const result = await streamText({
-    model: anthropic('claude-3-haiku-20240307'),
+    model: anthropic('claude-3-5-sonnet-20240620'),
     tools: {
       weather: weatherTool,
       cityAttractions: {

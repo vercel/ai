@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",
+    "@ai-sdk/react": "latest",
     "ai": "latest",
     "next": "latest",
     "openai": "4.47.1",

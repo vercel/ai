@@ -1,9 +1,9 @@
 import { LanguageModelV1StreamPart, NoSuchToolError } from '@ai-sdk/provider';
-import { generateId } from '../../shared/generate-id';
+import { generateId } from '@ai-sdk/ui-utils';
 import { CoreTool } from '../tool';
 import { TextStreamPart } from './stream-text';
-import { parseToolCall } from './tool-call';
 import { calculateTokenUsage } from './token-usage';
+import { parseToolCall } from './tool-call';
 
 export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   tools,

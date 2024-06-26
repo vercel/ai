@@ -1,4 +1,4 @@
-import { convertArrayToReadableStream } from '../../core/test/convert-array-to-readable-stream';
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { MockLanguageModelV1 } from '../../core/test/mock-language-model-v1';
 import { streamUI } from './stream-ui';
 import { z } from 'zod';
@@ -59,6 +59,12 @@ const mockTextModel = new MockLanguageModelV1({
         { type: 'text-delta', textDelta: `world` },
         { type: 'text-delta', textDelta: `!"` },
         { type: 'text-delta', textDelta: ' }' },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3 },
+        },
       ]),
       rawCall: { rawPrompt: 'prompt', rawSettings: {} },
     };
@@ -75,6 +81,12 @@ const mockToolModel = new MockLanguageModelV1({
           toolCallId: 'call-1',
           toolName: 'tool1',
           args: `{ "value": "value" }`,
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3 },
         },
       ]),
       rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -168,5 +180,52 @@ describe('result.value', () => {
     } catch (e) {
       expect(e).toMatchSnapshot();
     }
+  });
+});
+
+describe('rsc - streamUI() onFinish callback', () => {
+  let result: Parameters<
+    Required<Parameters<typeof streamUI>[0]>['onFinish']
+  >[0];
+
+  beforeEach(async () => {
+    const ui = await streamUI({
+      model: mockToolModel,
+      messages: [],
+      tools: {
+        tool1: {
+          description: 'test tool 1',
+          parameters: z.object({
+            value: z.string(),
+          }),
+          generate: async ({ value }) => {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            return <div>tool1: {value}</div>;
+          },
+        },
+      },
+      onFinish: event => {
+        result = event;
+      },
+    });
+
+    // consume stream
+    await simulateFlightServerRender(ui.value);
+  });
+
+  it('should contain token usage', () => {
+    assert.deepStrictEqual(result.usage, {
+      completionTokens: 10,
+      promptTokens: 3,
+      totalTokens: 13,
+    });
+  });
+
+  it('should contain finish reason', async () => {
+    assert.strictEqual(result.finishReason, 'stop');
+  });
+
+  it('should contain final React node', async () => {
+    expect(result.value).toMatchSnapshot();
   });
 });

@@ -1,11 +1,11 @@
-import { useSWR } from 'sswr';
-import { Readable, Writable, derived, get, writable } from 'svelte/store';
-import { callCompletionApi } from '../shared/call-completion-api';
 import type {
   JSONValue,
   RequestOptions,
   UseCompletionOptions,
-} from '../shared/types';
+} from '@ai-sdk/ui-utils';
+import { callCompletionApi } from '@ai-sdk/ui-utils';
+import { useSWR } from 'sswr';
+import { Readable, Writable, derived, get, writable } from 'svelte/store';
 
 export type { UseCompletionOptions };
 
@@ -31,6 +31,7 @@ export type UseCompletionHelpers = {
   setCompletion: (completion: string) => void;
   /** The current value of the input */
   input: Writable<string>;
+
   /**
    * Form submission handler to automatically reset input and append a user message
    * @example
@@ -40,7 +41,8 @@ export type UseCompletionHelpers = {
    * </form>
    * ```
    */
-  handleSubmit: (e: any) => void;
+  handleSubmit: (event?: { preventDefault?: () => void }) => void;
+
   /** Whether the API request is in progress */
   isLoading: Readable<boolean | undefined>;
 
@@ -52,6 +54,9 @@ let uniqueId = 0;
 
 const store: Record<string, any> = {};
 
+/**
+ * @deprecated Use `useCompletion` from `@ai-sdk/svelte` instead.
+ */
 export function useCompletion({
   api = '/api/completion',
   id,
@@ -143,11 +148,11 @@ export function useCompletion({
 
   const input = writable(initialInput);
 
-  const handleSubmit = (e: any) => {
-    e.preventDefault();
+  const handleSubmit = (event?: { preventDefault?: () => void }) => {
+    event?.preventDefault?.();
+
     const inputValue = get(input);
-    if (!inputValue) return;
-    return complete(inputValue);
+    return inputValue ? complete(inputValue) : undefined;
   };
 
   const isLoading = derived(

@@ -1,6 +1,6 @@
 'use server';
 
-import { nanoid } from 'ai';
+import { generateId } from 'ai';
 import { createAI, createStreamableUI, createStreamableValue } from 'ai/rsc';
 import { OpenAI } from 'openai';
 import { ReactNode } from 'react';
@@ -42,7 +42,7 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
         stream: true,
       });
 
-      runQueue.push({ id: nanoid(), run });
+      runQueue.push({ id: generateId(), run });
     } else {
       const run = await openai.beta.threads.createAndRun({
         assistant_id: ASSISTANT_ID,
@@ -52,7 +52,7 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
         },
       });
 
-      runQueue.push({ id: nanoid(), run });
+      runQueue.push({ id: generateId(), run });
     }
 
     while (runQueue.length > 0) {
@@ -88,7 +88,7 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
   })();
 
   return {
-    id: nanoid(),
+    id: generateId(),
     status: statusUIStream.value,
     text: textUIStream.value,
   };

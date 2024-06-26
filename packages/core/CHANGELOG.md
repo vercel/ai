@@ -1,5 +1,177 @@
 # ai
 
+## 3.2.10
+
+### Patch Changes
+
+- Updated dependencies [5b04204b]
+- Updated dependencies [8f482903]
+  - @ai-sdk/react@0.0.10
+
+## 3.2.9
+
+### Patch Changes
+
+- 82d9c8de: feat (ai/ui): make event in useAssistant submitMessage optional
+- Updated dependencies [82d9c8de]
+- Updated dependencies [321a7d0e]
+- Updated dependencies [82d9c8de]
+  - @ai-sdk/svelte@0.0.8
+  - @ai-sdk/react@0.0.9
+  - @ai-sdk/vue@0.0.8
+
+## 3.2.8
+
+### Patch Changes
+
+- 54bf4083: feat (ai/react): control request body in useChat
+- Updated dependencies [54bf4083]
+  - @ai-sdk/ui-utils@0.0.6
+  - @ai-sdk/react@0.0.8
+  - @ai-sdk/solid@0.0.7
+  - @ai-sdk/svelte@0.0.7
+  - @ai-sdk/vue@0.0.7
+
+## 3.2.7
+
+### Patch Changes
+
+- d42b8907: feat (ui): make event in handleSubmit optional
+- Updated dependencies [d42b8907]
+  - @ai-sdk/svelte@0.0.6
+  - @ai-sdk/react@0.0.7
+  - @ai-sdk/solid@0.0.6
+  - @ai-sdk/vue@0.0.6
+
+## 3.2.6
+
+### Patch Changes
+
+- 74e28222: fix (ai/rsc): "could not find InternalStreamableUIClient" bug
+
+## 3.2.5
+
+### Patch Changes
+
+- 4d426d0c: fix (ai): split provider and model ids correctly in the provider registry
+
+## 3.2.4
+
+### Patch Changes
+
+- Updated dependencies [3cb103bc]
+  - @ai-sdk/react@0.0.6
+
+## 3.2.3
+
+### Patch Changes
+
+- 89b7552b: chore (ai): remove deprecation from ai/react imports, add experimental_useObject
+- Updated dependencies [02f6a088]
+  - @ai-sdk/provider-utils@0.0.16
+  - @ai-sdk/react@0.0.5
+  - @ai-sdk/svelte@0.0.5
+  - @ai-sdk/ui-utils@0.0.5
+  - @ai-sdk/solid@0.0.5
+  - @ai-sdk/vue@0.0.5
+
+## 3.2.2
+
+### Patch Changes
+
+- 0565cd72: feat (ai/core): add toJsonResponse to generateObject result.
+
+## 3.2.1
+
+### Patch Changes
+
+- 008725ec: feat (ai): add textStream, toTextStreamResponse(), and pipeTextStreamToResponse() to streamObject
+- 520fb2d5: feat (rsc): add streamUI onFinish callback
+- Updated dependencies [008725ec]
+- Updated dependencies [008725ec]
+  - @ai-sdk/react@0.0.4
+  - @ai-sdk/ui-utils@0.0.4
+  - @ai-sdk/solid@0.0.4
+  - @ai-sdk/svelte@0.0.4
+  - @ai-sdk/vue@0.0.4
+
+## 3.2.0
+
+### Minor Changes
+
+- 85ef6d18: chore (ai): AI SDK 3.2 release
+
+### Patch Changes
+
+- b965dd2d: fix (core): pass settings correctly for generateObject and streamObject
+
+## 3.1.37
+
+### Patch Changes
+
+- 85712895: chore (@ai-sdk/provider-utils): move test helper to provider utils
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+  - @ai-sdk/react@0.0.3
+  - @ai-sdk/svelte@0.0.3
+  - @ai-sdk/ui-utils@0.0.3
+  - @ai-sdk/solid@0.0.3
+  - @ai-sdk/vue@0.0.3
+
+## 3.1.36
+
+### Patch Changes
+
+- 4728c37f: feat (core): add text embedding model support to provider registry
+- 8c49166e: chore (core): rename experimental_createModelRegistry to experimental_createProviderRegistry
+- Updated dependencies [7910ae84]
+  - @ai-sdk/provider-utils@0.0.14
+  - @ai-sdk/react@0.0.2
+  - @ai-sdk/svelte@0.0.2
+  - @ai-sdk/ui-utils@0.0.2
+  - @ai-sdk/solid@0.0.2
+  - @ai-sdk/vue@0.0.2
+
+## 3.1.35
+
+### Patch Changes
+
+- 06123501: feat (core): support https and data url strings in image parts
+
+## 3.1.34
+
+### Patch Changes
+
+- d25566ac: feat (core): add cosineSimilarity helper function
+- 87a5d27e: feat (core): introduce InvalidMessageRoleError.
+
+## 3.1.33
+
+### Patch Changes
+
+- 6fb14b5d: chore (streams): deprecate nanoid export.
+- 05536768: feat (core): add experimental model registry
+
+## 3.1.32
+
+### Patch Changes
+
+- 3cabf078: fix(ai/rsc): Refactor streamable UI internal implementation
+
+## 3.1.31
+
+### Patch Changes
+
+- 85f209a4: chore: extracted ui library support into separate modules
+- 85f209a4: removed (streams): experimental_StreamingReactResponse was removed. Please use AI SDK RSC instead.
+- Updated dependencies [85f209a4]
+  - @ai-sdk/ui-utils@0.0.1
+  - @ai-sdk/svelte@0.0.1
+  - @ai-sdk/react@0.0.1
+  - @ai-sdk/solid@0.0.1
+  - @ai-sdk/vue@0.0.1
+
 ## 3.1.30
 
 ### Patch Changes

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useChat } from 'ai/vue';
+import { useChat } from '@ai-sdk/vue';
 
 const { messages, input, handleSubmit } = useChat({
   api: '/api/chat-with-vision',
@@ -8,7 +8,7 @@ const { messages, input, handleSubmit } = useChat({
 
 <template>
   <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-    <div v-for="m in messages" key="m.id" class="whitespace-pre-wrap">
+    <div v-for="m in messages" :key="m.id" class="whitespace-pre-wrap">
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
       {{ m.content }}
     </div>

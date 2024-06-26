@@ -1,5 +1,66 @@
 # @ai-sdk/openai
 
+## 0.0.33
+
+### Patch Changes
+
+- Updated dependencies [02f6a088]
+  - @ai-sdk/provider-utils@0.0.16
+
+## 0.0.32
+
+### Patch Changes
+
+- 1b37b8b9: fix (@ai-sdk/openai): only send logprobs settings when logprobs are requested
+
+## 0.0.31
+
+### Patch Changes
+
+- eba071dd: feat (@ai-sdk/azure): add azure openai completion support
+- 1ea890fe: feat (@ai-sdk/azure): add azure openai completion support
+
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+
+## 0.0.29
+
+### Patch Changes
+
+- 4728c37f: feat (core): add text embedding model support to provider registry
+- 7910ae84: feat (providers): support custom fetch implementations
+- Updated dependencies [7910ae84]
+  - @ai-sdk/provider-utils@0.0.14
+
+## 0.0.28
+
+### Patch Changes
+
+- f9db8fd6: feat (@ai-sdk/openai): add parallelToolCalls setting
+
+## 0.0.27
+
+### Patch Changes
+
+- fc9552ec: fix (@ai-sdk/azure): allow for nullish delta
+
+## 0.0.26
+
+### Patch Changes
+
+- 7530f861: fix (@ai-sdk/openai): add internal dist to bundle
+
+## 0.0.25
+
+### Patch Changes
+
+- 8b1362a7: chore (@ai-sdk/openai): expose models under /internal for reuse in other providers
+
 ## 0.0.24
 
 ### Patch Changes

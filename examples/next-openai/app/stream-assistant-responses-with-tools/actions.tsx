@@ -1,6 +1,6 @@
 'use server';
 
-import { nanoid } from 'ai';
+import { generateId } from 'ai';
 import { createAI, createStreamableUI, createStreamableValue } from 'ai/rsc';
 import { OpenAI } from 'openai';
 import { ReactNode } from 'react';
@@ -44,7 +44,7 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
         stream: true,
       });
 
-      runQueue.push({ id: nanoid(), run });
+      runQueue.push({ id: generateId(), run });
     } else {
       const run = await openai.beta.threads.createAndRun({
         assistant_id: ASSISTANT_ID,
@@ -54,7 +54,7 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
         },
       });
 
-      runQueue.push({ id: nanoid(), run });
+      runQueue.push({ id: generateId(), run });
     }
 
     while (runQueue.length > 0) {
@@ -92,7 +92,7 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
                     const { query, has_attachments } = JSON.parse(args);
 
                     gui.append(
-                      <div className="flex flex-row gap-2 items-center">
+                      <div className="flex flex-row items-center gap-2">
                         <div>
                           Searching for emails: {query}, has_attachments:
                           {has_attachments ? 'true' : 'false'}
@@ -109,9 +109,9 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
                         {fakeEmails.map(email => (
                           <div
                             key={email.id}
-                            className="p-2 bg-zinc-100 rounded-md flex flex-row gap-2 items-center justify-between"
+                            className="flex flex-row items-center justify-between gap-2 p-2 rounded-md bg-zinc-100"
                           >
-                            <div className="flex flex-row gap-2 items-center">
+                            <div className="flex flex-row items-center gap-2">
                               <div>{email.subject}</div>
                             </div>
                             <div className="text-zinc-500">{email.date}</div>
@@ -137,7 +137,7 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
                     },
                   );
 
-                runQueue.push({ id: nanoid(), run: nextRun });
+                runQueue.push({ id: generateId(), run: nextRun });
               }
             }
           } else if (event === 'thread.run.failed') {
@@ -153,7 +153,7 @@ export async function submitMessage(question: string): Promise<ClientMessage> {
   })();
 
   return {
-    id: nanoid(),
+    id: generateId(),
     status: status.value,
     text: textUIStream.value,
     gui: gui.value,

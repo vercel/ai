@@ -1,7 +1,3 @@
-import { useSWR } from 'sswr';
-import { Readable, Writable, derived, get, writable } from 'svelte/store';
-import { callChatApi } from '../shared/call-chat-api';
-import { processChatStream } from '../shared/process-chat-stream';
 import type {
   ChatRequest,
   ChatRequestOptions,
@@ -10,8 +6,14 @@ import type {
   JSONValue,
   Message,
   UseChatOptions,
-} from '../shared/types';
-import { generateId as generateIdFunc } from '../shared/generate-id';
+} from '@ai-sdk/ui-utils';
+import {
+  callChatApi,
+  generateId as generateIdFunc,
+  processChatStream,
+} from '@ai-sdk/ui-utils';
+import { useSWR } from 'sswr';
+import { Readable, Writable, derived, get, writable } from 'svelte/store';
 export type { CreateMessage, Message, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -49,8 +51,13 @@ export type UseChatHelpers = {
   setMessages: (messages: Message[]) => void;
   /** The current value of the input */
   input: Writable<string>;
+
   /** Form submission handler to automatically reset input and append a user message  */
-  handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void;
+  handleSubmit: (
+    event?: { preventDefault?: () => void },
+    chatRequestOptions?: ChatRequestOptions,
+  ) => void;
+
   metadata?: Object;
   /** Whether the API request is in progress */
   isLoading: Readable<boolean | undefined>;
@@ -110,6 +117,8 @@ const getStreamedResponse = async (
     api,
     messages: constructedMessagesPayload,
     body: {
+      messages: constructedMessagesPayload,
+      data: chatRequest.data,
       ...extraMetadata.body,
       ...chatRequest.options?.body,
       ...(chatRequest.functions !== undefined && {
@@ -149,6 +158,9 @@ let uniqueId = 0;
 
 const store: Record<string, Message[] | undefined> = {};
 
+/**
+ * @deprecated Use `useChat` from `@ai-sdk/svelte` instead.
+ */
 export function useChat({
   api = '/api/chat',
   id,
@@ -336,8 +348,12 @@ export function useChat({
 
   const input = writable(initialInput);
 
-  const handleSubmit = (e: any, options: ChatRequestOptions = {}) => {
-    e.preventDefault();
+  const handleSubmit = (
+    event?: { preventDefault?: () => void },
+    options: ChatRequestOptions = {},
+  ) => {
+    event?.preventDefault?.();
+
     const inputValue = get(input);
     if (!inputValue) return;
 

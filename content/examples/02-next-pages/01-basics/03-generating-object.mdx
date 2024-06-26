@@ -1,9 +1,15 @@
 ---
 title: Generating Structured Data
-description: Learn to generate structured data using the Vercel AI SDK in your Next.js pages router application
+description: Learn to generate structured data using the Vercel AI SDK in your Next.js Pages Router application
 ---
 
 # Generate Object
+
+<Note>
+  This example client side rendering and hooks. If you want to use React Server
+  Components (RSC) instead, check out the ["generate object" example with
+  RSCs](/examples/next-app/basics/generating-object).
+</Note>
 
 Earlier functions like `generateText` and `streamText` gave us the ability to generate unstructured text. However, if you want to generate structured data like JSON, you can provide a schema that describes the structure of your desired object to the `generateObject` function.
 
@@ -86,7 +92,7 @@ import { z } from 'zod';
 export async function POST(req: Request) {
   const { prompt }: { prompt: string } = await req.json();
 
-  const { object } = await generateObject({
+  const result = await generateObject({
     model: openai('gpt-4'),
     system: 'You generate three notifications for a messages app.',
     prompt,
@@ -101,6 +107,10 @@ export async function POST(req: Request) {
     }),
   });
 
-  return Response.json({ object });
+  return result.toJsonResponse();
 }
 ```
+
+---
+
+<GithubLink link="https://github.com/vercel/ai/blob/main/examples/next-openai-pages/pages/basics/generate-object/index.tsx" />

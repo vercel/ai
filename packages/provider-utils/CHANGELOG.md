@@ -1,5 +1,24 @@
 # @ai-sdk/provider-utils
 
+## 0.0.16
+
+### Patch Changes
+
+- 02f6a088: feat (provider-utils): add convertArrayToAsyncIterable test helper
+
+## 0.0.15
+
+### Patch Changes
+
+- 85712895: feat (@ai-sdk/provider-utils): add createJsonStreamResponseHandler
+- 85712895: chore (@ai-sdk/provider-utils): move test helper to provider utils
+
+## 0.0.14
+
+### Patch Changes
+
+- 7910ae84: feat (providers): support custom fetch implementations
+
 ## 0.0.13
 
 ### Patch Changes

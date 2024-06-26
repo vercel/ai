@@ -14,13 +14,21 @@ Allows you to easily create a conversational user interface for your chatbot app
     <Snippet text="import { useChat } from 'ai/react'" dark prompt={false} />
   </Tab>
   <Tab>
-    <Snippet text="import { useChat } from 'ai/svelte'" dark prompt={false} />
+    <Snippet
+      text="import { useChat } from '@ai-sdk/svelte'"
+      dark
+      prompt={false}
+    />
   </Tab>
   <Tab>
-    <Snippet text="import { useChat } from 'ai/vue'" dark prompt={false} />
+    <Snippet text="import { useChat } from '@ai-sdk/vue'" dark prompt={false} />
   </Tab>
   <Tab>
-    <Snippet text="import { useChat } from 'ai/solid'" dark prompt={false} />
+    <Snippet
+      text="import { useChat } from '@ai-sdk/solid'"
+      dark
+      prompt={false}
+    />
   </Tab>
 </Tabs>
 
@@ -78,7 +86,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     {
       name: 'generateId',
       type: '() => string',
-      description: `Optional. A way to provide a function that is going to be used for ids for messages. If not provided nanoid is used by default.`,
+      description: `Optional. A way to provide a function that is going to be used for ids for messages. If not provided generateId is used by default.`,
     },
     {
       name: 'headers',
@@ -118,6 +126,13 @@ Allows you to easily create a conversational user interface for your chatbot app
       optional: true,
       description:
         'An optional literal that sets the mode of the stream to be used. Defaults to `stream-data`. If set to `text`, the stream will be treated as a text stream.',
+    },
+    {
+      name: 'experimental_prepareRequestBody',
+      type: '(options: { messages: Message[]; requestData?: Record<string, string>; requestBody?: object }) => JSONValue',
+      optional: true,
+      description:
+        'Experimental (React only). When a function is provided, it will be used to prepare the request body for the chat API. This can be useful for customizing the request body based on the messages and data in the chat.',
     },
   ]}
 />
@@ -177,7 +192,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'handleSubmit',
-      type: '(event: React.FormEvent<HTMLFormElement>, chatRequestOptions?: ChatRequestOptions) => void',
+      type: '(event?: { preventDefault?: () => void }, chatRequestOptions?: ChatRequestOptions) => void',
       description:
         'Form submission handler that automatically resets the input field and appends a user message. You can use the `options` parameter to send additional data, headers and more to the server.',
       properties: [

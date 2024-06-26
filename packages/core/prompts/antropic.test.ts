@@ -1,4 +1,4 @@
-import { Message } from '../shared/types';
+import { Message } from '@ai-sdk/ui-utils';
 import { experimental_buildAnthropicPrompt } from './anthropic';
 
 describe('experimental_buildAnthropicPrompt', () => {

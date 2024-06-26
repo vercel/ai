@@ -26,9 +26,10 @@ import {
 
 type OpenAIChatConfig = {
   provider: string;
-  baseURL: string;
   compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
+  url: (options: { modelId: string; path: string }) => string;
+  fetch?: typeof fetch;
 };
 
 export class OpenAIChatLanguageModel implements LanguageModelV1 {
@@ -74,7 +75,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       logit_bias: this.settings.logitBias,
       logprobs:
         this.settings.logprobs === true ||
-        typeof this.settings.logprobs === 'number',
+        typeof this.settings.logprobs === 'number'
+          ? true
+          : undefined,
       top_logprobs:
         typeof this.settings.logprobs === 'number'
           ? this.settings.logprobs
@@ -84,6 +87,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
             : undefined
           : undefined,
       user: this.settings.user,
+      parallel_tool_calls: this.settings.parallelToolCalls,
 
       // standardized settings:
       max_tokens: maxTokens,
@@ -145,7 +149,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/chat/completions`,
+      url: this.config.url({
+        path: '/chat/completions',
+        modelId: this.modelId,
+      }),
       headers: this.config.headers(),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -153,6 +160,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         openAIChatResponseSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;
@@ -184,7 +192,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     const args = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/chat/completions`,
+      url: this.config.url({
+        path: '/chat/completions',
+        modelId: this.modelId,
+      }),
       headers: this.config.headers(),
       body: {
         ...args,
@@ -201,6 +212,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         openaiChatChunkSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;
@@ -452,23 +464,25 @@ const openaiChatChunkSchema = z.union([
   z.object({
     choices: z.array(
       z.object({
-        delta: z.object({
-          role: z.enum(['assistant']).optional(),
-          content: z.string().nullish(),
-          tool_calls: z
-            .array(
-              z.object({
-                index: z.number(),
-                id: z.string().nullish(),
-                type: z.literal('function').optional(),
-                function: z.object({
-                  name: z.string().nullish(),
-                  arguments: z.string().nullish(),
+        delta: z
+          .object({
+            role: z.enum(['assistant']).optional(),
+            content: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number(),
+                  id: z.string().nullish(),
+                  type: z.literal('function').optional(),
+                  function: z.object({
+                    name: z.string().nullish(),
+                    arguments: z.string().nullish(),
+                  }),
                 }),
-              }),
-            )
-            .nullish(),
-        }),
+              )
+              .nullish(),
+          })
+          .nullish(),
         logprobs: z
           .object({
             content: z

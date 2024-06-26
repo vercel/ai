@@ -155,3 +155,11 @@ exports[`result.value > should render tool call results with generator render fu
 `;
 
 exports[`result.value > should show better error messages if legacy options are passed 1`] = `[Error: Tool definition in \`streamUI\` should not have \`render\` property. Use \`generate\` instead. Found in tool: tool1]`;
+
+exports[`rsc - streamUI() onFinish callback > should contain final React node 1`] = `
+<React.Suspense>
+  <Unknown
+    n={Promise {}}
+  />
+</React.Suspense>
+`;
