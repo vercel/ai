@@ -140,7 +140,7 @@ export function useAssistant({
     try {
       abortControllerRef.current = abortController;
 
-      const result = await fetch(api, {
+      const response = await fetch(api, {
         method: 'POST',
         credentials,
         signal: abortController.signal,
@@ -156,16 +156,18 @@ export function useAssistant({
         }),
       });
 
-      if (!result.ok) {
-        throw new Error(await result.text());
+      if (!response.ok) {
+        throw new Error(
+          (await response.text()) ?? 'Failed to fetch the assistant response.',
+        );
       }
 
-      if (result.body == null) {
+      if (response.body == null) {
         throw new Error('The response body is empty.');
       }
 
       for await (const { type, value } of readDataStream(
-        result.body.getReader(),
+        response.body.getReader(),
       )) {
         switch (type) {
           case 'assistant_message': {
