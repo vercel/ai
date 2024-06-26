@@ -1,5 +1,12 @@
 # @ai-sdk/react
 
+## 0.0.10
+
+### Patch Changes
+
+- 5b04204b: chore (ai/react): rename useChat setInput to submit
+- 8f482903: feat (ai/react): add stop() helper to useObject
+
 ## 0.0.9
 
 ### Patch Changes

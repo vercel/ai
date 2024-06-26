@@ -950,7 +950,7 @@ importers:
         specifier: 0.0.16
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 0.0.9
+        specifier: 0.0.10
         version: link:../react
       '@ai-sdk/solid':
         specifier: 0.0.7
