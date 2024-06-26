@@ -120,23 +120,25 @@ By default, it's set to 0, which will disable the feature.
       metadata?: Record<string, AttributeValue>;
     };
   }): Promise<GenerateTextResult<TOOLS>> {
+  const baseTelemetryAttributes = {
+    'ai.model.provider': model.provider,
+    'ai.model.id': model.modelId,
+    'ai.telemetry.functionId': telemetry?.functionId,
+    // add metadata as attributes:
+    ...Object.entries(telemetry?.metadata ?? {}).reduce(
+      (attributes, [key, value]) => {
+        attributes[`ai.telemetry.metadata.${key}`] = value;
+        return attributes;
+      },
+      {} as Record<string, AttributeValue>,
+    ),
+  };
+
   const tracer = await getTracer();
   return tracer.startActiveSpan(
     'ai.generateText',
     {
-      attributes: {
-        'ai.model.provider': model.provider,
-        'ai.model.id': model.modelId,
-        'ai.telemetry.functionId': telemetry?.functionId,
-        // add metadata as attributes:
-        ...Object.entries(telemetry?.metadata ?? {}).reduce(
-          (attributes, [key, value]) => {
-            attributes[`ai.telemetry.metadata.${key}`] = value;
-            return attributes;
-          },
-          {} as Record<string, AttributeValue>,
-        ),
-      },
+      attributes: baseTelemetryAttributes,
     },
     async span => {
       try {
@@ -164,15 +166,45 @@ By default, it's set to 0, which will disable the feature.
           [];
 
         do {
+          // once we have a roundtrip, we need to switch to messages format:
+          const currentInputFormat =
+            roundtrips === 0 ? validatedPrompt.type : 'messages';
+
           currentModelResponse = await retry(() => {
-            return model.doGenerate({
-              mode,
-              ...callSettings,
-              // once we have a roundtrip, we need to switch to messages format:
-              inputFormat: roundtrips === 0 ? validatedPrompt.type : 'messages',
-              prompt: promptMessages,
-              abortSignal,
-            });
+            return tracer.startActiveSpan(
+              'ai.generateText.doGenerate',
+              {
+                attributes: {
+                  ...baseTelemetryAttributes,
+                  'ai.prompt.format': currentInputFormat,
+                  'ai.prompt.messages': JSON.stringify(promptMessages),
+                },
+              },
+              async span => {
+                try {
+                  return model.doGenerate({
+                    mode,
+                    ...callSettings,
+                    inputFormat: currentInputFormat,
+                    prompt: promptMessages,
+                    abortSignal,
+                  });
+                } catch (error) {
+                  if (error instanceof Error) {
+                    span.recordException({
+                      name: error.name,
+                      message: error.message,
+                      stack: error.stack,
+                    });
+                  }
+                  span.setStatus(2 as any); // SpanStatus.ERROR
+
+                  throw error;
+                } finally {
+                  span.end();
+                }
+              },
+            );
           });
 
           // parse tool calls:
