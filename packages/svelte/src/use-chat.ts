@@ -231,7 +231,7 @@ export function useChat({
             },
             get(streamData),
             extraMetadata,
-            get(messages),
+            chatRequest.messages,
             abortController,
             generateId,
             streamMode,
