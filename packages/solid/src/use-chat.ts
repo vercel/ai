@@ -153,9 +153,7 @@ const chatApiStore = createSWRStore<Message[], string[]>({
   },
 });
 
-export type UseChatOptions = Omit<SharedUseChatOptions, 'api'> & {
-  api?: string;
-
+export type UseChatOptions = SharedUseChatOptions & {
   /**
 Maximal number of automatic roundtrips for tool calls.
 
@@ -185,22 +183,20 @@ export function useChat(
   const useChatOptions = createMemo(() => handleProps(rawUseChatOptions));
 
   const generateId = createMemo(
-    () => useChatOptions().generateId() || generateIdFunc,
+    () => useChatOptions().generateId() ?? generateIdFunc,
   );
 
   // Generate a unique ID for the chat if not provided.
   const hookId = createUniqueId();
 
-  const idKey = createMemo(() => useChatOptions().id() || `chat-${hookId}`);
-  const chatKey = createMemo(() =>
-    typeof useChatOptions().api() === 'string'
-      ? `${useChatOptions().api()}|${idKey()}|messages`
-      : `${idKey()}|messages`,
+  const idKey = createMemo(() => useChatOptions().id() ?? `chat-${hookId}`);
+  const chatKey = createMemo(
+    () => `${useChatOptions().api()}|${idKey()}|messages`,
   );
 
   // Because of the `initialData` option, the `data` will never be `undefined`:
   const messages = useSWRStore(chatApiStore, () => [chatKey()], {
-    initialData: useChatOptions().initialMessages() || [],
+    initialData: useChatOptions().initialMessages(),
   }) as Resource<Message[]>;
   createComputed(() => {
     chatApiStore.trigger([chatKey()]);

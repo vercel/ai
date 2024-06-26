@@ -949,8 +949,8 @@ importers:
         specifier: 0.0.16
         version: 0.0.16(zod@3.23.8)
       '@ai-sdk/react':
-        specifier: 0.0.9
-        version: 0.0.9(react@18.2.0)(zod@3.23.8)
+        specifier: 0.0.10
+        version: link:../react
       '@ai-sdk/solid':
         specifier: 0.0.7
         version: 0.0.7(solid-js@1.8.17)(zod@3.23.8)

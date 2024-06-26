@@ -16,14 +16,14 @@ You can use it together with [`streamObject`](/docs/reference/ai-sdk-core/stream
 import { experimental_useObject as useObject } from 'ai/react';
 
 export default function Page() {
-  const { setInput, object } = useObject({
+  const { object, submit } = useObject({
     api: '/api/use-object',
     schema: z.object({ content: z.string() }),
   });
 
   return (
     <div>
-      <button onClick={() => setInput('example input')}>Generate</button>
+      <button onClick={() => submit('example input')}>Generate</button>
       {object?.content && <p>{object.content}</p>}
     </div>
   );
@@ -75,7 +75,7 @@ export default function Page() {
 <PropertiesTable
   content={[
     {
-      name: 'setInput',
+      name: 'submit',
       type: '(input: INPUT) => void',
       description: 'Calls the API with the provided input as JSON body.',
     },
@@ -95,6 +95,11 @@ export default function Page() {
       type: 'boolean',
       description:
         'Boolean flag indicating whether a request is currently in progress.',
+    },
+    {
+      name: 'stop',
+      type: '() => void',
+      description: 'Function to abort the current API request.',
     },
   ]}
 />
