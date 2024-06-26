@@ -1,12 +1,11 @@
 /* eslint-disable react/jsx-key */
-import { Message, ToolInvocation } from 'ai';
 import { useChat } from '@ai-sdk/solid';
-import { For, Match, Show, Switch } from 'solid-js';
+import { For, Show } from 'solid-js';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
-      api: '/api/chat-with-tools',
+      api: '/api/use-chat-tools',
       maxToolRoundtrips: 5,
 
       // run client-side tools that are automatically executed:

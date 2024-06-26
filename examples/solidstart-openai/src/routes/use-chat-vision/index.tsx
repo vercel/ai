@@ -1,9 +1,9 @@
-import { For, JSX } from 'solid-js';
 import { useChat } from '@ai-sdk/solid';
+import { For } from 'solid-js';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat(() => ({
-    api: '/api/chat-with-vision',
+    api: '/api/use-chat-vision',
   }));
 
   return (

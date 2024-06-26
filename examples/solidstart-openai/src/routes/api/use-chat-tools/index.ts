@@ -1,18 +1,13 @@
-import {
-  StreamingTextResponse,
-  streamText,
-  convertToCoreMessages,
-  tool,
-} from 'ai';
-import { APIEvent } from '@solidjs/start/server';
 import { openai } from '@ai-sdk/openai';
+import { APIEvent } from '@solidjs/start/server';
+import { convertToCoreMessages, streamText } from 'ai';
 import { z } from 'zod';
 
 export const POST = async (event: APIEvent) => {
   const { messages } = await event.request.json();
 
   const result = await streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-4-turbo'),
     messages: convertToCoreMessages(messages),
     tools: {
       // server-side tool with execute function:
