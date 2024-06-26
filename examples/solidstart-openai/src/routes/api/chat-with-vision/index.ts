@@ -11,19 +11,19 @@ export const POST = async (event: APIEvent) => {
 
   const result = await streamText({
     model: openai('gpt-4o'),
-    messages: convertToCoreMessages([
-      ...initialMessages,
+    messages: [
+      ...convertToCoreMessages(initialMessages),
       {
         ...currentMessage,
         content: [
           { type: 'text', text: currentMessage.content },
           {
-            type: 'image_url',
-            image_url: data.imageUrl,
+            type: 'image',
+            image: new URL(data.imageUrl),
           },
         ],
       },
-    ]),
+    ],
   });
 
   // Respond with the stream

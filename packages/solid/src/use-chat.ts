@@ -69,7 +69,7 @@ export type UseChatHelpers = {
   >;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
-    e?: Parameters<JSX.EventHandler<HTMLFormElement, SubmitEvent>>[0],
+    e?: { preventDefault?: () => void },
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   /** Whether the API request is in progress */
@@ -176,19 +176,18 @@ export function useChat(
 } {
   const useChatOptions = createMemo(() => handleProps(rawUseChatOptions));
 
+  const api = createMemo(() => useChatOptions().api?.() ?? '/api/chat');
   const generateId = createMemo(
-    () => useChatOptions().generateId() ?? generateIdFunc,
+    () => useChatOptions().generateId?.() ?? generateIdFunc,
   );
 
   const idKey = createMemo(
-    () => useChatOptions().id() ?? `chat-${createUniqueId()}`,
+    () => useChatOptions().id?.() ?? `chat-${createUniqueId()}`,
   );
-  const chatKey = createMemo(
-    () => `${useChatOptions().api()}|${idKey()}|messages`,
-  );
+  const chatKey = createMemo(() => `${api()}|${idKey()}|messages`);
 
   const messages = createMemo(() => {
-    return store[chatKey()] ?? [];
+    return store[chatKey()] ?? useChatOptions().initialMessages?.() ?? [];
   });
 
   const mutate = (data: Message[]) => {
@@ -209,15 +208,15 @@ export function useChat(
   let abortController: AbortController | null = null;
 
   let extraMetadata = {
-    credentials: useChatOptions().credentials(),
-    headers: useChatOptions().headers(),
-    body: useChatOptions().body(),
+    credentials: useChatOptions().credentials?.(),
+    headers: useChatOptions().headers?.(),
+    body: useChatOptions().body?.(),
   };
   createEffect(() => {
     extraMetadata = {
-      credentials: useChatOptions().credentials(),
-      headers: useChatOptions().headers(),
-      body: useChatOptions().body(),
+      credentials: useChatOptions().credentials?.(),
+      headers: useChatOptions().headers?.(),
+      body: useChatOptions().body?.(),
     };
   });
 
@@ -233,7 +232,7 @@ export function useChat(
       await processChatStream({
         getStreamedResponse: () =>
           getStreamedResponse(
-            useChatOptions().api() ?? '/api/chat',
+            api(),
             chatRequest,
             mutate,
             setStreamData,
@@ -242,14 +241,14 @@ export function useChat(
             messagesRef,
             abortController,
             generateId(),
-            useChatOptions().streamMode(),
-            useChatOptions().onFinish(),
-            useChatOptions().onResponse(),
-            useChatOptions().onToolCall(),
-            useChatOptions().sendExtraMessageFields(),
+            useChatOptions().streamMode?.(),
+            useChatOptions().onFinish?.(),
+            useChatOptions().onResponse?.(),
+            useChatOptions().onToolCall?.(),
+            useChatOptions().sendExtraMessageFields?.(),
           ),
         experimental_onFunctionCall:
-          useChatOptions().experimental_onFunctionCall(),
+          useChatOptions().experimental_onFunctionCall?.(),
         updateChatRequest(newChatRequest) {
           chatRequest = newChatRequest;
         },
@@ -264,8 +263,9 @@ export function useChat(
         return null;
       }
 
-      if (useChatOptions().onError() && err instanceof Error) {
-        useChatOptions().onError()!(err);
+      const onError = useChatOptions().onError?.();
+      if (onError && err instanceof Error) {
+        onError(err);
       }
 
       setError(err as Error);
@@ -273,7 +273,7 @@ export function useChat(
       setIsLoading(false);
     }
 
-    const maxToolRoundtrips = useChatOptions().maxToolRoundtrips() ?? 0;
+    const maxToolRoundtrips = useChatOptions().maxToolRoundtrips?.() ?? 0;
     // auto-submit when all tool calls in the last assistant message have results:
     const messages = messagesRef;
     const lastMessage = messages[messages.length - 1];
@@ -344,7 +344,9 @@ export function useChat(
     messagesRef = messages;
   };
 
-  const [input, setInput] = createSignal(useChatOptions().initialInput() || '');
+  const [input, setInput] = createSignal(
+    useChatOptions().initialInput?.() || '',
+  );
 
   const handleSubmit: UseChatHelpers['handleSubmit'] = (
     e,
@@ -358,7 +360,7 @@ export function useChat(
       };
     }
 
-    e?.preventDefault();
+    e?.preventDefault?.();
     const inputValue = input();
     if (!inputValue) return;
 
@@ -373,7 +375,7 @@ export function useChat(
     setInput('');
   };
 
-  const handleInputChange: UseChatHelpers['handleInputChange'] = (e: any) => {
+  const handleInputChange: UseChatHelpers['handleInputChange'] = e => {
     setInput(e.target.value);
   };
 
@@ -461,81 +463,14 @@ function countTrailingAssistantMessages(messages: Message[]) {
  * Handle reactive and non-reactive useChatOptions
  */
 function handleProps(props: UseChatOptions | Accessor<UseChatOptions>) {
-  // Handle reactive and non-reactive useChatOptions
-  const id = createMemo(() =>
-    typeof props === 'function' ? props().id : props.id,
+  return Object.entries(typeof props === 'function' ? props() : props).reduce(
+    (acc, [k, v]) => {
+      // @ts-ignore
+      acc[k as keyof UseChatOptions] = createMemo(() => v);
+      return acc;
+    },
+    {} as {
+      [K in keyof UseChatOptions]: Accessor<UseChatOptions[K]>;
+    },
   );
-  const api = createMemo(() =>
-    typeof props === 'function' ? props().api : props.api,
-  );
-  const credentials = createMemo(() =>
-    typeof props === 'function' ? props().credentials : props.credentials,
-  );
-  const headers = createMemo(() =>
-    typeof props === 'function' ? props().headers : props.headers,
-  );
-  const body = createMemo(() =>
-    typeof props === 'function' ? props().body : props.body,
-  );
-  const initialMessages = createMemo(
-    () =>
-      (typeof props === 'function'
-        ? props().initialMessages
-        : props.initialMessages) ?? [],
-  );
-  const generateId = createMemo(() =>
-    typeof props === 'function' ? props().generateId : props.generateId,
-  );
-  const streamMode = createMemo(() =>
-    typeof props === 'function' ? props().streamMode : props.streamMode,
-  );
-  const onFinish = createMemo(() =>
-    typeof props === 'function' ? props().onFinish : props.onFinish,
-  );
-  const onResponse = createMemo(() =>
-    typeof props === 'function' ? props().onResponse : props.onResponse,
-  );
-  const onToolCall = createMemo(() =>
-    typeof props === 'function' ? props().onToolCall : props.onToolCall,
-  );
-  const sendExtraMessageFields = createMemo(() =>
-    typeof props === 'function'
-      ? props().sendExtraMessageFields
-      : props.sendExtraMessageFields,
-  );
-  const experimental_onFunctionCall = createMemo(() =>
-    typeof props === 'function'
-      ? props().experimental_onFunctionCall
-      : props.experimental_onFunctionCall,
-  );
-  const onError = createMemo(() =>
-    typeof props === 'function' ? props().onError : props.onError,
-  );
-  const maxToolRoundtrips = createMemo(() =>
-    typeof props === 'function'
-      ? props().maxToolRoundtrips
-      : props.maxToolRoundtrips,
-  );
-  const initialInput = createMemo(() =>
-    typeof props === 'function' ? props().initialInput : props.initialInput,
-  );
-
-  return {
-    id,
-    api,
-    credentials,
-    headers,
-    body,
-    initialMessages,
-    generateId,
-    streamMode,
-    onFinish,
-    onResponse,
-    onToolCall,
-    sendExtraMessageFields,
-    experimental_onFunctionCall,
-    onError,
-    maxToolRoundtrips,
-    initialInput,
-  };
 }
