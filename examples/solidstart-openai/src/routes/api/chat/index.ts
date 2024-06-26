@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { StreamingTextResponse, convertToCoreMessages, streamText } from 'ai';
+import { convertToCoreMessages, streamText } from 'ai';
 import { APIEvent } from '@solidjs/start/server';
 
 export const POST = async (event: APIEvent) => {
@@ -10,5 +10,5 @@ export const POST = async (event: APIEvent) => {
     messages: convertToCoreMessages(messages),
   });
 
-  return new StreamingTextResponse(result.toAIStream());
+  return result.toAIStreamResponse();
 };

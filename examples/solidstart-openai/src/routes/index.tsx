@@ -1,4 +1,4 @@
-import { For, JSX } from 'solid-js';
+import { For } from 'solid-js';
 import { useChat } from '@ai-sdk/solid';
 
 export default function Chat() {

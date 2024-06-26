@@ -15,21 +15,19 @@ import {
 import {
   Accessor,
   JSX,
-  Resource,
   Setter,
   createEffect,
   createMemo,
   createSignal,
   createUniqueId,
 } from 'solid-js';
-import { useSWRStore } from 'solid-swr-store';
-import { createSWRStore } from 'swr-store';
+import { createStore } from 'solid-js/store';
 
 export type { CreateMessage, Message };
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
-  messages: Resource<Message[]>;
+  messages: Accessor<Message[]>;
   /** The error object of the API request */
   error: Accessor<undefined | Error>;
   /**
@@ -71,7 +69,7 @@ export type UseChatHelpers = {
   >;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
-    e: Parameters<JSX.EventHandler<HTMLFormElement, SubmitEvent>>[0],
+    e?: Parameters<JSX.EventHandler<HTMLFormElement, SubmitEvent>>[0],
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   /** Whether the API request is in progress */
@@ -120,6 +118,7 @@ const getStreamedResponse = async (
     api,
     messages: constructedMessagesPayload,
     body: {
+      messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadata.body,
       ...chatRequest.options?.body,
@@ -145,13 +144,8 @@ const getStreamedResponse = async (
   });
 };
 
-const store: Record<string, Message[] | undefined> = {};
-const chatApiStore = createSWRStore<Message[], string[]>({
-  key: key => key,
-  get: async (key: string) => {
-    return store[key] ?? [];
-  },
-});
+// This store saves the messages for each chat ID
+const [store, setStore] = createStore<Record<string, Message[]>>({});
 
 export type UseChatOptions = SharedUseChatOptions & {
   /**
@@ -186,28 +180,19 @@ export function useChat(
     () => useChatOptions().generateId() ?? generateIdFunc,
   );
 
-  // Generate a unique ID for the chat if not provided.
-  const hookId = createUniqueId();
-
-  const idKey = createMemo(() => useChatOptions().id() ?? `chat-${hookId}`);
+  const idKey = createMemo(
+    () => useChatOptions().id() ?? `chat-${createUniqueId()}`,
+  );
   const chatKey = createMemo(
     () => `${useChatOptions().api()}|${idKey()}|messages`,
   );
 
-  // Because of the `initialData` option, the `data` will never be `undefined`:
-  const messages = useSWRStore(chatApiStore, () => [chatKey()], {
-    initialData: useChatOptions().initialMessages(),
-  }) as Resource<Message[]>;
-  createEffect(() => {
-    chatApiStore.trigger([chatKey()]);
+  const messages = createMemo(() => {
+    return store[chatKey()] ?? [];
   });
 
   const mutate = (data: Message[]) => {
-    store[chatKey()] = data;
-    return chatApiStore.mutate([chatKey()], {
-      status: 'success',
-      data,
-    });
+    setStore(chatKey(), data);
   };
 
   const [error, setError] = createSignal<undefined | Error>(undefined);
@@ -373,7 +358,7 @@ export function useChat(
       };
     }
 
-    e.preventDefault();
+    e?.preventDefault();
     const inputValue = input();
     if (!inputValue) return;
 
@@ -492,10 +477,11 @@ function handleProps(props: UseChatOptions | Accessor<UseChatOptions>) {
   const body = createMemo(() =>
     typeof props === 'function' ? props().body : props.body,
   );
-  const initialMessages = createMemo(() =>
-    typeof props === 'function'
-      ? props().initialMessages
-      : props.initialMessages,
+  const initialMessages = createMemo(
+    () =>
+      (typeof props === 'function'
+        ? props().initialMessages
+        : props.initialMessages) ?? [],
   );
   const generateId = createMemo(() =>
     typeof props === 'function' ? props().generateId : props.generateId,
