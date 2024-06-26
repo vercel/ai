@@ -243,6 +243,16 @@ By default, it's set to 0, which will disable the feature.
         roundtrips++ < maxToolRoundtrips
       );
 
+      // Add response information to the span:
+      span.setAttributes({
+        'ai.finishReason': currentModelResponse.finishReason,
+        'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
+        'ai.usage.completionTokens':
+          currentModelResponse.usage.completionTokens,
+        'ai.result.text': currentModelResponse.text,
+        'ai.result.toolCalls': JSON.stringify(currentModelResponse.toolCalls),
+      });
+
       return new GenerateTextResult({
         // Always return a string so that the caller doesn't have to check for undefined.
         // If they need to check if the model did not return any text,
