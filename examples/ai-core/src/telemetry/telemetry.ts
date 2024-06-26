@@ -20,6 +20,13 @@ async function main() {
     model: openai('gpt-3.5-turbo'),
     maxTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
+    telemetry: {
+      functionId: 'my-awesome-function',
+      metadata: {
+        something: 'custom',
+        someOtherThing: 'other-value',
+      },
+    },
   });
 
   console.log(result.text);

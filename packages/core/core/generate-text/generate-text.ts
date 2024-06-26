@@ -1,3 +1,4 @@
+import { AttributeValue } from '@opentelemetry/api';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import {
@@ -71,6 +72,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   abortSignal,
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
+  telemetry,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -107,100 +109,132 @@ case of misconfigured tools.
 By default, it's set to 0, which will disable the feature.
      */
     maxToolRoundtrips?: number;
+
+    /**
+     * Optional telemetry information.
+     */
+    // This is meant to be both flexible for custom app requirements (metadata)
+    // and extensible for standardization (example: functionId, more to come).
+    telemetry?: {
+      functionId?: string;
+      metadata?: Record<string, AttributeValue>;
+    };
   }): Promise<GenerateTextResult<TOOLS>> {
   const tracer = await getTracer();
-  return tracer.startActiveSpan('ai.generateText', async span => {
-    try {
-      const retry = retryWithExponentialBackoff({ maxRetries });
-      const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
-
-      const mode = {
-        type: 'regular' as const,
-        ...prepareToolsAndToolChoice({ tools, toolChoice }),
-      };
-      const callSettings = prepareCallSettings(settings);
-      const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
-
-      let currentModelResponse: Awaited<
-        ReturnType<LanguageModel['doGenerate']>
-      >;
-      let currentToolCalls: ToToolCallArray<TOOLS> = [];
-      let currentToolResults: ToToolResultArray<TOOLS> = [];
-      let roundtrips = 0;
-      const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
-        [];
-
-      do {
-        currentModelResponse = await retry(() => {
-          return model.doGenerate({
-            mode,
-            ...callSettings,
-            // once we have a roundtrip, we need to switch to messages format:
-            inputFormat: roundtrips === 0 ? validatedPrompt.type : 'messages',
-            prompt: promptMessages,
-            abortSignal,
-          });
+  return tracer.startActiveSpan(
+    'ai.generateText',
+    {
+      attributes: {
+        'ai.model.provider': model.provider,
+        'ai.model.id': model.modelId,
+        'ai.telemetry.functionId': telemetry?.functionId,
+        // add metadata as attributes:
+        ...Object.entries(telemetry?.metadata ?? {}).reduce(
+          (attributes, [key, value]) => {
+            attributes[`ai.telemetry.metadata.${key}`] = value;
+            return attributes;
+          },
+          {} as Record<string, AttributeValue>,
+        ),
+      },
+    },
+    async span => {
+      try {
+        const retry = retryWithExponentialBackoff({ maxRetries });
+        const validatedPrompt = getValidatedPrompt({
+          system,
+          prompt,
+          messages,
         });
 
-        // parse tool calls:
-        currentToolCalls = (currentModelResponse.toolCalls ?? []).map(
-          modelToolCall => parseToolCall({ toolCall: modelToolCall, tools }),
+        const mode = {
+          type: 'regular' as const,
+          ...prepareToolsAndToolChoice({ tools, toolChoice }),
+        };
+        const callSettings = prepareCallSettings(settings);
+        const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
+
+        let currentModelResponse: Awaited<
+          ReturnType<LanguageModel['doGenerate']>
+        >;
+        let currentToolCalls: ToToolCallArray<TOOLS> = [];
+        let currentToolResults: ToToolResultArray<TOOLS> = [];
+        let roundtrips = 0;
+        const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
+          [];
+
+        do {
+          currentModelResponse = await retry(() => {
+            return model.doGenerate({
+              mode,
+              ...callSettings,
+              // once we have a roundtrip, we need to switch to messages format:
+              inputFormat: roundtrips === 0 ? validatedPrompt.type : 'messages',
+              prompt: promptMessages,
+              abortSignal,
+            });
+          });
+
+          // parse tool calls:
+          currentToolCalls = (currentModelResponse.toolCalls ?? []).map(
+            modelToolCall => parseToolCall({ toolCall: modelToolCall, tools }),
+          );
+
+          // execute tools:
+          currentToolResults =
+            tools == null
+              ? []
+              : await executeTools({ toolCalls: currentToolCalls, tools });
+
+          // append to messages for potential next roundtrip:
+          const newResponseMessages = toResponseMessages({
+            text: currentModelResponse.text ?? '',
+            toolCalls: currentToolCalls,
+            toolResults: currentToolResults,
+          });
+          responseMessages.push(...newResponseMessages);
+          promptMessages.push(
+            ...newResponseMessages.map(convertToLanguageModelMessage),
+          );
+        } while (
+          // there are tool calls:
+          currentToolCalls.length > 0 &&
+          // all current tool calls have results:
+          currentToolResults.length === currentToolCalls.length &&
+          // the number of roundtrips is less than the maximum:
+          roundtrips++ < maxToolRoundtrips
         );
 
-        // execute tools:
-        currentToolResults =
-          tools == null
-            ? []
-            : await executeTools({ toolCalls: currentToolCalls, tools });
-
-        // append to messages for potential next roundtrip:
-        const newResponseMessages = toResponseMessages({
+        return new GenerateTextResult({
+          // Always return a string so that the caller doesn't have to check for undefined.
+          // If they need to check if the model did not return any text,
+          // they can check the length of the string:
           text: currentModelResponse.text ?? '',
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
+          finishReason: currentModelResponse.finishReason,
+          usage: calculateTokenUsage(currentModelResponse.usage),
+          warnings: currentModelResponse.warnings,
+          rawResponse: currentModelResponse.rawResponse,
+          logprobs: currentModelResponse.logprobs,
+          responseMessages,
         });
-        responseMessages.push(...newResponseMessages);
-        promptMessages.push(
-          ...newResponseMessages.map(convertToLanguageModelMessage),
-        );
-      } while (
-        // there are tool calls:
-        currentToolCalls.length > 0 &&
-        // all current tool calls have results:
-        currentToolResults.length === currentToolCalls.length &&
-        // the number of roundtrips is less than the maximum:
-        roundtrips++ < maxToolRoundtrips
-      );
+      } catch (error) {
+        if (error instanceof Error) {
+          span.recordException({
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          });
+        }
+        span.setStatus(2 as any); // SpanStatus.ERROR
 
-      return new GenerateTextResult({
-        // Always return a string so that the caller doesn't have to check for undefined.
-        // If they need to check if the model did not return any text,
-        // they can check the length of the string:
-        text: currentModelResponse.text ?? '',
-        toolCalls: currentToolCalls,
-        toolResults: currentToolResults,
-        finishReason: currentModelResponse.finishReason,
-        usage: calculateTokenUsage(currentModelResponse.usage),
-        warnings: currentModelResponse.warnings,
-        rawResponse: currentModelResponse.rawResponse,
-        logprobs: currentModelResponse.logprobs,
-        responseMessages,
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        span.recordException({
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-        });
+        throw error;
+      } finally {
+        span.end();
       }
-      span.setStatus(2 as any); // SpanStatus.ERROR
-
-      throw error;
-    } finally {
-      span.end();
-    }
-  });
+    },
+  );
 }
 
 async function executeTools<TOOLS extends Record<string, CoreTool>>({
