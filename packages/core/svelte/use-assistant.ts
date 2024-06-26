@@ -68,6 +68,9 @@ Abort the current request immediately, keep the generated tokens if any.
   error: Readable<undefined | Error>;
 };
 
+/**
+ * @deprecated Use `useAssistant` from `@ai-sdk/svelte` instead.
+ */
 export function useAssistant({
   api,
   threadId: threadIdParam,
