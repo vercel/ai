@@ -21,7 +21,7 @@ import {
   createSignal,
   createUniqueId,
 } from 'solid-js';
-import { createStore, reconcile } from 'solid-js/store';
+import { createStore } from 'solid-js/store';
 
 export type { CreateMessage, Message };
 
