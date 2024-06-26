@@ -7,7 +7,6 @@ import { callCompletionApi } from '@ai-sdk/ui-utils';
 import {
   Accessor,
   JSX,
-  Resource,
   Setter,
   createEffect,
   createMemo,
@@ -72,7 +71,7 @@ export function useCompletion(
     | Accessor<UseCompletionOptions> = {},
 ): UseCompletionHelpers {
   const useCompletionOptions = createMemo(() =>
-    handleProps(rawUseCompletionOptions),
+    convertToAccessorOptions(rawUseCompletionOptions),
   );
 
   const api = createMemo(
@@ -187,14 +186,17 @@ export function useCompletion(
 /**
  * Handle reactive and non-reactive useChatOptions
  */
-function handleProps(
-  props: UseCompletionOptions | Accessor<UseCompletionOptions>,
+function convertToAccessorOptions(
+  options: UseCompletionOptions | Accessor<UseCompletionOptions>,
 ) {
-  return Object.entries(typeof props === 'function' ? props() : props).reduce(
-    (acc, [k, v]) => {
-      // @ts-ignore
-      acc[k as keyof UseCompletionOptions] = createMemo(() => v);
-      return acc;
+  const resolvedOptions = typeof options === 'function' ? options() : options;
+
+  return Object.entries(resolvedOptions).reduce(
+    (reactiveOptions, [key, value]) => {
+      reactiveOptions[key as keyof UseCompletionOptions] = createMemo(
+        () => value,
+      ) as any;
+      return reactiveOptions;
     },
     {} as {
       [K in keyof UseCompletionOptions]: Accessor<UseCompletionOptions[K]>;

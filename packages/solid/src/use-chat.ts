@@ -465,10 +465,9 @@ function countTrailingAssistantMessages(messages: Message[]) {
  * Handle reactive and non-reactive useChatOptions
  */
 function convertToAccessorOptions(
-  useChatOptions: UseChatOptions | Accessor<UseChatOptions>,
+  options: UseChatOptions | Accessor<UseChatOptions>,
 ) {
-  const resolvedOptions =
-    typeof useChatOptions === 'function' ? useChatOptions() : useChatOptions;
+  const resolvedOptions = typeof options === 'function' ? options() : options;
 
   return Object.entries(resolvedOptions).reduce(
     (reactiveOptions, [key, value]) => {
