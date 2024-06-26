@@ -109,7 +109,7 @@ By default, it's set to 0, which will disable the feature.
     maxToolRoundtrips?: number;
   }): Promise<GenerateTextResult<TOOLS>> {
   const tracer = await getTracer();
-  return tracer.startActiveSpan('generateText', async span => {
+  return tracer.startActiveSpan('ai.generateText', async span => {
     try {
       const retry = retryWithExponentialBackoff({ maxRetries });
       const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
@@ -186,6 +186,17 @@ By default, it's set to 0, which will disable the feature.
         logprobs: currentModelResponse.logprobs,
         responseMessages,
       });
+    } catch (error) {
+      if (error instanceof Error) {
+        span.recordException({
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        });
+      }
+      span.setStatus(2 as any); // SpanStatus.ERROR
+
+      throw error;
     } finally {
       span.end();
     }
