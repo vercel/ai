@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.11
+
+### Patch Changes
+
+- 827ef450: feat (ai/ui): improve error handling in useAssistant
+
 ## 0.0.10
 
 ### Patch Changes

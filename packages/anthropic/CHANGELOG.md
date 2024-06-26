@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.25
+
+### Patch Changes
+
+- 91dc4296: chore (@ai-sdk/anthropic): remove anthropic-beta header
+
 ## 0.0.24
 
 ### Patch Changes

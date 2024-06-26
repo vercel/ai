@@ -1,5 +1,11 @@
 # @ai-sdk/solid
 
+## 0.0.8
+
+### Patch Changes
+
+- c908f741: chore (ui/solid): update solidjs useChat and useCompletion to feature parity with React
+
 ## 0.0.7
 
 ### Patch Changes
