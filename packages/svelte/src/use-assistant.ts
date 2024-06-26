@@ -128,6 +128,10 @@ export function useAssistant({
         }),
       });
 
+      if (!result.ok) {
+        throw new Error(await result.text());
+      }
+      
       if (result.body == null) {
         throw new Error('The response body is empty.');
       }
