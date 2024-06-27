@@ -480,7 +480,7 @@ describe('options.headers', () => {
   it('should pass headers to model', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
-        doGenerate: async ({ prompt, headers }) => {
+        doGenerate: async ({ headers }) => {
           assert.deepStrictEqual(headers, {
             'custom-request-header': 'request-header-value',
           });
