@@ -281,7 +281,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should pass custom headers', async () => {
+  it('should pass headers', async () => {
     prepareJsonResponse({ content: '' });
 
     const provider = createGoogleGenerativeAI({
