@@ -17,6 +17,14 @@ Creates a model for text generation.
   /**
 Creates a model for text generation.
 */
+  languageModel(
+    modelId: AnthropicMessagesModelId,
+    settings?: AnthropicMessagesSettings,
+  ): AnthropicMessagesLanguageModel;
+
+  /**
+Creates a model for text generation.
+*/
   chat(
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
@@ -54,6 +62,12 @@ Custom headers to include in the requests.
      */
   headers?: Record<string, string>;
 
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: typeof fetch;
+
   generateId?: () => string;
 }
 
@@ -69,7 +83,6 @@ export function createAnthropic(
 
   const getHeaders = () => ({
     'anthropic-version': '2023-06-01',
-    'anthropic-beta': 'tools-2024-05-16',
     'x-api-key': loadApiKey({
       apiKey: options.apiKey,
       environmentVariableName: 'ANTHROPIC_API_KEY',
@@ -86,6 +99,7 @@ export function createAnthropic(
       provider: 'anthropic.messages',
       baseURL,
       headers: getHeaders,
+      fetch: options.fetch,
     });
 
   const provider = function (
@@ -101,6 +115,7 @@ export function createAnthropic(
     return createChatModel(modelId, settings);
   };
 
+  provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
 

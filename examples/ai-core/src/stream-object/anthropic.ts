@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await streamObject({
-    model: anthropic('claude-3-haiku-20240307'),
+    model: anthropic('claude-3-5-sonnet-20240620'),
     maxTokens: 2000,
     schema: z.object({
       characters: z.array(

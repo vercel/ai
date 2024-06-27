@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   ParseResult,
+  combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
@@ -29,6 +30,7 @@ type OpenAIChatConfig = {
   compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
+  fetch?: typeof fetch;
 };
 
 export class OpenAIChatLanguageModel implements LanguageModelV1 {
@@ -74,7 +76,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       logit_bias: this.settings.logitBias,
       logprobs:
         this.settings.logprobs === true ||
-        typeof this.settings.logprobs === 'number',
+        typeof this.settings.logprobs === 'number'
+          ? true
+          : undefined,
       top_logprobs:
         typeof this.settings.logprobs === 'number'
           ? this.settings.logprobs
@@ -150,13 +154,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openAIChatResponseSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;
@@ -192,7 +197,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: {
         ...args,
         stream: true,
@@ -208,6 +213,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         openaiChatChunkSchema,
       ),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { messages: rawPrompt, ...rawSettings } = args;

@@ -2,9 +2,11 @@ import { parseComplexResponse } from './parse-complex-response';
 import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
 import { createChunkDecoder } from './index';
 
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
+
 export async function callChatApi({
   api,
-  messages,
   body,
   streamMode = 'stream-data',
   credentials,
@@ -16,27 +18,25 @@ export async function callChatApi({
   onFinish,
   onToolCall,
   generateId,
+  fetch = getOriginalFetch(),
 }: {
   api: string;
-  messages: Omit<Message, 'id'>[];
   body: Record<string, any>;
-  streamMode?: 'stream-data' | 'text';
-  credentials?: RequestCredentials;
-  headers?: HeadersInit;
-  abortController?: () => AbortController | null;
+  streamMode: 'stream-data' | 'text' | undefined;
+  credentials: RequestCredentials | undefined;
+  headers: HeadersInit | undefined;
+  abortController: (() => AbortController | null) | undefined;
   restoreMessagesOnFailure: () => void;
-  onResponse?: (response: Response) => void | Promise<void>;
+  onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onUpdate: (merged: Message[], data: JSONValue[] | undefined) => void;
-  onFinish?: (message: Message) => void;
-  onToolCall?: UseChatOptions['onToolCall'];
+  onFinish: ((message: Message) => void) | undefined;
+  onToolCall: UseChatOptions['onToolCall'] | undefined;
   generateId: IdGenerator;
+  fetch: ReturnType<typeof getOriginalFetch> | undefined;
 }) {
   const response = await fetch(api, {
     method: 'POST',
-    body: JSON.stringify({
-      messages,
-      ...body,
-    }),
+    body: JSON.stringify(body),
     headers: {
       'Content-Type': 'application/json',
       ...headers,
@@ -59,7 +59,7 @@ export async function callChatApi({
   if (!response.ok) {
     restoreMessagesOnFailure();
     throw new Error(
-      (await response.text()) || 'Failed to fetch the chat response.',
+      (await response.text()) ?? 'Failed to fetch the chat response.',
     );
   }
 

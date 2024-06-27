@@ -3,6 +3,7 @@ import {
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
+  combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -17,6 +18,7 @@ type MistralEmbeddingConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
+  fetch?: typeof fetch;
 };
 
 export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
@@ -53,6 +55,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
   async doEmbed({
     values,
     abortSignal,
+    headers,
   }: Parameters<EmbeddingModelV1<string>['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>
   > {
@@ -67,7 +70,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/embeddings`,
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,
         input: values,
@@ -78,6 +81,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
         MistralTextEmbeddingResponseSchema,
       ),
       abortSignal,
+      fetch: this.config.fetch,
     });
 
     return {

@@ -86,6 +86,7 @@ Custom headers to include in the requests.
       provider: 'openai.completion',
       ...this.baseConfig,
       compatibility: 'strict',
+      url: ({ path }) => `${this.baseURL}${path}`,
     });
   }
 }

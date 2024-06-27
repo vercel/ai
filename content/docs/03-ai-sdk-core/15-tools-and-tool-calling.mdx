@@ -1,24 +1,17 @@
 ---
-title: Tools and Tool Calling
-description: Learn how to use tools and tool calling with the Vercel AI SDK.
+title: Tool Calling
+description: Learn about tool calling with Vercel AI SDK Core.
 ---
 
-# Tools and Tool Calling
+# Tool Calling
 
-While large language models have incredible generation capabilities,
-they struggle with discrete tasks (eg. mathematics) and interacting with the outside world (eg. getting the weather).
-Tools can be thought of as programs you give to a model which can be run as and when the model deems applicable.
+As covered under Foundations, [tools](/docs/foundations/tools) are objects that can be called by the model to perform a specific task.
 
-## Tools
-
-A tool is an object that can be called by the model to perform a specific task.
-You can use tools with the `generateText` or `streamText` functions, by passing a tool(s) to the `tools` parameter.
-
-There are three elements of a tool, a description, parameters, and an optional execute function.
+When used with AI SDK Core, tools contain three elements:
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
-- **`parameters`**: A [Zod](https://zod.dev/) schema that defines the parameters. It is converted to a JSON schema that is consumed by the LLM, and also used to validate the LLM tool calls.
-- **`execute`**: An optional async function that is called with the arguments from the tool call and produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
+- **`parameters`**: A [Zod schema](/docs/foundations/tools#schema-specification-and-validation-with-zod) that defines the parameters. It is converted to a JSON schema that is consumed by the LLM, and also used to validate the LLM tool calls.
+- **`execute`**: An optional async function that is called with the arguments from the tool call. It produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
 
 The `tools` parameter of `generateText` and `streamText` is an object that has the tool names as keys and the tools as values:
 
@@ -45,15 +38,10 @@ const result = await generateText({
 });
 ```
 
-<Note>
-  You can use the `tool` helper function to infer the types of the `execute`
-  parameters.
+<Note className="mb-2">
+  You can use the [`tool`](/docs/reference/ai-sdk-core/tool) helper function to
+  infer the types of the `execute` parameters.
 </Note>
-
-If the LLM decides to use a tool, it will generate a tool call.
-Tools with an `execute` function are run automatically when these calls are generated.
-The results of the tool executions are returned using tool result objects.
-Each tool result object has a `toolCallId`, a `toolName`, a typed `args` object, and a typed `result`.
 
 <Note>
   When a model uses a tool, it is called a "tool call" and the output of the
@@ -61,7 +49,7 @@ Each tool result object has a `toolCallId`, a `toolName`, a typed `args` object,
 </Note>
 
 Tool calling is not restricted to only text generation.
-You can also use it to [render user interfaces with Generative AI](/docs/ai-sdk-rsc/overview#rendering-user-interfaces-with-language-models).
+You can also use it to render user interfaces with Generative AI.
 
 ## Tool Choice
 

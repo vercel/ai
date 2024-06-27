@@ -2,6 +2,10 @@ import { APICallError } from '@ai-sdk/provider';
 import { extractResponseHeaders } from './extract-response-headers';
 import { isAbortError } from './is-abort-error';
 import { ResponseHandler } from './response-handler';
+import { removeUndefinedEntries } from './remove-undefined-entries';
+
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
 
 export const postJsonToApi = async <T>({
   url,
@@ -10,6 +14,7 @@ export const postJsonToApi = async <T>({
   failedResponseHandler,
   successfulResponseHandler,
   abortSignal,
+  fetch,
 }: {
   url: string;
   headers?: Record<string, string | undefined>;
@@ -17,12 +22,13 @@ export const postJsonToApi = async <T>({
   failedResponseHandler: ResponseHandler<APICallError>;
   successfulResponseHandler: ResponseHandler<T>;
   abortSignal?: AbortSignal;
+  fetch?: ReturnType<typeof getOriginalFetch>;
 }) =>
   postToApi({
     url,
     headers: {
-      ...headers,
       'Content-Type': 'application/json',
+      ...headers,
     },
     body: {
       content: JSON.stringify(body),
@@ -31,6 +37,7 @@ export const postJsonToApi = async <T>({
     failedResponseHandler,
     successfulResponseHandler,
     abortSignal,
+    fetch,
   });
 
 export const postToApi = async <T>({
@@ -40,6 +47,7 @@ export const postToApi = async <T>({
   successfulResponseHandler,
   failedResponseHandler,
   abortSignal,
+  fetch = getOriginalFetch(),
 }: {
   url: string;
   headers?: Record<string, string | undefined>;
@@ -50,16 +58,12 @@ export const postToApi = async <T>({
   failedResponseHandler: ResponseHandler<Error>;
   successfulResponseHandler: ResponseHandler<T>;
   abortSignal?: AbortSignal;
+  fetch?: ReturnType<typeof getOriginalFetch>;
 }) => {
   try {
-    // remove undefined headers:
-    const definedHeaders = Object.fromEntries(
-      Object.entries(headers).filter(([_key, value]) => value != null),
-    ) as Record<string, string>;
-
     const response = await fetch(url, {
       method: 'POST',
-      headers: definedHeaders,
+      headers: removeUndefinedEntries(headers),
       body: body.content,
       signal: abortSignal,
     });

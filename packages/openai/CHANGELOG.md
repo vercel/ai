@@ -1,5 +1,53 @@
 # @ai-sdk/openai
 
+## 0.0.34
+
+### Patch Changes
+
+- 5edc6110: feat (ai/core): add custom request header support
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+  - @ai-sdk/provider@0.0.11
+  - @ai-sdk/provider-utils@1.0.0
+
+## 0.0.33
+
+### Patch Changes
+
+- Updated dependencies [02f6a088]
+  - @ai-sdk/provider-utils@0.0.16
+
+## 0.0.32
+
+### Patch Changes
+
+- 1b37b8b9: fix (@ai-sdk/openai): only send logprobs settings when logprobs are requested
+
+## 0.0.31
+
+### Patch Changes
+
+- eba071dd: feat (@ai-sdk/azure): add azure openai completion support
+- 1ea890fe: feat (@ai-sdk/azure): add azure openai completion support
+
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+
+## 0.0.29
+
+### Patch Changes
+
+- 4728c37f: feat (core): add text embedding model support to provider registry
+- 7910ae84: feat (providers): support custom fetch implementations
+- Updated dependencies [7910ae84]
+  - @ai-sdk/provider-utils@0.0.14
+
 ## 0.0.28
 
 ### Patch Changes

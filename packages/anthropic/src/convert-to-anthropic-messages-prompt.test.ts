@@ -1,5 +1,43 @@
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 
+describe('system messages', () => {
+  it('should convert a single system message into an anthropic system message', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'system',
+          content: 'This is a system message',
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [],
+      system: 'This is a system message',
+    });
+  });
+
+  it('should convert multiple system messages into an anthropic system message separated by a newline', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'system',
+          content: 'This is a system message',
+        },
+        {
+          role: 'system',
+          content: 'This is another system message',
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [],
+      system: 'This is a system message\nThis is another system message',
+    });
+  });
+});
+
 describe('user messages', () => {
   it('should download images for user image parts with URLs', async () => {
     const result = await convertToAnthropicMessagesPrompt({
@@ -78,6 +116,206 @@ describe('user messages', () => {
               },
             },
           ],
+        },
+      ],
+      system: undefined,
+    });
+  });
+});
+
+describe('tool messages', () => {
+  it('should convert a single tool result into an anthropic user message', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'tool-1',
+              toolCallId: 'tool-call-1',
+              result: { test: 'This is a tool message' },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-call-1',
+              is_error: undefined,
+              content: JSON.stringify({ test: 'This is a tool message' }),
+            },
+          ],
+        },
+      ],
+      system: undefined,
+    });
+  });
+
+  it('should convert multiple tool results into an anthropic user message', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'tool-1',
+              toolCallId: 'tool-call-1',
+              result: { test: 'This is a tool message' },
+            },
+            {
+              type: 'tool-result',
+              toolName: 'tool-2',
+              toolCallId: 'tool-call-2',
+              result: { something: 'else' },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-call-1',
+              is_error: undefined,
+              content: JSON.stringify({ test: 'This is a tool message' }),
+            },
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-call-2',
+              is_error: undefined,
+              content: JSON.stringify({ something: 'else' }),
+            },
+          ],
+        },
+      ],
+      system: undefined,
+    });
+  });
+
+  it('should combine user and tool messages', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'tool-1',
+              toolCallId: 'tool-call-1',
+              result: { test: 'This is a tool message' },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'This is a user message',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-call-1',
+              is_error: undefined,
+              content: JSON.stringify({ test: 'This is a tool message' }),
+            },
+            {
+              type: 'text',
+              text: 'This is a user message',
+            },
+          ],
+        },
+      ],
+      system: undefined,
+    });
+  });
+});
+
+describe('assistant messages', () => {
+  it('should remove trailing whitespace from last assistant message when there is no further user message', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'assistant content  ' }],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'assistant content' }],
+        },
+      ],
+      system: undefined,
+    });
+  });
+
+  it('should keep trailing whitespace from assistant message when there is a further user message', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'assistant content  ' }],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content 2' }],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'assistant content  ' }],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content 2' }],
         },
       ],
       system: undefined,

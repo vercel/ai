@@ -57,6 +57,13 @@ You can use the following optional settings to customize the Google Generative A
 
   Custom headers to include in the requests.
 
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
 ## Language Models
 
 You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the provider instance.
@@ -104,8 +111,9 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
 
 ### Model Capabilities
 
-| Model                      | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-3-opus-20240229`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-sonnet-20240229` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-haiku-20240307`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                        | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-3-5-sonnet-20240620` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-opus-20240229`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-sonnet-20240229`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-haiku-20240307`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

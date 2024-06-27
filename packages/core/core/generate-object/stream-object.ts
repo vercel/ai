@@ -2,6 +2,12 @@ import {
   LanguageModelV1CallOptions,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
+import { safeValidateTypes } from '@ai-sdk/provider-utils';
+import {
+  DeepPartial,
+  isDeepEqualData,
+  parsePartialJson,
+} from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
@@ -15,12 +21,10 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
-import { DeepPartial } from '../util/deep-partial';
-import { isDeepEqualData } from '../util/is-deep-equal-data';
-import { parsePartialJson } from '../util/parse-partial-json';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
-import { safeValidateTypes } from '@ai-sdk/provider-utils';
+import { prepareResponseHeaders } from '../util/prepare-response-headers';
+import { ServerResponse } from 'http';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -54,6 +58,7 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @return
 A result object for accessing the partial object stream and additional information.
@@ -67,6 +72,7 @@ export async function streamObject<T>({
   messages,
   maxRetries,
   abortSignal,
+  headers,
   onFinish,
   ...settings
 }: CallSettings &
@@ -157,6 +163,7 @@ Warnings from the model provider (e.g. unsupported settings).
         inputFormat: validatedPrompt.type,
         prompt: convertToLanguageModelPrompt(validatedPrompt),
         abortSignal,
+        headers,
       };
 
       transformer = {
@@ -185,10 +192,11 @@ Warnings from the model provider (e.g. unsupported settings).
 
       callOptions = {
         mode: { type: 'object-grammar', schema: jsonSchema },
-        ...settings,
+        ...prepareCallSettings(settings),
         inputFormat: validatedPrompt.type,
         prompt: convertToLanguageModelPrompt(validatedPrompt),
         abortSignal,
+        headers,
       };
 
       transformer = {
@@ -225,10 +233,11 @@ Warnings from the model provider (e.g. unsupported settings).
             parameters: jsonSchema,
           },
         },
-        ...settings,
+        ...prepareCallSettings(settings),
         inputFormat: validatedPrompt.type,
         prompt: convertToLanguageModelPrompt(validatedPrompt),
         abortSignal,
+        headers,
       };
 
       transformer = {
@@ -290,6 +299,10 @@ export type ObjectStreamPart<T> =
   | {
       type: 'object';
       object: DeepPartial<T>;
+    }
+  | {
+      type: 'text-delta';
+      textDelta: string;
     };
 
 /**
@@ -362,6 +375,7 @@ Response headers.
 
     // pipe chunks through a transformation stream that extracts metadata:
     let accumulatedText = '';
+    let delta = '';
     let latestObject: DeepPartial<T> | undefined = undefined;
 
     this.originalStream = stream.pipeThrough(
@@ -370,6 +384,7 @@ Response headers.
           // process partial text chunks
           if (typeof chunk === 'string') {
             accumulatedText += chunk;
+            delta += chunk;
 
             const currentObject = parsePartialJson(
               accumulatedText,
@@ -378,7 +393,17 @@ Response headers.
             if (!isDeepEqualData(latestObject, currentObject)) {
               latestObject = currentObject;
 
-              controller.enqueue({ type: 'object', object: currentObject });
+              controller.enqueue({
+                type: 'object',
+                object: currentObject,
+              });
+
+              controller.enqueue({
+                type: 'text-delta',
+                textDelta: delta,
+              });
+
+              delta = '';
             }
 
             return;
@@ -386,6 +411,14 @@ Response headers.
 
           switch (chunk.type) {
             case 'finish': {
+              // send final text delta:
+              if (delta !== '') {
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: delta,
+                });
+              }
+
               // store usage for promises and onFinish callback:
               usage = calculateTokenUsage(chunk.usage);
 
@@ -441,6 +474,12 @@ Response headers.
     );
   }
 
+  /**
+Stream of partial objects. It gets more complete as the stream progresses.
+  
+Note that the partial object is not validated. 
+If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.
+   */
   get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
@@ -449,6 +488,7 @@ Response headers.
             controller.enqueue(chunk.object);
             break;
 
+          case 'text-delta':
           case 'finish':
             break;
 
@@ -465,11 +505,98 @@ Response headers.
     });
   }
 
+  /**
+Text stream of the JSON representation of the generated object. It contains text chunks. 
+When the stream is finished, the object is valid JSON that can be parsed.
+   */
+  get textStream(): AsyncIterableStream<string> {
+    return createAsyncIterableStream(this.originalStream, {
+      transform(chunk, controller) {
+        switch (chunk.type) {
+          case 'text-delta':
+            controller.enqueue(chunk.textDelta);
+            break;
+
+          case 'object':
+          case 'finish':
+            break;
+
+          case 'error':
+            controller.error(chunk.error);
+            break;
+
+          default: {
+            const _exhaustiveCheck: never = chunk;
+            throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
+          }
+        }
+      },
+    });
+  }
+
+  /**
+Stream of different types of events, including partial objects, errors, and finish events.
+   */
   get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
         controller.enqueue(chunk);
       },
+    });
+  }
+
+  /**
+Writes text delta output to a Node.js response-like object.
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+writes each text delta as a separate chunk.
+
+@param response A Node.js response-like object (ServerResponse).
+@param init Optional headers and status code.
+   */
+  pipeTextStreamToResponse(
+    response: ServerResponse,
+    init?: { headers?: Record<string, string>; status?: number },
+  ) {
+    response.writeHead(init?.status ?? 200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      ...init?.headers,
+    });
+
+    const reader = this.textStream
+      .pipeThrough(new TextEncoderStream())
+      .getReader();
+
+    const read = async () => {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          response.write(value);
+        }
+      } catch (error) {
+        throw error;
+      } finally {
+        response.end();
+      }
+    };
+
+    read();
+  }
+
+  /**
+Creates a simple text stream response.
+The response has a `Content-Type` header set to `text/plain; charset=utf-8`.
+Each text delta is encoded as UTF-8 and sent as a separate chunk.
+Non-text-delta events are ignored.
+
+@param init Optional headers and status code.
+   */
+  toTextStreamResponse(init?: ResponseInit): Response {
+    return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
+      status: init?.status ?? 200,
+      headers: prepareResponseHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
     });
   }
 }

@@ -3,6 +3,7 @@ import {
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
+  combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -15,8 +16,9 @@ import { openaiFailedResponseHandler } from './openai-error';
 
 type OpenAIEmbeddingConfig = {
   provider: string;
-  baseURL: string;
+  url: (options: { modelId: string; path: string }) => string;
   headers: () => Record<string, string | undefined>;
+  fetch?: typeof fetch;
 };
 
 export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
@@ -50,6 +52,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
 
   async doEmbed({
     values,
+    headers,
     abortSignal,
   }: Parameters<EmbeddingModelV1<string>['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>
@@ -64,8 +67,11 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
     }
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/embeddings`,
-      headers: this.config.headers(),
+      url: this.config.url({
+        path: '/embeddings',
+        modelId: this.modelId,
+      }),
+      headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,
         input: values,
@@ -78,6 +84,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
         openaiTextEmbeddingResponseSchema,
       ),
       abortSignal,
+      fetch: this.config.fetch,
     });
 
     return {

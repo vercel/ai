@@ -7,6 +7,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   ParseResult,
+  combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
@@ -26,6 +27,7 @@ type GoogleGenerativeAIConfig = {
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   generateId: () => string;
+  fetch?: typeof fetch;
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
@@ -151,11 +153,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}:generateContent`,
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(responseSchema),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { contents: rawPrompt, ...rawSettings } = args;
@@ -192,11 +195,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}:streamGenerateContent?alt=sse`,
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),
       abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     const { contents: rawPrompt, ...rawSettings } = args;

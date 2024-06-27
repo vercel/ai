@@ -1,12 +1,14 @@
+import {
+  convertArrayToReadableStream,
+  convertAsyncIterableToArray,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { convertArrayToReadableStream } from '../test/convert-array-to-readable-stream';
-import { convertAsyncIterableToArray } from '../test/convert-async-iterable-to-array';
-import { convertReadableStreamToArray } from '../test/convert-readable-stream-to-array';
+import { formatStreamPart } from '../../streams';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { streamText } from './stream-text';
-import { formatStreamPart } from '../../streams';
 
 describe('result.textStream', () => {
   it('should send text deltas', async () => {
@@ -568,16 +570,12 @@ describe('result.toTextStreamResponse', () => {
       'text/plain; charset=utf-8',
     );
 
-    // Read the chunks into an array
-    const reader = response.body!.getReader();
-    const chunks = [];
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      chunks.push(new TextDecoder().decode(value));
-    }
-
-    assert.deepStrictEqual(chunks, ['Hello', ', ', 'world!']);
+    assert.deepStrictEqual(
+      await convertReadableStreamToArray(
+        response.body!.pipeThrough(new TextDecoderStream()),
+      ),
+      ['Hello', ', ', 'world!'],
+    );
   });
 });
 
@@ -898,7 +896,7 @@ describe('result.toolResults', () => {
   });
 });
 
-describe('onFinish callback', () => {
+describe('options.onFinish', () => {
   let result: Parameters<
     Required<Parameters<typeof streamText>[0]>['onFinish']
   >[0];
@@ -1005,5 +1003,41 @@ describe('onFinish callback', () => {
         result: 'value-result',
       },
     ]);
+  });
+});
+
+describe('options.headers', () => {
+  it('should set headers', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ headers }) => {
+          assert.deepStrictEqual(headers, {
+            'custom-request-header': 'request-header-value',
+          });
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+      headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.textStream),
+      ['Hello', ', ', 'world!'],
+    );
   });
 });

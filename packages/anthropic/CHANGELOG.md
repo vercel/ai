@@ -1,5 +1,64 @@
 # @ai-sdk/anthropic
 
+## 0.0.27
+
+### Patch Changes
+
+- 7e86b45e: fix (provider/anthropic): automatically trim trailing whitespace on pre-filled assistant responses
+
+## 0.0.26
+
+### Patch Changes
+
+- 5edc6110: feat (ai/core): add custom request header support
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+  - @ai-sdk/provider@0.0.11
+  - @ai-sdk/provider-utils@1.0.0
+
+## 0.0.25
+
+### Patch Changes
+
+- 91dc4296: chore (@ai-sdk/anthropic): remove anthropic-beta header
+
+## 0.0.24
+
+### Patch Changes
+
+- 04800838: fix (@ai-sdk/anthropic): combine tool and user messages, combine system messages
+
+## 0.0.23
+
+### Patch Changes
+
+- Updated dependencies [02f6a088]
+  - @ai-sdk/provider-utils@0.0.16
+
+## 0.0.22
+
+### Patch Changes
+
+- 0a22b05b: feat (@ai-sdk/anthropic): add claude-3.5-sonnet model
+
+## 0.0.21
+
+### Patch Changes
+
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+
+## 0.0.20
+
+### Patch Changes
+
+- 4728c37f: feat (core): add text embedding model support to provider registry
+- 7910ae84: feat (providers): support custom fetch implementations
+- Updated dependencies [7910ae84]
+  - @ai-sdk/provider-utils@0.0.14
+
 ## 0.0.19
 
 ### Patch Changes

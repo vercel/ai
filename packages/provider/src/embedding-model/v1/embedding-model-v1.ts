@@ -54,6 +54,12 @@ List of values to embed.
 Abort signal for cancelling the operation.
      */
     abortSignal?: AbortSignal;
+
+    /**
+  Additional HTTP headers to be sent with the request.
+  Only applicable for HTTP-based providers.
+     */
+    headers?: Record<string, string | undefined>;
   }): PromiseLike<{
     /**
 Generated embeddings. They are in the same order as the input values.

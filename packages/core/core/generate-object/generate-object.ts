@@ -11,6 +11,7 @@ import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { prepareResponseHeaders } from '../util/prepare-response-headers';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -44,6 +45,7 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @returns 
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
@@ -57,6 +59,7 @@ export async function generateObject<T>({
   messages,
   maxRetries,
   abortSignal,
+  headers,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -116,6 +119,7 @@ Default and recommended: 'auto' (best mode for the model).
           inputFormat: validatedPrompt.type,
           prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
+          headers,
         });
       });
 
@@ -143,7 +147,7 @@ Default and recommended: 'auto' (best mode for the model).
       const generateResult = await retry(() =>
         model.doGenerate({
           mode: { type: 'object-grammar', schema: jsonSchema },
-          ...settings,
+          ...prepareCallSettings(settings),
           inputFormat: validatedPrompt.type,
           prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
@@ -182,7 +186,7 @@ Default and recommended: 'auto' (best mode for the model).
               parameters: jsonSchema,
             },
           },
-          ...settings,
+          ...prepareCallSettings(settings),
           inputFormat: validatedPrompt.type,
           prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
@@ -287,6 +291,19 @@ Logprobs for the completion.
     this.warnings = options.warnings;
     this.rawResponse = options.rawResponse;
     this.logprobs = options.logprobs;
+  }
+
+  /**
+Converts the object to a JSON response.
+The response will have a status code of 200 and a content type of `application/json; charset=utf-8`.
+   */
+  toJsonResponse(init?: ResponseInit): Response {
+    return new Response(JSON.stringify(this.object), {
+      status: init?.status ?? 200,
+      headers: prepareResponseHeaders(init, {
+        contentType: 'application/json; charset=utf-8',
+      }),
+    });
   }
 }
 

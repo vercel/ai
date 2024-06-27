@@ -1,5 +1,178 @@
 # ai
 
+## 3.2.13
+
+### Patch Changes
+
+- d3100b9c: feat (ai/ui): support custom fetch function in useChat, useCompletion, useAssistant, useObject
+- Updated dependencies [d3100b9c]
+  - @ai-sdk/ui-utils@0.0.8
+  - @ai-sdk/svelte@0.0.11
+  - @ai-sdk/react@0.0.13
+  - @ai-sdk/solid@0.0.10
+  - @ai-sdk/vue@0.0.10
+
+## 3.2.12
+
+### Patch Changes
+
+- 5edc6110: feat (ai/core): add custom request header support
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+  - @ai-sdk/provider@0.0.11
+  - @ai-sdk/provider-utils@1.0.0
+  - @ai-sdk/react@0.0.12
+  - @ai-sdk/svelte@0.0.10
+  - @ai-sdk/ui-utils@0.0.7
+  - @ai-sdk/solid@0.0.9
+  - @ai-sdk/vue@0.0.9
+
+## 3.2.11
+
+### Patch Changes
+
+- c908f741: chore (ui/solid): update solidjs useChat and useCompletion to feature parity with React
+- 827ef450: feat (ai/ui): improve error handling in useAssistant
+- Updated dependencies [c908f741]
+- Updated dependencies [827ef450]
+  - @ai-sdk/solid@0.0.8
+  - @ai-sdk/svelte@0.0.9
+  - @ai-sdk/react@0.0.11
+
+## 3.2.10
+
+### Patch Changes
+
+- Updated dependencies [5b04204b]
+- Updated dependencies [8f482903]
+  - @ai-sdk/react@0.0.10
+
+## 3.2.9
+
+### Patch Changes
+
+- 82d9c8de: feat (ai/ui): make event in useAssistant submitMessage optional
+- Updated dependencies [82d9c8de]
+- Updated dependencies [321a7d0e]
+- Updated dependencies [82d9c8de]
+  - @ai-sdk/svelte@0.0.8
+  - @ai-sdk/react@0.0.9
+  - @ai-sdk/vue@0.0.8
+
+## 3.2.8
+
+### Patch Changes
+
+- 54bf4083: feat (ai/react): control request body in useChat
+- Updated dependencies [54bf4083]
+  - @ai-sdk/ui-utils@0.0.6
+  - @ai-sdk/react@0.0.8
+  - @ai-sdk/solid@0.0.7
+  - @ai-sdk/svelte@0.0.7
+  - @ai-sdk/vue@0.0.7
+
+## 3.2.7
+
+### Patch Changes
+
+- d42b8907: feat (ui): make event in handleSubmit optional
+- Updated dependencies [d42b8907]
+  - @ai-sdk/svelte@0.0.6
+  - @ai-sdk/react@0.0.7
+  - @ai-sdk/solid@0.0.6
+  - @ai-sdk/vue@0.0.6
+
+## 3.2.6
+
+### Patch Changes
+
+- 74e28222: fix (ai/rsc): "could not find InternalStreamableUIClient" bug
+
+## 3.2.5
+
+### Patch Changes
+
+- 4d426d0c: fix (ai): split provider and model ids correctly in the provider registry
+
+## 3.2.4
+
+### Patch Changes
+
+- Updated dependencies [3cb103bc]
+  - @ai-sdk/react@0.0.6
+
+## 3.2.3
+
+### Patch Changes
+
+- 89b7552b: chore (ai): remove deprecation from ai/react imports, add experimental_useObject
+- Updated dependencies [02f6a088]
+  - @ai-sdk/provider-utils@0.0.16
+  - @ai-sdk/react@0.0.5
+  - @ai-sdk/svelte@0.0.5
+  - @ai-sdk/ui-utils@0.0.5
+  - @ai-sdk/solid@0.0.5
+  - @ai-sdk/vue@0.0.5
+
+## 3.2.2
+
+### Patch Changes
+
+- 0565cd72: feat (ai/core): add toJsonResponse to generateObject result.
+
+## 3.2.1
+
+### Patch Changes
+
+- 008725ec: feat (ai): add textStream, toTextStreamResponse(), and pipeTextStreamToResponse() to streamObject
+- 520fb2d5: feat (rsc): add streamUI onFinish callback
+- Updated dependencies [008725ec]
+- Updated dependencies [008725ec]
+  - @ai-sdk/react@0.0.4
+  - @ai-sdk/ui-utils@0.0.4
+  - @ai-sdk/solid@0.0.4
+  - @ai-sdk/svelte@0.0.4
+  - @ai-sdk/vue@0.0.4
+
+## 3.2.0
+
+### Minor Changes
+
+- 85ef6d18: chore (ai): AI SDK 3.2 release
+
+### Patch Changes
+
+- b965dd2d: fix (core): pass settings correctly for generateObject and streamObject
+
+## 3.1.37
+
+### Patch Changes
+
+- 85712895: chore (@ai-sdk/provider-utils): move test helper to provider utils
+- Updated dependencies [85712895]
+- Updated dependencies [85712895]
+  - @ai-sdk/provider-utils@0.0.15
+  - @ai-sdk/react@0.0.3
+  - @ai-sdk/svelte@0.0.3
+  - @ai-sdk/ui-utils@0.0.3
+  - @ai-sdk/solid@0.0.3
+  - @ai-sdk/vue@0.0.3
+
+## 3.1.36
+
+### Patch Changes
+
+- 4728c37f: feat (core): add text embedding model support to provider registry
+- 8c49166e: chore (core): rename experimental_createModelRegistry to experimental_createProviderRegistry
+- Updated dependencies [7910ae84]
+  - @ai-sdk/provider-utils@0.0.14
+  - @ai-sdk/react@0.0.2
+  - @ai-sdk/svelte@0.0.2
+  - @ai-sdk/ui-utils@0.0.2
+  - @ai-sdk/solid@0.0.2
+  - @ai-sdk/vue@0.0.2
+
 ## 3.1.35
 
 ### Patch Changes

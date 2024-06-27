@@ -72,3 +72,24 @@ describe('result.values', () => {
     assert.deepStrictEqual(result.values, testValues);
   });
 });
+
+describe('options.headers', () => {
+  it('should set headers', async () => {
+    const result = await embedMany({
+      model: new MockEmbeddingModelV1({
+        maxEmbeddingsPerCall: 5,
+        doEmbed: async ({ headers }) => {
+          assert.deepStrictEqual(headers, {
+            'custom-request-header': 'request-header-value',
+          });
+
+          return { embeddings: dummyEmbeddings };
+        },
+      }),
+      values: testValues,
+      headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    assert.deepStrictEqual(result.embeddings, dummyEmbeddings);
+  });
+});

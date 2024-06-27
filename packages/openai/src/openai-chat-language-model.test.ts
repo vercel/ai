@@ -2,7 +2,7 @@ import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import {
   JsonTestServer,
   StreamingTestServer,
-  convertStreamToArray,
+  convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { createOpenAI } from './openai-provider';
@@ -279,7 +279,6 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: false,
     });
   });
 
@@ -341,7 +340,6 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: false,
       tools: [
         {
           type: 'function',
@@ -364,7 +362,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should pass custom headers', async () => {
+  it('should pass headers', async () => {
     prepareJsonResponse({ content: '' });
 
     const provider = createOpenAI({
@@ -372,7 +370,7 @@ describe('doGenerate', () => {
       organization: 'test-organization',
       project: 'test-project',
       headers: {
-        'Custom-Header': 'test-header',
+        'Custom-Provider-Header': 'provider-header-value',
       },
     });
 
@@ -380,31 +378,21 @@ describe('doGenerate', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      headers: {
+        'Custom-Request-Header': 'request-header-value',
+      },
     });
 
     const requestHeaders = await server.getRequestHeaders();
 
-    expect(requestHeaders.get('OpenAI-Organization')).toStrictEqual(
-      'test-organization',
-    );
-    expect(requestHeaders.get('OpenAI-Project')).toStrictEqual('test-project');
-    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
-  });
-
-  it('should pass the api key as Authorization header', async () => {
-    prepareJsonResponse({ content: '' });
-
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-
-    await provider.chat('gpt-3.5-turbo').doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
+    expect(requestHeaders).toStrictEqual({
+      authorization: 'Bearer test-api-key',
+      'content-type': 'application/json',
+      'custom-provider-header': 'provider-header-value',
+      'custom-request-header': 'request-header-value',
+      'openai-organization': 'test-organization',
+      'openai-project': 'test-project',
     });
-
-    expect(
-      (await server.getRequestHeaders()).get('Authorization'),
-    ).toStrictEqual('Bearer test-api-key');
   });
 });
 
@@ -482,7 +470,7 @@ describe('doStream', () => {
     });
 
     // note: space moved to last chunk bc of trimming
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       { type: 'text-delta', textDelta: '' },
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
@@ -551,7 +539,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
         type: 'tool-call-delta',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
@@ -651,7 +639,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
         type: 'tool-call-delta',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
@@ -688,7 +676,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertStreamToArray(stream)).toStrictEqual([
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
         type: 'error',
         error: {
@@ -722,7 +710,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    const elements = await convertStreamToArray(stream);
+    const elements = await convertReadableStreamToArray(stream);
 
     expect(elements.length).toBe(2);
     expect(elements[0].type).toBe('error');
@@ -775,11 +763,10 @@ describe('doStream', () => {
       stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: false,
     });
   });
 
-  it('should pass custom headers', async () => {
+  it('should pass headers', async () => {
     prepareStreamResponse({ content: [] });
 
     const provider = createOpenAI({
@@ -787,7 +774,7 @@ describe('doStream', () => {
       organization: 'test-organization',
       project: 'test-project',
       headers: {
-        'Custom-Header': 'test-header',
+        'Custom-Provider-Header': 'provider-header-value',
       },
     });
 
@@ -795,30 +782,20 @@ describe('doStream', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      headers: {
+        'Custom-Request-Header': 'request-header-value',
+      },
     });
 
     const requestHeaders = await server.getRequestHeaders();
 
-    expect(requestHeaders.get('OpenAI-Organization')).toStrictEqual(
-      'test-organization',
-    );
-    expect(requestHeaders.get('OpenAI-Project')).toStrictEqual('test-project');
-    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
-  });
-
-  it('should pass the api key as Authorization header', async () => {
-    prepareStreamResponse({ content: [] });
-
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-
-    await provider.chat('gpt-3.5-turbo').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
+    expect(requestHeaders).toStrictEqual({
+      authorization: 'Bearer test-api-key',
+      'content-type': 'application/json',
+      'custom-provider-header': 'provider-header-value',
+      'custom-request-header': 'request-header-value',
+      'openai-organization': 'test-organization',
+      'openai-project': 'test-project',
     });
-
-    expect(
-      (await server.getRequestHeaders()).get('Authorization'),
-    ).toStrictEqual('Bearer test-api-key');
   });
 });
