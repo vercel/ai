@@ -78,3 +78,26 @@ An optional abort signal that can be used to cancel the call.
 ### `headers`
 
 Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+
+You can use the request headers to provide additional information to the provider,
+depending on what the provider supports. For example, some observability providers support
+headers such as `Prompt-Id`.
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: openai('gpt-3.5-turbo'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+  headers: {
+    'Prompt-Id': 'my-prompt-id',
+  },
+});
+```
+
+<Note>
+  The `headers` setting is for request-specific headers. You can also set
+  `headers` in the provider configuration. These headers will be sent with every
+  request made by the provider.
+</Note>
