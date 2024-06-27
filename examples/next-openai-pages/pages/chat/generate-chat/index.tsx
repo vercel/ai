@@ -28,6 +28,7 @@ export default function Page() {
       <div className="fixed bottom-0 p-2 w-full">
         <input
           value={input}
+          placeholder="Send message..."
           onChange={event => {
             setInput(event.target.value);
           }}
