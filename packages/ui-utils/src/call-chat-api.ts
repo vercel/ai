@@ -4,7 +4,6 @@ import { createChunkDecoder } from './index';
 
 export async function callChatApi({
   api,
-  messages,
   body,
   streamMode = 'stream-data',
   credentials,
@@ -18,7 +17,6 @@ export async function callChatApi({
   generateId,
 }: {
   api: string;
-  messages: Omit<Message, 'id'>[];
   body: Record<string, any>;
   streamMode?: 'stream-data' | 'text';
   credentials?: RequestCredentials;
