@@ -15,6 +15,8 @@ import {
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
 
+type FetchType = typeof fetch;
+
 export type { CreateMessage, Message, UseChatOptions };
 
 export type UseChatHelpers = {
@@ -82,16 +84,19 @@ const getStreamedResponse = async (
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
   generateId: IdGenerator,
-  streamMode?: 'stream-data' | 'text',
-  onFinish?: (message: Message) => void,
-  onResponse?: (response: Response) => void | Promise<void>,
-  onToolCall?: UseChatOptions['onToolCall'],
-  sendExtraMessageFields?: boolean,
-  experimental_prepareRequestBody?: (options: {
-    messages: Message[];
-    requestData?: Record<string, string>;
-    requestBody?: object;
-  }) => JSONValue,
+  streamMode: 'stream-data' | 'text' | undefined,
+  onFinish: ((message: Message) => void) | undefined,
+  onResponse: ((response: Response) => void | Promise<void>) | undefined,
+  onToolCall: UseChatOptions['onToolCall'] | undefined,
+  sendExtraMessageFields: boolean | undefined,
+  experimental_prepareRequestBody:
+    | ((options: {
+        messages: Message[];
+        requestData?: Record<string, string>;
+        requestBody?: object;
+      }) => JSONValue)
+    | undefined,
+  fetch: FetchType | undefined,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -335,6 +340,7 @@ By default, it's set to 0, which will disable the feature.
               onToolCall,
               sendExtraMessageFields,
               experimental_prepareRequestBody,
+              fetch,
             ),
           experimental_onFunctionCall,
           experimental_onToolCall,
