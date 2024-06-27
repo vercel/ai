@@ -1,5 +1,11 @@
 # @ai-sdk/vue
 
+## 0.0.8
+
+### Patch Changes
+
+- 82d9c8de: fix (@ai-sdk/vue): make event in handleSubmit optional
+
 ## 0.0.7
 
 ### Patch Changes

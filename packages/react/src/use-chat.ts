@@ -192,9 +192,9 @@ export function useChat({
   headers,
   body,
   generateId = generateIdFunc,
-}: Omit<UseChatOptions, 'api'> & {
-  api?: string;
+}: UseChatOptions & {
   key?: string;
+
   /**
 @deprecated Use `maxToolRoundtrips` instead.
    */

@@ -1,5 +1,17 @@
 # @ai-sdk/svelte
 
+## 0.0.9
+
+### Patch Changes
+
+- 827ef450: feat (ai/ui): improve error handling in useAssistant
+
+## 0.0.8
+
+### Patch Changes
+
+- 82d9c8de: feat (ai/ui): make event in useAssistant submitMessage optional
+
 ## 0.0.7
 
 ### Patch Changes

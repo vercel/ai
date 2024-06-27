@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/solid",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -25,9 +25,7 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/ui-utils": "0.0.6",
-    "swr-store": "0.10.6",
-    "solid-swr-store": "0.10.7"
+    "@ai-sdk/ui-utils": "0.0.6"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.5",
