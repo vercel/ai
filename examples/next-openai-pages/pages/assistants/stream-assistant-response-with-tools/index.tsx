@@ -19,10 +19,11 @@ export default function Page() {
 
       <form onSubmit={submitMessage} className="fixed bottom-0 p-2 w-full">
         <input
-          disabled={status !== 'awaiting_message'}
+          className="bg-zinc-100 w-full p-2"
+          placeholder="Send message..."
           value={input}
           onChange={handleInputChange}
-          className="bg-zinc-100 w-full p-2"
+          disabled={status !== 'awaiting_message'}
         />
       </form>
     </div>
