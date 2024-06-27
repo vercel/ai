@@ -136,7 +136,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'experimental_prepareRequestBody',
-      type: '(options: { messages: Message[]; requestData?: Record<string, string>; requestBody?: object }) => JSONValue',
+      type: '(options: { messages: Message[]; requestData?: JSONValue; requestBody?: object }) => JSONValue',
       optional: true,
       description:
         'Experimental (React only). When a function is provided, it will be used to prepare the request body for the chat API. This can be useful for customizing the request body based on the messages and data in the chat.',
@@ -232,7 +232,7 @@ Allows you to easily create a conversational user interface for your chatbot app
             },
             {
               name: 'data',
-              type: 'Record<string,string>',
+              type: 'JSONValue',
               description: 'Additional data to be sent to the server.',
             },
           ],

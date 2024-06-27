@@ -91,7 +91,7 @@ const getStreamedResponse = async (
   experimental_prepareRequestBody:
     | ((options: {
         messages: Message[];
-        requestData?: Record<string, string>;
+        requestData?: JSONValue;
         requestBody?: object;
       }) => JSONValue)
     | undefined,
@@ -220,7 +220,7 @@ export function useChat({
    */
   experimental_prepareRequestBody?: (options: {
     messages: Message[];
-    requestData?: Record<string, string>;
+    requestData?: JSONValue;
     requestBody?: object;
   }) => JSONValue;
 
