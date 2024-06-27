@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.9
+
+### Patch Changes
+
+- 1894f811: feat (ai/ui): allow JSONValue as data in useChat handleSubmit
+
 ## 0.0.8
 
 ### Patch Changes
