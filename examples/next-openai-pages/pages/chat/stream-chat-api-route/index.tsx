@@ -1,9 +1,10 @@
 import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: '/api/chat-api-route',
-  });
+  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+    useChat({
+      api: '/api/chat-api-route',
+    });
 
   return (
     <div className="flex flex-col gap-2">
@@ -22,6 +23,7 @@ export default function Chat() {
           placeholder="Send message..."
           onChange={handleInputChange}
           className="bg-zinc-100 w-full p-2"
+          disabled={isLoading}
         />
       </form>
     </div>
