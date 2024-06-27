@@ -192,7 +192,7 @@ export type CreateMessage = Omit<Message, 'id'> & {
 export type ChatRequest = {
   messages: Message[];
   options?: RequestOptions;
-  data?: Record<string, string>;
+  data?: JSONValue;
 
   /**
    * @deprecated
@@ -468,6 +468,10 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 };
 
+/**
+A JSON value can be a string, number, boolean, object, array, or null. 
+JSON values can be serialized and deserialized by the JSON.stringify and JSON.parse methods.
+ */
 export type JSONValue =
   | null
   | string
