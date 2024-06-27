@@ -2,7 +2,7 @@ import { experimental_useObject } from 'ai/react';
 import { z } from 'zod';
 
 export default function Page() {
-  const { object, setInput } = experimental_useObject({
+  const { object, submit } = experimental_useObject({
     api: '/api/stream-object',
     schema: z.object({ content: z.string() }),
   });
@@ -12,7 +12,7 @@ export default function Page() {
       <div
         className="p-2 bg-zinc-100 cursor-pointer"
         onClick={async () => {
-          setInput('Final exams');
+          submit('Final exams');
         }}
       >
         Generate
