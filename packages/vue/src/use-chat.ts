@@ -83,6 +83,7 @@ export function useChat({
   headers,
   body,
   generateId = generateIdFunc,
+  fetch,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
@@ -164,7 +165,6 @@ export function useChat({
 
           return await callChatApi({
             api,
-            messages: constructedMessagesPayload,
             body: {
               messages: constructedMessagesPayload,
               data: chatRequest.data,
@@ -194,6 +194,8 @@ export function useChat({
               mutate(previousMessages);
             },
             generateId,
+            onToolCall: undefined, // not implemented yet
+            fetch,
           });
         },
         experimental_onFunctionCall,
