@@ -896,7 +896,7 @@ describe('result.toolResults', () => {
   });
 });
 
-describe('onFinish callback', () => {
+describe('options.onFinish', () => {
   let result: Parameters<
     Required<Parameters<typeof streamText>[0]>['onFinish']
   >[0];
@@ -1003,5 +1003,41 @@ describe('onFinish callback', () => {
         result: 'value-result',
       },
     ]);
+  });
+});
+
+describe('options.headers', () => {
+  it('should set headers', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ headers }) => {
+          assert.deepStrictEqual(headers, {
+            'custom-request-header': 'request-header-value',
+          });
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+      headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.textStream),
+      ['Hello', ', ', 'world!'],
+    );
   });
 });
