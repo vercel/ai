@@ -35,4 +35,10 @@ export type UseAssistantOptions = {
    * An optional callback that will be called when the assistant encounters an error.
    */
   onError?: (error: Error) => void;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: typeof fetch;
 };
