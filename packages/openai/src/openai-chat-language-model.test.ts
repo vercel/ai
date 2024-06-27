@@ -362,7 +362,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should pass custom headers', async () => {
+  it('should pass headers', async () => {
     prepareJsonResponse({ content: '' });
 
     const provider = createOpenAI({
@@ -393,22 +393,6 @@ describe('doGenerate', () => {
       'openai-organization': 'test-organization',
       'openai-project': 'test-project',
     });
-  });
-
-  it('should pass the api key as Authorization header', async () => {
-    prepareJsonResponse({ content: '' });
-
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-
-    await provider.chat('gpt-3.5-turbo').doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect((await server.getRequestHeaders()).authorization).toStrictEqual(
-      'Bearer test-api-key',
-    );
   });
 });
 
@@ -782,7 +766,7 @@ describe('doStream', () => {
     });
   });
 
-  it('should pass custom headers', async () => {
+  it('should pass headers', async () => {
     prepareStreamResponse({ content: [] });
 
     const provider = createOpenAI({
@@ -813,21 +797,5 @@ describe('doStream', () => {
       'openai-organization': 'test-organization',
       'openai-project': 'test-project',
     });
-  });
-
-  it('should pass the api key as Authorization header', async () => {
-    prepareStreamResponse({ content: [] });
-
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-
-    await provider.chat('gpt-3.5-turbo').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect((await server.getRequestHeaders()).authorization).toStrictEqual(
-      'Bearer test-api-key',
-    );
   });
 });
