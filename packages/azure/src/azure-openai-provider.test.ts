@@ -42,23 +42,34 @@ describe('chat', () => {
       };
     }
 
-    it('should pass the api key as api-key header', async () => {
+    it('should pass headers', async () => {
       prepareJsonResponse();
 
       const provider = createAzure({
         resourceName: 'test-resource',
         apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
       });
 
       await provider('test-deployment').doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
       });
 
-      expect((await server.getRequestHeaders()).get('api-key')).toStrictEqual(
-        'test-api-key',
-      );
+      const requestHeaders = await server.getRequestHeaders();
+
+      expect(requestHeaders).toStrictEqual({
+        'api-key': 'test-api-key',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
     });
   });
 });
@@ -111,23 +122,34 @@ describe('completion', () => {
       };
     }
 
-    it('should pass the api key as Authorization header', async () => {
+    it('should pass headers', async () => {
       prepareJsonCompletionResponse({ content: 'Hello World!' });
 
       const provider = createAzure({
         resourceName: 'test-resource',
         apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
       });
 
       await provider.completion('gpt-35-turbo-instruct').doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
       });
 
-      expect((await server.getRequestHeaders()).get('api-key')).toStrictEqual(
-        'test-api-key',
-      );
+      const requestHeaders = await server.getRequestHeaders();
+
+      expect(requestHeaders).toStrictEqual({
+        'api-key': 'test-api-key',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
     });
   });
 });
@@ -223,21 +245,32 @@ describe('embedding', () => {
       });
     });
 
-    it('should pass the api key as api-key header', async () => {
+    it('should pass headers', async () => {
       prepareJsonResponse();
 
       const provider = createAzure({
         resourceName: 'test-resource',
         apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
       });
 
       await provider.embedding('my-embedding').doEmbed({
         values: testValues,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
       });
 
-      expect((await server.getRequestHeaders()).get('api-key')).toStrictEqual(
-        'test-api-key',
-      );
+      const requestHeaders = await server.getRequestHeaders();
+
+      expect(requestHeaders).toStrictEqual({
+        'api-key': 'test-api-key',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
     });
   });
 });
