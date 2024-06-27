@@ -51,11 +51,7 @@ Only applicable for HTTP-based providers.
   const retry = retryWithExponentialBackoff({ maxRetries });
 
   const modelResponse = await retry(() =>
-    model.doEmbed({
-      values: [value],
-      abortSignal,
-      headers,
-    }),
+    model.doEmbed({ values: [value], abortSignal, headers }),
   );
 
   return new EmbedResult({
