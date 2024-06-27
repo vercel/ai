@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.27
+
+### Patch Changes
+
+- 7e86b45e: fix (provider/anthropic): automatically trim trailing whitespace on pre-filled assistant responses
+
 ## 0.0.26
 
 ### Patch Changes

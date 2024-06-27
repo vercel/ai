@@ -22,7 +22,8 @@ export async function convertToAnthropicMessagesPrompt({
   let system: string | undefined = undefined;
   const messages: AnthropicMessage[] = [];
 
-  for (const block of blocks) {
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
     const type = block.type;
 
     switch (type) {
@@ -118,9 +119,19 @@ export async function convertToAnthropicMessagesPrompt({
 
         messages.push({
           role: 'assistant',
-          content: content.map(part => {
+          content: content.map((part, j) => {
             switch (part.type) {
               case 'text': {
+                // trim the last text part if it's the last message in the block
+                // because Anthropic does not allow trailing whitespace
+                // in pre-filled assistant responses
+                if (
+                  i === blocks.length - 1 &&
+                  j === block.messages.length - 1
+                ) {
+                  return { type: 'text', text: part.text.trim() };
+                }
+
                 return { type: 'text', text: part.text };
               }
               case 'tool-call': {
