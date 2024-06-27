@@ -49,7 +49,15 @@ export class StreamingTestServer {
 
   async getRequestHeaders() {
     expect(this.request).toBeDefined();
-    return this.request!.headers;
+    const requestHeaders = this.request!.headers;
+
+    // convert headers to object for easier comparison
+    const headersObject: Record<string, string> = {};
+    requestHeaders.forEach((value, key) => {
+      headersObject[key] = value;
+    });
+
+    return headersObject;
   }
 
   setupTestEnvironment() {

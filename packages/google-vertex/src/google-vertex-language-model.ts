@@ -57,6 +57,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    headers,
   }: LanguageModelV1CallOptions) {
     const warnings: LanguageModelV1CallWarning[] = [];
 
@@ -78,6 +79,13 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'seed',
+      });
+    }
+
+    if (headers != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'headers',
       });
     }
 

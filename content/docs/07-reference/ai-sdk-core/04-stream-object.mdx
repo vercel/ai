@@ -45,29 +45,30 @@ for await (const partialObject of partialObjectStream) {
     {
       name: 'model',
       type: 'LanguageModel',
-      description: `The language model to use. Example: openai('gpt-4-turbo')`
+      description: `The language model to use. Example: openai('gpt-4-turbo')`,
     },
     {
       name: 'mode',
       type: "'auto' | 'json' | 'grammar' | 'tool'",
       description:
-        "The mode to use for object generation. Not every model supports all modes. Defaults to 'auto'."
+        "The mode to use for object generation. Not every model supports all modes. Defaults to 'auto'.",
     },
     {
-        name: 'schema',
-        type: 'Zod Schema',
-        description: 'The schema that describes the shape of the object to generate. It is sent to the model to generate the object and used to validate the output.'
+      name: 'schema',
+      type: 'Zod Schema',
+      description:
+        'The schema that describes the shape of the object to generate. It is sent to the model to generate the object and used to validate the output.',
     },
     {
       name: 'system',
       type: 'string',
       description:
-        'The system prompt to use that specifies the behavior of the model.'
+        'The system prompt to use that specifies the behavior of the model.',
     },
     {
       name: 'prompt',
       type: 'string',
-      description: 'The input prompt to generate the text from.'
+      description: 'The input prompt to generate the text from.',
     },
     {
       name: 'messages',
@@ -80,14 +81,14 @@ for await (const partialObject of partialObjectStream) {
             {
               name: 'role',
               type: "'system'",
-              description: 'The role for the system message.'
+              description: 'The role for the system message.',
             },
             {
               name: 'content',
               type: 'string',
-              description: 'The content of the message.'
-            }
-          ]
+              description: 'The content of the message.',
+            },
+          ],
         },
         {
           type: 'CoreUserMessage',
@@ -95,7 +96,7 @@ for await (const partialObject of partialObjectStream) {
             {
               name: 'role',
               type: "'user'",
-              description: 'The role for the user message.'
+              description: 'The role for the user message.',
             },
             {
               name: 'content',
@@ -108,14 +109,14 @@ for await (const partialObject of partialObjectStream) {
                     {
                       name: 'type',
                       type: "'text'",
-                      description: 'The type of the message part.'
+                      description: 'The type of the message part.',
                     },
                     {
                       name: 'text',
                       type: 'string',
-                      description: 'The text content of the message part.'
-                    }
-                  ]
+                      description: 'The text content of the message part.',
+                    },
+                  ],
                 },
                 {
                   type: 'ImagePart',
@@ -123,19 +124,19 @@ for await (const partialObject of partialObjectStream) {
                     {
                       name: 'type',
                       type: "'image'",
-                      description: 'The type of the message part.'
+                      description: 'The type of the message part.',
                     },
                     {
                       name: 'image',
                       type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
                       description:
-                        'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.'
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+                        'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
         },
         {
           type: 'CoreAssistantMessage',
@@ -143,7 +144,7 @@ for await (const partialObject of partialObjectStream) {
             {
               name: 'role',
               type: "'assistant'",
-              description: 'The role for the assistant message.'
+              description: 'The role for the assistant message.',
             },
             {
               name: 'content',
@@ -156,14 +157,14 @@ for await (const partialObject of partialObjectStream) {
                     {
                       name: 'type',
                       type: "'text'",
-                      description: 'The type of the message part.'
+                      description: 'The type of the message part.',
                     },
                     {
                       name: 'text',
                       type: 'string',
-                      description: 'The text content of the message part.'
-                    }
-                  ]
+                      description: 'The text content of the message part.',
+                    },
+                  ],
                 },
                 {
                   type: 'ToolCallPart',
@@ -171,30 +172,30 @@ for await (const partialObject of partialObjectStream) {
                     {
                       name: 'type',
                       type: "'tool-call'",
-                      description: 'The type of the message part.'
+                      description: 'The type of the message part.',
                     },
                     {
                       name: 'toolCallId',
                       type: 'string',
-                      description: 'The id of the tool call.'
+                      description: 'The id of the tool call.',
                     },
                     {
                       name: 'toolName',
                       type: 'string',
                       description:
-                        'The name of the tool, which typically would be the name of the function.'
+                        'The name of the tool, which typically would be the name of the function.',
                     },
                     {
                       name: 'args',
                       type: 'object based on zod schema',
                       description:
-                        'Parameters generated by the model to be used by the tool.'
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+                        'Parameters generated by the model to be used by the tool.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
         },
         {
           type: 'CoreToolMessage',
@@ -202,7 +203,7 @@ for await (const partialObject of partialObjectStream) {
             {
               name: 'role',
               type: "'tool'",
-              description: 'The role for the assistant message.'
+              description: 'The role for the assistant message.',
             },
             {
               name: 'content',
@@ -215,96 +216,102 @@ for await (const partialObject of partialObjectStream) {
                     {
                       name: 'type',
                       type: "'tool-result'",
-                      description: 'The type of the message part.'
+                      description: 'The type of the message part.',
                     },
                     {
                       name: 'toolCallId',
                       type: 'string',
                       description:
-                        'The id of the tool call the result corresponds to.'
+                        'The id of the tool call the result corresponds to.',
                     },
                     {
                       name: 'toolName',
                       type: 'string',
                       description:
-                        'The name of the tool the result corresponds to.'
+                        'The name of the tool the result corresponds to.',
                     },
                     {
                       name: 'result',
                       type: 'unknown',
                       description:
-                        'The result returned by the tool after execution.'
+                        'The result returned by the tool after execution.',
                     },
                     {
                       name: 'isError',
                       type: 'boolean',
                       isOptional: true,
                       description:
-                        'Whether the result is an error or an error message.'
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
+                        'Whether the result is an error or an error message.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
-
     {
       name: 'maxTokens',
       type: 'number',
       isOptional: true,
-      description: 'Maximum number of tokens to generate.'
+      description: 'Maximum number of tokens to generate.',
     },
     {
       name: 'temperature',
       type: 'number',
       isOptional: true,
       description:
-        'Temperature setting. The value is passed through to the provider. The range depends on the provider and model. It is recommended to set either `temperature` or `topP`, but not both.'
+        'Temperature setting. The value is passed through to the provider. The range depends on the provider and model. It is recommended to set either `temperature` or `topP`, but not both.',
     },
     {
       name: 'topP',
       type: 'number',
       isOptional: true,
       description:
-        'Nucleus sampling. The value is passed through to the provider. The range depends on the provider and model. It is recommended to set either `temperature` or `topP`, but not both.'
+        'Nucleus sampling. The value is passed through to the provider. The range depends on the provider and model. It is recommended to set either `temperature` or `topP`, but not both.',
     },
     {
       name: 'presencePenalty',
       type: 'number',
       isOptional: true,
       description:
-        'Presence penalty setting. It affects the likelihood of the model to repeat information that is already in the prompt. The value is passed through to the provider. The range depends on the provider and model.'
+        'Presence penalty setting. It affects the likelihood of the model to repeat information that is already in the prompt. The value is passed through to the provider. The range depends on the provider and model.',
     },
     {
       name: 'frequencyPenalty',
       type: 'number',
       isOptional: true,
       description:
-        'Frequency penalty setting. It affects the likelihood of the model to repeatedly use the same words or phrases. The value is passed through to the provider. The range depends on the provider and model.'
+        'Frequency penalty setting. It affects the likelihood of the model to repeatedly use the same words or phrases. The value is passed through to the provider. The range depends on the provider and model.',
     },
     {
       name: 'seed',
       type: 'number',
       isOptional: true,
       description:
-        'The seed (integer) to use for random sampling. If set and supported by the model, calls will generate deterministic results.'
+        'The seed (integer) to use for random sampling. If set and supported by the model, calls will generate deterministic results.',
     },
     {
       name: 'maxRetries',
       type: 'number',
       isOptional: true,
       description:
-        'Maximum number of retries. Set to 0 to disable retries. Default: 2.'
+        'Maximum number of retries. Set to 0 to disable retries. Default: 2.',
     },
     {
       name: 'abortSignal',
       type: 'AbortSignal',
       isOptional: true,
       description:
-        'An optional abort signal that can be used to cancel the call.'
+        'An optional abort signal that can be used to cancel the call.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
     },
     {
       name: 'onFinish',
@@ -351,9 +358,10 @@ for await (const partialObject of partialObjectStream) {
                 'The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.',
             },
             {
-              name:"error",
-              type:"unknown | undefined",
-              description:"Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema."
+              name: 'error',
+              type: 'unknown | undefined',
+              description:
+                'Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.',
             },
             {
               name: 'warnings',
@@ -383,8 +391,7 @@ for await (const partialObject of partialObjectStream) {
         },
       ],
     },
-
-]}
+  ]}
 />
 
 ### Returns

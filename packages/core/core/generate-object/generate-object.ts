@@ -45,6 +45,7 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @returns 
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
@@ -58,6 +59,7 @@ export async function generateObject<T>({
   messages,
   maxRetries,
   abortSignal,
+  headers,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -117,6 +119,7 @@ Default and recommended: 'auto' (best mode for the model).
           inputFormat: validatedPrompt.type,
           prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
+          headers,
         });
       });
 

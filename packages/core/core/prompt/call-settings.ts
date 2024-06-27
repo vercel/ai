@@ -63,4 +63,10 @@ Maximum number of retries. Set to 0 to disable retries.
 Abort signal.
    */
   abortSignal?: AbortSignal;
+
+  /**
+Additional HTTP headers to be sent with the request.
+Only applicable for HTTP-based providers.
+   */
+  headers?: Record<string, string | undefined>;
 };

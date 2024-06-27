@@ -229,3 +229,40 @@ describe('rsc - streamUI() onFinish callback', () => {
     expect(result.value).toMatchSnapshot();
   });
 });
+
+describe('options.headers', () => {
+  it('should set headers', async () => {
+    const result = await streamUI({
+      model: new MockLanguageModelV1({
+        doStream: async ({ headers }) => {
+          assert.deepStrictEqual(headers, {
+            'custom-request-header': 'request-header-value',
+          });
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: '',
+      headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    const rendered = await simulateFlightServerRender(result.value);
+    expect(rendered).toMatchSnapshot();
+  });
+});

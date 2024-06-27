@@ -58,6 +58,7 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @return
 A result object for accessing the partial object stream and additional information.
@@ -71,6 +72,7 @@ export async function streamObject<T>({
   messages,
   maxRetries,
   abortSignal,
+  headers,
   onFinish,
   ...settings
 }: CallSettings &
@@ -161,6 +163,7 @@ Warnings from the model provider (e.g. unsupported settings).
         inputFormat: validatedPrompt.type,
         prompt: convertToLanguageModelPrompt(validatedPrompt),
         abortSignal,
+        headers,
       };
 
       transformer = {
@@ -193,6 +196,7 @@ Warnings from the model provider (e.g. unsupported settings).
         inputFormat: validatedPrompt.type,
         prompt: convertToLanguageModelPrompt(validatedPrompt),
         abortSignal,
+        headers,
       };
 
       transformer = {
@@ -233,6 +237,7 @@ Warnings from the model provider (e.g. unsupported settings).
         inputFormat: validatedPrompt.type,
         prompt: convertToLanguageModelPrompt(validatedPrompt),
         abortSignal,
+        headers,
       };
 
       transformer = {

@@ -53,6 +53,7 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @param maxToolRoundtrips - Maximal number of automatic roundtrips for tool calls.
 
@@ -68,6 +69,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   messages,
   maxRetries,
   abortSignal,
+  headers,
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
   ...settings
@@ -132,6 +134,7 @@ By default, it's set to 0, which will disable the feature.
         inputFormat: roundtrips === 0 ? validatedPrompt.type : 'messages',
         prompt: promptMessages,
         abortSignal,
+        headers,
       });
     });
 

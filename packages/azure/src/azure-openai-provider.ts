@@ -67,6 +67,11 @@ API key for authenticating requests.
   apiKey?: string;
 
   /**
+Custom headers to include in the requests.
+     */
+  headers?: Record<string, string>;
+
+  /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
@@ -85,6 +90,7 @@ export function createAzure(
       environmentVariableName: 'AZURE_API_KEY',
       description: 'Azure OpenAI',
     }),
+    ...options.headers,
   });
 
   const getResourceName = () =>

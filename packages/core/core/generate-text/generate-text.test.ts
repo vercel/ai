@@ -350,7 +350,7 @@ describe('result.responseMessages', () => {
   });
 });
 
-describe('maxToolRoundtrips', () => {
+describe('options.maxToolRoundtrips', () => {
   it('should return text, tool calls and tool results from last roundtrip', async () => {
     let responseCount = 0;
     const result = await generateText({
@@ -473,5 +473,28 @@ describe('maxToolRoundtrips', () => {
     assert.deepStrictEqual(result.text, 'Hello, world!');
     assert.deepStrictEqual(result.toolCalls, []);
     assert.deepStrictEqual(result.toolResults, []);
+  });
+});
+
+describe('options.headers', () => {
+  it('should pass headers to model', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ headers }) => {
+          assert.deepStrictEqual(headers, {
+            'custom-request-header': 'request-header-value',
+          });
+
+          return {
+            ...dummyResponseValues,
+            text: 'Hello, world!',
+          };
+        },
+      }),
+      prompt: 'test-input',
+      headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    assert.deepStrictEqual(result.text, 'Hello, world!');
   });
 });
