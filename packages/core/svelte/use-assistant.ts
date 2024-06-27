@@ -81,7 +81,7 @@ export function useAssistant({
   headers,
   body,
   onError,
-  fetch = getOriginalFetch(),
+  fetch,
 }: UseAssistantOptions): UseAssistantHelpers {
   // Generate a unique thread ID
   const threadIdStore = writable<string | undefined>(threadIdParam);
@@ -119,7 +119,8 @@ export function useAssistant({
     input.set('');
 
     try {
-      const response = await fetch(api, {
+      const actualFetch = fetch ?? getOriginalFetch();
+      const response = await actualFetch(api, {
         method: 'POST',
         credentials,
         signal: abortController.signal,
