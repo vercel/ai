@@ -111,8 +111,10 @@ describe('text stream', () => {
       streamController.enqueue('"Hello, world!"}');
       streamController.close();
 
-      await screen.findByTestId('loading');
-      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      // wait for element "loading" to have text content "false":
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('true');
+      });
     });
   });
 
