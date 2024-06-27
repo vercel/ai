@@ -128,6 +128,13 @@ Allows you to easily create a conversational user interface for your chatbot app
         'An optional literal that sets the mode of the stream to be used. Defaults to `stream-data`. If set to `text`, the stream will be treated as a text stream.',
     },
     {
+      name: 'fetch',
+      type: 'FetchFunction',
+      optional: true,
+      description:
+        'Optional. A custom fetch function to be used for the API call. Defaults to the global fetch function.',
+    },
+    {
       name: 'experimental_prepareRequestBody',
       type: '(options: { messages: Message[]; requestData?: Record<string, string>; requestBody?: object }) => JSONValue',
       optional: true,

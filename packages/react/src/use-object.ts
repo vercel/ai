@@ -1,11 +1,15 @@
 import {
   DeepPartial,
+  FetchFunction,
   isDeepEqualData,
   parsePartialJson,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
 import z from 'zod';
+
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
 
 export type Experimental_UseObjectOptions<RESULT> = {
   /**
@@ -29,6 +33,12 @@ export type Experimental_UseObjectOptions<RESULT> = {
    * An optional value for the initial object.
    */
   initialValue?: DeepPartial<RESULT>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: FetchFunction;
 };
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
@@ -68,6 +78,7 @@ function useObject<RESULT, INPUT = any>({
   id,
   schema, // required, in the future we will use it for validation
   initialValue,
+  fetch,
 }: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
   RESULT,
   INPUT
@@ -101,7 +112,8 @@ function useObject<RESULT, INPUT = any>({
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
-      const response = await fetch(api, {
+      const actualFetch = fetch ?? getOriginalFetch();
+      const response = await actualFetch(api, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: abortController.signal,

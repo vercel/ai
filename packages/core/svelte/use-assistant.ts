@@ -8,6 +8,9 @@ import type {
 import { generateId, readDataStream } from '@ai-sdk/ui-utils';
 import { Readable, Writable, get, writable } from 'svelte/store';
 
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
+
 let uniqueId = 0;
 
 const store: Record<string, any> = {};
@@ -78,6 +81,7 @@ export function useAssistant({
   headers,
   body,
   onError,
+  fetch,
 }: UseAssistantOptions): UseAssistantHelpers {
   // Generate a unique thread ID
   const threadIdStore = writable<string | undefined>(threadIdParam);
@@ -115,7 +119,8 @@ export function useAssistant({
     input.set('');
 
     try {
-      const response = await fetch(api, {
+      const actualFetch = fetch ?? getOriginalFetch();
+      const response = await actualFetch(api, {
         method: 'POST',
         credentials,
         signal: abortController.signal,

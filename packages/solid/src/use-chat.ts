@@ -2,6 +2,7 @@ import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
+  FetchFunction,
   IdGenerator,
   JSONValue,
   Message,
@@ -76,6 +77,12 @@ export type UseChatHelpers = {
   isLoading: Accessor<boolean>;
   /** Additional data added on the server via StreamData */
   data: Accessor<JSONValue[] | undefined>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: FetchFunction;
 };
 
 const getStreamedResponse = async (
@@ -88,15 +95,17 @@ const getStreamedResponse = async (
   messagesRef: Message[],
   abortController: AbortController | null,
   generateId: IdGenerator,
-  streamMode?: 'stream-data' | 'text',
-  onFinish?: UseChatOptions['onFinish'],
-  onResponse?: UseChatOptions['onResponse'],
-  onToolCall?: UseChatOptions['onToolCall'],
-  sendExtraMessageFields?: boolean,
+  streamMode: 'stream-data' | 'text' | undefined,
+  onFinish: UseChatOptions['onFinish'] | undefined,
+  onResponse: UseChatOptions['onResponse'] | undefined,
+  onToolCall: UseChatOptions['onToolCall'] | undefined,
+  sendExtraMessageFields: boolean | undefined,
+  fetch: FetchFunction | undefined,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
   const previousMessages = messagesRef;
+
   mutate(chatRequest.messages);
 
   const existingStreamData = streamData() ?? [];
@@ -116,7 +125,6 @@ const getStreamedResponse = async (
 
   return await callChatApi({
     api,
-    messages: constructedMessagesPayload,
     body: {
       messages: constructedMessagesPayload,
       data: chatRequest.data,
@@ -141,6 +149,7 @@ const getStreamedResponse = async (
     onToolCall,
     onFinish,
     generateId,
+    fetch,
   });
 };
 
@@ -248,6 +257,7 @@ export function useChat(
             useChatOptions().onResponse?.(),
             useChatOptions().onToolCall?.(),
             useChatOptions().sendExtraMessageFields?.(),
+            useChatOptions().fetch?.(),
           ),
         experimental_onFunctionCall:
           useChatOptions().experimental_onFunctionCall?.(),

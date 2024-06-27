@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-
 import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   AssistantStatus,
@@ -10,6 +8,9 @@ import {
   readDataStream,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useRef, useState } from 'react';
+
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
 
 export type UseAssistantHelpers = {
   /**
@@ -92,6 +93,7 @@ export function useAssistant({
   headers,
   body,
   onError,
+  fetch,
 }: UseAssistantOptions): UseAssistantHelpers {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -140,7 +142,8 @@ export function useAssistant({
     try {
       abortControllerRef.current = abortController;
 
-      const response = await fetch(api, {
+      const actualFetch = fetch ?? getOriginalFetch();
+      const response = await actualFetch(api, {
         method: 'POST',
         credentials,
         signal: abortController.signal,

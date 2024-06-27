@@ -1,4 +1,5 @@
 import type {
+  FetchFunction,
   JSONValue,
   RequestOptions,
   UseCompletionOptions,
@@ -61,6 +62,12 @@ export type UseCompletionHelpers = {
   isLoading: Accessor<boolean>;
   /** Additional data added on the server via StreamData */
   data: Accessor<JSONValue[] | undefined>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: FetchFunction;
 };
 
 const [store, setStore] = createStore<Record<string, string>>({});
@@ -139,6 +146,7 @@ export function useCompletion(
       onData: data => {
         setStreamData([...existingData, ...(data ?? [])]);
       },
+      fetch: useCompletionOptions().fetch?.(),
     });
   };
 
