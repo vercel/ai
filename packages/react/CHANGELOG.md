@@ -1,5 +1,14 @@
 # @ai-sdk/react
 
+## 0.0.14
+
+### Patch Changes
+
+- 9b50003d: fix (ai/react): useObject stop & isLoading reset at end of stream
+- 1894f811: feat (ai/ui): allow JSONValue as data in useChat handleSubmit
+- Updated dependencies [1894f811]
+  - @ai-sdk/ui-utils@0.0.9
+
 ## 0.0.13
 
 ### Patch Changes
