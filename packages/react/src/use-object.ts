@@ -148,15 +148,17 @@ function useObject<RESULT, INPUT = any>({
               mutate(currentObject);
             }
           },
+
+          close() {
+            setIsLoading(false);
+            abortControllerRef.current = null;
+          },
         }),
       );
 
       setError(undefined);
     } catch (error) {
       setError(error);
-    } finally {
-      setIsLoading(false);
-      abortControllerRef.current = null;
     }
   };
 
