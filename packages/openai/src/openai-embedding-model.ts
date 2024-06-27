@@ -3,6 +3,7 @@ import {
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
+  combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -51,6 +52,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
 
   async doEmbed({
     values,
+    headers,
     abortSignal,
   }: Parameters<EmbeddingModelV1<string>['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>
@@ -69,7 +71,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
         path: '/embeddings',
         modelId: this.modelId,
       }),
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,
         input: values,
