@@ -78,7 +78,7 @@ function useObject<RESULT, INPUT = any>({
   id,
   schema, // required, in the future we will use it for validation
   initialValue,
-  fetch = getOriginalFetch(),
+  fetch,
 }: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
   RESULT,
   INPUT
@@ -112,7 +112,8 @@ function useObject<RESULT, INPUT = any>({
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
-      const response = await fetch(api, {
+      const actualFetch = fetch ?? getOriginalFetch();
+      const response = await actualFetch(api, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: abortController.signal,

@@ -93,7 +93,7 @@ export function useAssistant({
   headers,
   body,
   onError,
-  fetch = getOriginalFetch(),
+  fetch,
 }: UseAssistantOptions): UseAssistantHelpers {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -142,7 +142,8 @@ export function useAssistant({
     try {
       abortControllerRef.current = abortController;
 
-      const response = await fetch(api, {
+      const actualFetch = fetch ?? getOriginalFetch();
+      const response = await actualFetch(api, {
         method: 'POST',
         credentials,
         signal: abortController.signal,
