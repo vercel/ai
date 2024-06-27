@@ -1,3 +1,5 @@
+import { FetchFunction } from './types';
+
 // Define a type for the assistant status
 export type AssistantStatus = 'in_progress' | 'awaiting_message';
 
@@ -40,5 +42,5 @@ export type UseAssistantOptions = {
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };

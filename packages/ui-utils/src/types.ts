@@ -391,7 +391,7 @@ either synchronously or asynchronously.
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export type UseCompletionOptions = {
@@ -465,7 +465,7 @@ export type UseCompletionOptions = {
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export type JSONValue =
@@ -499,3 +499,8 @@ export type DataMessage = {
   role: 'data';
   data: JSONValue; // application-specific data
 };
+
+/**
+ * Fetch function type (standardizes the version of fetch used).
+ */
+export type FetchFunction = typeof fetch;

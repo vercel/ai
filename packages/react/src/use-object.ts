@@ -1,5 +1,6 @@
 import {
   DeepPartial,
+  FetchFunction,
   isDeepEqualData,
   parsePartialJson,
 } from '@ai-sdk/ui-utils';
@@ -37,7 +38,7 @@ export type Experimental_UseObjectOptions<RESULT> = {
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {

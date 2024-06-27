@@ -2,6 +2,7 @@ import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
+  FetchFunction,
   IdGenerator,
   JSONValue,
   Message,
@@ -14,8 +15,6 @@ import {
 } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
-
-type FetchType = typeof fetch;
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -96,7 +95,7 @@ const getStreamedResponse = async (
         requestBody?: object;
       }) => JSONValue)
     | undefined,
-  fetch: FetchType | undefined,
+  fetch: FetchFunction | undefined,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
