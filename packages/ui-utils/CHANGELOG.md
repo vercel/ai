@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.8
+
+### Patch Changes
+
+- d3100b9c: feat (ai/ui): support custom fetch function in useChat, useCompletion, useAssistant, useObject
+
 ## 0.0.7
 
 ### Patch Changes
