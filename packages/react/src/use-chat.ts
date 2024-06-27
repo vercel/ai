@@ -127,7 +127,6 @@ const getStreamedResponse = async (
 
   return await callChatApi({
     api,
-    messages: constructedMessagesPayload,
     body: experimental_prepareRequestBody?.({
       messages: chatRequest.messages,
       requestData: chatRequest.data,
@@ -168,6 +167,7 @@ const getStreamedResponse = async (
     onToolCall,
     onFinish,
     generateId,
+    fetch,
   });
 };
 

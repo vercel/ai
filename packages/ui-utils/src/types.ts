@@ -386,6 +386,12 @@ either synchronously or asynchronously.
 
   /** Stream mode (default to "stream-data") */
   streamMode?: 'stream-data' | 'text';
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: typeof fetch;
 };
 
 export type UseCompletionOptions = {
@@ -454,6 +460,12 @@ export type UseCompletionOptions = {
 
   /** Stream mode (default to "stream-data") */
   streamMode?: 'stream-data' | 'text';
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: typeof fetch;
 };
 
 export type JSONValue =
