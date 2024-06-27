@@ -7,6 +7,9 @@ import { useCallback, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
 import z from 'zod';
 
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
+
 export type Experimental_UseObjectOptions<RESULT> = {
   /**
    * The API endpoint. It should stream JSON that matches the schema as chunked text.
@@ -29,6 +32,12 @@ export type Experimental_UseObjectOptions<RESULT> = {
    * An optional value for the initial object.
    */
   initialValue?: DeepPartial<RESULT>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: typeof fetch;
 };
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
@@ -68,6 +77,7 @@ function useObject<RESULT, INPUT = any>({
   id,
   schema, // required, in the future we will use it for validation
   initialValue,
+  fetch = getOriginalFetch(),
 }: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
   RESULT,
   INPUT
