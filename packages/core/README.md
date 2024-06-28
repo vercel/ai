@@ -16,6 +16,8 @@ pnpm install ai
 
 The AI SDK Core module provides a unified API to interact with model providers like [OpenAI](https://sdk.vercel.ai/providers/ai-sdk-providers/openai), [Anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic), [Google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai), etc. The Core module runs on
 
+###### @/index.ts (Node.js Runtime)
+
 ```ts
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai'; // Ensure OPENAI_API_KEY is set
@@ -37,11 +39,15 @@ main();
 
 The AI SDK UI module provides a set of hooks that help you build chatbots and generative user interfaces. These hooks are framework agnostic, so they can be used in Next.js, React, Svelte, Vue, and SolidJS.
 
+###### @/app/page.tsx (Next.js Pages Router)
+
 ```tsx
 "use client"
 
-export function Chat() {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } = useChat()
+export default function Page() {
+  const { messages, input, handleSubmit, handleInputChange, isLoading } = useChat({
+    api: "api/chat"
+  })
 
   return (
     <div>
@@ -65,22 +71,63 @@ export function Chat() {
 }
 ```
 
+###### @/app/api/chat/route.ts (Next.js Pages Router)
+
+```ts
+import { CoreMessage, streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+export async function POST(req: Request) {
+  const { messages }: { messages: CoreMessage[] } = await req.json();
+
+  const result = await streamText({
+    model: openai('gpt-4'),
+    system: 'You are a helpful assistant.',
+    messages,
+  });
+
+  return result.toAIStreamResponse();
+}
+```
+
 ### AI SDK RSC
 
 The AI SDK RSC module provides an alternative API that also helps you build chatbots and generative user interfaces for frameworks that support [React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components).
 
 This API leverages the benefits of [streaming](https://nextjs.org/docs/app/building-your-application/rendering/server-components#streaming) and [server actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) offered by React Server Components, thus improving the developer experience of managing states between server/client and building generative user interfaces.
 
-###### @/app/actions.tsx (Next.js)
+###### @/app/actions.tsx (Next.js App Router)
 
 ```tsx
 async function submitMessage() {
   'use server';
 
-  const stream = streamUI({
+  const stream = await streamUI({
     model: openai('gpt-4-turbo'),
-    text: ({}) => {},
-    tools: {},
+    messages: [
+      { role: 'system', content: 'You are a friendly bot!' },
+      { role: 'user', content: input },
+    ],
+    text: ({ content, done }) => {
+      return <div>{content}</div>;
+    },
+    tools: {
+      deploy: {
+        description: 'Deploy repository to vercel',
+        parameters: z.object({
+          repositoryName: z
+            .string()
+            .describe('The name of the repository, example: vercel/ai-chatbot'),
+        }),
+        generate: async function* ({ repositoryName }) {
+          yield <div>Cloning repository {repositoryName}...</div>;
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          yield <div>Building repository {repositoryName}...</div>;
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return <div>{repositoryName} deployed!</div>;
+        },
+      },
+    },
   });
 
   return {
@@ -97,7 +144,7 @@ const AI = createAI({
 });
 ```
 
-###### @/app/layout.tsx (Next.js)
+###### @/app/layout.tsx (Next.js App Router)
 
 ```tsx
 import { ReactNode } from 'react';
@@ -108,15 +155,35 @@ export default function Layout({ children }: { children: ReactNode }) {
 }
 ```
 
-###### @/app/page.tsx (Next.js)
+###### @/app/page.tsx (Next.js App Router)
 
 ```tsx
 import { useActions } from 'ai/rsc';
+import { ReactNode, useState } from 'react';
 
 export default function Page() {
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<ReactNode[]>([]);
   const { submitMessage } = useActions();
 
-  return <div>...</div>;
+  return (
+    <div>
+      <input
+        value={input}
+        onChange={event => {
+          setInput(event.target.value);
+        }}
+      />
+      <button
+        onClick={async () => {
+          const { ui } = await submitMessage(input);
+          setMessages(currentMessages => [...currentMessages, ui]);
+        }}
+      >
+        Submit
+      </button>
+    </div>
+  );
 }
 ```
 
