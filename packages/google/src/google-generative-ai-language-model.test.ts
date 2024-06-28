@@ -1,8 +1,9 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import {
-  JsonTestServer,
   StreamingTestServer,
+  TestServerResponse,
   convertReadableStreamToArray,
+  withTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createGoogleGenerativeAI } from './google-provider';
 
@@ -36,19 +37,14 @@ const provider = createGoogleGenerativeAI({
 const model = provider.chat('models/gemini-pro');
 
 describe('doGenerate', () => {
-  const server = new JsonTestServer(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-  );
-
-  server.setupTestEnvironment();
-
-  function prepareJsonResponse({
+  const prepareJsonResponse = ({
     content = '',
     usage = {
       promptTokenCount: 1,
       candidatesTokenCount: 2,
       totalTokenCount: 3,
     },
+    headers,
   }: {
     content?: string;
     usage?: {
@@ -56,260 +52,287 @@ describe('doGenerate', () => {
       candidatesTokenCount: number;
       totalTokenCount: number;
     };
-  }) {
-    server.responseBodyJson = {
-      candidates: [
-        {
-          content: {
-            parts: [{ text: content }],
-            role: 'model',
+    headers?: Record<string, string>;
+  }): Array<TestServerResponse> => [
+    {
+      url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+      type: 'json-value',
+      content: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: content }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
           },
-          finishReason: 'STOP',
-          index: 0,
-          safetyRatings: SAFETY_RATINGS,
+        ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: usage,
+      },
+      headers,
+    },
+  ];
+
+  it(
+    'should extract text response',
+    withTestServer(
+      prepareJsonResponse({ content: 'Hello, World!' }),
+      async () => {
+        const { text } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(text).toStrictEqual('Hello, World!');
+      },
+    ),
+  );
+
+  it(
+    'should extract usage',
+    withTestServer(
+      prepareJsonResponse({
+        usage: {
+          promptTokenCount: 20,
+          candidatesTokenCount: 5,
+          totalTokenCount: 25,
+        },
+      }),
+      async () => {
+        const { usage } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(usage).toStrictEqual({
+          promptTokens: 20,
+          completionTokens: 5,
+        });
+      },
+    ),
+  );
+
+  it(
+    'should extract tool calls',
+    withTestServer(
+      [
+        {
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+          type: 'json-value',
+          content: {
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      functionCall: {
+                        name: 'test-tool',
+                        args: { value: 'example value' },
+                      },
+                    },
+                  ],
+                  role: 'model',
+                },
+                finishReason: 'STOP',
+                index: 0,
+                safetyRatings: SAFETY_RATINGS,
+              },
+            ],
+            promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          },
         },
       ],
-      promptFeedback: { safetyRatings: SAFETY_RATINGS },
-      usageMetadata: usage,
-    };
-  }
-
-  it('should extract text response', async () => {
-    prepareJsonResponse({ content: 'Hello, World!' });
-
-    const { text } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(text).toStrictEqual('Hello, World!');
-  });
-
-  it('should extract usage', async () => {
-    prepareJsonResponse({
-      content: '',
-      usage: {
-        promptTokenCount: 20,
-        candidatesTokenCount: 5,
-        totalTokenCount: 25,
-      },
-    });
-
-    const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(usage).toStrictEqual({
-      promptTokens: 20,
-      completionTokens: 5,
-    });
-  });
-
-  it('should extract tool calls', async () => {
-    server.responseBodyJson = {
-      candidates: [
-        {
-          content: {
-            parts: [
+      async () => {
+        const { toolCalls, finishReason, text } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'regular',
+            tools: [
               {
-                functionCall: {
-                  name: 'test-tool',
-                  args: { value: 'example value' },
+                type: 'function',
+                name: 'test-tool',
+                parameters: {
+                  type: 'object',
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  additionalProperties: false,
+                  $schema: 'http://json-schema.org/draft-07/schema#',
                 },
               },
             ],
-            role: 'model',
           },
-          finishReason: 'STOP',
-          index: 0,
-          safetyRatings: SAFETY_RATINGS,
-        },
-      ],
-      promptFeedback: { safetyRatings: SAFETY_RATINGS },
-    };
+          prompt: TEST_PROMPT,
+        });
 
-    const { toolCalls, finishReason, text } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
+        expect(toolCalls).toStrictEqual([
           {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+            toolCallId: 'test-id',
+            toolCallType: 'function',
+            toolName: 'test-tool',
+            args: '{"value":"example value"}',
+          },
+        ]);
+        expect(text).toStrictEqual(undefined);
+        expect(finishReason).toStrictEqual('tool-calls');
+      },
+    ),
+  );
+
+  it(
+    'should expose the raw response headers',
+    withTestServer(
+      prepareJsonResponse({ headers: { 'test-header': 'test-value' } }),
+      async () => {
+        const { rawResponse } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(rawResponse?.headers).toStrictEqual({
+          // default headers:
+          'content-length': '804',
+          'content-type': 'application/json',
+
+          // custom header
+          'test-header': 'test-value',
+        });
+      },
+    ),
+  );
+
+  it(
+    'should pass the model and the messages',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(call(0).getRequestBodyJson()).toStrictEqual({
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: 'Hello' }],
           },
         ],
-      },
-      prompt: TEST_PROMPT,
-    });
+        generationConfig: {},
+      });
+    }),
+  );
 
-    expect(toolCalls).toStrictEqual([
-      {
-        toolCallId: 'test-id',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"example value"}',
-      },
-    ]);
-    expect(text).toStrictEqual(undefined);
-    expect(finishReason).toStrictEqual('tool-calls');
-  });
-
-  it('should expose the raw response headers', async () => {
-    prepareJsonResponse({ content: '' });
-
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
-
-    const { rawResponse } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(rawResponse?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '804',
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
-  });
-
-  it('should pass the model and the messages', async () => {
-    prepareJsonResponse({ content: '' });
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
-        },
-      ],
-      generationConfig: {},
-    });
-  });
-
-  it('should pass tools and toolChoice', async () => {
-    prepareJsonResponse({});
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+  it(
+    'should pass tools and toolChoice',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'regular',
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
             },
+          ],
+          toolChoice: {
+            type: 'tool',
+            toolName: 'test-tool',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(call(0).getRequestBodyJson()).toStrictEqual({
+        generationConfig: {},
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+        tools: {
+          functionDeclarations: [
+            {
+              name: 'test-tool',
+              description: '',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+              },
+            },
+          ],
+        },
+        toolConfig: {
+          functionCallingConfig: {
+            mode: 'ANY',
+            allowedFunctionNames: ['test-tool'],
+          },
+        },
+      });
+    }),
+  );
+
+  it(
+    'should set response mime type for json mode',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'object-json' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(call(0).getRequestBodyJson()).toStrictEqual({
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: 'Hello' }],
           },
         ],
-        toolChoice: {
-          type: 'tool',
-          toolName: 'test-tool',
+        generationConfig: {
+          response_mime_type: 'application/json',
         },
-      },
-      prompt: TEST_PROMPT,
-    });
+      });
+    }),
+  );
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      generationConfig: {},
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      tools: {
-        functionDeclarations: [
-          {
-            name: 'test-tool',
-            description: '',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-            },
-          },
-        ],
-      },
-      toolConfig: {
-        functionCallingConfig: {
-          mode: 'ANY',
-          allowedFunctionNames: ['test-tool'],
+  it(
+    'should pass headers',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      const provider = createGoogleGenerativeAI({
+        apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
         },
-      },
-    });
-  });
+      });
 
-  it('should set response mime type for json mode', async () => {
-    prepareJsonResponse({ content: '' });
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'object-json' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
+      await provider.chat('models/gemini-pro').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
         },
-      ],
-      generationConfig: {
-        response_mime_type: 'application/json',
-      },
-    });
-  });
+      });
 
-  it('should pass headers', async () => {
-    prepareJsonResponse({ content: '' });
+      const requestHeaders = call(0).getRequestHeaders();
 
-    const provider = createGoogleGenerativeAI({
-      apiKey: 'test-api-key',
-      headers: {
-        'Custom-Provider-Header': 'provider-header-value',
-      },
-    });
-
-    await provider.chat('models/gemini-pro').doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      headers: {
-        'Custom-Request-Header': 'request-header-value',
-      },
-    });
-
-    const requestHeaders = await server.getRequestHeaders();
-
-    expect(requestHeaders).toStrictEqual({
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-      'x-goog-api-key': 'test-api-key',
-    });
-  });
+      expect(requestHeaders).toStrictEqual({
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+        'x-goog-api-key': 'test-api-key',
+      });
+    }),
+  );
 });
 
 describe('doStream', () => {
