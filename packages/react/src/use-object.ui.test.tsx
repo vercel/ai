@@ -1,4 +1,7 @@
-import { describeWithTestServer } from '@ai-sdk/provider-utils/test';
+import {
+  describeWithTestServer,
+  withTestServer,
+} from '@ai-sdk/provider-utils/test';
 import { mockFetchError } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
@@ -75,54 +78,37 @@ describe('text stream', () => {
   );
 
   describe('isLoading', async () => {
-    let streamController: ReadableStreamDefaultController<string>;
-    let server: SetupServer;
+    it(
+      'should be true when loading',
+      withTestServer(
+        [
+          {
+            url: '/api/use-object',
+            type: 'stream',
+            id: 'main',
+          },
+        ],
+        async ({ getStreamController }) => {
+          const streamController = getStreamController('main');
+          streamController.enqueue('{"content": ');
 
-    beforeEach(() => {
-      const stream = new ReadableStream({
-        start(controller) {
-          streamController = controller;
-        },
-      });
+          await userEvent.click(screen.getByTestId('submit-button'));
 
-      server = setupServer(
-        http.post('/api/use-object', ({ request }) => {
-          return new HttpResponse(stream.pipeThrough(new TextEncoderStream()), {
-            status: 200,
-            headers: {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-              Connection: 'keep-alive',
-            },
+          // wait for element "loading" to have text content "true":
+          await waitFor(() => {
+            expect(screen.getByTestId('loading')).toHaveTextContent('true');
           });
-        }),
-      );
 
-      server.listen();
-    });
+          streamController.enqueue('"Hello, world!"}');
+          streamController.close();
 
-    afterEach(() => {
-      server.close();
-    });
-
-    it('should be true when loading', async () => {
-      streamController.enqueue('{"content": ');
-
-      await userEvent.click(screen.getByTestId('submit-button'));
-
-      // wait for element "loading" to have text content "true":
-      await waitFor(() => {
-        expect(screen.getByTestId('loading')).toHaveTextContent('true');
-      });
-
-      streamController.enqueue('"Hello, world!"}');
-      streamController.close();
-
-      // wait for element "loading" to have text content "false":
-      await waitFor(() => {
-        expect(screen.getByTestId('loading')).toHaveTextContent('false');
-      });
-    });
+          // wait for element "loading" to have text content "false":
+          await waitFor(() => {
+            expect(screen.getByTestId('loading')).toHaveTextContent('false');
+          });
+        },
+      ),
+    );
   });
 
   describe('stop', async () => {

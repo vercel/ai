@@ -16,6 +16,10 @@ export type TestServerResponse = {
       type: 'stream-values';
       content: Array<string>;
     }
+  | {
+      type: 'stream';
+      id: string;
+    }
 );
 
 class TestServerCall {
@@ -48,17 +52,21 @@ class TestServerCall {
 function createServer({
   responses,
   pushCall,
+  pushController,
 }: {
   responses: TestServerResponse[];
   pushCall: (call: TestServerCall) => void;
+  pushController: (
+    id: string,
+    controller: () => ReadableStreamDefaultController<string>,
+  ) => void;
 }) {
   return setupServer(
     ...responses.map(response => {
-      return http.post(response.url, ({ request }) => {
-        pushCall(new TestServerCall(request));
-
-        switch (response.type) {
-          case 'json-value': {
+      switch (response.type) {
+        case 'json-value': {
+          return http.post(response.url, ({ request }) => {
+            pushCall(new TestServerCall(request));
             return HttpResponse.json(response.content, {
               status: 200,
               headers: {
@@ -66,9 +74,13 @@ function createServer({
                 ...response.headers,
               },
             });
-          }
+          });
+        }
 
-          case 'stream-values': {
+        case 'stream-values': {
+          return http.post(response.url, ({ request }) => {
+            pushCall(new TestServerCall(request));
+
             return new HttpResponse(
               convertArrayToReadableStream(response.content).pipeThrough(
                 new TextEncoderStream(),
@@ -83,9 +95,38 @@ function createServer({
                 },
               },
             );
-          }
+          });
         }
-      });
+
+        case 'stream': {
+          let streamController: ReadableStreamDefaultController<string>;
+
+          const stream = new ReadableStream<string>({
+            start(controller) {
+              streamController = controller;
+            },
+          });
+
+          pushController(response.id, () => streamController);
+
+          return http.post(response.url, ({ request }) => {
+            pushCall(new TestServerCall(request));
+
+            return new HttpResponse(
+              stream.pipeThrough(new TextEncoderStream()),
+              {
+                status: 200,
+                headers: {
+                  'Content-Type': 'text/event-stream',
+                  'Cache-Control': 'no-cache',
+                  Connection: 'keep-alive',
+                  ...response.headers,
+                },
+              },
+            );
+          });
+        }
+      }
     }),
   );
 }
@@ -95,21 +136,34 @@ export function withTestServer(
   testFunction: (options: {
     calls: () => Array<TestServerCall>;
     call: (index: number) => TestServerCall;
-  }) => void,
+    getStreamController: (
+      id: string,
+    ) => ReadableStreamDefaultController<string>;
+  }) => Promise<void>,
 ) {
-  return () => {
+  return async () => {
     const calls: Array<TestServerCall> = [];
+    const controllers: Record<
+      string,
+      () => ReadableStreamDefaultController<string>
+    > = {};
     const server = createServer({
       responses,
       pushCall: call => calls.push(call),
+      pushController: (id, controller) => {
+        controllers[id] = controller;
+      },
     });
 
     try {
       server.listen();
 
-      testFunction({
+      await testFunction({
         calls: () => calls,
         call: (index: number) => calls[index],
+        getStreamController: (id: string) => {
+          return controllers[id]();
+        },
       });
     } finally {
       server.close();
@@ -123,22 +177,33 @@ export function describeWithTestServer(
   testFunction: (options: {
     calls: () => Array<TestServerCall>;
     call: (index: number) => TestServerCall;
+    getStreamController: (
+      id: string,
+    ) => ReadableStreamDefaultController<string>;
   }) => void,
 ) {
   describe(description, () => {
     let calls: Array<TestServerCall>;
+    let controllers: Record<
+      string,
+      () => ReadableStreamDefaultController<string>
+    >;
     let server: ReturnType<typeof setupServer>;
 
     beforeAll(() => {
       server = createServer({
         responses,
         pushCall: call => calls.push(call),
+        pushController: (id, controller) => {
+          controllers[id] = controller;
+        },
       });
       server.listen();
     });
 
     beforeEach(() => {
       calls = [];
+      controllers = {};
       server.resetHandlers();
     });
 
@@ -149,6 +214,7 @@ export function describeWithTestServer(
     testFunction({
       calls: () => calls,
       call: (index: number) => calls[index],
+      getStreamController: (id: string) => controllers[id](),
     });
   });
 }
