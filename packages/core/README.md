@@ -1,6 +1,6 @@
 # Vercel AI SDK
 
-The Vercel AI SDK is a TypeScript library designed to help you build AI-powered applications with React, Next.js, Vue, Svelte, Node.js, and more.
+The Vercel AI SDK is a TypeScript library designed to help you build AI-powered applications using popular frameworks like Next.js, React, Svelte, Vue and runtimes like Node.js.
 
 To learn more about how to use the Vercel AI SDK, check out our [API Reference](https://sdk.vercel.ai/docs/reference) and [Documentation](https://sdk.vercel.ai/docs).
 
