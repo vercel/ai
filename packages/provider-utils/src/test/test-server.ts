@@ -17,8 +17,13 @@ export type TestServerResponse = {
       content: Array<string>;
     }
   | {
-      type: 'stream';
-      id: string;
+      type: 'controlled-stream';
+      id?: string;
+    }
+  | {
+      type: 'error';
+      status: number;
+      content?: string;
     }
 );
 
@@ -54,7 +59,7 @@ function createServer({
   pushCall,
   pushController,
 }: {
-  responses: TestServerResponse[];
+  responses: Array<TestServerResponse> | TestServerResponse;
   pushCall: (call: TestServerCall) => void;
   pushController: (
     id: string,
@@ -62,7 +67,7 @@ function createServer({
   ) => void;
 }) {
   return setupServer(
-    ...responses.map(response => {
+    ...(Array.isArray(responses) ? responses : [responses]).map(response => {
       switch (response.type) {
         case 'json-value': {
           return http.post(response.url, ({ request }) => {
@@ -98,7 +103,7 @@ function createServer({
           });
         }
 
-        case 'stream': {
+        case 'controlled-stream': {
           let streamController: ReadableStreamDefaultController<string>;
 
           const stream = new ReadableStream<string>({
@@ -107,7 +112,7 @@ function createServer({
             },
           });
 
-          pushController(response.id, () => streamController);
+          pushController(response.id ?? '', () => streamController);
 
           return http.post(response.url, ({ request }) => {
             pushCall(new TestServerCall(request));
@@ -126,19 +131,33 @@ function createServer({
             );
           });
         }
+
+        case 'error': {
+          return http.post(response.url, ({ request }) => {
+            pushCall(new TestServerCall(request));
+
+            return HttpResponse.text(response.content ?? 'Error', {
+              status: response.status,
+              headers: {
+                ...response.headers,
+              },
+            });
+          });
+        }
       }
     }),
   );
 }
 
 export function withTestServer(
-  responses: Array<TestServerResponse>,
+  responses: Array<TestServerResponse> | TestServerResponse,
   testFunction: (options: {
     calls: () => Array<TestServerCall>;
     call: (index: number) => TestServerCall;
     getStreamController: (
       id: string,
     ) => ReadableStreamDefaultController<string>;
+    streamController: ReadableStreamDefaultController<string>;
   }) => Promise<void>,
 ) {
   return async () => {
@@ -164,6 +183,9 @@ export function withTestServer(
         getStreamController: (id: string) => {
           return controllers[id]();
         },
+        get streamController() {
+          return controllers['']();
+        },
       });
     } finally {
       server.close();
@@ -173,13 +195,14 @@ export function withTestServer(
 
 export function describeWithTestServer(
   description: string,
-  responses: Array<TestServerResponse>,
+  responses: Array<TestServerResponse> | TestServerResponse,
   testFunction: (options: {
     calls: () => Array<TestServerCall>;
     call: (index: number) => TestServerCall;
     getStreamController: (
       id: string,
     ) => ReadableStreamDefaultController<string>;
+    streamController: ReadableStreamDefaultController<string>;
   }) => void,
 ) {
   describe(description, () => {
@@ -215,6 +238,9 @@ export function describeWithTestServer(
       calls: () => calls,
       call: (index: number) => calls[index],
       getStreamController: (id: string) => controllers[id](),
+      get streamController() {
+        return controllers['']();
+      },
     });
   });
 }

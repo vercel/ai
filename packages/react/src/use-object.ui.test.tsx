@@ -2,12 +2,9 @@ import {
   describeWithTestServer,
   withTestServer,
 } from '@ai-sdk/provider-utils/test';
-import { mockFetchError } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { HttpResponse, http } from 'msw';
-import { SetupServer, setupServer } from 'msw/node';
 import { z } from 'zod';
 import { experimental_useObject } from './use-object';
 
@@ -47,13 +44,11 @@ describe('text stream', () => {
 
   describeWithTestServer(
     "when the API returns 'Hello, world!'",
-    [
-      {
-        url: '/api/use-object',
-        type: 'stream-values',
-        content: ['{ ', '"content": "Hello, ', 'world', '!"'],
-      },
-    ],
+    {
+      url: '/api/use-object',
+      type: 'stream-values',
+      content: ['{ ', '"content": "Hello, ', 'world', '!"'],
+    },
     ({ call }) => {
       beforeEach(async () => {
         await userEvent.click(screen.getByTestId('submit-button'));
@@ -79,17 +74,10 @@ describe('text stream', () => {
 
   describe('isLoading', async () => {
     it(
-      'should be true when loading',
+      'should be true while loading',
       withTestServer(
-        [
-          {
-            url: '/api/use-object',
-            type: 'stream',
-            id: 'main',
-          },
-        ],
-        async ({ getStreamController }) => {
-          const streamController = getStreamController('main');
+        { url: '/api/use-object', type: 'controlled-stream' },
+        async ({ streamController }) => {
           streamController.enqueue('{"content": ');
 
           await userEvent.click(screen.getByTestId('submit-button'));
@@ -112,78 +100,63 @@ describe('text stream', () => {
   });
 
   describe('stop', async () => {
-    let streamController: ReadableStreamDefaultController<string>;
-    let server: SetupServer;
+    it(
+      'should abort the stream and not consume any more data',
+      withTestServer(
+        { url: '/api/use-object', type: 'controlled-stream' },
+        async ({ streamController }) => {
+          streamController.enqueue('{"content": "h');
 
-    beforeEach(() => {
-      const stream = new ReadableStream({
-        start(controller) {
-          streamController = controller;
-        },
-      });
+          userEvent.click(screen.getByTestId('submit-button'));
 
-      server = setupServer(
-        http.post('/api/use-object', ({ request }) => {
-          return new HttpResponse(stream.pipeThrough(new TextEncoderStream()), {
-            status: 200,
-            headers: {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-              Connection: 'keep-alive',
-            },
+          // wait for element "loading" and "object" to have text content:
+          await waitFor(() => {
+            expect(screen.getByTestId('loading')).toHaveTextContent('true');
           });
-        }),
-      );
+          await waitFor(() => {
+            expect(screen.getByTestId('object')).toHaveTextContent(
+              '{"content":"h"}',
+            );
+          });
 
-      server.listen();
-    });
+          // click stop button:
+          await userEvent.click(screen.getByTestId('stop-button'));
 
-    afterEach(() => {
-      server.close();
-    });
+          // wait for element "loading" to have text content "false":
+          await waitFor(() => {
+            expect(screen.getByTestId('loading')).toHaveTextContent('false');
+          });
 
-    it('should be true when loading', async () => {
-      streamController.enqueue('{"content": "h');
+          // this should not be consumed any more:
+          streamController.enqueue('ello, world!"}');
+          streamController.close();
 
-      userEvent.click(screen.getByTestId('submit-button'));
-
-      // wait for element "loading" and "object" to have text content:
-      await waitFor(() => {
-        expect(screen.getByTestId('loading')).toHaveTextContent('true');
-      });
-      await waitFor(() => {
-        expect(screen.getByTestId('object')).toHaveTextContent(
-          '{"content":"h"}',
-        );
-      });
-
-      // click stop button:
-      await userEvent.click(screen.getByTestId('stop-button'));
-
-      // wait for element "loading" to have text content "false":
-      await waitFor(() => {
-        expect(screen.getByTestId('loading')).toHaveTextContent('false');
-      });
-
-      // this should not be consumed any more:
-      streamController.enqueue('ello, world!"}');
-      streamController.close();
-
-      // should only show start of object:
-      expect(screen.getByTestId('object')).toHaveTextContent('{"content":"h"}');
-    });
+          // should only show start of object:
+          expect(screen.getByTestId('object')).toHaveTextContent(
+            '{"content":"h"}',
+          );
+        },
+      ),
+    );
   });
 
   describe('when the API returns a 404', () => {
-    beforeEach(async () => {
-      mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
+    it(
+      'should render error',
+      withTestServer(
+        {
+          url: '/api/use-object',
+          type: 'error',
+          status: 404,
+          content: 'Not found',
+        },
+        async () => {
+          await userEvent.click(screen.getByTestId('submit-button'));
 
-      await userEvent.click(screen.getByTestId('submit-button'));
-    });
-
-    it('should render error', async () => {
-      await screen.findByTestId('error');
-      expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
-    });
+          await screen.findByTestId('error');
+          expect(screen.getByTestId('error')).toHaveTextContent('Not found');
+        },
+      ),
+    );
   });
 });
