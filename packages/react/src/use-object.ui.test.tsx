@@ -1,4 +1,5 @@
-import { mockFetchDataStream, mockFetchError } from '@ai-sdk/ui-utils/test';
+import { describeWithTestServer } from '@ai-sdk/provider-utils/test';
+import { mockFetchError } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -41,34 +42,37 @@ describe('text stream', () => {
     cleanup();
   });
 
-  describe("when the API returns 'Hello, world!'", () => {
-    let mockFetch: ReturnType<typeof mockFetchDataStream>;
-
-    beforeEach(async () => {
-      mockFetch = mockFetchDataStream({
-        url: 'https://example.com/api/use-object',
-        chunks: ['{ ', '"content": "Hello, ', 'world', '!"'],
+  describeWithTestServer(
+    "when the API returns 'Hello, world!'",
+    [
+      {
+        url: '/api/use-object',
+        type: 'stream-values',
+        content: ['{ ', '"content": "Hello, ', 'world', '!"'],
+      },
+    ],
+    ({ call }) => {
+      beforeEach(async () => {
+        await userEvent.click(screen.getByTestId('submit-button'));
       });
 
-      await userEvent.click(screen.getByTestId('submit-button'));
-    });
+      it('should render stream', async () => {
+        await screen.findByTestId('object');
+        expect(screen.getByTestId('object')).toHaveTextContent(
+          JSON.stringify({ content: 'Hello, world!' }),
+        );
+      });
 
-    it('should render stream', async () => {
-      await screen.findByTestId('object');
-      expect(screen.getByTestId('object')).toHaveTextContent(
-        JSON.stringify({ content: 'Hello, world!' }),
-      );
-    });
+      it("should send 'test' to the API", async () => {
+        expect(await call(0).getRequestBodyJson()).toBe('test-input');
+      });
 
-    it("should send 'test' to the API", async () => {
-      expect(await mockFetch.requestBody).toBe(JSON.stringify('test-input'));
-    });
-
-    it('should not have an error', async () => {
-      await screen.findByTestId('error');
-      expect(screen.getByTestId('error')).toBeEmptyDOMElement();
-    });
-  });
+      it('should not have an error', async () => {
+        await screen.findByTestId('error');
+        expect(screen.getByTestId('error')).toBeEmptyDOMElement();
+      });
+    },
+  );
 
   describe('isLoading', async () => {
     let streamController: ReadableStreamDefaultController<string>;
