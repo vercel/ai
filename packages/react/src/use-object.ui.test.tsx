@@ -9,7 +9,7 @@ import { experimental_useObject } from './use-object';
 
 describe('text stream', () => {
   const TestComponent = () => {
-    const { object, error, submit, isLoading } = experimental_useObject({
+    const { object, error, submit, isLoading, stop } = experimental_useObject({
       api: '/api/use-object',
       schema: z.object({ content: z.string() }),
     });
@@ -24,6 +24,9 @@ describe('text stream', () => {
           onClick={() => submit('test-input')}
         >
           Generate
+        </button>
+        <button data-testid="stop-button" onClick={stop}>
+          Stop
         </button>
       </div>
     );
@@ -79,7 +82,7 @@ describe('text stream', () => {
       });
 
       server = setupServer(
-        http.post('https://example.com/api/use-object', ({ request }) => {
+        http.post('/api/use-object', ({ request }) => {
           return new HttpResponse(stream.pipeThrough(new TextEncoderStream()), {
             status: 200,
             headers: {
@@ -101,7 +104,7 @@ describe('text stream', () => {
     it('should be true when loading', async () => {
       streamController.enqueue('{"content": ');
 
-      userEvent.click(screen.getByTestId('submit-button'));
+      await userEvent.click(screen.getByTestId('submit-button'));
 
       // wait for element "loading" to have text content "true":
       await waitFor(() => {
@@ -113,8 +116,71 @@ describe('text stream', () => {
 
       // wait for element "loading" to have text content "false":
       await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      });
+    });
+  });
+
+  describe('stop', async () => {
+    let streamController: ReadableStreamDefaultController<string>;
+    let server: SetupServer;
+
+    beforeEach(() => {
+      const stream = new ReadableStream({
+        start(controller) {
+          streamController = controller;
+        },
+      });
+
+      server = setupServer(
+        http.post('/api/use-object', ({ request }) => {
+          return new HttpResponse(stream.pipeThrough(new TextEncoderStream()), {
+            status: 200,
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            },
+          });
+        }),
+      );
+
+      server.listen();
+    });
+
+    afterEach(() => {
+      server.close();
+    });
+
+    it('should be true when loading', async () => {
+      streamController.enqueue('{"content": "h');
+
+      userEvent.click(screen.getByTestId('submit-button'));
+
+      // wait for element "loading" and "object" to have text content:
+      await waitFor(() => {
         expect(screen.getByTestId('loading')).toHaveTextContent('true');
       });
+      await waitFor(() => {
+        expect(screen.getByTestId('object')).toHaveTextContent(
+          '{"content":"h"}',
+        );
+      });
+
+      // click stop button:
+      await userEvent.click(screen.getByTestId('stop-button'));
+
+      // wait for element "loading" to have text content "false":
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      });
+
+      // this should not be consumed any more:
+      streamController.enqueue('ello, world!"}');
+      streamController.close();
+
+      // should only show start of object:
+      expect(screen.getByTestId('object')).toHaveTextContent('{"content":"h"}');
     });
   });
 
