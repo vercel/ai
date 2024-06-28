@@ -16,9 +16,9 @@ pnpm install ai
 
 ### AI SDK Core
 
-The AI SDK Core module provides a unified API to interact with model providers like [OpenAI](https://sdk.vercel.ai/providers/ai-sdk-providers/openai), [Anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic), [Google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai), etc. You can learn more about the module [here](https://sdk.vercel.ai/docs/ai-sdk-core/overview).
+The AI SDK Core module provides a unified API to interact with model providers like [OpenAI](https://sdk.vercel.ai/providers/ai-sdk-providers/openai), [Anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic), [Google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai), etc.
 
-You will install the model provider of your choice.
+You will then install the model provider of your choice.
 
 ```shell
 pnpm install @ai-sdk/openai
@@ -43,9 +43,11 @@ async function main() {
 main();
 ```
 
+You can learn more about the AI SDK Core [here](https://sdk.vercel.ai/docs/ai-sdk-core/overview).
+
 ### AI SDK UI
 
-The AI SDK UI module provides a set of hooks that help you build chatbots and generative user interfaces. These hooks are framework agnostic, so they can be used in Next.js, React, Svelte, Vue, and SolidJS. You can learn more about the module [here](https://sdk.vercel.ai/docs/ai-sdk-ui/overview).
+The AI SDK UI module provides a set of hooks that help you build chatbots and generative user interfaces. These hooks are framework agnostic, so they can be used in Next.js, React, Svelte, Vue, and SolidJS.
 
 ###### @/app/page.tsx (Next.js Pages Router)
 
@@ -100,11 +102,13 @@ export async function POST(req: Request) {
 }
 ```
 
+You can learn more about the AI SDK UI [here](https://sdk.vercel.ai/docs/ai-sdk-ui/overview).
+
 ### AI SDK RSC
 
 The AI SDK RSC module provides an alternative API that also helps you build chatbots and generative user interfaces for frameworks that support [React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components).
 
-This API leverages the benefits of [streaming](https://nextjs.org/docs/app/building-your-application/rendering/server-components#streaming) and [server actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) offered by React Server Components, thus improving the developer experience of managing states between server/client and building generative user interfaces. You can learn more about the module [here](https://sdk.vercel.ai/docs/ai-sdk-rsc/overview).
+This API leverages the benefits of [streaming](https://nextjs.org/docs/app/building-your-application/rendering/server-components#streaming) and [server actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) offered by React Server Components, thus improving the developer experience of managing states between server/client and building generative user interfaces.
 
 ###### @/app/actions.tsx (Next.js App Router)
 
@@ -199,6 +203,8 @@ export default function Page() {
   );
 }
 ```
+
+You can learn more about AI SDK RSC [here](https://sdk.vercel.ai/docs/ai-sdk-rsc/overview).
 
 ## Templates
 
