@@ -53,6 +53,7 @@ describe('doEmbed', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
+      'content-length': '289',
       'content-type': 'application/json',
 
       // custom header
