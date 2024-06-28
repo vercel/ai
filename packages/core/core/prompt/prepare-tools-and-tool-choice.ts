@@ -2,6 +2,7 @@ import {
   LanguageModelV1FunctionTool,
   LanguageModelV1ToolChoice,
 } from '@ai-sdk/provider';
+import zodToJsonSchema from 'zod-to-json-schema';
 import { CoreTool } from '../tool/tool';
 import { CoreToolChoice } from '../types/language-model';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
@@ -12,9 +13,11 @@ export function prepareToolsAndToolChoice<
 >({
   tools,
   toolChoice,
+  zodToJsonSchemaOptions,
 }: {
   tools: TOOLS | undefined;
   toolChoice: CoreToolChoice<TOOLS> | undefined;
+  zodToJsonSchemaOptions?: Parameters<typeof zodToJsonSchema>[1];
 }): {
   tools: LanguageModelV1FunctionTool[] | undefined;
   toolChoice: LanguageModelV1ToolChoice | undefined;
@@ -31,7 +34,10 @@ export function prepareToolsAndToolChoice<
       type: 'function' as const,
       name,
       description: tool.description,
-      parameters: convertZodToJSONSchema(tool.parameters),
+      parameters: convertZodToJSONSchema(
+        tool.parameters,
+        zodToJsonSchemaOptions,
+      ),
     })),
     toolChoice:
       toolChoice == null

@@ -1,4 +1,5 @@
 import { ServerResponse } from 'node:http';
+import zodToJsonSchema from 'zod-to-json-schema';
 import {
   AIStreamCallbacksAndOptions,
   StreamingTextResponse,
@@ -78,6 +79,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   abortSignal,
   headers,
   onFinish,
+  zodToJsonSchemaOptions,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -96,6 +98,10 @@ The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: CoreToolChoice<TOOLS>;
 
+    /**
+     * Options for zodToJsonSchema.
+     */
+    zodToJsonSchemaOptions?: Parameters<typeof zodToJsonSchema>[1];
     /**
 Callback that is called when the LLM response and all request tool executions 
 (for tools that have an `execute` function) are finished.
@@ -148,7 +154,7 @@ Warnings from the model provider (e.g. unsupported settings).
     model.doStream({
       mode: {
         type: 'regular',
-        ...prepareToolsAndToolChoice({ tools, toolChoice }),
+        ...prepareToolsAndToolChoice({ tools, toolChoice, zodToJsonSchemaOptions }),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,

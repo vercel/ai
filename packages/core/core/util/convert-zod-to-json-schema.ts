@@ -4,7 +4,8 @@ import zodToJsonSchema from 'zod-to-json-schema';
 
 export function convertZodToJSONSchema(
   zodSchema: z.Schema<unknown>,
+  options?: Parameters<typeof zodToJsonSchema>[1]
 ): JSONSchema7 {
   // we assume that zodToJsonSchema will return a valid JSONSchema7
-  return zodToJsonSchema(zodSchema) as JSONSchema7;
+  return zodToJsonSchema(zodSchema, options) as JSONSchema7;
 }

@@ -519,6 +519,7 @@ export function render<
   };
   initial?: ReactNode;
   temperature?: number;
+  zodToJsonSchemaOptions?: Parameters<typeof zodToJsonSchema>[1];
 }): ReactNode {
   const ui = createStreamableUI(options.initial);
 
@@ -533,7 +534,7 @@ export function render<
           return {
             name,
             description,
-            parameters: zodToJsonSchema(parameters) as Record<string, unknown>,
+            parameters: zodToJsonSchema(parameters, options.zodToJsonSchemaOptions) as Record<string, unknown>,
           };
         },
       )
@@ -547,7 +548,7 @@ export function render<
             function: {
               name,
               description,
-              parameters: zodToJsonSchema(parameters) as Record<
+              parameters: zodToJsonSchema(parameters, options.zodToJsonSchemaOptions) as Record<
                 string,
                 unknown
               >,

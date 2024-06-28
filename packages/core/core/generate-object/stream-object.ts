@@ -9,6 +9,7 @@ import {
   parsePartialJson,
 } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
+import zodToJsonSchema from 'zod-to-json-schema';
 import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -74,6 +75,7 @@ export async function streamObject<T>({
   abortSignal,
   headers,
   onFinish,
+  zodToJsonSchemaOptions,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -103,6 +105,11 @@ Default and recommended: 'auto' (best mode for the model).
      */
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
 
+    /**
+     * Options for zodToJsonSchema.
+     */
+    zodToJsonSchemaOptions?: Parameters<typeof zodToJsonSchema>[1];
+    
     /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
@@ -139,7 +146,7 @@ Warnings from the model provider (e.g. unsupported settings).
     }) => Promise<void> | void;
   }): Promise<StreamObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
-  const jsonSchema = convertZodToJSONSchema(schema);
+  const jsonSchema = convertZodToJSONSchema(schema, zodToJsonSchemaOptions);
 
   // use the default provider mode when the mode is set to 'auto' or unspecified
   if (mode === 'auto' || mode == null) {

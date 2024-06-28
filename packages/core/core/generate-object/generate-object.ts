@@ -1,6 +1,7 @@
 import { NoObjectGeneratedError } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
+import zodToJsonSchema from 'zod-to-json-schema';
 import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -60,6 +61,7 @@ export async function generateObject<T>({
   maxRetries,
   abortSignal,
   headers,
+  zodToJsonSchemaOptions,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -88,9 +90,14 @@ Please note that most providers do not support all modes.
 Default and recommended: 'auto' (best mode for the model).
      */
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
+
+    /**
+     * Options for zodToJsonSchema.
+     */
+    zodToJsonSchemaOptions?: Parameters<typeof zodToJsonSchema>[1];
   }): Promise<GenerateObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
-  const jsonSchema = convertZodToJSONSchema(schema);
+  const jsonSchema = convertZodToJSONSchema(schema, zodToJsonSchemaOptions);
 
   // use the default provider mode when the mode is set to 'auto' or unspecified
   if (mode === 'auto' || mode == null) {
