@@ -101,6 +101,7 @@ describe('doGenerate', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
+      'content-length': '314',
       'content-type': 'application/json',
 
       // custom header

@@ -211,6 +211,7 @@ describe('embedding', () => {
 
       expect(rawResponse?.headers).toStrictEqual({
         // default headers:
+        'content-length': '226',
         'content-type': 'application/json',
 
         // custom header
