@@ -106,9 +106,9 @@ You can learn more about the AI SDK UI [here](https://sdk.vercel.ai/docs/ai-sdk-
 
 ### AI SDK RSC
 
-The AI SDK RSC module provides an alternative API that also helps you build chatbots and generative user interfaces for frameworks that support [React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components).
+The AI SDK RSC module provides an alternative API that also helps you build chatbots and generative user interfaces for frameworks that support [React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components) (RSC).
 
-This API leverages the benefits of [streaming](https://nextjs.org/docs/app/building-your-application/rendering/server-components#streaming) and [server actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) offered by React Server Components, thus improving the developer experience of managing states between server/client and building generative user interfaces.
+This API leverages the benefits of [Streaming](https://nextjs.org/docs/app/building-your-application/rendering/server-components#streaming) and [Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) offered by RSC, thus improving the developer experience of managing states between server/client and building generative user interfaces.
 
 ###### @/app/actions.tsx (Next.js App Router)
 
