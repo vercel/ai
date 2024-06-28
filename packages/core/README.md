@@ -1,4 +1,4 @@
-<img src="../../assets/hero.gif" alt="hero animation"/>
+![hero illustration](./assets/hero.gif)
 
 # Vercel AI SDK
 
