@@ -2,7 +2,7 @@
 
 # Vercel AI SDK
 
-The Vercel AI SDK is a TypeScript library designed to help you build AI-powered applications using popular frameworks like Next.js, React, Svelte, Vue and runtimes like Node.js.
+The [Vercel AI SDK](https://sdk.vercel.ai/docs) is a TypeScript toolkit designed to help you build AI-powered applications using popular frameworks like Next.js, React, Svelte, Vue and runtimes like Node.js.
 
 To learn more about how to use the Vercel AI SDK, check out our [API Reference](https://sdk.vercel.ai/docs/reference) and [Documentation](https://sdk.vercel.ai/docs).
 
@@ -14,11 +14,19 @@ You will need Node.js 18+ and pnpm installed on your local development machine.
 pnpm install ai
 ```
 
+```shell
+npm install ai
+```
+
+```shell
+yarn add ai
+```
+
 ## Usage
 
 ### AI SDK Core
 
-The AI SDK Core module provides a unified API to interact with model providers like [OpenAI](https://sdk.vercel.ai/providers/ai-sdk-providers/openai), [Anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic), [Google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai), etc.
+The [AI SDK Core](https://sdk.vercel.ai/docs/ai-sdk-core/overview) module provides a unified API to interact with model providers like [OpenAI](https://sdk.vercel.ai/providers/ai-sdk-providers/openai), [Anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic), [Google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai), and more.
 
 You will then install the model provider of your choice.
 
@@ -30,7 +38,7 @@ pnpm install @ai-sdk/openai
 
 ```ts
 import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai'; // Ensure OPENAI_API_KEY is set
+import { openai } from '@ai-sdk/openai'; // Ensure OPENAI_API_KEY environment variable is set
 
 async function main() {
   const { text } = await generateText({
@@ -45,11 +53,9 @@ async function main() {
 main();
 ```
 
-You can learn more about the AI SDK Core [here](https://sdk.vercel.ai/docs/ai-sdk-core/overview).
-
 ### AI SDK UI
 
-The AI SDK UI module provides a set of hooks that help you build chatbots and generative user interfaces. These hooks are framework agnostic, so they can be used in Next.js, React, Svelte, Vue, and SolidJS.
+The [AI SDK UI](https://sdk.vercel.ai/docs/ai-sdk-ui/overview) module provides a set of hooks that help you build chatbots and generative user interfaces. These hooks are framework agnostic, so they can be used in Next.js, React, Svelte, Vue, and SolidJS.
 
 ###### @/app/page.tsx (Next.js Pages Router)
 
@@ -59,9 +65,7 @@ The AI SDK UI module provides a set of hooks that help you build chatbots and ge
 import { useChat } from 'ai/react'
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } = useChat({
-    api: "api/chat"
-  })
+  const { messages, input, handleSubmit, handleInputChange, isLoading } = useChat()
 
   return (
     <div>
@@ -104,11 +108,9 @@ export async function POST(req: Request) {
 }
 ```
 
-You can learn more about the AI SDK UI [here](https://sdk.vercel.ai/docs/ai-sdk-ui/overview).
-
 ### AI SDK RSC
 
-The AI SDK RSC module provides an alternative API that also helps you build chatbots and generative user interfaces for frameworks that support [React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components) (RSC).
+The [AI SDK RSC](https://sdk.vercel.ai/docs/ai-sdk-rsc/overview) module provides an alternative API that also helps you build chatbots and generative user interfaces for frameworks that support [React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components) (RSC).
 
 This API leverages the benefits of [Streaming](https://nextjs.org/docs/app/building-your-application/rendering/server-components#streaming) and [Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) offered by RSC, thus improving the developer experience of managing states between server/client and building generative user interfaces.
 
@@ -154,7 +156,7 @@ async function submitMessage() {
   };
 }
 
-const AI = createAI({
+export const AI = createAI({
   initialAIState: {},
   initialUIState: {},
   actions: {
@@ -206,8 +208,6 @@ export default function Page() {
 }
 ```
 
-You can learn more about AI SDK RSC [here](https://sdk.vercel.ai/docs/ai-sdk-rsc/overview).
-
 ## Templates
 
 We've built [templates](https://vercel.com/templates?type=ai) that include AI SDK integrations for different use cases, providers, and frameworks. You can use these templates to get started with your AI-powered application.
@@ -229,3 +229,6 @@ This library is created by [Vercel](https://vercel.com) and [Next.js](https://ne
 - Max Leiter ([@max_leiter](https://twitter.com/max_leiter)) - [Vercel](https://vercel.com)
 - Malte Ubl ([@cramforce](https://twitter.com/cramforce)) - [Vercel](https://vercel.com)
 - Lars Grammel ([@lgrammel](https://twitter.com/lgrammel)) - [Vercel](https://vercel.com)
+- Nico Albanese ([@nicoalbanese10](https://twitter.com/nicoalbanese10)) - [Vercel](https://vercel.com)
+- Grace Yun ([@jueungraceyun](https://twitter.com/jueungraceyun)) - [Vercel](https://vercel.com)
+- Jeremy Philemon ([@jrmyphlmn](https://twitter.com/jrmyphlmn)) - [Vercel](https://vercel.com)
