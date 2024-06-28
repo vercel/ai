@@ -1,6 +1,5 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import {
-  StreamingTestServer,
   TestServerResponse,
   convertReadableStreamToArray,
   withTestServer,
@@ -53,28 +52,26 @@ describe('doGenerate', () => {
       totalTokenCount: number;
     };
     headers?: Record<string, string>;
-  }): Array<TestServerResponse> => [
-    {
-      url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-      type: 'json-value',
-      content: {
-        candidates: [
-          {
-            content: {
-              parts: [{ text: content }],
-              role: 'model',
-            },
-            finishReason: 'STOP',
-            index: 0,
-            safetyRatings: SAFETY_RATINGS,
+  }): TestServerResponse => ({
+    url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+    type: 'json-value',
+    content: {
+      candidates: [
+        {
+          content: {
+            parts: [{ text: content }],
+            role: 'model',
           },
-        ],
-        promptFeedback: { safetyRatings: SAFETY_RATINGS },
-        usageMetadata: usage,
-      },
-      headers,
+          finishReason: 'STOP',
+          index: 0,
+          safetyRatings: SAFETY_RATINGS,
+        },
+      ],
+      promptFeedback: { safetyRatings: SAFETY_RATINGS },
+      usageMetadata: usage,
     },
-  ];
+    headers,
+  });
 
   it(
     'should extract text response',
@@ -120,33 +117,31 @@ describe('doGenerate', () => {
   it(
     'should extract tool calls',
     withTestServer(
-      [
-        {
-          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-          type: 'json-value',
-          content: {
-            candidates: [
-              {
-                content: {
-                  parts: [
-                    {
-                      functionCall: {
-                        name: 'test-tool',
-                        args: { value: 'example value' },
-                      },
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      name: 'test-tool',
+                      args: { value: 'example value' },
                     },
-                  ],
-                  role: 'model',
-                },
-                finishReason: 'STOP',
-                index: 0,
-                safetyRatings: SAFETY_RATINGS,
+                  },
+                ],
+                role: 'model',
               },
-            ],
-            promptFeedback: { safetyRatings: SAFETY_RATINGS },
-          },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
         },
-      ],
+      },
       async () => {
         const { toolCalls, finishReason, text } = await model.doGenerate({
           inputFormat: 'prompt',
@@ -215,7 +210,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(call(0).getRequestBodyJson()).toStrictEqual({
+      expect(await call(0).getRequestBodyJson()).toStrictEqual({
         contents: [
           {
             role: 'user',
@@ -255,7 +250,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(call(0).getRequestBodyJson()).toStrictEqual({
+      expect(await call(0).getRequestBodyJson()).toStrictEqual({
         generationConfig: {},
         contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
         tools: {
@@ -290,7 +285,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(call(0).getRequestBodyJson()).toStrictEqual({
+      expect(await call(0).getRequestBodyJson()).toStrictEqual({
         contents: [
           {
             role: 'user',
@@ -336,14 +331,16 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
-  const server = new StreamingTestServer(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
-  );
-
-  server.setupTestEnvironment();
-
-  function prepareStreamResponse({ content }: { content: string[] }) {
-    server.responseChunks = content.map(
+  const prepareStreamResponse = ({
+    content,
+    headers,
+  }: {
+    content: string[];
+    headers?: Record<string, string>;
+  }): TestServerResponse => ({
+    url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
+    type: 'stream-values',
+    content: content.map(
       text =>
         `data: {"candidates": [{"content": {"parts": [{"text": "${text}"}],"role": "model"},` +
         `"finishReason": "STOP","index": 0,"safetyRatings": [` +
@@ -352,113 +349,133 @@ describe('doStream', () => {
         `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
         `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}],` +
         `"usageMetadata": {"promptTokenCount": 294,"candidatesTokenCount": 233,"totalTokenCount": 527}}\n\n`,
-    );
-  }
+    ),
+    headers,
+  });
 
-  it('should stream text deltas', async () => {
-    prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
+  it(
+    'should stream text deltas',
+    withTestServer(
+      prepareStreamResponse({ content: ['Hello', ', ', 'world!'] }),
+      async () => {
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
 
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'world!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 294, completionTokens: 233 },
+        expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+          { type: 'text-delta', textDelta: 'Hello' },
+          { type: 'text-delta', textDelta: ', ' },
+          { type: 'text-delta', textDelta: 'world!' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: { promptTokens: 294, completionTokens: 233 },
+          },
+        ]);
       },
-    ]);
-  });
+    ),
+  );
 
-  it('should expose the raw response headers', async () => {
-    prepareStreamResponse({ content: [] });
+  it(
+    'should expose the raw response headers',
+    withTestServer(
+      prepareStreamResponse({
+        content: [],
+        headers: { 'test-header': 'test-value' },
+      }),
+      async () => {
+        const { rawResponse } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
 
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+        expect(rawResponse?.headers).toStrictEqual({
+          // default headers:
+          'content-type': 'text/event-stream',
+          'cache-control': 'no-cache',
+          connection: 'keep-alive',
 
-    const { rawResponse } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(rawResponse?.headers).toStrictEqual({
-      // default headers:
-      'content-type': 'text/event-stream',
-      'cache-control': 'no-cache',
-      connection: 'keep-alive',
-
-      // custom header
-      'test-header': 'test-value',
-    });
-  });
-
-  it('should pass the messages', async () => {
-    prepareStreamResponse({ content: [''] });
-
-    await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
-        },
-      ],
-      generationConfig: {},
-    });
-  });
-
-  it('should set streaming mode search param', async () => {
-    prepareStreamResponse({ content: [''] });
-
-    await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    const searchParams = await server.getRequestUrlSearchParams();
-    expect(searchParams.get('alt')).toStrictEqual('sse');
-  });
-
-  it('should pass headers', async () => {
-    prepareStreamResponse({ content: [] });
-
-    const provider = createGoogleGenerativeAI({
-      apiKey: 'test-api-key',
-      headers: {
-        'Custom-Provider-Header': 'provider-header-value',
+          // custom header
+          'test-header': 'test-value',
+        });
       },
-    });
+    ),
+  );
 
-    await provider.chat('models/gemini-pro').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-      headers: {
-        'Custom-Request-Header': 'request-header-value',
+  it(
+    'should pass the messages',
+    withTestServer(
+      prepareStreamResponse({ content: [''] }),
+      async ({ call }) => {
+        await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: 'Hello' }],
+            },
+          ],
+          generationConfig: {},
+        });
       },
-    });
+    ),
+  );
 
-    const requestHeaders = await server.getRequestHeaders();
+  it(
+    'should set streaming mode search param',
+    withTestServer(
+      prepareStreamResponse({ content: [''] }),
+      async ({ call }) => {
+        await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
 
-    expect(requestHeaders).toStrictEqual({
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-      'x-goog-api-key': 'test-api-key',
-    });
-  });
+        const searchParams = call(0).getRequestUrlSearchParams();
+        expect(searchParams.get('alt')).toStrictEqual('sse');
+      },
+    ),
+  );
+
+  it(
+    'should pass headers',
+    withTestServer(
+      prepareStreamResponse({ content: [''] }),
+      async ({ call }) => {
+        const provider = createGoogleGenerativeAI({
+          apiKey: 'test-api-key',
+          headers: {
+            'Custom-Provider-Header': 'provider-header-value',
+          },
+        });
+
+        await provider.chat('models/gemini-pro').doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          headers: {
+            'Custom-Request-Header': 'request-header-value',
+          },
+        });
+
+        const requestHeaders = call(0).getRequestHeaders();
+
+        expect(requestHeaders).toStrictEqual({
+          'content-type': 'application/json',
+          'custom-provider-header': 'provider-header-value',
+          'custom-request-header': 'request-header-value',
+          'x-goog-api-key': 'test-api-key',
+        });
+      },
+    ),
+  );
 });
