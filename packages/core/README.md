@@ -11,15 +11,7 @@ To learn more about how to use the Vercel AI SDK, check out our [API Reference](
 You will need Node.js 18+ and pnpm installed on your local development machine.
 
 ```shell
-pnpm install ai
-```
-
-```shell
 npm install ai
-```
-
-```shell
-yarn add ai
 ```
 
 ## Usage
@@ -31,7 +23,7 @@ The [AI SDK Core](https://sdk.vercel.ai/docs/ai-sdk-core/overview) module provid
 You will then install the model provider of your choice.
 
 ```shell
-pnpm install @ai-sdk/openai
+npm install @ai-sdk/openai
 ```
 
 ###### @/index.ts (Node.js Runtime)
@@ -222,13 +214,4 @@ Contributions to the Vercel AI SDK are welcome and highly appreciated. However, 
 
 ## Authors
 
-This library is created by [Vercel](https://vercel.com) and [Next.js](https://nextjs.org) team members, with contributions from:
-
-- Jared Palmer ([@jaredpalmer](https://twitter.com/jaredpalmer)) - [Vercel](https://vercel.com)
-- Shu Ding ([@shuding\_](https://twitter.com/shuding_)) - [Vercel](https://vercel.com)
-- Max Leiter ([@max_leiter](https://twitter.com/max_leiter)) - [Vercel](https://vercel.com)
-- Malte Ubl ([@cramforce](https://twitter.com/cramforce)) - [Vercel](https://vercel.com)
-- Lars Grammel ([@lgrammel](https://twitter.com/lgrammel)) - [Vercel](https://vercel.com)
-- Nico Albanese ([@nicoalbanese10](https://twitter.com/nicoalbanese10)) - [Vercel](https://vercel.com)
-- Grace Yun ([@jueungraceyun](https://twitter.com/jueungraceyun)) - [Vercel](https://vercel.com)
-- Jeremy Philemon ([@jrmyphlmn](https://twitter.com/jrmyphlmn)) - [Vercel](https://vercel.com)
+This library is created by [Vercel](https://vercel.com) and [Next.js](https://nextjs.org) team members, with contributions from the [Open Source Community](https://github.com/vercel/ai/graphs/contributors).
