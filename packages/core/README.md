@@ -6,6 +6,8 @@ To learn more about how to use the Vercel AI SDK, check out our [API Reference](
 
 ## Installation
 
+You will need Node.js 18+ and pnpm installed on your local development machine.
+
 ```shell
 pnpm install ai
 ```
@@ -14,7 +16,13 @@ pnpm install ai
 
 ### AI SDK Core
 
-The AI SDK Core module provides a unified API to interact with model providers like [OpenAI](https://sdk.vercel.ai/providers/ai-sdk-providers/openai), [Anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic), [Google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai), etc. The Core module runs on
+The AI SDK Core module provides a unified API to interact with model providers like [OpenAI](https://sdk.vercel.ai/providers/ai-sdk-providers/openai), [Anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic), [Google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai), etc. You can learn more about the module (here)[https://sdk.vercel.ai/docs/ai-sdk-core/overview].
+
+You will install the model provider of your choice.
+
+```shell
+pnpm install @ai-sdk/openai
+```
 
 ###### @/index.ts (Node.js Runtime)
 
@@ -37,12 +45,14 @@ main();
 
 ### AI SDK UI
 
-The AI SDK UI module provides a set of hooks that help you build chatbots and generative user interfaces. These hooks are framework agnostic, so they can be used in Next.js, React, Svelte, Vue, and SolidJS.
+The AI SDK UI module provides a set of hooks that help you build chatbots and generative user interfaces. These hooks are framework agnostic, so they can be used in Next.js, React, Svelte, Vue, and SolidJS. You can learn more about the module (here)[https://sdk.vercel.ai/docs/ai-sdk-ui/overview].
 
 ###### @/app/page.tsx (Next.js Pages Router)
 
 ```tsx
 "use client"
+
+import { useChat } from 'ai/react'
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, isLoading } = useChat({
@@ -94,11 +104,14 @@ export async function POST(req: Request) {
 
 The AI SDK RSC module provides an alternative API that also helps you build chatbots and generative user interfaces for frameworks that support [React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components).
 
-This API leverages the benefits of [streaming](https://nextjs.org/docs/app/building-your-application/rendering/server-components#streaming) and [server actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) offered by React Server Components, thus improving the developer experience of managing states between server/client and building generative user interfaces.
+This API leverages the benefits of [streaming](https://nextjs.org/docs/app/building-your-application/rendering/server-components#streaming) and [server actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) offered by React Server Components, thus improving the developer experience of managing states between server/client and building generative user interfaces. You can learn more about the module (here)[https://sdk.vercel.ai/docs/ai-sdk-rsc/overview].
 
 ###### @/app/actions.tsx (Next.js App Router)
 
 ```tsx
+import { streamUI } from 'ai/rsc';
+import { z } from 'zod';
+
 async function submitMessage() {
   'use server';
 
@@ -186,6 +199,10 @@ export default function Page() {
   );
 }
 ```
+
+## Templates
+
+We've built [templates](https://vercel.com/templates?type=ai) that include AI SDK integrations for different use cases, providers, and frameworks. You can use these templates to get started with your AI-powered application.
 
 ## Community
 
