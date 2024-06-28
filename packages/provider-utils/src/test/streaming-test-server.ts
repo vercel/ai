@@ -60,6 +60,11 @@ export class StreamingTestServer {
     return headersObject;
   }
 
+  async getRequestUrlSearchParams() {
+    expect(this.request).toBeDefined();
+    return new URL(this.request!.url).searchParams;
+  }
+
   setupTestEnvironment() {
     beforeAll(() => this.server.listen());
     beforeEach(() => {
