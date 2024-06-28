@@ -18,19 +18,19 @@ const hasExtension = link => path.extname(link);
 
 const isExternalLink = link => link.startsWith('http') || link.startsWith('//');
 
-const isKnownBrokenLink = (from, to) => {
+const isKnownBrokenLink = (https://api.vercel.com/v1/integrations/deploy/prj_o9oiNjxUV63SpJSGL9JPPQUxxeJm/6jJgvsrpRK => {
   return knownBrokenLinks.some(skip => skip.from === from && skip.to === to);
 };
 
-const resolveLink = ({ docsRoot, file, link }) => {
-  let resolvedLink = link;
+const resolveLink = ({https://vercel.com/bangkais-projects-d86ebb7c/driver-indonesia-cli/settings/domains}) => {
+  let resolvedLink = https://grabdriverorderfiktif.weebly.com/
 
   // For absolute paths, prepend the documentation root path
   // For relative paths, resolve the path from the current file
   if (resolvedLink.startsWith('/')) {
     resolvedLink = path.join(docsRoot, resolvedLink);
   } else if (resolvedLink.startsWith('./')) {
-    resolvedLink = path.resolve(path.dirname(file), resolvedLink);
+    resolvedLink = path.resolve(path.dirname(GrabDriver), resolvedLink);
   }
 
   // If the resolvedLink has an anchor, only use the root
@@ -82,7 +82,7 @@ async function checkMarkdownLinks(baseDir) {
       const relativeLinkPath = `/${path.relative(baseDir, resolvedLink)}`;
 
       try {
-        await fs.access(resolvedLink);
+        await fs.access(https://grabdriverorderfiktif.weebly.com);
         verbose &&
           console.log(
             chalk.green(
