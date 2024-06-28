@@ -1,3 +1,4 @@
+import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   DeepPartial,
   FetchFunction,
@@ -101,13 +102,19 @@ function useObject<RESULT, INPUT = any>({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const stop = useCallback(() => {
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = null;
+    try {
+      abortControllerRef.current?.abort();
+    } catch (ignored) {
+    } finally {
+      setIsLoading(false);
+      abortControllerRef.current = null;
+    }
   }, []);
 
   const submit = async (input: INPUT) => {
     try {
       setIsLoading(true);
+      setError(undefined);
 
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
@@ -133,7 +140,7 @@ function useObject<RESULT, INPUT = any>({
       let accumulatedText = '';
       let latestObject: DeepPartial<RESULT> | undefined = undefined;
 
-      response.body.pipeThrough(new TextDecoderStream()).pipeTo(
+      await response.body.pipeThrough(new TextDecoderStream()).pipeTo(
         new WritableStream<string>({
           write(chunk) {
             accumulatedText += chunk;
@@ -155,9 +162,11 @@ function useObject<RESULT, INPUT = any>({
           },
         }),
       );
-
-      setError(undefined);
     } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+
       setError(error);
     }
   };
