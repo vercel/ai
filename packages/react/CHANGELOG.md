@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.15
+
+### Patch Changes
+
+- 6c99581e: fix (ai/react): stop() on useObject does not throw error and clears isLoading
+
 ## 0.0.14
 
 ### Patch Changes
