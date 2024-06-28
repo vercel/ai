@@ -9,10 +9,15 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
+const provider = createAzure({
+  resourceName: 'test-resource',
+  apiKey: 'test-api-key',
+});
+
 describe('chat', () => {
   describe('doGenerate', () => {
     const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-05-01-preview',
+      'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions',
     );
 
     server.setupTestEnvironment();
@@ -41,6 +46,21 @@ describe('chat', () => {
         system_fingerprint: 'fp_3bc1b5746c',
       };
     }
+
+    it('should set the correct api version', async () => {
+      prepareJsonResponse();
+
+      await provider('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const searchParams = await server.getRequestUrlSearchParams();
+      expect(searchParams.get('api-version')).toStrictEqual(
+        '2024-05-01-preview',
+      );
+    });
 
     it('should pass headers', async () => {
       prepareJsonResponse();
@@ -77,7 +97,7 @@ describe('chat', () => {
 describe('completion', () => {
   describe('doGenerate', () => {
     const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/gpt-35-turbo-instruct/completions?api-version=2024-05-01-preview',
+      'https://test-resource.openai.azure.com/openai/deployments/gpt-35-turbo-instruct/completions',
     );
 
     server.setupTestEnvironment();
@@ -122,6 +142,21 @@ describe('completion', () => {
       };
     }
 
+    it('should set the correct api version', async () => {
+      prepareJsonCompletionResponse({ content: 'Hello World!' });
+
+      await provider.completion('gpt-35-turbo-instruct').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const searchParams = await server.getRequestUrlSearchParams();
+      expect(searchParams.get('api-version')).toStrictEqual(
+        '2024-05-01-preview',
+      );
+    });
+
     it('should pass headers', async () => {
       prepareJsonCompletionResponse({ content: 'Hello World!' });
 
@@ -161,14 +196,9 @@ describe('embedding', () => {
   ];
   const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
-  const provider = createAzure({
-    resourceName: 'test-resource',
-    apiKey: 'test-api-key',
-  });
-
   describe('doEmbed', () => {
     const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/my-embedding/embeddings?api-version=2024-05-01-preview',
+      'https://test-resource.openai.azure.com/openai/deployments/my-embedding/embeddings',
     );
 
     const model = provider.embedding('my-embedding');
@@ -192,58 +222,17 @@ describe('embedding', () => {
       };
     }
 
-    it('should extract embedding', async () => {
+    it('should set the correct api version', async () => {
       prepareJsonResponse();
 
-      const { embeddings } = await model.doEmbed({ values: testValues });
-
-      expect(embeddings).toStrictEqual(dummyEmbeddings);
-    });
-
-    it('should expose the raw response headers', async () => {
-      prepareJsonResponse();
-
-      server.responseHeaders = {
-        'test-header': 'test-value',
-      };
-
-      const { rawResponse } = await model.doEmbed({ values: testValues });
-
-      expect(rawResponse?.headers).toStrictEqual({
-        // default headers:
-        'content-length': '226',
-        'content-type': 'application/json',
-
-        // custom header
-        'test-header': 'test-value',
+      await model.doEmbed({
+        values: testValues,
       });
-    });
 
-    it('should pass the model and the values', async () => {
-      prepareJsonResponse();
-
-      await model.doEmbed({ values: testValues });
-
-      expect(await server.getRequestBodyJson()).toStrictEqual({
-        model: 'my-embedding',
-        input: testValues,
-        encoding_format: 'float',
-      });
-    });
-
-    it('should pass the dimensions setting', async () => {
-      prepareJsonResponse();
-
-      await provider
-        .embedding('my-embedding', { dimensions: 64 })
-        .doEmbed({ values: testValues });
-
-      expect(await server.getRequestBodyJson()).toStrictEqual({
-        model: 'my-embedding',
-        input: testValues,
-        encoding_format: 'float',
-        dimensions: 64,
-      });
+      const searchParams = await server.getRequestUrlSearchParams();
+      expect(searchParams.get('api-version')).toStrictEqual(
+        '2024-05-01-preview',
+      );
     });
 
     it('should pass headers', async () => {

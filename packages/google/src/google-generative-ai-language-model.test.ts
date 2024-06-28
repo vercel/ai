@@ -314,7 +314,7 @@ describe('doGenerate', () => {
 
 describe('doStream', () => {
   const server = new StreamingTestServer(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent?alt=sse',
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
   );
 
   server.setupTestEnvironment();
@@ -395,6 +395,19 @@ describe('doStream', () => {
       ],
       generationConfig: {},
     });
+  });
+
+  it('should set streaming mode search param', async () => {
+    prepareStreamResponse({ content: [''] });
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const searchParams = await server.getRequestUrlSearchParams();
+    expect(searchParams.get('alt')).toStrictEqual('sse');
   });
 
   it('should pass headers', async () => {
