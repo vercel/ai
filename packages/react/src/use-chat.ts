@@ -38,7 +38,7 @@ export type UseChatHelpers = {
    * message isn't from the assistant, it will request the API to generate a
    * new response.
    *
-   * If the `transform` option is provided, it will be used to transform the
+   * If `transform` is provided, the function will be used to transform the
    * messages before sending the request to the API.
    *
    */

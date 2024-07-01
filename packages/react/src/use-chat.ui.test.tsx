@@ -280,6 +280,103 @@ describe('prepareRequestBody', () => {
   });
 });
 
+describe('reload', () => {
+  const TestComponent = () => {
+    const { messages, append, reload } = useChat();
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+          </div>
+        ))}
+
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append({ role: 'user', content: 'hi' });
+          }}
+        />
+
+        <button
+          data-testid="do-reload"
+          onClick={() => {
+            reload();
+          }}
+        />
+
+        <button
+          data-testid="do-reload-transform"
+          onClick={() => {
+            reload({
+              transform: messages => messages,
+            });
+          }}
+        />
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should reload chat and transform messages', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+    });
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"!"\n'],
+    });
+
+    await userEvent.click(screen.getByTestId('do-reload'));
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world!',
+    );
+
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: [
+        '0:"How"\n',
+        '0:" can"\n',
+        '0:" I"\n',
+        '0:" help"\n',
+        '0:" you"\n',
+        '0:"?"\n',
+      ],
+    });
+
+    await userEvent.click(screen.getByTestId('do-reload-transform'));
+
+    await screen.findByTestId('message-2');
+    expect(screen.getByTestId('message-2')).toHaveTextContent(
+      'AI: How can I help you?',
+    );
+  });
+});
+
 describe('onToolCall', () => {
   const TestComponent = () => {
     const { messages, append } = useChat({
