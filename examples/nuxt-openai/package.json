@@ -19,7 +19,7 @@
     "@vue/runtime-dom": "^3.3.4",
     "@vue/shared": "^3.4.27",
     "ai": "latest",
-    "nuxt": "^3.6.5",
+    "nuxt": "^3.12.2",
     "openai": "4.47.1",
     "tailwindcss": "^3.3.3",
     "ufo": "^1.2.0",
