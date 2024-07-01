@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.16
+
+### Patch Changes
+
+- 3f756a6b: fix (ai/react): include fetch parameter as part of useChat
+
 ## 0.0.15
 
 ### Patch Changes
