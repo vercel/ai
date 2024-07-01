@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { ReactNode } from 'react';
 import { z } from 'zod';
+import zodToJsonSchema from 'zod-to-json-schema';
 
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { CallSettings } from '../../core/prompt/call-settings';
@@ -21,6 +22,7 @@ import {
   TokenUsage,
   calculateTokenUsage,
 } from '../../core/generate-text/token-usage';
+
 
 type Streamable = ReactNode | Promise<ReactNode>;
 
@@ -90,6 +92,7 @@ export async function streamUI<
   initial,
   text,
   onFinish,
+  zodToJsonSchemaOptions,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -112,6 +115,10 @@ export async function streamUI<
 
     text?: RenderText;
     initial?: ReactNode;
+    /**
+     * Options for zodToJsonSchema.
+     */
+    zodToJsonSchemaOptions?: Parameters<typeof zodToJsonSchema>[1];
     /**
      * Callback that is called when the LLM response and the final object validation are finished.
      */
@@ -258,7 +265,7 @@ export async function streamUI<
     model.doStream({
       mode: {
         type: 'regular',
-        ...prepareToolsAndToolChoice({ tools, toolChoice }),
+        ...prepareToolsAndToolChoice({ tools, toolChoice, zodToJsonSchemaOptions }),
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,

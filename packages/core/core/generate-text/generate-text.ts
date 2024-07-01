@@ -1,3 +1,4 @@
+import zodToJsonSchema from 'zod-to-json-schema';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import {
@@ -72,6 +73,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   headers,
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
+  zodToJsonSchemaOptions,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -108,13 +110,17 @@ case of misconfigured tools.
 By default, it's set to 0, which will disable the feature.
      */
     maxToolRoundtrips?: number;
+    /**
+     * Options for zodToJsonSchema.
+     */
+    zodToJsonSchemaOptions?: Parameters<typeof zodToJsonSchema>[1];
   }): Promise<GenerateTextResult<TOOLS>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
 
   const mode = {
     type: 'regular' as const,
-    ...prepareToolsAndToolChoice({ tools, toolChoice }),
+    ...prepareToolsAndToolChoice({ tools, toolChoice, zodToJsonSchemaOptions }),
   };
   const callSettings = prepareCallSettings(settings);
   const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
