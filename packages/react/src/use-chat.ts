@@ -196,6 +196,7 @@ export function useChat({
   headers,
   body,
   generateId = generateIdFunc,
+  fetch,
 }: UseChatOptions & {
   key?: string;
 
@@ -405,6 +406,7 @@ By default, it's set to 0, which will disable the feature.
       messagesRef,
       abortControllerRef,
       generateId,
+      fetch,
     ],
   );
 
