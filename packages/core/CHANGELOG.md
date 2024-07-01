@@ -1,5 +1,12 @@
 # ai
 
+## 3.2.16
+
+### Patch Changes
+
+- Updated dependencies [3f756a6b]
+  - @ai-sdk/react@0.0.16
+
 ## 3.2.15
 
 ### Patch Changes
