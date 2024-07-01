@@ -7,6 +7,10 @@ import { ReactNode } from 'react';
 import { z } from 'zod';
 
 import { safeParseJSON } from '@ai-sdk/provider-utils';
+import {
+  TokenUsage,
+  calculateTokenUsage,
+} from '../../core/generate-text/token-usage';
 import { CallSettings } from '../../core/prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../../core/prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../../core/prompt/get-validated-prompt';
@@ -17,10 +21,6 @@ import { CallWarning, CoreToolChoice, FinishReason } from '../../core/types';
 import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
 import { createStreamableUI } from '../streamable';
 import { createResolvablePromise } from '../utils';
-import {
-  TokenUsage,
-  calculateTokenUsage,
-} from '../../core/generate-text/token-usage';
 
 type Streamable = ReactNode | Promise<ReactNode>;
 
@@ -274,27 +274,85 @@ export async function streamUI<
     try {
       // Consume the forked stream asynchonously.
 
+      let textNodeIndex = 0;
       let content = '';
-      let hasToolCall = false;
+      let wasPreviouslyText = false;
+      const uiStreams = {} as Record<
+        string,
+        ReturnType<typeof createStreamableUI>
+      >;
+      let replaceInitial = !!initial;
 
       const reader = forkedStream.getReader();
       while (true) {
         const { done, value } = await reader.read();
+
+        if (wasPreviouslyText && (done || value.type !== 'text-delta')) {
+          const textNodeId = `text-${textNodeIndex}`;
+          if (!uiStreams[textNodeId]) {
+            throw new Error('Expected text node to exist');
+          }
+          // close out the previous text node
+          handleRender(
+            [{ content, done: true }],
+            textRender,
+            uiStreams[textNodeId],
+            true,
+          );
+          // reset variables in case another text node follows
+          content = '';
+          textNodeIndex++;
+          wasPreviouslyText = false;
+        }
+
         if (done) break;
 
         switch (value.type) {
           case 'text-delta': {
+            wasPreviouslyText = true;
+            const textNodeId = `text-${textNodeIndex}`;
+            if (!uiStreams[textNodeId]) {
+              uiStreams[textNodeId] = createStreamableUI();
+              if (replaceInitial) {
+                replaceInitial = false;
+                ui.update(uiStreams[textNodeId].value);
+              } else {
+                ui.append(uiStreams[textNodeId].value);
+              }
+            }
             content += value.textDelta;
             handleRender(
               [{ content, done: false, delta: value.textDelta }],
               textRender,
-              ui,
+              uiStreams[textNodeId],
             );
             break;
           }
 
           case 'tool-call-delta': {
-            hasToolCall = true;
+            const toolName = value.toolName as keyof TOOLS & string;
+
+            if (!tools) {
+              throw new NoSuchToolError({ toolName: toolName });
+            }
+
+            const tool = tools[toolName];
+            if (!tool) {
+              throw new NoSuchToolError({
+                toolName,
+                availableTools: Object.keys(tools),
+              });
+            }
+
+            if (!uiStreams[value.toolCallId]) {
+              uiStreams[value.toolCallId] = createStreamableUI();
+              if (replaceInitial) {
+                replaceInitial = false;
+                ui.update(uiStreams[value.toolCallId].value);
+              } else {
+                ui.append(uiStreams[value.toolCallId].value);
+              }
+            }
             break;
           }
 
@@ -313,7 +371,6 @@ export async function streamUI<
               });
             }
 
-            hasToolCall = true;
             const parseResult = safeParseJSON({
               text: value.args,
               schema: tool.parameters,
@@ -327,6 +384,13 @@ export async function streamUI<
               });
             }
 
+            if (!uiStreams[value.toolCallId]) {
+              // expect uiStreams[value.toolCallId] to be defined (i.e. tool-call-delta precedes tool-call)
+              throw new Error(
+                'REPLACE ME -- Expected uiStreams[value.toolCallId] to be defined',
+              );
+            }
+
             handleRender(
               [
                 parseResult.value,
@@ -336,7 +400,7 @@ export async function streamUI<
                 },
               ],
               tool.generate,
-              ui,
+              uiStreams[value.toolCallId],
               true,
             );
 
@@ -355,16 +419,12 @@ export async function streamUI<
               warnings: result.warnings,
               rawResponse: result.rawResponse,
             });
+            ui.done();
           }
         }
       }
 
-      if (hasToolCall) {
-        await finished;
-      } else {
-        handleRender([{ content, done: true }], textRender, ui, true);
-        await finished;
-      }
+      await finished;
     } catch (error) {
       // During the stream rendering, we don't want to throw the error to the
       // parent scope but only let the React's error boundary to catch it.
