@@ -171,7 +171,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 ###### @/app/page.tsx (Next.js App Router)
 
 ```tsx
-"use client"
+'use client';
 
 import { useActions } from 'ai/rsc';
 import { ReactNode, useState } from 'react';
