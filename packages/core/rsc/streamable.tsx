@@ -507,14 +507,14 @@ export function render<
     [name in keyof TS]: {
       description?: string;
       parameters: TS[name];
-      render: Renderer<z.infer<TS[name]>>;
+      render: Renderer<z.output<TS[name]>>;
     };
   };
   functions?: {
     [name in keyof FS]: {
       description?: string;
       parameters: FS[name];
-      render: Renderer<z.infer<FS[name]>>;
+      render: Renderer<z.output<FS[name]>>;
     };
   };
   initial?: ReactNode;
@@ -625,6 +625,27 @@ export function render<
     let hasFunction = false;
     let content = '';
 
+    const parseFunctionCallArguments = (fn: {
+      type: 'functions' | 'tools';
+      name: string;
+      arguments: any;
+    }) => {
+      const renderer =
+        fn.type === 'functions'
+          ? options.functions?.[fn.name]
+          : options.tools?.[fn.name];
+
+      const safeParsed = renderer?.parameters.safeParse(fn.arguments);
+
+      if (safeParsed && !safeParsed.success) {
+        throw new Error(
+          `Invalid function call arguments in message. ${safeParsed.error.message}`,
+        );
+      }
+
+      return safeParsed?.data;
+    };
+
     consumeStream(
       OpenAIStream(
         (await options.provider.chat.completions.create({
@@ -649,7 +670,10 @@ export function render<
                 async experimental_onFunctionCall(functionCallPayload) {
                   hasFunction = true;
                   handleRender(
-                    functionCallPayload.arguments,
+                    parseFunctionCallArguments({
+                      ...functionCallPayload,
+                      type: 'functions',
+                    }),
                     options.functions?.[functionCallPayload.name as any]
                       ?.render,
                     ui,
@@ -659,13 +683,16 @@ export function render<
             : {}),
           ...(tools
             ? {
-                async experimental_onToolCall(toolCallPayload: any) {
+                async experimental_onToolCall(toolCallPayload) {
                   hasFunction = true;
 
                   // TODO: We might need Promise.all here?
                   for (const tool of toolCallPayload.tools) {
                     handleRender(
-                      tool.func.arguments,
+                      parseFunctionCallArguments({
+                        type: 'tools',
+                        ...tool.func,
+                      }),
                       options.tools?.[tool.func.name as any]?.render,
                       ui,
                     );
