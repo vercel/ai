@@ -522,6 +522,7 @@ By default, it's set to 0, which will disable the feature.
             })
           : messagesRef.current,
         options: options.options,
+        data: options.data,
       };
 
       triggerRequest(chatRequest);
