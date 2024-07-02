@@ -374,16 +374,22 @@ export function useChat(
 
     event?.preventDefault?.();
     const inputValue = input();
-    if (!inputValue) return;
 
-    append(
-      {
-        content: inputValue,
-        role: 'user',
-        createdAt: new Date(),
-      },
-      options,
-    );
+    const chatRequest: ChatRequest = {
+      messages: inputValue
+        ? messagesRef.concat({
+            id: generateId()(),
+            content: inputValue,
+            role: 'user',
+            createdAt: new Date(),
+          })
+        : messagesRef,
+      options: options.options,
+      data: options.data,
+    };
+
+    triggerRequest(chatRequest);
+
     setInput('');
   };
 
