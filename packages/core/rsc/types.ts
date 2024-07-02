@@ -29,39 +29,33 @@ export type InternalAIProviderProps<AIState = any, UIState = any> = {
   wrappedSyncUIState?: ServerWrappedAction<AIState>;
 };
 
+declare const __internal_actions: unique symbol;
+declare const __internal_ai_state: unique symbol;
+declare const __internal_ui_state: unique symbol;
+
 export type AIProviderProps<AIState = any, UIState = any, Actions = any> = {
   children: React.ReactNode;
   initialAIState?: AIState;
   initialUIState?: UIState;
-  /** $ActionTypes is only added for type inference and is never used at runtime **/
-  $ActionTypes?: Actions;
+
+  /** Internals are only added for type inference and is never used at runtime **/
+  [__internal_actions]: Actions;
+  [__internal_ai_state]: AIState;
+  [__internal_ui_state]: UIState;
 };
 
 export type AIProvider<AIState = any, UIState = any, Actions = any> = (
   props: AIProviderProps<AIState, UIState, Actions>,
 ) => Promise<React.ReactElement>;
 
-export type InferAIState<T, Fallback> = T extends AIProvider<
-  infer AIState,
-  any,
-  any
->
-  ? AIState
-  : Fallback;
-export type InferUIState<T, Fallback> = T extends AIProvider<
-  any,
-  infer UIState,
-  any
->
-  ? UIState
-  : Fallback;
-export type InferActions<T, Fallback> = T extends AIProvider<
-  any,
-  any,
-  infer Actions
->
-  ? Actions
-  : Fallback;
+export type InferAIState<
+  T extends AIProvider,
+  S = Parameters<T>[0][typeof __internal_ai_state],
+> = S extends undefined ? any : S;
+export type InferUIState<T extends AIProvider> =
+  Parameters<T>[0][typeof __internal_ui_state];
+export type InferActions<T extends AIProvider> =
+  Parameters<T>[0][typeof __internal_actions];
 
 export type InternalAIStateStorageOptions = {
   onSetAIState?: OnSetAIState<any>;
