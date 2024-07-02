@@ -20,11 +20,17 @@ export type ServerWrappedActions<T = unknown> = Record<
   ServerWrappedAction<T>
 >;
 
+export type BulkAction<T, D = any, R = any> = (
+  initialState: any,
+  wrappedActions: [AIAction<T, [D, R]>, args: T[]][],
+) => Promise<[Promise<D | undefined>, Promise<R>[]]>;
+
 export type InternalAIProviderProps<AIState = any, UIState = any> = {
   children: React.ReactNode;
   initialUIState: UIState;
   initialAIState: AIState;
   initialAIStatePatch: undefined | Promise<AIState>;
+  bulkActions: BulkAction<AIState>;
   wrappedActions: ServerWrappedActions<AIState>;
   wrappedSyncUIState?: ServerWrappedAction<AIState>;
 };

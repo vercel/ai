@@ -1,12 +1,8 @@
 // This file provides the AI context to all AI Actions via AsyncLocalStorage.
 
 import * as React from 'react';
-import { InternalAIProvider } from './rsc-shared.mjs';
-import {
-  withAIState,
-  getAIStateDeltaPromise,
-  sealMutableAIState,
-} from './ai-state';
+import * as jsondiffpatch from 'jsondiffpatch';
+
 import type {
   ServerWrappedActions,
   AIAction,
@@ -16,6 +12,14 @@ import type {
   OnSetAIState,
   OnGetUIState,
 } from './types';
+
+import { InternalAIProvider } from './rsc-shared.mjs';
+import {
+  withAIState,
+  getAIStateDeltaPromise,
+  sealMutableAIState,
+} from './ai-state';
+import { createResolvablePromise } from './utils';
 
 async function innerAction<T>(
   {
@@ -44,6 +48,70 @@ function wrapAction<T = unknown>(
   options: InternalAIStateStorageOptions,
 ) {
   return innerAction.bind(null, { action, options }) as AIAction<T>;
+}
+
+async function bulkActions<T, D, R>(
+  initialState: any,
+  wrappedActions: [AIAction<T, [D, R]>, args: T[]][],
+): Promise<[Promise<D | undefined>, Promise<R>[]]> {
+  'use server';
+
+  let state = initialState;
+
+  let diffPromise = Promise.resolve<D | undefined>(undefined);
+  const results: Promise<R>[] = [];
+  const resolveResults: {
+    resolve: (value: R) => void;
+    reject: (error: Error) => void;
+  }[] = [];
+
+  // This makes it possible to return earlier results before waiting for next
+  // action to be executed.
+  for (let i = 0; i < wrappedActions.length; i++) {
+    const { resolve, reject, promise } = createResolvablePromise<R>();
+    resolveResults.push({ resolve, reject });
+    results.push(promise);
+  }
+
+  // Execute all actions in order.
+  for (let i = 0; i < wrappedActions.length; i++) {
+    const [action, args] = wrappedActions[i];
+
+    try {
+      const [diff, result] = await action(state, ...args);
+      resolveResults[i].resolve(result);
+
+      if (i === wrappedActions.length - 1) {
+        // Last action
+        diffPromise = Promise.resolve(diff);
+      } else {
+        // Not the last action, apply the diff and continue.
+        const delta = await diff;
+        if (delta) {
+          state = jsondiffpatch.patch(jsondiffpatch.clone(state), delta);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+
+      // Reject all remaining results and return.
+      // It's fine to return directly because diffPromise should be undefined at this point
+      // so it won't affect the client state.
+      for (let j = i; j < wrappedActions.length; j++) {
+        resolveResults[j].reject(e as Error);
+      }
+    }
+  }
+
+  return [
+    diffPromise.then(delta => {
+      if (delta) {
+        state = jsondiffpatch.patch(jsondiffpatch.clone(state), delta);
+      }
+      return jsondiffpatch.diff(initialState, state) as D;
+    }),
+    results,
+  ];
 }
 
 export function createAI<
@@ -136,6 +204,7 @@ export function createAI<
       <InternalAIProvider
         wrappedActions={wrappedActions}
         wrappedSyncUIState={wrappedSyncUIState}
+        bulkActions={bulkActions}
         initialUIState={uiState}
         initialAIState={aiState}
         initialAIStatePatch={aiStateDelta}

@@ -13,6 +13,7 @@ import type {
   InferUIState,
 } from '../types';
 import { isFunction } from '../utils';
+import { createActionQueue } from './utils';
 
 const InternalUIStateProvider = React.createContext<null | any>(null);
 const InternalAIStateProvider = React.createContext<undefined | any>(undefined);
@@ -24,12 +25,15 @@ export function InternalAIProvider({
   initialUIState,
   initialAIState,
   initialAIStatePatch,
+  bulkActions,
   wrappedActions,
   wrappedSyncUIState,
 }: InternalAIProviderProps) {
   if (!('use' in React)) {
     throw new Error('Unsupported React version.');
   }
+
+  const q = React.useState(() => createActionQueue(bulkActions))[0];
 
   const uiState = React.useState(initialUIState);
   const setUIState = uiState[1];
@@ -61,27 +65,23 @@ export function InternalAIProvider({
         Object.entries(wrappedActions).map(([key, action]) => [
           key,
           async (...args: any) => {
-            const aiStateSnapshot = aiStateRef.current;
-            const [aiStateDelta, result] = await action(
-              aiStateSnapshot,
-              ...args,
+            const result = await q(
+              () => aiStateRef.current,
+              args,
+              action,
+              (state, delta) => {
+                if (delta !== undefined) {
+                  setAIState(
+                    jsondiffpatch.patch(jsondiffpatch.clone(state), delta),
+                  );
+                }
+              },
             );
-            (async () => {
-              const delta = await aiStateDelta;
-              if (delta !== undefined) {
-                aiState[1](
-                  jsondiffpatch.patch(
-                    jsondiffpatch.clone(aiStateSnapshot),
-                    delta,
-                  ),
-                );
-              }
-            })();
             return result;
           },
         ]),
       ),
-    [wrappedActions],
+    [wrappedActions, q],
   );
 
   const clientWrappedSyncUIStateAction = React.useMemo(() => {
@@ -90,25 +90,22 @@ export function InternalAIProvider({
     }
 
     return async () => {
-      const aiStateSnapshot = aiStateRef.current;
-      const [aiStateDelta, uiState] = await wrappedSyncUIState!(
-        aiStateSnapshot,
+      const uiState = await q(
+        () => aiStateRef.current,
+        [],
+        wrappedSyncUIState!,
+        (state, delta) => {
+          if (delta !== undefined) {
+            setAIState(jsondiffpatch.patch(jsondiffpatch.clone(state), delta));
+          }
+        },
       );
 
       if (uiState !== undefined) {
         setUIState(uiState);
       }
-
-      const delta = await aiStateDelta;
-      if (delta !== undefined) {
-        const patchedAiState = jsondiffpatch.patch(
-          jsondiffpatch.clone(aiStateSnapshot),
-          delta,
-        );
-        setAIState(patchedAiState);
-      }
     };
-  }, [wrappedSyncUIState]);
+  }, [wrappedSyncUIState, q]);
 
   return (
     <InternalAIStateProvider.Provider value={aiState}>
