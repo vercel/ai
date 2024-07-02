@@ -513,19 +513,22 @@ By default, it's set to 0, which will disable the feature.
 
       event?.preventDefault?.();
 
-      if (!input) return;
+      const chatRequest: ChatRequest = {
+        messages: input
+          ? messagesRef.current.concat({
+              id: generateId(),
+              role: 'user',
+              content: input,
+            })
+          : messagesRef.current,
+        options: options.options,
+      };
 
-      append(
-        {
-          content: input,
-          role: 'user',
-          createdAt: new Date(),
-        },
-        options,
-      );
+      triggerRequest(chatRequest);
+
       setInput('');
     },
-    [input, append],
+    [input, generateId, triggerRequest],
   );
 
   const handleInputChange = (e: any) => {
