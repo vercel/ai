@@ -8,6 +8,8 @@ import userEvent from '@testing-library/user-event';
 import { cleanup, findByText, render, screen } from '@testing-library/vue';
 import TestChatComponent from './TestChatComponent.vue';
 import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
+import TestChatFormComponent from './TestChatFormComponent.vue';
+import { formatStreamPart } from '@ai-sdk/ui-utils';
 
 describe('stream data stream', () => {
   beforeEach(() => {
@@ -127,6 +129,53 @@ describe('text stream', () => {
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
       'AI: Hello, world.',
+    );
+  });
+});
+
+describe('form actions', () => {
+  beforeEach(() => {
+    render(TestChatFormComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should show streamed response using handleSubmit', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['Hello', ',', ' world', '.'].map(token =>
+        formatStreamPart('text', token),
+      ),
+    });
+
+    const firstInput = screen.getByTestId('do-input');
+    await userEvent.type(firstInput, 'hi');
+    await userEvent.keyboard('{Enter}');
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
+        formatStreamPart('text', token),
+      ),
+    });
+
+    const secondInput = screen.getByTestId('do-input');
+    await userEvent.type(secondInput, '{Enter}');
+
+    await screen.findByTestId('message-2');
+    expect(screen.getByTestId('message-2')).toHaveTextContent(
+      'AI: How can I help you?',
     );
   });
 });

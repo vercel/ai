@@ -263,7 +263,7 @@ export function useChat({
     const inputValue = input.value;
 
     triggerRequest(
-      input
+      inputValue
         ? messages.value.concat({
             id: generateId(),
             content: inputValue,
