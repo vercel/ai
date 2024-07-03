@@ -379,8 +379,8 @@ export function useChat(
       messages: inputValue
         ? messagesRef.concat({
             id: generateId()(),
-            content: inputValue,
             role: 'user',
+            content: inputValue,
             createdAt: new Date(),
           })
         : messagesRef,
