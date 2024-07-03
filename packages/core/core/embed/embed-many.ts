@@ -66,6 +66,12 @@ Only applicable for HTTP-based providers.
     return new EmbedManyResult({
       values,
       embeddings: modelResponse.embeddings,
+      usage: modelResponse.usage
+        ? {
+            promptTokens: modelResponse.usage.promptTokens,
+            totalTokens: modelResponse.usage.totalTokens,
+          }
+        : undefined,
     });
   }
 
@@ -74,14 +80,22 @@ Only applicable for HTTP-based providers.
 
   // serially embed the chunks:
   const embeddings = [];
+  const usage: { promptTokens: number; totalTokens: number } = {
+    promptTokens: 0,
+    totalTokens: 0,
+  };
   for (const chunk of valueChunks) {
     const modelResponse = await retry(() =>
       model.doEmbed({ values: chunk, abortSignal, headers }),
     );
     embeddings.push(...modelResponse.embeddings);
+    if (modelResponse.usage) {
+      usage.promptTokens += modelResponse.usage.promptTokens;
+      usage.totalTokens += modelResponse.usage.totalTokens;
+    }
   }
 
-  return new EmbedManyResult({ values, embeddings });
+  return new EmbedManyResult({ values, embeddings, usage });
 }
 
 /**
@@ -99,8 +113,24 @@ The embeddings. They are in the same order as the values.
   */
   readonly embeddings: Array<Embedding>;
 
-  constructor(options: { values: Array<VALUE>; embeddings: Array<Embedding> }) {
+  /**
+The embedding token usage.
+  */
+  readonly usage?: {
+    promptTokens: number;
+    totalTokens: number;
+  };
+
+  constructor(options: {
+    values: Array<VALUE>;
+    embeddings: Array<Embedding>;
+    usage?: {
+      promptTokens: number;
+      totalTokens: number;
+    };
+  }) {
     this.values = options.values;
     this.embeddings = options.embeddings;
+    this.usage = options.usage;
   }
 }

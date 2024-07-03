@@ -57,6 +57,12 @@ Only applicable for HTTP-based providers.
   return new EmbedResult({
     value,
     embedding: modelResponse.embeddings[0],
+    usage: modelResponse.usage
+      ? {
+          promptTokens: modelResponse.usage.promptTokens,
+          totalTokens: modelResponse.usage.totalTokens,
+        }
+      : undefined,
     rawResponse: modelResponse.rawResponse,
   });
 }
@@ -77,6 +83,14 @@ The embedding of the value.
   readonly embedding: Embedding;
 
   /**
+The embedding token usage.
+  */
+  readonly usage?: {
+    promptTokens: number;
+    totalTokens: number;
+  };
+
+  /**
 Optional raw response data.
    */
   readonly rawResponse?: {
@@ -89,12 +103,17 @@ Response headers.
   constructor(options: {
     value: VALUE;
     embedding: Embedding;
+    usage?: {
+      promptTokens: number;
+      totalTokens: number;
+    };
     rawResponse?: {
       headers?: Record<string, string>;
     };
   }) {
     this.value = options.value;
     this.embedding = options.embedding;
+    this.usage = options.usage;
     this.rawResponse = options.rawResponse;
   }
 }

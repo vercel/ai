@@ -89,6 +89,12 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
 
     return {
       embeddings: response.data.map(item => item.embedding),
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.prompt_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
       rawResponse: { headers: responseHeaders },
     };
   }
@@ -102,4 +108,10 @@ const openaiTextEmbeddingResponseSchema = z.object({
       embedding: z.array(z.number()),
     }),
   ),
+  usage: z
+    .object({
+      prompt_tokens: z.number(),
+      total_tokens: z.number(),
+    })
+    .nullish(),
 });
