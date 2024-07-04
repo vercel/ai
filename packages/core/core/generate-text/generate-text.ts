@@ -325,6 +325,7 @@ function toResponseMessages<TOOLS extends Record<string, CoreTool>>({
       content: toolResults.map(result => ({
         type: 'tool-result',
         toolCallId: result.toolCallId,
+        tool_call_id: result.toolCallId,
         toolName: result.toolName,
         result: result.result,
       })),
