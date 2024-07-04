@@ -15,6 +15,7 @@ import {
 } from '@ai-sdk/ui-utils';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR, { KeyedMutator } from 'swr';
+import { throttle } from 'lodash';
 
 export type { CreateMessage, Message, UseChatOptions };
 
@@ -129,6 +130,11 @@ const getStreamedResponse = async (
         }),
       );
 
+  const onUpdate = throttle((merged, data) => {
+    mutate([...chatRequest.messages, ...merged], false);
+    mutateStreamData([...(existingData || []), ...(data || [])], false);
+  }, 50);
+
   return await callChatApi({
     api,
     body: experimental_prepareRequestBody?.({
@@ -164,10 +170,7 @@ const getStreamedResponse = async (
       mutate(previousMessages, false);
     },
     onResponse,
-    onUpdate(merged, data) {
-      mutate([...chatRequest.messages, ...merged], false);
-      mutateStreamData([...(existingData || []), ...(data || [])], false);
-    },
+    onUpdate,
     onToolCall,
     onFinish,
     generateId,
