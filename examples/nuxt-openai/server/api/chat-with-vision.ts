@@ -17,7 +17,7 @@ export default defineLazyEventHandler(async () => {
 
     // Ask OpenAI for a streaming chat completion given the prompt
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-vision-preview',
+      model: 'gpt-4o',
       stream: true,
       max_tokens: 150,
       messages: [
@@ -30,7 +30,9 @@ export default defineLazyEventHandler(async () => {
             // forward the image information to OpenAI:
             {
               type: 'image_url',
-              image_url: data.imageUrl,
+              image_url: {
+                url: data.imageUrl,
+              },
             },
           ],
         },
