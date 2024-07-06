@@ -266,6 +266,7 @@ export function useChat({
       inputValue
         ? messages.value.concat({
             id: generateId(),
+            createdAt: new Date(),
             content: inputValue,
             role: 'user',
           })

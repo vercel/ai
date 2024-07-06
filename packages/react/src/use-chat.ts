@@ -517,6 +517,7 @@ By default, it's set to 0, which will disable the feature.
         messages: input
           ? messagesRef.current.concat({
               id: generateId(),
+              createdAt: new Date(),
               role: 'user',
               content: input,
             })

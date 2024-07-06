@@ -132,6 +132,10 @@ export function useAssistant({
       {
         ...message,
         id: message.id ?? generateId(),
+        createdAt:
+          'createdAt' in message && message.createdAt
+            ? message.createdAt
+            : new Date(),
       },
     ]);
 
@@ -180,6 +184,7 @@ export function useAssistant({
                 id: value.id,
                 role: value.role,
                 content: value.content[0].text.value,
+                createdAt: new Date(),
               },
             ]);
             break;
@@ -195,6 +200,7 @@ export function useAssistant({
                   id: lastMessage.id,
                   role: lastMessage.role,
                   content: lastMessage.content + value,
+                  createdAt: new Date(),
                 },
               ];
             });
@@ -210,6 +216,7 @@ export function useAssistant({
                 role: 'data',
                 content: '',
                 data: value.data,
+                createdAt: new Date(),
               },
             ]);
             break;
@@ -257,6 +264,7 @@ export function useAssistant({
     requestOptions?: {
       data?: Record<string, string>;
     },
+    messageCreatedAt?: Date,
   ) => {
     event?.preventDefault?.();
 
@@ -264,7 +272,14 @@ export function useAssistant({
       return;
     }
 
-    append({ role: 'user', content: input }, requestOptions);
+    append(
+      {
+        role: 'user',
+        content: input,
+        createdAt: messageCreatedAt ?? new Date(),
+      },
+      requestOptions,
+    );
   };
 
   return {

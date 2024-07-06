@@ -9,16 +9,19 @@ describe('experimental_buildOpenAIMessages', () => {
     const messages: Message[] = [
       {
         id: '1',
+        createdAt: new Date('2021-01-01T00:00:00.000Z'),
         role: 'system',
         content: 'System message',
       },
       {
         id: '2',
+        createdAt: new Date('2021-01-01T00:00:00.000Z'),
         role: 'user',
         content: 'User message',
       },
       {
         id: '3',
+        createdAt: new Date('2021-01-01T00:00:00.000Z'),
         role: 'assistant',
         content: 'Assistant message',
         function_call: {
@@ -28,12 +31,14 @@ describe('experimental_buildOpenAIMessages', () => {
       },
       {
         id: '4',
+        createdAt: new Date('2021-01-01T00:00:00.000Z'),
         role: 'function',
         content: 'Function message',
         name: 'functionName',
       },
       {
         id: '5',
+        createdAt: new Date('2021-01-01T00:00:00.000Z'),
         role: 'tool',
         content: 'Tool message',
         name: 'toolName',
@@ -79,6 +84,7 @@ describe('experimental_buildOpenAIMessages', () => {
     const messages: Message[] = [
       {
         id: '1',
+        createdAt: new Date('2021-01-01T00:00:00.000Z'),
         role: 'assistant',
         content: 'Assistant message',
         function_call: 'invalidFunctionCall',
@@ -94,6 +100,7 @@ describe('experimental_buildOpenAIMessages', () => {
     const messages: Message[] = [
       {
         id: '1',
+        createdAt: new Date('2021-01-01T00:00:00.000Z'),
         role: 'function',
         content: 'Function message',
       },
@@ -108,6 +115,7 @@ describe('experimental_buildOpenAIMessages', () => {
     const messages: Message[] = [
       {
         id: '1',
+        createdAt: new Date('2021-01-01T00:00:00.000Z'),
         role: 'data',
         content: 'Data message',
       },
@@ -122,6 +130,7 @@ describe('experimental_buildOpenAIMessages', () => {
     const messages: Message[] = [
       {
         id: '1',
+        createdAt: new Date('2021-01-01T00:00:00.000Z'),
         role: 'tool',
         content: 'Tool message',
         name: undefined,
@@ -137,6 +146,7 @@ describe('experimental_buildOpenAIMessages', () => {
     const messages: Message[] = [
       {
         id: '1',
+        createdAt: new Date('2021-01-01T00:00:00.000Z'),
         role: 'tool',
         content: 'Tool message',
         name: 'toolName',

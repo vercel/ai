@@ -110,7 +110,14 @@ export function useAssistant({
     // Add the new message to the existing array
     mutateMessages([
       ...get(messages),
-      { ...message, id: message.id ?? generateId() },
+      {
+        ...message,
+        id: message.id ?? generateId(),
+        createdAt:
+          'createdAt' in message && message.createdAt
+            ? message.createdAt
+            : new Date(),
+      },
     ]);
 
     input.set('');
@@ -153,6 +160,7 @@ export function useAssistant({
               ...get(messages),
               {
                 id: value.id,
+                createdAt: new Date(),
                 role: value.role,
                 content: value.content[0].text.value,
               },
@@ -178,6 +186,7 @@ export function useAssistant({
               ...get(messages),
               {
                 id: value.id ?? generateId(),
+                createdAt: new Date(),
                 role: 'data',
                 content: '',
                 data: value.data,

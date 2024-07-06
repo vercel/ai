@@ -470,7 +470,7 @@ or to provide a custom fetch implementation for e.g. testing.
 };
 
 /**
-A JSON value can be a string, number, boolean, object, array, or null.
+A JSON value can be a string, number, boolean, object, array, or null. 
 JSON values can be serialized and deserialized by the JSON.stringify and JSON.parse methods.
  */
 export type JSONValue =
