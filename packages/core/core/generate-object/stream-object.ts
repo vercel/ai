@@ -147,7 +147,10 @@ Warnings from the model provider (e.g. unsupported settings).
   }
 
   let callOptions: LanguageModelV1CallOptions;
-  let transformer: Transformer<LanguageModelV1StreamPart>;
+  let transformer: Transformer<
+    LanguageModelV1StreamPart,
+    string | ObjectStreamInputPart
+  >;
 
   switch (mode) {
     case 'json': {
@@ -173,6 +176,11 @@ Warnings from the model provider (e.g. unsupported settings).
               controller.enqueue(chunk.textDelta);
               break;
             case 'finish':
+              controller.enqueue({
+                ...chunk,
+                usage: calculateTokenUsage(chunk.usage),
+              });
+              break;
             case 'error':
               controller.enqueue(chunk);
               break;
@@ -206,6 +214,11 @@ Warnings from the model provider (e.g. unsupported settings).
               controller.enqueue(chunk.textDelta);
               break;
             case 'finish':
+              controller.enqueue({
+                ...chunk,
+                usage: calculateTokenUsage(chunk.usage),
+              });
+              break;
             case 'error':
               controller.enqueue(chunk);
               break;
@@ -247,6 +260,11 @@ Warnings from the model provider (e.g. unsupported settings).
               controller.enqueue(chunk.argsTextDelta);
               break;
             case 'finish':
+              controller.enqueue({
+                ...chunk,
+                usage: calculateTokenUsage(chunk.usage),
+              });
+              break;
             case 'error':
               controller.enqueue(chunk);
               break;
@@ -420,7 +438,7 @@ Response headers.
               }
 
               // store usage for promises and onFinish callback:
-              usage = calculateTokenUsage(chunk.usage);
+              usage = chunk.usage;
 
               controller.enqueue({ ...chunk, usage });
 
