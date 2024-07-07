@@ -26,6 +26,62 @@ import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { ServerResponse } from 'http';
 
+type StreamObjectSettings<T> = CallSettings & Prompt & {
+  /**
+The language model to use.
+   */
+  model: LanguageModel;
+  /**
+The schema of the object that the model should generate.
+*/
+  schema: z.Schema<T>;
+  /**
+The mode to use for object generation.
+
+The Zod schema is converted in a JSON schema and used in one of the following ways
+
+- 'auto': The provider will choose the best mode for the model.
+- 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
+- 'json': The JSON schema and a instruction is injected into the prompt. If the provider supports JSON mode, it is enabled.
+- 'grammar': The provider is instructed to converted the JSON schema into a provider specific grammar and use it to select the output tokens.
+
+Please note that most providers do not support all modes.
+
+Default and recommended: 'auto' (best mode for the model).
+   */
+  mode?: 'auto' | 'json' | 'tool' | 'grammar';
+  /**
+Callback that is called when the LLM response and the final object validation are finished.
+   */
+  onFinish?: (event: {
+    /**
+The token usage of the generated response.
+*/
+    usage: TokenUsage;
+    /**
+The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.
+ */
+    object: T | undefined;
+    /**
+Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
+ */
+    error: unknown | undefined;
+    /**
+Optional raw response data.
+ */
+    rawResponse?: {
+      /**
+Response headers.
+   */
+      headers?: Record<string, string>;
+    };
+    /**
+Warnings from the model provider (e.g. unsupported settings).
+     */
+    warnings?: CallWarning[];
+  }) => Promise<void> | void;
+};
+
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
 
@@ -63,7 +119,58 @@ If set and supported by the model, calls will generate deterministic results.
 @return
 A result object for accessing the partial object stream and additional information.
  */
-export async function streamObject<T>({
+export async function streamObject<T>(
+  settings: StreamObjectSettings<T>,
+): Promise<StreamObjectResult<T>> {
+  return new StreamObjectResult(await streamObjectBase(settings));
+}
+
+/**
+Generate a structured, typed object for a given prompt and schema using a language model.
+
+This function streams the output as raw text parts. Parsing these is the responsibility of the caller.
+
+If you want to use parsed objects, use `streamObject` instead. If you do not want to stream the output, use `generateObject` instead.
+
+@param model - The language model to use.
+
+@param schema - The schema of the object that the model should generate.
+@param mode - The mode to use for object generation. Not all models support all modes. Defaults to 'auto'.
+
+@param system - A system message that will be part of the prompt.
+@param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
+@param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+
+@param maxTokens - Maximum number of tokens to generate.
+@param temperature - Temperature setting.
+The value is passed through to the provider. The range depends on the provider and model.
+It is recommended to set either `temperature` or `topP`, but not both.
+@param topP - Nucleus sampling.
+The value is passed through to the provider. The range depends on the provider and model.
+It is recommended to set either `temperature` or `topP`, but not both.
+@param presencePenalty - Presence penalty setting.
+It affects the likelihood of the model to repeat information that is already in the prompt.
+The value is passed through to the provider. The range depends on the provider and model.
+@param frequencyPenalty - Frequency penalty setting.
+It affects the likelihood of the model to repeatedly use the same words or phrases.
+The value is passed through to the provider. The range depends on the provider and model.
+@param seed - The seed (integer) to use for random sampling.
+If set and supported by the model, calls will generate deterministic results.
+
+@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+@param abortSignal - An optional abort signal that can be used to cancel the call.
+@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+
+@return
+A result object for accessing the partial object stream and additional information.
+ */
+export async function streamObjectParts<T>(
+  settings: StreamObjectSettings<T>,
+): Promise<UnparsedStreamObjectResult<T>> {
+  return streamObjectBase(settings);
+};
+
+async function streamObjectBase<T>({
   model,
   schema,
   mode,
@@ -75,69 +182,7 @@ export async function streamObject<T>({
   headers,
   onFinish,
   ...settings
-}: CallSettings &
-  Prompt & {
-    /**
-The language model to use.
-     */
-    model: LanguageModel;
-
-    /**
-The schema of the object that the model should generate.
- */
-    schema: z.Schema<T>;
-
-    /**
-The mode to use for object generation.
-
-The Zod schema is converted in a JSON schema and used in one of the following ways
-
-- 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
-- 'json': The JSON schema and a instruction is injected into the prompt. If the provider supports JSON mode, it is enabled.
-- 'grammar': The provider is instructed to converted the JSON schema into a provider specific grammar and use it to select the output tokens.
-
-Please note that most providers do not support all modes.
-
-Default and recommended: 'auto' (best mode for the model).
-     */
-    mode?: 'auto' | 'json' | 'tool' | 'grammar';
-
-    /**
-Callback that is called when the LLM response and the final object validation are finished.
-     */
-    onFinish?: (event: {
-      /**
-The token usage of the generated response.
-*/
-      usage: TokenUsage;
-
-      /**
-The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.
-   */
-      object: T | undefined;
-
-      /**
-Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
-   */
-      error: unknown | undefined;
-
-      /**
-Optional raw response data.
-   */
-      rawResponse?: {
-        /**
-Response headers.
-     */
-        headers?: Record<string, string>;
-      };
-
-      /**
-Warnings from the model provider (e.g. unsupported settings).
-       */
-      warnings?: CallWarning[];
-    }) => Promise<void> | void;
-  }): Promise<StreamObjectResult<T>> {
+}: StreamObjectSettings<T>): Promise<UnparsedStreamObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const jsonSchema = convertZodToJSONSchema(schema);
 
@@ -269,13 +314,13 @@ Warnings from the model provider (e.g. unsupported settings).
 
   const result = await retry(() => model.doStream(callOptions));
 
-  return new StreamObjectResult({
-    stream: result.stream.pipeThrough(new TransformStream(transformer)),
+  return {
+    stream: createAsyncIterableStream(result.stream, transformer),
     warnings: result.warnings,
     rawResponse: result.rawResponse,
     schema,
     onFinish,
-  });
+  };
 }
 
 export type ObjectStreamInputPart =
@@ -304,6 +349,16 @@ export type ObjectStreamPart<T> =
       type: 'text-delta';
       textDelta: string;
     };
+
+interface UnparsedStreamObjectResult<T> {
+  stream: AsyncIterableStream<string | ObjectStreamInputPart>;
+  warnings: CallWarning[] | undefined;
+  rawResponse?: {
+    headers?: Record<string, string>;
+  };
+  schema: z.Schema<T>;
+  onFinish: Parameters<typeof streamObject<T>>[0]['onFinish'];
+}
 
 /**
 The result of a `streamObject` call that contains the partial object stream and additional information.
@@ -342,15 +397,7 @@ Response headers.
     rawResponse,
     schema,
     onFinish,
-  }: {
-    stream: ReadableStream<string | ObjectStreamInputPart>;
-    warnings: CallWarning[] | undefined;
-    rawResponse?: {
-      headers?: Record<string, string>;
-    };
-    schema: z.Schema<T>;
-    onFinish: Parameters<typeof streamObject<T>>[0]['onFinish'];
-  }) {
+  }: UnparsedStreamObjectResult<T>) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
 
