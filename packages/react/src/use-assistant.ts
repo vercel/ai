@@ -29,7 +29,7 @@ export type UseAssistantHelpers = {
   threadId: string | undefined;
 
   /**
-   * Set the current thread ID. Specifying a thread ID will switch to that thread, if it exists. If set to 'undefined', a new thread will be created. For both cases, the thread ID will be updated with the new value and messages will be cleared.
+   * Set the current thread ID. Specifying a thread ID will switch to that thread, if it exists. If set to 'undefined', a new thread will be created. For both cases, `threadId` will be updated with the new value and `messages` will be cleared.
    */
   setThreadId: (threadId: string | undefined) => void;
 
