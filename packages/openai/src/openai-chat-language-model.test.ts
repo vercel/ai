@@ -363,6 +363,57 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass functions and function_call with useLegacyFunctionCalling', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('gpt-3.5-turbo', {
+      useLegacyFunctionCalling: true,
+    });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'test-tool',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toEqual({
+      messages: [{ role: 'user', content: 'Hello' }],
+      model: 'gpt-3.5-turbo',
+      functions: [
+        {
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      function_call: { name: 'test-tool' },
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonResponse({ content: '' });
 
