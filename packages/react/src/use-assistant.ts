@@ -29,6 +29,11 @@ export type UseAssistantHelpers = {
   threadId: string | undefined;
 
   /**
+   * Set the current thread ID. Specifying a thread ID will switch to that thread, if it exists. If set to 'undefined', a new thread will be created. For both cases, the thread ID will be updated with the new value and messages will be cleared.
+   */
+  setThreadId: (threadId: string | undefined) => void;
+
+  /**
    * The current value of the input field.
    */
   input: string;
@@ -97,7 +102,9 @@ export function useAssistant({
 }: UseAssistantOptions): UseAssistantHelpers {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [threadId, setThreadId] = useState<string | undefined>(undefined);
+  const [currentThreadId, setCurrentThreadId] = useState<string | undefined>(
+    undefined,
+  );
   const [status, setStatus] = useState<AssistantStatus>('awaiting_message');
   const [error, setError] = useState<undefined | Error>(undefined);
 
@@ -151,7 +158,7 @@ export function useAssistant({
         body: JSON.stringify({
           ...body,
           // always use user-provided threadId when available:
-          threadId: threadIdParam ?? threadId ?? null,
+          threadId: threadIdParam ?? currentThreadId ?? null,
           message: message.content,
 
           // optional request data:
@@ -216,7 +223,7 @@ export function useAssistant({
           }
 
           case 'assistant_control_data': {
-            setThreadId(value.threadId);
+            setCurrentThreadId(value.threadId);
 
             // set id of last message:
             setMessages(messages => {
@@ -267,11 +274,17 @@ export function useAssistant({
     append({ role: 'user', content: input }, requestOptions);
   };
 
+  const setThreadId = (threadId: string | undefined) => {
+    setCurrentThreadId(threadId);
+    setMessages([]);
+  };
+
   return {
     append,
     messages,
     setMessages,
-    threadId,
+    threadId: currentThreadId,
+    setThreadId,
     input,
     setInput,
     handleInputChange,
