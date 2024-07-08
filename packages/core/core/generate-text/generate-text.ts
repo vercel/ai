@@ -151,7 +151,7 @@ By default, it's set to 0, which will disable the feature.
     ),
   };
 
-  const tracer = await getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
   return recordSpan(
     tracer,
     'ai.generateText',

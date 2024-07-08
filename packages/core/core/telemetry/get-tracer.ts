@@ -10,8 +10,7 @@ export function setTestTracer(tracer: Tracer | undefined) {
   testTracer = tracer;
 }
 
-// async to support dynamic imports / stubbing
-export async function getTracer({ isEnabled }: { isEnabled: boolean }) {
+export function getTracer({ isEnabled }: { isEnabled: boolean }) {
   if (!isEnabled) {
     return noopTracer;
   }
