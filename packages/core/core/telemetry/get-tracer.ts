@@ -1,5 +1,14 @@
-import opentelemetry from '@opentelemetry/api';
+import opentelemetry, { Tracer } from '@opentelemetry/api';
 import { noopTracer } from './noop-tracer';
+
+/**
+ * Tracer variable for testing. Tests can set this to a mock tracer.
+ */
+let testTracer: Tracer | undefined = undefined;
+
+export function setTestTracer(tracer: Tracer | undefined) {
+  testTracer = tracer;
+}
 
 // async to support dynamic imports / stubbing
 export async function getTracer({ isEnabled }: { isEnabled: boolean }) {
@@ -7,8 +16,9 @@ export async function getTracer({ isEnabled }: { isEnabled: boolean }) {
     return noopTracer;
   }
 
-  // TODO mock / test support
-  const tracer = opentelemetry.trace.getTracer('ai');
+  if (testTracer) {
+    return testTracer;
+  }
 
-  return tracer;
+  return opentelemetry.trace.getTracer('ai');
 }

@@ -206,6 +206,7 @@ By default, it's set to 0, which will disable the feature.
                 inputFormat: currentInputFormat,
                 prompt: promptMessages,
                 abortSignal,
+                headers,
               });
 
               // Add response information to the span:

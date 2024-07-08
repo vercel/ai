@@ -2,6 +2,8 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { generateText } from './generate-text';
+import { setTestTracer, testTracer } from '../telemetry/get-tracer';
+import { MockTracer } from '../test/mock-tracer';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -496,5 +498,56 @@ describe('options.headers', () => {
     });
 
     assert.deepStrictEqual(result.text, 'Hello, world!');
+  });
+});
+
+describe('telemetry', () => {
+  let tracer: MockTracer;
+
+  beforeEach(() => {
+    tracer = new MockTracer();
+    setTestTracer(tracer);
+  });
+
+  afterEach(() => {
+    setTestTracer(undefined);
+  });
+
+  it('should record telemetry data when enabled', async () => {
+    await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          text: `Hello, world!`,
+        }),
+      }),
+      prompt: 'prompt',
+      experimental_telemetry: {
+        isEnabled: true,
+      },
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        name: 'ai.generateText',
+        attributes: {
+          'ai.finishReason': 'stop',
+          'ai.result.text': 'Hello, world!',
+          'ai.result.toolCalls': undefined,
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+        },
+      },
+      {
+        name: 'ai.generateText.doGenerate',
+        attributes: {
+          'ai.finishReason': 'stop',
+          'ai.result.text': 'Hello, world!',
+          'ai.result.toolCalls': undefined,
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+        },
+      },
+    ]);
   });
 });
