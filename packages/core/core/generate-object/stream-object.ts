@@ -147,7 +147,10 @@ Warnings from the model provider (e.g. unsupported settings).
   }
 
   let callOptions: LanguageModelV1CallOptions;
-  let transformer: Transformer<LanguageModelV1StreamPart>;
+  let transformer: Transformer<
+    LanguageModelV1StreamPart,
+    string | Omit<LanguageModelV1StreamPart, 'text-delta'>
+  >;
 
   switch (mode) {
     case 'json': {
@@ -343,7 +346,9 @@ Response headers.
     schema,
     onFinish,
   }: {
-    stream: ReadableStream<string | ObjectStreamInputPart>;
+    stream: ReadableStream<
+      string | Omit<LanguageModelV1StreamPart, 'text-delta'>
+    >;
     warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;

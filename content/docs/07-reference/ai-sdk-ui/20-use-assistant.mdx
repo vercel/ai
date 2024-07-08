@@ -108,6 +108,12 @@ This works in conjunction with [`AssistantResponse`](./assistant-response) in th
       description: 'The current thread ID.',
     },
     {
+      name: 'setThreadId',
+      type: '(threadId: string | undefined) => void',
+      description:
+        "Set the current thread ID. Specifying a thread ID will switch to that thread, if it exists. If set to 'undefined', a new thread will be created. For both cases, `threadId` will be updated with the new value and `messages` will be cleared.",
+    },
+    {
       name: 'input',
       type: 'string',
       description: 'The current value of the input field.',
