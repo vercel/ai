@@ -40,6 +40,11 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
+
+  /**
+   * Callback function to be called when an error is encountered.
+   */
+  onError?: (error: Error) => void;
 };
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
@@ -80,6 +85,7 @@ function useObject<RESULT, INPUT = any>({
   schema, // required, in the future we will use it for validation
   initialValue,
   fetch,
+  onError,
 }: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
   RESULT,
   INPUT
@@ -95,7 +101,7 @@ function useObject<RESULT, INPUT = any>({
     { fallbackData: initialValue },
   );
 
-  const [error, setError] = useState<undefined | unknown>(undefined);
+  const [error, setError] = useState<undefined | Error>(undefined);
   const [isLoading, setIsLoading] = useState(false);
 
   // Abort controller to cancel the current API call.
@@ -167,7 +173,11 @@ function useObject<RESULT, INPUT = any>({
         return;
       }
 
-      setError(error);
+      if (onError && error instanceof Error) {
+        onError(error);
+      }
+
+      setError(error as Error);
     }
   };
 
