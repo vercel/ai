@@ -1,9 +1,10 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import { LanguageModelV1Prompt, UnsupportedFunctionalityError } from '@ai-sdk/provider';
+import { convertUint8ArrayToBase64, generateId } from '@ai-sdk/provider-utils';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 
 export function convertToOpenAIChatMessages(
   prompt: LanguageModelV1Prompt,
+  useLegacyFunctionCalling?: boolean,
 ): OpenAIChatPrompt {
   const messages: OpenAIChatPrompt = [];
 
@@ -79,22 +80,44 @@ export function convertToOpenAIChatMessages(
           }
         }
 
-        messages.push({
-          role: 'assistant',
-          content: text,
-          tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
-        });
+        if (useLegacyFunctionCalling && toolCalls.length > 0) {
+          if (toolCalls.length > 1) {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'useLegacyFunctionCalling with multiple tool calls in one message',
+            });
+          }
+            messages.push({
+              role: 'assistant',
+              content: text,
+              function_call: toolCalls[0].function,
+            });
+        } else {
+          messages.push({
+            role: 'assistant',
+            content: text,
+            tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+          });
+        }
+
 
         break;
       }
 
       case 'tool': {
         for (const toolResponse of content) {
-          messages.push({
-            role: 'tool',
-            tool_call_id: toolResponse.toolCallId,
-            content: JSON.stringify(toolResponse.result),
-          });
+          if (useLegacyFunctionCalling) {
+            messages.push({
+              role: 'function',
+              name: toolResponse.toolName,
+              content: JSON.stringify(toolResponse.result),
+            });
+          } else {
+            messages.push({
+              role: 'tool',
+              tool_call_id: toolResponse.toolCallId,
+              content: JSON.stringify(toolResponse.result),
+            });
+          }
         }
         break;
       }

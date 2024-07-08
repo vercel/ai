@@ -4,7 +4,8 @@ export type ChatCompletionMessageParam =
   | ChatCompletionSystemMessageParam
   | ChatCompletionUserMessageParam
   | ChatCompletionAssistantMessageParam
-  | ChatCompletionToolMessageParam;
+  | ChatCompletionToolMessageParam
+  | ChatCompletionFunctionMessageParam;
 
 export interface ChatCompletionSystemMessageParam {
   role: 'system';
@@ -36,6 +37,14 @@ export interface ChatCompletionAssistantMessageParam {
   role: 'assistant';
   content?: string | null;
   tool_calls?: Array<ChatCompletionMessageToolCall>;
+  /**
+   * Legacy function calling interface.
+   * @deprecated
+   */
+  function_call?: {
+    arguments: string;
+    name: string;
+  }
 }
 
 export interface ChatCompletionMessageToolCall {
@@ -51,4 +60,16 @@ export interface ChatCompletionToolMessageParam {
   role: 'tool';
   content: string;
   tool_call_id: string;
+}
+
+/**
+ * Legacy function calling interface.
+ *
+ * @internal
+ * @deprecated
+ */
+export interface ChatCompletionFunctionMessageParam {
+  role: 'function';
+  content: string;
+  name: string;
 }

@@ -100,7 +100,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       seed,
 
       // messages:
-      messages: convertToOpenAIChatMessages(prompt),
+      messages: convertToOpenAIChatMessages(prompt, this.settings.useLegacyFunctionCalling),
     };
 
     switch (type) {
