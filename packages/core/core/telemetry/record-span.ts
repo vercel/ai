@@ -1,4 +1,4 @@
-import { Attributes, Span, Tracer } from '@opentelemetry/api';
+import { Attributes, Span, Tracer, SpanStatusCode } from '@opentelemetry/api';
 
 export function recordSpan<T>(
   tracer: Tracer,
@@ -16,9 +16,10 @@ export function recordSpan<T>(
           message: error.message,
           stack: error.stack,
         });
+        span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+      } else {
+        span.setStatus({ code: SpanStatusCode.ERROR });
       }
-      span.setStatus(2 as any); // SpanStatus.ERROR
-
       throw error;
     } finally {
       span.end();
