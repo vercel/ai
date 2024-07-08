@@ -125,6 +125,7 @@ export default function Page() {
       <form onSubmit={handleSubmit} className="fixed bottom-0 p-2 w-full">
         <input
           value={input}
+          placeholder="Send message..."
           onChange={handleInputChange}
           className="bg-zinc-100 w-full p-2"
         />

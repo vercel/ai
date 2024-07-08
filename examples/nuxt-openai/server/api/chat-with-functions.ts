@@ -47,7 +47,7 @@ export default defineLazyEventHandler(async () => {
     const { messages } = await readBody(event);
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo-0613',
+      model: 'gpt-3.5-turbo',
       stream: true,
       messages,
       functions,
@@ -74,7 +74,7 @@ export default defineLazyEventHandler(async () => {
           return openai.chat.completions.create({
             messages: [...messages, ...newMessages],
             stream: true,
-            model: 'gpt-3.5-turbo-0613',
+            model: 'gpt-3.5-turbo',
           });
         }
       },

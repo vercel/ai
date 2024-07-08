@@ -192,7 +192,7 @@ export type CreateMessage = Omit<Message, 'id'> & {
 export type ChatRequest = {
   messages: Message[];
   options?: RequestOptions;
-  data?: Record<string, string>;
+  data?: JSONValue;
 
   /**
    * @deprecated
@@ -272,7 +272,7 @@ The options to be passed to the fetch call.
   /**
 Additional data to be sent to the server.
    */
-  data?: Record<string, string>;
+  data?: JSONValue;
 };
 
 export type UseChatOptions = {
@@ -386,6 +386,12 @@ either synchronously or asynchronously.
 
   /** Stream mode (default to "stream-data") */
   streamMode?: 'stream-data' | 'text';
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: FetchFunction;
 };
 
 export type UseCompletionOptions = {
@@ -454,8 +460,18 @@ export type UseCompletionOptions = {
 
   /** Stream mode (default to "stream-data") */
   streamMode?: 'stream-data' | 'text';
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: FetchFunction;
 };
 
+/**
+A JSON value can be a string, number, boolean, object, array, or null. 
+JSON values can be serialized and deserialized by the JSON.stringify and JSON.parse methods.
+ */
 export type JSONValue =
   | null
   | string
@@ -487,3 +503,8 @@ export type DataMessage = {
   role: 'data';
   data: JSONValue; // application-specific data
 };
+
+/**
+ * Fetch function type (standardizes the version of fetch used).
+ */
+export type FetchFunction = typeof fetch;

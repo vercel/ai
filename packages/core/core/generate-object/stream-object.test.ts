@@ -518,7 +518,7 @@ describe('result.object', () => {
   });
 });
 
-describe('onFinish callback', () => {
+describe('options.onFinish', () => {
   describe('with successfully validated object', () => {
     let result: Parameters<
       Required<Parameters<typeof streamObject>[0]>['onFinish']
@@ -661,5 +661,45 @@ describe('onFinish callback', () => {
         true,
       );
     });
+  });
+});
+
+describe('options.headers', () => {
+  it('should set headers', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async ({ headers }) => {
+          assert.deepStrictEqual(headers, {
+            'custom-request-header': 'request-header-value',
+          });
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+      headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.partialObjectStream),
+      [
+        {},
+        { content: 'Hello, ' },
+        { content: 'Hello, world' },
+        { content: 'Hello, world!' },
+      ],
+    );
   });
 });

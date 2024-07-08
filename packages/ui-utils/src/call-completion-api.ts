@@ -2,6 +2,9 @@ import { readDataStream } from './read-data-stream';
 import { JSONValue } from './types';
 import { createChunkDecoder } from './index';
 
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
+
 export async function callCompletionApi({
   api,
   prompt,
@@ -17,21 +20,23 @@ export async function callCompletionApi({
   onFinish,
   onError,
   onData,
+  fetch = getOriginalFetch(),
 }: {
   api: string;
   prompt: string;
-  credentials?: RequestCredentials;
-  headers?: HeadersInit;
+  credentials: RequestCredentials | undefined;
+  headers: HeadersInit | undefined;
   body: Record<string, any>;
-  streamMode?: 'stream-data' | 'text';
+  streamMode: 'stream-data' | 'text' | undefined;
   setCompletion: (completion: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: Error | undefined) => void;
   setAbortController: (abortController: AbortController | null) => void;
-  onResponse?: (response: Response) => void | Promise<void>;
-  onFinish?: (prompt: string, completion: string) => void;
-  onError?: (error: Error) => void;
-  onData?: (data: JSONValue[]) => void;
+  onResponse: ((response: Response) => void | Promise<void>) | undefined;
+  onFinish: ((prompt: string, completion: string) => void) | undefined;
+  onError: ((error: Error) => void) | undefined;
+  onData: ((data: JSONValue[]) => void) | undefined;
+  fetch: ReturnType<typeof getOriginalFetch> | undefined;
 }) {
   try {
     setLoading(true);

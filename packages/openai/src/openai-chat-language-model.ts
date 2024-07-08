@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   ParseResult,
+  combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
@@ -153,7 +154,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -196,7 +197,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: {
         ...args,
         stream: true,

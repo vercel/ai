@@ -1,11 +1,16 @@
+import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   DeepPartial,
+  FetchFunction,
   isDeepEqualData,
   parsePartialJson,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
 import z from 'zod';
+
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
 
 export type Experimental_UseObjectOptions<RESULT> = {
   /**
@@ -29,6 +34,17 @@ export type Experimental_UseObjectOptions<RESULT> = {
    * An optional value for the initial object.
    */
   initialValue?: DeepPartial<RESULT>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: FetchFunction;
+
+  /**
+   * Callback function to be called when an error is encountered.
+   */
+  onError?: (error: Error) => void;
 };
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
@@ -68,6 +84,8 @@ function useObject<RESULT, INPUT = any>({
   id,
   schema, // required, in the future we will use it for validation
   initialValue,
+  fetch,
+  onError,
 }: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
   RESULT,
   INPUT
@@ -90,18 +108,25 @@ function useObject<RESULT, INPUT = any>({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const stop = useCallback(() => {
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = null;
+    try {
+      abortControllerRef.current?.abort();
+    } catch (ignored) {
+    } finally {
+      setIsLoading(false);
+      abortControllerRef.current = null;
+    }
   }, []);
 
   const submit = async (input: INPUT) => {
     try {
       setIsLoading(true);
+      setError(undefined);
 
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
-      const response = await fetch(api, {
+      const actualFetch = fetch ?? getOriginalFetch();
+      const response = await actualFetch(api, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: abortController.signal,
@@ -121,7 +146,7 @@ function useObject<RESULT, INPUT = any>({
       let accumulatedText = '';
       let latestObject: DeepPartial<RESULT> | undefined = undefined;
 
-      response.body.pipeThrough(new TextDecoderStream()).pipeTo(
+      await response.body.pipeThrough(new TextDecoderStream()).pipeTo(
         new WritableStream<string>({
           write(chunk) {
             accumulatedText += chunk;
@@ -136,15 +161,23 @@ function useObject<RESULT, INPUT = any>({
               mutate(currentObject);
             }
           },
+
+          close() {
+            setIsLoading(false);
+            abortControllerRef.current = null;
+          },
         }),
       );
-
-      setError(undefined);
     } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+
+      if (onError && error instanceof Error) {
+        onError(error);
+      }
+
       setError(error);
-    } finally {
-      setIsLoading(false);
-      abortControllerRef.current = null;
     }
   };
 

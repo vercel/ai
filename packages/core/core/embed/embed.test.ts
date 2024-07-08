@@ -33,3 +33,23 @@ describe('result.value', () => {
     assert.deepStrictEqual(result.value, testValue);
   });
 });
+
+describe('options.headers', () => {
+  it('should set headers', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV1({
+        doEmbed: async ({ headers }) => {
+          assert.deepStrictEqual(headers, {
+            'custom-request-header': 'request-header-value',
+          });
+
+          return { embeddings: [dummyEmbedding] };
+        },
+      }),
+      value: testValue,
+      headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    assert.deepStrictEqual(result.embedding, dummyEmbedding);
+  });
+});

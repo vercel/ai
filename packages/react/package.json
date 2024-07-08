@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "0.0.10",
+  "version": "0.0.16",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -25,8 +25,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider-utils": "0.0.16",
-    "@ai-sdk/ui-utils": "0.0.6",
+    "@ai-sdk/provider-utils": "1.0.0",
+    "@ai-sdk/ui-utils": "0.0.9",
     "swr": "2.2.0"
   },
   "devDependencies": {
@@ -40,7 +40,7 @@
     "eslint": "^7.32.0",
     "eslint-config-vercel-ai": "workspace:*",
     "jsdom": "^24.0.0",
-    "msw": "2.0.9",
+    "msw": "2.3.1",
     "react-dom": "^18",
     "tsup": "^7.2.0",
     "typescript": "5.1.3",

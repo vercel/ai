@@ -1,5 +1,72 @@
 # ai
 
+## 3.2.16
+
+### Patch Changes
+
+- Updated dependencies [3f756a6b]
+  - @ai-sdk/react@0.0.16
+
+## 3.2.15
+
+### Patch Changes
+
+- 6c99581e: fix (ai/react): stop() on useObject does not throw error and clears isLoading
+- Updated dependencies [6c99581e]
+  - @ai-sdk/react@0.0.15
+
+## 3.2.14
+
+### Patch Changes
+
+- Updated dependencies [9b50003d]
+- Updated dependencies [1894f811]
+  - @ai-sdk/react@0.0.14
+  - @ai-sdk/ui-utils@0.0.9
+  - @ai-sdk/solid@0.0.11
+  - @ai-sdk/svelte@0.0.12
+  - @ai-sdk/vue@0.0.11
+
+## 3.2.13
+
+### Patch Changes
+
+- d3100b9c: feat (ai/ui): support custom fetch function in useChat, useCompletion, useAssistant, useObject
+- Updated dependencies [d3100b9c]
+  - @ai-sdk/ui-utils@0.0.8
+  - @ai-sdk/svelte@0.0.11
+  - @ai-sdk/react@0.0.13
+  - @ai-sdk/solid@0.0.10
+  - @ai-sdk/vue@0.0.10
+
+## 3.2.12
+
+### Patch Changes
+
+- 5edc6110: feat (ai/core): add custom request header support
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+  - @ai-sdk/provider@0.0.11
+  - @ai-sdk/provider-utils@1.0.0
+  - @ai-sdk/react@0.0.12
+  - @ai-sdk/svelte@0.0.10
+  - @ai-sdk/ui-utils@0.0.7
+  - @ai-sdk/solid@0.0.9
+  - @ai-sdk/vue@0.0.9
+
+## 3.2.11
+
+### Patch Changes
+
+- c908f741: chore (ui/solid): update solidjs useChat and useCompletion to feature parity with React
+- 827ef450: feat (ai/ui): improve error handling in useAssistant
+- Updated dependencies [c908f741]
+- Updated dependencies [827ef450]
+  - @ai-sdk/solid@0.0.8
+  - @ai-sdk/svelte@0.0.9
+  - @ai-sdk/react@0.0.11
+
 ## 3.2.10
 
 ### Patch Changes

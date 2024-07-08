@@ -67,6 +67,7 @@ export function useCompletion({
   onResponse,
   onFinish,
   onError,
+  fetch,
 }: UseCompletionOptions = {}): UseCompletionHelpers {
   // Generate an unique id for the completion if not provided.
   const completionId = id || `completion-${uniqueId++}`;
@@ -132,6 +133,7 @@ export function useCompletion({
       onData: data => {
         mutateStreamData(() => [...existingData, ...(data ?? [])]);
       },
+      fetch,
     });
   }
 
