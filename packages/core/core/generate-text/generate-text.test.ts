@@ -513,6 +513,20 @@ describe('telemetry', () => {
     setTestTracer(undefined);
   });
 
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          text: `Hello, world!`,
+        }),
+      }),
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, []);
+  });
+
   it('should record telemetry data when enabled', async () => {
     await generateText({
       model: new MockLanguageModelV1({
