@@ -538,6 +538,11 @@ describe('telemetry', () => {
       prompt: 'prompt',
       experimental_telemetry: {
         isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
       },
     });
 
@@ -550,14 +555,16 @@ describe('telemetry', () => {
           'ai.prompt': '{"prompt":"prompt"}',
           'ai.settings.maxRetries': undefined,
           'ai.settings.maxToolRoundtrips': 0,
-          'ai.telemetry.functionId': undefined,
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
           'ai.finishReason': 'stop',
           'ai.result.text': 'Hello, world!',
           'ai.result.toolCalls': undefined,
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
           'operation.name': 'ai.generateText',
-          'resource.name': undefined,
+          'resource.name': 'test-function-id',
         },
       },
       {
@@ -569,14 +576,16 @@ describe('telemetry', () => {
           'ai.prompt.messages':
             '[{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
           'ai.settings.maxRetries': undefined,
-          'ai.telemetry.functionId': undefined,
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
           'ai.finishReason': 'stop',
           'ai.result.text': 'Hello, world!',
           'ai.result.toolCalls': undefined,
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
           'operation.name': 'ai.generateText',
-          'resource.name': undefined,
+          'resource.name': 'test-function-id',
         },
       },
     ]);
