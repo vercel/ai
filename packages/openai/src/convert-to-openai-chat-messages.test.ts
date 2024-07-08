@@ -5,6 +5,7 @@ describe('user messages', () => {
     const result = convertToOpenAIChatMessages([
       {
         role: 'user',
+        name: 'anonymous',
         content: [
           { type: 'text', text: 'Hello' },
           {
@@ -19,6 +20,7 @@ describe('user messages', () => {
     expect(result).toEqual([
       {
         role: 'user',
+        name: 'anonymous',
         content: [
           { type: 'text', text: 'Hello' },
           {

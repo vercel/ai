@@ -7,21 +7,23 @@ export function convertToOpenAIChatMessages(
 ): OpenAIChatPrompt {
   const messages: OpenAIChatPrompt = [];
 
-  for (const { role, content } of prompt) {
-    switch (role) {
+  for (const message of prompt) {
+    switch (message.role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        messages.push({ role: 'system', name: message.name, content: message.content });
         break;
       }
 
       case 'user': {
+        const { name, content } = message;
         if (content.length === 1 && content[0].type === 'text') {
-          messages.push({ role: 'user', content: content[0].text });
+          messages.push({ role: 'user', name, content: content[0].text });
           break;
         }
 
         messages.push({
           role: 'user',
+          name,
           content: content.map(part => {
             switch (part.type) {
               case 'text': {
@@ -48,6 +50,7 @@ export function convertToOpenAIChatMessages(
       }
 
       case 'assistant': {
+        const { name, content } = message;
         let text = '';
         const toolCalls: Array<{
           id: string;
@@ -89,7 +92,7 @@ export function convertToOpenAIChatMessages(
       }
 
       case 'tool': {
-        for (const toolResponse of content) {
+        for (const toolResponse of message.content) {
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
@@ -100,7 +103,7 @@ export function convertToOpenAIChatMessages(
       }
 
       default: {
-        const _exhaustiveCheck: never = role;
+        const _exhaustiveCheck: never = message;
         throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
       }
     }

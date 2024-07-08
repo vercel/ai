@@ -427,6 +427,7 @@ describe('options.maxToolRoundtrips', () => {
                 },
                 {
                   role: 'assistant',
+                  name: undefined,
                   content: [
                     {
                       type: 'tool-call',

@@ -22,7 +22,15 @@ export type CoreMessage =
  to increase the resilience against prompt injection attacks,
  and because not all providers support several system messages.
  */
-export type CoreSystemMessage = { role: 'system'; content: string };
+export type CoreSystemMessage = {
+  role: 'system';
+  /**
+May be used in place of or in addition to "role" to differentiate between multiple participants with
+the same role. Not supported by all providers.
+   */
+  name?: string;
+  content: string;
+};
 
 /**
  * @deprecated Use `CoreMessage` instead.
@@ -32,7 +40,15 @@ export type ExperimentalMessage = CoreMessage;
 /**
 A user message. It can contain text or a combination of text and images.
  */
-export type CoreUserMessage = { role: 'user'; content: UserContent };
+export type CoreUserMessage = {
+  role: 'user';
+  /**
+May be used in place of or in addition to "role" to differentiate between multiple participants with
+the same role. Not supported by all providers.
+   */
+  name?: string;
+  content: UserContent;
+};
 
 /**
  * @deprecated Use `CoreUserMessage` instead.
@@ -49,6 +65,11 @@ An assistant message. It can contain text, tool calls, or a combination of text 
  */
 export type CoreAssistantMessage = {
   role: 'assistant';
+  /**
+May be used in place of or in addition to "role" to differentiate between multiple participants with
+the same role. Not supported by all providers.
+   */
+  name?: string;
   content: AssistantContent;
 };
 

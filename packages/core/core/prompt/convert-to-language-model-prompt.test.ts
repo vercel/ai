@@ -6,6 +6,7 @@ describe('convertToLanguageModelMessage', () => {
       it('should convert image string https url to URL object', async () => {
         const result = convertToLanguageModelMessage({
           role: 'user',
+          name: 'admin',
           content: [
             {
               type: 'image',
@@ -16,6 +17,7 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(result).toEqual({
           role: 'user',
+          name: 'admin',
           content: [
             {
               type: 'image',
@@ -28,6 +30,7 @@ describe('convertToLanguageModelMessage', () => {
       it('should convert image string data url to base64 content', async () => {
         const result = convertToLanguageModelMessage({
           role: 'user',
+          name: 'image-submitter',
           content: [
             {
               type: 'image',
@@ -38,6 +41,7 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(result).toEqual({
           role: 'user',
+          name: 'image-submitter',
           content: [
             {
               type: 'image',
@@ -55,6 +59,7 @@ describe('convertToLanguageModelMessage', () => {
       it('should ignore empty text parts', async () => {
         const result = convertToLanguageModelMessage({
           role: 'assistant',
+          name: 'agent-1',
           content: [
             {
               type: 'text',
@@ -71,6 +76,7 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(result).toEqual({
           role: 'assistant',
+          name: 'agent-1',
           content: [
             {
               type: 'tool-call',

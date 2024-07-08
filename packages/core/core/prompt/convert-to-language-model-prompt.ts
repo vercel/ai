@@ -52,19 +52,21 @@ export function convertToLanguageModelMessage(
   const role = message.role;
   switch (role) {
     case 'system': {
-      return { role: 'system', content: message.content };
+      return { role: 'system', name: message.name, content: message.content };
     }
 
     case 'user': {
       if (typeof message.content === 'string') {
         return {
           role: 'user',
+          name: message.name,
           content: [{ type: 'text', text: message.content }],
         };
       }
 
       return {
         role: 'user',
+        name: message.name,
         content: message.content.map(
           (part): LanguageModelV1TextPart | LanguageModelV1ImagePart => {
             switch (part.type) {
@@ -147,12 +149,14 @@ export function convertToLanguageModelMessage(
       if (typeof message.content === 'string') {
         return {
           role: 'assistant',
+          name: message.name,
           content: [{ type: 'text', text: message.content }],
         };
       }
 
       return {
         role: 'assistant',
+        name: message.name,
         content: message.content.filter(
           // remove empty text parts:
           part => part.type !== 'text' || part.text !== '',

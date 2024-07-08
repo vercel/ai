@@ -15,14 +15,17 @@ export type LanguageModelV1Message =
   // such as PDFs.
   | {
       role: 'system';
+      name?: string;
       content: string;
     }
   | {
       role: 'user';
+      name?: string;
       content: Array<LanguageModelV1TextPart | LanguageModelV1ImagePart>;
     }
   | {
       role: 'assistant';
+      name?: string;
       content: Array<LanguageModelV1TextPart | LanguageModelV1ToolCallPart>;
     }
   | {
