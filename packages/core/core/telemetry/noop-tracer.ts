@@ -1,5 +1,8 @@
 import { Span, SpanContext, Tracer } from '@opentelemetry/api';
 
+/**
+ * Tracer implementation that does nothing (null object).
+ */
 export const noopTracer: Tracer = {
   startSpan(): Span {
     return noopSpan;
