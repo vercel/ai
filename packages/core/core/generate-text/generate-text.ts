@@ -75,7 +75,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   headers,
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
-  telemetry,
+  experimental_telemetry: telemetry,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -118,7 +118,7 @@ By default, it's set to 0, which will disable the feature.
      */
     // This is meant to be both flexible for custom app requirements (metadata)
     // and extensible for standardization (example: functionId, more to come).
-    telemetry?: {
+    experimental_telemetry?: {
       functionId?: string;
       metadata?: Record<string, AttributeValue>;
     };
@@ -127,7 +127,7 @@ By default, it's set to 0, which will disable the feature.
     'ai.model.provider': model.provider,
     'ai.model.id': model.modelId,
     // settings:
-    'ai.settings.max_retries': maxRetries,
+    'ai.settings.maxRetries': maxRetries,
     ...Object.entries(settings ?? {}).reduce((attributes, [key, value]) => {
       attributes[`ai.settings.${key}`] = value;
       return attributes;
@@ -135,7 +135,7 @@ By default, it's set to 0, which will disable the feature.
     // special telemetry information
     'operation.name': 'ai.generateText',
     'resource.name': telemetry?.functionId,
-    'ai.telemetry.function_id': telemetry?.functionId,
+    'ai.telemetry.functionId': telemetry?.functionId,
     // add metadata as attributes:
     ...Object.entries(telemetry?.metadata ?? {}).reduce(
       (attributes, [key, value]) => {
@@ -154,7 +154,7 @@ By default, it's set to 0, which will disable the feature.
       ...baseTelemetryAttributes,
       // specific settings that only make sense on the outer level:
       'ai.prompt': JSON.stringify({ system, prompt, messages }),
-      'ai.settings.max_tool_roundtrips': maxToolRoundtrips,
+      'ai.settings.maxToolRoundtrips': maxToolRoundtrips,
     },
     async span => {
       const retry = retryWithExponentialBackoff({ maxRetries });
@@ -205,11 +205,11 @@ By default, it's set to 0, which will disable the feature.
 
               // Add response information to the span:
               span.setAttributes({
-                'ai.finish_reason': result.finishReason,
-                'ai.usage.prompt_tokens': result.usage.promptTokens,
-                'ai.usage.completion_tokens': result.usage.completionTokens,
+                'ai.finishReason': result.finishReason,
+                'ai.usage.promptTokens': result.usage.promptTokens,
+                'ai.usage.completionTokens': result.usage.completionTokens,
                 'ai.result.text': result.text,
-                'ai.result.tool_calls': JSON.stringify(result.toolCalls),
+                'ai.result.toolCalls': JSON.stringify(result.toolCalls),
               });
 
               return result;
@@ -249,12 +249,12 @@ By default, it's set to 0, which will disable the feature.
 
       // Add response information to the span:
       span.setAttributes({
-        'ai.finish_reason': currentModelResponse.finishReason,
-        'ai.usage.prompt_Tokens': currentModelResponse.usage.promptTokens,
-        'ai.usage.completion_tokens':
+        'ai.finishReason': currentModelResponse.finishReason,
+        'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
+        'ai.usage.completionTokens':
           currentModelResponse.usage.completionTokens,
         'ai.result.text': currentModelResponse.text,
-        'ai.result.tool_calls': JSON.stringify(currentModelResponse.toolCalls),
+        'ai.result.toolCalls': JSON.stringify(currentModelResponse.toolCalls),
       });
 
       return new GenerateTextResult({
