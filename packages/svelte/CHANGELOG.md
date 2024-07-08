@@ -1,5 +1,14 @@
 # @ai-sdk/svelte
 
+## 0.0.13
+
+### Patch Changes
+
+- 3db90c3d: allow empty handleSubmit submissions for useChat
+- Updated dependencies [d481729f]
+  - @ai-sdk/provider-utils@1.0.1
+  - @ai-sdk/ui-utils@0.0.10
+
 ## 0.0.12
 
 ### Patch Changes

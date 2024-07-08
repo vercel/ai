@@ -1,5 +1,22 @@
 # ai
 
+## 3.2.17
+
+### Patch Changes
+
+- 3db90c3d: allow empty handleSubmit submissions for useChat
+- abb22602: feat (ai): verify that system messages have string content
+- 5c1f0bd3: fix unclosed streamable value console message
+- Updated dependencies [6a11cfaa]
+- Updated dependencies [3db90c3d]
+- Updated dependencies [d481729f]
+  - @ai-sdk/react@0.0.17
+  - @ai-sdk/svelte@0.0.13
+  - @ai-sdk/solid@0.0.12
+  - @ai-sdk/vue@0.0.12
+  - @ai-sdk/provider-utils@1.0.1
+  - @ai-sdk/ui-utils@0.0.10
+
 ## 3.2.16
 
 ### Patch Changes

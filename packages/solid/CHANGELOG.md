@@ -1,5 +1,12 @@
 # @ai-sdk/solid
 
+## 0.0.12
+
+### Patch Changes
+
+- 3db90c3d: allow empty handleSubmit submissions for useChat
+  - @ai-sdk/ui-utils@0.0.10
+
 ## 0.0.11
 
 ### Patch Changes
