@@ -1,5 +1,4 @@
 ---
-'solidstart-openai': patch
 '@ai-sdk/svelte': patch
 '@ai-sdk/react': patch
 '@ai-sdk/solid': patch
