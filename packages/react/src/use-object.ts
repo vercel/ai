@@ -101,7 +101,7 @@ function useObject<RESULT, INPUT = any>({
     { fallbackData: initialValue },
   );
 
-  const [error, setError] = useState<undefined | Error>(undefined);
+  const [error, setError] = useState<undefined | unknown>(undefined);
   const [isLoading, setIsLoading] = useState(false);
 
   // Abort controller to cancel the current API call.
@@ -177,7 +177,7 @@ function useObject<RESULT, INPUT = any>({
         onError(error);
       }
 
-      setError(error as Error);
+      setError(error);
     }
   };
 
