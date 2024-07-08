@@ -15,5 +15,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return Response.json({ text });
+  return new Response(JSON.stringify({ text }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
