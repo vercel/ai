@@ -65,7 +65,7 @@ class MockSpan implements Span {
   name: string;
   context?: Context;
   options?: SpanOptions;
-  attributes: Attributes = {};
+  attributes: Attributes;
 
   readonly _spanContext: SpanContext = new MockSpanContext();
 
@@ -81,6 +81,7 @@ class MockSpan implements Span {
     this.name = name;
     this.context = context;
     this.options = options;
+    this.attributes = options?.attributes ?? {};
   }
 
   spanContext(): SpanContext {

@@ -531,6 +531,14 @@ describe('telemetry', () => {
       {
         name: 'ai.generateText',
         attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt': '{"prompt":"prompt"}',
+          'ai.settings.maxRetries': undefined,
+          'ai.settings.maxToolRoundtrips': 0,
+          'ai.telemetry.functionId': undefined,
+          'operation.name': 'ai.generateText',
+          'resource.name': undefined,
           'ai.finishReason': 'stop',
           'ai.result.text': 'Hello, world!',
           'ai.result.toolCalls': undefined,
@@ -541,6 +549,15 @@ describe('telemetry', () => {
       {
         name: 'ai.generateText.doGenerate',
         attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt.format': 'prompt',
+          'ai.prompt.messages':
+            '[{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': undefined,
+          'operation.name': 'ai.generateText',
+          'resource.name': undefined,
           'ai.finishReason': 'stop',
           'ai.result.text': 'Hello, world!',
           'ai.result.toolCalls': undefined,
