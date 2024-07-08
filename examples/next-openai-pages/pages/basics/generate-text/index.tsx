@@ -27,7 +27,11 @@ export default function Page() {
         Generate
       </div>
 
-      {isLoading ? 'Loading...' : generation}
+      {isLoading ? (
+        'Loading...'
+      ) : (
+        <div data-testid="generation">generation</div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,66 @@
 # @ai-sdk/react
 
+## 0.0.17
+
+### Patch Changes
+
+- 6a11cfaa: feat (ai/ui): add onError handler to useObject
+- 3db90c3d: allow empty handleSubmit submissions for useChat
+- Updated dependencies [d481729f]
+  - @ai-sdk/provider-utils@1.0.1
+  - @ai-sdk/ui-utils@0.0.10
+
+## 0.0.16
+
+### Patch Changes
+
+- 3f756a6b: fix (ai/react): include fetch parameter as part of useChat
+
+## 0.0.15
+
+### Patch Changes
+
+- 6c99581e: fix (ai/react): stop() on useObject does not throw error and clears isLoading
+
+## 0.0.14
+
+### Patch Changes
+
+- 9b50003d: fix (ai/react): useObject stop & isLoading reset at end of stream
+- 1894f811: feat (ai/ui): allow JSONValue as data in useChat handleSubmit
+- Updated dependencies [1894f811]
+  - @ai-sdk/ui-utils@0.0.9
+
+## 0.0.13
+
+### Patch Changes
+
+- d3100b9c: feat (ai/ui): support custom fetch function in useChat, useCompletion, useAssistant, useObject
+- Updated dependencies [d3100b9c]
+  - @ai-sdk/ui-utils@0.0.8
+
+## 0.0.12
+
+### Patch Changes
+
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+  - @ai-sdk/provider-utils@1.0.0
+  - @ai-sdk/ui-utils@0.0.7
+
+## 0.0.11
+
+### Patch Changes
+
+- 827ef450: feat (ai/ui): improve error handling in useAssistant
+
+## 0.0.10
+
+### Patch Changes
+
+- 5b04204b: chore (ai/react): rename useChat setInput to submit
+- 8f482903: feat (ai/react): add stop() helper to useObject
+
 ## 0.0.9
 
 ### Patch Changes

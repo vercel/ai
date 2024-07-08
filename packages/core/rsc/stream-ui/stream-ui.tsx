@@ -86,6 +86,7 @@ export async function streamUI<
   messages,
   maxRetries,
   abortSignal,
+  headers,
   initial,
   text,
   onFinish,
@@ -263,6 +264,7 @@ export async function streamUI<
       inputFormat: validatedPrompt.type,
       prompt: convertToLanguageModelPrompt(validatedPrompt),
       abortSignal,
+      headers,
     }),
   );
 

@@ -1,5 +1,33 @@
 # @ai-sdk/vue
 
+## 0.0.12
+
+### Patch Changes
+
+- 3db90c3d: allow empty handleSubmit submissions for useChat
+  - @ai-sdk/ui-utils@0.0.10
+
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [1894f811]
+  - @ai-sdk/ui-utils@0.0.9
+
+## 0.0.10
+
+### Patch Changes
+
+- d3100b9c: feat (ai/ui): support custom fetch function in useChat, useCompletion, useAssistant, useObject
+- Updated dependencies [d3100b9c]
+  - @ai-sdk/ui-utils@0.0.8
+
+## 0.0.9
+
+### Patch Changes
+
+- @ai-sdk/ui-utils@0.0.7
+
 ## 0.0.8
 
 ### Patch Changes

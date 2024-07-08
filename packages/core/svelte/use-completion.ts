@@ -31,7 +31,6 @@ export type UseCompletionHelpers = {
   setCompletion: (completion: string) => void;
   /** The current value of the input */
   input: Writable<string>;
-
   /**
    * Form submission handler to automatically reset input and append a user message
    * @example
@@ -42,7 +41,6 @@ export type UseCompletionHelpers = {
    * ```
    */
   handleSubmit: (event?: { preventDefault?: () => void }) => void;
-
   /** Whether the API request is in progress */
   isLoading: Readable<boolean | undefined>;
 
@@ -69,6 +67,7 @@ export function useCompletion({
   onResponse,
   onFinish,
   onError,
+  fetch,
 }: UseCompletionOptions = {}): UseCompletionHelpers {
   // Generate an unique id for the completion if not provided.
   const completionId = id || `completion-${uniqueId++}`;
@@ -132,6 +131,7 @@ export function useCompletion({
       onData(data) {
         streamData.set([...(existingData || []), ...(data || [])]);
       },
+      fetch,
     });
   };
 

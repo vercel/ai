@@ -1,5 +1,35 @@
 # @ai-sdk/anthropic
 
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [d481729f]
+  - @ai-sdk/provider-utils@1.0.1
+
+## 0.0.27
+
+### Patch Changes
+
+- 7e86b45e: fix (provider/anthropic): automatically trim trailing whitespace on pre-filled assistant responses
+
+## 0.0.26
+
+### Patch Changes
+
+- 5edc6110: feat (ai/core): add custom request header support
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+  - @ai-sdk/provider@0.0.11
+  - @ai-sdk/provider-utils@1.0.0
+
+## 0.0.25
+
+### Patch Changes
+
+- 91dc4296: chore (@ai-sdk/anthropic): remove anthropic-beta header
+
 ## 0.0.24
 
 ### Patch Changes

@@ -18,7 +18,7 @@ export default function Page() {
         Generate
       </div>
 
-      {completion}
+      <div data-testid="generation">{completion}</div>
     </div>
   );
 }

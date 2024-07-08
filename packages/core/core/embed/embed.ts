@@ -9,6 +9,7 @@ Embed a value using an embedding model. The type of the value is defined by the 
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @returns A result object that contains the embedding, the value, and additional information.
  */
@@ -17,6 +18,7 @@ export async function embed<VALUE>({
   value,
   maxRetries,
   abortSignal,
+  headers,
 }: {
   /**
 The embedding model to use.
@@ -39,14 +41,17 @@ Maximum number of retries per embedding model call. Set to 0 to disable retries.
 Abort signal.
  */
   abortSignal?: AbortSignal;
+
+  /**
+Additional headers to include in the request.
+Only applicable for HTTP-based providers.
+ */
+  headers?: Record<string, string>;
 }): Promise<EmbedResult<VALUE>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
 
   const modelResponse = await retry(() =>
-    model.doEmbed({
-      values: [value],
-      abortSignal,
-    }),
+    model.doEmbed({ values: [value], abortSignal, headers }),
   );
 
   return new EmbedResult({

@@ -274,6 +274,13 @@ A helper function to create a streamable UI from LLM providers. This function is
         'An optional abort signal that can be used to cancel the call.',
     },
     {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
+    {
       name: 'tools',
       type: 'Record<string, Tool>',
       description:

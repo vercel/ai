@@ -89,10 +89,6 @@ describe('stream data stream', () => {
 
     await userEvent.click(screen.getByTestId('do-append'));
 
-    // TODO bug? the user message does not show up
-    // await screen.findByTestId('message-0');
-    // expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
-
     await screen.findByTestId('error');
     expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
   });
@@ -205,6 +201,84 @@ describe('text stream', () => {
     await screen.findByTestId('message-1-text-stream');
     expect(screen.getByTestId('message-1-text-stream')).toHaveTextContent(
       'AI: Hello, world.',
+    );
+  });
+});
+
+describe('form actions', () => {
+  const TestComponent = () => {
+    const {
+      messages,
+      append,
+      handleSubmit,
+      handleInputChange,
+      isLoading,
+      input,
+    } = useChat({
+      streamMode: 'text',
+    });
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+          </div>
+        ))}
+
+        <form onSubmit={handleSubmit} className="fixed bottom-0 p-2 w-full">
+          <input
+            value={input}
+            placeholder="Send message..."
+            onChange={handleInputChange}
+            className="bg-zinc-100 w-full p-2"
+            disabled={isLoading}
+            data-testid="do-input"
+          />
+        </form>
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should show streamed response using handleSubmit', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['Hello', ',', ' world', '.'],
+    });
+
+    const firstInput = screen.getByTestId('do-input');
+    await userEvent.type(firstInput, 'hi');
+    await userEvent.keyboard('{Enter}');
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['How', ' can', ' I', ' help', ' you', '?'],
+    });
+
+    const secondInput = screen.getByTestId('do-input');
+    await userEvent.type(secondInput, '{Enter}');
+
+    await screen.findByTestId('message-2');
+    expect(screen.getByTestId('message-2')).toHaveTextContent(
+      'AI: How can I help you?',
     );
   });
 });
