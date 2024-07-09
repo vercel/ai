@@ -1,6 +1,7 @@
 import type {
   ChatRequest,
   ChatRequestOptions,
+  ContentPart,
   CreateMessage,
   FetchFunction,
   IdGenerator,
@@ -61,6 +62,8 @@ export type UseChatHelpers = {
       | React.ChangeEvent<HTMLInputElement>
       | React.ChangeEvent<HTMLTextAreaElement>,
   ) => void;
+  files: FileList | [];
+  handleFileInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
     event?: { preventDefault?: () => void },
@@ -497,10 +500,11 @@ By default, it's set to 0, which will disable the feature.
 
   // Input state and handlers.
   const [input, setInput] = useState(initialInput);
+  const [files, setFiles] = useState<FileList | []>([]);
 
   const handleSubmit = useCallback(
-    (
-      event?: { preventDefault?: () => void },
+    async (
+      event?: { preventDefault?: () => void; currentTarget?: any },
       options: ChatRequestOptions = {},
       metadata?: Object,
     ) => {
@@ -513,12 +517,61 @@ By default, it's set to 0, which will disable the feature.
 
       event?.preventDefault?.();
 
+      const fileInput = event?.currentTarget.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      let content: ContentPart[] = [];
+
+      if (input) {
+        content.push({
+          type: 'text',
+          text: input,
+        });
+      }
+
+      if (files) {
+        for (const file of Array.from(files)) {
+          const { type } = file;
+
+          if (type.startsWith('image/')) {
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = readerEvent => {
+                resolve(readerEvent.target?.result as string);
+              };
+              reader.onerror = error => reject(error);
+              reader.readAsDataURL(file);
+            });
+
+            content.push({
+              type: 'image',
+              image: base64,
+            });
+          } else if (type.startsWith('text/')) {
+            const text = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = readerEvent => {
+                resolve(readerEvent.target?.result as string);
+              };
+              reader.onerror = error => reject(error);
+              reader.readAsText(file);
+            });
+
+            content.push({
+              type: 'text',
+              text,
+            });
+          }
+        }
+      }
+
       const chatRequest: ChatRequest = {
         messages: input
           ? messagesRef.current.concat({
               id: generateId(),
               role: 'user',
-              content: input,
+              content,
             })
           : messagesRef.current,
         options: options.options,
@@ -527,13 +580,18 @@ By default, it's set to 0, which will disable the feature.
 
       triggerRequest(chatRequest);
 
+      fileInput.value = '';
       setInput('');
     },
-    [input, generateId, triggerRequest],
+    [input, files, generateId, triggerRequest],
   );
 
   const handleInputChange = (e: any) => {
     setInput(e.target.value);
+  };
+
+  const handleFileInputChange = (event: any) => {
+    setFiles(event.target.files);
   };
 
   const addToolResult = ({
@@ -577,7 +635,9 @@ By default, it's set to 0, which will disable the feature.
     setMessages,
     input,
     setInput,
+    files,
     handleInputChange,
+    handleFileInputChange,
     handleSubmit,
     isLoading,
     data: streamData,

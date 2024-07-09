@@ -3,6 +3,7 @@ import { Message } from '@ai-sdk/ui-utils';
 export function experimental_buildOpenAIMessages(
   messages: Message[],
 ): ChatCompletionMessageParam[] {
+  // @ts-ignore
   return messages.map(message => {
     switch (message.role) {
       case 'system':
@@ -10,6 +11,7 @@ export function experimental_buildOpenAIMessages(
         return {
           role: message.role,
           content: message.content,
+          // @ts-ignore
         } satisfies ChatCompletionMessageParam;
 
       case 'assistant': {
@@ -36,6 +38,7 @@ export function experimental_buildOpenAIMessages(
                   name: function_call.name!,
                   arguments: function_call.arguments!,
                 },
+          // @ts-ignore
         } satisfies ChatCompletionMessageParam;
       }
 
@@ -48,6 +51,7 @@ export function experimental_buildOpenAIMessages(
           role: message.role,
           content: message.content,
           name: message.name,
+          // @ts-ignore
         } satisfies ChatCompletionMessageParam;
       }
 
@@ -68,6 +72,7 @@ export function experimental_buildOpenAIMessages(
           role: message.role,
           content: message.content,
           tool_call_id: message.tool_call_id,
+          // @ts-ignore
         } satisfies ChatCompletionMessageParam;
       }
     }

@@ -36,7 +36,7 @@ export async function callChatApi({
 }) {
   const response = await fetch(api, {
     method: 'POST',
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...body, bro: 'hello' }),
     headers: {
       'Content-Type': 'application/json',
       ...headers,
@@ -77,7 +77,7 @@ export async function callChatApi({
         id: generateId(),
         createdAt: new Date(),
         role: 'assistant' as const,
-        content: '',
+        content: [{ type: 'text' as const, text: '' }],
       };
 
       while (true) {
@@ -86,7 +86,7 @@ export async function callChatApi({
           break;
         }
 
-        resultMessage.content += decoder(value);
+        resultMessage.content[0].text += decoder(value);
         resultMessage.id = generateId();
 
         // note: creating a new message object is required for Solid.js streaming

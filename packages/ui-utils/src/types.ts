@@ -117,6 +117,18 @@ export type ToolInvocation =
   | CoreToolCall<string, any>
   | CoreToolResult<string, any, any>;
 
+export interface TextContentPart {
+  type: 'text';
+  text: string;
+}
+
+export interface ImageContentPart {
+  type: 'image';
+  image: string;
+}
+
+export type ContentPart = TextContentPart | ImageContentPart;
+
 /**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
@@ -124,7 +136,7 @@ export interface Message {
   id: string;
   createdAt?: Date;
 
-  content: string;
+  content: string | ContentPart[] | null | undefined;
 
   /**
    * @deprecated Use AI SDK 3.1 `toolInvocations` instead.
