@@ -1,4 +1,4 @@
-import opentelemetry, { Tracer } from '@opentelemetry/api';
+import { Tracer, trace } from '@opentelemetry/api';
 import { noopTracer } from './noop-tracer';
 
 /**
@@ -19,5 +19,5 @@ export function getTracer({ isEnabled }: { isEnabled: boolean }) {
     return testTracer;
   }
 
-  return opentelemetry.trace.getTracer('ai');
+  return trace.getTracer('ai');
 }
