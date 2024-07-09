@@ -56,6 +56,10 @@ const examples = [
     title: 'Stream OpenAI Assistant API response with tool calls',
     link: '/assistants/stream-assistant-response-with-tools',
   },
+  {
+    title: 'Stream OpenAI Assistant API response and switch between threads',
+    link: '/assistants/stream-assistant-switch-threads',
+  },
 ];
 
 export default function Home() {
