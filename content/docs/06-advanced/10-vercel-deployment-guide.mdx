@@ -2,6 +2,7 @@
 title: Vercel Deployment Guide
 description: Learn how to deploy an AI application to production on Vercel
 ---
+
 # Vercel Deployment Guide
 
 In this guide, you will deploy an AI application to [Vercel](https://vercel.com) using [Next.js](https://nextjs.org) (App Router).
@@ -49,7 +50,6 @@ Once you have created your repository, GitHub will redirect you to your new repo
 1. Scroll down the page and copy the commands under the title "...or push an existing repository from the command line"
 2. Go back to the terminal, paste and then run the commands
 
-
 Note: if you run into the error "error: remote origin already exists.", this is because your local repository is still linked to the repository you cloned. To "unlink", you can run the following command:
 
 ```bash
@@ -69,7 +69,7 @@ Once you have signed in, you should see your newly created repository from the p
 
 ### Add Environment Variables
 
-Your application stores uses environment secrets to store your OpenAI API key using a `.env.local` file locally in development. To add this API key to your production deployment, expand the "Environment Variables" section and paste in your `.env.local` file. Vercel will automatically parse your  variables and enter them in the appropriate `key:value` format.
+Your application stores uses environment secrets to store your OpenAI API key using a `.env.local` file locally in development. To add this API key to your production deployment, expand the "Environment Variables" section and paste in your `.env.local` file. Vercel will automatically parse your variables and enter them in the appropriate `key:value` format.
 
 ### Deploy
 
@@ -77,7 +77,7 @@ Press the **Deploy** button. Vercel will create the Project and deploy it based 
 
 ### Enjoy the confetti!
 
-To view your deployment, select the Project in the dashboard and then select the **Domain**. This page is now visible to anyone who has the URL. 
+To view your deployment, select the Project in the dashboard and then select the **Domain**. This page is now visible to anyone who has the URL.
 
 ## Considerations
 
@@ -97,7 +97,7 @@ You can increase the max duration to 60 seconds on the Hobby Tier.
 
 ## Security Considerations
 
-Given the high cost of calling an LLM, it's important to have measures in place that can protect your application from abuse. 
+Given the high cost of calling an LLM, it's important to have measures in place that can protect your application from abuse.
 
 ### Rate Limit
 
