@@ -78,6 +78,23 @@ const { embedding } = await embed({
       description: 'The embedding of the value.',
     },
     {
+      name: 'usage',
+      type: 'UsageInformation',
+      description: 'The token usage for generating the embeddings.',
+      properties: [
+        {
+          type: 'UsageInformation',
+          parameters: [
+            {
+              name: 'tokens',
+              type: 'number',
+              description: 'The total number of input tokens.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'rawResponse',
       type: 'RawResponse',
       optional: true,

@@ -83,5 +83,22 @@ const { embeddings } = await embedMany({
       type: 'number[][]',
       description: 'The embeddings. They are in the same order as the values.',
     },
+    {
+      name: 'usage',
+      type: 'UsageInformation',
+      description: 'The token usage for generating the embeddings.',
+      properties: [
+        {
+          type: 'UsageInformation',
+          parameters: [
+            {
+              name: 'tokens',
+              type: 'number',
+              description: 'The total number of input tokens.',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
