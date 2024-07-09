@@ -1,8 +1,9 @@
 import { LanguageModelV1StreamPart, NoSuchToolError } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/ui-utils';
 import { CoreTool } from '../tool';
+import { calculateCompletionTokenUsage } from '../types/completion-token-usage';
 import { TextStreamPart } from './stream-text';
-import { calculateTokenUsage } from './token-usage';
+
 import { parseToolCall } from './tool-call';
 
 export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
@@ -131,7 +132,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
             type: 'finish',
             finishReason: chunk.finishReason,
             logprobs: chunk.logprobs,
-            usage: calculateTokenUsage(chunk.usage),
+            usage: calculateCompletionTokenUsage(chunk.usage),
           });
           break;
         }

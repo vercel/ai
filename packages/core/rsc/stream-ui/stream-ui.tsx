@@ -18,8 +18,8 @@ import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponent
 import { createStreamableUI } from '../streamable';
 import { createResolvablePromise } from '../utils';
 import {
-  TokenUsage,
-  calculateTokenUsage,
+  CompletionTokenUsage,
+  calculateCompletionTokenUsage,
 } from '../../core/generate-text/token-usage';
 
 type Streamable = ReactNode | Promise<ReactNode>;
@@ -123,7 +123,7 @@ export async function streamUI<
       /**
        * The token usage of the generated response.
        */
-      usage: TokenUsage;
+      usage: CompletionTokenUsage;
       /**
        * The final ui node that was generated.
        */
@@ -350,7 +350,7 @@ export async function streamUI<
           case 'finish': {
             onFinish?.({
               finishReason: value.finishReason,
-              usage: calculateTokenUsage(value.usage),
+              usage: calculateCompletionTokenUsage(value.usage),
               value: ui.value,
               warnings: result.warnings,
               rawResponse: result.rawResponse,
