@@ -1,4 +1,4 @@
-import { AttributeValue, Attributes } from '@opentelemetry/api';
+import { AttributeValue, Attributes, Tracer } from '@opentelemetry/api';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import {
@@ -232,7 +232,11 @@ By default, it's set to 0, which will disable the feature.
         currentToolResults =
           tools == null
             ? []
-            : await executeTools({ toolCalls: currentToolCalls, tools });
+            : await executeTools({
+                toolCalls: currentToolCalls,
+                tools,
+                tracer,
+              });
 
         // append to messages for potential next roundtrip:
         const newResponseMessages = toResponseMessages({
@@ -284,9 +288,11 @@ By default, it's set to 0, which will disable the feature.
 async function executeTools<TOOLS extends Record<string, CoreTool>>({
   toolCalls,
   tools,
+  tracer,
 }: {
   toolCalls: ToToolCallArray<TOOLS>;
   tools: TOOLS;
+  tracer: Tracer;
 }): Promise<ToToolResultArray<TOOLS>> {
   const toolResults = await Promise.all(
     toolCalls.map(async toolCall => {
@@ -296,7 +302,31 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         return undefined;
       }
 
-      const result = await tool.execute(toolCall.args);
+      const result = await recordSpan(
+        tracer,
+        'ai.generateText.toolCall',
+        {
+          'ai.toolCall.name': toolCall.toolName,
+          'ai.toolCall.id': toolCall.toolCallId,
+          'ai.toolCall.args': JSON.stringify(toolCall.args),
+        },
+        async span => {
+          const result = await tool.execute!(toolCall.args);
+
+          try {
+            span.setAttributes({
+              'ai.toolCall.result': JSON.stringify(result),
+            });
+          } catch (ignored) {
+            // JSON stringify might fail if the result is not serializable,
+            // in which case we just ignore it. In the future we might want to
+            // add an optional serialize method to the tool interface and warn
+            // if the result is not serializable.
+          }
+
+          return result;
+        },
+      );
 
       return {
         toolCallId: toolCall.toolCallId,
