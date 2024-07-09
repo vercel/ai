@@ -18,6 +18,7 @@ import {
   LanguageModel,
   LogProbs,
 } from '../types';
+import { CompletionTokenUsage } from '../types/token-usage';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -25,7 +26,6 @@ import {
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
-import { TokenUsage } from './token-usage';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
 
@@ -109,7 +109,7 @@ The reason why the generation finished.
       /**
 The token usage of the generated response.
  */
-      usage: TokenUsage;
+      usage: CompletionTokenUsage;
 
       /**
 The full text that has been generated.
@@ -210,7 +210,7 @@ Warnings from the model provider (e.g. unsupported settings).
   /**
 The token usage of the generated response. Resolved when the response is finished.
    */
-  readonly usage: Promise<TokenUsage>;
+  readonly usage: Promise<CompletionTokenUsage>;
 
   /**
 The reason why the generation finished. Resolved when the response is finished.
@@ -260,8 +260,10 @@ Response headers.
     this.onFinish = onFinish;
 
     // initialize usage promise
-    let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
-    this.usage = new Promise<TokenUsage>(resolve => {
+    let resolveUsage: (
+      value: CompletionTokenUsage | PromiseLike<CompletionTokenUsage>,
+    ) => void;
+    this.usage = new Promise<CompletionTokenUsage>(resolve => {
       resolveUsage = resolve;
     });
 
@@ -297,7 +299,7 @@ Response headers.
 
     // store information for onFinish callback:
     let finishReason: FinishReason | undefined;
-    let usage: TokenUsage | undefined;
+    let usage: CompletionTokenUsage | undefined;
     let text = '';
     const toolCalls: ToToolCall<TOOLS>[] = [];
     const toolResults: ToToolResult<TOOLS>[] = [];

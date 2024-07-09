@@ -18,8 +18,10 @@ describe('doEmbed', () => {
 
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
+    usage = { prompt_tokens: 8, total_tokens: 8 },
   }: {
     embeddings?: EmbeddingModelV1Embedding[];
+    usage?: { prompt_tokens: number; total_tokens: number };
   } = {}) {
     server.responseBodyJson = {
       id: 'b322cfc2b9d34e2f8e14fc99874faee5',
@@ -30,7 +32,7 @@ describe('doEmbed', () => {
         index: i,
       })),
       model: 'mistral-embed',
-      usage: { prompt_tokens: 8, total_tokens: 8, completion_tokens: 0 },
+      usage,
     };
   }
 
@@ -40,6 +42,16 @@ describe('doEmbed', () => {
     const { embeddings } = await model.doEmbed({ values: testValues });
 
     expect(embeddings).toStrictEqual(dummyEmbeddings);
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonResponse({
+      usage: { prompt_tokens: 20, total_tokens: 20 },
+    });
+
+    const { usage } = await model.doEmbed({ values: testValues });
+
+    expect(usage).toStrictEqual({ tokens: 20 });
   });
 
   it('should expose the raw response headers', async () => {
@@ -53,7 +65,7 @@ describe('doEmbed', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
-      'content-length': '289',
+      'content-length': '267',
       'content-type': 'application/json',
 
       // custom header

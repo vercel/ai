@@ -14,13 +14,13 @@ import { prepareCallSettings } from '../../core/prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../../core/prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../../core/prompt/prompt';
 import { CallWarning, CoreToolChoice, FinishReason } from '../../core/types';
+import {
+  CompletionTokenUsage,
+  calculateCompletionTokenUsage,
+} from '../../core/types/token-usage';
 import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
 import { createStreamableUI } from '../streamable';
 import { createResolvablePromise } from '../utils';
-import {
-  TokenUsage,
-  calculateTokenUsage,
-} from '../../core/generate-text/token-usage';
 
 type Streamable = ReactNode | Promise<ReactNode>;
 
@@ -123,7 +123,7 @@ export async function streamUI<
       /**
        * The token usage of the generated response.
        */
-      usage: TokenUsage;
+      usage: CompletionTokenUsage;
       /**
        * The final ui node that was generated.
        */
@@ -350,7 +350,7 @@ export async function streamUI<
           case 'finish': {
             onFinish?.({
               finishReason: value.finishReason,
-              usage: calculateTokenUsage(value.usage),
+              usage: calculateCompletionTokenUsage(value.usage),
               value: ui.value,
               warnings: result.warnings,
               rawResponse: result.rawResponse,

@@ -1,7 +1,7 @@
 /**
 Represents the number of tokens used in a prompt and completion.
  */
-export type TokenUsage = {
+export type CompletionTokenUsage = {
   /**
 The number of tokens used in the prompt
    */
@@ -18,10 +18,20 @@ The total number of tokens used (promptTokens + completionTokens).
   totalTokens: number;
 };
 
-export function calculateTokenUsage(usage: {
+/**
+Represents the number of tokens used in an embedding.
+ */
+export type EmbeddingTokenUsage = {
+  /**
+The number of tokens used in the embedding.
+   */
+  tokens: number;
+};
+
+export function calculateCompletionTokenUsage(usage: {
   promptTokens: number;
   completionTokens: number;
-}): TokenUsage {
+}): CompletionTokenUsage {
   return {
     promptTokens: usage.promptTokens,
     completionTokens: usage.completionTokens,

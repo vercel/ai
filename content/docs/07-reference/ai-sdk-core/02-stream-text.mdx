@@ -433,12 +433,12 @@ for await (const textPart of textStream) {
     },
     {
       name: 'usage',
-      type: 'Promise<TokenUsage>',
+      type: 'Promise<CompletionTokenUsage>',
       description:
         'The token usage of the generated text. Resolved when the response is finished.',
       properties: [
         {
-          type: 'TokenUsage',
+          type: 'CompletionTokenUsage',
           parameters: [
             {
               name: 'promptTokens',
