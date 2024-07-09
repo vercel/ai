@@ -37,19 +37,16 @@ describe('result.embedding', () => {
       model: new MockEmbeddingModelV1({
         maxEmbeddingsPerCall: 2,
         doEmbed: async ({ values }) => {
-          if (callCount === 0) {
-            assert.deepStrictEqual(values, testValues.slice(0, 2));
-            callCount++;
-            return { embeddings: dummyEmbeddings.slice(0, 2) };
+          switch (callCount++) {
+            case 0:
+              assert.deepStrictEqual(values, testValues.slice(0, 2));
+              return { embeddings: dummyEmbeddings.slice(0, 2) };
+            case 1:
+              assert.deepStrictEqual(values, testValues.slice(2));
+              return { embeddings: dummyEmbeddings.slice(2) };
+            default:
+              throw new Error('Unexpected call');
           }
-
-          if (callCount === 1) {
-            assert.deepStrictEqual(values, testValues.slice(2));
-            callCount++;
-            return { embeddings: dummyEmbeddings.slice(2) };
-          }
-
-          throw new Error('Unexpected call');
         },
       }),
       values: testValues,
@@ -80,26 +77,21 @@ describe('result.usage', () => {
     const result = await embedMany({
       model: new MockEmbeddingModelV1({
         maxEmbeddingsPerCall: 2,
-        doEmbed: async ({ values }) => {
-          if (callCount === 0) {
-            assert.deepStrictEqual(values, testValues.slice(0, 2));
-            callCount++;
-            return {
-              embeddings: dummyEmbeddings.slice(0, 2),
-              usage: { promptTokens: 10 },
-            };
+        doEmbed: async () => {
+          switch (callCount++) {
+            case 0:
+              return {
+                embeddings: dummyEmbeddings.slice(0, 2),
+                usage: { promptTokens: 10 },
+              };
+            case 1:
+              return {
+                embeddings: dummyEmbeddings.slice(2),
+                usage: { promptTokens: 20 },
+              };
+            default:
+              throw new Error('Unexpected call');
           }
-
-          if (callCount === 1) {
-            assert.deepStrictEqual(values, testValues.slice(2));
-            callCount++;
-            return {
-              embeddings: dummyEmbeddings.slice(2),
-              usage: { promptTokens: 20 },
-            };
-          }
-
-          throw new Error('Unexpected call');
         },
       }),
       values: testValues,
