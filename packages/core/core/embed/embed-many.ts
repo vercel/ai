@@ -67,7 +67,7 @@ Only applicable for HTTP-based providers.
     return new EmbedManyResult({
       values,
       embeddings: modelResponse.embeddings,
-      usage: modelResponse.usage,
+      usage: modelResponse.usage ?? { tokens: NaN },
     });
   }
 
@@ -83,9 +83,7 @@ Only applicable for HTTP-based providers.
       model.doEmbed({ values: chunk, abortSignal, headers }),
     );
     embeddings.push(...modelResponse.embeddings);
-    if (modelResponse.usage) {
-      tokens += modelResponse.usage.tokens;
-    }
+    tokens += modelResponse.usage?.tokens ?? NaN;
   }
 
   return new EmbedManyResult({ values, embeddings, usage: { tokens } });
@@ -109,12 +107,12 @@ The embeddings. They are in the same order as the values.
   /**
 The embedding token usage.
   */
-  readonly usage?: EmbeddingTokenUsage;
+  readonly usage: EmbeddingTokenUsage;
 
   constructor(options: {
     values: Array<VALUE>;
     embeddings: Array<Embedding>;
-    usage?: EmbeddingTokenUsage;
+    usage: EmbeddingTokenUsage;
   }) {
     this.values = options.values;
     this.embeddings = options.embeddings;

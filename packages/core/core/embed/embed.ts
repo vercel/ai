@@ -58,7 +58,7 @@ Only applicable for HTTP-based providers.
   return new EmbedResult({
     value,
     embedding: modelResponse.embeddings[0],
-    usage: modelResponse.usage,
+    usage: modelResponse.usage ?? { tokens: NaN },
     rawResponse: modelResponse.rawResponse,
   });
 }
@@ -81,7 +81,7 @@ The embedding of the value.
   /**
 The embedding token usage.
   */
-  readonly usage?: EmbeddingTokenUsage;
+  readonly usage: EmbeddingTokenUsage;
 
   /**
 Optional raw response data.
@@ -96,7 +96,7 @@ Response headers.
   constructor(options: {
     value: VALUE;
     embedding: Embedding;
-    usage?: EmbeddingTokenUsage;
+    usage: EmbeddingTokenUsage;
     rawResponse?: { headers?: Record<string, string> };
   }) {
     this.value = options.value;

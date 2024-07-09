@@ -14,13 +14,13 @@ import { prepareCallSettings } from '../../core/prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../../core/prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../../core/prompt/prompt';
 import { CallWarning, CoreToolChoice, FinishReason } from '../../core/types';
-import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
-import { createStreamableUI } from '../streamable';
-import { createResolvablePromise } from '../utils';
 import {
   CompletionTokenUsage,
   calculateCompletionTokenUsage,
-} from '../../core/generate-text/token-usage';
+} from '../../core/types/token-usage';
+import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
+import { createStreamableUI } from '../streamable';
+import { createResolvablePromise } from '../utils';
 
 type Streamable = ReactNode | Promise<ReactNode>;
 
