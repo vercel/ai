@@ -80,9 +80,7 @@ The embedding of the value.
   /**
 The embedding token usage.
   */
-  readonly usage?: {
-    promptTokens: number;
-  };
+  readonly usage?: { promptTokens: number };
 
   /**
 Optional raw response data.
@@ -97,12 +95,8 @@ Response headers.
   constructor(options: {
     value: VALUE;
     embedding: Embedding;
-    usage?: {
-      promptTokens: number;
-    };
-    rawResponse?: {
-      headers?: Record<string, string>;
-    };
+    usage?: { promptTokens: number };
+    rawResponse?: { headers?: Record<string, string> };
   }) {
     this.value = options.value;
     this.embedding = options.embedding;

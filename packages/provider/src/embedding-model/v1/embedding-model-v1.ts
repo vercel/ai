@@ -67,11 +67,9 @@ Generated embeddings. They are in the same order as the input values.
     embeddings: Array<EmbeddingModelV1Embedding>;
 
     /**
-Token Usage.
+Token usage. We only have input tokens for embeddings.
     */
-    usage?: {
-      promptTokens: number;
-    };
+    usage?: { promptTokens: number };
 
     /**
 Optional raw response information for debugging purposes.
