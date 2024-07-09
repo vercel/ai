@@ -73,6 +73,42 @@ describe('result.values', () => {
   });
 });
 
+describe('result.usage', () => {
+  it('should include usage in the result', async () => {
+    let callCount = 0;
+
+    const result = await embedMany({
+      model: new MockEmbeddingModelV1({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async ({ values }) => {
+          if (callCount === 0) {
+            assert.deepStrictEqual(values, testValues.slice(0, 2));
+            callCount++;
+            return {
+              embeddings: dummyEmbeddings.slice(0, 2),
+              usage: { promptTokens: 10 },
+            };
+          }
+
+          if (callCount === 1) {
+            assert.deepStrictEqual(values, testValues.slice(2));
+            callCount++;
+            return {
+              embeddings: dummyEmbeddings.slice(2),
+              usage: { promptTokens: 20 },
+            };
+          }
+
+          throw new Error('Unexpected call');
+        },
+      }),
+      values: testValues,
+    });
+
+    assert.deepStrictEqual(result.usage, { promptTokens: 30 });
+  });
+});
+
 describe('options.headers', () => {
   it('should set headers', async () => {
     const result = await embedMany({

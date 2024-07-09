@@ -66,12 +66,7 @@ Only applicable for HTTP-based providers.
     return new EmbedManyResult({
       values,
       embeddings: modelResponse.embeddings,
-      usage: modelResponse.usage
-        ? {
-            promptTokens: modelResponse.usage.promptTokens,
-            totalTokens: modelResponse.usage.totalTokens,
-          }
-        : undefined,
+      usage: modelResponse.usage,
     });
   }
 
@@ -80,22 +75,19 @@ Only applicable for HTTP-based providers.
 
   // serially embed the chunks:
   const embeddings = [];
-  const usage: { promptTokens: number; totalTokens: number } = {
-    promptTokens: 0,
-    totalTokens: 0,
-  };
+  let promptTokens = 0;
+
   for (const chunk of valueChunks) {
     const modelResponse = await retry(() =>
       model.doEmbed({ values: chunk, abortSignal, headers }),
     );
     embeddings.push(...modelResponse.embeddings);
     if (modelResponse.usage) {
-      usage.promptTokens += modelResponse.usage.promptTokens;
-      usage.totalTokens += modelResponse.usage.totalTokens;
+      promptTokens += modelResponse.usage.promptTokens;
     }
   }
 
-  return new EmbedManyResult({ values, embeddings, usage });
+  return new EmbedManyResult({ values, embeddings, usage: { promptTokens } });
 }
 
 /**
@@ -118,16 +110,12 @@ The embedding token usage.
   */
   readonly usage?: {
     promptTokens: number;
-    totalTokens: number;
   };
 
   constructor(options: {
     values: Array<VALUE>;
     embeddings: Array<Embedding>;
-    usage?: {
-      promptTokens: number;
-      totalTokens: number;
-    };
+    usage?: { promptTokens: number };
   }) {
     this.values = options.values;
     this.embeddings = options.embeddings;

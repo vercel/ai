@@ -71,7 +71,6 @@ Token Usage.
     */
     usage?: {
       promptTokens: number;
-      totalTokens: number;
     };
 
     /**

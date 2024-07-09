@@ -57,12 +57,7 @@ Only applicable for HTTP-based providers.
   return new EmbedResult({
     value,
     embedding: modelResponse.embeddings[0],
-    usage: modelResponse.usage
-      ? {
-          promptTokens: modelResponse.usage.promptTokens,
-          totalTokens: modelResponse.usage.totalTokens,
-        }
-      : undefined,
+    usage: modelResponse.usage,
     rawResponse: modelResponse.rawResponse,
   });
 }
@@ -87,7 +82,6 @@ The embedding token usage.
   */
   readonly usage?: {
     promptTokens: number;
-    totalTokens: number;
   };
 
   /**
@@ -105,7 +99,6 @@ Response headers.
     embedding: Embedding;
     usage?: {
       promptTokens: number;
-      totalTokens: number;
     };
     rawResponse?: {
       headers?: Record<string, string>;

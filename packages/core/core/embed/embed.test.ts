@@ -34,6 +34,21 @@ describe('result.value', () => {
   });
 });
 
+describe('result.usage', () => {
+  it('should include usage in the result', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV1({
+        doEmbed: mockEmbed([testValue], [dummyEmbedding], {
+          promptTokens: 10,
+        }),
+      }),
+      value: testValue,
+    });
+
+    assert.deepStrictEqual(result.usage, { promptTokens: 10 });
+  });
+});
+
 describe('options.headers', () => {
   it('should set headers', async () => {
     const result = await embed({

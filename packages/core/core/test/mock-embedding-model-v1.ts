@@ -35,10 +35,13 @@ export class MockEmbeddingModelV1<VALUE> implements EmbeddingModelV1<VALUE> {
 export function mockEmbed<VALUE>(
   expectedValues: Array<VALUE>,
   embeddings: Array<Embedding>,
+  usage: {
+    promptTokens: number;
+  } = { promptTokens: NaN },
 ): EmbeddingModelV1<VALUE>['doEmbed'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);
-    return { embeddings };
+    return { embeddings, usage };
   };
 }
 
