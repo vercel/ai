@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.18
+
+### Patch Changes
+
+- 70d18003: add setThreadId helper to switch between threads for useAssistant
+
 ## 0.0.17
 
 ### Patch Changes
