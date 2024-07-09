@@ -1,9 +1,0 @@
-.DS_Store
-node_modules
-.turbo
-*.log
-.next
-*.local
-.env
-.cache
-.turbo
