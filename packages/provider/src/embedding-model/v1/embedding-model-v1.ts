@@ -69,7 +69,7 @@ Generated embeddings. They are in the same order as the input values.
     /**
 Token usage. We only have input tokens for embeddings.
     */
-    usage?: { promptTokens: number };
+    usage?: { tokens: number };
 
     /**
 Optional raw response information for debugging purposes.

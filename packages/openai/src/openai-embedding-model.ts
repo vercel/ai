@@ -90,7 +90,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
     return {
       embeddings: response.data.map(item => item.embedding),
       usage: response.usage
-        ? { promptTokens: response.usage.prompt_tokens }
+        ? { tokens: response.usage.prompt_tokens }
         : undefined,
       rawResponse: { headers: responseHeaders },
     };

@@ -75,7 +75,7 @@ Only applicable for HTTP-based providers.
 
   // serially embed the chunks:
   const embeddings = [];
-  let promptTokens = 0;
+  let tokens = 0;
 
   for (const chunk of valueChunks) {
     const modelResponse = await retry(() =>
@@ -83,11 +83,11 @@ Only applicable for HTTP-based providers.
     );
     embeddings.push(...modelResponse.embeddings);
     if (modelResponse.usage) {
-      promptTokens += modelResponse.usage.promptTokens;
+      tokens += modelResponse.usage.tokens;
     }
   }
 
-  return new EmbedManyResult({ values, embeddings, usage: { promptTokens } });
+  return new EmbedManyResult({ values, embeddings, usage: { tokens } });
 }
 
 /**
@@ -108,14 +108,12 @@ The embeddings. They are in the same order as the values.
   /**
 The embedding token usage.
   */
-  readonly usage?: {
-    promptTokens: number;
-  };
+  readonly usage?: { tokens: number };
 
   constructor(options: {
     values: Array<VALUE>;
     embeddings: Array<Embedding>;
-    usage?: { promptTokens: number };
+    usage?: { tokens: number };
   }) {
     this.values = options.values;
     this.embeddings = options.embeddings;

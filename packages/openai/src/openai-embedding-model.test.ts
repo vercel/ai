@@ -69,9 +69,7 @@ describe('doEmbed', () => {
 
     const { usage } = await model.doEmbed({ values: testValues });
 
-    expect(usage).toStrictEqual({
-      promptTokens: 20,
-    });
+    expect(usage).toStrictEqual({ tokens: 20 });
   });
 
   it('should pass the model and the values', async () => {

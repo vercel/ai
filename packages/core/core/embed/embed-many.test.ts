@@ -82,12 +82,12 @@ describe('result.usage', () => {
             case 0:
               return {
                 embeddings: dummyEmbeddings.slice(0, 2),
-                usage: { promptTokens: 10 },
+                usage: { tokens: 10 },
               };
             case 1:
               return {
                 embeddings: dummyEmbeddings.slice(2),
-                usage: { promptTokens: 20 },
+                usage: { tokens: 20 },
               };
             default:
               throw new Error('Unexpected call');
@@ -97,7 +97,7 @@ describe('result.usage', () => {
       values: testValues,
     });
 
-    assert.deepStrictEqual(result.usage, { promptTokens: 30 });
+    assert.deepStrictEqual(result.usage, { tokens: 30 });
   });
 });
 
