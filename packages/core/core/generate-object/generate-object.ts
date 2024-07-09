@@ -10,7 +10,7 @@ import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import {
   CompletionTokenUsage,
   calculateCompletionTokenUsage,
-} from '../types/completion-token-usage';
+} from '../types/token-usage';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';

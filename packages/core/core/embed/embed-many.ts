@@ -1,4 +1,5 @@
 import { Embedding, EmbeddingModel } from '../types';
+import { EmbeddingTokenUsage } from '../types/token-usage';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { splitArray } from '../util/split-array';
 
@@ -108,12 +109,12 @@ The embeddings. They are in the same order as the values.
   /**
 The embedding token usage.
   */
-  readonly usage?: { tokens: number };
+  readonly usage?: EmbeddingTokenUsage;
 
   constructor(options: {
     values: Array<VALUE>;
     embeddings: Array<Embedding>;
-    usage?: { tokens: number };
+    usage?: EmbeddingTokenUsage;
   }) {
     this.values = options.values;
     this.embeddings = options.embeddings;

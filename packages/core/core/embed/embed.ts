@@ -1,4 +1,5 @@
 import { Embedding, EmbeddingModel } from '../types';
+import { EmbeddingTokenUsage } from '../types/token-usage';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 
 /**
@@ -80,7 +81,7 @@ The embedding of the value.
   /**
 The embedding token usage.
   */
-  readonly usage?: { tokens: number };
+  readonly usage?: EmbeddingTokenUsage;
 
   /**
 Optional raw response data.
@@ -95,7 +96,7 @@ Response headers.
   constructor(options: {
     value: VALUE;
     embedding: Embedding;
-    usage?: { tokens: number };
+    usage?: EmbeddingTokenUsage;
     rawResponse?: { headers?: Record<string, string> };
   }) {
     this.value = options.value;

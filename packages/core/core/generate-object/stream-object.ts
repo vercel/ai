@@ -19,7 +19,7 @@ import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import {
   CompletionTokenUsage,
   calculateCompletionTokenUsage,
-} from '../types/completion-token-usage';
+} from '../types/token-usage';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,

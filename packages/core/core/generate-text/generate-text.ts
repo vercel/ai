@@ -19,7 +19,7 @@ import {
 import {
   CompletionTokenUsage,
   calculateCompletionTokenUsage,
-} from '../types/completion-token-usage';
+} from '../types/token-usage';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';

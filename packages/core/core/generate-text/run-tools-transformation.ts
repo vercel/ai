@@ -1,9 +1,8 @@
 import { LanguageModelV1StreamPart, NoSuchToolError } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/ui-utils';
 import { CoreTool } from '../tool';
-import { calculateCompletionTokenUsage } from '../types/completion-token-usage';
+import { calculateCompletionTokenUsage } from '../types/token-usage';
 import { TextStreamPart } from './stream-text';
-
 import { parseToolCall } from './tool-call';
 
 export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({

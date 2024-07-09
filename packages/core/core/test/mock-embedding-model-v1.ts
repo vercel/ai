@@ -1,5 +1,6 @@
 import { EmbeddingModelV1 } from '@ai-sdk/provider';
 import { Embedding } from '../types';
+import { EmbeddingTokenUsage } from '../types/token-usage';
 
 export class MockEmbeddingModelV1<VALUE> implements EmbeddingModelV1<VALUE> {
   readonly specificationVersion = 'v1';
@@ -35,7 +36,7 @@ export class MockEmbeddingModelV1<VALUE> implements EmbeddingModelV1<VALUE> {
 export function mockEmbed<VALUE>(
   expectedValues: Array<VALUE>,
   embeddings: Array<Embedding>,
-  usage?: { tokens: number },
+  usage?: EmbeddingTokenUsage,
 ): EmbeddingModelV1<VALUE>['doEmbed'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);

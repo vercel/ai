@@ -18,7 +18,7 @@ import {
   LanguageModel,
   LogProbs,
 } from '../types';
-import { CompletionTokenUsage } from '../types/completion-token-usage';
+import { CompletionTokenUsage } from '../types/token-usage';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,

@@ -85,11 +85,11 @@ const { embeddings } = await embedMany({
     },
     {
       name: 'usage',
-      type: 'UsageInformation',
+      type: 'EmbeddingTokenUsage',
       description: 'The token usage for generating the embeddings.',
       properties: [
         {
-          type: 'UsageInformation',
+          type: 'EmbeddingTokenUsage',
           parameters: [
             {
               name: 'tokens',
