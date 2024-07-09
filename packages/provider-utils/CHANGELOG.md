@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 1.0.1
+
+### Patch Changes
+
+- d481729f: fix (ai/provider-utils): generalize to Error (DomException not always available)
+
 ## 1.0.0
 
 ### Major Changes

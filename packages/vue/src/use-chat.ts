@@ -261,14 +261,18 @@ export function useChat({
     event?.preventDefault?.();
 
     const inputValue = input.value;
-    if (!inputValue) return;
-    append(
-      {
-        content: inputValue,
-        role: 'user',
-      },
+
+    triggerRequest(
+      inputValue
+        ? messages.value.concat({
+            id: generateId(),
+            content: inputValue,
+            role: 'user',
+          })
+        : messages.value,
       options,
     );
+
     input.value = '';
   };
 

@@ -43,7 +43,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup pnpm 8
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 8.6.9
 
