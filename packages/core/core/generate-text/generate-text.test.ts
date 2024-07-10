@@ -601,52 +601,25 @@ describe('telemetry', () => {
     ]);
   });
 
-  it('should record tool call', async () => {
+  it('should record successful tool call', async () => {
     await generateText({
       model: new MockLanguageModelV1({
-        doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, {
-            type: 'regular',
-            toolChoice: { type: 'auto' },
-            tools: [
-              {
-                type: 'function',
-                name: 'tool1',
-                description: undefined,
-                parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { value: { type: 'string' } },
-                  required: ['value'],
-                  type: 'object',
-                },
-              },
-            ],
-          });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
-          ]);
-
-          return {
-            ...dummyResponseValues,
-            toolCalls: [
-              {
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
-              },
-            ],
-          };
-        },
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          toolCalls: [
+            {
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+          ],
+        }),
       }),
       tools: {
         tool1: {
           parameters: z.object({ value: z.string() }),
-          execute: async args => {
-            assert.deepStrictEqual(args, { value: 'value' });
-            return 'result1';
-          },
+          execute: async () => 'result1',
         },
       },
       prompt: 'test-input',
