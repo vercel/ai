@@ -12,10 +12,20 @@ Each AI SDK UI hook also returns an [error](/docs/reference/ai-sdk-ui/use-chat#e
 ```tsx
 import { useChat } from 'ai/react';
 
-const { error } = useChat({
+const { ... } = useChat({
   onError: error => {
     // handle error
     console.error(error);
   },
+});
+```
+
+Each AI SDK UI hook also returns an [error](/docs/reference/ai-sdk-ui/use-chat#error) object that you can use to render the error in your UI.
+
+```tsx
+import { useChat } from 'ai/react';
+
+const { error } = useChat();
+if (error) return <div>{error.message}</div>;
 });
 ```
