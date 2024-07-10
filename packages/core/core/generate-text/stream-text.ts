@@ -361,6 +361,7 @@ Response headers.
     let text = '';
     const toolCalls: ToToolCall<TOOLS>[] = [];
     const toolResults: ToToolResult<TOOLS>[] = [];
+    let firstChunk = true;
 
     // pipe chunks through a transformation stream that extracts metadata:
     const self = this;
@@ -369,32 +370,50 @@ Response headers.
         async transform(chunk, controller): Promise<void> {
           controller.enqueue(chunk);
 
-          // Create the full text from text deltas (for onFinish callback and text promise):
-          if (chunk.type === 'text-delta') {
-            text += chunk.textDelta;
+          // Telemetry event for first chunk:
+          if (firstChunk) {
+            firstChunk = false;
+            doStreamSpan.addEvent('ai.stream.firstChunk');
           }
 
-          // store tool calls for onFinish callback and toolCalls promise:
-          if (chunk.type === 'tool-call') {
-            toolCalls.push(chunk);
-          }
+          const chunkType = chunk.type;
+          switch (chunkType) {
+            case 'text-delta':
+              // create the full text from text deltas (for onFinish callback and text promise):
+              text += chunk.textDelta;
+              break;
 
-          // store tool results for onFinish callback and toolResults promise:
-          if (chunk.type === 'tool-result') {
-            toolResults.push(chunk);
-          }
+            case 'tool-call':
+              // store tool calls for onFinish callback and toolCalls promise:
+              toolCalls.push(chunk);
+              break;
 
-          // Note: tool executions might not be finished yet when the finish event is emitted.
-          if (chunk.type === 'finish') {
-            // store usage and finish reason for promises and onFinish callback:
-            usage = chunk.usage;
-            finishReason = chunk.finishReason;
+            case 'tool-result':
+              // store tool results for onFinish callback and toolResults promise:
+              toolResults.push(chunk);
+              break;
 
-            // resolve promises that can be resolved now:
-            resolveUsage(usage);
-            resolveFinishReason(finishReason);
-            resolveText(text);
-            resolveToolCalls(toolCalls);
+            case 'finish':
+              // Note: tool executions might not be finished yet when the finish event is emitted.
+              // store usage and finish reason for promises and onFinish callback:
+              usage = chunk.usage;
+              finishReason = chunk.finishReason;
+
+              // resolve promises that can be resolved now:
+              resolveUsage(usage);
+              resolveFinishReason(finishReason);
+              resolveText(text);
+              resolveToolCalls(toolCalls);
+              break;
+
+            case 'error':
+              // ignored
+              break;
+
+            default: {
+              const exhaustiveCheck: never = chunkType;
+              throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+            }
           }
         },
 

@@ -572,6 +572,7 @@ describe('telemetry', () => {
           'operation.name': 'ai.generateText',
           'resource.name': 'test-function-id',
         },
+        events: [],
       },
       {
         name: 'ai.generateText.doGenerate',
@@ -595,6 +596,7 @@ describe('telemetry', () => {
           'operation.name': 'ai.generateText',
           'resource.name': 'test-function-id',
         },
+        events: [],
       },
     ]);
   });
@@ -679,6 +681,7 @@ describe('telemetry', () => {
           'operation.name': 'ai.generateText',
           'resource.name': 'test-function-id',
         },
+        events: [],
       },
       {
         name: 'ai.generateText.doGenerate',
@@ -701,6 +704,7 @@ describe('telemetry', () => {
           'operation.name': 'ai.generateText',
           'resource.name': 'test-function-id',
         },
+        events: [],
       },
       {
         name: 'ai.generateText.toolCall',
@@ -710,6 +714,7 @@ describe('telemetry', () => {
           'ai.toolCall.args': '{"value":"value"}',
           'ai.toolCall.result': '"result1"',
         },
+        events: [],
       },
     ]);
   });

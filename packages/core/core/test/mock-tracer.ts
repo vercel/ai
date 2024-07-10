@@ -15,6 +15,7 @@ export class MockTracer implements Tracer {
     return this.spans.map(span => ({
       name: span.name,
       attributes: span.attributes,
+      events: span.events,
     }));
   }
 
@@ -66,6 +67,7 @@ class MockSpan implements Span {
   context?: Context;
   options?: SpanOptions;
   attributes: Attributes;
+  events: string[] = [];
 
   readonly _spanContext: SpanContext = new MockSpanContext();
 
@@ -98,7 +100,8 @@ class MockSpan implements Span {
     return this;
   }
 
-  addEvent() {
+  addEvent(name: string): this {
+    this.events.push(name);
     return this;
   }
   addLink() {

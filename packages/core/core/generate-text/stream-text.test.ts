@@ -1140,6 +1140,7 @@ describe('telemetry', () => {
           'operation.name': 'ai.streamText',
           'resource.name': 'test-function-id',
         },
+        events: [],
       },
       {
         name: 'ai.streamText.doStream',
@@ -1163,6 +1164,7 @@ describe('telemetry', () => {
           'operation.name': 'ai.streamText',
           'resource.name': 'test-function-id',
         },
+        events: ['ai.stream.firstChunk'],
       },
     ]);
   });
