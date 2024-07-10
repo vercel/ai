@@ -1248,7 +1248,7 @@ describe('telemetry', () => {
         events: ['ai.stream.firstChunk'],
       },
       {
-        name: 'ai.generateText.toolCall',
+        name: 'ai.toolCall',
         attributes: {
           'ai.toolCall.name': 'tool1',
           'ai.toolCall.id': 'call-1',

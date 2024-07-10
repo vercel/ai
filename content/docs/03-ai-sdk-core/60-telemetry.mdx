@@ -19,12 +19,42 @@ standardized instrumentation for collecting telemetry data.
 For Next.js applications, please follow the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) to enable telemetry first.
 
 You can then use the `experimental_telemetry` option to enable telemetry on specific function calls while
-the feature is experimental.
+the feature is experimental:
 
-TODO Example
+```ts highlight="4"
+const result = await generateText({
+  model: openai('gpt-4-turbo'),
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: { isEnabled: true },
+});
+```
 
-TODO functionId
+## Telemetry Metadata
 
-TODO options
+You can provide a `functionId` to identify the function that the telemetry data is for,
+and `metadata` to include additional information in the telemetry data.
 
-TODO what is collected
+```ts highlight="6-10"
+const result = await generateText({
+  model: openai('gpt-4-turbo'),
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: {
+    isEnabled: true,
+    functionId: 'my-awesome-function',
+    metadata: {
+      something: 'custom',
+      someOtherThing: 'other-value',
+    },
+  },
+});
+```
+
+## Collected Data
+
+### generateText
+
+Generate text records 3 types of spans:
+
+- `ai.generateText`: the full length of the generateText call
+- `ai.generateText.doGenerate`: a provider doGenerate call
+- `ai.toolCall`: a tool call that is made as part of the generateText call

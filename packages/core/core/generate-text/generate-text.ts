@@ -283,7 +283,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
       }
 
       const result = await recordSpan({
-        name: 'ai.generateText.toolCall',
+        name: 'ai.toolCall',
         attributes: {
           'ai.toolCall.name': toolCall.toolName,
           'ai.toolCall.id': toolCall.toolCallId,

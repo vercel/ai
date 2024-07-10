@@ -90,7 +90,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
               // because we want to process the next chunk as soon as possible.
               // This is important for the case where the tool execution takes a long time.
               recordSpan({
-                name: 'ai.generateText.toolCall',
+                name: 'ai.toolCall',
                 attributes: {
                   'ai.toolCall.name': toolCall.toolName,
                   'ai.toolCall.id': toolCall.toolCallId,
