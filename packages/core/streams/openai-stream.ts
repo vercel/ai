@@ -580,11 +580,13 @@ function createFunctionCallTransformer(
                     role: 'assistant',
                     content: '',
                     function_call: payload.function_call,
+                    parts: [],
                   },
                   {
                     role: 'function',
                     name: payload.function_call.name,
                     content: JSON.stringify(result),
+                    parts: [],
                   },
                 ];
                 // Return it to the user
@@ -636,6 +638,7 @@ function createFunctionCallTransformer(
                                   },
                                 }),
                               ),
+                              parts: [],
                             },
                           ]
                         : []),
@@ -645,6 +648,7 @@ function createFunctionCallTransformer(
                         tool_call_id,
                         name: function_name,
                         content: JSON.stringify(tool_call_result),
+                        parts: [],
                       },
                     ];
                     responseIndex++;

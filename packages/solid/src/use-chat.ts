@@ -382,6 +382,7 @@ export function useChat(
             role: 'user',
             content: inputValue,
             createdAt: new Date(),
+            parts: [],
           })
         : messagesRef,
       options: options.options,

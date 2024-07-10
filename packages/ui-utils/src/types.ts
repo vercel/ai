@@ -136,7 +136,9 @@ export interface Message {
   id: string;
   createdAt?: Date;
 
-  content: string | ContentPart[] | null | undefined;
+  content: string;
+
+  parts: ContentPart[];
 
   /**
    * @deprecated Use AI SDK 3.1 `toolInvocations` instead.

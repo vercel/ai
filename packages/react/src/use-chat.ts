@@ -64,6 +64,7 @@ export type UseChatHelpers = {
   ) => void;
   files: FileList | [];
   handleFileInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  fileInputRef: React.RefObject<HTMLInputElement>;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
     event?: { preventDefault?: () => void },
@@ -501,6 +502,7 @@ By default, it's set to 0, which will disable the feature.
   // Input state and handlers.
   const [input, setInput] = useState(initialInput);
   const [files, setFiles] = useState<FileList | []>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = useCallback(
     async (
@@ -517,14 +519,10 @@ By default, it's set to 0, which will disable the feature.
 
       event?.preventDefault?.();
 
-      const fileInput = event?.currentTarget.querySelector(
-        'input[type="file"]',
-      ) as HTMLInputElement;
-
-      let content: ContentPart[] = [];
+      let parts: ContentPart[] = [];
 
       if (input) {
-        content.push({
+        parts.push({
           type: 'text',
           text: input,
         });
@@ -544,7 +542,7 @@ By default, it's set to 0, which will disable the feature.
               reader.readAsDataURL(file);
             });
 
-            content.push({
+            parts.push({
               type: 'image',
               image: base64,
             });
@@ -558,7 +556,7 @@ By default, it's set to 0, which will disable the feature.
               reader.readAsText(file);
             });
 
-            content.push({
+            parts.push({
               type: 'text',
               text,
             });
@@ -571,7 +569,8 @@ By default, it's set to 0, which will disable the feature.
           ? messagesRef.current.concat({
               id: generateId(),
               role: 'user',
-              content,
+              content: input,
+              parts,
             })
           : messagesRef.current,
         options: options.options,
@@ -580,7 +579,10 @@ By default, it's set to 0, which will disable the feature.
 
       triggerRequest(chatRequest);
 
-      fileInput.value = '';
+      if (fileInputRef && fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
       setInput('');
     },
     [input, files, generateId, triggerRequest],
@@ -636,6 +638,7 @@ By default, it's set to 0, which will disable the feature.
     input,
     setInput,
     files,
+    fileInputRef,
     handleInputChange,
     handleFileInputChange,
     handleSubmit,

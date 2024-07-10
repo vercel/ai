@@ -187,6 +187,7 @@ export function useAssistant({
                 id: value.id,
                 role: value.role,
                 content: value.content[0].text.value,
+                parts: [],
               },
             ]);
             break;
@@ -202,6 +203,7 @@ export function useAssistant({
                   id: lastMessage.id,
                   role: lastMessage.role,
                   content: lastMessage.content + value,
+                  parts: [],
                 },
               ];
             });
@@ -217,6 +219,7 @@ export function useAssistant({
                 role: 'data',
                 content: '',
                 data: value.data,
+                parts: [],
               },
             ]);
             break;
@@ -271,7 +274,7 @@ export function useAssistant({
       return;
     }
 
-    append({ role: 'user', content: input }, requestOptions);
+    append({ role: 'user', content: input, parts: [] }, requestOptions);
   };
 
   const setThreadId = (threadId: string | undefined) => {

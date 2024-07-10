@@ -9,6 +9,7 @@ export default function Page() {
     handleSubmit,
     handleInputChange,
     handleFileInputChange,
+    fileInputRef,
     isLoading,
   } = useChat({
     api: '/api/stream-chat',
@@ -24,8 +25,8 @@ export default function Page() {
               <div className="w-full">{message.content}</div>
             ) : (
               <div className="flex flex-col gap-2">
-                {message.content
-                  ?.filter(content => content.type === 'text')
+                {message.parts
+                  ?.filter(part => part.type === 'text')
                   .map((content, index) => {
                     if (index === 0) {
                       return (
@@ -46,7 +47,7 @@ export default function Page() {
                   })}
 
                 <div className="flex flex-row gap-2">
-                  {message.content
+                  {message.parts
                     ?.filter(content => content.type === 'image')
                     .map((content, index) => (
                       <img
@@ -95,7 +96,12 @@ export default function Page() {
             }
           })}
         </div>
-        <input type="file" onChange={handleFileInputChange} multiple />
+        <input
+          type="file"
+          onChange={handleFileInputChange}
+          multiple
+          ref={fileInputRef}
+        />
         <input
           value={input}
           placeholder="Send message..."

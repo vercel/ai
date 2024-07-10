@@ -62,7 +62,6 @@ export function experimental_buildLlama2Prompt(
   const endPrompt = ` [/INST]`;
   const conversation = messages.map(({ content, role }, index) => {
     if (role === 'user') {
-      // @ts-ignore
       return content.trim();
     } else if (role === 'assistant') {
       return ` [/INST] ${content}</s><s>[INST] `;
