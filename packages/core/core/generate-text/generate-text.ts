@@ -1,4 +1,4 @@
-import { AttributeValue, Attributes, Tracer } from '@opentelemetry/api';
+import { Tracer } from '@opentelemetry/api';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import {
@@ -9,6 +9,7 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
@@ -122,35 +123,17 @@ By default, it's set to 0, which will disable the feature.
      */
     experimental_telemetry?: TelemetrySettings;
   }): Promise<GenerateTextResult<TOOLS>> {
-  const baseTelemetryAttributes = {
-    'ai.model.provider': model.provider,
-    'ai.model.id': model.modelId,
-    // settings:
-    'ai.settings.maxRetries': maxRetries,
-    ...Object.entries(settings ?? {}).reduce((attributes, [key, value]) => {
-      attributes[`ai.settings.${key}`] = value;
-      return attributes;
-    }, {} as Record<string, AttributeValue>),
-    // special telemetry information
-    'operation.name': 'ai.generateText',
-    'resource.name': telemetry?.functionId,
-    'ai.telemetry.functionId': telemetry?.functionId,
-    // add metadata as attributes:
-    ...Object.entries(telemetry?.metadata ?? {}).reduce(
-      (attributes, [key, value]) => {
-        attributes[`ai.telemetry.metadata.${key}`] = value;
-        return attributes;
-      },
-      {} as Attributes,
-    ),
-  };
-
   const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
   return recordSpan(
     tracer,
     'ai.generateText',
     {
-      ...baseTelemetryAttributes,
+      ...getBaseTelemetryAttributes({
+        operationName: 'ai.generateText',
+        model,
+        telemetry,
+        settings: { ...settings, maxRetries },
+      }),
       // specific settings that only make sense on the outer level:
       'ai.prompt': JSON.stringify({ system, prompt, messages }),
       'ai.settings.maxToolRoundtrips': maxToolRoundtrips,
@@ -189,7 +172,12 @@ By default, it's set to 0, which will disable the feature.
             tracer,
             'ai.generateText.doGenerate',
             {
-              ...baseTelemetryAttributes,
+              ...getBaseTelemetryAttributes({
+                operationName: 'ai.generateText',
+                model,
+                telemetry,
+                settings: { ...settings, maxRetries },
+              }),
               'ai.prompt.format': currentInputFormat,
               'ai.prompt.messages': JSON.stringify(promptMessages),
             },
