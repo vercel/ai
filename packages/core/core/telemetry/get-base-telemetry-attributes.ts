@@ -1,4 +1,4 @@
-import { Attributes, AttributeValue } from '@opentelemetry/api';
+import { Attributes } from '@opentelemetry/api';
 import { CallSettings } from '../prompt/call-settings';
 import { LanguageModel } from '../types/language-model';
 import { TelemetrySettings } from './telemetry-settings';
@@ -24,7 +24,7 @@ export function getBaseTelemetryAttributes({
     ...Object.entries(settings).reduce((attributes, [key, value]) => {
       attributes[`ai.settings.${key}`] = value;
       return attributes;
-    }, {} as Record<string, AttributeValue>),
+    }, {} as Attributes),
 
     // special telemetry information
     'operation.name': operationName,
@@ -46,6 +46,6 @@ export function getBaseTelemetryAttributes({
         attributes[`ai.request.headers.${key}`] = value;
       }
       return attributes;
-    }, {} as Record<string, AttributeValue>),
+    }, {} as Attributes),
   };
 }
