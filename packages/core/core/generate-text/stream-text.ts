@@ -212,6 +212,7 @@ Warnings from the model provider (e.g. unsupported settings).
         stream: runToolsTransformation({
           tools,
           generatorStream: stream,
+          tracer,
         }),
         warnings,
         rawResponse,

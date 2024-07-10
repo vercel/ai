@@ -1168,4 +1168,95 @@ describe('telemetry', () => {
       },
     ]);
   });
+
+  it('should record successful tool call', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({}) => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 20, promptTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        },
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+      },
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(result.textStream);
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        name: 'ai.streamText',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt': '{"prompt":"test-input"}',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': undefined,
+          'ai.finishReason': 'stop',
+          'ai.result.text': '',
+          'ai.result.toolCalls':
+            '[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]',
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'operation.name': 'ai.streamText',
+          'resource.name': undefined,
+        },
+        events: [],
+      },
+      {
+        name: 'ai.streamText.doStream',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt.format': 'prompt',
+          'ai.prompt.messages':
+            '[{"role":"user","content":[{"type":"text","text":"test-input"}]}]',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': undefined,
+          'ai.finishReason': 'stop',
+          'ai.result.text': '',
+          'ai.result.toolCalls':
+            '[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]',
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'operation.name': 'ai.streamText',
+          'resource.name': undefined,
+        },
+        events: ['ai.stream.firstChunk'],
+      },
+      {
+        name: 'ai.generateText.toolCall',
+        attributes: {
+          'ai.toolCall.name': 'tool1',
+          'ai.toolCall.id': 'call-1',
+          'ai.toolCall.args': '{"value":"value"}',
+          'ai.toolCall.result': '"value-result"',
+        },
+        events: [],
+      },
+    ]);
+  });
 });

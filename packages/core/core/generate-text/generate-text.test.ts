@@ -625,11 +625,6 @@ describe('telemetry', () => {
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
-        functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
       },
     });
 
@@ -642,9 +637,7 @@ describe('telemetry', () => {
           'ai.prompt': '{"prompt":"test-input"}',
           'ai.settings.maxRetries': undefined,
           'ai.settings.maxToolRoundtrips': 0,
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
+          'ai.telemetry.functionId': undefined,
           'ai.finishReason': 'stop',
           'ai.result.text': undefined,
           'ai.result.toolCalls':
@@ -652,7 +645,7 @@ describe('telemetry', () => {
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
           'operation.name': 'ai.generateText',
-          'resource.name': 'test-function-id',
+          'resource.name': undefined,
         },
         events: [],
       },
@@ -665,9 +658,7 @@ describe('telemetry', () => {
           'ai.prompt.messages':
             '[{"role":"user","content":[{"type":"text","text":"test-input"}]}]',
           'ai.settings.maxRetries': undefined,
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
+          'ai.telemetry.functionId': undefined,
           'ai.finishReason': 'stop',
           'ai.result.text': undefined,
           'ai.result.toolCalls':
@@ -675,7 +666,7 @@ describe('telemetry', () => {
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
           'operation.name': 'ai.generateText',
-          'resource.name': 'test-function-id',
+          'resource.name': undefined,
         },
         events: [],
       },
