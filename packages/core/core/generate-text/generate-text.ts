@@ -19,6 +19,7 @@ import {
   LanguageModel,
   LogProbs,
 } from '../types';
+import { TelemetrySettings } from '../types/telemetry-settings';
 import {
   CompletionTokenUsage,
   calculateCompletionTokenUsage,
@@ -117,19 +118,9 @@ By default, it's set to 0, which will disable the feature.
     maxToolRoundtrips?: number;
 
     /**
-     * Optional telemetry information.
+     * Optional telemetry configuration (experimental).
      */
-    // This is meant to be both flexible for custom app requirements (metadata)
-    // and extensible for standardization (example: functionId, more to come).
-    experimental_telemetry?: {
-      /**
-       * Enable or disable telemetry. Disabled by default.
-       */
-      isEnabled?: boolean;
-
-      functionId?: string;
-      metadata?: Record<string, AttributeValue>;
-    };
+    experimental_telemetry?: TelemetrySettings;
   }): Promise<GenerateTextResult<TOOLS>> {
   const baseTelemetryAttributes = {
     'ai.model.provider': model.provider,
