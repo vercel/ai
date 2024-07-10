@@ -10,10 +10,10 @@ Errors can be handled by passing an [`onError`](/docs/reference/ai-sdk-ui/use-ch
 Each AI SDK UI hook also returns an error that you can use to render the error in your UI.
 
 ```ts highlight="3,8-10"
-import { useChat } from "ai/react";
+import { useChat } from 'ai/react';
 
 const { error } = useChat({
-  onError: (error) => {
+  onError: error => {
     // handle error
     console.error(error);
   },
