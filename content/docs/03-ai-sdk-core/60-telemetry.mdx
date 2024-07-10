@@ -53,8 +53,26 @@ const result = await generateText({
 
 ### generateText
 
-Generate text records 3 types of spans:
+`generateText` records 3 types of spans:
 
-- `ai.generateText`: the full length of the generateText call
-- `ai.generateText.doGenerate`: a provider doGenerate call
-- `ai.toolCall`: a tool call that is made as part of the generateText call
+- `ai.generateText`: the full length of the generateText call. It contains 1 or more `ai.generateText.doGenerate` spans.
+- `ai.generateText.doGenerate`: a provider doGenerate call. It can contain `ai.toolCall` spans.
+- `ai.toolCall`: a tool call that is made as part of the generateText call. It contains the following attributes:
+  - `ai.toolCall.name`: the name of the tool
+  - `ai.toolCall.id`: the id of the tool call
+  - `ai.toolCall.args`: the parameters of the tool call
+  - `ai.toolCall.result`: the result of the tool call. Only available if the tool call is successful and the result is serializable.
+
+### streamText
+
+`streamText` records 3 types of spans:
+
+- `ai.streamText`: the full length of the streamText call. It contains a `ai.streamText.doStream` span.
+- `ai.streamText.doStream`: a provider doStream call.
+  This span contains an `ai.stream.firstChunk` event that is emitted when the first chunk of the stream is received.
+  The `doStream` span can also contain `ai.toolCall` spans.
+- `ai.toolCall`: a tool call that is made as part of the generateText call. It contains the following attributes:
+  - `ai.toolCall.name`: the name of the tool
+  - `ai.toolCall.id`: the id of the tool call
+  - `ai.toolCall.args`: the parameters of the tool call
+  - `ai.toolCall.result`: the result of the tool call. Only available if the tool call is successful and the result is serializable.
