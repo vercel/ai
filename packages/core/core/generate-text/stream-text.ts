@@ -426,10 +426,9 @@ Response headers.
               totalTokens: NaN,
             };
             const finalFinishReason = finishReason ?? 'unknown';
-
-            // Add response information to the spans:
             const telemetryToolCalls =
               toolCalls.length > 0 ? JSON.stringify(toolCalls) : undefined;
+
             doStreamSpan.setAttributes({
               'ai.finishReason': finalFinishReason,
               'ai.usage.promptTokens': finalUsage.promptTokens,
@@ -437,6 +436,11 @@ Response headers.
               'ai.result.text': text,
               'ai.result.toolCalls': telemetryToolCalls,
             });
+
+            // finish doStreamSpan before other operations for correct timing:
+            doStreamSpan.end();
+
+            // Add response information to the root span:
             rootSpan.setAttributes({
               'ai.finishReason': finalFinishReason,
               'ai.usage.promptTokens': finalUsage.promptTokens,
@@ -465,7 +469,6 @@ Response headers.
           } catch (error) {
             controller.error(error);
           } finally {
-            doStreamSpan.end();
             rootSpan.end();
           }
         },
