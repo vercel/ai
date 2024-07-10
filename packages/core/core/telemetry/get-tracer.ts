@@ -10,7 +10,7 @@ export function setTestTracer(tracer: Tracer | undefined) {
   testTracer = tracer;
 }
 
-export function getTracer({ isEnabled }: { isEnabled: boolean }) {
+export function getTracer({ isEnabled }: { isEnabled: boolean }): Tracer {
   if (!isEnabled) {
     return noopTracer;
   }
