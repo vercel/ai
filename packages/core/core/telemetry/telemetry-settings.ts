@@ -7,7 +7,7 @@ import { AttributeValue } from '@opentelemetry/api';
 // and extensible for standardization (example: functionId, more to come).
 export type TelemetrySettings = {
   /**
-   * Enable or disable telemetry. Disabled by default.
+   * Enable or disable telemetry. Disabled by default while experimental.
    */
   isEnabled?: boolean;
 
@@ -17,7 +17,7 @@ export type TelemetrySettings = {
   functionId?: string;
 
   /**
-   * Additional metadata to include in the telemetry data.
+   * Additional information to include in the telemetry data.
    */
   metadata?: Record<string, AttributeValue>;
 };
