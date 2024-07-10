@@ -10,6 +10,7 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
 import {
   CallWarning,
@@ -77,6 +78,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   maxRetries,
   abortSignal,
   headers,
+  experimental_telemetry: telemetry,
   onFinish,
   ...settings
 }: CallSettings &
@@ -95,6 +97,11 @@ The tools that the model can call. The model needs to support calling tools.
 The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: CoreToolChoice<TOOLS>;
+
+    /**
+     * Optional telemetry configuration (experimental).
+     */
+    experimental_telemetry?: TelemetrySettings;
 
     /**
 Callback that is called when the LLM response and all request tool executions 

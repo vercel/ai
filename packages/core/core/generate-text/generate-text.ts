@@ -11,6 +11,7 @@ import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choi
 import { Prompt } from '../prompt/prompt';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool/tool';
 import {
   CallWarning,
@@ -19,7 +20,6 @@ import {
   LanguageModel,
   LogProbs,
 } from '../types';
-import { TelemetrySettings } from '../types/telemetry-settings';
 import {
   CompletionTokenUsage,
   calculateCompletionTokenUsage,
