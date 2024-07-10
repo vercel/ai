@@ -9,6 +9,8 @@ import { formatStreamPart } from '../../streams';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { streamText } from './stream-text';
+import { MockTracer } from '../test/mock-tracer';
+import { setTestTracer } from '../telemetry/get-tracer';
 
 describe('result.textStream', () => {
   it('should send text deltas', async () => {
@@ -1039,5 +1041,129 @@ describe('options.headers', () => {
       await convertAsyncIterableToArray(result.textStream),
       ['Hello', ', ', 'world!'],
     );
+  });
+});
+
+describe('telemetry', () => {
+  let tracer: MockTracer;
+
+  beforeEach(() => {
+    tracer = new MockTracer();
+    setTestTracer(tracer);
+  });
+
+  afterEach(() => {
+    setTestTracer(undefined);
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({}) => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: `world!` },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 20, promptTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(result.textStream);
+
+    assert.deepStrictEqual(tracer.jsonSpans, []);
+  });
+
+  it('should record telemetry data when enabled', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({}) => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: `world!` },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 20, promptTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+      headers: {
+        header1: 'value1',
+        header2: 'value2',
+      },
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+      },
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(result.textStream);
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        name: 'ai.streamText',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt': '{"prompt":"test-input"}',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.finishReason': 'stop',
+          'ai.result.text': 'Hello, world!',
+          'ai.result.toolCalls': undefined,
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
+          'operation.name': 'ai.streamText',
+          'resource.name': 'test-function-id',
+        },
+      },
+      {
+        name: 'ai.streamText.doStream',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt.format': 'prompt',
+          'ai.prompt.messages':
+            '[{"role":"user","content":[{"type":"text","text":"test-input"}]}]',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.finishReason': 'stop',
+          'ai.result.text': 'Hello, world!',
+          'ai.result.toolCalls': undefined,
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
+          'operation.name': 'ai.streamText',
+          'resource.name': 'test-function-id',
+        },
+      },
+    ]);
   });
 });

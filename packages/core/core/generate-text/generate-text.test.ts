@@ -600,7 +600,7 @@ describe('telemetry', () => {
   });
 
   it('should record tool call', async () => {
-    const result = await generateText({
+    await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {

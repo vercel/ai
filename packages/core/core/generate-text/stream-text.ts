@@ -1,3 +1,4 @@
+import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
@@ -10,6 +11,9 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getTracer } from '../telemetry/get-tracer';
+import { recordSpan } from '../telemetry/record-span';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
 import {
@@ -149,30 +153,73 @@ Warnings from the model provider (e.g. unsupported settings).
       warnings?: CallWarning[];
     }) => Promise<void> | void;
   }): Promise<StreamTextResult<TOOLS>> {
-  const retry = retryWithExponentialBackoff({ maxRetries });
-  const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
-  const { stream, warnings, rawResponse } = await retry(() =>
-    model.doStream({
-      mode: {
-        type: 'regular',
-        ...prepareToolsAndToolChoice({ tools, toolChoice }),
-      },
-      ...prepareCallSettings(settings),
-      inputFormat: validatedPrompt.type,
-      prompt: convertToLanguageModelPrompt(validatedPrompt),
-      abortSignal,
-      headers,
-    }),
-  );
+  const baseTelemetryAttributes = getBaseTelemetryAttributes({
+    operationName: 'ai.streamText',
+    model,
+    telemetry,
+    headers,
+    settings: { ...settings, maxRetries },
+  });
 
-  return new StreamTextResult({
-    stream: runToolsTransformation({
-      tools,
-      generatorStream: stream,
-    }),
-    warnings,
-    rawResponse,
-    onFinish,
+  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+
+  return recordSpan({
+    name: 'ai.streamText',
+    attributes: {
+      ...baseTelemetryAttributes,
+      // specific settings that only make sense on the outer level:
+      'ai.prompt': JSON.stringify({ system, prompt, messages }),
+    },
+    tracer,
+    endWhenDone: false,
+    fn: async rootSpan => {
+      const retry = retryWithExponentialBackoff({ maxRetries });
+      const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
+      const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
+      const {
+        result: { stream, warnings, rawResponse },
+        doStreamSpan,
+      } = await retry(() =>
+        recordSpan({
+          name: 'ai.streamText.doStream',
+          attributes: {
+            ...baseTelemetryAttributes,
+            'ai.prompt.format': validatedPrompt.type,
+            'ai.prompt.messages': JSON.stringify(promptMessages),
+          },
+          tracer,
+          endWhenDone: false,
+          fn: async doStreamSpan => {
+            return {
+              result: await model.doStream({
+                mode: {
+                  type: 'regular',
+                  ...prepareToolsAndToolChoice({ tools, toolChoice }),
+                },
+                ...prepareCallSettings(settings),
+                inputFormat: validatedPrompt.type,
+                prompt: promptMessages,
+                abortSignal,
+                headers,
+              }),
+              doStreamSpan,
+            };
+          },
+        }),
+      );
+
+      return new StreamTextResult({
+        stream: runToolsTransformation({
+          tools,
+          generatorStream: stream,
+        }),
+        warnings,
+        rawResponse,
+        onFinish,
+        rootSpan,
+        doStreamSpan,
+      });
+    },
   });
 }
 
@@ -254,6 +301,8 @@ Response headers.
     warnings,
     rawResponse,
     onFinish,
+    rootSpan,
+    doStreamSpan,
   }: {
     stream: ReadableStream<TextStreamPart<TOOLS>>;
     warnings: CallWarning[] | undefined;
@@ -261,6 +310,8 @@ Response headers.
       headers?: Record<string, string>;
     };
     onFinish?: Parameters<typeof streamText>[0]['onFinish'];
+    rootSpan: Span;
+    doStreamSpan: Span;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -350,17 +401,38 @@ Response headers.
         // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
         async flush(controller) {
           try {
+            const finalUsage = usage ?? {
+              promptTokens: NaN,
+              completionTokens: NaN,
+              totalTokens: NaN,
+            };
+            const finalFinishReason = finishReason ?? 'unknown';
+
+            // Add response information to the spans:
+            const telemetryToolCalls =
+              toolCalls.length > 0 ? JSON.stringify(toolCalls) : undefined;
+            doStreamSpan.setAttributes({
+              'ai.finishReason': finalFinishReason,
+              'ai.usage.promptTokens': finalUsage.promptTokens,
+              'ai.usage.completionTokens': finalUsage.completionTokens,
+              'ai.result.text': text,
+              'ai.result.toolCalls': telemetryToolCalls,
+            });
+            rootSpan.setAttributes({
+              'ai.finishReason': finalFinishReason,
+              'ai.usage.promptTokens': finalUsage.promptTokens,
+              'ai.usage.completionTokens': finalUsage.completionTokens,
+              'ai.result.text': text,
+              'ai.result.toolCalls': telemetryToolCalls,
+            });
+
             // resolve toolResults promise:
             resolveToolResults(toolResults);
 
             // call onFinish callback:
             await self.onFinish?.({
-              finishReason: finishReason ?? 'unknown',
-              usage: usage ?? {
-                promptTokens: NaN,
-                completionTokens: NaN,
-                totalTokens: NaN,
-              },
+              finishReason: finalFinishReason,
+              usage: finalUsage,
               text,
               toolCalls,
               // The tool results are inferred as a never[] type, because they are
@@ -373,6 +445,9 @@ Response headers.
             });
           } catch (error) {
             controller.error(error);
+          } finally {
+            doStreamSpan.end();
+            rootSpan.end();
           }
         },
       }),

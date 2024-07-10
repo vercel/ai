@@ -132,16 +132,16 @@ By default, it's set to 0, which will disable the feature.
   });
 
   const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
-  return recordSpan(
-    tracer,
-    'ai.generateText',
-    {
+  return recordSpan({
+    name: 'ai.generateText',
+    attributes: {
       ...baseTelemetryAttributes,
       // specific settings that only make sense on the outer level:
       'ai.prompt': JSON.stringify({ system, prompt, messages }),
       'ai.settings.maxToolRoundtrips': maxToolRoundtrips,
     },
-    async span => {
+    tracer,
+    fn: async span => {
       const retry = retryWithExponentialBackoff({ maxRetries });
       const validatedPrompt = getValidatedPrompt({
         system,
@@ -171,15 +171,15 @@ By default, it's set to 0, which will disable the feature.
           roundtrips === 0 ? validatedPrompt.type : 'messages';
 
         currentModelResponse = await retry(() =>
-          recordSpan(
-            tracer,
-            'ai.generateText.doGenerate',
-            {
+          recordSpan({
+            name: 'ai.generateText.doGenerate',
+            attributes: {
               ...baseTelemetryAttributes,
               'ai.prompt.format': currentInputFormat,
               'ai.prompt.messages': JSON.stringify(promptMessages),
             },
-            async span => {
+            tracer,
+            fn: async span => {
               const result = await model.doGenerate({
                 mode,
                 ...callSettings,
@@ -200,7 +200,7 @@ By default, it's set to 0, which will disable the feature.
 
               return result;
             },
-          ),
+          }),
         );
 
         // parse tool calls:
@@ -262,7 +262,7 @@ By default, it's set to 0, which will disable the feature.
         responseMessages,
       });
     },
-  );
+  });
 }
 
 async function executeTools<TOOLS extends Record<string, CoreTool>>({
@@ -282,15 +282,15 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         return undefined;
       }
 
-      const result = await recordSpan(
-        tracer,
-        'ai.generateText.toolCall',
-        {
+      const result = await recordSpan({
+        name: 'ai.generateText.toolCall',
+        attributes: {
           'ai.toolCall.name': toolCall.toolName,
           'ai.toolCall.id': toolCall.toolCallId,
           'ai.toolCall.args': JSON.stringify(toolCall.args),
         },
-        async span => {
+        tracer,
+        fn: async span => {
           const result = await tool.execute!(toolCall.args);
 
           try {
@@ -306,7 +306,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
 
           return result;
         },
-      );
+      });
 
       return {
         toolCallId: toolCall.toolCallId,
