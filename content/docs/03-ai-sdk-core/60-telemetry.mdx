@@ -1,0 +1,30 @@
+---
+title: Telemetry
+description: Using OpenTelemetry with AI SDK Core
+---
+
+# Telemetry
+
+<Note type="warning">
+  This feature is experimental and may change in the future. Currently, only the
+  `generateText` and `streamText` functions support telemetry.
+</Note>
+
+The Vercel AI SDK uses [OpenTelemetry](https://opentelemetry.io/) to collect telemetry data.
+OpenTelemetry is an open-source observability framework designed to provide
+standardized instrumentation for collecting telemetry data.
+
+## Enabling telemetry
+
+For Next.js applications, please follow the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) to enable telemetry first.
+
+You can then use the `experimental_telemetry` option to enable telemetry on specific function calls while
+the feature is experimental.
+
+TODO Example
+
+TODO functionId
+
+TODO options
+
+TODO what is collected
