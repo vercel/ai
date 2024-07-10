@@ -500,12 +500,10 @@ By default, it's set to 0, which will disable the feature.
 
   // Input state and handlers.
   const [input, setInput] = useState(initialInput);
-  const [files, setFiles] = useState<FileList | []>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = useCallback(
     async (
-      event?: { preventDefault?: () => void; currentTarget?: any },
+      event?: { preventDefault?: () => void },
       options: ChatRequestOptions = {},
       metadata?: Object,
     ) => {
@@ -578,10 +576,6 @@ By default, it's set to 0, which will disable the feature.
 
       triggerRequest(chatRequest);
 
-      if (fileInputRef && fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-
       setInput('');
     },
     [input, generateId, triggerRequest],
@@ -589,10 +583,6 @@ By default, it's set to 0, which will disable the feature.
 
   const handleInputChange = (e: any) => {
     setInput(e.target.value);
-  };
-
-  const handleFileInputChange = (event: any) => {
-    setFiles(event.target.files);
   };
 
   const addToolResult = ({
