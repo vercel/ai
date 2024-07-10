@@ -536,6 +536,10 @@ describe('telemetry', () => {
         }),
       }),
       prompt: 'prompt',
+      headers: {
+        header1: 'value1',
+        header2: 'value2',
+      },
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
@@ -563,6 +567,8 @@ describe('telemetry', () => {
           'ai.result.toolCalls': undefined,
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
           'operation.name': 'ai.generateText',
           'resource.name': 'test-function-id',
         },
@@ -584,6 +590,8 @@ describe('telemetry', () => {
           'ai.result.toolCalls': undefined,
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
           'operation.name': 'ai.generateText',
           'resource.name': 'test-function-id',
         },

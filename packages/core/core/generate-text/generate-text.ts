@@ -123,17 +123,20 @@ By default, it's set to 0, which will disable the feature.
      */
     experimental_telemetry?: TelemetrySettings;
   }): Promise<GenerateTextResult<TOOLS>> {
+  const baseTelemetryAttributes = getBaseTelemetryAttributes({
+    operationName: 'ai.generateText',
+    model,
+    telemetry,
+    headers,
+    settings: { ...settings, maxRetries },
+  });
+
   const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
   return recordSpan(
     tracer,
     'ai.generateText',
     {
-      ...getBaseTelemetryAttributes({
-        operationName: 'ai.generateText',
-        model,
-        telemetry,
-        settings: { ...settings, maxRetries },
-      }),
+      ...baseTelemetryAttributes,
       // specific settings that only make sense on the outer level:
       'ai.prompt': JSON.stringify({ system, prompt, messages }),
       'ai.settings.maxToolRoundtrips': maxToolRoundtrips,
@@ -172,12 +175,7 @@ By default, it's set to 0, which will disable the feature.
             tracer,
             'ai.generateText.doGenerate',
             {
-              ...getBaseTelemetryAttributes({
-                operationName: 'ai.generateText',
-                model,
-                telemetry,
-                settings: { ...settings, maxRetries },
-              }),
+              ...baseTelemetryAttributes,
               'ai.prompt.format': currentInputFormat,
               'ai.prompt.messages': JSON.stringify(promptMessages),
             },

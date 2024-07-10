@@ -8,17 +8,17 @@ export function getBaseTelemetryAttributes({
   model,
   settings,
   telemetry,
+  headers,
 }: {
   operationName: string;
   model: LanguageModel;
   settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
   telemetry: TelemetrySettings | undefined;
+  headers: Record<string, string | undefined> | undefined;
 }): Attributes {
   return {
     'ai.model.provider': model.provider,
     'ai.model.id': model.modelId,
-
-    // TODO record headers
 
     // settings:
     ...Object.entries(settings).reduce((attributes, [key, value]) => {
@@ -39,5 +39,13 @@ export function getBaseTelemetryAttributes({
       },
       {} as Attributes,
     ),
+
+    // request headers
+    ...Object.entries(headers ?? {}).reduce((attributes, [key, value]) => {
+      if (value !== undefined) {
+        attributes[`ai.request.headers.${key}`] = value;
+      }
+      return attributes;
+    }, {} as Record<string, AttributeValue>),
   };
 }
