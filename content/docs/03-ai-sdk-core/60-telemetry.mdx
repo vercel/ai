@@ -51,28 +51,63 @@ const result = await generateText({
 
 ## Collected Data
 
-### generateText
+### generateText function
 
 `generateText` records 3 types of spans:
 
 - `ai.generateText`: the full length of the generateText call. It contains 1 or more `ai.generateText.doGenerate` spans.
+  It contains the [basic span information](#basic-span-information) and the following attributes:
+  - `operation.name`: `ai.generateText`
+  - `ai.prompt`: the prompt that was used when calling `generateText`
+  - `ai.settings.maxToolRoundtrips`: the maximum number of tool roundtrips that were set
 - `ai.generateText.doGenerate`: a provider doGenerate call. It can contain `ai.toolCall` spans.
-- `ai.toolCall`: a tool call that is made as part of the generateText call. It contains the following attributes:
-  - `ai.toolCall.name`: the name of the tool
-  - `ai.toolCall.id`: the id of the tool call
-  - `ai.toolCall.args`: the parameters of the tool call
-  - `ai.toolCall.result`: the result of the tool call. Only available if the tool call is successful and the result is serializable.
+  It contains the [basic span information](#basic-span-information) and the following attributes:
+  - `operation.name`: `ai.generateText`
+  - `ai.prompt.format`: the format of the prompt
+  - `ai.prompt.messages`: the messages that were passed into the provider
+- `ai.toolCall`: a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
 
-### streamText
+### streamText function
 
 `streamText` records 3 types of spans:
 
 - `ai.streamText`: the full length of the streamText call. It contains a `ai.streamText.doStream` span.
+  It contains the [basic span information](#basic-span-information) and the following attributes:
+  - `operation.name`: `ai.streamText`
+  - `ai.prompt`: the prompt that was used when calling `streamText`
 - `ai.streamText.doStream`: a provider doStream call.
   This span contains an `ai.stream.firstChunk` event that is emitted when the first chunk of the stream is received.
   The `doStream` span can also contain `ai.toolCall` spans.
-- `ai.toolCall`: a tool call that is made as part of the generateText call. It contains the following attributes:
-  - `ai.toolCall.name`: the name of the tool
-  - `ai.toolCall.id`: the id of the tool call
-  - `ai.toolCall.args`: the parameters of the tool call
-  - `ai.toolCall.result`: the result of the tool call. Only available if the tool call is successful and the result is serializable.
+  It contains the [basic span information](#basic-span-information) and the following attributes:
+  - `operation.name`: `ai.streamText`
+  - `ai.prompt.format`: the format of the prompt
+  - `ai.prompt.messages`: the messages that were passed into the provider
+- `ai.toolCall`: a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
+
+## Span Details
+
+### Basic span information
+
+Many spans (`ai.generateText`, `ai.generateText.doGenerate`, `ai.streamText`, `ai.streamText.doStream`) contain the following attributes:
+
+- `ai.finishReason`: the reason why the generation finished
+- `ai.model.id`: the id of the model
+- `ai.model.provider`: the provider of the model
+- `ai.request.headers.*`: the request headers that were passed in through `headers`
+- `ai.result.text`: the text that was generated
+- `ai.result.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
+- `ai.settings.maxRetries`: the maximum number of retries that were set
+- `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
+- `ai.telemetry.metadata.*`: the metadata that was passed in through `telemetry.metadata`
+- `ai.usage.completionTokens`: the number of completion tokens that were used
+- `ai.usage.promptTokens`: the number of prompt tokens that were used
+- `resource.name`: the functionId that was set through `telemetry.functionId`
+
+### Tool call spans
+
+Tool call spans (`ai.toolCall`) contain the following attributes:
+
+- `ai.toolCall.name`: the name of the tool
+- `ai.toolCall.id`: the id of the tool call
+- `ai.toolCall.args`: the parameters of the tool call
+- `ai.toolCall.result`: the result of the tool call. Only available if the tool call is successful and the result is serializable.
