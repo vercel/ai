@@ -19,8 +19,11 @@ import {
   LanguageModel,
   LogProbs,
 } from '../types';
+import {
+  CompletionTokenUsage,
+  calculateCompletionTokenUsage,
+} from '../types/token-usage';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
-import { TokenUsage, calculateTokenUsage } from './token-usage';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
 
@@ -275,7 +278,7 @@ By default, it's set to 0, which will disable the feature.
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
-        usage: calculateTokenUsage(currentModelResponse.usage),
+        usage: calculateCompletionTokenUsage(currentModelResponse.usage),
         warnings: currentModelResponse.warnings,
         rawResponse: currentModelResponse.rawResponse,
         logprobs: currentModelResponse.logprobs,
@@ -370,7 +373,7 @@ The reason why the generation finished.
   /**
 The token usage of the generated text.
    */
-  readonly usage: TokenUsage;
+  readonly usage: CompletionTokenUsage;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
@@ -407,7 +410,7 @@ Logprobs for the completion.
     toolCalls: ToToolCallArray<TOOLS>;
     toolResults: ToToolResultArray<TOOLS>;
     finishReason: FinishReason;
-    usage: TokenUsage;
+    usage: CompletionTokenUsage;
     warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;

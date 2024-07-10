@@ -1,5 +1,14 @@
 # @ai-sdk/mistral
 
+## 0.0.22
+
+### Patch Changes
+
+- b7290943: feat (ai/core): add token usage to embed and embedMany
+- Updated dependencies [b7290943]
+  - @ai-sdk/provider@0.0.12
+  - @ai-sdk/provider-utils@1.0.2
+
 ## 0.0.21
 
 ### Patch Changes
