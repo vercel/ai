@@ -21,45 +21,42 @@ export default function Page() {
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
             <div className="w-24 text-zinc-500 flex-shrink-0">{`${message.role}: `}</div>
-            {typeof message.content === 'string' ? (
-              <div className="w-full">{message.content}</div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {message.parts
-                  ?.filter(part => part.type === 'text')
-                  .map((content, index) => {
-                    if (index === 0) {
-                      return (
-                        <div key={`${message.id}-${index}`} className="w-full">
-                          {content.type === 'text' ? content.text : ''}
-                        </div>
-                      );
-                    } else {
-                      return (
-                        <div
-                          key={`${message.id}-${index}`}
-                          className="w-32 text-xs border h-24 text-ellipsis overflow-hidden rounded-md p-2"
-                        >
-                          {content.type === 'text' ? content.text : ''}
-                        </div>
-                      );
-                    }
-                  })}
 
-                <div className="flex flex-row gap-2">
-                  {message.parts
-                    ?.filter(content => content.type === 'image')
-                    .map((content, index) => (
-                      <img
+            <div className="flex flex-col gap-2">
+              {message.parts
+                .filter(part => part.type === 'text')
+                .map((part, index) => {
+                  if (index === 0) {
+                    return (
+                      <div key={`${message.id}-${index}`} className="w-full">
+                        {part.type === 'text' ? part.text : ''}
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div
                         key={`${message.id}-${index}`}
-                        className="w-24 rounded-md"
-                        src={`${content.type === 'image' ? content.image : ''}`}
-                        alt="image"
-                      />
-                    ))}
-                </div>
+                        className="w-32 text-xs border h-24 text-ellipsis overflow-hidden rounded-md p-2"
+                      >
+                        {part.type === 'text' ? part.text : ''}
+                      </div>
+                    );
+                  }
+                })}
+
+              <div className="flex flex-row gap-2">
+                {message.parts
+                  .filter(part => part.type === 'image')
+                  .map((part, index) => (
+                    <img
+                      key={`${message.id}-${index}`}
+                      className="w-24 rounded-md"
+                      src={`${part.type === 'image' ? part.image : ''}`}
+                      alt="image"
+                    />
+                  ))}
               </div>
-            )}
+            </div>
           </div>
         ))}
       </div>

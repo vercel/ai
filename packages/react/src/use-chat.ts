@@ -112,6 +112,7 @@ const getStreamedResponse = async (
         ({
           role,
           content,
+          parts,
           name,
           data,
           annotations,
@@ -122,6 +123,7 @@ const getStreamedResponse = async (
         }) => ({
           role,
           content,
+          parts,
           ...(name !== undefined && { name }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
