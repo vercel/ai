@@ -88,7 +88,7 @@ export async function callChatApi({
         }
 
         const textDelta = decoder(value);
-        resultMessage.content = textDelta;
+        resultMessage.content += textDelta;
         resultMessage.parts[0].text += textDelta;
         resultMessage.id = generateId();
 

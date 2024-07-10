@@ -62,9 +62,6 @@ export type UseChatHelpers = {
       | React.ChangeEvent<HTMLInputElement>
       | React.ChangeEvent<HTMLTextAreaElement>,
   ) => void;
-  files: FileList | [];
-  handleFileInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
     event?: { preventDefault?: () => void },
@@ -530,8 +527,8 @@ By default, it's set to 0, which will disable the feature.
         });
       }
 
-      if (files) {
-        for (const file of Array.from(files)) {
+      if (options.files) {
+        for (const file of Array.from(options.files)) {
           const { type } = file;
 
           if (type.startsWith('image/')) {
@@ -587,7 +584,7 @@ By default, it's set to 0, which will disable the feature.
 
       setInput('');
     },
-    [input, files, generateId, triggerRequest],
+    [input, generateId, triggerRequest],
   );
 
   const handleInputChange = (e: any) => {
@@ -639,10 +636,7 @@ By default, it's set to 0, which will disable the feature.
     setMessages,
     input,
     setInput,
-    files,
-    fileInputRef,
     handleInputChange,
-    handleFileInputChange,
     handleSubmit,
     isLoading,
     data: streamData,

@@ -287,6 +287,11 @@ The options to be passed to the fetch call.
 Additional data to be sent to the server.
    */
   data?: JSONValue;
+
+  /**
+   * Additional files to be sent to the server.
+   */
+  files?: FileList;
 };
 
 export type UseChatOptions = {

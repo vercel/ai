@@ -1,4 +1,4 @@
-import { CoreMessage, Message, convertToCoreMessages, streamText } from 'ai';
+import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {

@@ -67,6 +67,15 @@ export async function parseComplexResponse({
         prefixMap['text'] = {
           ...prefixMap['text'],
           content: (prefixMap['text'].content || '') + value,
+          parts: [
+            {
+              type: 'text',
+              text:
+                (prefixMap['text'].parts[0].type === 'text'
+                  ? prefixMap['text'].parts[0].text
+                  : '') + value,
+            },
+          ],
         };
       } else {
         prefixMap['text'] = {
