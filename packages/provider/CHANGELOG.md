@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 0.0.12
+
+### Patch Changes
+
+- b7290943: feat (ai/core): add token usage to embed and embedMany
+
+## 0.0.11
+
+### Patch Changes
+
+- 5edc6110: feat (provider): add headers support to language and embedding model spec
+
 ## 0.0.10
 
 ### Patch Changes

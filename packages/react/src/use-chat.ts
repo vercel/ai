@@ -2,6 +2,7 @@ import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
+  FetchFunction,
   IdGenerator,
   JSONValue,
   Message,
@@ -62,7 +63,7 @@ export type UseChatHelpers = {
   ) => void;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
-    e: React.FormEvent<HTMLFormElement>,
+    event?: { preventDefault?: () => void },
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   metadata?: Object;
@@ -82,11 +83,19 @@ const getStreamedResponse = async (
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
   generateId: IdGenerator,
-  streamMode?: 'stream-data' | 'text',
-  onFinish?: (message: Message) => void,
-  onResponse?: (response: Response) => void | Promise<void>,
-  onToolCall?: UseChatOptions['onToolCall'],
-  sendExtraMessageFields?: boolean,
+  streamMode: 'stream-data' | 'text' | undefined,
+  onFinish: ((message: Message) => void) | undefined,
+  onResponse: ((response: Response) => void | Promise<void>) | undefined,
+  onToolCall: UseChatOptions['onToolCall'] | undefined,
+  sendExtraMessageFields: boolean | undefined,
+  experimental_prepareRequestBody:
+    | ((options: {
+        messages: Message[];
+        requestData?: JSONValue;
+        requestBody?: object;
+      }) => JSONValue)
+    | undefined,
+  fetch: FetchFunction | undefined,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -122,8 +131,12 @@ const getStreamedResponse = async (
 
   return await callChatApi({
     api,
-    messages: constructedMessagesPayload,
-    body: {
+    body: experimental_prepareRequestBody?.({
+      messages: chatRequest.messages,
+      requestData: chatRequest.data,
+      requestBody: chatRequest.options?.body,
+    }) ?? {
+      messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadataRef.current.body,
       ...chatRequest.options?.body,
@@ -158,6 +171,7 @@ const getStreamedResponse = async (
     onToolCall,
     onFinish,
     generateId,
+    fetch,
   });
 };
 
@@ -170,6 +184,7 @@ export function useChat({
   experimental_onFunctionCall,
   experimental_onToolCall,
   onToolCall,
+  experimental_prepareRequestBody,
   experimental_maxAutomaticRoundtrips = 0,
   maxAutomaticRoundtrips = experimental_maxAutomaticRoundtrips,
   maxToolRoundtrips = maxAutomaticRoundtrips,
@@ -181,9 +196,10 @@ export function useChat({
   headers,
   body,
   generateId = generateIdFunc,
-}: Omit<UseChatOptions, 'api'> & {
-  api?: string;
+  fetch,
+}: UseChatOptions & {
   key?: string;
+
   /**
 @deprecated Use `maxToolRoundtrips` instead.
    */
@@ -193,6 +209,21 @@ export function useChat({
 @deprecated Use `maxToolRoundtrips` instead.
    */
   maxAutomaticRoundtrips?: number;
+
+  /**
+   * Experimental (React only). When a function is provided, it will be used
+   * to prepare the request body for the chat API. This can be useful for
+   * customizing the request body based on the messages and data in the chat.
+   *
+   * @param messages The current messages in the chat.
+   * @param requestData The data object passed in the chat request.
+   * @param requestBody The request body object passed in the chat request.
+   */
+  experimental_prepareRequestBody?: (options: {
+    messages: Message[];
+    requestData?: JSONValue;
+    requestBody?: object;
+  }) => JSONValue;
 
   /**
 Maximal number of automatic roundtrips for tool calls.
@@ -308,6 +339,8 @@ By default, it's set to 0, which will disable the feature.
               onResponse,
               onToolCall,
               sendExtraMessageFields,
+              experimental_prepareRequestBody,
+              fetch,
             ),
           experimental_onFunctionCall,
           experimental_onToolCall,
@@ -367,11 +400,13 @@ By default, it's set to 0, which will disable the feature.
       sendExtraMessageFields,
       experimental_onFunctionCall,
       experimental_onToolCall,
+      experimental_prepareRequestBody,
       onToolCall,
       maxToolRoundtrips,
       messagesRef,
       abortControllerRef,
       generateId,
+      fetch,
     ],
   );
 
@@ -465,7 +500,7 @@ By default, it's set to 0, which will disable the feature.
 
   const handleSubmit = useCallback(
     (
-      e: React.FormEvent<HTMLFormElement>,
+      event?: { preventDefault?: () => void },
       options: ChatRequestOptions = {},
       metadata?: Object,
     ) => {
@@ -476,20 +511,25 @@ By default, it's set to 0, which will disable the feature.
         };
       }
 
-      e.preventDefault();
-      if (!input) return;
+      event?.preventDefault?.();
 
-      append(
-        {
-          content: input,
-          role: 'user',
-          createdAt: new Date(),
-        },
-        options,
-      );
+      const chatRequest: ChatRequest = {
+        messages: input
+          ? messagesRef.current.concat({
+              id: generateId(),
+              role: 'user',
+              content: input,
+            })
+          : messagesRef.current,
+        options: options.options,
+        data: options.data,
+      };
+
+      triggerRequest(chatRequest);
+
       setInput('');
     },
-    [input, append],
+    [input, generateId, triggerRequest],
   );
 
   const handleInputChange = (e: any) => {

@@ -1,9 +1,4 @@
-import {
-  ReactElement,
-  startTransition,
-  useLayoutEffect,
-  useState,
-} from 'react';
+import { startTransition, useLayoutEffect, useState } from 'react';
 import { STREAMABLE_VALUE_TYPE } from '../constants';
 import type { StreamableValue } from '../types';
 
@@ -101,14 +96,6 @@ export function readStreamableValue<T = unknown>(
                   } else {
                     (curr as string) = curr + row.diff[1];
                   }
-                  break;
-                case 1:
-                  (curr as ReactElement) = (
-                    <>
-                      {curr}
-                      {row.diff[1]}
-                    </>
-                  );
                   break;
               }
             } else {

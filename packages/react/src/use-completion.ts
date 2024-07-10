@@ -41,10 +41,11 @@ export type UseCompletionHelpers = {
    * ```
    */
   handleInputChange: (
-    e:
+    event:
       | React.ChangeEvent<HTMLInputElement>
       | React.ChangeEvent<HTMLTextAreaElement>,
   ) => void;
+
   /**
    * Form submission handler to automatically reset input and append a user message
    * @example
@@ -54,7 +55,8 @@ export type UseCompletionHelpers = {
    * </form>
    * ```
    */
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  handleSubmit: (event?: { preventDefault?: () => void }) => void;
+
   /** Whether the API request is in progress */
   isLoading: boolean;
   /** Additional data added on the server via StreamData */
@@ -70,6 +72,7 @@ export function useCompletion({
   headers,
   body,
   streamMode,
+  fetch,
   onResponse,
   onFinish,
   onError,
@@ -124,6 +127,7 @@ export function useCompletion({
           ...options?.body,
         },
         streamMode,
+        fetch,
         setCompletion: completion => mutate(completion, false),
         setLoading: mutateLoading,
         setError,
@@ -147,6 +151,7 @@ export function useCompletion({
       setError,
       streamData,
       streamMode,
+      fetch,
       mutateStreamData,
     ],
   );
@@ -175,10 +180,9 @@ export function useCompletion({
   const [input, setInput] = useState(initialInput);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      if (!input) return;
-      return complete(input);
+    (event?: { preventDefault?: () => void }) => {
+      event?.preventDefault?.();
+      return input ? complete(input) : undefined;
     },
     [input, complete],
   );

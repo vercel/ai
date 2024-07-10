@@ -8,6 +8,9 @@ import type {
 import { generateId, readDataStream } from '@ai-sdk/ui-utils';
 import { Readable, Writable, get, writable } from 'svelte/store';
 
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
+
 let uniqueId = 0;
 
 const store: Record<string, any> = {};
@@ -53,7 +56,7 @@ Abort the current request immediately, keep the generated tokens if any.
    * Form submission handler that automatically resets the input field and appends a user message.
    */
   submitMessage: (
-    e: any,
+    event?: { preventDefault?: () => void },
     requestOptions?: { data?: Record<string, string> },
   ) => Promise<void>;
 
@@ -78,6 +81,7 @@ export function useAssistant({
   headers,
   body,
   onError,
+  fetch,
 }: UseAssistantOptions): UseAssistantHelpers {
   // Generate a unique thread ID
   const threadIdStore = writable<string | undefined>(threadIdParam);
@@ -115,7 +119,8 @@ export function useAssistant({
     input.set('');
 
     try {
-      const result = await fetch(api, {
+      const actualFetch = fetch ?? getOriginalFetch();
+      const response = await actualFetch(api, {
         method: 'POST',
         credentials,
         signal: abortController.signal,
@@ -131,13 +136,19 @@ export function useAssistant({
         }),
       });
 
-      if (result.body == null) {
+      if (!response.ok) {
+        throw new Error(
+          (await response.text()) ?? 'Failed to fetch the assistant response.',
+        );
+      }
+
+      if (response.body == null) {
         throw new Error('The response body is empty.');
       }
 
       // Read the streamed response data
       for await (const { type, value } of readDataStream(
-        result.body.getReader(),
+        response.body.getReader(),
       )) {
         switch (type) {
           case 'assistant_message': {
@@ -230,10 +241,10 @@ export function useAssistant({
 
   // Function to handle form submission
   async function submitMessage(
-    e: any,
+    event?: { preventDefault?: () => void },
     requestOptions?: { data?: Record<string, string> },
   ) {
-    e.preventDefault();
+    event?.preventDefault?.();
     const inputValue = get(input);
     if (!inputValue) return;
 

@@ -1,5 +1,30 @@
 # @ai-sdk/provider-utils
 
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [b7290943]
+  - @ai-sdk/provider@0.0.12
+
+## 1.0.1
+
+### Patch Changes
+
+- d481729f: fix (ai/provider-utils): generalize to Error (DomException not always available)
+
+## 1.0.0
+
+### Major Changes
+
+- 5edc6110: feat (provider-utils): change getRequestHeader() test helper to return Record (breaking change)
+
+### Patch Changes
+
+- 5edc6110: feat (provider-utils): add combineHeaders helper
+- Updated dependencies [5edc6110]
+  - @ai-sdk/provider@0.0.11
+
 ## 0.0.16
 
 ### Patch Changes

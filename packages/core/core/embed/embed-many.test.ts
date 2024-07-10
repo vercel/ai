@@ -37,19 +37,16 @@ describe('result.embedding', () => {
       model: new MockEmbeddingModelV1({
         maxEmbeddingsPerCall: 2,
         doEmbed: async ({ values }) => {
-          if (callCount === 0) {
-            assert.deepStrictEqual(values, testValues.slice(0, 2));
-            callCount++;
-            return { embeddings: dummyEmbeddings.slice(0, 2) };
+          switch (callCount++) {
+            case 0:
+              assert.deepStrictEqual(values, testValues.slice(0, 2));
+              return { embeddings: dummyEmbeddings.slice(0, 2) };
+            case 1:
+              assert.deepStrictEqual(values, testValues.slice(2));
+              return { embeddings: dummyEmbeddings.slice(2) };
+            default:
+              throw new Error('Unexpected call');
           }
-
-          if (callCount === 1) {
-            assert.deepStrictEqual(values, testValues.slice(2));
-            callCount++;
-            return { embeddings: dummyEmbeddings.slice(2) };
-          }
-
-          throw new Error('Unexpected call');
         },
       }),
       values: testValues,
@@ -70,5 +67,57 @@ describe('result.values', () => {
     });
 
     assert.deepStrictEqual(result.values, testValues);
+  });
+});
+
+describe('result.usage', () => {
+  it('should include usage in the result', async () => {
+    let callCount = 0;
+
+    const result = await embedMany({
+      model: new MockEmbeddingModelV1({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async () => {
+          switch (callCount++) {
+            case 0:
+              return {
+                embeddings: dummyEmbeddings.slice(0, 2),
+                usage: { tokens: 10 },
+              };
+            case 1:
+              return {
+                embeddings: dummyEmbeddings.slice(2),
+                usage: { tokens: 20 },
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      values: testValues,
+    });
+
+    assert.deepStrictEqual(result.usage, { tokens: 30 });
+  });
+});
+
+describe('options.headers', () => {
+  it('should set headers', async () => {
+    const result = await embedMany({
+      model: new MockEmbeddingModelV1({
+        maxEmbeddingsPerCall: 5,
+        doEmbed: async ({ headers }) => {
+          assert.deepStrictEqual(headers, {
+            'custom-request-header': 'request-header-value',
+          });
+
+          return { embeddings: dummyEmbeddings };
+        },
+      }),
+      values: testValues,
+      headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    assert.deepStrictEqual(result.embeddings, dummyEmbeddings);
   });
 });

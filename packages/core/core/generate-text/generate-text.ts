@@ -16,8 +16,11 @@ import {
   LanguageModel,
   LogProbs,
 } from '../types';
+import {
+  CompletionTokenUsage,
+  calculateCompletionTokenUsage,
+} from '../types/token-usage';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
-import { TokenUsage, calculateTokenUsage } from './token-usage';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
 
@@ -53,6 +56,7 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @param maxToolRoundtrips - Maximal number of automatic roundtrips for tool calls.
 
@@ -68,6 +72,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   messages,
   maxRetries,
   abortSignal,
+  headers,
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
   ...settings
@@ -132,6 +137,7 @@ By default, it's set to 0, which will disable the feature.
         inputFormat: roundtrips === 0 ? validatedPrompt.type : 'messages',
         prompt: promptMessages,
         abortSignal,
+        headers,
       });
     });
 
@@ -173,7 +179,7 @@ By default, it's set to 0, which will disable the feature.
     toolCalls: currentToolCalls,
     toolResults: currentToolResults,
     finishReason: currentModelResponse.finishReason,
-    usage: calculateTokenUsage(currentModelResponse.usage),
+    usage: calculateCompletionTokenUsage(currentModelResponse.usage),
     warnings: currentModelResponse.warnings,
     rawResponse: currentModelResponse.rawResponse,
     logprobs: currentModelResponse.logprobs,
@@ -240,7 +246,7 @@ The reason why the generation finished.
   /**
 The token usage of the generated text.
    */
-  readonly usage: TokenUsage;
+  readonly usage: CompletionTokenUsage;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
@@ -277,7 +283,7 @@ Logprobs for the completion.
     toolCalls: ToToolCallArray<TOOLS>;
     toolResults: ToToolResultArray<TOOLS>;
     finishReason: FinishReason;
-    usage: TokenUsage;
+    usage: CompletionTokenUsage;
     warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;

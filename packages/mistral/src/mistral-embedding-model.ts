@@ -3,6 +3,7 @@ import {
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
+  combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -54,6 +55,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
   async doEmbed({
     values,
     abortSignal,
+    headers,
   }: Parameters<EmbeddingModelV1<string>['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>
   > {
@@ -68,7 +70,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/embeddings`,
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,
         input: values,
@@ -84,6 +86,9 @@ export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
 
     return {
       embeddings: response.data.map(item => item.embedding),
+      usage: response.usage
+        ? { tokens: response.usage.prompt_tokens }
+        : undefined,
       rawResponse: { headers: responseHeaders },
     };
   }
@@ -92,9 +97,6 @@ export class MistralEmbeddingModel implements EmbeddingModelV1<string> {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const MistralTextEmbeddingResponseSchema = z.object({
-  data: z.array(
-    z.object({
-      embedding: z.array(z.number()),
-    }),
-  ),
+  data: z.array(z.object({ embedding: z.array(z.number()) })),
+  usage: z.object({ prompt_tokens: z.number() }).nullish(),
 });

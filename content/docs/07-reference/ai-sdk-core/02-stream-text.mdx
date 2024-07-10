@@ -326,6 +326,13 @@ for await (const textPart of textStream) {
         'An optional abort signal that can be used to cancel the call.',
     },
     {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
+    {
       name: 'onFinish',
       type: '(result: OnFinishResult) => void',
       isOptional: true,
@@ -426,12 +433,12 @@ for await (const textPart of textStream) {
     },
     {
       name: 'usage',
-      type: 'Promise<TokenUsage>',
+      type: 'Promise<CompletionTokenUsage>',
       description:
         'The token usage of the generated text. Resolved when the response is finished.',
       properties: [
         {
-          type: 'TokenUsage',
+          type: 'CompletionTokenUsage',
           parameters: [
             {
               name: 'promptTokens',

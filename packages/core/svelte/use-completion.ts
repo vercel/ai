@@ -40,7 +40,7 @@ export type UseCompletionHelpers = {
    * </form>
    * ```
    */
-  handleSubmit: (e: any) => void;
+  handleSubmit: (event?: { preventDefault?: () => void }) => void;
   /** Whether the API request is in progress */
   isLoading: Readable<boolean | undefined>;
 
@@ -67,6 +67,7 @@ export function useCompletion({
   onResponse,
   onFinish,
   onError,
+  fetch,
 }: UseCompletionOptions = {}): UseCompletionHelpers {
   // Generate an unique id for the completion if not provided.
   const completionId = id || `completion-${uniqueId++}`;
@@ -130,6 +131,7 @@ export function useCompletion({
       onData(data) {
         streamData.set([...(existingData || []), ...(data || [])]);
       },
+      fetch,
     });
   };
 
@@ -146,11 +148,11 @@ export function useCompletion({
 
   const input = writable(initialInput);
 
-  const handleSubmit = (e: any) => {
-    e.preventDefault();
+  const handleSubmit = (event?: { preventDefault?: () => void }) => {
+    event?.preventDefault?.();
+
     const inputValue = get(input);
-    if (!inputValue) return;
-    return complete(inputValue);
+    return inputValue ? complete(inputValue) : undefined;
   };
 
   const isLoading = derived(

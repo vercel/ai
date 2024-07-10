@@ -116,6 +116,13 @@ Allows you to create text completion based capabilities for your application. It
       description:
         'An optional literal that sets the mode of the stream to be used. Defaults to `stream-data`. If set to `text`, the stream will be treated as a text stream.',
     },
+    {
+      name: 'fetch',
+      type: 'FetchFunction',
+      optional: true,
+      description:
+        'Optional. A custom fetch function to be used for the API call. Defaults to the global fetch function.',
+    },
   ]}
 />
 
@@ -167,7 +174,7 @@ Allows you to create text completion based capabilities for your application. It
     },
     {
       name: 'handleSubmit',
-      type: '(event: React.FormEvent<HTMLFormElement>) => void',
+      type: '(event?: { preventDefault?: () => void }) => void',
       description:
         'Form submission handler that automatically resets the input field and appends a user message.',
     },

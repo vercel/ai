@@ -5,10 +5,6 @@ const inter = Inter({ subsets: ['latin'] });
 
 const examples = [
   {
-    title: 'Generate object',
-    link: '/basics/generate-object',
-  },
-  {
     title: 'Generate text',
     link: '/basics/generate-text',
   },
@@ -17,24 +13,28 @@ const examples = [
     link: '/basics/stream-text',
   },
   {
+    title: 'Generate object',
+    link: '/basics/generate-object',
+  },
+  {
+    title: 'Stream object',
+    link: '/basics/stream-object',
+  },
+  {
     title: 'Generate chat completion',
     link: '/chat/generate-chat',
   },
   {
-    title: 'Generate chat completion',
+    title: 'Stream chat completion',
     link: '/chat/stream-chat',
   },
   {
-    title: 'Generate chat completion (API route)',
+    title: 'Stream chat completion (API route)',
     link: '/chat/stream-chat-api-route',
   },
   {
-    title: 'Generate chat completion (edge runtime)',
+    title: 'Stream chat completion (edge runtime)',
     link: '/chat/stream-chat-edge',
-  },
-  {
-    title: 'Stream chat completion',
-    link: '/chat/stream-chat',
   },
   {
     title: 'Call tools',
@@ -55,6 +55,10 @@ const examples = [
   {
     title: 'Stream OpenAI Assistant API response with tool calls',
     link: '/assistants/stream-assistant-response-with-tools',
+  },
+  {
+    title: 'Stream OpenAI Assistant API response and switch between threads',
+    link: '/assistants/stream-assistant-switch-threads',
   },
 ];
 

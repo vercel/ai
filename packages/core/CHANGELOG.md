@@ -1,5 +1,166 @@
 # ai
 
+## 3.2.19
+
+### Patch Changes
+
+- b7290943: chore (ai/core): rename TokenUsage type to CompletionTokenUsage
+- b7290943: feat (ai/core): add token usage to embed and embedMany
+- Updated dependencies [b7290943]
+  - @ai-sdk/provider@0.0.12
+  - @ai-sdk/provider-utils@1.0.2
+  - @ai-sdk/react@0.0.19
+  - @ai-sdk/svelte@0.0.14
+  - @ai-sdk/ui-utils@0.0.11
+  - @ai-sdk/solid@0.0.13
+  - @ai-sdk/vue@0.0.13
+
+## 3.2.18
+
+### Patch Changes
+
+- Updated dependencies [70d18003]
+  - @ai-sdk/react@0.0.18
+
+## 3.2.17
+
+### Patch Changes
+
+- 3db90c3d: allow empty handleSubmit submissions for useChat
+- abb22602: feat (ai): verify that system messages have string content
+- 5c1f0bd3: fix unclosed streamable value console message
+- Updated dependencies [6a11cfaa]
+- Updated dependencies [3db90c3d]
+- Updated dependencies [d481729f]
+  - @ai-sdk/react@0.0.17
+  - @ai-sdk/svelte@0.0.13
+  - @ai-sdk/solid@0.0.12
+  - @ai-sdk/vue@0.0.12
+  - @ai-sdk/provider-utils@1.0.1
+  - @ai-sdk/ui-utils@0.0.10
+
+## 3.2.16
+
+### Patch Changes
+
+- Updated dependencies [3f756a6b]
+  - @ai-sdk/react@0.0.16
+
+## 3.2.15
+
+### Patch Changes
+
+- 6c99581e: fix (ai/react): stop() on useObject does not throw error and clears isLoading
+- Updated dependencies [6c99581e]
+  - @ai-sdk/react@0.0.15
+
+## 3.2.14
+
+### Patch Changes
+
+- Updated dependencies [9b50003d]
+- Updated dependencies [1894f811]
+  - @ai-sdk/react@0.0.14
+  - @ai-sdk/ui-utils@0.0.9
+  - @ai-sdk/solid@0.0.11
+  - @ai-sdk/svelte@0.0.12
+  - @ai-sdk/vue@0.0.11
+
+## 3.2.13
+
+### Patch Changes
+
+- d3100b9c: feat (ai/ui): support custom fetch function in useChat, useCompletion, useAssistant, useObject
+- Updated dependencies [d3100b9c]
+  - @ai-sdk/ui-utils@0.0.8
+  - @ai-sdk/svelte@0.0.11
+  - @ai-sdk/react@0.0.13
+  - @ai-sdk/solid@0.0.10
+  - @ai-sdk/vue@0.0.10
+
+## 3.2.12
+
+### Patch Changes
+
+- 5edc6110: feat (ai/core): add custom request header support
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+  - @ai-sdk/provider@0.0.11
+  - @ai-sdk/provider-utils@1.0.0
+  - @ai-sdk/react@0.0.12
+  - @ai-sdk/svelte@0.0.10
+  - @ai-sdk/ui-utils@0.0.7
+  - @ai-sdk/solid@0.0.9
+  - @ai-sdk/vue@0.0.9
+
+## 3.2.11
+
+### Patch Changes
+
+- c908f741: chore (ui/solid): update solidjs useChat and useCompletion to feature parity with React
+- 827ef450: feat (ai/ui): improve error handling in useAssistant
+- Updated dependencies [c908f741]
+- Updated dependencies [827ef450]
+  - @ai-sdk/solid@0.0.8
+  - @ai-sdk/svelte@0.0.9
+  - @ai-sdk/react@0.0.11
+
+## 3.2.10
+
+### Patch Changes
+
+- Updated dependencies [5b04204b]
+- Updated dependencies [8f482903]
+  - @ai-sdk/react@0.0.10
+
+## 3.2.9
+
+### Patch Changes
+
+- 82d9c8de: feat (ai/ui): make event in useAssistant submitMessage optional
+- Updated dependencies [82d9c8de]
+- Updated dependencies [321a7d0e]
+- Updated dependencies [82d9c8de]
+  - @ai-sdk/svelte@0.0.8
+  - @ai-sdk/react@0.0.9
+  - @ai-sdk/vue@0.0.8
+
+## 3.2.8
+
+### Patch Changes
+
+- 54bf4083: feat (ai/react): control request body in useChat
+- Updated dependencies [54bf4083]
+  - @ai-sdk/ui-utils@0.0.6
+  - @ai-sdk/react@0.0.8
+  - @ai-sdk/solid@0.0.7
+  - @ai-sdk/svelte@0.0.7
+  - @ai-sdk/vue@0.0.7
+
+## 3.2.7
+
+### Patch Changes
+
+- d42b8907: feat (ui): make event in handleSubmit optional
+- Updated dependencies [d42b8907]
+  - @ai-sdk/svelte@0.0.6
+  - @ai-sdk/react@0.0.7
+  - @ai-sdk/solid@0.0.6
+  - @ai-sdk/vue@0.0.6
+
+## 3.2.6
+
+### Patch Changes
+
+- 74e28222: fix (ai/rsc): "could not find InternalStreamableUIClient" bug
+
+## 3.2.5
+
+### Patch Changes
+
+- 4d426d0c: fix (ai): split provider and model ids correctly in the provider registry
+
 ## 3.2.4
 
 ### Patch Changes

@@ -56,6 +56,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     frequencyPenalty,
     presencePenalty,
     seed,
+    headers,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -79,6 +80,13 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'seed',
+      });
+    }
+
+    if (headers != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'headers',
       });
     }
 

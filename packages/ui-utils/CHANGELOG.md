@@ -1,5 +1,44 @@
 # @ai-sdk/ui-utils
 
+## 0.0.11
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.2
+
+## 0.0.10
+
+### Patch Changes
+
+- Updated dependencies [d481729f]
+  - @ai-sdk/provider-utils@1.0.1
+
+## 0.0.9
+
+### Patch Changes
+
+- 1894f811: feat (ai/ui): allow JSONValue as data in useChat handleSubmit
+
+## 0.0.8
+
+### Patch Changes
+
+- d3100b9c: feat (ai/ui): support custom fetch function in useChat, useCompletion, useAssistant, useObject
+
+## 0.0.7
+
+### Patch Changes
+
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+  - @ai-sdk/provider-utils@1.0.0
+
+## 0.0.6
+
+### Patch Changes
+
+- 54bf4083: feat (ai/react): control request body in useChat
+
 ## 0.0.5
 
 ### Patch Changes

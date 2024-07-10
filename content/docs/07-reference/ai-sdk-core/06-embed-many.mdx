@@ -59,6 +59,13 @@ const { embeddings } = await embedMany({
       description:
         'An optional abort signal that can be used to cancel the call.',
     },
+    {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
   ]}
 />
 
@@ -75,6 +82,23 @@ const { embeddings } = await embedMany({
       name: 'embeddings',
       type: 'number[][]',
       description: 'The embeddings. They are in the same order as the values.',
+    },
+    {
+      name: 'usage',
+      type: 'EmbeddingTokenUsage',
+      description: 'The token usage for generating the embeddings.',
+      properties: [
+        {
+          type: 'EmbeddingTokenUsage',
+          parameters: [
+            {
+              name: 'tokens',
+              type: 'number',
+              description: 'The total number of input tokens.',
+            },
+          ],
+        },
+      ],
     },
   ]}
 />

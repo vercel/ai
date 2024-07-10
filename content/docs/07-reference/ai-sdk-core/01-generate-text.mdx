@@ -324,6 +324,13 @@ console.log(text);
         'An optional abort signal that can be used to cancel the call.',
     },
     {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
+    {
       name: 'maxAutomaticRoundtrips',
       type: 'number',
       isOptional: true,
@@ -360,11 +367,11 @@ console.log(text);
     },
     {
       name: 'usage',
-      type: 'TokenUsage',
+      type: 'CompletionTokenUsage',
       description: 'The token usage of the generated text.',
       properties: [
         {
-          type: 'TokenUsage',
+          type: 'CompletionTokenUsage',
           parameters: [
             {
               name: 'promptTokens',

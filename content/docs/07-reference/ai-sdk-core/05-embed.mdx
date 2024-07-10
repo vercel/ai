@@ -53,6 +53,13 @@ const { embedding } = await embed({
       description:
         'An optional abort signal that can be used to cancel the call.',
     },
+    {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
   ]}
 />
 
@@ -69,6 +76,23 @@ const { embedding } = await embed({
       name: 'embedding',
       type: 'number[]',
       description: 'The embedding of the value.',
+    },
+    {
+      name: 'usage',
+      type: 'EmbeddingTokenUsage',
+      description: 'The token usage for generating the embeddings.',
+      properties: [
+        {
+          type: 'EmbeddingTokenUsage',
+          parameters: [
+            {
+              name: 'tokens',
+              type: 'number',
+              description: 'The total number of input tokens.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'rawResponse',

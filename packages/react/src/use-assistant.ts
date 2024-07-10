@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-
 import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   AssistantStatus,
@@ -10,6 +8,9 @@ import {
   readDataStream,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useRef, useState } from 'react';
+
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
 
 export type UseAssistantHelpers = {
   /**
@@ -26,6 +27,11 @@ export type UseAssistantHelpers = {
    * The current thread ID.
    */
   threadId: string | undefined;
+
+  /**
+   * Set the current thread ID. Specifying a thread ID will switch to that thread, if it exists. If set to 'undefined', a new thread will be created. For both cases, `threadId` will be updated with the new value and `messages` will be cleared.
+   */
+  setThreadId: (threadId: string | undefined) => void;
 
   /**
    * The current value of the input field.
@@ -82,7 +88,7 @@ Abort the current request immediately, keep the generated tokens if any.
   /**
    * The error thrown during the assistant message processing, if any.
    */
-  error: undefined | unknown;
+  error: undefined | Error;
 };
 
 export function useAssistant({
@@ -92,10 +98,13 @@ export function useAssistant({
   headers,
   body,
   onError,
+  fetch,
 }: UseAssistantOptions): UseAssistantHelpers {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [threadId, setThreadId] = useState<string | undefined>(undefined);
+  const [currentThreadId, setCurrentThreadId] = useState<string | undefined>(
+    undefined,
+  );
   const [status, setStatus] = useState<AssistantStatus>('awaiting_message');
   const [error, setError] = useState<undefined | Error>(undefined);
 
@@ -140,7 +149,8 @@ export function useAssistant({
     try {
       abortControllerRef.current = abortController;
 
-      const result = await fetch(api, {
+      const actualFetch = fetch ?? getOriginalFetch();
+      const response = await actualFetch(api, {
         method: 'POST',
         credentials,
         signal: abortController.signal,
@@ -148,7 +158,7 @@ export function useAssistant({
         body: JSON.stringify({
           ...body,
           // always use user-provided threadId when available:
-          threadId: threadIdParam ?? threadId ?? null,
+          threadId: threadIdParam ?? currentThreadId ?? null,
           message: message.content,
 
           // optional request data:
@@ -156,12 +166,18 @@ export function useAssistant({
         }),
       });
 
-      if (result.body == null) {
+      if (!response.ok) {
+        throw new Error(
+          (await response.text()) ?? 'Failed to fetch the assistant response.',
+        );
+      }
+
+      if (response.body == null) {
         throw new Error('The response body is empty.');
       }
 
       for await (const { type, value } of readDataStream(
-        result.body.getReader(),
+        response.body.getReader(),
       )) {
         switch (type) {
           case 'assistant_message': {
@@ -207,7 +223,7 @@ export function useAssistant({
           }
 
           case 'assistant_control_data': {
-            setThreadId(value.threadId);
+            setCurrentThreadId(value.threadId);
 
             // set id of last message:
             setMessages(messages => {
@@ -258,11 +274,17 @@ export function useAssistant({
     append({ role: 'user', content: input }, requestOptions);
   };
 
+  const setThreadId = (threadId: string | undefined) => {
+    setCurrentThreadId(threadId);
+    setMessages([]);
+  };
+
   return {
     append,
     messages,
     setMessages,
-    threadId,
+    threadId: currentThreadId,
+    setThreadId,
     input,
     setInput,
     handleInputChange,

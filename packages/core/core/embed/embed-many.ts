@@ -1,4 +1,5 @@
 import { Embedding, EmbeddingModel } from '../types';
+import { EmbeddingTokenUsage } from '../types/token-usage';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { splitArray } from '../util/split-array';
 
@@ -14,6 +15,7 @@ has a limit on how many embeddings can be generated in a single call.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @returns A result object that contains the embeddings, the value, and additional information.
  */
@@ -22,6 +24,7 @@ export async function embedMany<VALUE>({
   values,
   maxRetries,
   abortSignal,
+  headers,
 }: {
   /**
 The embedding model to use.
@@ -44,6 +47,12 @@ Maximum number of retries per embedding model call. Set to 0 to disable retries.
 Abort signal.
  */
   abortSignal?: AbortSignal;
+
+  /**
+Additional headers to include in the request.
+Only applicable for HTTP-based providers.
+ */
+  headers?: Record<string, string>;
 }): Promise<EmbedManyResult<VALUE>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const maxEmbeddingsPerCall = model.maxEmbeddingsPerCall;
@@ -52,12 +61,13 @@ Abort signal.
   // how many embeddings can be generated in a single call
   if (maxEmbeddingsPerCall == null) {
     const modelResponse = await retry(() =>
-      model.doEmbed({ values, abortSignal }),
+      model.doEmbed({ values, abortSignal, headers }),
     );
 
     return new EmbedManyResult({
       values,
       embeddings: modelResponse.embeddings,
+      usage: modelResponse.usage ?? { tokens: NaN },
     });
   }
 
@@ -66,14 +76,17 @@ Abort signal.
 
   // serially embed the chunks:
   const embeddings = [];
+  let tokens = 0;
+
   for (const chunk of valueChunks) {
     const modelResponse = await retry(() =>
-      model.doEmbed({ values: chunk, abortSignal }),
+      model.doEmbed({ values: chunk, abortSignal, headers }),
     );
     embeddings.push(...modelResponse.embeddings);
+    tokens += modelResponse.usage?.tokens ?? NaN;
   }
 
-  return new EmbedManyResult({ values, embeddings });
+  return new EmbedManyResult({ values, embeddings, usage: { tokens } });
 }
 
 /**
@@ -91,8 +104,18 @@ The embeddings. They are in the same order as the values.
   */
   readonly embeddings: Array<Embedding>;
 
-  constructor(options: { values: Array<VALUE>; embeddings: Array<Embedding> }) {
+  /**
+The embedding token usage.
+  */
+  readonly usage: EmbeddingTokenUsage;
+
+  constructor(options: {
+    values: Array<VALUE>;
+    embeddings: Array<Embedding>;
+    usage: EmbeddingTokenUsage;
+  }) {
     this.values = options.values;
     this.embeddings = options.embeddings;
+    this.usage = options.usage;
   }
 }
