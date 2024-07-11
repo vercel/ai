@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 0.0.20
+
+### Patch Changes
+
+- 56bbc2a7: feat (ai/ui): set body and headers directly on options for handleSubmit and append
+- Updated dependencies [56bbc2a7]
+  - @ai-sdk/ui-utils@0.0.12
+
 ## 0.0.19
 
 ### Patch Changes
