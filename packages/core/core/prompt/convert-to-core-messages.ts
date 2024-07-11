@@ -1,5 +1,7 @@
+import { MessageFile } from '@ai-sdk/ui-utils';
 import { ToolResult } from '../generate-text/tool-result';
 import { CoreMessage } from '../prompt';
+import { filesToParts } from './files-to-parts';
 
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used
@@ -10,14 +12,20 @@ export function convertToCoreMessages(
     role: 'user' | 'assistant';
     content: string;
     toolInvocations?: Array<ToolResult<string, unknown, unknown>>;
+    files?: MessageFile[];
   }>,
 ) {
   const coreMessages: CoreMessage[] = [];
 
-  for (const { role, content, toolInvocations } of messages) {
+  for (const { role, content, toolInvocations, files } of messages) {
     switch (role) {
       case 'user': {
-        coreMessages.push({ role: 'user', content });
+        coreMessages.push({
+          role: 'user',
+          content: files
+            ? [{ type: 'text', text: content }, ...filesToParts(files)]
+            : content,
+        });
         break;
       }
 

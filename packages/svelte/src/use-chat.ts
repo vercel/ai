@@ -362,7 +362,6 @@ export function useChat({
             content: inputValue,
             role: 'user',
             createdAt: new Date(),
-            parts: [],
           } as Message)
         : get(messages),
       options: options.options,

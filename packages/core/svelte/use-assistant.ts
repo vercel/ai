@@ -158,7 +158,6 @@ export function useAssistant({
                 id: value.id,
                 role: value.role,
                 content: value.content[0].text.value,
-                parts: [],
               },
             ]);
             break;
@@ -185,7 +184,6 @@ export function useAssistant({
                 role: 'data',
                 content: '',
                 data: value.data,
-                parts: [],
               },
             ]);
             break;
@@ -250,10 +248,7 @@ export function useAssistant({
     const inputValue = get(input);
     if (!inputValue) return;
 
-    await append(
-      { role: 'user', content: inputValue, parts: [] },
-      requestOptions,
-    );
+    await append({ role: 'user', content: inputValue }, requestOptions);
   }
 
   return {

@@ -78,7 +78,6 @@ export async function callChatApi({
         createdAt: new Date(),
         role: 'assistant' as const,
         content: '',
-        parts: [{ type: 'text' as const, text: '' }],
       };
 
       while (true) {
@@ -87,9 +86,7 @@ export async function callChatApi({
           break;
         }
 
-        const textDelta = decoder(value);
-        resultMessage.content += textDelta;
-        resultMessage.parts[0].text += textDelta;
+        resultMessage.content += decoder(value);
         resultMessage.id = generateId();
 
         // note: creating a new message object is required for Solid.js streaming

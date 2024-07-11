@@ -1,7 +1,7 @@
 import type {
   ChatRequest,
   ChatRequestOptions,
-  ContentPart,
+  MessageFile,
   CreateMessage,
   FetchFunction,
   IdGenerator,
@@ -109,7 +109,7 @@ const getStreamedResponse = async (
         ({
           role,
           content,
-          parts,
+          files,
           name,
           data,
           annotations,
@@ -120,7 +120,7 @@ const getStreamedResponse = async (
         }) => ({
           role,
           content,
-          parts,
+          files,
           ...(name !== undefined && { name }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
@@ -516,21 +516,14 @@ By default, it's set to 0, which will disable the feature.
 
       event?.preventDefault?.();
 
-      let parts: ContentPart[] = [];
-
-      if (input) {
-        parts.push({
-          type: 'text',
-          text: input,
-        });
-      }
+      let files: MessageFile[] = [];
 
       if (options.files) {
-        for (const file of Array.from(options.files)) {
-          const { type } = file;
+        if (options.files instanceof FileList) {
+          for (const file of Array.from(options.files)) {
+            const { name } = file;
 
-          if (type.startsWith('image/')) {
-            const base64 = await new Promise<string>((resolve, reject) => {
+            const dataUrl = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
               reader.onload = readerEvent => {
                 resolve(readerEvent.target?.result as string);
@@ -539,25 +532,12 @@ By default, it's set to 0, which will disable the feature.
               reader.readAsDataURL(file);
             });
 
-            parts.push({
-              type: 'image',
-              image: base64,
-            });
-          } else if (type.startsWith('text/')) {
-            const text = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = readerEvent => {
-                resolve(readerEvent.target?.result as string);
-              };
-              reader.onerror = error => reject(error);
-              reader.readAsText(file);
-            });
-
-            parts.push({
-              type: 'text',
-              text,
+            files.push({
+              name,
+              dataUrl,
             });
           }
+        } else {
         }
       }
 
@@ -567,7 +547,7 @@ By default, it's set to 0, which will disable the feature.
               id: generateId(),
               role: 'user',
               content: input,
-              parts,
+              files,
             })
           : messagesRef.current,
         options: options.options,

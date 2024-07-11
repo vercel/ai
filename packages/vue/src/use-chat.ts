@@ -268,7 +268,6 @@ export function useChat({
             id: generateId(),
             content: inputValue,
             role: 'user',
-            parts: [],
           })
         : messages.value,
       options,

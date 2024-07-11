@@ -117,17 +117,10 @@ export type ToolInvocation =
   | CoreToolCall<string, any>
   | CoreToolResult<string, any, any>;
 
-export interface TextContentPart {
-  type: 'text';
-  text: string;
+export interface MessageFile {
+  name: string;
+  dataUrl: string;
 }
-
-export interface ImageContentPart {
-  type: 'image';
-  image: string;
-}
-
-export type ContentPart = TextContentPart | ImageContentPart;
 
 /**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
@@ -138,7 +131,7 @@ export interface Message {
 
   content: string;
 
-  parts: ContentPart[];
+  files?: MessageFile[];
 
   /**
    * @deprecated Use AI SDK 3.1 `toolInvocations` instead.
@@ -291,7 +284,7 @@ Additional data to be sent to the server.
   /**
    * Additional files to be sent to the server.
    */
-  files?: FileList;
+  files?: FileList | Array<{ name: string; url: string }>;
 };
 
 export type UseChatOptions = {

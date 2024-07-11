@@ -67,15 +67,6 @@ export async function parseComplexResponse({
         prefixMap['text'] = {
           ...prefixMap['text'],
           content: (prefixMap['text'].content || '') + value,
-          parts: [
-            {
-              type: 'text',
-              text:
-                (prefixMap['text'].parts[0].type === 'text'
-                  ? prefixMap['text'].parts[0].text
-                  : '') + value,
-            },
-          ],
         };
       } else {
         prefixMap['text'] = {
@@ -83,7 +74,6 @@ export async function parseComplexResponse({
           role: 'assistant',
           content: value,
           createdAt,
-          parts: [{ type: 'text', text: value }],
         };
       }
     }
@@ -97,7 +87,6 @@ export async function parseComplexResponse({
           role: 'assistant',
           content: '',
           createdAt,
-          parts: [],
         };
       }
 
@@ -127,7 +116,6 @@ export async function parseComplexResponse({
           role: 'assistant',
           content: '',
           createdAt,
-          parts: [],
         };
       }
 
@@ -158,7 +146,6 @@ export async function parseComplexResponse({
         function_call: value.function_call,
         name: value.function_call.name,
         createdAt,
-        parts: [],
       };
 
       functionCallMessage = prefixMap['function_call'];
@@ -173,7 +160,6 @@ export async function parseComplexResponse({
         content: '',
         tool_calls: value.tool_calls,
         createdAt,
-        parts: [],
       };
 
       toolCallMessage = prefixMap['tool_calls'];
