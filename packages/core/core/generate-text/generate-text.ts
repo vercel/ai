@@ -1,3 +1,4 @@
+import { Tracer } from '@opentelemetry/api';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import {
@@ -8,6 +9,10 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getTracer } from '../telemetry/get-tracer';
+import { recordSpan } from '../telemetry/record-span';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool/tool';
 import {
   CallWarning,
@@ -16,8 +21,11 @@ import {
   LanguageModel,
   LogProbs,
 } from '../types';
+import {
+  CompletionTokenUsage,
+  calculateCompletionTokenUsage,
+} from '../types/token-usage';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
-import { TokenUsage, calculateTokenUsage } from './token-usage';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
 
@@ -72,6 +80,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   headers,
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
+  experimental_telemetry: telemetry,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -108,88 +117,162 @@ case of misconfigured tools.
 By default, it's set to 0, which will disable the feature.
      */
     maxToolRoundtrips?: number;
+
+    /**
+     * Optional telemetry configuration (experimental).
+     */
+    experimental_telemetry?: TelemetrySettings;
   }): Promise<GenerateTextResult<TOOLS>> {
-  const retry = retryWithExponentialBackoff({ maxRetries });
-  const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
+  const baseTelemetryAttributes = getBaseTelemetryAttributes({
+    operationName: 'ai.generateText',
+    model,
+    telemetry,
+    headers,
+    settings: { ...settings, maxRetries },
+  });
 
-  const mode = {
-    type: 'regular' as const,
-    ...prepareToolsAndToolChoice({ tools, toolChoice }),
-  };
-  const callSettings = prepareCallSettings(settings);
-  const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
-
-  let currentModelResponse: Awaited<ReturnType<LanguageModel['doGenerate']>>;
-  let currentToolCalls: ToToolCallArray<TOOLS> = [];
-  let currentToolResults: ToToolResultArray<TOOLS> = [];
-  let roundtrips = 0;
-  const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> = [];
-
-  do {
-    currentModelResponse = await retry(() => {
-      return model.doGenerate({
-        mode,
-        ...callSettings,
-        // once we have a roundtrip, we need to switch to messages format:
-        inputFormat: roundtrips === 0 ? validatedPrompt.type : 'messages',
-        prompt: promptMessages,
-        abortSignal,
-        headers,
+  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+  return recordSpan({
+    name: 'ai.generateText',
+    attributes: {
+      ...baseTelemetryAttributes,
+      // specific settings that only make sense on the outer level:
+      'ai.prompt': JSON.stringify({ system, prompt, messages }),
+      'ai.settings.maxToolRoundtrips': maxToolRoundtrips,
+    },
+    tracer,
+    fn: async span => {
+      const retry = retryWithExponentialBackoff({ maxRetries });
+      const validatedPrompt = getValidatedPrompt({
+        system,
+        prompt,
+        messages,
       });
-    });
 
-    // parse tool calls:
-    currentToolCalls = (currentModelResponse.toolCalls ?? []).map(
-      modelToolCall => parseToolCall({ toolCall: modelToolCall, tools }),
-    );
+      const mode = {
+        type: 'regular' as const,
+        ...prepareToolsAndToolChoice({ tools, toolChoice }),
+      };
+      const callSettings = prepareCallSettings(settings);
+      const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
 
-    // execute tools:
-    currentToolResults =
-      tools == null
-        ? []
-        : await executeTools({ toolCalls: currentToolCalls, tools });
+      let currentModelResponse: Awaited<
+        ReturnType<LanguageModel['doGenerate']>
+      >;
+      let currentToolCalls: ToToolCallArray<TOOLS> = [];
+      let currentToolResults: ToToolResultArray<TOOLS> = [];
+      let roundtrips = 0;
+      const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
+        [];
 
-    // append to messages for potential next roundtrip:
-    const newResponseMessages = toResponseMessages({
-      text: currentModelResponse.text ?? '',
-      toolCalls: currentToolCalls,
-      toolResults: currentToolResults,
-    });
-    responseMessages.push(...newResponseMessages);
-    promptMessages.push(
-      ...newResponseMessages.map(convertToLanguageModelMessage),
-    );
-  } while (
-    // there are tool calls:
-    currentToolCalls.length > 0 &&
-    // all current tool calls have results:
-    currentToolResults.length === currentToolCalls.length &&
-    // the number of roundtrips is less than the maximum:
-    roundtrips++ < maxToolRoundtrips
-  );
+      do {
+        // once we have a roundtrip, we need to switch to messages format:
+        const currentInputFormat =
+          roundtrips === 0 ? validatedPrompt.type : 'messages';
 
-  return new GenerateTextResult({
-    // Always return a string so that the caller doesn't have to check for undefined.
-    // If they need to check if the model did not return any text,
-    // they can check the length of the string:
-    text: currentModelResponse.text ?? '',
-    toolCalls: currentToolCalls,
-    toolResults: currentToolResults,
-    finishReason: currentModelResponse.finishReason,
-    usage: calculateTokenUsage(currentModelResponse.usage),
-    warnings: currentModelResponse.warnings,
-    rawResponse: currentModelResponse.rawResponse,
-    logprobs: currentModelResponse.logprobs,
-    responseMessages,
+        currentModelResponse = await retry(() =>
+          recordSpan({
+            name: 'ai.generateText.doGenerate',
+            attributes: {
+              ...baseTelemetryAttributes,
+              'ai.prompt.format': currentInputFormat,
+              'ai.prompt.messages': JSON.stringify(promptMessages),
+            },
+            tracer,
+            fn: async span => {
+              const result = await model.doGenerate({
+                mode,
+                ...callSettings,
+                inputFormat: currentInputFormat,
+                prompt: promptMessages,
+                abortSignal,
+                headers,
+              });
+
+              // Add response information to the span:
+              span.setAttributes({
+                'ai.finishReason': result.finishReason,
+                'ai.usage.promptTokens': result.usage.promptTokens,
+                'ai.usage.completionTokens': result.usage.completionTokens,
+                'ai.result.text': result.text,
+                'ai.result.toolCalls': JSON.stringify(result.toolCalls),
+              });
+
+              return result;
+            },
+          }),
+        );
+
+        // parse tool calls:
+        currentToolCalls = (currentModelResponse.toolCalls ?? []).map(
+          modelToolCall => parseToolCall({ toolCall: modelToolCall, tools }),
+        );
+
+        // execute tools:
+        currentToolResults =
+          tools == null
+            ? []
+            : await executeTools({
+                toolCalls: currentToolCalls,
+                tools,
+                tracer,
+              });
+
+        // append to messages for potential next roundtrip:
+        const newResponseMessages = toResponseMessages({
+          text: currentModelResponse.text ?? '',
+          toolCalls: currentToolCalls,
+          toolResults: currentToolResults,
+        });
+        responseMessages.push(...newResponseMessages);
+        promptMessages.push(
+          ...newResponseMessages.map(convertToLanguageModelMessage),
+        );
+      } while (
+        // there are tool calls:
+        currentToolCalls.length > 0 &&
+        // all current tool calls have results:
+        currentToolResults.length === currentToolCalls.length &&
+        // the number of roundtrips is less than the maximum:
+        roundtrips++ < maxToolRoundtrips
+      );
+
+      // Add response information to the span:
+      span.setAttributes({
+        'ai.finishReason': currentModelResponse.finishReason,
+        'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
+        'ai.usage.completionTokens':
+          currentModelResponse.usage.completionTokens,
+        'ai.result.text': currentModelResponse.text,
+        'ai.result.toolCalls': JSON.stringify(currentModelResponse.toolCalls),
+      });
+
+      return new GenerateTextResult({
+        // Always return a string so that the caller doesn't have to check for undefined.
+        // If they need to check if the model did not return any text,
+        // they can check the length of the string:
+        text: currentModelResponse.text ?? '',
+        toolCalls: currentToolCalls,
+        toolResults: currentToolResults,
+        finishReason: currentModelResponse.finishReason,
+        usage: calculateCompletionTokenUsage(currentModelResponse.usage),
+        warnings: currentModelResponse.warnings,
+        rawResponse: currentModelResponse.rawResponse,
+        logprobs: currentModelResponse.logprobs,
+        responseMessages,
+      });
+    },
   });
 }
 
 async function executeTools<TOOLS extends Record<string, CoreTool>>({
   toolCalls,
   tools,
+  tracer,
 }: {
   toolCalls: ToToolCallArray<TOOLS>;
   tools: TOOLS;
+  tracer: Tracer;
 }): Promise<ToToolResultArray<TOOLS>> {
   const toolResults = await Promise.all(
     toolCalls.map(async toolCall => {
@@ -199,7 +282,31 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         return undefined;
       }
 
-      const result = await tool.execute(toolCall.args);
+      const result = await recordSpan({
+        name: 'ai.toolCall',
+        attributes: {
+          'ai.toolCall.name': toolCall.toolName,
+          'ai.toolCall.id': toolCall.toolCallId,
+          'ai.toolCall.args': JSON.stringify(toolCall.args),
+        },
+        tracer,
+        fn: async span => {
+          const result = await tool.execute!(toolCall.args);
+
+          try {
+            span.setAttributes({
+              'ai.toolCall.result': JSON.stringify(result),
+            });
+          } catch (ignored) {
+            // JSON stringify might fail if the result is not serializable,
+            // in which case we just ignore it. In the future we might want to
+            // add an optional serialize method to the tool interface and warn
+            // if the result is not serializable.
+          }
+
+          return result;
+        },
+      });
 
       return {
         toolCallId: toolCall.toolCallId,
@@ -243,7 +350,7 @@ The reason why the generation finished.
   /**
 The token usage of the generated text.
    */
-  readonly usage: TokenUsage;
+  readonly usage: CompletionTokenUsage;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
@@ -280,7 +387,7 @@ Logprobs for the completion.
     toolCalls: ToToolCallArray<TOOLS>;
     toolResults: ToToolResultArray<TOOLS>;
     finishReason: FinishReason;
-    usage: TokenUsage;
+    usage: CompletionTokenUsage;
     warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;

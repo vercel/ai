@@ -1,4 +1,5 @@
 import { Embedding, EmbeddingModel } from '../types';
+import { EmbeddingTokenUsage } from '../types/token-usage';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { splitArray } from '../util/split-array';
 
@@ -66,6 +67,7 @@ Only applicable for HTTP-based providers.
     return new EmbedManyResult({
       values,
       embeddings: modelResponse.embeddings,
+      usage: modelResponse.usage ?? { tokens: NaN },
     });
   }
 
@@ -74,14 +76,17 @@ Only applicable for HTTP-based providers.
 
   // serially embed the chunks:
   const embeddings = [];
+  let tokens = 0;
+
   for (const chunk of valueChunks) {
     const modelResponse = await retry(() =>
       model.doEmbed({ values: chunk, abortSignal, headers }),
     );
     embeddings.push(...modelResponse.embeddings);
+    tokens += modelResponse.usage?.tokens ?? NaN;
   }
 
-  return new EmbedManyResult({ values, embeddings });
+  return new EmbedManyResult({ values, embeddings, usage: { tokens } });
 }
 
 /**
@@ -99,8 +104,18 @@ The embeddings. They are in the same order as the values.
   */
   readonly embeddings: Array<Embedding>;
 
-  constructor(options: { values: Array<VALUE>; embeddings: Array<Embedding> }) {
+  /**
+The embedding token usage.
+  */
+  readonly usage: EmbeddingTokenUsage;
+
+  constructor(options: {
+    values: Array<VALUE>;
+    embeddings: Array<Embedding>;
+    usage: EmbeddingTokenUsage;
+  }) {
     this.values = options.values;
     this.embeddings = options.embeddings;
+    this.usage = options.usage;
   }
 }

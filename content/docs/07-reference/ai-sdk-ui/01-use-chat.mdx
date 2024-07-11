@@ -160,9 +160,33 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'append',
-      type: '(message: Message | CreateMessage, chatRequestOptions: { options: { headers, body } }) => Promise<string | undefined>',
+      type: '(message: Message | CreateMessage, options?: ChatRequestOptions) => Promise<string | undefined>',
       description:
         'Function to append a message to the chat, triggering an API call for the AI response. It returns a promise that resolves to full response message content when the API call is successfully finished, or throws an error when the API call fails.',
+      properties: [
+        {
+          type: 'ChatRequestOptions',
+          parameters: [
+            {
+              name: 'headers',
+              type: 'Record<string, string> | Headers',
+              description:
+                'Additional headers that should be to be passed to the API endpoint.',
+            },
+            {
+              name: 'body',
+              type: 'object',
+              description:
+                'Additional body JSON properties that should be sent to the API endpoint.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              description: 'Additional data to be sent to the API endpoint.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'reload',
@@ -199,7 +223,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'handleSubmit',
-      type: '(event?: { preventDefault?: () => void }, chatRequestOptions?: ChatRequestOptions) => void',
+      type: '(event?: { preventDefault?: () => void }, options?: ChatRequestOptions) => void',
       description:
         'Form submission handler that automatically resets the input field and appends a user message. You can use the `options` parameter to send additional data, headers and more to the server.',
       properties: [
@@ -207,33 +231,21 @@ Allows you to easily create a conversational user interface for your chatbot app
           type: 'ChatRequestOptions',
           parameters: [
             {
-              name: 'options',
-              type: 'RequestOptions',
-              description: 'The options to be passed to the fetch call.',
-              properties: [
-                {
-                  type: 'ChatRequestOptions',
-                  parameters: [
-                    {
-                      name: 'headers',
-                      type: 'Record<string, string> | Headers',
-                      description:
-                        'An optional object of headers to be passed to the API endpoint.',
-                    },
-                    {
-                      name: 'body',
-                      type: 'object',
-                      description:
-                        'An optional object to be passed to the API endpoint.',
-                    },
-                  ],
-                },
-              ],
+              name: 'headers',
+              type: 'Record<string, string> | Headers',
+              description:
+                'Additional headers that should be to be passed to the API endpoint.',
+            },
+            {
+              name: 'body',
+              type: 'object',
+              description:
+                'Additional body JSON properties that should be sent to the API endpoint.',
             },
             {
               name: 'data',
               type: 'JSONValue',
-              description: 'Additional data to be sent to the server.',
+              description: 'Additional data to be sent to the API endpoint.',
             },
           ],
         },

@@ -18,8 +18,10 @@ describe('doEmbed', () => {
 
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
+    usage = { prompt_tokens: 8, total_tokens: 8 },
   }: {
     embeddings?: EmbeddingModelV1Embedding[];
+    usage?: { prompt_tokens: number; total_tokens: number };
   } = {}) {
     server.responseBodyJson = {
       object: 'list',
@@ -29,7 +31,7 @@ describe('doEmbed', () => {
         embedding,
       })),
       model: 'text-embedding-3-large',
-      usage: { prompt_tokens: 8, total_tokens: 8 },
+      usage,
     };
   }
 
@@ -58,6 +60,16 @@ describe('doEmbed', () => {
       // custom header
       'test-header': 'test-value',
     });
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonResponse({
+      usage: { prompt_tokens: 20, total_tokens: 20 },
+    });
+
+    const { usage } = await model.doEmbed({ values: testValues });
+
+    expect(usage).toStrictEqual({ tokens: 20 });
   });
 
   it('should pass the model and the values', async () => {
