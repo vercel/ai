@@ -148,6 +148,7 @@ describe('Thread management', () => {
           role: 'assistant',
           content: [{ type: 'text', text: { value: '' } }],
         }),
+        // text parts:
         '0:"Hello"\n',
         '0:","\n',
         '0:" world"\n',
@@ -185,6 +186,53 @@ describe('Thread management', () => {
       url: 'https://example.com/api/assistant',
       chunks: [
         formatStreamPart('assistant_control_data', {
+          threadId: 't1',
+          messageId: 'm0',
+        }),
+        formatStreamPart('assistant_message', {
+          id: 'm0',
+          role: 'assistant',
+          content: [{ type: 'text', text: { value: '' } }],
+        }),
+        // text parts:
+        '0:"Hello"\n',
+        '0:","\n',
+        '0:" world"\n',
+        '0:"."\n',
+      ],
+    });
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    expect(screen.getByTestId('thread-id')).toHaveTextContent('t1');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    // check that correct information was sent to the server:
+    expect(await requestBody).toStrictEqual(
+      JSON.stringify({
+        message: 'hi',
+        threadId: null,
+      }),
+    );
+  });
+
+  it('should switch to thread on setting previously created threadId', async () => {
+    await userEvent.click(screen.getByTestId('do-thread-3'));
+
+    expect(screen.queryByTestId('message-0')).toBeNull();
+    expect(screen.queryByTestId('message-1')).toBeNull();
+
+    const { requestBody } = mockFetchDataStream({
+      url: 'https://example.com/api/assistant',
+      chunks: [
+        formatStreamPart('assistant_control_data', {
           threadId: 't3',
           messageId: 'm0',
         }),
@@ -193,6 +241,7 @@ describe('Thread management', () => {
           role: 'assistant',
           content: [{ type: 'text', text: { value: '' } }],
         }),
+        // text parts:
         '0:"Hello"\n',
         '0:","\n',
         '0:" world"\n',
@@ -212,6 +261,7 @@ describe('Thread management', () => {
       'AI: Hello, world.',
     );
 
+    // check that correct information was sent to the server:
     expect(await requestBody).toStrictEqual(
       JSON.stringify({
         message: 'hi',
