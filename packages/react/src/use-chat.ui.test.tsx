@@ -227,12 +227,12 @@ describe('form actions', () => {
           </div>
         ))}
 
-        <form onSubmit={handleSubmit} className="fixed bottom-0 p-2 w-full">
+        <form onSubmit={handleSubmit} className="fixed bottom-0 w-full p-2">
           <input
             value={input}
             placeholder="Send message..."
             onChange={handleInputChange}
-            className="bg-zinc-100 w-full p-2"
+            className="w-full p-2 bg-zinc-100"
             disabled={isLoading}
             data-testid="do-input"
           />
@@ -311,9 +311,7 @@ describe('prepareRequestBody', () => {
               { role: 'user', content: 'hi' },
               {
                 data: { 'test-data-key': 'test-data-value' },
-                options: {
-                  body: { 'request-body-key': 'request-body-value' },
-                },
+                body: { 'request-body-key': 'request-body-value' },
               },
             );
           }}
