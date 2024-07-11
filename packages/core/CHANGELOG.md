@@ -1,5 +1,11 @@
 # ai
 
+## 3.2.20
+
+### Patch Changes
+
+- 671331b6: feat (core): add experimental OpenTelemetry support for generateText and streamText
+
 ## 3.2.19
 
 ### Patch Changes
