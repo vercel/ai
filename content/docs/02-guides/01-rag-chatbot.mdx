@@ -313,17 +313,17 @@ This function is a [Server Action](https://nextjs.org/docs/app/building-your-app
 
 Update the file with the following code:
 
-```tsx filename="lib/actions/resources.ts" highlight="9-10,21-24,26"
-'use server';
+```tsx filename="lib/actions/resources.ts" highlight="9-10,21-27,29"
+"use server";
 
 import {
   NewResourceParams,
   insertResourceSchema,
   resources,
-} from '@/lib/db/schema/resources';
-import { db } from '../db';
-import { embeddings } from '../db/schema/embeddings';
-import { generateEmbeddings } from '../ai/embedding';
+} from "@/lib/db/schema/resources";
+import { db } from "../db";
+import { generateEmbeddings } from "../ai/embedding";
+import { embeddings as embeddingsTable } from "../db/schema/embeddings";
 
 export const createResource = async (input: NewResourceParams) => {
   try {
@@ -334,15 +334,19 @@ export const createResource = async (input: NewResourceParams) => {
       .values({ content })
       .returning();
 
-    const e = await generateEmbeddings(content);
-    await db
-      .insert(embeddings)
-      .values(e.map(embedding => ({ resourceId: resource.id, ...embedding })));
+    const embeddings = await generateEmbeddings(content);
+    await db.insert(embeddingsTable).values(
+      embeddings.map((embedding) => ({
+        resourceId: resource.id,
+        ...embedding,
+      })),
+    );
 
-    return 'Resource successfully created and embedded.';
-  } catch (e) {
-    if (e instanceof Error)
-      return e.message.length > 0 ? e.message : 'Error, please try again.';
+    return "Resource successfully created and embedded.";
+  } catch (error) {
+    return error instanceof Error && error.message.length > 0
+      ? error.message
+      : "Error, please try again.";
   }
 };
 ```
@@ -594,7 +598,7 @@ The model can now add and embed arbitrary information to your knowledge base. Ho
 
 To find similar content, you will need to embed the users query, search the database for semantic similarities, then pass those items to the model as context alongside the query. To achieve this, let’s update your embedding logic file (`lib/ai/embedding.ts`):
 
-```tsx filename="lib/ai/embedding.ts" highlight="1,3-5,27-34,36-46"
+```tsx filename="lib/ai/embedding.ts" highlight="1,3-5,27-34,36-49"
 import { embed, embedMany } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { db } from '../db';
