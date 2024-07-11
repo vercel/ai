@@ -221,3 +221,51 @@ const { messages, input, handleInputChange, handleSubmit } = useChat({
 ```
 
 In this example, the `useChat` hook sends a POST request to the `/api/custom-chat` endpoint with the specified headers, additional body fields, and credentials for that fetch request. On your server side, you can handle the request with these additional information.
+
+## Setting custom body fields per request
+
+You can configure custom `body` fields on a per-request basis using the `options` field of the `handleSubmit` function.
+This is useful if you want to pass in additional information to your backend that is not part of the message list.
+
+```tsx filename="app/page.tsx" highlight="19-21"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role}: {m.content}
+        </div>
+      ))}
+
+      <form
+        onSubmit={event => {
+          handleSubmit(event, {
+            options: {
+              body: {
+                customKey: 'customValue',
+              },
+            },
+          });
+        }}
+      >
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </div>
+  );
+}
+```
+
+You can retrieve these custom fields on your server side by destructuring the request body:
+
+```ts filename="app/api/chat/route.ts" highlight="3"
+export async function POST(req: Request) {
+  // Extract addition information ("customKey") from the body of the request:
+  const { messages, customKey } = await req.json();
+  //...
+}
+```
