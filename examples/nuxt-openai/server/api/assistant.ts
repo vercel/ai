@@ -35,7 +35,7 @@ export default defineLazyEventHandler(async () => {
   return defineEventHandler(async (event: any) => {
     const { threadId: userThreadId, message }: AssistantRequest =
       await readBody(event);
-    
+
     // Extract the signal from the H3 request if available
     const { signal }: Request = event?.web?.request;
 

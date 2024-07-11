@@ -8,7 +8,7 @@ import type {
   AssistantStatus,
   CreateMessage,
   Message,
-  UseAssistantOptions
+  UseAssistantOptions,
 } from '@ai-sdk/ui-utils';
 import { computed, readonly, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
@@ -22,7 +22,7 @@ export type UseAssistantHelpers = {
   /**
    * Update the message store with a new array of messages.
    */
-  setMessages: (messagesProcessor: (messages: Message[]) => Message[]) => void,
+  setMessages: (messagesProcessor: (messages: Message[]) => Message[]) => void;
 
   /**
    * The current thread ID.
@@ -30,8 +30,8 @@ export type UseAssistantHelpers = {
   threadId: Ref<string | undefined>;
 
   /**
-    * Set the current thread ID. Specifying a thread ID will switch to that thread, if it exists. If set to 'undefined', a new thread will be created. For both cases, `threadId` will be updated with the new value and `messages` will be cleared.
-    */
+   * Set the current thread ID. Specifying a thread ID will switch to that thread, if it exists. If set to 'undefined', a new thread will be created. For both cases, `threadId` will be updated with the new value and `messages` will be cleared.
+   */
   setThreadId: (threadId: string | undefined) => void;
   /**
    * The current value of the input field.
@@ -103,7 +103,7 @@ export function useAssistant({
   const setCurrentThreadId = (newThreadId: string | undefined) => {
     currentThreadId.value = newThreadId;
     messages.value = [];
-  }
+  };
 
   const handleInputChange = (event: Event & { target: HTMLInputElement }) => {
     input.value = event?.target?.value;

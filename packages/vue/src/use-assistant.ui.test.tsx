@@ -13,13 +13,13 @@ describe('stream data stream', () => {
   // Render the TestChatAssistantStreamComponent before each test
   beforeEach(() => {
     render(TestChatAssistantStreamComponent);
-  })
+  });
 
   // Cleanup after each test
   afterEach(() => {
     vi.restoreAllMocks();
     cleanup();
-  })
+  });
 
   it('should show streamed response', async () => {
     // Mock the fetch data stream
@@ -54,7 +54,9 @@ describe('stream data stream', () => {
     // Find the message-1 element
     await screen.findByTestId('message-1');
     // Expect the message-1 element to have the text content 'AI: Hello, world.'
-    expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello, world.');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
 
     expect(await requestBody).toStrictEqual(
       JSON.stringify({
@@ -67,11 +69,11 @@ describe('stream data stream', () => {
   describe('loading state', () => {
     it('should show loading state', async () => {
       let finishGeneration: ((value?: unknown) => void) | undefined;
-      
+
       const finishGenerationPromise = new Promise(resolve => {
         finishGeneration = resolve;
       });
-        
+
       // Mock the fetch data stream with generator
       mockFetchDataStreamWithGenerator({
         url: 'https://example.com/api/assistant',
@@ -111,10 +113,12 @@ describe('stream data stream', () => {
 
       // Find the loading element and expect it to be awaiting a message
       await findByText(await screen.findByTestId('status'), 'awaiting_message');
-      expect(screen.getByTestId('status')).toHaveTextContent('awaiting_message');
+      expect(screen.getByTestId('status')).toHaveTextContent(
+        'awaiting_message',
+      );
     });
-  })
-})
+  });
+});
 
 describe('Thread management', () => {
   beforeEach(() => {
@@ -129,7 +133,7 @@ describe('Thread management', () => {
   it('create new thread', async () => {
     await screen.findByTestId('thread-id');
     expect(screen.getByTestId('thread-id')).toHaveTextContent('undefined');
-  })
+  });
 
   it('should show streamed response', async () => {
     const { requestBody } = mockFetchDataStream({
@@ -159,7 +163,9 @@ describe('Thread management', () => {
     expect(screen.getByTestId('thread-id')).toHaveTextContent('t0');
 
     await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello, world.');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
 
     expect(await requestBody).toStrictEqual(
       JSON.stringify({
@@ -167,7 +173,7 @@ describe('Thread management', () => {
         threadId: null,
       }),
     );
-  })
+  });
 
   it('should switch to new thread on setting undefined threadId', async () => {
     await userEvent.click(screen.getByTestId('do-new-thread'));
@@ -202,7 +208,9 @@ describe('Thread management', () => {
     expect(screen.getByTestId('thread-id')).toHaveTextContent('t3');
 
     await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello, world.');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
 
     expect(await requestBody).toStrictEqual(
       JSON.stringify({
@@ -210,5 +218,5 @@ describe('Thread management', () => {
         threadId: 't3',
       }),
     );
-  })
-})
+  });
+});
