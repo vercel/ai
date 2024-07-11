@@ -1,3 +1,4 @@
+import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
@@ -10,6 +11,10 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getTracer } from '../telemetry/get-tracer';
+import { recordSpan } from '../telemetry/record-span';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
 import {
   CallWarning,
@@ -77,6 +82,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   maxRetries,
   abortSignal,
   headers,
+  experimental_telemetry: telemetry,
   onFinish,
   ...settings
 }: CallSettings &
@@ -95,6 +101,11 @@ The tools that the model can call. The model needs to support calling tools.
 The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: CoreToolChoice<TOOLS>;
+
+    /**
+     * Optional telemetry configuration (experimental).
+     */
+    experimental_telemetry?: TelemetrySettings;
 
     /**
 Callback that is called when the LLM response and all request tool executions 
@@ -142,30 +153,74 @@ Warnings from the model provider (e.g. unsupported settings).
       warnings?: CallWarning[];
     }) => Promise<void> | void;
   }): Promise<StreamTextResult<TOOLS>> {
-  const retry = retryWithExponentialBackoff({ maxRetries });
-  const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
-  const { stream, warnings, rawResponse } = await retry(() =>
-    model.doStream({
-      mode: {
-        type: 'regular',
-        ...prepareToolsAndToolChoice({ tools, toolChoice }),
-      },
-      ...prepareCallSettings(settings),
-      inputFormat: validatedPrompt.type,
-      prompt: convertToLanguageModelPrompt(validatedPrompt),
-      abortSignal,
-      headers,
-    }),
-  );
+  const baseTelemetryAttributes = getBaseTelemetryAttributes({
+    operationName: 'ai.streamText',
+    model,
+    telemetry,
+    headers,
+    settings: { ...settings, maxRetries },
+  });
 
-  return new StreamTextResult({
-    stream: runToolsTransformation({
-      tools,
-      generatorStream: stream,
-    }),
-    warnings,
-    rawResponse,
-    onFinish,
+  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+
+  return recordSpan({
+    name: 'ai.streamText',
+    attributes: {
+      ...baseTelemetryAttributes,
+      // specific settings that only make sense on the outer level:
+      'ai.prompt': JSON.stringify({ system, prompt, messages }),
+    },
+    tracer,
+    endWhenDone: false,
+    fn: async rootSpan => {
+      const retry = retryWithExponentialBackoff({ maxRetries });
+      const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
+      const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
+      const {
+        result: { stream, warnings, rawResponse },
+        doStreamSpan,
+      } = await retry(() =>
+        recordSpan({
+          name: 'ai.streamText.doStream',
+          attributes: {
+            ...baseTelemetryAttributes,
+            'ai.prompt.format': validatedPrompt.type,
+            'ai.prompt.messages': JSON.stringify(promptMessages),
+          },
+          tracer,
+          endWhenDone: false,
+          fn: async doStreamSpan => {
+            return {
+              result: await model.doStream({
+                mode: {
+                  type: 'regular',
+                  ...prepareToolsAndToolChoice({ tools, toolChoice }),
+                },
+                ...prepareCallSettings(settings),
+                inputFormat: validatedPrompt.type,
+                prompt: promptMessages,
+                abortSignal,
+                headers,
+              }),
+              doStreamSpan,
+            };
+          },
+        }),
+      );
+
+      return new StreamTextResult({
+        stream: runToolsTransformation({
+          tools,
+          generatorStream: stream,
+          tracer,
+        }),
+        warnings,
+        rawResponse,
+        onFinish,
+        rootSpan,
+        doStreamSpan,
+      });
+    },
   });
 }
 
@@ -247,6 +302,8 @@ Response headers.
     warnings,
     rawResponse,
     onFinish,
+    rootSpan,
+    doStreamSpan,
   }: {
     stream: ReadableStream<TextStreamPart<TOOLS>>;
     warnings: CallWarning[] | undefined;
@@ -254,6 +311,8 @@ Response headers.
       headers?: Record<string, string>;
     };
     onFinish?: Parameters<typeof streamText>[0]['onFinish'];
+    rootSpan: Span;
+    doStreamSpan: Span;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -303,6 +362,7 @@ Response headers.
     let text = '';
     const toolCalls: ToToolCall<TOOLS>[] = [];
     const toolResults: ToToolResult<TOOLS>[] = [];
+    let firstChunk = true;
 
     // pipe chunks through a transformation stream that extracts metadata:
     const self = this;
@@ -311,49 +371,92 @@ Response headers.
         async transform(chunk, controller): Promise<void> {
           controller.enqueue(chunk);
 
-          // Create the full text from text deltas (for onFinish callback and text promise):
-          if (chunk.type === 'text-delta') {
-            text += chunk.textDelta;
+          // Telemetry event for first chunk:
+          if (firstChunk) {
+            firstChunk = false;
+            doStreamSpan.addEvent('ai.stream.firstChunk');
           }
 
-          // store tool calls for onFinish callback and toolCalls promise:
-          if (chunk.type === 'tool-call') {
-            toolCalls.push(chunk);
-          }
+          const chunkType = chunk.type;
+          switch (chunkType) {
+            case 'text-delta':
+              // create the full text from text deltas (for onFinish callback and text promise):
+              text += chunk.textDelta;
+              break;
 
-          // store tool results for onFinish callback and toolResults promise:
-          if (chunk.type === 'tool-result') {
-            toolResults.push(chunk);
-          }
+            case 'tool-call':
+              // store tool calls for onFinish callback and toolCalls promise:
+              toolCalls.push(chunk);
+              break;
 
-          // Note: tool executions might not be finished yet when the finish event is emitted.
-          if (chunk.type === 'finish') {
-            // store usage and finish reason for promises and onFinish callback:
-            usage = chunk.usage;
-            finishReason = chunk.finishReason;
+            case 'tool-result':
+              // store tool results for onFinish callback and toolResults promise:
+              toolResults.push(chunk);
+              break;
 
-            // resolve promises that can be resolved now:
-            resolveUsage(usage);
-            resolveFinishReason(finishReason);
-            resolveText(text);
-            resolveToolCalls(toolCalls);
+            case 'finish':
+              // Note: tool executions might not be finished yet when the finish event is emitted.
+              // store usage and finish reason for promises and onFinish callback:
+              usage = chunk.usage;
+              finishReason = chunk.finishReason;
+
+              // resolve promises that can be resolved now:
+              resolveUsage(usage);
+              resolveFinishReason(finishReason);
+              resolveText(text);
+              resolveToolCalls(toolCalls);
+              break;
+
+            case 'error':
+              // ignored
+              break;
+
+            default: {
+              const exhaustiveCheck: never = chunkType;
+              throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+            }
           }
         },
 
         // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
         async flush(controller) {
           try {
+            const finalUsage = usage ?? {
+              promptTokens: NaN,
+              completionTokens: NaN,
+              totalTokens: NaN,
+            };
+            const finalFinishReason = finishReason ?? 'unknown';
+            const telemetryToolCalls =
+              toolCalls.length > 0 ? JSON.stringify(toolCalls) : undefined;
+
+            doStreamSpan.setAttributes({
+              'ai.finishReason': finalFinishReason,
+              'ai.usage.promptTokens': finalUsage.promptTokens,
+              'ai.usage.completionTokens': finalUsage.completionTokens,
+              'ai.result.text': text,
+              'ai.result.toolCalls': telemetryToolCalls,
+            });
+
+            // finish doStreamSpan before other operations for correct timing:
+            doStreamSpan.end();
+
+            // Add response information to the root span:
+            rootSpan.setAttributes({
+              'ai.finishReason': finalFinishReason,
+              'ai.usage.promptTokens': finalUsage.promptTokens,
+              'ai.usage.completionTokens': finalUsage.completionTokens,
+              'ai.result.text': text,
+              'ai.result.toolCalls': telemetryToolCalls,
+            });
+
             // resolve toolResults promise:
             resolveToolResults(toolResults);
 
             // call onFinish callback:
             await self.onFinish?.({
-              finishReason: finishReason ?? 'unknown',
-              usage: usage ?? {
-                promptTokens: NaN,
-                completionTokens: NaN,
-                totalTokens: NaN,
-              },
+              finishReason: finalFinishReason,
+              usage: finalUsage,
               text,
               toolCalls,
               // The tool results are inferred as a never[] type, because they are
@@ -366,6 +469,8 @@ Response headers.
             });
           } catch (error) {
             controller.error(error);
+          } finally {
+            rootSpan.end();
           }
         },
       }),
