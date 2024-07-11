@@ -20,9 +20,7 @@ export default defineLazyEventHandler(async () => {
     throw new Error('Missing Assistant ID, `NUXT_ASSISTANT_ID` not set');
 
   // Create an OpenAI API client (that's edge friendly!)
-  const openai = new OpenAI({
-    apiKey: apiKey,
-  });
+  const openai = new OpenAI({ apiKey });
 
   const homeTemperatures = {
     bedroom: 20,
@@ -37,7 +35,7 @@ export default defineLazyEventHandler(async () => {
       await readBody(event);
 
     // Extract the signal from the H3 request if available
-    const { signal }: Request = event?.web?.request;
+    const signal = event?.web?.request?.signal;
 
     // Create a thread if needed
     const threadId = userThreadId ?? (await openai.beta.threads.create({})).id;
@@ -49,7 +47,7 @@ export default defineLazyEventHandler(async () => {
         role: 'user',
         content: message,
       },
-      { ...(signal && { signal: event.signal }) },
+      { signal },
     );
 
     return AssistantResponse(
@@ -58,10 +56,8 @@ export default defineLazyEventHandler(async () => {
         // Run the assistant on the thread
         const runStream = openai.beta.threads.runs.stream(
           threadId,
-          {
-            assistant_id: assistantId,
-          },
-          { ...(signal && { signal: event.signal }) },
+          { assistant_id: assistantId },
+          { signal },
         );
 
         // forward run status would stream message deltas
@@ -124,7 +120,7 @@ export default defineLazyEventHandler(async () => {
               threadId,
               runResult.id,
               { tool_outputs },
-              { ...(signal && { signal: event.signal }) },
+              { signal },
             ),
           );
         }
