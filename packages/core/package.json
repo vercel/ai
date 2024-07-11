@@ -113,7 +113,7 @@
     "jsdom": "^24.0.0",
     "langchain": "0.0.196",
     "msw": "2.3.1",
-    "openai": "4.47.1",
+    "openai": "4.52.6",
     "react-dom": "^18",
     "react-server-dom-webpack": "18.3.0-canary-eb33bd747-20240312",
     "tsup": "^7.2.0",
