@@ -6,9 +6,9 @@ import {
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { cleanup, findByText, render, screen } from '@testing-library/vue';
-import TestChatComponent from './test/components/TestChatComponent.vue';
-import TestChatTextStreamComponent from './test/components/TestChatTextStreamComponent.vue';
-import TestChatFormComponent from './test/components/TestChatFormComponent.vue';
+import TestChatComponent from './TestChatComponent.vue';
+import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
+import TestChatFormComponent from './TestChatFormComponent.vue';
 import { formatStreamPart } from '@ai-sdk/ui-utils';
 
 describe('stream data stream', () => {

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useAssistant } from '../../use-assistant';
+import { useAssistant } from './use-assistant';
 
 const { status, messages, append } = useAssistant({
   api: '/api/assistant'

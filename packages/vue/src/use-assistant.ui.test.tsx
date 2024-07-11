@@ -6,7 +6,7 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { cleanup, findByText, render, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import TestChatAssistantStreamComponent from './test/components/TestChatAssistantStreamComponent.vue';
+import TestChatAssistantStreamComponent from './TestChatAssistantStreamComponent.vue';
 
 describe('stream data stream', () => {
   // Render the TestChatAssistantStreamComponent before each test
