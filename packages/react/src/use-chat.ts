@@ -420,15 +420,24 @@ By default, it's set to 0, which will disable the feature.
         tools,
         tool_choice,
         data,
+        headers,
+        body,
       }: ChatRequestOptions = {},
     ) => {
       if (!message.id) {
         message.id = generateId();
       }
 
+      const requestOptions = {
+        headers: headers ?? options?.headers,
+        body: body ?? options?.body,
+      };
+
       const chatRequest: ChatRequest = {
         messages: messagesRef.current.concat(message as Message),
-        options,
+        options: requestOptions,
+        headers: requestOptions.headers,
+        body: requestOptions.body,
         data,
         ...(functions !== undefined && { functions }),
         ...(function_call !== undefined && { function_call }),

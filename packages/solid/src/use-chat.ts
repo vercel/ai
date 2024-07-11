@@ -307,15 +307,22 @@ export function useChat(
 
   const append: UseChatHelpers['append'] = async (
     message,
-    { options, data } = {},
+    { options, data, headers, body } = {},
   ) => {
     if (!message.id) {
       message.id = generateId()();
     }
 
+    const requestOptions = {
+      headers: headers ?? options?.headers,
+      body: body ?? options?.body,
+    };
+
     const chatRequest: ChatRequest = {
       messages: messagesRef.concat(message as Message),
-      options,
+      options: requestOptions,
+      headers: requestOptions.headers,
+      body: requestOptions.body,
       data,
     };
 

@@ -281,15 +281,24 @@ export function useChat({
       tools,
       tool_choice,
       data,
+      headers,
+      body,
     }: ChatRequestOptions = {},
   ) => {
     if (!message.id) {
       message.id = generateId();
     }
 
+    const requestOptions = {
+      headers: headers ?? options?.headers,
+      body: body ?? options?.body,
+    };
+
     const chatRequest: ChatRequest = {
       messages: get(messages).concat(message as Message),
-      options,
+      options: requestOptions,
+      headers: requestOptions.headers,
+      body: requestOptions.body,
       data,
       ...(functions !== undefined && { functions }),
       ...(function_call !== undefined && { function_call }),
