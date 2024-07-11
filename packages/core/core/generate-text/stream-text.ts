@@ -505,7 +505,7 @@ stream will throw the error.
             controller.enqueue(chunk.textDelta);
           }
         } else if (chunk.type === 'error') {
-          throw chunk.error;
+          controller.error(chunk.error);
         }
       },
     });
