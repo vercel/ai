@@ -926,7 +926,7 @@ importers:
         specifier: 0.0.12
         version: link:../ui-utils
       '@ai-sdk/vue':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../vue
       '@opentelemetry/api':
         specifier: 1.9.0
