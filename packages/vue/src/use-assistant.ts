@@ -10,7 +10,7 @@ import type {
   Message,
   UseAssistantOptions
 } from '@ai-sdk/ui-utils';
-import { computed, ref } from 'vue';
+import { computed, readonly, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
 export type UseAssistantHelpers = {
@@ -29,6 +29,10 @@ export type UseAssistantHelpers = {
    */
   threadId: Ref<string | undefined>;
 
+  /**
+    * Set the current thread ID. Specifying a thread ID will switch to that thread, if it exists. If set to 'undefined', a new thread will be created. For both cases, `threadId` will be updated with the new value and `messages` will be cleared.
+    */
+  setThreadId: (threadId: string | undefined) => void;
   /**
    * The current value of the input field.
    */
@@ -88,13 +92,18 @@ export function useAssistant({
 }: UseAssistantOptions): UseAssistantHelpers {
   const messages: Ref<Message[]> = ref([]);
   const input: Ref<string> = ref('');
-  const threadId: Ref<string | undefined> = ref(undefined);
+  const currentThreadId: Ref<string | undefined> = ref(undefined);
   const status: Ref<AssistantStatus> = ref('awaiting_message');
   const error: Ref<undefined | Error> = ref(undefined);
 
   const setMessages = (messageFactory: (messages: Message[]) => Message[]) => {
     messages.value = messageFactory(messages.value);
   };
+
+  const setCurrentThreadId = (newThreadId: string | undefined) => {
+    currentThreadId.value = newThreadId;
+    messages.value = [];
+  }
 
   const handleInputChange = (event: Event & { target: HTMLInputElement }) => {
     input.value = event?.target?.value;
@@ -152,7 +161,7 @@ export function useAssistant({
           message: message.content,
 
           // Always Use User Provided Thread ID When Available
-          threadId: threadId.value ?? threadIdParam ?? null,
+          threadId: threadIdParam ?? currentThreadId.value ?? null,
 
           // Optional Request Data
           ...(requestOptions?.data && { data: requestOptions?.data }),
@@ -188,7 +197,7 @@ export function useAssistant({
           }
           case 'assistant_control_data': {
             if (value.threadId) {
-              threadId.value = value.threadId;
+              currentThreadId.value = value.threadId;
             }
 
             setMessages(messages => {
@@ -278,7 +287,8 @@ export function useAssistant({
     append,
     messages,
     setMessages,
-    threadId,
+    threadId: readonly(currentThreadId),
+    setThreadId: setCurrentThreadId,
     input,
     handleInputChange,
     handleSubmit: submitMessage,

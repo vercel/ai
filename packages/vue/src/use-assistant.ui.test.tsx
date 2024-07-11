@@ -7,6 +7,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, findByText, render, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import TestChatAssistantStreamComponent from './TestChatAssistantStreamComponent.vue';
+import TestChatAssistantThreadChangeComponent from './TestChatAssistantThreadChangeComponent.vue';
 
 describe('stream data stream', () => {
   // Render the TestChatAssistantStreamComponent before each test
@@ -112,5 +113,102 @@ describe('stream data stream', () => {
       await findByText(await screen.findByTestId('status'), 'awaiting_message');
       expect(screen.getByTestId('status')).toHaveTextContent('awaiting_message');
     });
+  })
+})
+
+describe('Thread management', () => {
+  beforeEach(() => {
+    render(TestChatAssistantThreadChangeComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('create new thread', async () => {
+    await screen.findByTestId('thread-id');
+    expect(screen.getByTestId('thread-id')).toHaveTextContent('undefined');
+  })
+
+  it('should show streamed response', async () => {
+    const { requestBody } = mockFetchDataStream({
+      url: 'https://example.com/api/assistant',
+      chunks: [
+        formatStreamPart('assistant_control_data', {
+          threadId: 't0',
+          messageId: 'm0',
+        }),
+        formatStreamPart('assistant_message', {
+          id: 'm0',
+          role: 'assistant',
+          content: [{ type: 'text', text: { value: '' } }],
+        }),
+        '0:"Hello"\n',
+        '0:","\n',
+        '0:" world"\n',
+        '0:"."\n',
+      ],
+    });
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    expect(screen.getByTestId('thread-id')).toHaveTextContent('t0');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello, world.');
+
+    expect(await requestBody).toStrictEqual(
+      JSON.stringify({
+        message: 'hi',
+        threadId: null,
+      }),
+    );
+  })
+
+  it('should switch to new thread on setting undefined threadId', async () => {
+    await userEvent.click(screen.getByTestId('do-new-thread'));
+
+    expect(screen.queryByTestId('message-0')).toBeNull();
+    expect(screen.queryByTestId('message-1')).toBeNull();
+
+    const { requestBody } = mockFetchDataStream({
+      url: 'https://example.com/api/assistant',
+      chunks: [
+        formatStreamPart('assistant_control_data', {
+          threadId: 't3',
+          messageId: 'm0',
+        }),
+        formatStreamPart('assistant_message', {
+          id: 'm0',
+          role: 'assistant',
+          content: [{ type: 'text', text: { value: '' } }],
+        }),
+        '0:"Hello"\n',
+        '0:","\n',
+        '0:" world"\n',
+        '0:"."\n',
+      ],
+    });
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    expect(screen.getByTestId('thread-id')).toHaveTextContent('t3');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello, world.');
+
+    expect(await requestBody).toStrictEqual(
+      JSON.stringify({
+        message: 'hi',
+        threadId: 't3',
+      }),
+    );
   })
 })
