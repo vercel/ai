@@ -1,3 +1,4 @@
+import { MIMEType } from 'node:util';
 import { ToolCall as CoreToolCall } from './duplicated/tool-call';
 import { ToolResult as CoreToolResult } from './duplicated/tool-result';
 
@@ -117,10 +118,20 @@ export type ToolInvocation =
   | CoreToolCall<string, any>
   | CoreToolResult<string, any, any>;
 
-export interface MessageFile {
+export interface DataMessageFile {
+  type: 'data-url';
   name: string;
   dataUrl: string;
 }
+
+export interface URLMessageFile {
+  type: 'url';
+  name: string;
+  contentType: string;
+  url: string;
+}
+
+export type MessageFile = DataMessageFile | URLMessageFile;
 
 /**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
@@ -273,6 +284,14 @@ An optional object to be passed to the API endpoint.
   body?: object;
 };
 
+export interface URLFile {
+  name: string;
+  type: string | undefined;
+  url: string;
+}
+
+export type URLFileList = Array<URLFile>;
+
 export type ChatRequestOptions = {
   /**
 Additional headers that should be to be passed to the API endpoint.
@@ -288,6 +307,11 @@ Additional body JSON properties that should be sent to the API endpoint.
 Additional data to be sent to the API endpoint.
    */
   data?: JSONValue;
+
+  /**
+   * Additional files to be sent to the server.
+   */
+  files?: FileList | URLFileList;
 
   /**
 The options to be passed to the fetch call.
@@ -315,11 +339,6 @@ The options to be passed to the fetch call.
 @deprecated
 */
   tool_choice?: ToolChoice;
-
-  /**
-   * Additional files to be sent to the server.
-   */
-  files?: FileList | Array<{ name: string; url: string }>;
 };
 
 export type UseChatOptions = {

@@ -8,6 +8,7 @@ import type {
   JSONValue,
   Message,
   UseChatOptions,
+  URLFileList,
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
@@ -542,11 +543,22 @@ By default, it's set to 0, which will disable the feature.
             });
 
             files.push({
+              type: 'data-url',
               name,
               dataUrl,
             });
           }
-        } else {
+        } else if (Array.isArray(options.files)) {
+          for (const file of options.files) {
+            const { name, url, type } = file;
+
+            files.push({
+              type: 'url',
+              name,
+              contentType: type || 'application/octet-stream',
+              url,
+            });
+          }
         }
       }
 

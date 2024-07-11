@@ -1,6 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 import { useChat } from 'ai/react';
 import { useRef, useState } from 'react';
+import { upload } from '@vercel/blob/client';
+import { URLFileList } from '../../../../../packages/ui-utils/dist';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, isLoading } =
@@ -8,8 +10,8 @@ export default function Page() {
       api: '/api/stream-chat',
     });
 
-  const [files, setFiles] = useState<FileList | undefined>(undefined);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<URLFileList>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex flex-col gap-2">
@@ -22,14 +24,18 @@ export default function Page() {
               {message.content}
 
               <div className="flex flex-row gap-2">
-                {message.files?.map((file, index) => (
-                  <img
-                    key={`${message.id}-${index}`}
-                    className="w-24 rounded-md"
-                    src={file.dataUrl}
-                    alt="image"
-                  />
-                ))}
+                {message.files?.map((file, index) =>
+                  file.type === 'url' ? (
+                    <img
+                      key={`${message.id}-${index}`}
+                      className="w-24 rounded-md"
+                      src={file.url}
+                      alt="image"
+                    />
+                  ) : (
+                    ''
+                  ),
+                )}
               </div>
             </div>
           </div>
@@ -41,52 +47,47 @@ export default function Page() {
           handleSubmit(event, {
             files,
           });
-          setFiles(undefined);
+          setFiles([]);
 
-          if (inputRef.current) {
-            inputRef.current.value = '';
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
           }
         }}
         className="flex flex-col gap-2 fixed bottom-0 p-2 w-full"
       >
         <div className="flex flex-row gap-2 fixed right-2 bottom-14 items-end">
-          {files
-            ? Array.from(files).map(file => {
-                const { type } = file;
+          {Array.from(files).map(file => {
+            const { type } = file;
 
-                if (type.startsWith('image/')) {
-                  return (
-                    <div key={file.name}>
-                      <img
-                        className="w-24 rounded-md"
-                        src={URL.createObjectURL(file)}
-                        alt="image"
-                      />
-                      <span className="text-sm text-zinc-500">{file.name}</span>
-                    </div>
-                  );
-                } else if (type.startsWith('text/')) {
-                  return (
-                    <div
-                      key={file.name}
-                      className="w-24 text-zinc-500 flex-shrink-0 text-sm flex flex-col gap-1"
-                    >
-                      <div className="w-16 h-20 bg-zinc-100 rounded-md" />
-                      {file.name}
-                    </div>
-                  );
-                }
-              })
-            : ''}
+            if (type && type.startsWith('image/')) {
+              return (
+                <div key={file.name}>
+                  <img className="w-24 rounded-md" src={file.url} alt="image" />
+                  <span className="text-sm text-zinc-500">{file.name}</span>
+                </div>
+              );
+            }
+          })}
         </div>
         <input
           type="file"
-          onChange={event => {
+          onChange={async event => {
             if (event.target.files) {
-              setFiles(event.target.files);
+              for (const file of Array.from(event.target.files)) {
+                const blob = await upload(file.name, file, {
+                  access: 'public',
+                  handleUploadUrl: '/api/file',
+                });
+
+                setFiles(prevFiles => [
+                  ...prevFiles,
+                  { name: file.name, type: blob.contentType, url: blob.url },
+                ]);
+              }
             }
           }}
           multiple
+          ref={fileInputRef}
         />
         <input
           value={input}

@@ -9,7 +9,7 @@ export default function Page() {
     });
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex flex-col gap-2">
@@ -22,14 +22,17 @@ export default function Page() {
               {message.content}
 
               <div className="flex flex-row gap-2">
-                {message.files?.map((file, index) => (
-                  <img
-                    key={`${message.id}-${index}`}
-                    className="w-24 rounded-md"
-                    src={file.dataUrl}
-                    alt="image"
-                  />
-                ))}
+                {message.files?.map(
+                  (file, index) =>
+                    file.type === 'data-url' && (
+                      <img
+                        key={`${message.id}-${index}`}
+                        className="w-24 rounded-md"
+                        src={file.dataUrl}
+                        alt="image"
+                      />
+                    ),
+                )}
               </div>
             </div>
           </div>
@@ -43,8 +46,8 @@ export default function Page() {
           });
           setFiles(undefined);
 
-          if (inputRef.current) {
-            inputRef.current.value = '';
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
           }
         }}
         className="flex flex-col gap-2 fixed bottom-0 p-2 w-full"
@@ -87,6 +90,7 @@ export default function Page() {
             }
           }}
           multiple
+          ref={fileInputRef}
         />
         <input
           value={input}

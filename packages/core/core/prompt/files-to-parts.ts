@@ -7,8 +7,14 @@ export function filesToParts(files: MessageFile[]): ContentPart[] {
   const parts: ContentPart[] = [];
 
   for (const file of files) {
-    if (file.dataUrl.includes('data:image')) {
-      parts.push({ type: 'image', image: file.dataUrl });
+    if (file.type === 'data-url') {
+      if (file.dataUrl.includes('image/')) {
+        parts.push({ type: 'image', image: file.dataUrl });
+      }
+    } else if (file.type === 'url') {
+      if (file.contentType.startsWith('image/')) {
+        parts.push({ type: 'image', image: file.url });
+      }
     }
   }
 
