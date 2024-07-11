@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.12
+
+### Patch Changes
+
+- 56bbc2a7: feat (ai/ui): set body and headers directly on options for handleSubmit and append
+
 ## 0.0.11
 
 ### Patch Changes
