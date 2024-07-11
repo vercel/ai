@@ -314,16 +314,16 @@ This function is a [Server Action](https://nextjs.org/docs/app/building-your-app
 Update the file with the following code:
 
 ```tsx filename="lib/actions/resources.ts" highlight="9-10,21-27,29"
-"use server";
+'use server';
 
 import {
   NewResourceParams,
   insertResourceSchema,
   resources,
-} from "@/lib/db/schema/resources";
-import { db } from "../db";
-import { generateEmbeddings } from "../ai/embedding";
-import { embeddings as embeddingsTable } from "../db/schema/embeddings";
+} from '@/lib/db/schema/resources';
+import { db } from '../db';
+import { generateEmbeddings } from '../ai/embedding';
+import { embeddings as embeddingsTable } from '../db/schema/embeddings';
 
 export const createResource = async (input: NewResourceParams) => {
   try {
@@ -336,17 +336,17 @@ export const createResource = async (input: NewResourceParams) => {
 
     const embeddings = await generateEmbeddings(content);
     await db.insert(embeddingsTable).values(
-      embeddings.map((embedding) => ({
+      embeddings.map(embedding => ({
         resourceId: resource.id,
         ...embedding,
       })),
     );
 
-    return "Resource successfully created and embedded.";
+    return 'Resource successfully created and embedded.';
   } catch (error) {
     return error instanceof Error && error.message.length > 0
       ? error.message
-      : "Error, please try again.";
+      : 'Error, please try again.';
   }
 };
 ```
