@@ -119,7 +119,7 @@ const getStreamedResponse = async (
       messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadata.body,
-      ...chatRequest.options?.body,
+      ...chatRequest.body,
       ...(chatRequest.functions !== undefined && {
         functions: chatRequest.functions,
       }),
@@ -137,7 +137,7 @@ const getStreamedResponse = async (
     credentials: extraMetadata.credentials,
     headers: {
       ...extraMetadata.headers,
-      ...chatRequest.options?.headers,
+      ...chatRequest.headers,
     },
     abortController: () => abortControllerRef,
     restoreMessagesOnFailure() {
@@ -281,15 +281,24 @@ export function useChat({
       tools,
       tool_choice,
       data,
+      headers,
+      body,
     }: ChatRequestOptions = {},
   ) => {
     if (!message.id) {
       message.id = generateId();
     }
 
+    const requestOptions = {
+      headers: headers ?? options?.headers,
+      body: body ?? options?.body,
+    };
+
     const chatRequest: ChatRequest = {
       messages: get(messages).concat(message as Message),
-      options,
+      options: requestOptions,
+      headers: requestOptions.headers,
+      body: requestOptions.body,
       data,
       ...(functions !== undefined && { functions }),
       ...(function_call !== undefined && { function_call }),
@@ -355,6 +364,11 @@ export function useChat({
     event?.preventDefault?.();
     const inputValue = get(input);
 
+    const requestOptions = {
+      headers: options.headers ?? options.options?.headers,
+      body: options.body ?? options.options?.body,
+    };
+
     const chatRequest: ChatRequest = {
       messages: inputValue
         ? get(messages).concat({
@@ -364,7 +378,9 @@ export function useChat({
             createdAt: new Date(),
           } as Message)
         : get(messages),
-      options: options.options,
+      options: requestOptions,
+      body: requestOptions.body,
+      headers: requestOptions.headers,
       data: options.data,
     };
 

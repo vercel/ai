@@ -224,10 +224,10 @@ In this example, the `useChat` hook sends a POST request to the `/api/custom-cha
 
 ## Setting custom body fields per request
 
-You can configure custom `body` fields on a per-request basis using the `options` field of the `handleSubmit` function.
+You can configure custom `body` fields on a per-request basis using the `body` option of the `handleSubmit` function.
 This is useful if you want to pass in additional information to your backend that is not part of the message list.
 
-```tsx filename="app/page.tsx" highlight="19-21"
+```tsx filename="app/page.tsx" highlight="18-20"
 'use client';
 
 import { useChat } from 'ai/react';
@@ -245,10 +245,8 @@ export default function Chat() {
       <form
         onSubmit={event => {
           handleSubmit(event, {
-            options: {
-              body: {
-                customKey: 'customValue',
-              },
+            body: {
+              customKey: 'customValue',
             },
           });
         }}
