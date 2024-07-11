@@ -1,5 +1,11 @@
 # @ai-sdk/vue
 
+## 0.0.15
+
+### Patch Changes
+
+- dd0d854e: feat (ai/vue): add useAssistant
+
 ## 0.0.14
 
 ### Patch Changes

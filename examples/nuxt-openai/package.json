@@ -21,7 +21,7 @@
     "@vue/shared": "^3.4.31",
     "ai": "latest",
     "nuxt": "^3.12.3",
-    "openai": "4.52.3",
+    "openai": "4.52.6",
     "tailwindcss": "^3.4.4",
     "ufo": "^1.5.3",
     "unctx": "^2.3.1",

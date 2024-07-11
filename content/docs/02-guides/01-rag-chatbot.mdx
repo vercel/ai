@@ -657,9 +657,9 @@ In this code, you add two functions:
 
 With that done, it’s onto the final step: creating the tool.
 
-Go back to your route handler (`api/chat/route.ts`) and add a new tool called `answerQuestion`:
+Go back to your route handler (`api/chat/route.ts`) and add a new tool called `getInformation`:
 
-```ts filename="lib/ai/embedding.ts" highlight="5,30-36"
+```ts filename="api/chat/route.ts" highlight="5,30-36"
 import { createResource } from '@/lib/actions/resources';
 import { openai } from '@ai-sdk/openai';
 import { convertToCoreMessages, streamText, tool } from 'ai';

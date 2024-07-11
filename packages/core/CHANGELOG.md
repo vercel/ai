@@ -1,5 +1,14 @@
 # ai
 
+## 3.2.22
+
+### Patch Changes
+
+- 53fccf1c: fix (ai/core): report error on controller
+- dd0d854e: feat (ai/vue): add useAssistant
+- Updated dependencies [dd0d854e]
+  - @ai-sdk/vue@0.0.15
+
 ## 3.2.21
 
 ### Patch Changes

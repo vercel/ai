@@ -9,6 +9,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     openaiApiKey: '',
+    assistantId: '',
   },
 
   compatibilityDate: '2024-07-05',

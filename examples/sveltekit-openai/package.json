@@ -13,7 +13,7 @@
     "@ai-sdk/openai": "latest",
     "@ai-sdk/svelte": "latest",
     "ai": "latest",
-    "openai": "4.47.1"
+    "openai": "4.52.6"
   },
   "devDependencies": {
     "@fontsource/fira-mono": "^5",
