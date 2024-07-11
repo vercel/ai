@@ -134,12 +134,12 @@ const getStreamedResponse = async (
     body: experimental_prepareRequestBody?.({
       messages: chatRequest.messages,
       requestData: chatRequest.data,
-      requestBody: chatRequest.options?.body,
+      requestBody: chatRequest.body,
     }) ?? {
       messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadataRef.current.body,
-      ...chatRequest.options?.body,
+      ...chatRequest.body,
       ...(chatRequest.functions !== undefined && {
         functions: chatRequest.functions,
       }),
@@ -157,7 +157,7 @@ const getStreamedResponse = async (
     credentials: extraMetadataRef.current.credentials,
     headers: {
       ...extraMetadataRef.current.headers,
-      ...chatRequest.options?.headers,
+      ...chatRequest.headers,
     },
     abortController: () => abortControllerRef.current,
     restoreMessagesOnFailure() {
@@ -513,6 +513,11 @@ By default, it's set to 0, which will disable the feature.
 
       event?.preventDefault?.();
 
+      const requestOptions = {
+        headers: options.headers ?? options.options?.headers,
+        body: options.body ?? options.options?.body,
+      };
+
       const chatRequest: ChatRequest = {
         messages: input
           ? messagesRef.current.concat({
@@ -521,7 +526,9 @@ By default, it's set to 0, which will disable the feature.
               content: input,
             })
           : messagesRef.current,
-        options: options.options,
+        options: requestOptions,
+        headers: requestOptions.headers,
+        body: requestOptions.body,
         data: options.data,
       };
 

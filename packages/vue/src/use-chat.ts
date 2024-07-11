@@ -119,7 +119,7 @@ export function useChat({
   let abortController: AbortController | null = null;
   async function triggerRequest(
     messagesSnapshot: Message[],
-    { options, data }: ChatRequestOptions = {},
+    { options, data, headers, body }: ChatRequestOptions = {},
   ) {
     try {
       error.value = undefined;
@@ -132,9 +132,16 @@ export function useChat({
       const previousMessages = messagesData.value;
       mutate(messagesSnapshot);
 
+      const requestOptions = {
+        headers: headers ?? options?.headers,
+        body: body ?? options?.body,
+      };
+
       let chatRequest: ChatRequest = {
         messages: messagesSnapshot,
-        options,
+        options: requestOptions,
+        body: requestOptions.body,
+        headers: requestOptions.headers,
         data,
       };
 
@@ -169,12 +176,12 @@ export function useChat({
               messages: constructedMessagesPayload,
               data: chatRequest.data,
               ...unref(body), // Use unref to unwrap the ref value
-              ...options?.body,
+              ...requestOptions.body,
             },
             streamMode,
             headers: {
               ...headers,
-              ...options?.headers,
+              ...requestOptions.headers,
             },
             abortController: () => abortController,
             credentials,

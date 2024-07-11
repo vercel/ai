@@ -129,13 +129,13 @@ const getStreamedResponse = async (
       messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadata.body,
-      ...chatRequest.options?.body,
+      ...chatRequest.body,
     },
     streamMode,
     credentials: extraMetadata.credentials,
     headers: {
       ...extraMetadata.headers,
-      ...chatRequest.options?.headers,
+      ...chatRequest.headers,
     },
     abortController: () => abortController,
     restoreMessagesOnFailure() {
@@ -375,6 +375,11 @@ export function useChat(
     event?.preventDefault?.();
     const inputValue = input();
 
+    const requestOptions = {
+      headers: options.headers ?? options.options?.headers,
+      body: options.body ?? options.options?.body,
+    };
+
     const chatRequest: ChatRequest = {
       messages: inputValue
         ? messagesRef.concat({
@@ -384,7 +389,9 @@ export function useChat(
             createdAt: new Date(),
           })
         : messagesRef,
-      options: options.options,
+      options: requestOptions,
+      body: requestOptions.body,
+      headers: requestOptions.headers,
       data: options.data,
     };
 
