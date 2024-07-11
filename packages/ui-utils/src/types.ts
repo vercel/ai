@@ -197,9 +197,32 @@ export type CreateMessage = Omit<Message, 'id'> & {
 };
 
 export type ChatRequest = {
+  /**
+An optional object of headers to be passed to the API endpoint.
+ */
+  headers?: Record<string, string> | Headers;
+
+  /**
+An optional object to be passed to the API endpoint.
+*/
+  body?: object;
+
+  /**
+The messages of the chat.
+   */
   messages: Message[];
-  options?: RequestOptions;
+
+  /**
+Additional data to be sent to the server.
+   */
   data?: JSONValue;
+
+  /**
+The options to be passed to the fetch call.
+
+@deprecated use `headers` and `body` directly
+   */
+  options?: RequestOptions;
 
   /**
    * @deprecated
@@ -252,7 +275,24 @@ An optional object to be passed to the API endpoint.
 
 export type ChatRequestOptions = {
   /**
+Additional headers that should be to be passed to the API endpoint.
+ */
+  headers?: Record<string, string> | Headers;
+
+  /**
+Additional body JSON properties that should be sent to the API endpoint.
+ */
+  body?: object;
+
+  /**
+Additional data to be sent to the API endpoint.
+   */
+  data?: JSONValue;
+
+  /**
 The options to be passed to the fetch call.
+
+@deprecated use `headers` and `body` directly
    */
   options?: RequestOptions;
 
@@ -275,11 +315,6 @@ The options to be passed to the fetch call.
 @deprecated
 */
   tool_choice?: ToolChoice;
-
-  /**
-Additional data to be sent to the server.
-   */
-  data?: JSONValue;
 
   /**
    * Additional files to be sent to the server.

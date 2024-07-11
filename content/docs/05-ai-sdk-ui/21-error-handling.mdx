@@ -1,0 +1,31 @@
+---
+title: Error Handling
+description: Learn how to handle errors in the AI SDK UI
+---
+
+# Error Handling
+
+Errors can be handled by passing an [`onError`](/docs/reference/ai-sdk-ui/use-chat#on-error) callback function as an option to the [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) or [`useAssistant`](/docs/reference/ai-sdk-ui/use-assistant) hooks.
+
+Each AI SDK UI hook also returns an [error](/docs/reference/ai-sdk-ui/use-chat#error) object that you can use to render the error in your UI.
+
+```tsx
+import { useChat } from 'ai/react';
+
+const { ... } = useChat({
+  onError: error => {
+    // handle error
+    console.error(error);
+  },
+});
+```
+
+Each AI SDK UI hook also returns an [error](/docs/reference/ai-sdk-ui/use-chat#error) object that you can use to render the error in your UI.
+
+```tsx
+import { useChat } from 'ai/react';
+
+const { error } = useChat();
+if (error) return <div>{error.message}</div>;
+});
+```

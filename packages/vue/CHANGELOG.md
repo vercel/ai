@@ -1,5 +1,19 @@
 # @ai-sdk/vue
 
+## 0.0.14
+
+### Patch Changes
+
+- 56bbc2a7: feat (ai/ui): set body and headers directly on options for handleSubmit and append
+- Updated dependencies [56bbc2a7]
+  - @ai-sdk/ui-utils@0.0.12
+
+## 0.0.13
+
+### Patch Changes
+
+- @ai-sdk/ui-utils@0.0.11
+
 ## 0.0.12
 
 ### Patch Changes

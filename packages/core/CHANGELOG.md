@@ -1,5 +1,38 @@
 # ai
 
+## 3.2.21
+
+### Patch Changes
+
+- 56bbc2a7: feat (ai/ui): set body and headers directly on options for handleSubmit and append
+- Updated dependencies [56bbc2a7]
+  - @ai-sdk/ui-utils@0.0.12
+  - @ai-sdk/svelte@0.0.15
+  - @ai-sdk/react@0.0.20
+  - @ai-sdk/solid@0.0.14
+  - @ai-sdk/vue@0.0.14
+
+## 3.2.20
+
+### Patch Changes
+
+- 671331b6: feat (core): add experimental OpenTelemetry support for generateText and streamText
+
+## 3.2.19
+
+### Patch Changes
+
+- b7290943: chore (ai/core): rename TokenUsage type to CompletionTokenUsage
+- b7290943: feat (ai/core): add token usage to embed and embedMany
+- Updated dependencies [b7290943]
+  - @ai-sdk/provider@0.0.12
+  - @ai-sdk/provider-utils@1.0.2
+  - @ai-sdk/react@0.0.19
+  - @ai-sdk/svelte@0.0.14
+  - @ai-sdk/ui-utils@0.0.11
+  - @ai-sdk/solid@0.0.13
+  - @ai-sdk/vue@0.0.13
+
 ## 3.2.18
 
 ### Patch Changes

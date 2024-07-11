@@ -137,12 +137,12 @@ const getStreamedResponse = async (
     body: experimental_prepareRequestBody?.({
       messages: chatRequest.messages,
       requestData: chatRequest.data,
-      requestBody: chatRequest.options?.body,
+      requestBody: chatRequest.body,
     }) ?? {
       messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadataRef.current.body,
-      ...chatRequest.options?.body,
+      ...chatRequest.body,
       ...(chatRequest.functions !== undefined && {
         functions: chatRequest.functions,
       }),
@@ -160,7 +160,7 @@ const getStreamedResponse = async (
     credentials: extraMetadataRef.current.credentials,
     headers: {
       ...extraMetadataRef.current.headers,
-      ...chatRequest.options?.headers,
+      ...chatRequest.headers,
     },
     abortController: () => abortControllerRef.current,
     restoreMessagesOnFailure() {
@@ -423,15 +423,24 @@ By default, it's set to 0, which will disable the feature.
         tools,
         tool_choice,
         data,
+        headers,
+        body,
       }: ChatRequestOptions = {},
     ) => {
       if (!message.id) {
         message.id = generateId();
       }
 
+      const requestOptions = {
+        headers: headers ?? options?.headers,
+        body: body ?? options?.body,
+      };
+
       const chatRequest: ChatRequest = {
         messages: messagesRef.current.concat(message as Message),
-        options,
+        options: requestOptions,
+        headers: requestOptions.headers,
+        body: requestOptions.body,
         data,
         ...(functions !== undefined && { functions }),
         ...(function_call !== undefined && { function_call }),
@@ -540,6 +549,11 @@ By default, it's set to 0, which will disable the feature.
         } else {
         }
       }
+    
+      const requestOptions = {
+        headers: options.headers ?? options.options?.headers,
+        body: options.body ?? options.options?.body,
+      };
 
       const chatRequest: ChatRequest = {
         messages: input
@@ -550,7 +564,9 @@ By default, it's set to 0, which will disable the feature.
               files,
             })
           : messagesRef.current,
-        options: options.options,
+        options: requestOptions,
+        headers: requestOptions.headers,
+        body: requestOptions.body,
         data: options.data,
       };
 
