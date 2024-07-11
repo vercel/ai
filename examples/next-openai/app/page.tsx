@@ -13,7 +13,15 @@ export default function Chat() {
         </div>
       ))}
 
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={e => {
+          handleSubmit(e, {
+            body: {
+              something: 'custom',
+            },
+          });
+        }}
+      >
         <input
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           value={input}

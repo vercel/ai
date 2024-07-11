@@ -268,14 +268,19 @@ An optional object to be passed to the API endpoint.
 
 export type ChatRequestOptions = {
   /**
-An optional object of headers to be passed to the API endpoint.
+Additional headers that should be to be passed to the API endpoint.
  */
   headers?: Record<string, string> | Headers;
 
   /**
-An optional object to be passed to the API endpoint.
+Additional body JSON properties that should be sent to the API endpoint.
  */
   body?: object;
+
+  /**
+Additional data to be sent to the API endpoint.
+   */
+  data?: JSONValue;
 
   /**
 The options to be passed to the fetch call.
@@ -303,11 +308,6 @@ The options to be passed to the fetch call.
 @deprecated
 */
   tool_choice?: ToolChoice;
-
-  /**
-Additional data to be sent to the server.
-   */
-  data?: JSONValue;
 };
 
 export type UseChatOptions = {
