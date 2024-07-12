@@ -207,7 +207,10 @@ describe('doGenerate', () => {
       await model.doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
+        prompt: [
+          { role: 'system', content: 'test system instruction' },
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        ],
       });
 
       expect(await call(0).getRequestBodyJson()).toStrictEqual({
@@ -217,6 +220,7 @@ describe('doGenerate', () => {
             parts: [{ text: 'Hello' }],
           },
         ],
+        systemInstruction: { parts: [{ text: 'test system instruction' }] },
         generationConfig: {},
       });
     }),

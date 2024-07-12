@@ -98,7 +98,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       topP,
     };
 
-    const contents = await convertToGoogleGenerativeAIMessages({ prompt });
+    const { contents, systemInstruction } =
+      await convertToGoogleGenerativeAIMessages({ prompt });
 
     switch (type) {
       case 'regular': {
@@ -106,6 +107,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           args: {
             generationConfig,
             contents,
+            systemInstruction,
             safetySettings: this.settings.safetySettings,
             ...prepareToolsAndToolConfig(mode),
           },
@@ -121,6 +123,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               response_mime_type: 'application/json',
             },
             contents,
+            systemInstruction,
             safetySettings: this.settings.safetySettings,
           },
           warnings,
