@@ -2,7 +2,7 @@
 import { useChat } from 'ai/react';
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
-import { MessageFile } from '../../../../../packages/ui-utils/dist';
+import { Attachment } from '../../../../../packages/ui-utils/dist';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, isLoading } =
@@ -10,7 +10,7 @@ export default function Page() {
       api: '/api/stream-chat',
     });
 
-  const [files, setFiles] = useState<MessageFile[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -25,11 +25,11 @@ export default function Page() {
               {message.content}
 
               <div className="flex flex-row gap-2">
-                {message.experimental_files?.map((file, index) => (
+                {message.experimental_attachments?.map((attachment, index) => (
                   <img
                     key={`${message.id}-${index}`}
                     className="w-24 rounded-md"
-                    src={file.url}
+                    src={attachment.url}
                     alt="image"
                   />
                 ))}
@@ -47,10 +47,10 @@ export default function Page() {
           }
 
           handleSubmit(event, {
-            experimental_files: files,
+            experimental_attachments: attachments,
           });
 
-          setFiles([]);
+          setAttachments([]);
 
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -59,14 +59,20 @@ export default function Page() {
         className="flex flex-col gap-2 fixed bottom-0 p-2 w-full"
       >
         <div className="flex flex-row gap-2 fixed right-2 bottom-14 items-end">
-          {Array.from(files).map(file => {
-            const { mimeType } = file;
+          {Array.from(attachments).map(attachment => {
+            const { mimeType } = attachment;
 
             if (mimeType && mimeType.startsWith('image/')) {
               return (
-                <div key={file.name}>
-                  <img className="w-24 rounded-md" src={file.url} alt="image" />
-                  <span className="text-sm text-zinc-500">{file.name}</span>
+                <div key={attachment.name}>
+                  <img
+                    className="w-24 rounded-md"
+                    src={attachment.url}
+                    alt="image"
+                  />
+                  <span className="text-sm text-zinc-500">
+                    {attachment.name}
+                  </span>
                 </div>
               );
             }
@@ -84,8 +90,8 @@ export default function Page() {
                   handleUploadUrl: '/api/file',
                 });
 
-                setFiles(prevFiles => [
-                  ...prevFiles,
+                setAttachments(prevAttachments => [
+                  ...prevAttachments,
                   {
                     name: file.name,
                     mimeType: blob.contentType,

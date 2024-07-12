@@ -119,10 +119,10 @@ export type ToolInvocation =
   | CoreToolResult<string, any, any>;
 
 /**
- * File object that can be sent to the server.
+ * An attachment that can be sent along with a message.
  */
 
-export interface MessageFile {
+export interface Attachment {
   name?: string;
   mimeType?: string;
   url: string;
@@ -140,7 +140,7 @@ export interface Message {
   /**
    * Additional files to be sent along with the message.
    */
-  experimental_files?: MessageFile[];
+  experimental_attachments?: Attachment[];
 
   /**
    * @deprecated Use AI SDK 3.1 `toolInvocations` instead.
@@ -301,7 +301,7 @@ Additional data to be sent to the API endpoint.
   /**
    * Additional files to be sent to the server.
    */
-  experimental_files?: FileList | Array<MessageFile>;
+  experimental_attachments?: FileList | Array<Attachment>;
 
   /**
 The options to be passed to the fetch call.

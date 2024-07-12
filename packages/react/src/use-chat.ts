@@ -1,7 +1,7 @@
 import type {
   ChatRequest,
   ChatRequestOptions,
-  MessageFile,
+  Attachment,
   CreateMessage,
   FetchFunction,
   IdGenerator,
@@ -109,7 +109,7 @@ const getStreamedResponse = async (
         ({
           role,
           content,
-          experimental_files,
+          experimental_attachments,
           name,
           data,
           annotations,
@@ -120,7 +120,7 @@ const getStreamedResponse = async (
         }) => ({
           role,
           content,
-          experimental_files,
+          experimental_attachments,
           ...(name !== undefined && { name }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
@@ -525,12 +525,14 @@ By default, it's set to 0, which will disable the feature.
 
       event?.preventDefault?.();
 
-      let files: MessageFile[] = [];
+      let attachments: Attachment[] = [];
 
-      if (options.experimental_files) {
-        if (options.experimental_files instanceof FileList) {
-          for (const file of Array.from(options.experimental_files)) {
-            const { name, type } = file;
+      if (options.experimental_attachments) {
+        if (options.experimental_attachments instanceof FileList) {
+          for (const attachment of Array.from(
+            options.experimental_attachments,
+          )) {
+            const { name, type } = attachment;
 
             const dataUrl = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
@@ -538,20 +540,20 @@ By default, it's set to 0, which will disable the feature.
                 resolve(readerEvent.target?.result as string);
               };
               reader.onerror = error => reject(error);
-              reader.readAsDataURL(file);
+              reader.readAsDataURL(attachment);
             });
 
-            files.push({
+            attachments.push({
               name,
               mimeType: type,
               url: dataUrl,
             });
           }
-        } else if (Array.isArray(options.experimental_files)) {
-          for (const file of options.experimental_files) {
+        } else if (Array.isArray(options.experimental_attachments)) {
+          for (const file of options.experimental_attachments) {
             const { name, url, mimeType } = file;
 
-            files.push({
+            attachments.push({
               name,
               mimeType,
               url,
@@ -569,12 +571,12 @@ By default, it's set to 0, which will disable the feature.
 
       const chatRequest: ChatRequest = {
         messages: input
-          ? options.experimental_files
+          ? options.experimental_attachments
             ? messagesRef.current.concat({
                 id: generateId(),
                 role: 'user',
                 content: input,
-                experimental_files: files,
+                experimental_attachments: attachments,
               })
             : messagesRef.current.concat({
                 id: generateId(),

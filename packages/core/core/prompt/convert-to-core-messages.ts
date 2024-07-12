@@ -1,7 +1,7 @@
-import { MessageFile } from '@ai-sdk/ui-utils';
+import { Attachment } from '@ai-sdk/ui-utils';
 import { ToolResult } from '../generate-text/tool-result';
 import { CoreMessage } from '../prompt';
-import { filesToParts } from './files-to-parts';
+import { attachmentsToParts } from './attachments-to-parts';
 
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used
@@ -12,7 +12,7 @@ export function convertToCoreMessages(
     role: 'user' | 'assistant';
     content: string;
     toolInvocations?: Array<ToolResult<string, unknown, unknown>>;
-    experimental_files?: MessageFile[];
+    experimental_attachments?: Attachment[];
   }>,
 ) {
   const coreMessages: CoreMessage[] = [];
@@ -21,16 +21,16 @@ export function convertToCoreMessages(
     role,
     content,
     toolInvocations,
-    experimental_files,
+    experimental_attachments,
   } of messages) {
     switch (role) {
       case 'user': {
         coreMessages.push({
           role: 'user',
-          content: experimental_files
+          content: experimental_attachments
             ? [
                 { type: 'text', text: content },
-                ...filesToParts(experimental_files),
+                ...attachmentsToParts(experimental_attachments),
               ]
             : content,
         });

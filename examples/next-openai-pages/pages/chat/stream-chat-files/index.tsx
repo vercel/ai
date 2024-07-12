@@ -8,7 +8,9 @@ export default function Page() {
       api: '/api/stream-chat',
     });
 
-  const [files, setFiles] = useState<FileList | undefined>(undefined);
+  const [attachments, setAttachments] = useState<FileList | undefined>(
+    undefined,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -22,7 +24,7 @@ export default function Page() {
               {message.content}
 
               <div className="flex flex-row gap-2">
-                {message.experimental_files?.map((file, index) =>
+                {message.experimental_attachments?.map((file, index) =>
                   file.url.includes('image/') ? (
                     <img
                       key={`${message.id}-${index}`}
@@ -45,9 +47,9 @@ export default function Page() {
       <form
         onSubmit={event => {
           handleSubmit(event, {
-            experimental_files: files,
+            experimental_attachments: attachments,
           });
-          setFiles(undefined);
+          setAttachments(undefined);
 
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -56,29 +58,31 @@ export default function Page() {
         className="flex flex-col gap-2 fixed bottom-0 p-2 w-full"
       >
         <div className="flex flex-row gap-2 fixed right-2 bottom-14 items-end">
-          {files
-            ? Array.from(files).map(file => {
-                const { type } = file;
+          {attachments
+            ? Array.from(attachments).map(attachment => {
+                const { type } = attachment;
 
                 if (type.startsWith('image/')) {
                   return (
-                    <div key={file.name}>
+                    <div key={attachment.name}>
                       <img
                         className="w-24 rounded-md"
-                        src={URL.createObjectURL(file)}
+                        src={URL.createObjectURL(attachment)}
                         alt="image"
                       />
-                      <span className="text-sm text-zinc-500">{file.name}</span>
+                      <span className="text-sm text-zinc-500">
+                        {attachment.name}
+                      </span>
                     </div>
                   );
                 } else if (type.startsWith('text/')) {
                   return (
                     <div
-                      key={file.name}
+                      key={attachment.name}
                       className="w-24 text-zinc-500 flex-shrink-0 text-sm flex flex-col gap-1"
                     >
                       <div className="w-16 h-20 bg-zinc-100 rounded-md" />
-                      {file.name}
+                      {attachment.name}
                     </div>
                   );
                 }
@@ -89,7 +93,7 @@ export default function Page() {
           type="file"
           onChange={event => {
             if (event.target.files) {
-              setFiles(event.target.files);
+              setAttachments(event.target.files);
             }
           }}
           multiple
