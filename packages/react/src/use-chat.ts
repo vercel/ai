@@ -109,7 +109,7 @@ const getStreamedResponse = async (
         ({
           role,
           content,
-          files,
+          experimental_files,
           name,
           data,
           annotations,
@@ -120,7 +120,7 @@ const getStreamedResponse = async (
         }) => ({
           role,
           content,
-          files,
+          experimental_files,
           ...(name !== undefined && { name }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
@@ -571,7 +571,7 @@ By default, it's set to 0, which will disable the feature.
               id: generateId(),
               role: 'user',
               content: input,
-              files,
+              experimental_files: files,
             })
           : messagesRef.current,
         options: requestOptions,

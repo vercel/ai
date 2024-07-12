@@ -12,18 +12,26 @@ export function convertToCoreMessages(
     role: 'user' | 'assistant';
     content: string;
     toolInvocations?: Array<ToolResult<string, unknown, unknown>>;
-    files?: MessageFile[];
+    experimental_files?: MessageFile[];
   }>,
 ) {
   const coreMessages: CoreMessage[] = [];
 
-  for (const { role, content, toolInvocations, files } of messages) {
+  for (const {
+    role,
+    content,
+    toolInvocations,
+    experimental_files,
+  } of messages) {
     switch (role) {
       case 'user': {
         coreMessages.push({
           role: 'user',
-          content: files
-            ? [{ type: 'text', text: content }, ...filesToParts(files)]
+          content: experimental_files
+            ? [
+                { type: 'text', text: content },
+                ...filesToParts(experimental_files),
+              ]
             : content,
         });
         break;

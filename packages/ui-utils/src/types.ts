@@ -137,7 +137,10 @@ export interface Message {
 
   content: string;
 
-  files?: MessageFile[];
+  /**
+   * Additional files to be sent along with the message.
+   */
+  experimental_files?: MessageFile[];
 
   /**
    * @deprecated Use AI SDK 3.1 `toolInvocations` instead.

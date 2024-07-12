@@ -22,7 +22,7 @@ export default function Page() {
               {message.content}
 
               <div className="flex flex-row gap-2">
-                {message.files?.map((file, index) =>
+                {message.experimental_files?.map((file, index) =>
                   file.url.includes('image/') ? (
                     <img
                       key={`${message.id}-${index}`}
