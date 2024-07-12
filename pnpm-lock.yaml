@@ -389,6 +389,9 @@ importers:
       '@ai-sdk/react':
         specifier: latest
         version: link:../../packages/react
+      '@ai-sdk/ui-utils':
+        specifier: latest
+        version: link:../../packages/ui-utils
       '@vercel/blob':
         specifier: ^0.23.4
         version: 0.23.4

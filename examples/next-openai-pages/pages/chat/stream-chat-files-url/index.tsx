@@ -2,7 +2,7 @@
 import { useChat } from 'ai/react';
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
-import { Attachment } from '../../../../../packages/ui-utils/dist';
+import { Attachment } from '@ai-sdk/ui-utils';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, isLoading } =

@@ -11,6 +11,7 @@
   "dependencies": {
     "@ai-sdk/openai": "latest",
     "@ai-sdk/react": "latest",
+    "@ai-sdk/ui-utils": "latest",
     "@vercel/blob": "^0.23.4",
     "ai": "latest",
     "next": "latest",
