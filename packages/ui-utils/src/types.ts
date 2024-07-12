@@ -1,4 +1,3 @@
-import { MIMEType } from 'node:util';
 import { ToolCall as CoreToolCall } from './duplicated/tool-call';
 import { ToolResult as CoreToolResult } from './duplicated/tool-result';
 
