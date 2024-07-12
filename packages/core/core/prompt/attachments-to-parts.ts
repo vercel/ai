@@ -11,10 +11,10 @@ export function dataUrlToText(dataUrl: string): string {
 }
 
 /**
- * Checks if a string is a data URL.
+ * Checks if a string is a Data URL.
  */
-function isDataURL(s: string): boolean {
-  return s.startsWith('data:');
+function isDataURL(url: string): boolean {
+  return new URL(url).protocol === 'data:';
 }
 
 /**
