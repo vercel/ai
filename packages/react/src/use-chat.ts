@@ -525,13 +525,12 @@ By default, it's set to 0, which will disable the feature.
 
       event?.preventDefault?.();
 
-      let attachments: Attachment[] = [];
+      const attachmentsForRequest: Attachment[] = [];
+      const attachmentsFromOptions = options.experimental_attachments;
 
-      if (options.experimental_attachments) {
-        if (options.experimental_attachments instanceof FileList) {
-          for (const attachment of Array.from(
-            options.experimental_attachments,
-          )) {
+      if (attachmentsFromOptions) {
+        if (attachmentsFromOptions instanceof FileList) {
+          for (const attachment of Array.from(attachmentsFromOptions)) {
             const { name, type } = attachment;
 
             const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -543,24 +542,24 @@ By default, it's set to 0, which will disable the feature.
               reader.readAsDataURL(attachment);
             });
 
-            attachments.push({
+            attachmentsForRequest.push({
               name,
               mimeType: type,
               url: dataUrl,
             });
           }
-        } else if (Array.isArray(options.experimental_attachments)) {
-          for (const file of options.experimental_attachments) {
+        } else if (Array.isArray(attachmentsFromOptions)) {
+          for (const file of attachmentsFromOptions) {
             const { name, url, mimeType } = file;
 
-            attachments.push({
+            attachmentsForRequest.push({
               name,
               mimeType,
               url,
             });
           }
         } else {
-          throw new Error('Invalid files type');
+          throw new Error('Invalid attachments type');
         }
       }
 
@@ -576,7 +575,7 @@ By default, it's set to 0, which will disable the feature.
                 id: generateId(),
                 role: 'user',
                 content: input,
-                experimental_attachments: attachments,
+                experimental_attachments: attachmentsForRequest,
               })
             : messagesRef.current.concat({
                 id: generateId(),

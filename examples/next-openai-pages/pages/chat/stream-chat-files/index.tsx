@@ -24,17 +24,17 @@ export default function Page() {
               {message.content}
 
               <div className="flex flex-row gap-2">
-                {message.experimental_attachments?.map((file, index) =>
-                  file.url.includes('image/') ? (
+                {message.experimental_attachments?.map((attachment, index) =>
+                  attachment.mimeType?.includes('image/') ? (
                     <img
                       key={`${message.id}-${index}`}
                       className="w-24 rounded-md"
-                      src={file.url}
-                      alt="image"
+                      src={attachment.url}
+                      alt={attachment.name}
                     />
-                  ) : file.url.includes('text/') ? (
+                  ) : attachment.mimeType?.includes('text/') ? (
                     <div className="w-32 h-24 rounded-md text-xs ellipsis overflow-hidden p-2 text-zinc-500 border">
-                      {atob(file.url.split(',')[1])}
+                      {atob(attachment.url.split(',')[1])}
                     </div>
                   ) : null,
                 )}
@@ -68,7 +68,7 @@ export default function Page() {
                       <img
                         className="w-24 rounded-md"
                         src={URL.createObjectURL(attachment)}
-                        alt="image"
+                        alt={attachment.name}
                       />
                       <span className="text-sm text-zinc-500">
                         {attachment.name}

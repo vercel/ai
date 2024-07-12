@@ -30,7 +30,7 @@ export default function Page() {
                     key={`${message.id}-${index}`}
                     className="w-24 rounded-md"
                     src={attachment.url}
-                    alt="image"
+                    alt={attachment.name}
                   />
                 ))}
               </div>
@@ -59,24 +59,18 @@ export default function Page() {
         className="flex flex-col gap-2 fixed bottom-0 p-2 w-full"
       >
         <div className="flex flex-row gap-2 fixed right-2 bottom-14 items-end">
-          {Array.from(attachments).map(attachment => {
-            const { mimeType } = attachment;
-
-            if (mimeType && mimeType.startsWith('image/')) {
-              return (
-                <div key={attachment.name}>
-                  <img
-                    className="w-24 rounded-md"
-                    src={attachment.url}
-                    alt="image"
-                  />
-                  <span className="text-sm text-zinc-500">
-                    {attachment.name}
-                  </span>
-                </div>
-              );
-            }
-          })}
+          {Array.from(attachments)
+            .filter(attachment => attachment.mimeType?.startsWith('image/'))
+            .map(attachment => (
+              <div key={attachment.name}>
+                <img
+                  className="w-24 rounded-md"
+                  src={attachment.url}
+                  alt={attachment.name}
+                />
+                <span className="text-sm text-zinc-500">{attachment.name}</span>
+              </div>
+            ))}
         </div>
         <input
           type="file"

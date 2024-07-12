@@ -120,7 +120,6 @@ export type ToolInvocation =
 /**
  * An attachment that can be sent along with a message.
  */
-
 export interface Attachment {
   name?: string;
   mimeType?: string;
@@ -137,7 +136,7 @@ export interface Message {
   content: string;
 
   /**
-   * Additional files to be sent along with the message.
+   * Additional attachments to be sent along with the message.
    */
   experimental_attachments?: Attachment[];
 
