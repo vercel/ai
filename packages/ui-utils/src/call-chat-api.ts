@@ -34,7 +34,6 @@ export async function callChatApi({
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
 }) {
-  console.log(body);
   const response = await fetch(api, {
     method: 'POST',
     body: JSON.stringify(body),
