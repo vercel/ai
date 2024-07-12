@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 0.0.15
+
+### Patch Changes
+
+- bb584330: feat (provider/google-vertex): use systemInstruction content parts
+
 ## 0.0.14
 
 ### Patch Changes
