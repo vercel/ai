@@ -120,7 +120,9 @@ const getStreamedResponse = async (
         }) => ({
           role,
           content,
-          experimental_attachments,
+          ...(experimental_attachments !== undefined && {
+            experimental_attachments,
+          }),
           ...(name !== undefined && { name }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
@@ -570,18 +572,12 @@ By default, it's set to 0, which will disable the feature.
 
       const chatRequest: ChatRequest = {
         messages: input
-          ? options.experimental_attachments
-            ? messagesRef.current.concat({
-                id: generateId(),
-                role: 'user',
-                content: input,
-                experimental_attachments: attachmentsForRequest,
-              })
-            : messagesRef.current.concat({
-                id: generateId(),
-                role: 'user',
-                content: input,
-              })
+          ? messagesRef.current.concat({
+              id: generateId(),
+              role: 'user',
+              content: input,
+              experimental_attachments: attachmentsForRequest,
+            })
           : messagesRef.current,
         options: requestOptions,
         headers: requestOptions.headers,

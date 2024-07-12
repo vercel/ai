@@ -26,11 +26,11 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
   const parts: ContentPart[] = [];
 
   for (const attachment of attachments) {
-    if (attachment.mimeType?.includes('image/')) {
+    if (attachment.mimeType?.startsWith('image/')) {
       parts.push({ type: 'image', image: attachment.url });
     }
 
-    if (attachment.mimeType?.includes('text/') && isDataURL(attachment.url)) {
+    if (attachment.mimeType?.startsWith('text/') && isDataURL(attachment.url)) {
       parts.push({ type: 'text', text: dataUrlToText(attachment.url) });
     }
   }
