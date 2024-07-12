@@ -17,7 +17,7 @@ const google = createGoogleGenerativeAI({
 
 async function main() {
   const result = await generateText({
-    model: google('models/gemini-pro'),
+    model: google('models/gemini-1.5-pro-latest'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
