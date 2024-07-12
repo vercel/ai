@@ -17,6 +17,7 @@
     "openai": "4.52.6",
     "react": "^18",
     "react-dom": "^18",
+    "unstructured-client": "^0.12.0",
     "zod": "3.23.8"
   },
   "devDependencies": {
