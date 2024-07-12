@@ -32,7 +32,7 @@ type GoogleGenerativeAIConfig = {
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'json';
+  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: GoogleGenerativeAIModelId;
   readonly settings: GoogleGenerativeAISettings;
@@ -131,9 +131,24 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       }
 
       case 'object-tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-tool mode',
-        });
+        return {
+          args: {
+            generationConfig,
+            contents,
+            tools: {
+              functionDeclarations: [
+                {
+                  name: mode.tool.name,
+                  description: mode.tool.description ?? '',
+                  parameters: prepareJsonSchema(mode.tool.parameters),
+                },
+              ],
+            },
+            toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+            safetySettings: this.settings.safetySettings,
+          },
+          warnings,
+        };
       }
 
       case 'object-grammar': {
