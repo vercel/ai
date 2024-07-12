@@ -128,7 +128,12 @@ const getStreamedResponse = async (
           ...(tool_calls !== undefined && { tool_calls }),
         }),
       );
-
+  
+  const onUpdate =  throttle((merged, data) => {
+    mutate([...chatRequest.messages, ...merged], false);
+    mutateStreamData([...(existingData || []), ...(data || [])], false);
+  }, 50);
+  
   return await callChatApi({
     api,
     body: experimental_prepareRequestBody?.({
@@ -164,10 +169,7 @@ const getStreamedResponse = async (
       mutate(previousMessages, false);
     },
     onResponse,
-    onUpdate(merged, data) {
-      mutate([...chatRequest.messages, ...merged], false);
-      mutateStreamData([...(existingData || []), ...(data || [])], false);
-    },
+    onUpdate,
     onToolCall,
     onFinish,
     generateId,
@@ -629,4 +631,27 @@ function countTrailingAssistantMessages(messages: Message[]) {
     }
   }
   return count;
+}
+
+/**
+Creates a throttled function that only invokes `func` at most once per every `wait` milliseconds.
+ */
+function throttle<F extends (...args: any[]) => any>(func: F, wait: number): (...args: Parameters<F>) => void {
+    let lastCall = 0;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
+    return (...args: Parameters<F>) => {
+        const now = Date.now();
+
+        if (lastCall && now < lastCall + wait) {
+            clearTimeout(timeout!);
+            timeout = setTimeout(() => {
+                lastCall = now;
+                func(...args);
+            }, wait - (now - lastCall));
+        } else {
+            lastCall = now;
+            func(...args);
+        }
+    };
 }
