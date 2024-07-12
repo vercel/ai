@@ -96,10 +96,11 @@ const getStreamedResponse = async (
       }) => JSONValue)
     | undefined,
   fetch: FetchFunction | undefined,
+  keepLastMessageOnError: boolean,
 ) => {
-  // Do an optimistic update to the chat state to show the updated messages
-  // immediately.
-  const previousMessages = chatRequest.messages;
+  // Do an optimistic update to the chat state to show the updated messages immediately:
+  const previousMessages = messagesRef.current;
+
   mutate(chatRequest.messages, false);
 
   const constructedMessagesPayload = sendExtraMessageFields
@@ -161,7 +162,9 @@ const getStreamedResponse = async (
     },
     abortController: () => abortControllerRef.current,
     restoreMessagesOnFailure() {
-      mutate(previousMessages, false);
+      if (!keepLastMessageOnError) {
+        mutate(previousMessages, false);
+      }
     },
     onResponse,
     onUpdate(merged, data) {
@@ -197,6 +200,7 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
+  keepLastMessageOnError = false,
 }: UseChatOptions & {
   key?: string;
 
@@ -224,6 +228,14 @@ export function useChat({
     requestData?: JSONValue;
     requestBody?: object;
   }) => JSONValue;
+
+  /**
+Keeps the last message when an error happens. This will be the default behavior
+starting with the next major release.
+The flag was introduced for backwards compatibility.
+Please enable it and update your error handling/resubmit behavior.
+   */
+  keepLastMessageOnError?: boolean;
 
   /**
 Maximal number of automatic roundtrips for tool calls.
@@ -341,6 +353,7 @@ By default, it's set to 0, which will disable the feature.
               sendExtraMessageFields,
               experimental_prepareRequestBody,
               fetch,
+              keepLastMessageOnError,
             ),
           experimental_onFunctionCall,
           experimental_onToolCall,
@@ -407,6 +420,7 @@ By default, it's set to 0, which will disable the feature.
       abortControllerRef,
       generateId,
       fetch,
+      keepLastMessageOnError,
     ],
   );
 
