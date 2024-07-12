@@ -67,18 +67,18 @@ You can use the following optional settings to customize the Google Generative A
 ## Language Models
 
 You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the provider instance.
-The first argument is the model id, e.g. `models/gemini-pro`.
+The first argument is the model id, e.g. `models/gemini-1.5-pro-latest`.
 The models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = google('models/gemini-pro');
+const model = google('models/gemini-1.5-pro-latest');
 ```
 
 Google Generative AI models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = google('models/gemini-pro', {
+const model = google('models/gemini-1.5-pro-latest', {
   topK: 0.2,
 });
 ```

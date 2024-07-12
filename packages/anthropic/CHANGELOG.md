@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.30
+
+### Patch Changes
+
+- 4c6b80f7: chore (provider/anthropic): improve object-tool mode
+
 ## 0.0.29
 
 ### Patch Changes

@@ -14,6 +14,7 @@ import {
   ConverseStreamOutput,
   Tool,
   ToolConfiguration,
+  ToolInputSchema,
 } from '@aws-sdk/client-bedrock-runtime';
 import {
   BedrockChatModelId,
@@ -129,7 +130,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
                 toolSpec: {
                   name: mode.tool.name,
                   description: mode.tool.description,
-                  inputSchema: { json: JSON.stringify(mode.tool.parameters) },
+                  inputSchema: {
+                    json: mode.tool.parameters,
+                  } as ToolInputSchema,
                 },
               },
             ],
@@ -341,8 +344,8 @@ function prepareToolsAndToolChoice(
       name: tool.name,
       description: tool.description,
       inputSchema: {
-        json: tool.parameters as any,
-      },
+        json: tool.parameters,
+      } as ToolInputSchema,
     },
   }));
 
