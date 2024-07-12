@@ -326,6 +326,47 @@ for await (const textPart of textStream) {
         'An optional abort signal that can be used to cancel the call.',
     },
     {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
+    {
+      name: 'experimental_telemetry',
+      type: 'TelemetrySettings',
+      isOptional: true,
+      description: 'Telemetry configuration. Experimental feature.',
+      properties: [
+        {
+          type: 'TelemetrySettings',
+          parameters: [
+            {
+              name: 'isEnabled',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Enable or disable telemetry. Disabled by default while experimental.',
+            },
+            {
+              name: 'functionId',
+              type: 'string',
+              isOptional: true,
+              description:
+                'Identifier for this function. Used to group telemetry data by function.',
+            },
+            {
+              name: 'metadata',
+              isOptional: true,
+              type: 'Record<string, string | number | boolean | Array<null | undefined | string> | Array<null | undefined | number> | Array<null | undefined | boolean>>',
+              description:
+                'Additional information to include in the telemetry data.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'onFinish',
       type: '(result: OnFinishResult) => void',
       isOptional: true,
@@ -426,12 +467,12 @@ for await (const textPart of textStream) {
     },
     {
       name: 'usage',
-      type: 'Promise<TokenUsage>',
+      type: 'Promise<CompletionTokenUsage>',
       description:
         'The token usage of the generated text. Resolved when the response is finished.',
       properties: [
         {
-          type: 'TokenUsage',
+          type: 'CompletionTokenUsage',
           parameters: [
             {
               name: 'promptTokens',

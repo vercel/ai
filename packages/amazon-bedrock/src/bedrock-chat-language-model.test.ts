@@ -147,6 +147,64 @@ describe('doGenerate', () => {
       }).length,
     ).toBe(1);
   });
+
+  it('should pass tool specification in object-tool mode', async () => {
+    bedrockMock.on(ConverseCommand).resolves({
+      output: {
+        message: { role: 'assistant', content: [{ text: 'ignored' }] },
+      },
+    });
+
+    await provider('amazon.titan-tg1-large').doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-tool',
+        tool: {
+          name: 'test-tool',
+          type: 'function',
+          parameters: {
+            type: 'object',
+            properties: {
+              property1: { type: 'string' },
+              property2: { type: 'number' },
+            },
+            required: ['property1', 'property2'],
+            additionalProperties: false,
+          },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      bedrockMock.commandCalls(ConverseCommand, {
+        modelId: 'amazon.titan-tg1-large',
+        messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+        system: [{ text: 'System Prompt' }],
+        toolConfig: {
+          tools: [
+            {
+              toolSpec: {
+                name: 'test-tool',
+                description: undefined,
+                inputSchema: {
+                  json: {
+                    type: 'object',
+                    properties: {
+                      property1: { type: 'string' },
+                      property2: { type: 'number' },
+                    },
+                    required: ['property1', 'property2'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+            },
+          ],
+        },
+      }).length,
+    ).toBe(1);
+  });
 });
 
 describe('doStream', () => {

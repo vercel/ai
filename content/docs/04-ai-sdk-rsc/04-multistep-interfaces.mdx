@@ -218,17 +218,17 @@ interface FlightsProps {
   flights: { id: string; flightNumber: string }[];
 }
 
-export const Flights = ({ results }: FlightsProps) => {
+export const Flights = ({ flights }: FlightsProps) => {
   const { submitUserMessage } = useActions();
   const [_, setMessages] = useUIState();
 
   return (
     <div>
-      {results.map(result => (
+      {flights.map(result => (
         <div key={result.id}>
           <div
             onClick={async () => {
-              const { display } = await submitUserMessage(
+              const display = await submitUserMessage(
                 `lookupFlight ${result.flightNumber}`,
               );
 
@@ -258,7 +258,7 @@ searchFlights: {
   generate: async function* ({ source, destination, date }) {
     yield `Searching for flights from ${source} to ${destination} on ${date}...`;
     const results = await searchFlights(source, destination, date);
-    return (<Flights results={results} />);
+    return (<Flights flights={results} />);
   },
 }
 ...

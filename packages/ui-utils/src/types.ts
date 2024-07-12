@@ -190,9 +190,32 @@ export type CreateMessage = Omit<Message, 'id'> & {
 };
 
 export type ChatRequest = {
+  /**
+An optional object of headers to be passed to the API endpoint.
+ */
+  headers?: Record<string, string> | Headers;
+
+  /**
+An optional object to be passed to the API endpoint.
+*/
+  body?: object;
+
+  /**
+The messages of the chat.
+   */
   messages: Message[];
+
+  /**
+Additional data to be sent to the server.
+   */
+  data?: JSONValue;
+
+  /**
+The options to be passed to the fetch call.
+
+@deprecated use `headers` and `body` directly
+   */
   options?: RequestOptions;
-  data?: Record<string, string>;
 
   /**
    * @deprecated
@@ -245,7 +268,24 @@ An optional object to be passed to the API endpoint.
 
 export type ChatRequestOptions = {
   /**
+Additional headers that should be to be passed to the API endpoint.
+ */
+  headers?: Record<string, string> | Headers;
+
+  /**
+Additional body JSON properties that should be sent to the API endpoint.
+ */
+  body?: object;
+
+  /**
+Additional data to be sent to the API endpoint.
+   */
+  data?: JSONValue;
+
+  /**
 The options to be passed to the fetch call.
+
+@deprecated use `headers` and `body` directly
    */
   options?: RequestOptions;
 
@@ -268,11 +308,6 @@ The options to be passed to the fetch call.
 @deprecated
 */
   tool_choice?: ToolChoice;
-
-  /**
-Additional data to be sent to the server.
-   */
-  data?: Record<string, string>;
 };
 
 export type UseChatOptions = {
@@ -386,6 +421,12 @@ either synchronously or asynchronously.
 
   /** Stream mode (default to "stream-data") */
   streamMode?: 'stream-data' | 'text';
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: FetchFunction;
 };
 
 export type UseCompletionOptions = {
@@ -454,8 +495,18 @@ export type UseCompletionOptions = {
 
   /** Stream mode (default to "stream-data") */
   streamMode?: 'stream-data' | 'text';
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: FetchFunction;
 };
 
+/**
+A JSON value can be a string, number, boolean, object, array, or null. 
+JSON values can be serialized and deserialized by the JSON.stringify and JSON.parse methods.
+ */
 export type JSONValue =
   | null
   | string
@@ -487,3 +538,8 @@ export type DataMessage = {
   role: 'data';
   data: JSONValue; // application-specific data
 };
+
+/**
+ * Fetch function type (standardizes the version of fetch used).
+ */
+export type FetchFunction = typeof fetch;

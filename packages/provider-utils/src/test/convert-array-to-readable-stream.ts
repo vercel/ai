@@ -3,10 +3,13 @@ export function convertArrayToReadableStream<T>(
 ): ReadableStream<T> {
   return new ReadableStream({
     start(controller) {
-      for (const value of values) {
-        controller.enqueue(value);
+      try {
+        for (const value of values) {
+          controller.enqueue(value);
+        }
+      } finally {
+        controller.close();
       }
-      controller.close();
     },
   });
 }

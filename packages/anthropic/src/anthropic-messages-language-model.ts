@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   ParseResult,
+  combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
@@ -122,16 +123,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       case 'object-tool': {
         const { name, description, parameters } = mode.tool;
 
-        // add instruction to use tool:
-        baseArgs.messages[baseArgs.messages.length - 1].content.push({
-          type: 'text',
-          text: `\n\nUse the '${name}' tool.`,
-        });
-
         return {
           args: {
             ...baseArgs,
             tools: [{ name, description, input_schema: parameters }],
+            tool_choice: { type: 'tool', name },
           },
           warnings,
         };
@@ -157,7 +153,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -214,7 +210,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: {
         ...args,
         stream: true,

@@ -254,3 +254,71 @@ describe('tool messages', () => {
     });
   });
 });
+
+describe('assistant messages', () => {
+  it('should remove trailing whitespace from last assistant message when there is no further user message', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'assistant content  ' }],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'assistant content' }],
+        },
+      ],
+      system: undefined,
+    });
+  });
+
+  it('should keep trailing whitespace from assistant message when there is a further user message', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'assistant content  ' }],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content 2' }],
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'assistant content  ' }],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content 2' }],
+        },
+      ],
+      system: undefined,
+    });
+  });
+});

@@ -333,7 +333,8 @@ export default function Chat() {
       ))}
 
       <form
-        action={async () => {
+        onSubmit={async e => {
+          e.preventDefault();
           const newMessages: CoreMessage[] = [
             ...messages,
             { content: input, role: 'user' },
@@ -406,7 +407,7 @@ The only change that you make here is to declare a new value (`data`) and return
 
 Update your root page with the following code:
 
-```tsx filename="app/page.tsx" highlight="15, 18, 37"
+```tsx filename="app/page.tsx" highlight="15, 18, 38, 40"
 'use client';
 
 import { type CoreMessage } from 'ai';
@@ -433,7 +434,8 @@ export default function Chat() {
       ))}
 
       <form
-        action={async () => {
+        onSubmit={async e => {
+          e.preventDefault();
           const newMessages: CoreMessage[] = [
             ...messages,
             { content: input, role: 'user' },

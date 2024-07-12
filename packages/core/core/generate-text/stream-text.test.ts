@@ -9,6 +9,8 @@ import { formatStreamPart } from '../../streams';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { streamText } from './stream-text';
+import { MockTracer } from '../test/mock-tracer';
+import { setTestTracer } from '../telemetry/get-tracer';
 
 describe('result.textStream', () => {
   it('should send text deltas', async () => {
@@ -896,7 +898,7 @@ describe('result.toolResults', () => {
   });
 });
 
-describe('onFinish callback', () => {
+describe('options.onFinish', () => {
   let result: Parameters<
     Required<Parameters<typeof streamText>[0]>['onFinish']
   >[0];
@@ -1001,6 +1003,259 @@ describe('onFinish callback', () => {
         toolName: 'tool1',
         args: { value: 'value' },
         result: 'value-result',
+      },
+    ]);
+  });
+});
+
+describe('options.headers', () => {
+  it('should set headers', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ headers }) => {
+          assert.deepStrictEqual(headers, {
+            'custom-request-header': 'request-header-value',
+          });
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: `world!` },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+      headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.textStream),
+      ['Hello', ', ', 'world!'],
+    );
+  });
+});
+
+describe('telemetry', () => {
+  let tracer: MockTracer;
+
+  beforeEach(() => {
+    tracer = new MockTracer();
+    setTestTracer(tracer);
+  });
+
+  afterEach(() => {
+    setTestTracer(undefined);
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({}) => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: `world!` },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 20, promptTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(result.textStream);
+
+    assert.deepStrictEqual(tracer.jsonSpans, []);
+  });
+
+  it('should record telemetry data when enabled', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({}) => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: `world!` },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 20, promptTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+      headers: {
+        header1: 'value1',
+        header2: 'value2',
+      },
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+      },
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(result.textStream);
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        name: 'ai.streamText',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt': '{"prompt":"test-input"}',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.finishReason': 'stop',
+          'ai.result.text': 'Hello, world!',
+          'ai.result.toolCalls': undefined,
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
+          'operation.name': 'ai.streamText',
+          'resource.name': 'test-function-id',
+        },
+        events: [],
+      },
+      {
+        name: 'ai.streamText.doStream',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt.format': 'prompt',
+          'ai.prompt.messages':
+            '[{"role":"user","content":[{"type":"text","text":"test-input"}]}]',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.finishReason': 'stop',
+          'ai.result.text': 'Hello, world!',
+          'ai.result.toolCalls': undefined,
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
+          'operation.name': 'ai.streamText',
+          'resource.name': 'test-function-id',
+        },
+        events: ['ai.stream.firstChunk'],
+      },
+    ]);
+  });
+
+  it('should record successful tool call', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({}) => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 20, promptTokens: 10 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        },
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+      },
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(result.textStream);
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        name: 'ai.streamText',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt': '{"prompt":"test-input"}',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': undefined,
+          'ai.finishReason': 'stop',
+          'ai.result.text': '',
+          'ai.result.toolCalls':
+            '[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]',
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'operation.name': 'ai.streamText',
+          'resource.name': undefined,
+        },
+        events: [],
+      },
+      {
+        name: 'ai.streamText.doStream',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt.format': 'prompt',
+          'ai.prompt.messages':
+            '[{"role":"user","content":[{"type":"text","text":"test-input"}]}]',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': undefined,
+          'ai.finishReason': 'stop',
+          'ai.result.text': '',
+          'ai.result.toolCalls':
+            '[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]',
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'operation.name': 'ai.streamText',
+          'resource.name': undefined,
+        },
+        events: ['ai.stream.firstChunk'],
+      },
+      {
+        name: 'ai.toolCall',
+        attributes: {
+          'ai.toolCall.name': 'tool1',
+          'ai.toolCall.id': 'call-1',
+          'ai.toolCall.args': '{"value":"value"}',
+          'ai.toolCall.result': '"value-result"',
+        },
+        events: [],
       },
     ]);
   });

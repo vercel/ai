@@ -324,11 +324,52 @@ console.log(text);
         'An optional abort signal that can be used to cancel the call.',
     },
     {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
+    {
       name: 'maxAutomaticRoundtrips',
       type: 'number',
       isOptional: true,
       description:
         'Maximum number of automatic roundtrips for tool calls. An automatic tool call roundtrip is another LLM call with the tool call results when all tool calls of the last assistant message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
+    },
+    {
+      name: 'experimental_telemetry',
+      type: 'TelemetrySettings',
+      isOptional: true,
+      description: 'Telemetry configuration. Experimental feature.',
+      properties: [
+        {
+          type: 'TelemetrySettings',
+          parameters: [
+            {
+              name: 'isEnabled',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Enable or disable telemetry. Disabled by default while experimental.',
+            },
+            {
+              name: 'functionId',
+              type: 'string',
+              isOptional: true,
+              description:
+                'Identifier for this function. Used to group telemetry data by function.',
+            },
+            {
+              name: 'metadata',
+              isOptional: true,
+              type: 'Record<string, string | number | boolean | Array<null | undefined | string> | Array<null | undefined | number> | Array<null | undefined | boolean>>',
+              description:
+                'Additional information to include in the telemetry data.',
+            },
+          ],
+        },
+      ],
     },
   ]}
 />
@@ -360,11 +401,11 @@ console.log(text);
     },
     {
       name: 'usage',
-      type: 'TokenUsage',
+      type: 'CompletionTokenUsage',
       description: 'The token usage of the generated text.',
       properties: [
         {
-          type: 'TokenUsage',
+          type: 'CompletionTokenUsage',
           parameters: [
             {
               name: 'promptTokens',

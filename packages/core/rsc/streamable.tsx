@@ -306,7 +306,7 @@ function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
       }
       warningTimeout = setTimeout(() => {
         console.warn(
-          'The streamable UI has been slow to update. This may be a bug or a performance issue or you forgot to call `.done()`.',
+          'The streamable value has been slow to update. This may be a bug or a performance issue or you forgot to call `.done()`.',
         );
       }, DEV_DEFAULT_STREAMABLE_WARNING_TIME);
     }

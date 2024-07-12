@@ -1,17 +1,20 @@
 import { NoObjectGeneratedError } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
+import {
+  CompletionTokenUsage,
+  calculateCompletionTokenUsage,
+} from '../types/token-usage';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
+import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
-import { prepareResponseHeaders } from '../util/prepare-response-headers';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -45,6 +48,7 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @returns 
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
@@ -58,6 +62,7 @@ export async function generateObject<T>({
   messages,
   maxRetries,
   abortSignal,
+  headers,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -97,7 +102,7 @@ Default and recommended: 'auto' (best mode for the model).
 
   let result: string;
   let finishReason: FinishReason;
-  let usage: Parameters<typeof calculateTokenUsage>[0];
+  let usage: Parameters<typeof calculateCompletionTokenUsage>[0];
   let warnings: CallWarning[] | undefined;
   let rawResponse: { headers?: Record<string, string> } | undefined;
   let logprobs: LogProbs | undefined;
@@ -117,6 +122,7 @@ Default and recommended: 'auto' (best mode for the model).
           inputFormat: validatedPrompt.type,
           prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
+          headers,
         });
       });
 
@@ -225,7 +231,7 @@ Default and recommended: 'auto' (best mode for the model).
   return new GenerateObjectResult({
     object: parseResult.value,
     finishReason,
-    usage: calculateTokenUsage(usage),
+    usage: calculateCompletionTokenUsage(usage),
     warnings,
     rawResponse,
     logprobs,
@@ -249,7 +255,7 @@ The reason why the generation finished.
   /**
 The token usage of the generated text.
    */
-  readonly usage: TokenUsage;
+  readonly usage: CompletionTokenUsage;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
@@ -275,7 +281,7 @@ Logprobs for the completion.
   constructor(options: {
     object: T;
     finishReason: FinishReason;
-    usage: TokenUsage;
+    usage: CompletionTokenUsage;
     warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;

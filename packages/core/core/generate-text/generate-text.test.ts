@@ -1,6 +1,8 @@
 import assert from 'node:assert';
 import { z } from 'zod';
+import { setTestTracer } from '../telemetry/get-tracer';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
+import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 
 const dummyResponseValues = {
@@ -350,7 +352,7 @@ describe('result.responseMessages', () => {
   });
 });
 
-describe('maxToolRoundtrips', () => {
+describe('options.maxToolRoundtrips', () => {
   it('should return text, tool calls and tool results from last roundtrip', async () => {
     let responseCount = 0;
     const result = await generateText({
@@ -473,5 +475,211 @@ describe('maxToolRoundtrips', () => {
     assert.deepStrictEqual(result.text, 'Hello, world!');
     assert.deepStrictEqual(result.toolCalls, []);
     assert.deepStrictEqual(result.toolResults, []);
+  });
+});
+
+describe('options.headers', () => {
+  it('should pass headers to model', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ headers }) => {
+          assert.deepStrictEqual(headers, {
+            'custom-request-header': 'request-header-value',
+          });
+
+          return {
+            ...dummyResponseValues,
+            text: 'Hello, world!',
+          };
+        },
+      }),
+      prompt: 'test-input',
+      headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    assert.deepStrictEqual(result.text, 'Hello, world!');
+  });
+});
+
+describe('telemetry', () => {
+  let tracer: MockTracer;
+
+  beforeEach(() => {
+    tracer = new MockTracer();
+    setTestTracer(tracer);
+  });
+
+  afterEach(() => {
+    setTestTracer(undefined);
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          text: `Hello, world!`,
+        }),
+      }),
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, []);
+  });
+
+  it('should record telemetry data when enabled', async () => {
+    await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          text: `Hello, world!`,
+        }),
+      }),
+      prompt: 'prompt',
+      headers: {
+        header1: 'value1',
+        header2: 'value2',
+      },
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+      },
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        name: 'ai.generateText',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt': '{"prompt":"prompt"}',
+          'ai.settings.maxRetries': undefined,
+          'ai.settings.maxToolRoundtrips': 0,
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.finishReason': 'stop',
+          'ai.result.text': 'Hello, world!',
+          'ai.result.toolCalls': undefined,
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
+          'operation.name': 'ai.generateText',
+          'resource.name': 'test-function-id',
+        },
+        events: [],
+      },
+      {
+        name: 'ai.generateText.doGenerate',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt.format': 'prompt',
+          'ai.prompt.messages':
+            '[{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.finishReason': 'stop',
+          'ai.result.text': 'Hello, world!',
+          'ai.result.toolCalls': undefined,
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
+          'operation.name': 'ai.generateText',
+          'resource.name': 'test-function-id',
+        },
+        events: [],
+      },
+    ]);
+  });
+
+  it('should record successful tool call', async () => {
+    await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          toolCalls: [
+            {
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+          ],
+        }),
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async () => 'result1',
+        },
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+      },
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        name: 'ai.generateText',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt': '{"prompt":"test-input"}',
+          'ai.settings.maxRetries': undefined,
+          'ai.settings.maxToolRoundtrips': 0,
+          'ai.telemetry.functionId': undefined,
+          'ai.finishReason': 'stop',
+          'ai.result.text': undefined,
+          'ai.result.toolCalls':
+            '[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{ \\"value\\": \\"value\\" }"}]',
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'operation.name': 'ai.generateText',
+          'resource.name': undefined,
+        },
+        events: [],
+      },
+      {
+        name: 'ai.generateText.doGenerate',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt.format': 'prompt',
+          'ai.prompt.messages':
+            '[{"role":"user","content":[{"type":"text","text":"test-input"}]}]',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': undefined,
+          'ai.finishReason': 'stop',
+          'ai.result.text': undefined,
+          'ai.result.toolCalls':
+            '[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{ \\"value\\": \\"value\\" }"}]',
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'operation.name': 'ai.generateText',
+          'resource.name': undefined,
+        },
+        events: [],
+      },
+      {
+        name: 'ai.toolCall',
+        attributes: {
+          'ai.toolCall.name': 'tool1',
+          'ai.toolCall.id': 'call-1',
+          'ai.toolCall.args': '{"value":"value"}',
+          'ai.toolCall.result': '"result1"',
+        },
+        events: [],
+      },
+    ]);
   });
 });

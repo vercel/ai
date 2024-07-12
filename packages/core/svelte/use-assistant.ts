@@ -8,6 +8,9 @@ import type {
 import { generateId, readDataStream } from '@ai-sdk/ui-utils';
 import { Readable, Writable, get, writable } from 'svelte/store';
 
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
+
 let uniqueId = 0;
 
 const store: Record<string, any> = {};
@@ -78,6 +81,7 @@ export function useAssistant({
   headers,
   body,
   onError,
+  fetch,
 }: UseAssistantOptions): UseAssistantHelpers {
   // Generate a unique thread ID
   const threadIdStore = writable<string | undefined>(threadIdParam);
@@ -115,7 +119,8 @@ export function useAssistant({
     input.set('');
 
     try {
-      const result = await fetch(api, {
+      const actualFetch = fetch ?? getOriginalFetch();
+      const response = await actualFetch(api, {
         method: 'POST',
         credentials,
         signal: abortController.signal,
@@ -131,13 +136,19 @@ export function useAssistant({
         }),
       });
 
-      if (result.body == null) {
+      if (!response.ok) {
+        throw new Error(
+          (await response.text()) ?? 'Failed to fetch the assistant response.',
+        );
+      }
+
+      if (response.body == null) {
         throw new Error('The response body is empty.');
       }
 
       // Read the streamed response data
       for await (const { type, value } of readDataStream(
-        result.body.getReader(),
+        response.body.getReader(),
       )) {
         switch (type) {
           case 'assistant_message': {

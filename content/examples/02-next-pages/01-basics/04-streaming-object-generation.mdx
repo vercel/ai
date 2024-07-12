@@ -75,18 +75,14 @@ import { experimental_useObject as useObject } from 'ai/react';
 import { notificationSchema } from './api/use-object/schema';
 
 export default function Page() {
-  const { setInput, object } = useObject({
+  const { object, submit } = useObject({
     api: '/api/use-object',
     schema: notificationSchema,
   });
 
   return (
     <div>
-      <button
-        onClick={async () => {
-          setInput('Messages during finals week.');
-        }}
-      >
+      <button onClick={() => submit('Messages during finals week.')}>
         Generate notifications
       </button>
 
@@ -124,5 +120,51 @@ export async function POST(req: Request) {
   })
 
   return result.toTextStreamResponse()
+}
+```
+
+## Loading State and Stopping the Stream
+
+You can use the `loading` state to display a loading indicator while the object is being generated.
+You can also use the `stop` function to stop the object generation process.
+
+```tsx filename='app/page.tsx' highlight="7,16,21,24"
+'use client';
+
+import { experimental_useObject as useObject } from 'ai/react';
+import { notificationSchema } from './api/use-object/schema';
+
+export default function Page() {
+  const { object, submit, isLoading, stop } = useObject({
+    api: '/api/use-object',
+    schema: notificationSchema,
+  });
+
+  return (
+    <div>
+      <button
+        onClick={() => submit('Messages during finals week.')}
+        disabled={isLoading}
+      >
+        Generate notifications
+      </button>
+
+      {isLoading && (
+        <div>
+          <div>Loading...</div>
+          <button type="button" onClick={() => stop()}>
+            Stop
+          </button>
+        </div>
+      )}
+
+      {object?.notifications?.map((notification, index) => (
+        <div key={index}>
+          <p>{notification?.name}</p>
+          <p>{notification?.message}</p>
+        </div>
+      ))}
+    </div>
+  );
 }
 ```

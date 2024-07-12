@@ -5,12 +5,13 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 async function main() {
-  const { embedding } = await embed({
+  const { embedding, usage } = await embed({
     model: openai.embedding('text-embedding-3-small'),
     value: 'sunny day at the beach',
   });
 
   console.log(embedding);
+  console.log(usage);
 }
 
 main().catch(console.error);

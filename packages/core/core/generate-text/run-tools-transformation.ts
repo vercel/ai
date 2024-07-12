@@ -1,16 +1,20 @@
 import { LanguageModelV1StreamPart, NoSuchToolError } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/ui-utils';
+import { Tracer } from '@opentelemetry/api';
+import { recordSpan } from '../telemetry/record-span';
 import { CoreTool } from '../tool';
+import { calculateCompletionTokenUsage } from '../types/token-usage';
 import { TextStreamPart } from './stream-text';
-import { calculateTokenUsage } from './token-usage';
 import { parseToolCall } from './tool-call';
 
 export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   tools,
   generatorStream,
+  tracer,
 }: {
   tools?: TOOLS;
   generatorStream: ReadableStream<LanguageModelV1StreamPart>;
+  tracer: Tracer;
 }): ReadableStream<TextStreamPart<TOOLS>> {
   let canClose = false;
   const outstandingToolCalls = new Set<string>();
@@ -82,38 +86,60 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
               outstandingToolCalls.add(toolExecutionId);
 
-              // Note: we don't await the tool execution here, because we want to process
-              // the next chunk as soon as possible. This is important for the case where
-              // the tool execution takes a long time.
-              tool.execute(toolCall.args).then(
-                (result: any) => {
-                  toolResultsStreamController!.enqueue({
-                    ...toolCall,
-                    type: 'tool-result',
-                    result,
-                  } as any);
-
-                  outstandingToolCalls.delete(toolExecutionId);
-
-                  // close the tool results controller if no more outstanding tool calls
-                  if (canClose && outstandingToolCalls.size === 0) {
-                    toolResultsStreamController!.close();
-                  }
+              // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
+              // because we want to process the next chunk as soon as possible.
+              // This is important for the case where the tool execution takes a long time.
+              recordSpan({
+                name: 'ai.toolCall',
+                attributes: {
+                  'ai.toolCall.name': toolCall.toolName,
+                  'ai.toolCall.id': toolCall.toolCallId,
+                  'ai.toolCall.args': JSON.stringify(toolCall.args),
                 },
-                (error: any) => {
-                  toolResultsStreamController!.enqueue({
-                    type: 'error',
-                    error,
-                  });
+                tracer,
+                fn: async span =>
+                  tool.execute!(toolCall.args).then(
+                    (result: any) => {
+                      toolResultsStreamController!.enqueue({
+                        ...toolCall,
+                        type: 'tool-result',
+                        result,
+                      } as any);
 
-                  outstandingToolCalls.delete(toolExecutionId);
+                      outstandingToolCalls.delete(toolExecutionId);
 
-                  // close the tool results controller if no more outstanding tool calls
-                  if (canClose && outstandingToolCalls.size === 0) {
-                    toolResultsStreamController!.close();
-                  }
-                },
-              );
+                      // close the tool results controller if no more outstanding tool calls
+                      if (canClose && outstandingToolCalls.size === 0) {
+                        toolResultsStreamController!.close();
+                      }
+
+                      // record telemetry
+                      try {
+                        span.setAttributes({
+                          'ai.toolCall.result': JSON.stringify(result),
+                        });
+                      } catch (ignored) {
+                        // JSON stringify might fail if the result is not serializable,
+                        // in which case we just ignore it. In the future we might want to
+                        // add an optional serialize method to the tool interface and warn
+                        // if the result is not serializable.
+                      }
+                    },
+                    (error: any) => {
+                      toolResultsStreamController!.enqueue({
+                        type: 'error',
+                        error,
+                      });
+
+                      outstandingToolCalls.delete(toolExecutionId);
+
+                      // close the tool results controller if no more outstanding tool calls
+                      if (canClose && outstandingToolCalls.size === 0) {
+                        toolResultsStreamController!.close();
+                      }
+                    },
+                  ),
+              });
             }
           } catch (error) {
             toolResultsStreamController!.enqueue({
@@ -131,7 +157,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
             type: 'finish',
             finishReason: chunk.finishReason,
             logprobs: chunk.logprobs,
-            usage: calculateTokenUsage(chunk.usage),
+            usage: calculateCompletionTokenUsage(chunk.usage),
           });
           break;
         }

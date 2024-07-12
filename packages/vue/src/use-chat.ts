@@ -83,6 +83,7 @@ export function useChat({
   headers,
   body,
   generateId = generateIdFunc,
+  fetch,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
@@ -118,7 +119,7 @@ export function useChat({
   let abortController: AbortController | null = null;
   async function triggerRequest(
     messagesSnapshot: Message[],
-    { options, data }: ChatRequestOptions = {},
+    { options, data, headers, body }: ChatRequestOptions = {},
   ) {
     try {
       error.value = undefined;
@@ -131,9 +132,16 @@ export function useChat({
       const previousMessages = messagesSnapshot;
       mutate(messagesSnapshot);
 
+      const requestOptions = {
+        headers: headers ?? options?.headers,
+        body: body ?? options?.body,
+      };
+
       let chatRequest: ChatRequest = {
         messages: messagesSnapshot,
-        options,
+        options: requestOptions,
+        body: requestOptions.body,
+        headers: requestOptions.headers,
         data,
       };
 
@@ -164,17 +172,16 @@ export function useChat({
 
           return await callChatApi({
             api,
-            messages: constructedMessagesPayload,
             body: {
               messages: constructedMessagesPayload,
               data: chatRequest.data,
               ...unref(body), // Use unref to unwrap the ref value
-              ...options?.body,
+              ...requestOptions.body,
             },
             streamMode,
             headers: {
               ...headers,
-              ...options?.headers,
+              ...requestOptions.headers,
             },
             abortController: () => abortController,
             credentials,
@@ -194,6 +201,8 @@ export function useChat({
               mutate(previousMessages);
             },
             generateId,
+            onToolCall: undefined, // not implemented yet
+            fetch,
           });
         },
         experimental_onFunctionCall,
@@ -225,6 +234,12 @@ export function useChat({
     if (!message.id) {
       message.id = generateId();
     }
+
+    const requestOptions = {
+      headers: options?.headers ?? options?.options?.headers,
+      body: options?.body ?? options?.options?.body,
+    };
+
     return triggerRequest(messages.value.concat(message as Message), options);
   };
 
@@ -259,14 +274,18 @@ export function useChat({
     event?.preventDefault?.();
 
     const inputValue = input.value;
-    if (!inputValue) return;
-    append(
-      {
-        content: inputValue,
-        role: 'user',
-      },
+
+    triggerRequest(
+      inputValue
+        ? messages.value.concat({
+            id: generateId(),
+            content: inputValue,
+            role: 'user',
+          })
+        : messages.value,
       options,
     );
+
     input.value = '';
   };
 

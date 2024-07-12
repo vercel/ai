@@ -72,6 +72,7 @@ export function useCompletion({
   headers,
   body,
   streamMode,
+  fetch,
   onResponse,
   onFinish,
   onError,
@@ -126,6 +127,7 @@ export function useCompletion({
           ...options?.body,
         },
         streamMode,
+        fetch,
         setCompletion: completion => mutate(completion, false),
         setLoading: mutateLoading,
         setError,
@@ -149,6 +151,7 @@ export function useCompletion({
       setError,
       streamData,
       streamMode,
+      fetch,
       mutateStreamData,
     ],
   );

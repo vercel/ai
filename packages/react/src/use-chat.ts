@@ -2,6 +2,7 @@ import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
+  FetchFunction,
   IdGenerator,
   JSONValue,
   Message,
@@ -82,16 +83,19 @@ const getStreamedResponse = async (
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
   generateId: IdGenerator,
-  streamMode?: 'stream-data' | 'text',
-  onFinish?: (message: Message) => void,
-  onResponse?: (response: Response) => void | Promise<void>,
-  onToolCall?: UseChatOptions['onToolCall'],
-  sendExtraMessageFields?: boolean,
-  experimental_prepareRequestBody?: (options: {
-    messages: Message[];
-    requestData?: Record<string, string>;
-    requestBody?: object;
-  }) => JSONValue,
+  streamMode: 'stream-data' | 'text' | undefined,
+  onFinish: ((message: Message) => void) | undefined,
+  onResponse: ((response: Response) => void | Promise<void>) | undefined,
+  onToolCall: UseChatOptions['onToolCall'] | undefined,
+  sendExtraMessageFields: boolean | undefined,
+  experimental_prepareRequestBody:
+    | ((options: {
+        messages: Message[];
+        requestData?: JSONValue;
+        requestBody?: object;
+      }) => JSONValue)
+    | undefined,
+  fetch: FetchFunction | undefined,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -127,16 +131,15 @@ const getStreamedResponse = async (
 
   return await callChatApi({
     api,
-    messages: constructedMessagesPayload,
     body: experimental_prepareRequestBody?.({
       messages: chatRequest.messages,
       requestData: chatRequest.data,
-      requestBody: chatRequest.options?.body,
+      requestBody: chatRequest.body,
     }) ?? {
       messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadataRef.current.body,
-      ...chatRequest.options?.body,
+      ...chatRequest.body,
       ...(chatRequest.functions !== undefined && {
         functions: chatRequest.functions,
       }),
@@ -154,7 +157,7 @@ const getStreamedResponse = async (
     credentials: extraMetadataRef.current.credentials,
     headers: {
       ...extraMetadataRef.current.headers,
-      ...chatRequest.options?.headers,
+      ...chatRequest.headers,
     },
     abortController: () => abortControllerRef.current,
     restoreMessagesOnFailure() {
@@ -168,6 +171,7 @@ const getStreamedResponse = async (
     onToolCall,
     onFinish,
     generateId,
+    fetch,
   });
 };
 
@@ -192,9 +196,10 @@ export function useChat({
   headers,
   body,
   generateId = generateIdFunc,
-}: Omit<UseChatOptions, 'api'> & {
-  api?: string;
+  fetch,
+}: UseChatOptions & {
   key?: string;
+
   /**
 @deprecated Use `maxToolRoundtrips` instead.
    */
@@ -216,7 +221,7 @@ export function useChat({
    */
   experimental_prepareRequestBody?: (options: {
     messages: Message[];
-    requestData?: Record<string, string>;
+    requestData?: JSONValue;
     requestBody?: object;
   }) => JSONValue;
 
@@ -335,6 +340,7 @@ By default, it's set to 0, which will disable the feature.
               onToolCall,
               sendExtraMessageFields,
               experimental_prepareRequestBody,
+              fetch,
             ),
           experimental_onFunctionCall,
           experimental_onToolCall,
@@ -400,6 +406,7 @@ By default, it's set to 0, which will disable the feature.
       messagesRef,
       abortControllerRef,
       generateId,
+      fetch,
     ],
   );
 
@@ -413,15 +420,24 @@ By default, it's set to 0, which will disable the feature.
         tools,
         tool_choice,
         data,
+        headers,
+        body,
       }: ChatRequestOptions = {},
     ) => {
       if (!message.id) {
         message.id = generateId();
       }
 
+      const requestOptions = {
+        headers: headers ?? options?.headers,
+        body: body ?? options?.body,
+      };
+
       const chatRequest: ChatRequest = {
         messages: messagesRef.current.concat(message as Message),
-        options,
+        options: requestOptions,
+        headers: requestOptions.headers,
+        body: requestOptions.body,
         data,
         ...(functions !== undefined && { functions }),
         ...(function_call !== undefined && { function_call }),
@@ -506,19 +522,30 @@ By default, it's set to 0, which will disable the feature.
 
       event?.preventDefault?.();
 
-      if (!input) return;
+      const requestOptions = {
+        headers: options.headers ?? options.options?.headers,
+        body: options.body ?? options.options?.body,
+      };
 
-      append(
-        {
-          content: input,
-          role: 'user',
-          createdAt: new Date(),
-        },
-        options,
-      );
+      const chatRequest: ChatRequest = {
+        messages: input
+          ? messagesRef.current.concat({
+              id: generateId(),
+              role: 'user',
+              content: input,
+            })
+          : messagesRef.current,
+        options: requestOptions,
+        headers: requestOptions.headers,
+        body: requestOptions.body,
+        data: options.data,
+      };
+
+      triggerRequest(chatRequest);
+
       setInput('');
     },
-    [input, append],
+    [input, generateId, triggerRequest],
   );
 
   const handleInputChange = (e: any) => {
