@@ -15,7 +15,7 @@
     "ai": "latest",
     "next": "latest",
     "openai": "4.52.6",
-    "react": "^18",
+    "react": "^19.0.0-rc-85acf2d195-20240711",
     "react-dom": "^18",
     "sonner": "^0.6.2"
   },

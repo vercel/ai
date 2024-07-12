@@ -31,7 +31,7 @@ importers:
         version: 15.2.4
       next:
         specifier: 15.0.0-canary.23
-        version: 15.0.0-canary.23(@playwright/test@1.44.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607)(react@19.0.0-rc-cc1ec60d0d-20240607)
+        version: 15.0.0-canary.23(@playwright/test@1.44.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607)(react@19.0.0-rc-85acf2d195-20240711)
       playwright:
         specifier: ^1.44.1
         version: 1.44.1
@@ -42,11 +42,11 @@ importers:
         specifier: 0.1.11
         version: 0.1.11
       react:
-        specifier: 19.0.0-rc-cc1ec60d0d-20240607
-        version: 19.0.0-rc-cc1ec60d0d-20240607
+        specifier: 19.0.0-rc-85acf2d195-20240711
+        version: 19.0.0-rc-85acf2d195-20240711
       react-dom:
         specifier: 19.0.0-rc-cc1ec60d0d-20240607
-        version: 19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607)
+        version: 19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-85acf2d195-20240711)
       turbo:
         specifier: ^1.10.13
         version: 1.10.16
@@ -128,13 +128,13 @@ importers:
         version: link:../../packages/core
       next:
         specifier: latest
-        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711)
       react:
-        specifier: ^18
-        version: 18.2.0
+        specifier: ^19.0.0-rc-85acf2d195-20240711
+        version: 19.0.0-rc-85acf2d195-20240711
       react-dom:
         specifier: ^18
-        version: 18.2.0(react@18.2.0)
+        version: 18.2.0(react@19.0.0-rc-85acf2d195-20240711)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
@@ -177,13 +177,13 @@ importers:
         version: link:../../packages/core
       next:
         specifier: latest
-        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711)
       react:
-        specifier: ^18
-        version: 18.2.0
+        specifier: ^19.0.0-rc-85acf2d195-20240711
+        version: 19.0.0-rc-85acf2d195-20240711
       react-dom:
         specifier: ^18
-        version: 18.2.0(react@18.2.0)
+        version: 18.2.0(react@19.0.0-rc-85acf2d195-20240711)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
@@ -232,13 +232,13 @@ importers:
         version: 0.1.36(playwright@1.44.1)
       next:
         specifier: latest
-        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711)
       react:
-        specifier: ^18
-        version: 18.2.0
+        specifier: ^19.0.0-rc-85acf2d195-20240711
+        version: 19.0.0-rc-85acf2d195-20240711
       react-dom:
         specifier: ^18
-        version: 18.2.0(react@18.2.0)
+        version: 18.2.0(react@19.0.0-rc-85acf2d195-20240711)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
@@ -281,16 +281,16 @@ importers:
         version: link:../../packages/core
       next:
         specifier: latest
-        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711)
       openai:
         specifier: 4.52.6
         version: 4.52.6
       react:
-        specifier: ^18
-        version: 18.2.0
+        specifier: ^19.0.0-rc-85acf2d195-20240711
+        version: 19.0.0-rc-85acf2d195-20240711
       react-dom:
         specifier: ^18
-        version: 18.2.0(react@18.2.0)
+        version: 18.2.0(react@19.0.0-rc-85acf2d195-20240711)
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -339,19 +339,19 @@ importers:
         version: link:../../packages/core
       next:
         specifier: latest
-        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711)
       openai:
         specifier: 4.52.6
         version: 4.52.6
       react:
-        specifier: ^18
-        version: 18.2.0
+        specifier: ^19.0.0-rc-85acf2d195-20240711
+        version: 19.0.0-rc-85acf2d195-20240711
       react-dom:
         specifier: ^18
-        version: 18.2.0(react@18.2.0)
+        version: 18.2.0(react@19.0.0-rc-85acf2d195-20240711)
       sonner:
         specifier: ^0.6.2
-        version: 0.6.2(react-dom@18.2.0)(react@18.2.0)
+        version: 0.6.2(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
@@ -394,16 +394,16 @@ importers:
         version: link:../../packages/core
       next:
         specifier: latest
-        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711)
       openai:
         specifier: 4.52.6
         version: 4.52.6
       react:
-        specifier: ^18
-        version: 18.2.0
+        specifier: ^19.0.0-rc-85acf2d195-20240711
+        version: 19.0.0-rc-85acf2d195-20240711
       react-dom:
         specifier: ^18
-        version: 18.2.0(react@18.2.0)
+        version: 18.2.0(react@19.0.0-rc-85acf2d195-20240711)
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -452,19 +452,19 @@ importers:
         version: link:../../packages/core
       next:
         specifier: latest
-        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711)
       openai:
         specifier: 4.52.6
         version: 4.52.6
       react:
-        specifier: ^18
-        version: 18.2.0
+        specifier: ^19.0.0-rc-85acf2d195-20240711
+        version: 19.0.0-rc-85acf2d195-20240711
       react-dom:
         specifier: ^18
-        version: 18.2.0(react@18.2.0)
+        version: 18.2.0(react@19.0.0-rc-85acf2d195-20240711)
       sonner:
         specifier: ^0.6.2
-        version: 0.6.2(react-dom@18.2.0)(react@18.2.0)
+        version: 0.6.2(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711)
     devDependencies:
       '@types/node':
         specifier: ^17.0.12
@@ -519,16 +519,16 @@ importers:
         version: link:../../packages/core
       next:
         specifier: latest
-        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711)
       openai:
         specifier: 4.52.6
         version: 4.52.6
       react:
-        specifier: ^18
-        version: 18.2.0
+        specifier: ^19.0.0-rc-85acf2d195-20240711
+        version: 19.0.0-rc-85acf2d195-20240711
       react-dom:
         specifier: ^18
-        version: 18.2.0(react@18.2.0)
+        version: 18.2.0(react@19.0.0-rc-85acf2d195-20240711)
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -571,13 +571,13 @@ importers:
         version: link:../../packages/core
       next:
         specifier: latest
-        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711)
       react:
-        specifier: ^18
-        version: 18.2.0
+        specifier: ^19.0.0-rc-85acf2d195-20240711
+        version: 19.0.0-rc-85acf2d195-20240711
       react-dom:
         specifier: ^18
-        version: 18.2.0(react@18.2.0)
+        version: 18.2.0(react@19.0.0-rc-85acf2d195-20240711)
       replicate:
         specifier: ^0.20.1
         version: 0.20.1
@@ -15111,7 +15111,7 @@ packages:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
     dev: true
 
-  /next@14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@18.2.0):
+  /next@14.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.44.1)(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711):
     resolution: {integrity: sha512-0f8aRfBVL+mpzfBjYfQuLWh2WyAwtJXCRfkPF4UJ5qd2YwrHczsrSzXU4tRMV0OAxR8ZJZWPFn6uhSC56UTsLA==}
     engines: {node: '>=18.17.0'}
     hasBin: true
@@ -15137,9 +15137,9 @@ packages:
       caniuse-lite: 1.0.30001637
       graceful-fs: 4.2.11
       postcss: 8.4.31
-      react: 18.2.0
-      react-dom: 18.2.0(react@18.2.0)
-      styled-jsx: 5.1.1(react@18.2.0)
+      react: 19.0.0-rc-85acf2d195-20240711
+      react-dom: 18.2.0(react@19.0.0-rc-85acf2d195-20240711)
+      styled-jsx: 5.1.1(react@19.0.0-rc-85acf2d195-20240711)
     optionalDependencies:
       '@next/swc-darwin-arm64': 14.2.5
       '@next/swc-darwin-x64': 14.2.5
@@ -15155,7 +15155,7 @@ packages:
       - babel-plugin-macros
     dev: false
 
-  /next@15.0.0-canary.23(@playwright/test@1.44.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607)(react@19.0.0-rc-cc1ec60d0d-20240607):
+  /next@15.0.0-canary.23(@playwright/test@1.44.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607)(react@19.0.0-rc-85acf2d195-20240711):
     resolution: {integrity: sha512-6OL8Fy71liOt5lPJIAGPURua8HQSM3v+gPImCapt4eDwDkXdsi076V96V0wskLTWdRFejtraudxkYDF0C7bZdA==}
     engines: {node: '>=18.17.0'}
     hasBin: true
@@ -15183,9 +15183,9 @@ packages:
       caniuse-lite: 1.0.30001591
       graceful-fs: 4.2.11
       postcss: 8.4.31
-      react: 19.0.0-rc-cc1ec60d0d-20240607
-      react-dom: 19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607)
-      styled-jsx: 5.1.6(react@19.0.0-rc-cc1ec60d0d-20240607)
+      react: 19.0.0-rc-85acf2d195-20240711
+      react-dom: 19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-85acf2d195-20240711)
+      styled-jsx: 5.1.6(react@19.0.0-rc-85acf2d195-20240711)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.0.0-canary.23
       '@next/swc-darwin-x64': 15.0.0-canary.23
@@ -16877,6 +16877,17 @@ packages:
       loose-envify: 1.4.0
       react: 18.2.0
       scheduler: 0.23.0
+    dev: true
+
+  /react-dom@18.2.0(react@19.0.0-rc-85acf2d195-20240711):
+    resolution: {integrity: sha512-6IMTriUmvsjHUjNtEDudZfuDQUoWXVxKHhlEGSk81n4YFS+r/Kl99wXiwlVXtPBtJenozv2P+hxDsw9eA7Xo6g==}
+    peerDependencies:
+      react: ^18.2.0
+    dependencies:
+      loose-envify: 1.4.0
+      react: 19.0.0-rc-85acf2d195-20240711
+      scheduler: 0.23.0
+    dev: false
 
   /react-dom@19.0.0-rc-85acf2d195-20240711(react@19.0.0-rc-85acf2d195-20240711):
     resolution: {integrity: sha512-t+yfrdxht6C3zQW3LkMJOA5N83/dnDgJLCRmv1kjqt4KVF2YcHwSxinDM5aQUreU3ZLKoiKlP0RJ8tVtLoIjNw==}
@@ -16887,12 +16898,12 @@ packages:
       scheduler: 0.25.0-rc-85acf2d195-20240711
     dev: false
 
-  /react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607):
+  /react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-85acf2d195-20240711):
     resolution: {integrity: sha512-paspD9kAfKKuURVwKWJ0/g3qYw1DGi9h1k9xQV2iQN9cSVZ4JAOD727yjVLyp1zdzsoygjFfLMtSBdZ+oERYvA==}
     peerDependencies:
       react: 19.0.0-rc-cc1ec60d0d-20240607
     dependencies:
-      react: 19.0.0-rc-cc1ec60d0d-20240607
+      react: 19.0.0-rc-85acf2d195-20240711
       scheduler: 0.25.0-rc-cc1ec60d0d-20240607
     dev: true
 
@@ -16936,12 +16947,6 @@ packages:
   /react@19.0.0-rc-85acf2d195-20240711:
     resolution: {integrity: sha512-w9QftG0sXaZ/dMbPN2JJn79dMU0sSFYtEZl4BqPQT9+NPfvCNcZNGXfC077Tg8xjL749Ro+Wh5h/bE+v5bda5A==}
     engines: {node: '>=0.10.0'}
-    dev: false
-
-  /react@19.0.0-rc-cc1ec60d0d-20240607:
-    resolution: {integrity: sha512-q8A0/IdJ2wdHsjDNO1igFcSSFIMqSKmO7oJZtAjxIA9g0klK45Lxt15NQJ7z7cBvgD1r3xRTtQ/MAqnmwYHs1Q==}
-    engines: {node: '>=0.10.0'}
-    dev: true
 
   /read-cache@1.0.0:
     resolution: {integrity: sha512-Owdv/Ft7IjOgm/i0xvNDZ1LrRANRfew4b2prF3OWMQLxLfu3bS8FVhCsrSCMK4lR56Y9ya+AThoTpDCTxCmpRA==}
@@ -17729,14 +17734,14 @@ packages:
       solid-js: 1.8.17
     dev: false
 
-  /sonner@0.6.2(react-dom@18.2.0)(react@18.2.0):
+  /sonner@0.6.2(react-dom@18.2.0)(react@19.0.0-rc-85acf2d195-20240711):
     resolution: {integrity: sha512-bh4FWhYoNN481ZIW94W4e0kSLBTMGislYg2YXvDS1px1AJJz4erQe9jHV8s5pS1VMVDgfh3CslNSFLaU6Ldrnw==}
     peerDependencies:
       react: ^18.0.0
       react-dom: ^18.0.0
     dependencies:
-      react: 18.2.0
-      react-dom: 18.2.0(react@18.2.0)
+      react: 19.0.0-rc-85acf2d195-20240711
+      react-dom: 18.2.0(react@19.0.0-rc-85acf2d195-20240711)
     dev: false
 
   /sorcery@0.11.0:
@@ -18001,7 +18006,7 @@ packages:
   /strnum@1.0.5:
     resolution: {integrity: sha512-J8bbNyKKXl5qYcR36TIO8W3mVGVHrmmxsd5PAItGkmyzwJvybiw2IVq5nqd0i4LSNSkB/sx9VHllbfFdr9k1JA==}
 
-  /styled-jsx@5.1.1(react@18.2.0):
+  /styled-jsx@5.1.1(react@19.0.0-rc-85acf2d195-20240711):
     resolution: {integrity: sha512-pW7uC1l4mBZ8ugbiZrcIsiIvVx1UmTfw7UkC3Um2tmfUq9Bhk8IiyEIPl6F8agHgjzku6j0xQEZbfA5uSgSaCw==}
     engines: {node: '>= 12.0.0'}
     peerDependencies:
@@ -18015,7 +18020,7 @@ packages:
         optional: true
     dependencies:
       client-only: 0.0.1
-      react: 18.2.0
+      react: 19.0.0-rc-85acf2d195-20240711
     dev: false
 
   /styled-jsx@5.1.6(react@19.0.0-rc-85acf2d195-20240711):
@@ -18033,24 +18038,6 @@ packages:
     dependencies:
       client-only: 0.0.1
       react: 19.0.0-rc-85acf2d195-20240711
-    dev: false
-
-  /styled-jsx@5.1.6(react@19.0.0-rc-cc1ec60d0d-20240607):
-    resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
-    engines: {node: '>= 12.0.0'}
-    peerDependencies:
-      '@babel/core': '*'
-      babel-plugin-macros: '*'
-      react: '>= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0'
-    peerDependenciesMeta:
-      '@babel/core':
-        optional: true
-      babel-plugin-macros:
-        optional: true
-    dependencies:
-      client-only: 0.0.1
-      react: 19.0.0-rc-cc1ec60d0d-20240607
-    dev: true
 
   /stylehacks@7.0.2(postcss@8.4.39):
     resolution: {integrity: sha512-HdkWZS9b4gbgYTdMg4gJLmm7biAUug1qTqXjS+u8X+/pUd+9Px1E+520GnOW3rST9MNsVOVpsJG+mPHNosxjOQ==}
