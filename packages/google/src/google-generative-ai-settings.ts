@@ -17,6 +17,13 @@ Models running with nucleus sampling don't allow topK setting.
   topK?: number;
 
   /**
+Optional.
+The name of the cached content used as context to serve the prediction.
+Format: cachedContents/{cachedContent}
+   */
+  cachedContent?: string;
+
+  /**
 Optional. A list of unique safety settings for blocking unsafe content.
    */
   safetySettings?: Array<{
