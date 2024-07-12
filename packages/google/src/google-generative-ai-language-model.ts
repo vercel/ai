@@ -110,6 +110,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
             systemInstruction,
             safetySettings: this.settings.safetySettings,
             ...prepareToolsAndToolConfig(mode),
+            cachedContent: this.settings.cachedContent,
           },
           warnings,
         };
@@ -125,6 +126,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
             contents,
             systemInstruction,
             safetySettings: this.settings.safetySettings,
+            cachedContent: this.settings.cachedContent,
           },
           warnings,
         };
@@ -146,6 +148,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
             },
             toolConfig: { functionCallingConfig: { mode: 'ANY' } },
             safetySettings: this.settings.safetySettings,
+            cachedContent: this.settings.cachedContent,
           },
           warnings,
         };
