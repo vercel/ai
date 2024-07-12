@@ -19,23 +19,18 @@ function isDataURL(s: string): boolean {
 
 /**
  * Converts a list of files to a list of content parts.
+ * Currently only supports images and text files.
  */
 export function filesToParts(files: MessageFile[]): ContentPart[] {
   const parts: ContentPart[] = [];
 
   for (const file of files) {
-    if (isDataURL(file.url)) {
-      if (file.url.includes('image/')) {
-        parts.push({ type: 'image', image: file.url });
-      } else if (file.url.includes('text/')) {
-        parts.push({ type: 'text', text: dataUrlToText(file.url) });
-      } else {
-        throw new Error('Unsupported data URL type');
-      }
-    } else {
-      if (file.mimeType?.includes('image/')) {
-        parts.push({ type: 'image', image: file.url });
-      }
+    if (file.mimeType?.includes('image/')) {
+      parts.push({ type: 'image', image: file.url });
+    }
+
+    if (file.mimeType?.includes('text/') && isDataURL(file.url)) {
+      parts.push({ type: 'text', text: dataUrlToText(file.url) });
     }
   }
 
