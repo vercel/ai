@@ -8,7 +8,6 @@ import type {
   JSONValue,
   Message,
   UseChatOptions,
-  URLFileList,
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
@@ -531,7 +530,7 @@ By default, it's set to 0, which will disable the feature.
       if (options.files) {
         if (options.files instanceof FileList) {
           for (const file of Array.from(options.files)) {
-            const { name } = file;
+            const { name, type } = file;
 
             const dataUrl = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
@@ -543,19 +542,18 @@ By default, it's set to 0, which will disable the feature.
             });
 
             files.push({
-              type: 'data-url',
               name,
-              dataUrl,
+              mimeType: type,
+              url: dataUrl,
             });
           }
         } else if (Array.isArray(options.files)) {
           for (const file of options.files) {
-            const { name, url, type } = file;
+            const { name, url, mimeType } = file;
 
             files.push({
-              type: 'url',
               name,
-              contentType: type || 'application/octet-stream',
+              mimeType,
               url,
             });
           }

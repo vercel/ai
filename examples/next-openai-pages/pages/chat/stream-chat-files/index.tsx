@@ -23,19 +23,17 @@ export default function Page() {
 
               <div className="flex flex-row gap-2">
                 {message.files?.map((file, index) =>
-                  file.type === 'data-url' ? (
-                    file.dataUrl.includes('image/') ? (
-                      <img
-                        key={`${message.id}-${index}`}
-                        className="w-24 rounded-md"
-                        src={file.dataUrl}
-                        alt="image"
-                      />
-                    ) : file.dataUrl.includes('text/') ? (
-                      <div className="w-32 h-24 rounded-md text-xs ellipsis overflow-hidden p-2 text-zinc-500 border">
-                        {atob(file.dataUrl.split(',')[1])}
-                      </div>
-                    ) : null
+                  file.url.includes('image/') ? (
+                    <img
+                      key={`${message.id}-${index}`}
+                      className="w-24 rounded-md"
+                      src={file.url}
+                      alt="image"
+                    />
+                  ) : file.url.includes('text/') ? (
+                    <div className="w-32 h-24 rounded-md text-xs ellipsis overflow-hidden p-2 text-zinc-500 border">
+                      {atob(file.url.split(',')[1])}
+                    </div>
                   ) : null,
                 )}
               </div>

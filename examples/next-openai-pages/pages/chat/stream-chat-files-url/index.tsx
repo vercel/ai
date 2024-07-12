@@ -2,7 +2,7 @@
 import { useChat } from 'ai/react';
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
-import { URLFileList } from '../../../../../packages/ui-utils/dist';
+import { MessageFile } from '../../../../../packages/ui-utils/dist';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, isLoading } =
@@ -10,7 +10,8 @@ export default function Page() {
       api: '/api/stream-chat',
     });
 
-  const [files, setFiles] = useState<URLFileList>([]);
+  const [files, setFiles] = useState<MessageFile[]>([]);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -24,18 +25,14 @@ export default function Page() {
               {message.content}
 
               <div className="flex flex-row gap-2">
-                {message.files?.map((file, index) =>
-                  file.type === 'url' ? (
-                    <img
-                      key={`${message.id}-${index}`}
-                      className="w-24 rounded-md"
-                      src={file.url}
-                      alt="image"
-                    />
-                  ) : (
-                    ''
-                  ),
-                )}
+                {message.files?.map((file, index) => (
+                  <img
+                    key={`${message.id}-${index}`}
+                    className="w-24 rounded-md"
+                    src={file.url}
+                    alt="image"
+                  />
+                ))}
               </div>
             </div>
           </div>
@@ -44,9 +41,15 @@ export default function Page() {
 
       <form
         onSubmit={event => {
+          if (isUploading) {
+            alert('Please wait for the files to finish uploading.');
+            return;
+          }
+
           handleSubmit(event, {
             files,
           });
+
           setFiles([]);
 
           if (fileInputRef.current) {
@@ -57,9 +60,9 @@ export default function Page() {
       >
         <div className="flex flex-row gap-2 fixed right-2 bottom-14 items-end">
           {Array.from(files).map(file => {
-            const { type } = file;
+            const { mimeType } = file;
 
-            if (type && type.startsWith('image/')) {
+            if (mimeType && mimeType.startsWith('image/')) {
               return (
                 <div key={file.name}>
                   <img className="w-24 rounded-md" src={file.url} alt="image" />
@@ -73,6 +76,8 @@ export default function Page() {
           type="file"
           onChange={async event => {
             if (event.target.files) {
+              setIsUploading(true);
+
               for (const file of Array.from(event.target.files)) {
                 const blob = await upload(file.name, file, {
                   access: 'public',
@@ -81,9 +86,15 @@ export default function Page() {
 
                 setFiles(prevFiles => [
                   ...prevFiles,
-                  { name: file.name, type: blob.contentType, url: blob.url },
+                  {
+                    name: file.name,
+                    mimeType: blob.contentType,
+                    url: blob.url,
+                  },
                 ]);
               }
+
+              setIsUploading(false);
             }
           }}
           multiple
