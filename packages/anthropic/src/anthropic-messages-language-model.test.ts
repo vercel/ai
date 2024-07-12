@@ -149,16 +149,32 @@ describe('doGenerate', () => {
     ]);
     expect(finishReason).toStrictEqual('tool-calls');
 
-    // check injection of tool use instruction:
-    expect((await server.getRequestBodyJson()).messages).toStrictEqual([
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Hello' },
-          { type: 'text', text: `\n\nUse the 'json' tool.` },
-        ],
-      },
-    ]);
+    // check request to Anthropic
+    const requestBodyJson = await server.getRequestBodyJson();
+    expect(requestBodyJson).toStrictEqual({
+      max_tokens: 4096,
+      messages: [
+        {
+          content: [{ text: 'Hello', type: 'text' }],
+          role: 'user',
+        },
+      ],
+      model: 'claude-3-haiku-20240307',
+      tool_choice: { name: 'json', type: 'tool' },
+      tools: [
+        {
+          description: 'Respond with a JSON object.',
+          input_schema: {
+            $schema: 'http://json-schema.org/draft-07/schema#',
+            additionalProperties: false,
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            type: 'object',
+          },
+          name: 'json',
+        },
+      ],
+    });
   });
 
   it('should extract usage', async () => {
