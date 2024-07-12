@@ -301,7 +301,7 @@ Additional data to be sent to the API endpoint.
   /**
    * Additional files to be sent to the server.
    */
-  files?: FileList | Array<MessageFile>;
+  experimental_files?: FileList | Array<MessageFile>;
 
   /**
 The options to be passed to the fetch call.

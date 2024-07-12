@@ -47,7 +47,7 @@ export default function Page() {
           }
 
           handleSubmit(event, {
-            files,
+            experimental_files: files,
           });
 
           setFiles([]);

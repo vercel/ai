@@ -527,9 +527,9 @@ By default, it's set to 0, which will disable the feature.
 
       let files: MessageFile[] = [];
 
-      if (options.files) {
-        if (options.files instanceof FileList) {
-          for (const file of Array.from(options.files)) {
+      if (options.experimental_files) {
+        if (options.experimental_files instanceof FileList) {
+          for (const file of Array.from(options.experimental_files)) {
             const { name, type } = file;
 
             const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -547,8 +547,8 @@ By default, it's set to 0, which will disable the feature.
               url: dataUrl,
             });
           }
-        } else if (Array.isArray(options.files)) {
-          for (const file of options.files) {
+        } else if (Array.isArray(options.experimental_files)) {
+          for (const file of options.experimental_files) {
             const { name, url, mimeType } = file;
 
             files.push({
@@ -557,6 +557,8 @@ By default, it's set to 0, which will disable the feature.
               url,
             });
           }
+        } else {
+          throw new Error('Invalid files type');
         }
       }
 
@@ -567,12 +569,18 @@ By default, it's set to 0, which will disable the feature.
 
       const chatRequest: ChatRequest = {
         messages: input
-          ? messagesRef.current.concat({
-              id: generateId(),
-              role: 'user',
-              content: input,
-              experimental_files: files,
-            })
+          ? options.experimental_files
+            ? messagesRef.current.concat({
+                id: generateId(),
+                role: 'user',
+                content: input,
+                experimental_files: files,
+              })
+            : messagesRef.current.concat({
+                id: generateId(),
+                role: 'user',
+                content: input,
+              })
           : messagesRef.current,
         options: requestOptions,
         headers: requestOptions.headers,

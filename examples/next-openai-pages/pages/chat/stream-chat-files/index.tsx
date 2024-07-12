@@ -45,7 +45,7 @@ export default function Page() {
       <form
         onSubmit={event => {
           handleSubmit(event, {
-            files,
+            experimental_files: files,
           });
           setFiles(undefined);
 
