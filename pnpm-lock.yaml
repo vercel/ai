@@ -1090,8 +1090,8 @@ importers:
         specifier: 1.0.2
         version: link:../provider-utils
       '@google-cloud/vertexai':
-        specifier: 1.2.0
-        version: 1.2.0
+        specifier: 1.3.1
+        version: 1.3.1
       json-schema:
         specifier: 0.4.0
         version: 0.4.0
@@ -4323,8 +4323,8 @@ packages:
     resolution: {integrity: sha512-fZDjR2BdAqmauEbTjcIT62zYzbOgDa5+IQH34D2k8Pxmy1T815mAqQkZciWZVQ9dc/BgdTtTUV9HJ2ulBNwchg==}
     dev: true
 
-  /@google-cloud/vertexai@1.2.0:
-    resolution: {integrity: sha512-EH0dnoMRIBQzJEEOUWN03eWPSdLBFdsZA/am3eU+qYrnNyY9okUueOajZd79U48KwgFbqoFrCA9yHQ30DgfD8Q==}
+  /@google-cloud/vertexai@1.3.1:
+    resolution: {integrity: sha512-U+sdRlg0pJvVG6ereDpPuu49F5c/zVq7LFX4vMkwvcDDs+1s3JPWjg5Y63KHNJH7ZcLB+KnokPBbwpJ7t1z/Hg==}
     engines: {node: '>=18.0.0'}
     dependencies:
       google-auth-library: 9.10.0
@@ -8492,7 +8492,7 @@ packages:
       '@types/react':
         optional: true
     dependencies:
-      '@babel/runtime': 7.24.6
+      '@babel/runtime': 7.24.0
       '@testing-library/dom': 10.1.0
       '@types/react': 18.3.3
       '@types/react-dom': 18.2.4

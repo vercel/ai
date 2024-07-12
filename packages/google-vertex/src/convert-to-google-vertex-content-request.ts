@@ -3,7 +3,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64, download } from '@ai-sdk/provider-utils';
-import { Content, GenerateContentRequest } from '@google-cloud/vertexai';
+import { Content, GenerateContentRequest, Part } from '@google-cloud/vertexai';
 
 export async function convertToGoogleVertexContentRequest({
   prompt,
@@ -12,23 +12,26 @@ export async function convertToGoogleVertexContentRequest({
   prompt: LanguageModelV1Prompt;
   downloadImplementation?: typeof download;
 }): Promise<GenerateContentRequest> {
-  let systemInstruction: string | undefined = undefined;
+  const systemInstructionParts: Part[] = [];
   const contents: Content[] = [];
+  let systemMessagesAllowed = true;
 
   for (const { role, content } of prompt) {
     switch (role) {
       case 'system': {
-        if (systemInstruction != null) {
+        if (!systemMessagesAllowed) {
           throw new UnsupportedFunctionalityError({
-            functionality: 'Multiple system messages',
+            functionality:
+              'system messages are only supported at the beginning of the conversation',
           });
         }
-
-        systemInstruction = content;
+        systemInstructionParts.push({ text: content });
         break;
       }
 
       case 'user': {
+        systemMessagesAllowed = false;
+
         const parts: Content['parts'] = [];
 
         for (const part of content) {
@@ -77,6 +80,8 @@ export async function convertToGoogleVertexContentRequest({
       }
 
       case 'assistant': {
+        systemMessagesAllowed = false;
+
         contents.push({
           role: 'assistant',
           parts: content
@@ -110,6 +115,8 @@ export async function convertToGoogleVertexContentRequest({
       }
 
       case 'tool': {
+        systemMessagesAllowed = false;
+
         contents.push({
           role: 'user',
           parts: content.map(part => ({
@@ -132,7 +139,10 @@ export async function convertToGoogleVertexContentRequest({
   }
 
   return {
-    systemInstruction,
+    systemInstruction:
+      systemInstructionParts.length > 0
+        ? { role: 'system', parts: systemInstructionParts }
+        : undefined,
     contents,
   };
 }
