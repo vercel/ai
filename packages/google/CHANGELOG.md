@@ -1,5 +1,28 @@
 # @ai-sdk/google
 
+## 0.0.27
+
+### Patch Changes
+
+- 2e59d266: feat (provider/google): add cachedContent optional setting
+- d2b9723d: feat (provider/google): support system instructions
+- 4dfe0b00: feat (provider/google): add tool support for object generation (new default mode)
+
+## 0.0.26
+
+### Patch Changes
+
+- Updated dependencies [b7290943]
+  - @ai-sdk/provider@0.0.12
+  - @ai-sdk/provider-utils@1.0.2
+
+## 0.0.25
+
+### Patch Changes
+
+- Updated dependencies [d481729f]
+  - @ai-sdk/provider-utils@1.0.1
+
 ## 0.0.24
 
 ### Patch Changes

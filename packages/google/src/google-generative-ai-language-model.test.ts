@@ -207,7 +207,10 @@ describe('doGenerate', () => {
       await model.doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
+        prompt: [
+          { role: 'system', content: 'test system instruction' },
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        ],
       });
 
       expect(await call(0).getRequestBodyJson()).toStrictEqual({
@@ -217,6 +220,7 @@ describe('doGenerate', () => {
             parts: [{ text: 'Hello' }],
           },
         ],
+        systemInstruction: { parts: [{ text: 'test system instruction' }] },
         generationConfig: {},
       });
     }),
@@ -294,6 +298,54 @@ describe('doGenerate', () => {
         ],
         generationConfig: {
           response_mime_type: 'application/json',
+        },
+      });
+    }),
+  );
+
+  it(
+    'should pass tool specification in object-tool mode',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      await provider.languageModel('models/gemini-pro').doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-tool',
+          tool: {
+            name: 'test-tool',
+            type: 'function',
+            parameters: {
+              type: 'object',
+              properties: {
+                property1: { type: 'string' },
+                property2: { type: 'number' },
+              },
+              required: ['property1', 'property2'],
+              additionalProperties: false,
+            },
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await call(0).getRequestBodyJson()).toStrictEqual({
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+        generationConfig: {},
+        toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+        tools: {
+          functionDeclarations: [
+            {
+              name: 'test-tool',
+              description: '',
+              parameters: {
+                properties: {
+                  property1: { type: 'string' },
+                  property2: { type: 'number' },
+                },
+                required: ['property1', 'property2'],
+                type: 'object',
+              },
+            },
+          ],
         },
       });
     }),

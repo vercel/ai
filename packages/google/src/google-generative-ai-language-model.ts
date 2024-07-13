@@ -32,7 +32,7 @@ type GoogleGenerativeAIConfig = {
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'json';
+  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: GoogleGenerativeAIModelId;
   readonly settings: GoogleGenerativeAISettings;
@@ -98,7 +98,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       topP,
     };
 
-    const contents = await convertToGoogleGenerativeAIMessages({ prompt });
+    const { contents, systemInstruction } =
+      await convertToGoogleGenerativeAIMessages({ prompt });
 
     switch (type) {
       case 'regular': {
@@ -106,8 +107,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           args: {
             generationConfig,
             contents,
+            systemInstruction,
             safetySettings: this.settings.safetySettings,
             ...prepareToolsAndToolConfig(mode),
+            cachedContent: this.settings.cachedContent,
           },
           warnings,
         };
@@ -121,16 +124,34 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               response_mime_type: 'application/json',
             },
             contents,
+            systemInstruction,
             safetySettings: this.settings.safetySettings,
+            cachedContent: this.settings.cachedContent,
           },
           warnings,
         };
       }
 
       case 'object-tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-tool mode',
-        });
+        return {
+          args: {
+            generationConfig,
+            contents,
+            tools: {
+              functionDeclarations: [
+                {
+                  name: mode.tool.name,
+                  description: mode.tool.description ?? '',
+                  parameters: prepareJsonSchema(mode.tool.parameters),
+                },
+              ],
+            },
+            toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+            safetySettings: this.settings.safetySettings,
+            cachedContent: this.settings.cachedContent,
+          },
+          warnings,
+        };
       }
 
       case 'object-grammar': {

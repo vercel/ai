@@ -8,8 +8,8 @@ import {
   isDeepEqualData,
   parsePartialJson,
 } from '@ai-sdk/ui-utils';
+import { ServerResponse } from 'http';
 import { z } from 'zod';
-import { TokenUsage, calculateTokenUsage } from '../generate-text/token-usage';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
@@ -17,14 +17,17 @@ import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import {
+  CompletionTokenUsage,
+  calculateCompletionTokenUsage,
+} from '../types/token-usage';
+import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
+import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
-import { prepareResponseHeaders } from '../util/prepare-response-headers';
-import { ServerResponse } from 'http';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -110,7 +113,7 @@ Callback that is called when the LLM response and the final object validation ar
       /**
 The token usage of the generated response.
 */
-      usage: TokenUsage;
+      usage: CompletionTokenUsage;
 
       /**
 The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.
@@ -147,7 +150,10 @@ Warnings from the model provider (e.g. unsupported settings).
   }
 
   let callOptions: LanguageModelV1CallOptions;
-  let transformer: Transformer<LanguageModelV1StreamPart>;
+  let transformer: Transformer<
+    LanguageModelV1StreamPart,
+    string | Omit<LanguageModelV1StreamPart, 'text-delta'>
+  >;
 
   switch (mode) {
     case 'json': {
@@ -324,7 +330,7 @@ The generated object (typed according to the schema). Resolved when the response
   /**
 The token usage of the generated response. Resolved when the response is finished.
    */
-  readonly usage: Promise<TokenUsage>;
+  readonly usage: Promise<CompletionTokenUsage>;
 
   /**
 Optional raw response data.
@@ -343,7 +349,9 @@ Response headers.
     schema,
     onFinish,
   }: {
-    stream: ReadableStream<string | ObjectStreamInputPart>;
+    stream: ReadableStream<
+      string | Omit<LanguageModelV1StreamPart, 'text-delta'>
+    >;
     warnings: CallWarning[] | undefined;
     rawResponse?: {
       headers?: Record<string, string>;
@@ -363,13 +371,15 @@ Response headers.
     });
 
     // initialize usage promise
-    let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
-    this.usage = new Promise<TokenUsage>(resolve => {
+    let resolveUsage: (
+      value: CompletionTokenUsage | PromiseLike<CompletionTokenUsage>,
+    ) => void;
+    this.usage = new Promise<CompletionTokenUsage>(resolve => {
       resolveUsage = resolve;
     });
 
     // store information for onFinish callback:
-    let usage: TokenUsage | undefined;
+    let usage: CompletionTokenUsage | undefined;
     let object: T | undefined;
     let error: unknown | undefined;
 
@@ -420,7 +430,7 @@ Response headers.
               }
 
               // store usage for promises and onFinish callback:
-              usage = calculateTokenUsage(chunk.usage);
+              usage = calculateCompletionTokenUsage(chunk.usage);
 
               controller.enqueue({ ...chunk, usage });
 

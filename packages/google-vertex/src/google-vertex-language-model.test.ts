@@ -205,6 +205,49 @@ describe('doGenerate', () => {
       safetySettings: undefined,
     });
   });
+
+  it('should send the messages', async () => {
+    const { model } = createModel({
+      generateContent: async request => {
+        expect(request).toStrictEqual({
+          contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+          systemInstruction: {
+            role: 'system',
+            parts: [{ text: 'test system instruction' }],
+          },
+        });
+
+        return {
+          response: {
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: 'Hello, World!' }],
+                  role: 'model',
+                },
+                index: 0,
+                finishReason: 'STOP' as FinishReason,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 0,
+              candidatesTokenCount: 0,
+              totalTokenCount: 0,
+            },
+          },
+        };
+      },
+    });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: [
+        { role: 'system', content: 'test system instruction' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+    });
+  });
 });
 
 describe('doStream', () => {

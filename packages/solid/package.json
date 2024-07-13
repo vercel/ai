@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/solid",
-  "version": "0.0.11",
+  "version": "0.0.14",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -25,12 +25,12 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/ui-utils": "0.0.9"
+    "@ai-sdk/ui-utils": "0.0.12"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/user-event": "^14.5.1",
-    "@solidjs/testing-library": "0.8.4",
+    "@solidjs/testing-library": "0.8.8",
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vitejs/plugin-vue": "4.5.0",

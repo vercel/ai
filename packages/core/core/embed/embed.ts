@@ -1,4 +1,5 @@
 import { Embedding, EmbeddingModel } from '../types';
+import { EmbeddingTokenUsage } from '../types/token-usage';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 
 /**
@@ -57,6 +58,7 @@ Only applicable for HTTP-based providers.
   return new EmbedResult({
     value,
     embedding: modelResponse.embeddings[0],
+    usage: modelResponse.usage ?? { tokens: NaN },
     rawResponse: modelResponse.rawResponse,
   });
 }
@@ -77,6 +79,11 @@ The embedding of the value.
   readonly embedding: Embedding;
 
   /**
+The embedding token usage.
+  */
+  readonly usage: EmbeddingTokenUsage;
+
+  /**
 Optional raw response data.
    */
   readonly rawResponse?: {
@@ -89,12 +96,12 @@ Response headers.
   constructor(options: {
     value: VALUE;
     embedding: Embedding;
-    rawResponse?: {
-      headers?: Record<string, string>;
-    };
+    usage: EmbeddingTokenUsage;
+    rawResponse?: { headers?: Record<string, string> };
   }) {
     this.value = options.value;
     this.embedding = options.embedding;
+    this.usage = options.usage;
     this.rawResponse = options.rawResponse;
   }
 }

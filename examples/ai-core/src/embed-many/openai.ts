@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 async function main() {
-  const { embeddings } = await embedMany({
+  const { embeddings, usage } = await embedMany({
     model: openai.embedding('text-embedding-3-small'),
     values: [
       'sunny day at the beach',
@@ -15,6 +15,7 @@ async function main() {
   });
 
   console.log(embeddings);
+  console.log(usage);
 }
 
 main().catch(console.error);

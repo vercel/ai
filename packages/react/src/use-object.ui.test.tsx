@@ -9,10 +9,15 @@ import { z } from 'zod';
 import { experimental_useObject } from './use-object';
 
 describe('text stream', () => {
+  let onErrorResult: Error | undefined;
+
   const TestComponent = () => {
     const { object, error, submit, isLoading, stop } = experimental_useObject({
       api: '/api/use-object',
       schema: z.object({ content: z.string() }),
+      onError(error) {
+        onErrorResult = error;
+      },
     });
 
     return (
@@ -35,6 +40,7 @@ describe('text stream', () => {
 
   beforeEach(() => {
     render(<TestComponent />);
+    onErrorResult = undefined;
   });
 
   afterEach(() => {
@@ -68,6 +74,7 @@ describe('text stream', () => {
       it('should not have an error', async () => {
         await screen.findByTestId('error');
         expect(screen.getByTestId('error')).toBeEmptyDOMElement();
+        expect(onErrorResult).toBeUndefined();
       });
     },
   );
@@ -155,6 +162,7 @@ describe('text stream', () => {
 
           await screen.findByTestId('error');
           expect(screen.getByTestId('error')).toHaveTextContent('Not found');
+          expect(onErrorResult).toBeInstanceOf(Error);
         },
       ),
     );
