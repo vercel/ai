@@ -83,6 +83,7 @@ const getStreamedResponse = async (
   onResponse: ((response: Response) => void | Promise<void>) | undefined,
   sendExtraMessageFields: boolean | undefined,
   fetch: FetchFunction | undefined,
+  keepLastMessageOnError: boolean | undefined,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -141,7 +142,9 @@ const getStreamedResponse = async (
     },
     abortController: () => abortControllerRef,
     restoreMessagesOnFailure() {
-      mutate(previousMessages);
+      if (!keepLastMessageOnError) {
+        mutate(previousMessages);
+      }
     },
     onResponse,
     onUpdate(merged, data) {
@@ -176,7 +179,16 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
-}: UseChatOptions = {}): UseChatHelpers {
+  keepLastMessageOnError = false,
+}: UseChatOptions & {
+  /**
+Keeps the last message when an error happens. This will be the default behavior
+starting with the next major release.
+The flag was introduced for backwards compatibility.
+Please enable it and update your error handling/resubmit behavior.
+   */
+  keepLastMessageOnError?: boolean;
+} = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
 
@@ -243,6 +255,7 @@ export function useChat({
             onResponse,
             sendExtraMessageFields,
             fetch,
+            keepLastMessageOnError,
           ),
         experimental_onFunctionCall,
         experimental_onToolCall,
