@@ -129,7 +129,7 @@ export function useChat({
 
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
-      const previousMessages = messagesData.value;
+      const previousMessages = messagesSnapshot;
       mutate(messagesSnapshot);
 
       const requestOptions = {
