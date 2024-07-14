@@ -66,7 +66,7 @@ export default function Page() {
           <div>{message.role}</div>
           <div>{message.content}</div>
         </div>
-      )}
+      ))}
 
       <form onSubmit={handleSubmit}>
         <input
