@@ -1,5 +1,11 @@
 # ai
 
+## 3.2.24
+
+### Patch Changes
+
+- f041c056: feat (ai/core): add roundtrips property to generateText result
+
 ## 3.2.23
 
 ### Patch Changes
