@@ -314,7 +314,7 @@ export type UseChatOptions = {
   /**
 Keeps the last message when an error happens. This will be the default behavior
 starting with the next major release.
-The flag was introduced for backwards compatibility.
+The flag was introduced for backwards compatibility and currently defaults to `false`.
 Please enable it and update your error handling/resubmit behavior.
    */
   keepLastMessageOnError?: boolean;
