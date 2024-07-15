@@ -2,9 +2,10 @@
 import { useChat } from '@ai-sdk/vue';
 import { computed } from 'vue';
 
-const { messages, input, handleSubmit, isLoading, error, stop } = useChat({
-  keepLastMessageOnError: true,
-});
+const { error, input, isLoading, handleSubmit, messages, reload, stop } =
+  useChat({
+    keepLastMessageOnError: true,
+  });
 const disabled = computed(() => isLoading.value || error.value != null);
 </script>
 
@@ -31,7 +32,7 @@ const disabled = computed(() => isLoading.value || error.value != null);
       <button
         type="button"
         class="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
-        @click="handleSubmit"
+        @click="() => reload()"
       >
         Retry
       </button>

@@ -4,12 +4,13 @@ import { useChat } from 'ai/react';
 
 export default function Chat() {
   const {
-    messages,
+    error,
     input,
+    isLoading,
     handleInputChange,
     handleSubmit,
-    isLoading,
-    error,
+    messages,
+    reload,
     stop,
   } = useChat({
     keepLastMessageOnError: true,
@@ -30,7 +31,7 @@ export default function Chat() {
           <button
             type="button"
             className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
-            onClick={() => stop()}
+            onClick={stop}
           >
             Stop
           </button>
@@ -43,7 +44,7 @@ export default function Chat() {
           <button
             type="button"
             className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
-            onClick={() => handleSubmit()}
+            onClick={() => reload()}
           >
             Retry
           </button>

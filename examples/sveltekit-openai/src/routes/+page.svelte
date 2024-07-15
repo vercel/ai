@@ -1,7 +1,15 @@
 <script lang="ts">
   import { useChat } from '@ai-sdk/svelte';
 
-  const { input, handleSubmit, messages, isLoading, error, stop } = useChat({
+  const {    
+     error,
+    input,
+    isLoading,
+    handleSubmit,
+    messages,
+    reload,
+    stop 
+  } = useChat({
     keepLastMessageOnError: true,
   });
 </script>
@@ -38,7 +46,7 @@
       <button
         type="button"
         class="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
-        on:click={handleSubmit}
+        on:click={() => reload()}
       >
         Retry
       </button>
