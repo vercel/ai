@@ -1,7 +1,18 @@
 <script setup lang="ts">
 import { useChat } from '@ai-sdk/vue';
+import { computed } from 'vue';
 
-const { messages, input, handleSubmit } = useChat();
+const {
+  messages,
+  input,
+  handleSubmit,
+  isLoading,
+  error,
+  stop,
+} = useChat({
+  keepLastMessageOnError: true,
+});
+const disabled = computed(() => isLoading.value || error.value != null)
 </script>
 
 <template>
@@ -11,11 +22,24 @@ const { messages, input, handleSubmit } = useChat();
       {{ m.content }}
     </div>
 
+    <div v-if="isLoading" class="mt-4 text-gray-500">
+      <div>Loading...</div>
+      <button type="button" class="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md" @click="stop">
+        Stop
+      </button>
+    </div>
+
+    <div v-if="error" class="mt-4">
+      <div class="text-red-500">An error occurred.</div>
+      <button type="button" class="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+        @click="handleSubmit">
+        Retry
+      </button>
+    </div>
+
     <form @submit="handleSubmit">
-      <input
-        class="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-        v-model="input"
-        placeholder="Say something..."
+      <input class="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl" v-model="input"
+        placeholder="Say something..." :disabled="disabled" />
       />
     </form>
   </div>

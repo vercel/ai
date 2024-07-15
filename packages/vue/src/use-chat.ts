@@ -84,7 +84,16 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
-}: UseChatOptions = {}): UseChatHelpers {
+  keepLastMessageOnError = false,
+}: UseChatOptions & {
+  /**
+Keeps the last message when an error happens. This will be the default behavior
+starting with the next major release.
+The flag was introduced for backwards compatibility.
+Please enable it and update your error handling/resubmit behavior.
+   */
+  keepLastMessageOnError?: boolean;
+} = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
 
@@ -198,7 +207,9 @@ export function useChat({
             },
             restoreMessagesOnFailure() {
               // Restore the previous messages if the request fails.
-              mutate(previousMessages);
+              if (!keepLastMessageOnError) {
+                mutate(previousMessages);
+              }
             },
             generateId,
             onToolCall: undefined, // not implemented yet

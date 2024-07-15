@@ -101,6 +101,7 @@ const getStreamedResponse = async (
   onToolCall: UseChatOptions['onToolCall'] | undefined,
   sendExtraMessageFields: boolean | undefined,
   fetch: FetchFunction | undefined,
+  keepLastMessageOnError: boolean | undefined,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -139,7 +140,9 @@ const getStreamedResponse = async (
     },
     abortController: () => abortController,
     restoreMessagesOnFailure() {
-      mutate(previousMessages);
+      if (!keepLastMessageOnError) {
+        mutate(previousMessages);
+      }
     },
     onResponse,
     onUpdate(merged, data) {
@@ -170,6 +173,13 @@ case of misconfigured tools.
 By default, it's set to 0, which will disable the feature.
  */
   maxToolRoundtrips?: number;
+  /**
+Keeps the last message when an error happens. This will be the default behavior
+starting with the next major release.
+The flag was introduced for backwards compatibility.
+Please enable it and update your error handling/resubmit behavior.
+   */
+  keepLastMessageOnError?: boolean;
 };
 
 export function useChat(
@@ -258,6 +268,7 @@ export function useChat(
             useChatOptions().onToolCall?.(),
             useChatOptions().sendExtraMessageFields?.(),
             useChatOptions().fetch?.(),
+            useChatOptions().keepLastMessageOnError?.(),
           ),
         experimental_onFunctionCall:
           useChatOptions().experimental_onFunctionCall?.(),
@@ -269,7 +280,7 @@ export function useChat(
 
       abortController = null;
     } catch (err) {
-      // Ignore abort errors as they are expected.
+      // Ignore abort errors as they are expected.∏
       if ((err as any).name === 'AbortError') {
         abortController = null;
         return null;
