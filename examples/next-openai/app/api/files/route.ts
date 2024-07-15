@@ -1,8 +1,10 @@
-// https://vercel.com/docs/storage/vercel-blob/client-upload#create-a-client-upload-route
-
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { NextResponse } from 'next/server';
 
+/*
+ * This route is used to upload files to Vercel's Blob Storage.
+ * Example from https://vercel.com/docs/storage/vercel-blob/client-upload#create-a-client-upload-route
+ */
 export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody;
 

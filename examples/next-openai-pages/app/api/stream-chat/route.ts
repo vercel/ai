@@ -1,13 +1,13 @@
-import { convertToCoreMessages, streamText } from 'ai';
+import { CoreMessage, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: CoreMessage[] } = await req.json();
 
   const result = await streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-4'),
     system: 'You are a helpful assistant.',
-    messages: convertToCoreMessages(messages),
+    messages,
   });
 
   return result.toAIStreamResponse();

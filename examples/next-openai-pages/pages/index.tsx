@@ -37,14 +37,6 @@ const examples = [
     link: '/chat/stream-chat-edge',
   },
   {
-    title: 'Stream chat completion with attachments',
-    link: '/chat/stream-chat-attachments',
-  },
-  {
-    title: 'Stream chat completion with attachments (url)',
-    link: '/chat/stream-chat-attachments-url',
-  },
-  {
     title: 'Call tools',
     link: '/tools/call-tool',
   },

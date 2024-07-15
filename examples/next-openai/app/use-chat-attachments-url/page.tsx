@@ -1,3 +1,5 @@
+'use client';
+
 /* eslint-disable @next/next/no-img-element */
 import { useChat } from 'ai/react';
 import { useRef, useState } from 'react';
@@ -7,7 +9,7 @@ import { Attachment } from '@ai-sdk/ui-utils';
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, isLoading } =
     useChat({
-      api: '/api/stream-chat',
+      api: '/api/chat',
     });
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
