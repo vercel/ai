@@ -134,7 +134,7 @@ export default function Page() {
 }
 ```
 
-### Error
+### Error State
 
 Similarly, the `error` state reflects the error object thrown during the fetch request.
 It can be used to display an error message, disable the submit button, or show a retry button.
@@ -151,9 +151,10 @@ It can be used to display an error message, disable the submit button, or show a
 import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, error } = useChat({
-    keepLastMessageOnError: true,
-  });
+  const { messages, input, handleInputChange, handleSubmit, error, reload } =
+    useChat({
+      keepLastMessageOnError: true,
+    });
 
   return (
     <div>
@@ -166,7 +167,7 @@ export default function Chat() {
       {error && (
         <>
           <div>An error occurred.</div>
-          <button type="button" onClick={() => handleSubmit()}>
+          <button type="button" onClick={() => reload()}>
             Retry
           </button>
         </>
@@ -253,6 +254,7 @@ const { reload, isLoading, ... } = useChat()
 return <>
   <button onClick={reload} disabled={isLoading}>Regenerate</button>
   ...
+</>
 ```
 
 When the user clicks the "Regenerate" button, the AI provider will regenerate the last message and replace the current one correspondingly.

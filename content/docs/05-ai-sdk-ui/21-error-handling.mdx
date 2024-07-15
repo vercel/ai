@@ -36,15 +36,16 @@ You can use the error object to show an error message, disable the submit button
   server.
 </Note>
 
-```tsx file="app/page.tsx" highlight="7,18-25,31"
+```tsx file="app/page.tsx" highlight="7,19-26,32"
 'use client';
 
 import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, error } = useChat({
-    keepLastMessageOnError: true,
-  });
+  const { messages, input, handleInputChange, handleSubmit, error, reload } =
+    useChat({
+      keepLastMessageOnError: true,
+    });
 
   return (
     <div>
@@ -57,7 +58,7 @@ export default function Chat() {
       {error && (
         <>
           <div>An error occurred.</div>
-          <button type="button" onClick={() => handleSubmit()}>
+          <button type="button" onClick={() => reload()}>
             Retry
           </button>
         </>
@@ -81,3 +82,14 @@ export default function Chat() {
 This option can be enabled to keep the last message on error.
 We will make this the default behavior in the next major release.
 Please enable it and update your error handling/resubmit behavior.
+
+### Injecting Errors for Testing
+
+You might want to create errors for testing.
+You can easily do so by throwing an error in your route handler:
+
+```ts file="app/api/chat/route.ts"
+export async function POST(req: Request) {
+  throw new Error('This is a test error');
+}
+```
