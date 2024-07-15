@@ -34,7 +34,10 @@ export default function Page() {
                     />
                   ) : attachment.mimeType?.includes('text/') ? (
                     <div className="w-32 h-24 rounded-md text-xs ellipsis overflow-hidden p-2 text-zinc-500 border">
-                      {atob(attachment.url.split(',')[1])}
+                      {Buffer.from(
+                        attachment.url.split(',')[1],
+                        'base64',
+                      ).toString('utf-8')}
                     </div>
                   ) : null,
                 )}

@@ -7,7 +7,7 @@ type ContentPart = TextPart | ImagePart;
  * Converts a data URL of type text/* to a text string.
  */
 export function dataUrlToText(dataUrl: string): string {
-  return atob(dataUrl.split(',')[1]);
+  return Buffer.from(dataUrl, 'base64').toString('utf-8');
 }
 
 /**
