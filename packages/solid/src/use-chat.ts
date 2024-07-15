@@ -101,7 +101,7 @@ const getStreamedResponse = async (
   onToolCall: UseChatOptions['onToolCall'] | undefined,
   sendExtraMessageFields: boolean | undefined,
   fetch: FetchFunction | undefined,
-  keepLastMessageOnError: boolean | undefined,
+  keepLastMessageOnError: boolean,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -173,13 +173,6 @@ case of misconfigured tools.
 By default, it's set to 0, which will disable the feature.
  */
   maxToolRoundtrips?: number;
-  /**
-Keeps the last message when an error happens. This will be the default behavior
-starting with the next major release.
-The flag was introduced for backwards compatibility.
-Please enable it and update your error handling/resubmit behavior.
-   */
-  keepLastMessageOnError?: boolean;
 };
 
 export function useChat(
@@ -268,7 +261,7 @@ export function useChat(
             useChatOptions().onToolCall?.(),
             useChatOptions().sendExtraMessageFields?.(),
             useChatOptions().fetch?.(),
-            useChatOptions().keepLastMessageOnError?.(),
+            useChatOptions().keepLastMessageOnError?.() ?? false,
           ),
         experimental_onFunctionCall:
           useChatOptions().experimental_onFunctionCall?.(),
