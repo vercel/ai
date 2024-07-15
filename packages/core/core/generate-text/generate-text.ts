@@ -161,14 +161,15 @@ By default, it's set to 0, which will disable the feature.
       >;
       let currentToolCalls: ToToolCallArray<TOOLS> = [];
       let currentToolResults: ToToolResultArray<TOOLS> = [];
-      let roundtrips = 0;
+      let roundtripCount = 0;
       const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
         [];
+      const roundtrips: GenerateTextResult<TOOLS>['roundtrips'] = [];
 
       do {
         // once we have a roundtrip, we need to switch to messages format:
         const currentInputFormat =
-          roundtrips === 0 ? validatedPrompt.type : 'messages';
+          roundtripCount === 0 ? validatedPrompt.type : 'messages';
 
         currentModelResponse = await retry(() =>
           recordSpan({
@@ -218,6 +219,17 @@ By default, it's set to 0, which will disable the feature.
                 tracer,
               });
 
+        // add roundtrip information:
+        roundtrips.push({
+          text: currentModelResponse.text ?? '',
+          toolCalls: currentToolCalls,
+          toolResults: currentToolResults,
+          finishReason: currentModelResponse.finishReason,
+          usage: calculateCompletionTokenUsage(currentModelResponse.usage),
+          warnings: currentModelResponse.warnings,
+          logprobs: currentModelResponse.logprobs,
+        });
+
         // append to messages for potential next roundtrip:
         const newResponseMessages = toResponseMessages({
           text: currentModelResponse.text ?? '',
@@ -234,7 +246,7 @@ By default, it's set to 0, which will disable the feature.
         // all current tool calls have results:
         currentToolResults.length === currentToolCalls.length &&
         // the number of roundtrips is less than the maximum:
-        roundtrips++ < maxToolRoundtrips
+        roundtripCount++ < maxToolRoundtrips
       );
 
       // Add response information to the span:
@@ -260,7 +272,7 @@ By default, it's set to 0, which will disable the feature.
         rawResponse: currentModelResponse.rawResponse,
         logprobs: currentModelResponse.logprobs,
         responseMessages,
-        roundtrips: [], // TODO implement
+        roundtrips,
       });
     },
   });
