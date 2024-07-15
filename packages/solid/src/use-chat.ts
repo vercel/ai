@@ -101,6 +101,7 @@ const getStreamedResponse = async (
   onToolCall: UseChatOptions['onToolCall'] | undefined,
   sendExtraMessageFields: boolean | undefined,
   fetch: FetchFunction | undefined,
+  keepLastMessageOnError: boolean,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -139,7 +140,9 @@ const getStreamedResponse = async (
     },
     abortController: () => abortController,
     restoreMessagesOnFailure() {
-      mutate(previousMessages);
+      if (!keepLastMessageOnError) {
+        mutate(previousMessages);
+      }
     },
     onResponse,
     onUpdate(merged, data) {
@@ -258,6 +261,7 @@ export function useChat(
             useChatOptions().onToolCall?.(),
             useChatOptions().sendExtraMessageFields?.(),
             useChatOptions().fetch?.(),
+            useChatOptions().keepLastMessageOnError?.() ?? false,
           ),
         experimental_onFunctionCall:
           useChatOptions().experimental_onFunctionCall?.(),

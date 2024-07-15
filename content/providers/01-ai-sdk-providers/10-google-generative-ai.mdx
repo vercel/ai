@@ -93,6 +93,11 @@ The following optional settings are available for Google Generative AI models:
   Top-k sampling considers the set of topK most probable tokens.
   Models running with nucleus sampling don't allow topK setting.
 
+- **cachedContent** _string_
+
+  Optional. The name of the cached content used as context to serve the prediction.
+  Format: cachedContents/\{cachedContent\}
+
 - **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
 
   Optional. Safety settings for the model.

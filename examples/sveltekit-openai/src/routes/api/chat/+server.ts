@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { StreamingTextResponse, streamText } from 'ai';
+import { convertToCoreMessages, streamText } from 'ai';
 import type { RequestHandler } from './$types';
 
 import { env } from '$env/dynamic/private';
@@ -17,12 +17,16 @@ export const POST = (async ({ request }) => {
   // Extract the `prompt` from the body of the request
   const { messages } = await request.json();
 
-  // Ask OpenAI for a streaming chat completion given the prompt
+  // Call the language model
   const result = await streamText({
-    model: openai('gpt-4-turbo-preview'),
-    messages,
+    model: openai('gpt-4-turbo'),
+    messages: convertToCoreMessages(messages),
+    async onFinish({ text, toolCalls, toolResults, usage, finishReason }) {
+      // implement your own logic here, e.g. for storing messages
+      // or recording token usage
+    },
   });
 
   // Respond with the stream
-  return new StreamingTextResponse(result.toAIStream());
+  return result.toAIStreamResponse();
 }) satisfies RequestHandler;

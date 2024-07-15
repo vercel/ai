@@ -97,9 +97,9 @@ const getStreamedResponse = async (
       }) => JSONValue)
     | undefined,
   fetch: FetchFunction | undefined,
+  keepLastMessageOnError: boolean,
 ) => {
-  // Do an optimistic update to the chat state to show the updated messages
-  // immediately.
+  // Do an optimistic update to the chat state to show the updated messages immediately:
   const previousMessages = messagesRef.current;
   mutate(chatRequest.messages, false);
 
@@ -166,7 +166,9 @@ const getStreamedResponse = async (
     },
     abortController: () => abortControllerRef.current,
     restoreMessagesOnFailure() {
-      mutate(previousMessages, false);
+      if (!keepLastMessageOnError) {
+        mutate(previousMessages, false);
+      }
     },
     onResponse,
     onUpdate(merged, data) {
@@ -202,6 +204,7 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
+  keepLastMessageOnError = false,
 }: UseChatOptions & {
   key?: string;
 
@@ -346,6 +349,7 @@ By default, it's set to 0, which will disable the feature.
               sendExtraMessageFields,
               experimental_prepareRequestBody,
               fetch,
+              keepLastMessageOnError,
             ),
           experimental_onFunctionCall,
           experimental_onToolCall,
@@ -412,6 +416,7 @@ By default, it's set to 0, which will disable the feature.
       abortControllerRef,
       generateId,
       fetch,
+      keepLastMessageOnError,
     ],
   );
 
