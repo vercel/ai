@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { setTestTracer } from '../telemetry/get-tracer';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
-import { generateText } from './generate-text';
+import { GenerateTextResult, generateText } from './generate-text';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -353,128 +353,195 @@ describe('result.responseMessages', () => {
 });
 
 describe('options.maxToolRoundtrips', () => {
-  it('should return text, tool calls and tool results from last roundtrip', async () => {
-    let responseCount = 0;
-    const result = await generateText({
-      model: new MockLanguageModelV1({
-        doGenerate: async ({ prompt, mode }) => {
-          switch (responseCount++) {
-            case 0:
-              assert.deepStrictEqual(mode, {
-                type: 'regular',
-                toolChoice: { type: 'auto' },
-                tools: [
-                  {
-                    type: 'function',
-                    name: 'tool1',
-                    description: undefined,
-                    parameters: {
-                      $schema: 'http://json-schema.org/draft-07/schema#',
-                      additionalProperties: false,
-                      properties: { value: { type: 'string' } },
-                      required: ['value'],
-                      type: 'object',
-                    },
-                  },
-                ],
-              });
-              assert.deepStrictEqual(prompt, [
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'test-input' }],
-                },
-              ]);
-              return {
-                ...dummyResponseValues,
-                toolCalls: [
-                  {
-                    toolCallType: 'function',
-                    toolCallId: 'call-1',
-                    toolName: 'tool1',
-                    args: `{ "value": "value" }`,
-                  },
-                ],
-                toolResults: [
-                  {
-                    toolCallId: 'call-1',
-                    toolName: 'tool1',
-                    args: { value: 'value' },
-                    result: 'result1',
-                  },
-                ],
-              };
-            case 1:
-              assert.deepStrictEqual(mode, {
-                type: 'regular',
-                toolChoice: { type: 'auto' },
-                tools: [
-                  {
-                    type: 'function',
-                    name: 'tool1',
-                    description: undefined,
-                    parameters: {
-                      $schema: 'http://json-schema.org/draft-07/schema#',
-                      additionalProperties: false,
-                      properties: { value: { type: 'string' } },
-                      required: ['value'],
-                      type: 'object',
-                    },
-                  },
-                ],
-              });
-              assert.deepStrictEqual(prompt, [
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'test-input' }],
-                },
-                {
-                  role: 'assistant',
-                  content: [
+  describe('single roundtrip', () => {
+    let result: GenerateTextResult<any>;
+
+    beforeEach(async () => {
+      let responseCount = 0;
+      result = await generateText({
+        model: new MockLanguageModelV1({
+          doGenerate: async ({ prompt, mode }) => {
+            switch (responseCount++) {
+              case 0:
+                assert.deepStrictEqual(mode, {
+                  type: 'regular',
+                  toolChoice: { type: 'auto' },
+                  tools: [
                     {
-                      type: 'tool-call',
+                      type: 'function',
+                      name: 'tool1',
+                      description: undefined,
+                      parameters: {
+                        $schema: 'http://json-schema.org/draft-07/schema#',
+                        additionalProperties: false,
+                        properties: { value: { type: 'string' } },
+                        required: ['value'],
+                        type: 'object',
+                      },
+                    },
+                  ],
+                });
+                assert.deepStrictEqual(prompt, [
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                ]);
+                return {
+                  ...dummyResponseValues,
+                  toolCalls: [
+                    {
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      args: `{ "value": "value" }`,
+                    },
+                  ],
+                  toolResults: [
+                    {
                       toolCallId: 'call-1',
                       toolName: 'tool1',
                       args: { value: 'value' },
-                    },
-                  ],
-                },
-                {
-                  role: 'tool',
-                  content: [
-                    {
-                      type: 'tool-result',
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
                       result: 'result1',
                     },
                   ],
-                },
-              ]);
-              return {
-                ...dummyResponseValues,
-                text: 'Hello, world!',
-              };
-            default:
-              throw new Error(`Unexpected response count: ${responseCount}`);
-          }
-        },
-      }),
-      tools: {
-        tool1: {
-          parameters: z.object({ value: z.string() }),
-          execute: async args => {
-            assert.deepStrictEqual(args, { value: 'value' });
-            return 'result1';
+                  finishReason: 'tool-calls',
+                  usage: {
+                    completionTokens: 5,
+                    promptTokens: 10,
+                    totalTokens: 15,
+                  },
+                };
+              case 1:
+                assert.deepStrictEqual(mode, {
+                  type: 'regular',
+                  toolChoice: { type: 'auto' },
+                  tools: [
+                    {
+                      type: 'function',
+                      name: 'tool1',
+                      description: undefined,
+                      parameters: {
+                        $schema: 'http://json-schema.org/draft-07/schema#',
+                        additionalProperties: false,
+                        properties: { value: { type: 'string' } },
+                        required: ['value'],
+                        type: 'object',
+                      },
+                    },
+                  ],
+                });
+                assert.deepStrictEqual(prompt, [
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        args: { value: 'value' },
+                      },
+                    ],
+                  },
+                  {
+                    role: 'tool',
+                    content: [
+                      {
+                        type: 'tool-result',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        result: 'result1',
+                      },
+                    ],
+                  },
+                ]);
+                return {
+                  ...dummyResponseValues,
+                  text: 'Hello, world!',
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async (args: any) => {
+              assert.deepStrictEqual(args, { value: 'value' });
+              return 'result1';
+            },
           },
         },
-      },
-      prompt: 'test-input',
-      maxToolRoundtrips: 2,
+        prompt: 'test-input',
+        maxToolRoundtrips: 2,
+      });
     });
 
-    assert.deepStrictEqual(result.text, 'Hello, world!');
-    assert.deepStrictEqual(result.toolCalls, []);
-    assert.deepStrictEqual(result.toolResults, []);
+    it('should return text from last roundtrip', async () => {
+      assert.deepStrictEqual(result.text, 'Hello, world!');
+    });
+
+    it('should return empty tool calls from last roundtrip', async () => {
+      assert.deepStrictEqual(result.toolCalls, []);
+    });
+
+    it('should return empty tool results from last roundtrip', async () => {
+      assert.deepStrictEqual(result.toolResults, []);
+    });
+
+    it('should return information about all roundtrips', () => {
+      assert.deepStrictEqual(result.roundtrips, [
+        {
+          finishReason: 'tool-calls',
+          logprobs: undefined,
+          text: '',
+          toolCalls: [
+            {
+              args: {
+                value: 'value',
+              },
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              type: 'tool-call',
+            },
+          ],
+          toolResults: [
+            {
+              args: {
+                value: 'value',
+              },
+              result: 'result1',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+            },
+          ],
+          usage: {
+            completionTokens: 5,
+            promptTokens: 10,
+            totalTokens: 15,
+          },
+          warnings: undefined,
+        },
+        {
+          finishReason: 'stop',
+          logprobs: undefined,
+          text: 'Hello, world!',
+          toolCalls: [],
+          toolResults: [],
+          usage: {
+            completionTokens: 20,
+            promptTokens: 10,
+            totalTokens: 30,
+          },
+          warnings: undefined,
+        },
+      ]);
+    });
   });
 });
 

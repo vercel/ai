@@ -457,6 +457,93 @@ console.log(text);
       description:
         'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
     },
+    {
+      name: 'roundtrips',
+      type: 'Array<Roundtrip>',
+      description:
+        'Response information for every roundtrip. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
+      properties: [
+        {
+          type: 'Roundtrip',
+          parameters: [
+            {
+              name: 'text',
+              type: 'string',
+              description: 'The generated text by the model.',
+            },
+            {
+              name: 'toolCalls',
+              type: 'array',
+              description: 'A list of tool calls made by the model.',
+            },
+            {
+              name: 'toolResults',
+              type: 'array',
+              description:
+                'A list of tool results returned as responses to earlier tool calls.',
+            },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'usage',
+              type: 'CompletionTokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'CompletionTokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'rawResponse',
+              type: 'RawResponse',
+              optional: true,
+              description: 'Optional raw response data.',
+              properties: [
+                {
+                  type: 'RawResponse',
+                  parameters: [
+                    {
+                      name: 'headers',
+                      optional: true,
+                      type: 'Record<string, string>',
+                      description: 'Response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
