@@ -661,20 +661,20 @@ describe('file attachments with data url', () => {
 
     const { requestBody } = mockFetchDataStream({
       url: '/api/stream-chat',
-      chunks: ['0:"Response with attachment"\n'],
+      chunks: ['0:"Response to message with text attachment"\n'],
     });
 
     const fileInput = screen.getByTestId('file-input');
     await userEvent.upload(fileInput, file);
 
     const messageInput = screen.getByTestId('message-input');
-    await userEvent.type(messageInput, 'Message with attachment');
+    await userEvent.type(messageInput, 'Message with text attachment');
 
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
     const sentBody = JSON.parse((await requestBody) as string);
-    expect(sentBody.messages[0].content).toBe('Message with attachment');
+    expect(sentBody.messages[0].content).toBe('Message with text attachment');
     expect(sentBody.messages[0].experimental_attachments).toBeDefined();
     expect(sentBody.messages[0].experimental_attachments.length).toBe(1);
     expect(sentBody.messages[0].experimental_attachments[0].name).toBe(
@@ -683,7 +683,7 @@ describe('file attachments with data url', () => {
 
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with attachment',
+      'User: Message with text attachment',
     );
 
     await screen.findByTestId('attachment-0');
@@ -693,7 +693,7 @@ describe('file attachments with data url', () => {
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response with attachment',
+      'AI: Response to message with text attachment',
     );
   });
 
@@ -706,7 +706,7 @@ describe('file attachments with data url', () => {
 
     const { requestBody } = mockFetchDataStream({
       url: '/api/stream-chat',
-      chunks: ['0:"Response with image attachment"\n'],
+      chunks: ['0:"Response to message with image attachment"\n'],
     });
 
     const fileInput = screen.getByTestId('file-input');
@@ -739,7 +739,7 @@ describe('file attachments with data url', () => {
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response with image attachment',
+      'AI: Response to message with image attachment',
     );
   });
 });
@@ -823,20 +823,20 @@ describe('file attachments with url', () => {
     cleanup();
   });
 
-  it('should handle text file attachment and submission', async () => {
+  it('should handle image file attachment and submission', async () => {
     const { requestBody } = mockFetchDataStream({
       url: '/api/stream-chat',
-      chunks: ['0:"Response with attachment"\n'],
+      chunks: ['0:"Response to message with image attachment"\n'],
     });
 
     const messageInput = screen.getByTestId('message-input');
-    await userEvent.type(messageInput, 'Message with attachment');
+    await userEvent.type(messageInput, 'Message with image attachment');
 
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
     const sentBody = JSON.parse((await requestBody) as string);
-    expect(sentBody.messages[0].content).toBe('Message with attachment');
+    expect(sentBody.messages[0].content).toBe('Message with image attachment');
     expect(sentBody.messages[0].experimental_attachments).toBeDefined();
     expect(sentBody.messages[0].experimental_attachments.length).toBe(1);
     expect(sentBody.messages[0].experimental_attachments[0].name).toBe(
@@ -845,7 +845,7 @@ describe('file attachments with url', () => {
 
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with attachment',
+      'User: Message with image attachment',
     );
 
     await screen.findByTestId('attachment-0');
@@ -856,7 +856,7 @@ describe('file attachments with url', () => {
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response with attachment',
+      'AI: Response to message with image attachment',
     );
   });
 });
