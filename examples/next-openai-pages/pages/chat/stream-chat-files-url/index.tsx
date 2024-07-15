@@ -88,7 +88,7 @@ export default function Page() {
                   ...prevAttachments,
                   {
                     name: file.name,
-                    mimeType: blob.contentType,
+                    contentType: blob.contentType,
                     url: blob.url,
                   },
                 ]);
