@@ -84,6 +84,7 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
+  keepLastMessageOnError = false,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
@@ -129,7 +130,7 @@ export function useChat({
 
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
-      const previousMessages = messagesData.value;
+      const previousMessages = messagesSnapshot;
       mutate(messagesSnapshot);
 
       const requestOptions = {
@@ -198,7 +199,9 @@ export function useChat({
             },
             restoreMessagesOnFailure() {
               // Restore the previous messages if the request fails.
-              mutate(previousMessages);
+              if (!keepLastMessageOnError) {
+                mutate(previousMessages);
+              }
             },
             generateId,
             onToolCall: undefined, // not implemented yet

@@ -312,6 +312,14 @@ The options to be passed to the fetch call.
 
 export type UseChatOptions = {
   /**
+Keeps the last message when an error happens. This will be the default behavior
+starting with the next major release.
+The flag was introduced for backwards compatibility and currently defaults to `false`.
+Please enable it and update your error handling/resubmit behavior.
+   */
+  keepLastMessageOnError?: boolean;
+
+  /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
    * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
    */
