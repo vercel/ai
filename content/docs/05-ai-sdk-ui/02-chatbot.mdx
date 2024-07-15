@@ -24,7 +24,7 @@ import { useChat } from 'ai/react';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: 'api/chat',
+    keepLastMessageOnError: true,
   });
 
   return (
@@ -35,13 +35,9 @@ export default function Page() {
           {message.content}
         </div>
       ))}
+
       <form onSubmit={handleSubmit}>
-        <input
-          name="prompt"
-          value={input}
-          onChange={handleInputChange}
-          id="input"
-        />
+        <input name="prompt" value={input} onChange={handleInputChange} />
         <button type="submit">Submit</button>
       </form>
     </>
@@ -50,60 +46,142 @@ export default function Page() {
 ```
 
 ```ts filename='app/api/chat/route.ts'
-import { type CoreMessage, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { convertToCoreMessages, streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages }: { messages: CoreMessage[] } = await req.json();
+  const { messages } = await req.json();
 
   const result = await streamText({
-    model: openai('gpt-4'),
+    model: openai('gpt-4-turbo'),
     system: 'You are a helpful assistant.',
-    messages,
+    messages: convertToCoreMessages(messages),
   });
 
   return result.toAIStreamResponse();
 }
 ```
 
-In the `Page` component, the `useChat` hook will request to your AI provider endpoint whenever the user submits a message. The messages are then streamed back in real-time and displayed in the chat UI.
+In the `Page` component, the `useChat` hook will request to your AI provider endpoint whenever the user submits a message.
+The messages are then streamed back in real-time and displayed in the chat UI.
 
-This enables a seamless chat experience where the user can see the AI response as soon as it is available, without having to wait for the entire response to be received.
+This enables a seamless chat experience where the user can see the AI response as soon as it is available,
+without having to wait for the entire response to be received.
+
+<Note>
+  `useChat` has a `keepLastMessageOnError` option that defaults to `false`. This
+  option can be enabled to keep the last message on error. We will make this the
+  default behavior in the next major release. Please enable it and update your
+  error handling/resubmit behavior.
+</Note>
 
 ## Customized UI
 
 `useChat` also provides ways to manage the chat message and input states via code, show loading and error states, and update messages without being triggered by user interactions.
 
-### Loading and error states
+### Loading State
 
-To show a loading spinner while the chatbot is processing the user's message, you can use the `isLoading` state returned by the `useChat` hook:
+The `isLoading` state returned by the `useChat` hook can be used for several
+purposes
 
-```tsx
-const { isLoading, ... } = useChat()
+- To show a loading spinner while the chatbot is processing the user's message.
+- To show a "Stop" button to abort the current message.
+- To disable the submit button.
 
-return <>
-  {isLoading ? <Spinner /> : null}
-  ...
+```tsx filename='app/page.tsx' highlight="6,20-27,34"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Page() {
+  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+    useChat({
+      keepLastMessageOnError: true,
+    });
+
+  return (
+    <>
+      {messages.map(message => (
+        <div key={message.id}>
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.content}
+        </div>
+      ))}
+
+      {isLoading && (
+        <div>
+          <Spinner />
+          <button type="button" onClick={() => stop()}>
+            Stop
+          </button>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          name="prompt"
+          value={input}
+          onChange={handleInputChange}
+          disabled={isLoading}
+        />
+        <button type="submit">Submit</button>
+      </form>
+    </>
+  );
+}
 ```
 
-Similarly, the `error` state reflects the error object thrown during the fetch request. It can be used to display an error message, or show a toast notification:
+### Error
 
-```tsx
-const { error, ... } = useChat()
+Similarly, the `error` state reflects the error object thrown during the fetch request.
+It can be used to display an error message, disable the submit button, or show a retry button.
 
-useEffect(() => {
-  if (error) {
-    toast.error(error.message)
-  }
-}, [error])
+<Note>
+  We recommend showing a generic error message to the user, such as "Something
+  went wrong." This is a good practice to avoid leaking information from the
+  server.
+</Note>
 
-// Or display the error message in the UI:
-return <>
-  {error ? <div>{error.message}</div> : null}
-  ...
+```tsx file="app/page.tsx" highlight="6,18-25,31"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit, error } = useChat({
+    keepLastMessageOnError: true,
+  });
+
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role}: {m.content}
+        </div>
+      ))}
+
+      {error && (
+        <>
+          <div>An error occurred.</div>
+          <button type="button" onClick={() => handleSubmit()}>
+            Retry
+          </button>
+        </>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          value={input}
+          onChange={handleInputChange}
+          disabled={error != null}
+        />
+      </form>
+    </div>
+  );
+}
 ```
 
 ### Modify messages
