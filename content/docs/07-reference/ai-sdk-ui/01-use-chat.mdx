@@ -158,6 +158,83 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'messages',
       type: 'Message[]',
       description: 'The current array of chat messages.',
+      properties: [
+        {
+          type: 'Message',
+          parameters: [
+            {
+              name: 'id',
+              type: 'string',
+              description: 'The unique identifier of the message.',
+            },
+            {
+              name: 'role',
+              type: "'system' | 'user' | 'assistant' | 'data'",
+              description: 'The role of the message.',
+            },
+            {
+              name: 'content',
+              type: 'string',
+              description: 'The content of the message.',
+            },
+            {
+              name: 'createdAt',
+              type: 'Date',
+              isOptional: true,
+              description: 'The creation date of the message.',
+            },
+            {
+              name: 'name',
+              type: 'string',
+              isOptional: true,
+              description: 'The name of the message.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              isOptional: true,
+              description: 'Additional data sent along with the message.',
+            },
+            {
+              name: 'annotations',
+              type: 'Array<JSONValue>',
+              isOptional: true,
+              description: 'Additional annotations sent along with the message.',
+            },
+            {
+              name: 'experimental_attachments',
+              type: 'Array<Attachment>',
+              isOptional: true,
+              description: 'Additional attachments sent along with the message.',
+              properties: [
+                {
+                  type: 'Attachment',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The name of the attachment.',
+                    },
+                    {
+                      name: "contentType",
+                      type: "string",
+                      isOptional: true,
+                      description: "A string indicating the media type of the file."
+                    },
+                    {
+                      name: 'data',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'error',
@@ -253,6 +330,38 @@ Allows you to easily create a conversational user interface for your chatbot app
               type: 'JSONValue',
               description: 'Additional data to be sent to the API endpoint.',
             },
+            {
+              name: 'experimental_attachments',
+              type: 'FileList | Array<Attachment>',
+              isOptional: true,
+              description:
+                'An array of attachments to be sent to the API endpoint.',
+              properties: [
+                {
+                  type: 'Attachment',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The name of the attachment.',
+                    },
+                    {
+                      name: "contentType",
+                      type: "string",
+                      isOptional: true,
+                      description: "A string indicating the media type of the file."
+                    },
+                    {
+                      name: 'data',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
@@ -274,7 +383,8 @@ Allows you to easily create a conversational user interface for your chatbot app
       description:
         'React and SolidJS only. Function to add a tool result to the chat. This will update the chat messages with the tool result and call the API route if all tool results for the last message are available.',
     },
-  ]}
+
+]}
 />
 
 ## Learn more
