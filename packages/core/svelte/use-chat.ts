@@ -83,6 +83,7 @@ const getStreamedResponse = async (
   onResponse: ((response: Response) => void | Promise<void>) | undefined,
   sendExtraMessageFields: boolean | undefined,
   fetch: FetchFunction | undefined,
+  keepLastMessageOnError: boolean | undefined,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -141,7 +142,9 @@ const getStreamedResponse = async (
     },
     abortController: () => abortControllerRef,
     restoreMessagesOnFailure() {
-      mutate(previousMessages);
+      if (!keepLastMessageOnError) {
+        mutate(previousMessages);
+      }
     },
     onResponse,
     onUpdate(merged, data) {
@@ -179,6 +182,7 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
+  keepLastMessageOnError = false,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
@@ -246,6 +250,7 @@ export function useChat({
             onResponse,
             sendExtraMessageFields,
             fetch,
+            keepLastMessageOnError,
           ),
         experimental_onFunctionCall,
         experimental_onToolCall,
