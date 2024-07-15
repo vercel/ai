@@ -378,7 +378,7 @@ for await (const partialObject of partialObjectStream) {
                   type: 'RawResponse',
                   parameters: [
                     {
-                      name: 'header',
+                      name: 'headers',
                       optional: true,
                       type: 'Record<string, string>',
                       description: 'Response headers.',
@@ -527,7 +527,7 @@ for await (const partialObject of partialObjectStream) {
           type: 'RawResponse',
           parameters: [
             {
-              name: 'header',
+              name: 'headers',
               optional: true,
               type: 'Record<string, string>',
               description: 'Response headers.',
