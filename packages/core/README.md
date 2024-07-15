@@ -52,12 +52,13 @@ The [AI SDK UI](https://sdk.vercel.ai/docs/ai-sdk-ui/overview) module provides a
 ###### @/app/page.tsx (Next.js App Router)
 
 ```tsx
-"use client"
+'use client';
 
-import { useChat } from 'ai/react'
+import { useChat } from 'ai/react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } = useChat()
+  const { messages, input, handleSubmit, handleInputChange, isLoading } =
+    useChat();
 
   return (
     <div>
@@ -77,7 +78,7 @@ export default function Page() {
         />
       </form>
     </div>
-  )
+  );
 }
 ```
 
