@@ -60,7 +60,7 @@ export default function Page() {
       >
         <div className="flex flex-row gap-2 fixed right-2 bottom-14 items-end">
           {Array.from(attachments)
-            .filter(attachment => attachment.mimeType?.startsWith('image/'))
+            .filter(attachment => attachment.contentType?.startsWith('image/'))
             .map(attachment => (
               <div key={attachment.name}>
                 <img

@@ -25,14 +25,14 @@ export default function Page() {
 
               <div className="flex flex-row gap-2">
                 {message.experimental_attachments?.map((attachment, index) =>
-                  attachment.mimeType?.includes('image/') ? (
+                  attachment.contentType?.includes('image/') ? (
                     <img
                       key={`${message.id}-${index}`}
                       className="w-24 rounded-md"
                       src={attachment.url}
                       alt={attachment.name}
                     />
-                  ) : attachment.mimeType?.includes('text/') ? (
+                  ) : attachment.contentType?.includes('text/') ? (
                     <div className="w-32 h-24 rounded-md text-xs ellipsis overflow-hidden p-2 text-zinc-500 border">
                       {Buffer.from(
                         attachment.url.split(',')[1],

@@ -551,17 +551,17 @@ By default, it's set to 0, which will disable the feature.
 
             attachmentsForRequest.push({
               name,
-              mimeType: type,
+              contentType: type,
               url: dataUrl,
             });
           }
         } else if (Array.isArray(attachmentsFromOptions)) {
           for (const file of attachmentsFromOptions) {
-            const { name, url, mimeType } = file;
+            const { name, url, contentType } = file;
 
             attachmentsForRequest.push({
               name,
-              mimeType,
+              contentType,
               url,
             });
           }
