@@ -125,10 +125,20 @@ import { openai } from '@ai-sdk/openai';
 import { JSONParseError, TypeValidationError, generateObject } from 'ai';
 import { z } from 'zod';
 
-async function generateLasagnaRecipe<T>(
-  schema: z.Schema<T>,
+const recipeSchema = z.object({
+  recipe: z.object({
+    name: z.string(),
+    ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
+    steps: z.array(z.string()),
+  }),
+});
+
+type Recipe = z.infer<typeof recipeSchema>;
+
+async function generateRecipe(
+  food: string,
 ): Promise<
-  | { type: 'success'; object: T }
+  | { type: 'success'; recipe: Recipe }
   | { type: 'parse-error'; text: string }
   | { type: 'validation-error'; value: unknown }
   | { type: 'unknown-error'; error: unknown }
@@ -136,11 +146,11 @@ async function generateLasagnaRecipe<T>(
   try {
     const result = await generateObject({
       model: openai('gpt-4-turbo'),
-      schema,
-      prompt: 'Generate a lasagna recipe.',
+      schema: recipeSchema,
+      prompt: `Generate a ${food} recipe.`,
     });
 
-    return { type: 'success', object: result.object };
+    return { type: 'success', recipe: result.object };
   } catch (error) {
     if (TypeValidationError.isTypeValidationError(error)) {
       return { type: 'validation-error', value: error.value };
