@@ -1,5 +1,17 @@
 # ai
 
+## 3.2.23
+
+### Patch Changes
+
+- a6cb2c8b: feat (ai/ui): add keepLastMessageOnError option to useChat
+- Updated dependencies [a6cb2c8b]
+  - @ai-sdk/ui-utils@0.0.13
+  - @ai-sdk/svelte@0.0.16
+  - @ai-sdk/react@0.0.21
+  - @ai-sdk/solid@0.0.15
+  - @ai-sdk/vue@0.0.16
+
 ## 3.2.22
 
 ### Patch Changes
