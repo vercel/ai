@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.13
+
+### Patch Changes
+
+- a6cb2c8b: feat (ai/ui): add keepLastMessageOnError option to useChat
+
 ## 0.0.12
 
 ### Patch Changes

@@ -119,7 +119,7 @@ There are three things worth mentioning:
 3. The [`maxToolRoundtrips`](/docs/reference/ai-sdk-ui/use-chat#max-tool-roundtrips) option is set to 5.
    This enables several tool use iterations between the client and the server.
 
-```tsx filename='app/page.tsx' highlight="9,12,26"
+```tsx filename='app/page.tsx' highlight="9,12,31"
 'use client';
 
 import { ToolInvocation } from 'ai';
@@ -145,7 +145,7 @@ export default function Chat() {
     });
 
   return (
-    <div>
+    <>
       {messages?.map((m: Message) => (
         <div key={m.id}>
           <strong>{m.role}:</strong>
@@ -191,7 +191,7 @@ export default function Chat() {
       <form onSubmit={handleSubmit}>
         <input value={input} onChange={handleInputChange} />
       </form>
-    </div>
+    </>
   );
 }
 ```

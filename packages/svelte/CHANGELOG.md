@@ -1,5 +1,13 @@
 # @ai-sdk/svelte
 
+## 0.0.16
+
+### Patch Changes
+
+- a6cb2c8b: feat (ai/ui): add keepLastMessageOnError option to useChat
+- Updated dependencies [a6cb2c8b]
+  - @ai-sdk/ui-utils@0.0.13
+
 ## 0.0.15
 
 ### Patch Changes
