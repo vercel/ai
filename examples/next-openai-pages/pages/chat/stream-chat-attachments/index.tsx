@@ -8,9 +8,7 @@ export default function Page() {
       api: '/api/stream-chat',
     });
 
-  const [attachments, setAttachments] = useState<FileList | undefined>(
-    undefined,
-  );
+  const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -50,9 +48,9 @@ export default function Page() {
       <form
         onSubmit={event => {
           handleSubmit(event, {
-            experimental_attachments: attachments,
+            experimental_attachments: files,
           });
-          setAttachments(undefined);
+          setFiles(undefined);
 
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -61,8 +59,8 @@ export default function Page() {
         className="flex flex-col gap-2 fixed bottom-0 p-2 w-full"
       >
         <div className="flex flex-row gap-2 fixed right-2 bottom-14 items-end">
-          {attachments
-            ? Array.from(attachments).map(attachment => {
+          {files
+            ? Array.from(files).map(attachment => {
                 const { type } = attachment;
 
                 if (type.startsWith('image/')) {
@@ -96,7 +94,7 @@ export default function Page() {
           type="file"
           onChange={event => {
             if (event.target.files) {
-              setAttachments(event.target.files);
+              setFiles(event.target.files);
             }
           }}
           multiple
