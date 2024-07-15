@@ -65,6 +65,9 @@ You can use `streamObject` to stream generated UIs in combination with React Ser
 
 ## Guide
 
+The mapping from Zod schemas to LLM inputs (typically JSON schema) is not always straightforward.
+Please checkout the following tips and the [Prompt Engineering with Tools](/docs/ai-sdk-core/tools-and-tool-calling#prompt-engineering-with-tools) guide.
+
 ### Generating Arrays
 
 Most models require an object as the top-level schema. If you want to generate an array, you can wrap it in an object with a single descriptive key and use destructuring to access the array.
