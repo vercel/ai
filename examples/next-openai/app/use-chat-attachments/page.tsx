@@ -1,5 +1,6 @@
 'use client';
 
+import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
 /* eslint-disable @next/next/no-img-element */
 import { useChat } from 'ai/react';
 import { useRef, useState } from 'react';
@@ -34,10 +35,7 @@ export default function Page() {
                     />
                   ) : attachment.contentType?.includes('text/') ? (
                     <div className="w-32 h-24 rounded-md text-xs ellipsis overflow-hidden p-2 text-zinc-500 border">
-                      {Buffer.from(
-                        attachment.url.split(',')[1],
-                        'base64',
-                      ).toString('utf-8')}
+                      {getTextFromDataUrl(attachment.url)}
                     </div>
                   ) : null,
                 )}

@@ -122,7 +122,7 @@ export type ToolInvocation =
  */
 export interface Attachment {
   /**
-   * The name of the attachment.
+   * The name of the attachment, usually the file name.
    */
   name?: string;
 

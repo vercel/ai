@@ -1,23 +1,8 @@
-import { Attachment } from '@ai-sdk/ui-utils';
+import { Attachment, getTextFromDataUrl } from '@ai-sdk/ui-utils';
 import { ImagePart, TextPart } from './content-part';
 import { convertDataContentToUint8Array } from './data-content';
-import { getErrorMessage } from '@ai-sdk/provider-utils';
 
 type ContentPart = TextPart | ImagePart;
-
-/**
- * Converts a data URL of type text/* to a text string.
- */
-export function dataUrlToText(dataUrl: string): string {
-  return Buffer.from(dataUrl, 'base64').toString('utf-8');
-}
-
-/**
- * Checks if a string is a Data URL.
- */
-function isDataURL(url: string): boolean {
-  return new URL(url).protocol === 'data:';
-}
 
 /**
  * Converts a list of attachments to a list of content parts
@@ -54,7 +39,10 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
                 image: convertDataContentToUint8Array(base64Content),
               });
             } else if (attachment.contentType?.startsWith('text/')) {
-              parts.push({ type: 'text', text: dataUrlToText(attachment.url) });
+              parts.push({
+                type: 'text',
+                text: getTextFromDataUrl(attachment.url),
+              });
             }
           } catch (error) {
             throw new Error(`Error processing data URL: ${attachment}`);

@@ -15,7 +15,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import React, { useRef, useState } from 'react';
 import { useChat } from './use-chat';
-import { formatStreamPart } from '@ai-sdk/ui-utils';
+import { formatStreamPart, getTextFromDataUrl } from '@ai-sdk/ui-utils';
 
 describe('stream data stream', () => {
   const TestComponent = () => {
@@ -600,10 +600,7 @@ describe('file attachments with data url', () => {
                     className="w-32 h-24 rounded-md text-xs ellipsis overflow-hidden p-2 text-zinc-500 border"
                     data-testid={`attachment-${idx}`}
                   >
-                    {Buffer.from(
-                      attachment.url.split(',')[1],
-                      'base64',
-                    ).toString('utf-8')}
+                    {getTextFromDataUrl(attachment.url)}
                   </div>
                 );
               }
