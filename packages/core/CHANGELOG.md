@@ -1,5 +1,11 @@
 # ai
 
+## 3.2.26
+
+### Patch Changes
+
+- 8f545ce9: fix (ai/core): forward request headers in generateObject and streamObject
+
 ## 3.2.25
 
 ### Patch Changes
