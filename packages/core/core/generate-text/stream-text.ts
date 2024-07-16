@@ -83,6 +83,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
+  experimental_streamToolCalls: streamToolCalls = false,
   onFinish,
   ...settings
 }: CallSettings &
@@ -103,9 +104,14 @@ The tool choice strategy. Default: 'auto'.
     toolChoice?: CoreToolChoice<TOOLS>;
 
     /**
-     * Optional telemetry configuration (experimental).
+Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
+
+    /**
+Enable optional streaming of tool calls as they are generated (default: false).
+     */
+    experimental_streamToolCalls?: boolean;
 
     /**
 Callback that is called when the LLM response and all request tool executions 
@@ -212,6 +218,7 @@ Warnings from the model provider (e.g. unsupported settings).
         stream: runToolsTransformation({
           tools,
           generatorStream: stream,
+          streamToolCalls,
           tracer,
         }),
         warnings,
