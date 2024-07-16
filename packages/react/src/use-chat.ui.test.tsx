@@ -234,12 +234,11 @@ describe('form actions', () => {
           </div>
         ))}
 
-        <form onSubmit={handleSubmit} className="fixed bottom-0 w-full p-2">
+        <form onSubmit={handleSubmit}>
           <input
             value={input}
             placeholder="Send message..."
             onChange={handleInputChange}
-            className="w-full p-2 bg-zinc-100"
             disabled={isLoading}
             data-testid="do-input"
           />
@@ -587,7 +586,6 @@ describe('file attachments with data url', () => {
                 return (
                   <img
                     key={attachment.name}
-                    className="w-24 rounded-md"
                     src={attachment.url}
                     alt={attachment.name}
                     data-testid={`attachment-${idx}`}
@@ -595,11 +593,7 @@ describe('file attachments with data url', () => {
                 );
               } else if (attachment.contentType?.startsWith('text/')) {
                 return (
-                  <div
-                    key={attachment.name}
-                    className="w-32 h-24 rounded-md text-xs ellipsis overflow-hidden p-2 text-zinc-500 border"
-                    data-testid={`attachment-${idx}`}
-                  >
+                  <div key={attachment.name} data-testid={`attachment-${idx}`}>
                     {getTextFromDataUrl(attachment.url)}
                   </div>
                 );
@@ -762,7 +756,6 @@ describe('file attachments with url', () => {
                 return (
                   <img
                     key={attachment.name}
-                    className="w-24 rounded-md"
                     src={attachment.url}
                     alt={attachment.name}
                     data-testid={`attachment-${idx}`}
@@ -770,11 +763,7 @@ describe('file attachments with url', () => {
                 );
               } else if (attachment.contentType?.startsWith('text/')) {
                 return (
-                  <div
-                    key={attachment.name}
-                    className="w-32 h-24 rounded-md text-xs ellipsis overflow-hidden p-2 text-zinc-500 border"
-                    data-testid={`attachment-${idx}`}
-                  >
+                  <div key={attachment.name} data-testid={`attachment-${idx}`}>
                     {Buffer.from(
                       attachment.url.split(',')[1],
                       'base64',
