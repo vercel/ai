@@ -34,30 +34,35 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
       }
 
       case 'data:': {
+        let header;
+        let base64Content;
+        let mimeType;
+
         try {
-          const [header, base64Content] = attachment.url.split(',');
-          const mimeType = header.split(';')[0].split(':')[1];
-
-          if (mimeType == null || base64Content == null) {
-            throw new Error('Invalid data URL format');
-          }
-
-          if (attachment.contentType?.startsWith('image/')) {
-            parts.push({
-              type: 'image',
-              image: convertDataContentToUint8Array(base64Content),
-            });
-          } else if (attachment.contentType?.startsWith('text/')) {
-            parts.push({
-              type: 'text',
-              text: convertUint8ArrayToText(
-                convertDataContentToUint8Array(base64Content),
-              ),
-            });
-          }
+          [header, base64Content] = attachment.url.split(',');
+          mimeType = header.split(';')[0].split(':')[1];
         } catch (error) {
-          throw new Error(`Error processing data URL: ${attachment}`);
+          throw new Error(`Error processing data URL: ${attachment.url}`);
         }
+
+        if (mimeType == null || base64Content == null) {
+          throw new Error(`Invalid data URL format: ${attachment.url}`);
+        }
+
+        if (attachment.contentType?.startsWith('image/')) {
+          parts.push({
+            type: 'image',
+            image: convertDataContentToUint8Array(base64Content),
+          });
+        } else if (attachment.contentType?.startsWith('text/')) {
+          parts.push({
+            type: 'text',
+            text: convertUint8ArrayToText(
+              convertDataContentToUint8Array(base64Content),
+            ),
+          });
+        }
+
         break;
       }
 
