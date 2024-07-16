@@ -4,7 +4,6 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
 } from '@ai-sdk/provider';
-import { CoreTool } from '../tool/tool';
 
 /**
 Language model that is used by the AI SDK Core functions.

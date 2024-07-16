@@ -233,8 +233,10 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       type: 'tool-call';
     } & ToToolCall<TOOLS>)
   | {
-      type: 'error';
-      error: unknown;
+      type: 'tool-call-delta';
+      toolCallId: string;
+      toolName: string;
+      argsTextDelta: string;
     }
   | ({
       type: 'tool-result';
@@ -248,6 +250,10 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
         completionTokens: number;
         totalTokens: number;
       };
+    }
+  | {
+      type: 'error';
+      error: unknown;
     };
 
 /**
@@ -407,6 +413,7 @@ Response headers.
               resolveToolCalls(toolCalls);
               break;
 
+            case 'tool-call-delta':
             case 'error':
               // ignored
               break;
