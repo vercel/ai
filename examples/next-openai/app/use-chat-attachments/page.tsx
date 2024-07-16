@@ -1,7 +1,7 @@
 'use client';
 
-import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
 /* eslint-disable @next/next/no-img-element */
+import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
 import { useChat } from 'ai/react';
 import { useRef, useState } from 'react';
 
