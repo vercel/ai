@@ -10,12 +10,12 @@ import { parseToolCall } from './tool-call';
 export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   tools,
   generatorStream,
-  streamToolCalls,
+  toolCallDeltas,
   tracer,
 }: {
   tools?: TOOLS;
   generatorStream: ReadableStream<LanguageModelV1StreamPart>;
-  streamToolCalls: boolean;
+  toolCallDeltas: boolean;
   tracer: Tracer;
 }): ReadableStream<TextStreamPart<TOOLS>> {
   let canClose = false;
@@ -30,6 +30,9 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
       toolResultsStreamController = controller;
     },
   });
+
+  // keep track of active tool calls
+  const activeToolCalls: Record<string, boolean> = {};
 
   // forward stream
   const forwardStream = new TransformStream<
@@ -52,7 +55,17 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
 
         // forward with less information:
         case 'tool-call-delta': {
-          if (streamToolCalls) {
+          if (!activeToolCalls[chunk.toolCallId]) {
+            controller.enqueue({
+              type: 'tool-call-streaming-start',
+              toolCallId: chunk.toolCallId,
+              toolName: chunk.toolName,
+            });
+
+            activeToolCalls[chunk.toolCallId] = true;
+          }
+
+          if (toolCallDeltas) {
             controller.enqueue({
               type: 'tool-call-delta',
               toolCallId: chunk.toolCallId,

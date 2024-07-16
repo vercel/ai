@@ -175,7 +175,7 @@ describe('result.fullStream', () => {
     );
   });
 
-  it('should not send tool call deltas when streamToolCalls is disabled', async () => {
+  it('should not send tool call deltas when toolCallDeltas is disabled', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
@@ -282,6 +282,11 @@ describe('result.fullStream', () => {
     assert.deepStrictEqual(
       await convertAsyncIterableToArray(result.fullStream),
       [
+        {
+          type: 'tool-call-streaming-start',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolName: 'test-tool',
+        },
         {
           type: 'tool-call',
           toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
@@ -298,9 +303,9 @@ describe('result.fullStream', () => {
     );
   });
 
-  it('should send tool call deltas when streamToolCalls is enabled', async () => {
+  it('should send tool call deltas when toolCallDeltas is enabled', async () => {
     const result = await streamText({
-      experimental_streamToolCalls: true,
+      experimental_toolCallDeltas: true,
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
@@ -406,6 +411,11 @@ describe('result.fullStream', () => {
     assert.deepStrictEqual(
       await convertAsyncIterableToArray(result.fullStream),
       [
+        {
+          type: 'tool-call-streaming-start',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolName: 'test-tool',
+        },
         {
           type: 'tool-call-delta',
           toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
