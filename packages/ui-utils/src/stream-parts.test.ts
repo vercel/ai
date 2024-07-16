@@ -176,3 +176,22 @@ describe('tool_call_streaming_start stream part', () => {
     });
   });
 });
+
+describe('tool_call_delta stream part', () => {
+  it('should format a tool_call_delta stream part', () => {
+    expect(
+      formatStreamPart('tool_call_delta', {
+        toolCallId: 'tc_0',
+        argsTextDelta: 'delta',
+      }),
+    ).toEqual(`c:{"toolCallId":"tc_0","argsTextDelta":"delta"}\n`);
+  });
+
+  it('should parse a tool_call_delta stream part', () => {
+    const input = `c:{"toolCallId":"tc_0","argsTextDelta":"delta"}`;
+    expect(parseStreamPart(input)).toEqual({
+      type: 'tool_call_delta',
+      value: { toolCallId: 'tc_0', argsTextDelta: 'delta' },
+    });
+  });
+});

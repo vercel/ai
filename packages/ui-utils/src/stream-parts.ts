@@ -331,6 +331,37 @@ const toolCallStreamingStartStreamPart: StreamPart<
   },
 };
 
+const toolCallDeltaStreamPart: StreamPart<
+  'c',
+  'tool_call_delta',
+  { toolCallId: string; argsTextDelta: string }
+> = {
+  code: 'c',
+  name: 'tool_call_delta',
+  parse: (value: JSONValue) => {
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('toolCallId' in value) ||
+      typeof value.toolCallId !== 'string' ||
+      !('argsTextDelta' in value) ||
+      typeof value.argsTextDelta !== 'string'
+    ) {
+      throw new Error(
+        '"tool_call_delta" parts expect an object with a "toolCallId" and "argsTextDelta" property.',
+      );
+    }
+
+    return {
+      type: 'tool_call_delta',
+      value: value as unknown as {
+        toolCallId: string;
+        argsTextDelta: string;
+      },
+    };
+  },
+};
+
 const streamParts = [
   textStreamPart,
   functionCallStreamPart,
@@ -344,6 +375,7 @@ const streamParts = [
   toolCallStreamPart,
   toolResultStreamPart,
   toolCallStreamingStartStreamPart,
+  toolCallDeltaStreamPart,
 ] as const;
 
 // union type of all stream parts
@@ -359,7 +391,8 @@ type StreamParts =
   | typeof messageAnnotationsStreamPart
   | typeof toolCallStreamPart
   | typeof toolResultStreamPart
-  | typeof toolCallStreamingStartStreamPart;
+  | typeof toolCallStreamingStartStreamPart
+  | typeof toolCallDeltaStreamPart;
 
 /**
  * Maps the type of a stream part to its value type.
@@ -380,7 +413,8 @@ export type StreamPartType =
   | ReturnType<typeof messageAnnotationsStreamPart.parse>
   | ReturnType<typeof toolCallStreamPart.parse>
   | ReturnType<typeof toolResultStreamPart.parse>
-  | ReturnType<typeof toolCallStreamingStartStreamPart.parse>;
+  | ReturnType<typeof toolCallStreamingStartStreamPart.parse>
+  | ReturnType<typeof toolCallDeltaStreamPart.parse>;
 
 export const streamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
@@ -395,6 +429,7 @@ export const streamPartsByCode = {
   [toolCallStreamPart.code]: toolCallStreamPart,
   [toolResultStreamPart.code]: toolResultStreamPart,
   [toolCallStreamingStartStreamPart.code]: toolCallStreamingStartStreamPart,
+  [toolCallDeltaStreamPart.code]: toolCallDeltaStreamPart,
 } as const;
 
 /**
@@ -433,6 +468,7 @@ export const StreamStringPrefixes = {
   [toolResultStreamPart.name]: toolResultStreamPart.code,
   [toolCallStreamingStartStreamPart.name]:
     toolCallStreamingStartStreamPart.code,
+  [toolCallDeltaStreamPart.name]: toolCallDeltaStreamPart.code,
 } as const;
 
 export const validCodes = streamParts.map(part => part.code);
