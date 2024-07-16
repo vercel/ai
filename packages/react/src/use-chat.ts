@@ -581,7 +581,10 @@ By default, it's set to 0, which will disable the feature.
               id: generateId(),
               role: 'user',
               content: input,
-              experimental_attachments: attachmentsForRequest,
+              experimental_attachments:
+                attachmentsForRequest.length > 0
+                  ? attachmentsForRequest
+                  : undefined,
             })
           : messagesRef.current,
         options: requestOptions,

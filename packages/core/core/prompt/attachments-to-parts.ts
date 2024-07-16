@@ -27,6 +27,7 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
         if (attachment.contentType?.startsWith('image/')) {
           parts.push({ type: 'image', image: url });
         }
+        break;
       }
 
       case 'data:': {
@@ -52,6 +53,7 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
         } catch (error) {
           throw new Error(`Error processing data URL: ${attachment}`);
         }
+        break;
       }
 
       default: {
