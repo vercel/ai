@@ -9,5 +9,9 @@ export function getTextFromDataUrl(dataUrl: string): string {
     throw new Error('Invalid data URL format');
   }
 
-  return window.atob(base64Content);
+  try {
+    return window.atob(base64Content);
+  } catch (error) {
+    throw new Error(`Error decoding data URL`);
+  }
 }
