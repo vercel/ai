@@ -154,6 +154,7 @@ Default and recommended: 'auto' (best mode for the model).
           inputFormat: validatedPrompt.type,
           prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
+          headers,
         }),
       );
 
@@ -193,6 +194,7 @@ Default and recommended: 'auto' (best mode for the model).
           inputFormat: validatedPrompt.type,
           prompt: convertToLanguageModelPrompt(validatedPrompt),
           abortSignal,
+          headers,
         }),
       );
 
