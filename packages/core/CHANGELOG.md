@@ -1,5 +1,17 @@
 # ai
 
+## 3.2.25
+
+### Patch Changes
+
+- 99ddbb74: feat (ai/react): add experimental support for managing attachments to useChat
+- Updated dependencies [99ddbb74]
+  - @ai-sdk/ui-utils@0.0.14
+  - @ai-sdk/react@0.0.22
+  - @ai-sdk/solid@0.0.16
+  - @ai-sdk/svelte@0.0.17
+  - @ai-sdk/vue@0.0.17
+
 ## 3.2.24
 
 ### Patch Changes
