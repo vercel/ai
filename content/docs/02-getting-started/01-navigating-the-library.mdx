@@ -19,8 +19,8 @@ When deciding which part of the Vercel AI SDK to use, your first consideration s
 
 | Library     | Purpose                                                                                                                                                  | Environment Compatibility                                              |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| AI SDK Core | Call any LLM with unified API (e.g. [streamText](/docs/reference/ai-sdk-core/stream-text) and [streamObject](/docs/reference/ai-sdk-core/stream-object)) | Any JS environment (e.g. Node.js, Deno, Browser)                       |
-| AI SDK UI   | Quickly build chat and generative UIs (e.g. [useChat](/docs/reference/ai-sdk-ui/use-chat))                                                               | React & Next.js, Vue & Nuxt, Svelte & SvelteKit, Solid.js & SolidStart |
+| AI SDK Core | Call any LLM with unified API (e.g. [generateText](/docs/reference/ai-sdk-core/generate-text) and [generateObject](/docs/reference/ai-sdk-core/generate-object)) | Any JS environment (e.g. Node.js, Deno, Browser)                       |
+| AI SDK UI   | Build streaming chat and generative UIs (e.g. [useChat](/docs/reference/ai-sdk-ui/use-chat))                                                               | React & Next.js, Vue & Nuxt, Svelte & SvelteKit, Solid.js & SolidStart |
 | AI SDK RSC  | Stream generative UIs from Server to Client (e.g. [streamUI](/docs/reference/ai-sdk-rsc/stream-ui))                                                      | Any framework that supports React Server Components (e.g. Next.js)     |
 
 ## Interoperability of the AI SDK
@@ -44,12 +44,12 @@ The following table outlines AI SDK compatibility based on environment:
 
 RSCs and Server Actions are still in early development. When considering whether to use AI SDK RSC, it's important to be aware of the current limitations of RSCs and Server Actions:
 
-- **Cancellation/Logging/Debugging**: currently, it is not possible to abort a stream using Server Actions. This will be improved in future releases of React and Next.js.
-- **Quadratic Data Transfer**: using [`createStreamableUI`](/docs/reference/ai-sdk-rsc/create-streamable-ui) can lead to quadratic data transfer. You can avoid this using [ `createStreamableValue` ](/docs/reference/ai-sdk-rsc/create-streamable-value) instead, and rendering the component client-side.
-- **Re-mounting Issue During Streaming**: when using `createStreamableUI`, components re-mount on `.done()`, causing undesirable behavior.
+- **Cancellation**: currently, it is not possible to abort a stream using Server Actions. This will be improved in future releases of React and Next.js.
+- **Increased Data Transfer**: using [`createStreamableUI`](/docs/reference/ai-sdk-rsc/create-streamable-ui) can lead to quadratic data transfer. You can avoid this using [ `createStreamableValue` ](/docs/reference/ai-sdk-rsc/create-streamable-value) instead, and rendering the component client-side.
+- **Re-mounting Issue During Streaming**: when using `createStreamableUI`, components re-mount on `.done()`, causing flickering.
 - **Human-in-the-Loop Roundtrips**: currently, there is no support for human-in-the-loop chatbot roundtrips.
 
-If any of the above limitations are important to you application, we recommended using AI SDK UI.
+If any of the above limitations are important to you application, we recommended using [AI SDK UI](/docs/ai-sdk-ui/overview).
 
 ### AI SDK UI Framework Compatibility
 
