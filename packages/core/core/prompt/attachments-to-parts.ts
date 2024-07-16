@@ -13,48 +13,50 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
   const parts: ContentPart[] = [];
 
   for (const attachment of attachments) {
+    let url;
+
     try {
-      const url = new URL(attachment.url);
+      url = new URL(attachment.url);
+    } catch (error) {
+      throw new Error(`Invalid URL: ${attachment.url}`);
+    }
 
-      switch (url.protocol) {
-        case 'http:':
-        case 'https:': {
-          if (attachment.contentType?.startsWith('image/')) {
-            parts.push({ type: 'image', image: url });
-          }
-        }
-
-        case 'data:': {
-          try {
-            const [header, base64Content] = attachment.url.split(',');
-            const mimeType = header.split(';')[0].split(':')[1];
-
-            if (mimeType == null || base64Content == null) {
-              throw new Error('Invalid data URL format');
-            }
-
-            if (attachment.contentType?.startsWith('image/')) {
-              parts.push({
-                type: 'image',
-                image: convertDataContentToUint8Array(base64Content),
-              });
-            } else if (attachment.contentType?.startsWith('text/')) {
-              parts.push({
-                type: 'text',
-                text: getTextFromDataUrl(attachment.url),
-              });
-            }
-          } catch (error) {
-            throw new Error(`Error processing data URL: ${attachment}`);
-          }
-        }
-
-        default: {
-          throw new Error(`Unsupported URL protocol: ${url.protocol}`);
+    switch (url.protocol) {
+      case 'http:':
+      case 'https:': {
+        if (attachment.contentType?.startsWith('image/')) {
+          parts.push({ type: 'image', image: url });
         }
       }
-    } catch (_ignored) {
-      // not a URL
+
+      case 'data:': {
+        try {
+          const [header, base64Content] = attachment.url.split(',');
+          const mimeType = header.split(';')[0].split(':')[1];
+
+          if (mimeType == null || base64Content == null) {
+            throw new Error('Invalid data URL format');
+          }
+
+          if (attachment.contentType?.startsWith('image/')) {
+            parts.push({
+              type: 'image',
+              image: convertDataContentToUint8Array(base64Content),
+            });
+          } else if (attachment.contentType?.startsWith('text/')) {
+            parts.push({
+              type: 'text',
+              text: getTextFromDataUrl(attachment.url),
+            });
+          }
+        } catch (error) {
+          throw new Error(`Error processing data URL: ${attachment}`);
+        }
+      }
+
+      default: {
+        throw new Error(`Unsupported URL protocol: ${url.protocol}`);
+      }
     }
   }
 
