@@ -43,9 +43,19 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
       switch (chunkType) {
         // forward:
         case 'text-delta':
-        case 'tool-call-delta':
         case 'error': {
           controller.enqueue(chunk);
+          break;
+        }
+
+        // forward with less information:
+        case 'tool-call-delta': {
+          controller.enqueue({
+            type: 'tool-call-delta',
+            toolCallId: chunk.toolCallId,
+            toolName: chunk.toolName,
+            argsTextDelta: chunk.argsTextDelta,
+          });
           break;
         }
 
