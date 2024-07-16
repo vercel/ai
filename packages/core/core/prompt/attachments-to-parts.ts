@@ -1,6 +1,9 @@
-import { Attachment, getTextFromDataUrl } from '@ai-sdk/ui-utils';
+import { Attachment } from '@ai-sdk/ui-utils';
 import { ImagePart, TextPart } from './content-part';
-import { convertDataContentToUint8Array } from './data-content';
+import {
+  convertDataContentToUint8Array,
+  convertUint8ArrayToText,
+} from './data-content';
 
 type ContentPart = TextPart | ImagePart;
 
@@ -47,7 +50,9 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
           } else if (attachment.contentType?.startsWith('text/')) {
             parts.push({
               type: 'text',
-              text: getTextFromDataUrl(attachment.url),
+              text: convertUint8ArrayToText(
+                convertDataContentToUint8Array(base64Content),
+              ),
             });
           }
         } catch (error) {
