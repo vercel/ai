@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.14
+
+### Patch Changes
+
+- 99ddbb74: feat (ai/react): add experimental support for managing attachments to useChat
+
 ## 0.0.13
 
 ### Patch Changes
