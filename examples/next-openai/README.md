@@ -6,7 +6,7 @@ This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) wi
 
 Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=ai-sdk-example):
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fai%2Ftree%2Fmain%2Fexamples%2Fnext-openai&env=OPENAI_API_KEY&envDescription=OpenAI%20API%20Key&envLink=https%3A%2F%2Fplatform.openai.com%2Faccount%2Fapi-keys&project-name=vercel-ai-chat-openai&repository-name=vercel-ai-chat-openai)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/ai/tree/main/examples/next-openai&env=OPENAI_API_KEY,ASSISTANT_ID&envDescription=Learn more about how to get these environment variables&envLink=https://github.com/vercel/ai/blob/main/examples/next-openai/.env.local.example&project-name=ai-sdk-next-openai&repository-name=ai-sdk-next-openai&stores=[{"type":"blob"}])
 
 ## How to use
 
