@@ -158,6 +158,89 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'messages',
       type: 'Message[]',
       description: 'The current array of chat messages.',
+      properties: [
+        {
+          type: 'Message',
+          parameters: [
+            {
+              name: 'id',
+              type: 'string',
+              description: 'The unique identifier of the message.',
+            },
+            {
+              name: 'role',
+              type: "'system' | 'user' | 'assistant' | 'data'",
+              description: 'The role of the message.',
+            },
+            {
+              name: 'content',
+              type: 'string',
+              description: 'The content of the message.',
+            },
+            {
+              name: 'createdAt',
+              type: 'Date',
+              isOptional: true,
+              description: 'The creation date of the message.',
+            },
+            {
+              name: 'name',
+              type: 'string',
+              isOptional: true,
+              description: 'The name of the message.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              isOptional: true,
+              description: 'Additional data sent along with the message.',
+            },
+            {
+              name: 'annotations',
+              type: 'Array<JSONValue>',
+              isOptional: true,
+              description:
+                'Additional annotations sent along with the message.',
+            },
+            {
+              name: 'experimental_attachments',
+              type: 'Array<Attachment>',
+              isOptional: true,
+              description:
+                'Additional attachments sent along with the message.',
+              properties: [
+                {
+                  type: 'Attachment',
+                  description:
+                    'An attachment object that can be used to describe the metadata of the file.',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'The name of the attachment, usually the file name.',
+                    },
+                    {
+                      name: 'contentType',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'A string indicating the media type of the file.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description:
+                        'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'error',
@@ -252,6 +335,47 @@ Allows you to easily create a conversational user interface for your chatbot app
               name: 'data',
               type: 'JSONValue',
               description: 'Additional data to be sent to the API endpoint.',
+            },
+            {
+              name: 'experimental_attachments',
+              type: 'FileList | Array<Attachment>',
+              isOptional: true,
+              description:
+                'An array of attachments to be sent to the API endpoint.',
+              properties: [
+                {
+                  type: 'FileList',
+                  description:
+                    "A list of files that have been selected by the user using an <input type='file'> element. It's also used for a list of files dropped into web content when using the drag and drop API.",
+                },
+                {
+                  type: 'Attachment',
+                  description:
+                    'An attachment object that can be used to describe the metadata of the file.',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'The name of the attachment, usually the file name.',
+                    },
+                    {
+                      name: 'contentType',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'A string indicating the media type of the file.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description:
+                        'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },

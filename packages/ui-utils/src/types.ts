@@ -118,6 +118,27 @@ export type ToolInvocation =
   | CoreToolResult<string, any, any>;
 
 /**
+ * An attachment that can be sent along with a message.
+ */
+export interface Attachment {
+  /**
+   * The name of the attachment, usually the file name.
+   */
+  name?: string;
+
+  /**
+   * A string indicating the [media type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type).
+   * By default, it's extracted from the pathname's extension.
+   */
+  contentType?: string;
+
+  /**
+   * The URL of the attachment. It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
+   */
+  url: string;
+}
+
+/**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
 export interface Message {
@@ -125,6 +146,11 @@ export interface Message {
   createdAt?: Date;
 
   content: string;
+
+  /**
+   * Additional attachments to be sent along with the message.
+   */
+  experimental_attachments?: Attachment[];
 
   /**
    * @deprecated Use AI SDK 3.1 `toolInvocations` instead.
@@ -281,6 +307,11 @@ Additional body JSON properties that should be sent to the API endpoint.
 Additional data to be sent to the API endpoint.
    */
   data?: JSONValue;
+
+  /**
+   * Additional files to be sent to the server.
+   */
+  experimental_attachments?: FileList | Array<Attachment>;
 
   /**
 The options to be passed to the fetch call.

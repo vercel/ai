@@ -1,6 +1,7 @@
 import type {
   ChatRequest,
   ChatRequestOptions,
+  Attachment,
   CreateMessage,
   FetchFunction,
   IdGenerator,
@@ -108,6 +109,7 @@ const getStreamedResponse = async (
         ({
           role,
           content,
+          experimental_attachments,
           name,
           data,
           annotations,
@@ -118,6 +120,9 @@ const getStreamedResponse = async (
         }) => ({
           role,
           content,
+          ...(experimental_attachments !== undefined && {
+            experimental_attachments,
+          }),
           ...(name !== undefined && { name }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
@@ -513,7 +518,7 @@ By default, it's set to 0, which will disable the feature.
   const [input, setInput] = useState(initialInput);
 
   const handleSubmit = useCallback(
-    (
+    async (
       event?: { preventDefault?: () => void },
       options: ChatRequestOptions = {},
       metadata?: Object,
@@ -527,6 +532,44 @@ By default, it's set to 0, which will disable the feature.
 
       event?.preventDefault?.();
 
+      const attachmentsForRequest: Attachment[] = [];
+      const attachmentsFromOptions = options.experimental_attachments;
+
+      if (attachmentsFromOptions) {
+        if (attachmentsFromOptions instanceof FileList) {
+          for (const attachment of Array.from(attachmentsFromOptions)) {
+            const { name, type } = attachment;
+
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = readerEvent => {
+                resolve(readerEvent.target?.result as string);
+              };
+              reader.onerror = error => reject(error);
+              reader.readAsDataURL(attachment);
+            });
+
+            attachmentsForRequest.push({
+              name,
+              contentType: type,
+              url: dataUrl,
+            });
+          }
+        } else if (Array.isArray(attachmentsFromOptions)) {
+          for (const file of attachmentsFromOptions) {
+            const { name, url, contentType } = file;
+
+            attachmentsForRequest.push({
+              name,
+              contentType,
+              url,
+            });
+          }
+        } else {
+          throw new Error('Invalid attachments type');
+        }
+      }
+
       const requestOptions = {
         headers: options.headers ?? options.options?.headers,
         body: options.body ?? options.options?.body,
@@ -538,6 +581,10 @@ By default, it's set to 0, which will disable the feature.
               id: generateId(),
               role: 'user',
               content: input,
+              experimental_attachments:
+                attachmentsForRequest.length > 0
+                  ? attachmentsForRequest
+                  : undefined,
             })
           : messagesRef.current,
         options: requestOptions,

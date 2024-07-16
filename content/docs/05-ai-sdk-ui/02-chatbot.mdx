@@ -349,3 +349,170 @@ export async function POST(req: Request) {
   //...
 }
 ```
+
+## Attachments (Experimental)
+
+The `useChat` hook supports sending attachments along with a message as well as rendering them on the client. This can be useful for building applications that involve sending images, files, or other media content to the AI provider.
+
+> **Note:** Attachments is currently only available for React frameworks.
+
+There are two ways to send attachments with a message, either by providing a `FileList` object or a list of URLs to the `handleSubmit` function:
+
+### FileList
+
+By using `FileList`, you can send multiple files as attachments along with a message using the file input element. The `useChat` hook will automatically convert them into data URLs and send them to the AI provider.
+
+> **Note:** Currently, only `image/*` and `text/*` content types get automatically converted into [multi-modal content parts](https://sdk.vercel.ai/docs/foundations/prompts#multi-modal-messages). You will need to handle other content types manually.
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useChat } from 'ai/react';
+import { useRef, useState } from 'react';
+
+export default function Page() {
+  const { messages, input, handleSubmit, handleInputChange, isLoading } =
+    useChat();
+
+  const [files, setFiles] = useState<FileList | undefined>(undefined);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div>
+      <div>
+        {messages.map(message => (
+          <div key={message.id}>
+            <div>{`${message.role}: `}</div>
+
+            <div>
+              {message.content}
+
+              <div>
+                {message.experimental_attachments
+                  ?.filter(attachment =>
+                    attachment.contentType.startsWith('image/'),
+                  )
+                  .map((attachment, index) => (
+                    <img
+                      key={`${message.id}-${index}`}
+                      src={attachment.url}
+                      alt={attachment.name}
+                    />
+                  ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <form
+        onSubmit={event => {
+          handleSubmit(event, {
+            experimental_attachments: files,
+          });
+
+          setFiles(undefined);
+
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }}
+      >
+        <input
+          type="file"
+          onChange={event => {
+            if (event.target.files) {
+              setFiles(event.target.files);
+            }
+          }}
+          multiple
+          ref={fileInputRef}
+        />
+        <input
+          value={input}
+          placeholder="Send message..."
+          onChange={handleInputChange}
+          disabled={isLoading}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+### URLs
+
+You can also send URLs as attachments along with a message. This can be useful for sending links to external resources or media content.
+
+> **Note:** The URL can also be a data URL, which is a base64-encoded string that represents the content of a file. Currently, only `image/*` content types get automatically converted into [multi-modal content parts](https://sdk.vercel.ai/docs/foundations/prompts#multi-modal-messages). You will need to handle other content types manually.
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useChat } from 'ai/react';
+import { useState } from 'react';
+import { Attachment } from '@ai-sdk/ui-utils';
+
+export default function Page() {
+  const { messages, input, handleSubmit, handleInputChange, isLoading } =
+    useChat();
+
+  const [attachments] = useState<Attachment[]>([
+    {
+      name: 'earth.png',
+      contentType: 'image/png',
+      url: 'https://example.com/earth.png',
+    },
+    {
+      name: 'moon.png',
+      contentType: 'image/png',
+      url: 'data:image/png;base64,iVBORw0KGgo...',
+    },
+  ]);
+
+  return (
+    <div>
+      <div>
+        {messages.map(message => (
+          <div key={message.id}>
+            <div>{`${message.role}: `}</div>
+
+            <div>
+              {message.content}
+
+              <div>
+                {message.experimental_attachments
+                  ?.filter(attachment =>
+                    attachment.contentType?.startsWith('image/'),
+                  )
+                  .map((attachment, index) => (
+                    <img
+                      key={`${message.id}-${index}`}
+                      src={attachment.url}
+                      alt={attachment.name}
+                    />
+                  ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <form
+        onSubmit={event => {
+          handleSubmit(event, {
+            experimental_attachments: attachments,
+          });
+        }}
+      >
+        <input
+          value={input}
+          placeholder="Send message..."
+          onChange={handleInputChange}
+          disabled={isLoading}
+        />
+      </form>
+    </div>
+  );
+}
+```
