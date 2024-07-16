@@ -1,5 +1,11 @@
 # ai
 
+## 3.2.27
+
+### Patch Changes
+
+- 811f4493: fix (ai/core): generateText token usage is sum over all roundtrips
+
 ## 3.2.26
 
 ### Patch Changes
