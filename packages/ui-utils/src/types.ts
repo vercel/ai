@@ -143,9 +143,19 @@ export interface Attachment {
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
 export interface Message {
+  /**
+A unique identifier for the message.
+   */
   id: string;
+
+  /**
+The timestamp of the message.
+   */
   createdAt?: Date;
 
+  /**
+Text content of the message.
+   */
   content: string;
 
   /**
