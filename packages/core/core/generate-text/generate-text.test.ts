@@ -494,6 +494,14 @@ describe('options.maxToolRoundtrips', () => {
       assert.deepStrictEqual(result.toolResults, []);
     });
 
+    it('should sum token usage', () => {
+      assert.deepStrictEqual(result.usage, {
+        completionTokens: 25,
+        promptTokens: 20,
+        totalTokens: 45,
+      });
+    });
+
     it('should return information about all roundtrips', () => {
       assert.deepStrictEqual(result.roundtrips, [
         {

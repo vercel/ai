@@ -165,6 +165,11 @@ By default, it's set to 0, which will disable the feature.
       const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
         [];
       const roundtrips: GenerateTextResult<TOOLS>['roundtrips'] = [];
+      const usage: CompletionTokenUsage = {
+        completionTokens: 0,
+        promptTokens: 0,
+        totalTokens: 0,
+      };
 
       do {
         // once we have a roundtrip, we need to switch to messages format:
@@ -219,13 +224,21 @@ By default, it's set to 0, which will disable the feature.
                 tracer,
               });
 
+        // token usage:
+        const currentUsage = calculateCompletionTokenUsage(
+          currentModelResponse.usage,
+        );
+        usage.completionTokens += currentUsage.completionTokens;
+        usage.promptTokens += currentUsage.promptTokens;
+        usage.totalTokens += currentUsage.totalTokens;
+
         // add roundtrip information:
         roundtrips.push({
           text: currentModelResponse.text ?? '',
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
           finishReason: currentModelResponse.finishReason,
-          usage: calculateCompletionTokenUsage(currentModelResponse.usage),
+          usage: currentUsage,
           warnings: currentModelResponse.warnings,
           logprobs: currentModelResponse.logprobs,
         });
@@ -267,7 +280,7 @@ By default, it's set to 0, which will disable the feature.
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
-        usage: calculateCompletionTokenUsage(currentModelResponse.usage),
+        usage,
         warnings: currentModelResponse.warnings,
         rawResponse: currentModelResponse.rawResponse,
         logprobs: currentModelResponse.logprobs,
