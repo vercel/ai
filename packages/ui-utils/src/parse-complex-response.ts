@@ -126,24 +126,31 @@ export async function parseComplexResponse({
         args: parsePartialJson(partialToolCall.text),
       };
     } else if (type === 'tool_call') {
-      // create message if it doesn't exist
-      if (prefixMap.text == null) {
-        prefixMap.text = {
-          id: generateId(),
-          role: 'assistant',
-          content: '',
-          createdAt,
-        };
-      }
+      if (partialToolCalls[value.toolCallId] != null) {
+        // change the partial tool call to a full tool call
+        prefixMap.text!.toolInvocations![
+          partialToolCalls[value.toolCallId].prefixMapIndex
+        ] = { state: 'call', ...value };
+      } else {
+        // create message if it doesn't exist
+        if (prefixMap.text == null) {
+          prefixMap.text = {
+            id: generateId(),
+            role: 'assistant',
+            content: '',
+            createdAt,
+          };
+        }
 
-      if (prefixMap.text.toolInvocations == null) {
-        prefixMap.text.toolInvocations = [];
-      }
+        if (prefixMap.text.toolInvocations == null) {
+          prefixMap.text.toolInvocations = [];
+        }
 
-      prefixMap.text.toolInvocations.push({
-        state: 'call',
-        ...value,
-      });
+        prefixMap.text.toolInvocations.push({
+          state: 'call',
+          ...value,
+        });
+      }
 
       // invoke the onToolCall callback if it exists. This is blocking.
       // In the future we should make this non-blocking, which
@@ -152,8 +159,8 @@ export async function parseComplexResponse({
         const result = await onToolCall({ toolCall: value });
         if (result != null) {
           // store the result in the tool invocation
-          prefixMap.text.toolInvocations[
-            prefixMap.text.toolInvocations.length - 1
+          prefixMap.text!.toolInvocations![
+            prefixMap.text!.toolInvocations!.length - 1
           ] = { state: 'result', ...value, result };
         }
       }

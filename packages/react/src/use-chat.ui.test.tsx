@@ -521,8 +521,6 @@ describe('tool invocations', () => {
           }),
         );
 
-        // empty ui interaction:
-
         await waitFor(() => {
           rerender(<TestComponent />);
           expect(screen.getByTestId('message-1')).toHaveTextContent(
