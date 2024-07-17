@@ -66,12 +66,58 @@ function createServer({
     controller: () => ReadableStreamDefaultController<string>,
   ) => void;
 }) {
+  // group responses by url
+  const responsesArray = Array.isArray(responses) ? responses : [responses];
+  const responsesByUrl = responsesArray.reduce((responsesByUrl, response) => {
+    if (!responsesByUrl[response.url]) {
+      responsesByUrl[response.url] = [];
+    }
+    responsesByUrl[response.url].push(response);
+    return responsesByUrl;
+  }, {} as Record<string, Array<TestServerResponse>>);
+
+  // create stream/streamController pairs for controlled-stream responses
+  const streams = {} as Record<string, ReadableStream<string>>;
+  responsesArray
+    .filter(
+      (
+        response,
+      ): response is TestServerResponse & { type: 'controlled-stream' } =>
+        response.type === 'controlled-stream',
+    )
+    .forEach(response => {
+      let streamController: ReadableStreamDefaultController<string>;
+
+      const stream = new ReadableStream<string>({
+        start(controller) {
+          streamController = controller;
+        },
+      });
+
+      pushController(response.id ?? '', () => streamController);
+      streams[response.id ?? ''] = stream;
+    });
+
+  // keep track of url invocation counts:
+  const urlInvocationCounts = Object.fromEntries(
+    Object.entries(responsesByUrl).map(([url]) => [url, 0]),
+  );
+
   return setupServer(
-    ...(Array.isArray(responses) ? responses : [responses]).map(response => {
-      switch (response.type) {
-        case 'json-value': {
-          return http.post(response.url, ({ request }) => {
-            pushCall(new TestServerCall(request));
+    ...Object.entries(responsesByUrl).map(([url, responses]) => {
+      return http.post(url, ({ request }) => {
+        pushCall(new TestServerCall(request));
+
+        const invocationCount = urlInvocationCounts[url]++;
+        const response =
+          responses[
+            invocationCount > responses.length
+              ? responses.length - 1
+              : invocationCount
+          ];
+
+        switch (response.type) {
+          case 'json-value':
             return HttpResponse.json(response.content, {
               status: 200,
               headers: {
@@ -79,13 +125,8 @@ function createServer({
                 ...response.headers,
               },
             });
-          });
-        }
 
-        case 'stream-values': {
-          return http.post(response.url, ({ request }) => {
-            pushCall(new TestServerCall(request));
-
+          case 'stream-values':
             return new HttpResponse(
               convertArrayToReadableStream(response.content).pipeThrough(
                 new TextEncoderStream(),
@@ -100,25 +141,10 @@ function createServer({
                 },
               },
             );
-          });
-        }
 
-        case 'controlled-stream': {
-          let streamController: ReadableStreamDefaultController<string>;
-
-          const stream = new ReadableStream<string>({
-            start(controller) {
-              streamController = controller;
-            },
-          });
-
-          pushController(response.id ?? '', () => streamController);
-
-          return http.post(response.url, ({ request }) => {
-            pushCall(new TestServerCall(request));
-
+          case 'controlled-stream': {
             return new HttpResponse(
-              stream.pipeThrough(new TextEncoderStream()),
+              streams[response.id ?? ''].pipeThrough(new TextEncoderStream()),
               {
                 status: 200,
                 headers: {
@@ -129,22 +155,17 @@ function createServer({
                 },
               },
             );
-          });
-        }
+          }
 
-        case 'error': {
-          return http.post(response.url, ({ request }) => {
-            pushCall(new TestServerCall(request));
-
+          case 'error':
             return HttpResponse.text(response.content ?? 'Error', {
               status: response.status,
               headers: {
                 ...response.headers,
               },
             });
-          });
         }
-      }
+      });
     }),
   );
 }
