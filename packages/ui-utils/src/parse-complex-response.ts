@@ -94,7 +94,10 @@ export async function parseComplexResponse({
         prefixMap.text.toolInvocations = [];
       }
 
-      prefixMap.text.toolInvocations.push(value);
+      prefixMap.text.toolInvocations.push({
+        state: 'call',
+        ...value,
+      });
 
       // invoke the onToolCall callback if it exists. This is blocking.
       // In the future we should make this non-blocking, which
@@ -105,7 +108,7 @@ export async function parseComplexResponse({
           // store the result in the tool invocation
           prefixMap.text.toolInvocations[
             prefixMap.text.toolInvocations.length - 1
-          ] = { ...value, result };
+          ] = { state: 'result', ...value, result };
         }
       }
     } else if (type === 'tool_result') {
@@ -129,10 +132,11 @@ export async function parseComplexResponse({
         invocation => invocation.toolCallId === value.toolCallId,
       );
 
+      const result = { state: 'result' as const, ...value };
       if (toolInvocationIndex !== -1) {
-        prefixMap.text.toolInvocations[toolInvocationIndex] = value;
+        prefixMap.text.toolInvocations[toolInvocationIndex] = result;
       } else {
-        prefixMap.text.toolInvocations.push(value);
+        prefixMap.text.toolInvocations.push(result);
       }
     }
 
