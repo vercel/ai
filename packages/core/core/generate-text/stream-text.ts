@@ -601,6 +601,14 @@ Stream callbacks that will be called when the stream emits events.
           case 'text-delta':
             controller.enqueue(formatStreamPart('text', chunk.textDelta));
             break;
+          case 'tool-call-streaming-start':
+            controller.enqueue(
+              formatStreamPart('tool_call_streaming_start', {
+                toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
+              }),
+            );
+            break;
           case 'tool-call':
             controller.enqueue(
               formatStreamPart('tool_call', {

@@ -636,7 +636,7 @@ describe('result.toAIStream', () => {
     ]);
   });
 
-  it('should send tool call and tool result stream parts', async () => {
+  it('should send tool call, tool call stream start, and tool result stream parts', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
@@ -664,6 +664,20 @@ describe('result.toAIStream', () => {
 
           return {
             stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call-1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: '{ "value":',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call-1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: ' "value" }',
+              },
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -696,6 +710,10 @@ describe('result.toAIStream', () => {
         result.toAIStream().pipeThrough(new TextDecoderStream()),
       ),
       [
+        formatStreamPart('tool_call_streaming_start', {
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+        }),
         formatStreamPart('tool_call', {
           toolCallId: 'call-1',
           toolName: 'tool1',
