@@ -175,7 +175,7 @@ describe('result.fullStream', () => {
     );
   });
 
-  it('should not send tool call deltas when toolCallDeltas is disabled', async () => {
+  it('should not send tool call deltas when toolCallStreaming is disabled', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
@@ -283,11 +283,6 @@ describe('result.fullStream', () => {
       await convertAsyncIterableToArray(result.fullStream),
       [
         {
-          type: 'tool-call-streaming-start',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolName: 'test-tool',
-        },
-        {
           type: 'tool-call',
           toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
           toolName: 'test-tool',
@@ -303,9 +298,9 @@ describe('result.fullStream', () => {
     );
   });
 
-  it('should send tool call deltas when toolCallDeltas is enabled', async () => {
+  it('should send tool call deltas when toolCallStreaming is enabled', async () => {
     const result = await streamText({
-      experimental_toolCallDeltas: true,
+      experimental_toolCallStreaming: true,
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
@@ -636,7 +631,7 @@ describe('result.toAIStream', () => {
     ]);
   });
 
-  it('should send tool call, tool call stream start, and tool result stream parts', async () => {
+  it('should send tool call and tool result stream parts', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
@@ -710,10 +705,6 @@ describe('result.toAIStream', () => {
         result.toAIStream().pipeThrough(new TextDecoderStream()),
       ),
       [
-        formatStreamPart('tool_call_streaming_start', {
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-        }),
         formatStreamPart('tool_call', {
           toolCallId: 'call-1',
           toolName: 'tool1',
@@ -796,7 +787,7 @@ describe('result.toAIStream', () => {
         },
       },
       prompt: 'test-input',
-      experimental_toolCallDeltas: true,
+      experimental_toolCallStreaming: true,
     });
 
     assert.deepStrictEqual(

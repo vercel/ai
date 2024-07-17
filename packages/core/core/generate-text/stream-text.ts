@@ -83,7 +83,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
-  experimental_toolCallDeltas: toolCallDeltas = false,
+  experimental_toolCallStreaming: toolCallStreaming = false,
   onFinish,
   ...settings
 }: CallSettings &
@@ -111,7 +111,7 @@ Optional telemetry configuration (experimental).
     /**
 Enable optional streaming of tool call deltas as they are generated (default: false).
      */
-    experimental_toolCallDeltas?: boolean;
+    experimental_toolCallStreaming?: boolean;
 
     /**
 Callback that is called when the LLM response and all request tool executions 
@@ -218,7 +218,7 @@ Warnings from the model provider (e.g. unsupported settings).
         stream: runToolsTransformation({
           tools,
           generatorStream: stream,
-          toolCallDeltas: toolCallDeltas,
+          toolCallStreaming,
           tracer,
         }),
         warnings,
