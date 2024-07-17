@@ -1,4 +1,5 @@
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
+import { parsePartialJson } from './parse-partial-json';
 import { readDataStream } from './read-data-stream';
 import type {
   FunctionCall,
@@ -58,6 +59,12 @@ export async function parseComplexResponse({
   // keep list of current message annotations for message
   let message_annotations: JSONValue[] | undefined = undefined;
 
+  // keep track of partial tool calls
+  const partialToolCalls: Record<
+    string,
+    { text: string; prefixMapIndex: number; toolName: string }
+  > = {};
+
   // we create a map of each prefix, and for each prefixed message we push to the map
   for await (const { type, value } of readDataStream(reader, {
     isAborted: () => abortControllerRef?.current === null,
@@ -79,7 +86,46 @@ export async function parseComplexResponse({
     }
 
     // Tool invocations are part of an assistant message
-    if (type === 'tool_call') {
+    if (type === 'tool_call_streaming_start') {
+      // create message if it doesn't exist
+      if (prefixMap.text == null) {
+        prefixMap.text = {
+          id: generateId(),
+          role: 'assistant',
+          content: '',
+          createdAt,
+        };
+      }
+
+      if (prefixMap.text.toolInvocations == null) {
+        prefixMap.text.toolInvocations = [];
+      }
+
+      // add the partial tool call to the map
+      partialToolCalls[value.toolCallId] = {
+        text: '',
+        toolName: value.toolName,
+        prefixMapIndex: prefixMap.text.toolInvocations.length,
+      };
+
+      prefixMap.text.toolInvocations.push({
+        state: 'partial-call',
+        toolCallId: value.toolCallId,
+        toolName: value.toolName,
+        args: undefined,
+      });
+    } else if (type === 'tool_call_delta') {
+      const partialToolCall = partialToolCalls[value.toolCallId];
+
+      partialToolCall.text += value.argsTextDelta;
+
+      prefixMap.text!.toolInvocations![partialToolCall.prefixMapIndex] = {
+        state: 'partial-call',
+        toolCallId: value.toolCallId,
+        toolName: partialToolCall.toolName,
+        args: parsePartialJson(partialToolCall.text),
+      };
+    } else if (type === 'tool_call') {
       // create message if it doesn't exist
       if (prefixMap.text == null) {
         prefixMap.text = {

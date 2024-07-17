@@ -3,6 +3,7 @@ import { withTestServer } from '@ai-sdk/provider-utils/test';
 import { formatStreamPart, getTextFromDataUrl } from '@ai-sdk/ui-utils';
 import '@testing-library/jest-dom/vitest';
 import {
+  RenderResult,
   cleanup,
   findByText,
   render,
@@ -454,6 +455,8 @@ describe('onToolCall', () => {
 });
 
 describe('tool invocations', () => {
+  let rerender: RenderResult['rerender'];
+
   const TestComponent = () => {
     const { messages, append } = useChat();
 
@@ -461,11 +464,13 @@ describe('tool invocations', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.toolInvocations?.map((toolInvocation, toolIdx) => (
-              <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
-                {JSON.stringify(toolInvocation)}
-              </div>
-            ))}
+            {m.toolInvocations?.map((toolInvocation, toolIdx) => {
+              return (
+                <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
+                  {JSON.stringify(toolInvocation)}
+                </div>
+              );
+            })}
           </div>
         ))}
 
@@ -480,7 +485,8 @@ describe('tool invocations', () => {
   };
 
   beforeEach(() => {
-    render(<TestComponent />);
+    const result = render(<TestComponent />);
+    rerender = result.rerender;
   });
 
   afterEach(() => {
@@ -489,7 +495,91 @@ describe('tool invocations', () => {
   });
 
   it(
-    'should first display tool call and then tool result',
+    'should display partial tool call, tool call, and tool result',
+    withTestServer(
+      { url: '/api/chat', type: 'controlled-stream' },
+      async ({ streamController }) => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        streamController.enqueue(
+          formatStreamPart('tool_call_streaming_start', {
+            toolCallId: 'tool-call-0',
+            toolName: 'test-tool',
+          }),
+        );
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool"}',
+          );
+        });
+
+        streamController.enqueue(
+          formatStreamPart('tool_call_delta', {
+            toolCallId: 'tool-call-0',
+            argsTextDelta: '{"testArg":"t',
+          }),
+        );
+
+        // empty ui interaction:
+
+        await waitFor(() => {
+          rerender(<TestComponent />);
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
+          );
+        });
+
+        streamController.enqueue(
+          formatStreamPart('tool_call_delta', {
+            toolCallId: 'tool-call-0',
+            argsTextDelta: 'est-value"}}',
+          }),
+        );
+
+        await waitFor(() => {
+          rerender(<TestComponent />);
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+          );
+        });
+
+        streamController.enqueue(
+          formatStreamPart('tool_call', {
+            toolCallId: 'tool-call-0',
+            toolName: 'test-tool',
+            args: { testArg: 'test-value' },
+          }),
+        );
+
+        await waitFor(() => {
+          rerender(<TestComponent />);
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+          );
+        });
+
+        streamController.enqueue(
+          formatStreamPart('tool_result', {
+            toolCallId: 'tool-call-0',
+            toolName: 'test-tool',
+            args: { testArg: 'test-value' },
+            result: 'test-result',
+          }),
+        );
+        streamController.close();
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+          );
+        });
+      },
+    ),
+  );
+
+  it(
+    'should display partial tool call and tool result (when there is no tool call streaming)',
     withTestServer(
       { url: '/api/chat', type: 'controlled-stream' },
       async ({ streamController }) => {

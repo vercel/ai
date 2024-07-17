@@ -114,8 +114,9 @@ there is one tool invocation. While the call is in progress, the invocation is a
 Once the call is complete, the invocation is a tool result.
  */
 export type ToolInvocation =
-  | (CoreToolCall<string, any> & { state: 'call' })
-  | (CoreToolResult<string, any, any> & { state: 'result' });
+  | ({ state: 'partial-call' } & CoreToolCall<string, any>)
+  | ({ state: 'call' } & CoreToolCall<string, any>)
+  | ({ state: 'result' } & CoreToolResult<string, any, any>);
 
 /**
  * An attachment that can be sent along with a message.
