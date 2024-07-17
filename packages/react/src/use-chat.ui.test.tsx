@@ -2,7 +2,13 @@
 import { withTestServer } from '@ai-sdk/provider-utils/test';
 import { formatStreamPart, getTextFromDataUrl } from '@ai-sdk/ui-utils';
 import '@testing-library/jest-dom/vitest';
-import { cleanup, findByText, render, screen } from '@testing-library/react';
+import {
+  cleanup,
+  findByText,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useRef, useState } from 'react';
 import { useChat } from './use-chat';
@@ -442,6 +448,82 @@ describe('onToolCall', () => {
         expect(screen.getByTestId('message-1')).toHaveTextContent(
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
         );
+      },
+    ),
+  );
+});
+
+describe('tool invocations', () => {
+  const TestComponent = () => {
+    const { messages, append } = useChat();
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.toolInvocations?.map((toolInvocation, toolIdx) => (
+              <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
+                {JSON.stringify(toolInvocation)}
+              </div>
+            ))}
+          </div>
+        ))}
+
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append({ role: 'user', content: 'hi' });
+          }}
+        />
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it(
+    'should first display tool call and then tool result',
+    withTestServer(
+      { url: '/api/chat', type: 'controlled-stream' },
+      async ({ streamController }) => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        streamController.enqueue(
+          formatStreamPart('tool_call', {
+            toolCallId: 'tool-call-0',
+            toolName: 'test-tool',
+            args: { testArg: 'test-value' },
+          }),
+        );
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+          );
+        });
+
+        streamController.enqueue(
+          formatStreamPart('tool_result', {
+            toolCallId: 'tool-call-0',
+            toolName: 'test-tool',
+            args: { testArg: 'test-value' },
+            result: 'test-result',
+          }),
+        );
+        streamController.close();
+
+        await waitFor(() => {
+          expect(screen.getByTestId('message-1')).toHaveTextContent(
+            '{"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+          );
+        });
       },
     ),
   );
