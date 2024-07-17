@@ -85,7 +85,9 @@ Replace `xxxxxxxxx` with your actual OpenAI API key.
 </Note>
 
 ## Implementation Plan
+
 To build a multi-modal chatbot, you will need to:
+
 - Create a Route Handler to handle incoming chat messages and generate responses.
 - Wire up the UI to display chat messages, provide a user input, and handle submitting new messages.
 - Add the ability to upload images and attach them alongside the chat messages.
@@ -124,7 +126,7 @@ This Route Handler creates a POST request endpoint at `/api/chat`.
 
 ## Wire up the UI
 
-Now that you have a Route Handler that can query a large language model (LLM), it's time to setup your frontend. [ AI SDK  UI ](/docs/ai-sdk-ui) abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
+Now that you have a Route Handler that can query a large language model (LLM), it's time to setup your frontend. [ AI SDK UI ](/docs/ai-sdk-ui) abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
 
 Update your root page (`app/page.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
@@ -144,7 +146,10 @@ export default function Chat() {
         </div>
       ))}
 
-      <form onSubmit={handleSubmit} className='fixed bottom-0 w-full max-w-md mb-8 border border-gray-300 rounded shadow-xl'>
+      <form
+        onSubmit={handleSubmit}
+        className="fixed bottom-0 w-full max-w-md mb-8 border border-gray-300 rounded shadow-xl"
+      >
         <input
           className="w-full p-2"
           value={input}
@@ -170,15 +175,16 @@ This page utilizes the `useChat` hook, which will, by default, use the `POST` AP
 - `isLoading` - boolean that indicates whether the API request is in progress.
 
 ## Add Image Upload
+
 To make your chatbot multi-modal, let's add the ability to upload and send images to the model. There are two ways to send attachments alongside a message with the `useChat` hook: by [ providing a `FileList` object ](/docs/ai-sdk-ui/chatbot#filelist) or a [ list of URLs ](/docs/ai-sdk-ui/chatbot#urls) to the `handleSubmit` function. In this guide, you will be using the `FileList` approach as it does not require any additional setup.
 
 Update your root page (`app/page.tsx`) to with the following code:
 
 ```tsx filename="app/page.tsx" highlight="4,9-10,18-31,37-47,49-59"
-"use client";
+'use client';
 
-import { useChat } from "ai/react";
-import { useRef, useState } from "react";
+import { useChat } from 'ai/react';
+import { useRef, useState } from 'react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -188,14 +194,14 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map((m) => (
+      {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === "user" ? "User: " : "AI: "}
+          {m.role === 'user' ? 'User: ' : 'AI: '}
           {m.content}
           <div>
             {m?.experimental_attachments
-              ?.filter((attachment) =>
-                attachment?.contentType?.startsWith("image/"),
+              ?.filter(attachment =>
+                attachment?.contentType?.startsWith('image/'),
               )
               .map((attachment, index) => (
                 <img
@@ -211,7 +217,7 @@ export default function Chat() {
 
       <form
         className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl space-y-2"
-        onSubmit={(event) => {
+        onSubmit={event => {
           handleSubmit(event, {
             experimental_attachments: files,
           });
@@ -219,14 +225,14 @@ export default function Chat() {
           setFiles(undefined);
 
           if (fileInputRef.current) {
-            fileInputRef.current.value = "";
+            fileInputRef.current.value = '';
           }
         }}
       >
         <input
           type="file"
           className=""
-          onChange={(event) => {
+          onChange={event => {
             if (event.target.files) {
               setFiles(event.target.files);
             }
@@ -245,11 +251,13 @@ export default function Chat() {
   );
 }
 ```
+
 In this code, you:
-  1. Create state to hold the files and create a ref to the file input field
-  2. Display the "uploaded" files in the UI
-  3. Update the `onSubmit` function, to call the `handleSubmit` function manually, passing the the files as an option using the `experimental_attachments` key
-  4. Add a file input field to the form, including an `onChange` handler to handle updating the files state
+
+1. Create state to hold the files and create a ref to the file input field
+2. Display the "uploaded" files in the UI
+3. Update the `onSubmit` function, to call the `handleSubmit` function manually, passing the the files as an option using the `experimental_attachments` key
+4. Add a file input field to the form, including an `onChange` handler to handle updating the files state
 
 ## Running Your Application
 
@@ -257,9 +265,9 @@ With that, you have built everything you need for your multi-modal chatbot! To s
 
 <Snippet text="pnpm run dev" />
 
-Head to your browser and open http://localhost:3000. You should see an input field and a button to upload an image. 
+Head to your browser and open http://localhost:3000. You should see an input field and a button to upload an image.
 
-Upload a file and ask the model to describe what it sees. Watch as the model's response is streamed back to you! 
+Upload a file and ask the model to describe what it sees. Watch as the model's response is streamed back to you!
 
 ## Where to Next?
 
