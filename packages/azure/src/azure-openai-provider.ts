@@ -57,9 +57,20 @@ Creates an Azure OpenAI model for text embeddings.
 
 export interface AzureOpenAIProviderSettings {
   /**
-Name of the Azure OpenAI resource.
+Name of the Azure OpenAI resource. Either this or `baseURL` can be used.
      */
   resourceName?: string;
+
+  /**
+Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
+The default prefix is ``https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}?api-version=2024-05-01-preview``.
+   */
+  baseURL?: string;
+
+  /**
+Use API version. The default API version is ``2024-05-01-preview``.
+   */
+  apiVersion?: string;
 
   /**
 API key for authenticating requests.
@@ -101,8 +112,37 @@ export function createAzure(
       description: 'Azure OpenAI resource name',
     });
 
+  const checkIfBaseUrlIsProvided = () =>
+    loadSetting({
+      settingValue: options.baseURL,
+      settingName: 'baseURL',
+      environmentVariableName: 'AZURE_BASE_URL',
+      description: 'Azure OpenAI base URL',
+      defaultValue: undefined,
+      failOnMissing: false,
+    });
+
+  const getBaseUrl = () =>
+    loadSetting({
+      settingValue: options.baseURL,
+      settingName: 'baseURL',
+      environmentVariableName: 'AZURE_BASE_URL',
+      description: 'Azure OpenAI base URL',
+    });
+
+  const getApiVersion = () =>
+    loadSetting({
+      settingValue: options.apiVersion,
+      settingName: 'apiVersion',
+      environmentVariableName: 'AZURE_API_VERSION',
+      description: 'Azure OpenAI API version',
+      defaultValue: '2024-05-01-preview',
+    });
+
   const url = ({ path, modelId }: { path: string; modelId: string }) =>
-    `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-05-01-preview`;
+    checkIfBaseUrlIsProvided()
+      ? `${getBaseUrl()}/${modelId}${path}?api-version=${getApiVersion()}`
+      : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=${getApiVersion()}`;
 
   const createChatModel = (
     deploymentName: string,
