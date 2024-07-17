@@ -264,11 +264,18 @@ describe('form actions', () => {
   it(
     'should show streamed response using handleSubmit',
     withTestServer(
-      {
-        url: '/api/chat',
-        type: 'stream-values',
-        content: ['Hello', ',', ' world', '.'],
-      },
+      [
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: ['Hello', ',', ' world', '.'],
+        },
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: ['How', ' can', ' I', ' help', ' you', '?'],
+        },
+      ],
       async () => {
         const firstInput = screen.getByTestId('do-input');
         await userEvent.type(firstInput, 'hi');
@@ -281,11 +288,6 @@ describe('form actions', () => {
         expect(screen.getByTestId('message-1')).toHaveTextContent(
           'AI: Hello, world.',
         );
-
-        mockFetchDataStream({
-          url: 'https://example.com/api/chat',
-          chunks: ['How', ' can', ' I', ' help', ' you', '?'],
-        });
 
         const secondInput = screen.getByTestId('do-input');
         await userEvent.type(secondInput, '{Enter}');
@@ -354,7 +356,7 @@ describe('prepareRequestBody', () => {
         type: 'stream-values',
         content: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
       },
-      async () => {
+      async ({ call }) => {
         await userEvent.click(screen.getByTestId('do-append'));
 
         await screen.findByTestId('message-0');
@@ -365,6 +367,8 @@ describe('prepareRequestBody', () => {
           requestData: { 'test-data-key': 'test-data-value' },
           requestBody: { 'request-body-key': 'request-body-value' },
         });
+
+        expect(await call(0).getRequestBodyJson()).toBe('test-request-body');
 
         await screen.findByTestId('message-1');
         expect(screen.getByTestId('message-1')).toHaveTextContent(
