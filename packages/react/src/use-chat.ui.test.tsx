@@ -1,7 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { withTestServer } from '@ai-sdk/provider-utils/test';
 import { formatStreamPart, getTextFromDataUrl } from '@ai-sdk/ui-utils';
-import { mockFetchDataStream } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import { cleanup, findByText, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -450,13 +449,12 @@ describe('onToolCall', () => {
 
 describe('maxToolRoundtrips', () => {
   describe('single automatic tool roundtrip', () => {
+    let onToolCallInvoked = false;
+
     const TestComponent = () => {
       const { messages, append } = useChat({
         async onToolCall({ toolCall }) {
-          mockFetchDataStream({
-            url: 'https://example.com/api/chat',
-            chunks: [formatStreamPart('text', 'final result')],
-          });
+          onToolCallInvoked = true;
 
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
@@ -485,6 +483,7 @@ describe('maxToolRoundtrips', () => {
 
     beforeEach(() => {
       render(<TestComponent />);
+      onToolCallInvoked = false;
     });
 
     afterEach(() => {
@@ -495,19 +494,28 @@ describe('maxToolRoundtrips', () => {
     it(
       'should automatically call api when tool call gets executed via onToolCall',
       withTestServer(
-        {
-          url: '/api/chat',
-          type: 'stream-values',
-          content: [
-            formatStreamPart('tool_call', {
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            }),
-          ],
-        },
+        [
+          {
+            url: '/api/chat',
+            type: 'stream-values',
+            content: [
+              formatStreamPart('tool_call', {
+                toolCallId: 'tool-call-0',
+                toolName: 'test-tool',
+                args: { testArg: 'test-value' },
+              }),
+            ],
+          },
+          {
+            url: '/api/chat',
+            type: 'stream-values',
+            content: [formatStreamPart('text', 'final result')],
+          },
+        ],
         async () => {
           await userEvent.click(screen.getByTestId('do-append'));
+
+          expect(onToolCallInvoked).toBe(true);
 
           await screen.findByTestId('message-2');
           expect(screen.getByTestId('message-2')).toHaveTextContent(
@@ -519,15 +527,12 @@ describe('maxToolRoundtrips', () => {
   });
 
   describe('single roundtrip with error response', () => {
+    let onToolCallCounter = 0;
+
     const TestComponent = () => {
       const { messages, append, error } = useChat({
         async onToolCall({ toolCall }) {
-          mockFetchDataStream({
-            url: 'https://example.com/api/chat',
-            chunks: [formatStreamPart('error', 'some failure')],
-            maxCalls: 1,
-          });
-
+          onToolCallCounter++;
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
@@ -563,6 +568,7 @@ describe('maxToolRoundtrips', () => {
 
     beforeEach(() => {
       render(<TestComponent />);
+      onToolCallCounter = 0;
     });
 
     afterEach(() => {
@@ -570,32 +576,47 @@ describe('maxToolRoundtrips', () => {
       cleanup();
     });
 
-    it('should automatically call api when tool call gets executed via onToolCall', async () => {
-      mockFetchDataStream({
-        url: 'https://example.com/api/chat',
-        chunks: [
-          formatStreamPart('tool_call', {
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-          }),
+    it(
+      'should automatically call api when tool call gets executed via onToolCall',
+      withTestServer(
+        [
+          {
+            url: '/api/chat',
+            type: 'stream-values',
+            content: [
+              formatStreamPart('tool_call', {
+                toolCallId: 'tool-call-0',
+                toolName: 'test-tool',
+                args: { testArg: 'test-value' },
+              }),
+            ],
+          },
+          {
+            url: '/api/chat',
+            type: 'error',
+            status: 400,
+            content: 'call failure',
+          },
         ],
-      });
+        async () => {
+          await userEvent.click(screen.getByTestId('do-append'));
 
-      await userEvent.click(screen.getByTestId('do-append'));
+          await screen.findByTestId('error');
+          expect(screen.getByTestId('error')).toHaveTextContent(
+            'Error: call failure',
+          );
 
-      await screen.findByTestId('error');
-      expect(screen.getByTestId('error')).toHaveTextContent(
-        'Error: Too many calls',
-      );
-    });
+          expect(onToolCallCounter).toBe(1);
+        },
+      ),
+    );
   });
 });
 
 describe('file attachments with data url', () => {
   const TestComponent = () => {
     const { messages, handleSubmit, handleInputChange, isLoading, input } =
-      useChat({ api: '/api/stream-chat' });
+      useChat();
 
     const [attachments, setAttachments] = useState<FileList | undefined>(
       undefined,
@@ -675,102 +696,124 @@ describe('file attachments with data url', () => {
     cleanup();
   });
 
-  it('should handle text file attachment and submission', async () => {
-    const file = new File(['test file content'], 'test.txt', {
-      type: 'text/plain',
-    });
+  it(
+    'should handle text file attachment and submission',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Response to message with text attachment"\n'],
+      },
+      async ({ call }) => {
+        const file = new File(['test file content'], 'test.txt', {
+          type: 'text/plain',
+        });
 
-    const { requestBody } = mockFetchDataStream({
-      url: '/api/stream-chat',
-      chunks: ['0:"Response to message with text attachment"\n'],
-    });
+        const fileInput = screen.getByTestId('file-input');
+        await userEvent.upload(fileInput, file);
 
-    const fileInput = screen.getByTestId('file-input');
-    await userEvent.upload(fileInput, file);
+        const messageInput = screen.getByTestId('message-input');
+        await userEvent.type(messageInput, 'Message with text attachment');
 
-    const messageInput = screen.getByTestId('message-input');
-    await userEvent.type(messageInput, 'Message with text attachment');
+        const submitButton = screen.getByTestId('submit-button');
+        await userEvent.click(submitButton);
 
-    const submitButton = screen.getByTestId('submit-button');
-    await userEvent.click(submitButton);
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          messages: [
+            {
+              role: 'user',
+              content: 'Message with text attachment',
+              experimental_attachments: [
+                {
+                  name: 'test.txt',
+                  contentType: 'text/plain',
+                  url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
+                },
+              ],
+            },
+          ],
+        });
 
-    const sentBody = JSON.parse((await requestBody) as string);
-    expect(sentBody.messages[0].content).toBe('Message with text attachment');
-    expect(sentBody.messages[0].experimental_attachments).toBeDefined();
-    expect(sentBody.messages[0].experimental_attachments.length).toBe(1);
-    expect(sentBody.messages[0].experimental_attachments[0].name).toBe(
-      'test.txt',
-    );
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent(
+          'User: Message with text attachment',
+        );
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with text attachment',
-    );
+        await screen.findByTestId('attachment-0');
+        expect(screen.getByTestId('attachment-0')).toHaveTextContent(
+          'test file content',
+        );
 
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveTextContent(
-      'test file content',
-    );
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: Response to message with text attachment',
+        );
+      },
+    ),
+  );
 
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response to message with text attachment',
-    );
-  });
+  it(
+    'should handle image file attachment and submission',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Response to message with image attachment"\n'],
+      },
+      async ({ call }) => {
+        const file = new File(['test image content'], 'test.png', {
+          type: 'image/png',
+        });
 
-  // image file
+        const fileInput = screen.getByTestId('file-input');
+        await userEvent.upload(fileInput, file);
 
-  it('should handle image file attachment and submission', async () => {
-    const file = new File(['test image content'], 'test.png', {
-      type: 'image/png',
-    });
+        const messageInput = screen.getByTestId('message-input');
+        await userEvent.type(messageInput, 'Message with image attachment');
 
-    const { requestBody } = mockFetchDataStream({
-      url: '/api/stream-chat',
-      chunks: ['0:"Response to message with image attachment"\n'],
-    });
+        const submitButton = screen.getByTestId('submit-button');
+        await userEvent.click(submitButton);
 
-    const fileInput = screen.getByTestId('file-input');
-    await userEvent.upload(fileInput, file);
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          messages: [
+            {
+              role: 'user',
+              content: 'Message with image attachment',
+              experimental_attachments: [
+                {
+                  name: 'test.png',
+                  contentType: 'image/png',
+                  url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
+                },
+              ],
+            },
+          ],
+        });
 
-    const messageInput = screen.getByTestId('message-input');
-    await userEvent.type(messageInput, 'Message with image attachment');
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent(
+          'User: Message with image attachment',
+        );
 
-    const submitButton = screen.getByTestId('submit-button');
-    await userEvent.click(submitButton);
+        await screen.findByTestId('attachment-0');
+        expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+          'src',
+          expect.stringContaining('data:image/png;base64'),
+        );
 
-    const sentBody = JSON.parse((await requestBody) as string);
-    expect(sentBody.messages[0].content).toBe('Message with image attachment');
-    expect(sentBody.messages[0].experimental_attachments).toBeDefined();
-    expect(sentBody.messages[0].experimental_attachments.length).toBe(1);
-    expect(sentBody.messages[0].experimental_attachments[0].name).toBe(
-      'test.png',
-    );
-
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with image attachment',
-    );
-
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-      'src',
-      expect.stringContaining('data:image/png;base64'),
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response to message with image attachment',
-    );
-  });
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: Response to message with image attachment',
+        );
+      },
+    ),
+  );
 });
 
 describe('file attachments with url', () => {
   const TestComponent = () => {
     const { messages, handleSubmit, handleInputChange, isLoading, input } =
-      useChat({
-        api: '/api/stream-chat',
-      });
+      useChat();
 
     return (
       <div>
@@ -839,40 +882,53 @@ describe('file attachments with url', () => {
     cleanup();
   });
 
-  it('should handle image file attachment and submission', async () => {
-    const { requestBody } = mockFetchDataStream({
-      url: '/api/stream-chat',
-      chunks: ['0:"Response to message with image attachment"\n'],
-    });
+  it(
+    'should handle image file attachment and submission',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Response to message with image attachment"\n'],
+      },
+      async ({ call }) => {
+        const messageInput = screen.getByTestId('message-input');
+        await userEvent.type(messageInput, 'Message with image attachment');
 
-    const messageInput = screen.getByTestId('message-input');
-    await userEvent.type(messageInput, 'Message with image attachment');
+        const submitButton = screen.getByTestId('submit-button');
+        await userEvent.click(submitButton);
 
-    const submitButton = screen.getByTestId('submit-button');
-    await userEvent.click(submitButton);
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          messages: [
+            {
+              role: 'user',
+              content: 'Message with image attachment',
+              experimental_attachments: [
+                {
+                  name: 'test.png',
+                  contentType: 'image/png',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            },
+          ],
+        });
 
-    const sentBody = JSON.parse((await requestBody) as string);
-    expect(sentBody.messages[0].content).toBe('Message with image attachment');
-    expect(sentBody.messages[0].experimental_attachments).toBeDefined();
-    expect(sentBody.messages[0].experimental_attachments.length).toBe(1);
-    expect(sentBody.messages[0].experimental_attachments[0].name).toBe(
-      'test.png',
-    );
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent(
+          'User: Message with image attachment',
+        );
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with image attachment',
-    );
+        await screen.findByTestId('attachment-0');
+        expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+          'src',
+          expect.stringContaining('https://example.com/image.png'),
+        );
 
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-      'src',
-      expect.stringContaining('https://example.com/image.png'),
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response to message with image attachment',
-    );
-  });
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: Response to message with image attachment',
+        );
+      },
+    ),
+  );
 });
