@@ -109,7 +109,7 @@ Optional telemetry configuration (experimental).
     experimental_telemetry?: TelemetrySettings;
 
     /**
-Enable optional streaming of tool call deltas as they are generated (default: false).
+Enable streaming of tool call deltas as they are generated. Disabled by default.
      */
     experimental_toolCallStreaming?: boolean;
 
