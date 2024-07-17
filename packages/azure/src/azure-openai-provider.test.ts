@@ -16,9 +16,9 @@ const provider = createAzure({
 
 describe('chat', () => {
   describe('doGenerate', () => {
-    const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions',
-    );
+    const serverUrl =
+      'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions';
+    const server = new JsonTestServer(serverUrl);
 
     server.setupTestEnvironment();
 
@@ -62,6 +62,25 @@ describe('chat', () => {
       );
     });
 
+    it('should update the api version correctly', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        apiVersion: '2024-05-01-preview',
+        apiKey: 'test-api-key',
+      });
+
+      await provider('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const searchParams = await server.getRequestUrlSearchParams();
+      expect(searchParams.get('api-version')).toStrictEqual('2024-05-01');
+    });
+
     it('should pass headers', async () => {
       prepareJsonResponse();
 
@@ -90,6 +109,26 @@ describe('chat', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+    });
+
+    it('should use the baseURL correctly', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        baseURL: 'https://test-resource.openai.azure.com/openai/deployments',
+        apiKey: 'test-api-key',
+      });
+
+      await provider('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const requestUrl = await server.getRequestUrl();
+      expect(requestUrl).toStrictEqual(
+        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-05-01-preview',
+      );
     });
   });
 });

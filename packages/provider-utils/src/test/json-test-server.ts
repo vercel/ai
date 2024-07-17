@@ -49,6 +49,11 @@ export class JsonTestServer {
     return new URL(this.request!.url).searchParams;
   }
 
+  async getRequestUrl() {
+    expect(this.request).toBeDefined();
+    return new URL(this.request!.url).toString();
+  }
+
   setupTestEnvironment() {
     beforeAll(() => this.server.listen());
     beforeEach(() => {
