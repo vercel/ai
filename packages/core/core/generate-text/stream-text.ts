@@ -597,7 +597,8 @@ Stream callbacks that will be called when the stream emits events.
       string
     >({
       transform: async (chunk, controller) => {
-        switch (chunk.type) {
+        const chunkType = chunk.type;
+        switch (chunkType) {
           case 'text-delta':
             controller.enqueue(formatStreamPart('text', chunk.textDelta));
             break;
@@ -606,6 +607,14 @@ Stream callbacks that will be called when the stream emits events.
               formatStreamPart('tool_call_streaming_start', {
                 toolCallId: chunk.toolCallId,
                 toolName: chunk.toolName,
+              }),
+            );
+            break;
+          case 'tool-call-delta':
+            controller.enqueue(
+              formatStreamPart('tool_call_delta', {
+                toolCallId: chunk.toolCallId,
+                argsTextDelta: chunk.argsTextDelta,
               }),
             );
             break;
@@ -633,6 +642,12 @@ Stream callbacks that will be called when the stream emits events.
               formatStreamPart('error', JSON.stringify(chunk.error)),
             );
             break;
+          case 'finish':
+            break; // ignored
+          default: {
+            const exhaustiveCheck: never = chunkType;
+            throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+          }
         }
       },
     });
