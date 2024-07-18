@@ -175,6 +175,300 @@ describe('result.fullStream', () => {
     );
   });
 
+  it('should not send tool call deltas when toolCallStreaming is disabled', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: [
+              {
+                type: 'function',
+                name: 'test-tool',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
+                },
+              },
+            ],
+            toolChoice: { type: 'required' },
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: '{"',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: 'value',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: '":"',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: 'Spark',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: 'le',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: ' Day',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: '"}',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                args: '{"value":"Sparkle Day"}',
+              },
+              {
+                type: 'finish',
+                finishReason: 'tool-calls',
+                logprobs: undefined,
+                usage: { promptTokens: 53, completionTokens: 17 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      tools: {
+        'test-tool': {
+          parameters: z.object({ value: z.string() }),
+        },
+      },
+      toolChoice: 'required',
+      prompt: 'test-input',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.fullStream),
+      [
+        {
+          type: 'tool-call',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolName: 'test-tool',
+          args: { value: 'Sparkle Day' },
+        },
+        {
+          type: 'finish',
+          finishReason: 'tool-calls',
+          logprobs: undefined,
+          usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
+        },
+      ],
+    );
+  });
+
+  it('should send tool call deltas when toolCallStreaming is enabled', async () => {
+    const result = await streamText({
+      experimental_toolCallStreaming: true,
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: [
+              {
+                type: 'function',
+                name: 'test-tool',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
+                },
+              },
+            ],
+            toolChoice: { type: 'required' },
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: '{"',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: 'value',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: '":"',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: 'Spark',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: 'le',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: ' Day',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: '"}',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                args: '{"value":"Sparkle Day"}',
+              },
+              {
+                type: 'finish',
+                finishReason: 'tool-calls',
+                logprobs: undefined,
+                usage: { promptTokens: 53, completionTokens: 17 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      tools: {
+        'test-tool': {
+          parameters: z.object({ value: z.string() }),
+        },
+      },
+      toolChoice: 'required',
+      prompt: 'test-input',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.fullStream),
+      [
+        {
+          type: 'tool-call-streaming-start',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolName: 'test-tool',
+        },
+        {
+          type: 'tool-call-delta',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolName: 'test-tool',
+          argsTextDelta: '{"',
+        },
+        {
+          type: 'tool-call-delta',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolName: 'test-tool',
+          argsTextDelta: 'value',
+        },
+        {
+          type: 'tool-call-delta',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolName: 'test-tool',
+          argsTextDelta: '":"',
+        },
+        {
+          type: 'tool-call-delta',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolName: 'test-tool',
+          argsTextDelta: 'Spark',
+        },
+        {
+          type: 'tool-call-delta',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolName: 'test-tool',
+          argsTextDelta: 'le',
+        },
+        {
+          type: 'tool-call-delta',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolName: 'test-tool',
+          argsTextDelta: ' Day',
+        },
+        {
+          type: 'tool-call-delta',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolName: 'test-tool',
+          argsTextDelta: '"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          toolName: 'test-tool',
+          args: { value: 'Sparkle Day' },
+        },
+        {
+          type: 'finish',
+          finishReason: 'tool-calls',
+          logprobs: undefined,
+          usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
+        },
+      ],
+    );
+  });
+
   it('should send tool results', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
@@ -366,6 +660,20 @@ describe('result.toAIStream', () => {
           return {
             stream: convertArrayToReadableStream([
               {
+                type: 'tool-call-delta',
+                toolCallId: 'call-1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: '{ "value":',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call-1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: ' "value" }',
+              },
+              {
                 type: 'tool-call',
                 toolCallType: 'function',
                 toolCallId: 'call-1',
@@ -397,6 +705,108 @@ describe('result.toAIStream', () => {
         result.toAIStream().pipeThrough(new TextDecoderStream()),
       ),
       [
+        formatStreamPart('tool_call', {
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          args: { value: 'value' },
+        }),
+        formatStreamPart('tool_result', {
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          args: { value: 'value' },
+          result: 'value-result',
+        }),
+      ],
+    );
+  });
+
+  it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: [
+              {
+                type: 'function',
+                name: 'tool1',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
+                },
+              },
+            ],
+            toolChoice: { type: 'auto' },
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call-1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: '{ "value":',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallId: 'call-1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: ' "value" }',
+              },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        },
+      },
+      prompt: 'test-input',
+      experimental_toolCallStreaming: true,
+    });
+
+    assert.deepStrictEqual(
+      await convertReadableStreamToArray(
+        result.toAIStream().pipeThrough(new TextDecoderStream()),
+      ),
+      [
+        formatStreamPart('tool_call_streaming_start', {
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+        }),
+        formatStreamPart('tool_call_delta', {
+          toolCallId: 'call-1',
+          argsTextDelta: '{ "value":',
+        }),
+        formatStreamPart('tool_call_delta', {
+          toolCallId: 'call-1',
+          argsTextDelta: ' "value" }',
+        }),
         formatStreamPart('tool_call', {
           toolCallId: 'call-1',
           toolName: 'tool1',

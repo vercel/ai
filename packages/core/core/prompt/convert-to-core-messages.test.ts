@@ -3,6 +3,16 @@ import { Attachment } from '@ai-sdk/ui-utils';
 import { ToolResult } from '../generate-text/tool-result';
 
 describe('convertToCoreMessages', () => {
+  describe('system message', () => {
+    it('should convert a simple system message', () => {
+      const result = convertToCoreMessages([
+        { role: 'system', content: 'System message' },
+      ]);
+
+      expect(result).toEqual([{ role: 'system', content: 'System message' }]);
+    });
+  });
+
   describe('user message', () => {
     it('should convert a simple user message', () => {
       const result = convertToCoreMessages([
@@ -187,9 +197,9 @@ describe('convertToCoreMessages', () => {
     it('should throw an error for unhandled roles', () => {
       expect(() => {
         convertToCoreMessages([
-          { role: 'system' as any, content: 'System message' },
+          { role: 'unknown' as any, content: 'unknown role message' },
         ]);
-      }).toThrow('Unhandled role: system');
+      }).toThrow('Unhandled role: unknown');
     });
   });
 });
