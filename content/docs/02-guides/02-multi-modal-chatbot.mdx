@@ -5,7 +5,7 @@ description: Learn how to build a multi-modal chatbot with the Vercel AI SDK!
 
 # Multi-Modal Chatbot
 
-In this guide, you will build a mult-modal AI-chatbot with a streaming user interface.
+In this guide, you will build a multi-modal AI-chatbot with a streaming user interface.
 
 Multi-modal refers to the ability of the chatbot to understand and generate responses in multiple formats, such as text, images, and videos. In this example, we will focus on sending images and generating text-based responses.
 
@@ -178,7 +178,7 @@ This page utilizes the `useChat` hook, which will, by default, use the `POST` AP
 
 To make your chatbot multi-modal, let's add the ability to upload and send images to the model. There are two ways to send attachments alongside a message with the `useChat` hook: by [ providing a `FileList` object ](/docs/ai-sdk-ui/chatbot#filelist) or a [ list of URLs ](/docs/ai-sdk-ui/chatbot#urls) to the `handleSubmit` function. In this guide, you will be using the `FileList` approach as it does not require any additional setup.
 
-Update your root page (`app/page.tsx`) to with the following code:
+Update your root page (`app/page.tsx`) with the following code:
 
 ```tsx filename="app/page.tsx" highlight="4,9-10,18-31,37-47,49-59"
 'use client';
@@ -254,10 +254,10 @@ export default function Chat() {
 
 In this code, you:
 
-1. Create state to hold the files and create a ref to the file input field
-2. Display the "uploaded" files in the UI
-3. Update the `onSubmit` function, to call the `handleSubmit` function manually, passing the the files as an option using the `experimental_attachments` key
-4. Add a file input field to the form, including an `onChange` handler to handle updating the files state
+1. Create state to hold the files and create a ref to the file input field.
+2. Display the "uploaded" files in the UI.
+3. Update the `onSubmit` function, to call the `handleSubmit` function manually, passing the the files as an option using the `experimental_attachments` key.
+4. Add a file input field to the form, including an `onChange` handler to handle updating the files state.
 
 ## Running Your Application
 
