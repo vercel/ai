@@ -9,7 +9,7 @@ with the AI core functions (e.g. `streamText`).
  */
 export function convertToCoreMessages(
   messages: Array<{
-    role: 'user' | 'assistant';
+    role: 'user' | 'assistant' | 'system';
     content: string;
     toolInvocations?: Array<ToolResult<string, unknown, unknown>>;
     experimental_attachments?: Attachment[];
@@ -24,6 +24,14 @@ export function convertToCoreMessages(
     experimental_attachments,
   } of messages) {
     switch (role) {
+      case 'system': {
+        coreMessages.push({
+          role: 'system',
+          content,
+        });
+        break;
+      }
+
       case 'user': {
         coreMessages.push({
           role: 'user',
