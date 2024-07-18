@@ -68,11 +68,6 @@ The default prefix is ``https://{resourceName}.openai.azure.com/openai/deploymen
   baseURL?: string;
 
   /**
-Use API version. The default API version is ``2024-05-01-preview``.
-   */
-  apiVersion?: string;
-
-  /**
 API key for authenticating requests.
      */
   apiKey?: string;
@@ -118,7 +113,6 @@ export function createAzure(
       settingName: 'baseURL',
       environmentVariableName: 'AZURE_BASE_URL',
       description: 'Azure OpenAI base URL',
-      defaultValue: undefined,
       failOnMissing: false,
     });
 
@@ -130,19 +124,10 @@ export function createAzure(
       description: 'Azure OpenAI base URL',
     });
 
-  const getApiVersion = () =>
-    loadSetting({
-      settingValue: options.apiVersion,
-      settingName: 'apiVersion',
-      environmentVariableName: 'AZURE_API_VERSION',
-      description: 'Azure OpenAI API version',
-      defaultValue: '2024-05-01-preview',
-    });
-
   const url = ({ path, modelId }: { path: string; modelId: string }) =>
     checkIfBaseUrlIsProvided()
-      ? `${getBaseUrl()}/${modelId}${path}?api-version=${getApiVersion()}`
-      : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=${getApiVersion()}`;
+      ? `${getBaseUrl()}/${modelId}${path}?api-version=2024-05-01-preview`
+      : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-05-01-preview`;
 
   const createChatModel = (
     deploymentName: string,

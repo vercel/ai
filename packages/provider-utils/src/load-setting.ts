@@ -6,14 +6,12 @@ export function loadSetting({
   environmentVariableName,
   settingName,
   description,
-  defaultValue,
   failOnMissing,
 }: {
   settingValue: string | undefined;
   environmentVariableName: string;
   settingName: string;
   description: string;
-  defaultValue: string | undefined;
   failOnMissing: true;
 }): string;
 
@@ -23,14 +21,12 @@ export function loadSetting({
   environmentVariableName,
   settingName,
   description,
-  defaultValue,
   failOnMissing,
 }: {
   settingValue: string | undefined;
   environmentVariableName: string;
   settingName: string;
   description: string;
-  defaultValue: string | undefined;
   failOnMissing: false;
 }): string | undefined;
 
@@ -39,14 +35,12 @@ export function loadSetting({
   environmentVariableName,
   settingName,
   description,
-  defaultValue,
   failOnMissing,
 }: {
   settingValue: string | undefined;
   environmentVariableName: string;
   settingName: string;
   description: string;
-  defaultValue: string | undefined;
   failOnMissing: boolean;
 }) {
   if (typeof settingValue === 'string') {
@@ -79,5 +73,5 @@ export function loadSetting({
     });
   }
 
-  return settingValue ?? defaultValue ?? undefined;
+  return settingValue ?? undefined;
 }

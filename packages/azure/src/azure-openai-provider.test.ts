@@ -62,25 +62,6 @@ describe('chat', () => {
       );
     });
 
-    it('should update the api version correctly', async () => {
-      prepareJsonResponse();
-
-      const provider = createAzure({
-        resourceName: 'test-resource',
-        apiVersion: '2024-05-01-preview',
-        apiKey: 'test-api-key',
-      });
-
-      await provider('test-deployment').doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-      });
-
-      const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual('2024-05-01');
-    });
-
     it('should pass headers', async () => {
       prepareJsonResponse();
 
