@@ -10,7 +10,7 @@ export function loadSetting({
   environmentVariableName: string;
   settingName: string;
   description: string;
-}) {
+}): string {
   if (typeof settingValue === 'string') {
     return settingValue;
   }
