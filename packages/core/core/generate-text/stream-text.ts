@@ -2,7 +2,7 @@ import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
-  StreamingTextResponse,
+  StreamData,
   formatStreamPart,
 } from '../../streams';
 import { CallSettings } from '../prompt/call-settings';
@@ -28,6 +28,7 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { mergeStreams } from '../util/merge-streams';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
@@ -592,7 +593,7 @@ Stream callbacks that will be called when the stream emits events.
       },
     });
 
-    const streamDataTransformer = new TransformStream<
+    const streamPartsTransformer = new TransformStream<
       TextStreamPart<TOOLS>,
       string
     >({
@@ -654,7 +655,7 @@ Stream callbacks that will be called when the stream emits events.
 
     return this.fullStream
       .pipeThrough(callbackTransformer)
-      .pipeThrough(streamDataTransformer)
+      .pipeThrough(streamPartsTransformer)
       .pipeThrough(new TextEncoderStream());
   }
 
@@ -736,12 +737,44 @@ writes each text delta as a separate chunk.
 Converts the result to a streamed response object with a stream data part stream.
 It can be used with the `useChat` and `useCompletion` hooks.
 
-@param init Optional headers.
+@param options An object with an init property (ResponseInit) and a data property. 
+You can also pass in a ResponseInit directly (deprecated).
 
 @return A response object.
    */
-  toAIStreamResponse(init?: ResponseInit): Response {
-    return new StreamingTextResponse(this.toAIStream(), init);
+  toAIStreamResponse(
+    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
+  ): Response {
+    const init: ResponseInit | undefined =
+      options == null
+        ? undefined
+        : 'init' in options
+        ? options.init
+        : {
+            headers: 'headers' in options ? options.headers : undefined,
+            status: 'status' in options ? options.status : undefined,
+            statusText:
+              'statusText' in options ? options.statusText : undefined,
+          };
+
+    const data: StreamData | undefined =
+      options == null
+        ? undefined
+        : 'data' in options
+        ? options.data
+        : undefined;
+
+    const stream = data
+      ? mergeStreams(data.stream, this.toAIStream())
+      : this.toAIStream();
+
+    return new Response(stream, {
+      status: init?.status ?? 200,
+      statusText: init?.statusText,
+      headers: prepareResponseHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
+    });
   }
 
   /**

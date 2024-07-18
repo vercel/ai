@@ -761,9 +761,47 @@ for await (const textPart of textStream) {
     },
     {
       name: 'toAIStreamResponse',
-      type: '(init?: ResponseInit) => Response',
+      type: '(options?: ToAIStreamOptions) => Response',
       description:
         'Converts the result to a streamed response object with a stream data part stream. It can be used with the `useChat` and `useCompletion` hooks.',
+      properties: [
+        {
+          type: 'ToAIStreamOptions',
+          parameters: [
+            {
+              name: 'init',
+              type: 'ResponseInit',
+              optional: true,
+              description: 'The response init options.',
+              properties: [
+                {
+                  type: 'ResponseInit',
+                  parameters: [
+                    {
+                      name: 'status',
+                      type: 'number',
+                      optional: true,
+                      description: 'The response status code.',
+                    },
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string>',
+                      optional: true,
+                      description: 'The response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'data',
+              type: 'StreamData',
+              optional: true,
+              description: 'The stream data object.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'toTextStreamResponse',
