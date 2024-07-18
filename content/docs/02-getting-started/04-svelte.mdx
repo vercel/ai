@@ -195,9 +195,8 @@ In this code, you:
 
 1. Create a new instance of `StreamData`.
 2. Append the data you want to stream alongside the model's response.
-3. Create a new AI stream with the `toAIStream` method on the `StreamTextResult` object.
-4. Listen for the `onFinal` callback on the AI Stream created above.
-5. Pass the data alongside the stream to the new `StreamingTextResponse`
+3. Listen for the `onFinish` callback on `streamText` and close the stream data.
+4. Pass the data into the `toAIStreamResponse` method.
 
 ### Update your frontend
 
