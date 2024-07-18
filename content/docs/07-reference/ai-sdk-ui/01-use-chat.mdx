@@ -203,6 +203,104 @@ Allows you to easily create a conversational user interface for your chatbot app
                 'Additional annotations sent along with the message.',
             },
             {
+              name: 'toolInvocations',
+              type: 'Array<ToolInvocation>',
+              isOptional: true,
+              description:
+                'An array of tool invocations that are associated with the (assistant) message.',
+              properties: [
+                {
+                  type: 'ToolInvocation',
+                  parameters: [
+                    {
+                      name: 'state',
+                      type: "'partial-call'",
+                      description:
+                        'The state of the tool call when it was partially created.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description: 'Name of the tool that is being called.',
+                    },
+                    {
+                      name: 'args',
+                      type: 'any',
+                      description:
+                        'Partial arguments of the tool call. This is a JSON-serializable object.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ToolInvocation',
+                  parameters: [
+                    {
+                      name: 'state',
+                      type: "'call'",
+                      description:
+                        'The state of the tool call when it was fully created.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description: 'Name of the tool that is being called.',
+                    },
+                    {
+                      name: 'args',
+                      type: 'any',
+                      description:
+                        'Arguments of the tool call. This is a JSON-serializable object that matches the tools input schema.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ToolInvocation',
+                  parameters: [
+                    {
+                      name: 'state',
+                      type: "'result'",
+                      description:
+                        'The state of the tool call when the result is available.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description: 'Name of the tool that is being called.',
+                    },
+                    {
+                      name: 'args',
+                      type: 'any',
+                      description:
+                        'Arguments of the tool call. This is a JSON-serializable object that matches the tools input schema.',
+                    },
+                    {
+                      name: 'result',
+                      type: 'any',
+                      description: 'The result of the tool call.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               name: 'experimental_attachments',
               type: 'Array<Attachment>',
               isOptional: true,

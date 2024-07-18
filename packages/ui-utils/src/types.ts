@@ -114,8 +114,9 @@ there is one tool invocation. While the call is in progress, the invocation is a
 Once the call is complete, the invocation is a tool result.
  */
 export type ToolInvocation =
-  | CoreToolCall<string, any>
-  | CoreToolResult<string, any, any>;
+  | ({ state: 'partial-call' } & CoreToolCall<string, any>)
+  | ({ state: 'call' } & CoreToolCall<string, any>)
+  | ({ state: 'result' } & CoreToolResult<string, any, any>);
 
 /**
  * An attachment that can be sent along with a message.
@@ -142,9 +143,19 @@ export interface Attachment {
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
 export interface Message {
+  /**
+A unique identifier for the message.
+   */
   id: string;
+
+  /**
+The timestamp of the message.
+   */
   createdAt?: Date;
 
+  /**
+Text content of the message.
+   */
   content: string;
 
   /**

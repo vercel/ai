@@ -83,6 +83,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
+  experimental_toolCallStreaming: toolCallStreaming = false,
   onFinish,
   ...settings
 }: CallSettings &
@@ -103,9 +104,14 @@ The tool choice strategy. Default: 'auto'.
     toolChoice?: CoreToolChoice<TOOLS>;
 
     /**
-     * Optional telemetry configuration (experimental).
+Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
+
+    /**
+Enable streaming of tool call deltas as they are generated. Disabled by default.
+     */
+    experimental_toolCallStreaming?: boolean;
 
     /**
 Callback that is called when the LLM response and all request tool executions 
@@ -212,6 +218,7 @@ Warnings from the model provider (e.g. unsupported settings).
         stream: runToolsTransformation({
           tools,
           generatorStream: stream,
+          toolCallStreaming,
           tracer,
         }),
         warnings,
@@ -233,8 +240,15 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       type: 'tool-call';
     } & ToToolCall<TOOLS>)
   | {
-      type: 'error';
-      error: unknown;
+      type: 'tool-call-streaming-start';
+      toolCallId: string;
+      toolName: string;
+    }
+  | {
+      type: 'tool-call-delta';
+      toolCallId: string;
+      toolName: string;
+      argsTextDelta: string;
     }
   | ({
       type: 'tool-result';
@@ -248,6 +262,10 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
         completionTokens: number;
         totalTokens: number;
       };
+    }
+  | {
+      type: 'error';
+      error: unknown;
     };
 
 /**
@@ -407,6 +425,8 @@ Response headers.
               resolveToolCalls(toolCalls);
               break;
 
+            case 'tool-call-streaming-start':
+            case 'tool-call-delta':
             case 'error':
               // ignored
               break;
@@ -577,9 +597,26 @@ Stream callbacks that will be called when the stream emits events.
       string
     >({
       transform: async (chunk, controller) => {
-        switch (chunk.type) {
+        const chunkType = chunk.type;
+        switch (chunkType) {
           case 'text-delta':
             controller.enqueue(formatStreamPart('text', chunk.textDelta));
+            break;
+          case 'tool-call-streaming-start':
+            controller.enqueue(
+              formatStreamPart('tool_call_streaming_start', {
+                toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
+              }),
+            );
+            break;
+          case 'tool-call-delta':
+            controller.enqueue(
+              formatStreamPart('tool_call_delta', {
+                toolCallId: chunk.toolCallId,
+                argsTextDelta: chunk.argsTextDelta,
+              }),
+            );
             break;
           case 'tool-call':
             controller.enqueue(
@@ -605,6 +642,12 @@ Stream callbacks that will be called when the stream emits events.
               formatStreamPart('error', JSON.stringify(chunk.error)),
             );
             break;
+          case 'finish':
+            break; // ignored
+          default: {
+            const exhaustiveCheck: never = chunkType;
+            throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+          }
         }
       },
     });

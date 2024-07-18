@@ -10,10 +10,12 @@ import { parseToolCall } from './tool-call';
 export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   tools,
   generatorStream,
+  toolCallStreaming,
   tracer,
 }: {
   tools?: TOOLS;
   generatorStream: ReadableStream<LanguageModelV1StreamPart>;
+  toolCallStreaming: boolean;
   tracer: Tracer;
 }): ReadableStream<TextStreamPart<TOOLS>> {
   let canClose = false;
@@ -28,6 +30,9 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
       toolResultsStreamController = controller;
     },
   });
+
+  // keep track of active tool calls
+  const activeToolCalls: Record<string, boolean> = {};
 
   // forward stream
   const forwardStream = new TransformStream<
@@ -45,6 +50,29 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
         case 'text-delta':
         case 'error': {
           controller.enqueue(chunk);
+          break;
+        }
+
+        // forward with less information:
+        case 'tool-call-delta': {
+          if (toolCallStreaming) {
+            if (!activeToolCalls[chunk.toolCallId]) {
+              controller.enqueue({
+                type: 'tool-call-streaming-start',
+                toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
+              });
+
+              activeToolCalls[chunk.toolCallId] = true;
+            }
+
+            controller.enqueue({
+              type: 'tool-call-delta',
+              toolCallId: chunk.toolCallId,
+              toolName: chunk.toolName,
+              argsTextDelta: chunk.argsTextDelta,
+            });
+          }
           break;
         }
 
@@ -159,11 +187,6 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
             logprobs: chunk.logprobs,
             usage: calculateCompletionTokenUsage(chunk.usage),
           });
-          break;
-        }
-
-        // ignore
-        case 'tool-call-delta': {
           break;
         }
 

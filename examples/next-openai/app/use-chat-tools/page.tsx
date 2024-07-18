@@ -32,6 +32,15 @@ export default function Chat() {
           {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
             const toolCallId = toolInvocation.toolCallId;
 
+            // example of pre-rendering streaming tool calls
+            if (toolInvocation.state === 'partial-call') {
+              return (
+                <pre key={toolCallId}>
+                  {JSON.stringify(toolInvocation, null, 2)}
+                </pre>
+              );
+            }
+
             // render confirmation tool (client-side tool with user interaction)
             if (toolInvocation.toolName === 'askForConfirmation') {
               return (
