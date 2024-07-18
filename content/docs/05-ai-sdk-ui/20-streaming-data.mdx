@@ -22,7 +22,7 @@ To use `StreamData`, create a `StreamData` value on the server, append some data
   any framework.
 </Note>
 
-```tsx highlight="17-31"
+```tsx
 import { openai } from '@ai-sdk/openai';
 import { StreamingTextResponse, streamText, StreamData } from 'ai';
 
@@ -33,27 +33,23 @@ export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
   const { messages } = await req.json();
 
-  // Call the language model
-  const result = await streamText({
-    model: openai('gpt-4-turbo'),
-    messages,
-  });
-
   // Create a new StreamData
   const data = new StreamData();
 
   // Append additional data
   data.append({ test: 'value' });
 
-  // Convert the response into a friendly text-stream
-  const stream = result.toAIStream({
-    onFinal(_) {
+  // Call the language model
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    onFinish() {
       data.close();
     },
+    messages,
   });
 
   // Respond with the stream and additional StreamData
-  return new StreamingTextResponse(stream, {}, data);
+  return result.toAIStreamResponse({ data });
 }
 ```
 

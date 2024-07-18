@@ -162,7 +162,7 @@ Depending on your use case, you may want to stream additional data alongside the
 
 Make the following changes to your POST endpoint (`src/routes/api/chat/+server.ts`)
 
-```ts filename="src/routes/api/chat/+server.ts" highlight="2,19-29"
+```ts filename="src/routes/api/chat/+server.ts" highlight="2,14-15,19-21,25"
 import { createOpenAI } from '@ai-sdk/openai';
 import { StreamData, StreamingTextResponse, streamText } from 'ai';
 import type { RequestHandler } from './$types';
@@ -176,22 +176,18 @@ const openai = createOpenAI({
 export const POST = (async ({ request }) => {
   const { messages } = await request.json();
 
+  const data = new StreamData();
+  data.append({ test: 'value' });
+
   const result = await streamText({
     model: openai('gpt-3.5-turbo'),
+    onFinish() {
+      data.close();
+    },
     messages,
   });
 
-  const data = new StreamData();
-
-  data.append({ test: 'value' });
-
-  const stream = result.toAIStream({
-    onFinal(_) {
-      data.close();
-    },
-  });
-
-  return new StreamingTextResponse(stream, {}, data);
+  return result.toAIStreamResponse({ data });
 }) satisfies RequestHandler;
 ```
 
