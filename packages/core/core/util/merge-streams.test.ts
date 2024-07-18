@@ -84,3 +84,43 @@ it('should return values from the 2nd stream until the 1st stream has values', a
     '2f',
   ]);
 });
+
+it('should not duplicate last value when parallel calls happen', async () => {
+  let stream1Controller: ReadableStreamDefaultController<string> | undefined;
+  const stream1 = new ReadableStream({
+    start(controller) {
+      stream1Controller = controller;
+    },
+  });
+
+  stream1Controller!.enqueue('1a');
+  stream1Controller!.close();
+
+  let stream2Controller: ReadableStreamDefaultController<string> | undefined;
+  const stream2 = new ReadableStream({
+    start(controller) {
+      stream2Controller = controller;
+    },
+  });
+
+  const mergedStream = mergeStreams(stream1, stream2);
+
+  const reader = mergedStream.getReader();
+
+  const resultsPromise = Promise.all([
+    reader.read(),
+    reader.read(),
+    reader.read(),
+    reader.read(),
+    reader.read(),
+  ]);
+
+  stream2Controller!.enqueue('2a');
+  stream2Controller!.enqueue('2b');
+  stream2Controller!.enqueue('2c');
+  stream2Controller!.close();
+
+  const values = (await resultsPromise).map(result => result.value);
+
+  expect(values).toEqual(['1a', '2a', '2b', '2c', undefined]);
+});

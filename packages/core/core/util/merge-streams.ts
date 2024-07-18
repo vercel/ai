@@ -75,13 +75,13 @@ export function mergeStreams<VALUE1, VALUE2>(
       try {
         // stream 1 is done, we can only read from stream 2:
         if (stream1Done) {
-          readStream2(controller);
+          await readStream2(controller);
           return;
         }
 
         // stream 2 is done, we can only read from stream 1:
         if (stream2Done) {
-          readStream1(controller);
+          await readStream1(controller);
           return;
         }
 
@@ -109,7 +109,7 @@ export function mergeStreams<VALUE1, VALUE2>(
           lastRead1 = undefined;
           if (result.done) {
             // stream 1 is done, we can only read from stream 2:
-            readStream2(controller);
+            await readStream2(controller);
             stream1Done = true;
           }
         } else {
@@ -117,7 +117,7 @@ export function mergeStreams<VALUE1, VALUE2>(
           // stream 2 is done, we can only read from stream 1:
           if (result.done) {
             stream2Done = true;
-            readStream1(controller);
+            await readStream1(controller);
           }
         }
       } catch (error) {
