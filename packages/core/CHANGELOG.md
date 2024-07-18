@@ -1,5 +1,12 @@
 # ai
 
+## 3.2.29
+
+### Patch Changes
+
+- e710b388: fix (ai/core): race condition in mergeStreams
+- 6078a690: feat (ai/core): introduce stream data support in toAIStreamResponse
+
 ## 3.2.28
 
 ### Patch Changes
