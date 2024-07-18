@@ -10,7 +10,6 @@ export function loadSetting({
   environmentVariableName: string;
   settingName: string;
   description: string;
-  failOnMissing?: boolean;
 }) {
   if (typeof settingValue === 'string') {
     return settingValue;
