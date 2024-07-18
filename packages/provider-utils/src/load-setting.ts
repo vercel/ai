@@ -12,7 +12,7 @@ export function loadSetting({
   environmentVariableName: string;
   settingName: string;
   description: string;
-  failOnMissing: true;
+  failOnMissing?: true;
 }): string;
 
 // Added an overload for the `failOnMissing` parameter to be `false`.
@@ -27,7 +27,7 @@ export function loadSetting({
   environmentVariableName: string;
   settingName: string;
   description: string;
-  failOnMissing: false;
+  failOnMissing?: false;
 }): string | undefined;
 
 export function loadSetting({
@@ -41,7 +41,7 @@ export function loadSetting({
   environmentVariableName: string;
   settingName: string;
   description: string;
-  failOnMissing: boolean;
+  failOnMissing?: boolean;
 }) {
   if (typeof settingValue === 'string') {
     return settingValue;
