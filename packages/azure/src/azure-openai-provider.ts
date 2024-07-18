@@ -107,26 +107,9 @@ export function createAzure(
       description: 'Azure OpenAI resource name',
     });
 
-  const checkIfBaseUrlIsProvided = () =>
-    loadSetting({
-      settingValue: options.baseURL,
-      settingName: 'baseURL',
-      environmentVariableName: 'AZURE_BASE_URL',
-      description: 'Azure OpenAI base URL',
-      failOnMissing: false,
-    });
-
-  const getBaseUrl = () =>
-    loadSetting({
-      settingValue: options.baseURL,
-      settingName: 'baseURL',
-      environmentVariableName: 'AZURE_BASE_URL',
-      description: 'Azure OpenAI base URL',
-    });
-
   const url = ({ path, modelId }: { path: string; modelId: string }) =>
-    checkIfBaseUrlIsProvided()
-      ? `${getBaseUrl()}/${modelId}${path}?api-version=2024-05-01-preview`
+    options.baseURL
+      ? `${options.baseURL}/${modelId}${path}?api-version=2024-05-01-preview`
       : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-05-01-preview`;
 
   const createChatModel = (
