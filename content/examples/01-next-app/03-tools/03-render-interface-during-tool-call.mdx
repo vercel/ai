@@ -46,8 +46,7 @@ We can make a few changes to our previous example where the assistant could get 
 import { useState } from 'react';
 import { Message, continueConversation } from './actions';
 
-// Force the page to be dynamic and allow streaming responses up to 30 seconds
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export default function Home() {

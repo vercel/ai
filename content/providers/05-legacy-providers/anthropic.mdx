@@ -48,8 +48,6 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
-export const dynamic = 'force-dynamic';
-
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { messages } = await req.json();
@@ -130,8 +128,6 @@ import { experimental_buildAnthropicPrompt } from 'ai/prompts';
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
-
-export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request

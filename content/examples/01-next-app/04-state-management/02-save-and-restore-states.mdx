@@ -42,8 +42,7 @@ import { ClientMessage } from './actions';
 import { useActions, useUIState } from 'ai/rsc';
 import { generateId } from 'ai';
 
-// Force the page to be dynamic and allow streaming responses up to 30 seconds
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export default function Home() {
