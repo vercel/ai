@@ -325,6 +325,11 @@ Additional data to be sent to the API endpoint.
   experimental_attachments?: FileList | Array<Attachment>;
 
   /**
+   * Allow submitting an empty message. Defaults to `false`.
+   */
+  allowEmptySubmit?: boolean;
+
+  /**
 The options to be passed to the fetch call.
 
 @deprecated use `headers` and `body` directly
