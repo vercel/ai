@@ -58,12 +58,18 @@ Creates an Azure OpenAI model for text embeddings.
 export interface AzureOpenAIProviderSettings {
   /**
 Name of the Azure OpenAI resource. Either this or `baseURL` can be used.
+
+The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}?api-version=2024-05-01-preview`.
      */
   resourceName?: string;
 
   /**
 Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
-The default prefix is ``https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}?api-version=2024-05-01-preview``.
+When a baseURL is provided, the resourceName is ignored.
+
+The default prefix is `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}?api-version=2024-05-01-preview`.
+
+With a baseURL, the resolved URL is `{baseURL}/{modelId}{path}?api-version=2024-05-01-preview`.
    */
   baseURL?: string;
 
