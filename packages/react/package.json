@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "0.0.24",
+  "version": "0.0.25",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -26,8 +26,8 @@
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "1.0.2",
-    "@ai-sdk/ui-utils": "0.0.15",
-    "swr": "2.2.0"
+    "@ai-sdk/ui-utils": "0.0.16",
+    "swr": "2.2.5"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.5",
