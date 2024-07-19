@@ -376,15 +376,17 @@ export function useChat(
     options = {},
     metadata?: Object,
   ) => {
+    event?.preventDefault?.();
+    const inputValue = input();
+
+    if (!inputValue && !options.allowEmptySubmit) return;
+
     if (metadata) {
       extraMetadata = {
         ...extraMetadata,
         ...metadata,
       };
     }
-
-    event?.preventDefault?.();
-    const inputValue = input();
 
     const requestOptions = {
       headers: options.headers ?? options.options?.headers,
