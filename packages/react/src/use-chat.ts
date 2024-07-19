@@ -51,7 +51,9 @@ export type UseChatHelpers = {
    * edit the messages on the client, and then trigger the `reload` method
    * manually to regenerate the AI response.
    */
-  setMessages: (messages: Message[]) => void;
+  setMessages: (
+    messages: Message[] | ((messages: Message[]) => Message[]),
+  ) => void;
   /** The current value of the input */
   input: string;
   /** setState-powered method to update the input value */
@@ -507,7 +509,11 @@ By default, it's set to 0, which will disable the feature.
   }, []);
 
   const setMessages = useCallback(
-    (messages: Message[]) => {
+    (messages: Message[] | ((messages: Message[]) => Message[])) => {
+      if (typeof messages === 'function') {
+        messages = messages(messagesRef.current);
+      }
+
       mutate(messages, false);
       messagesRef.current = messages;
     },
