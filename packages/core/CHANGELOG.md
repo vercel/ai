@@ -1,5 +1,26 @@
 # ai
 
+## 3.2.29
+
+### Patch Changes
+
+- e710b388: fix (ai/core): race condition in mergeStreams
+- 6078a690: feat (ai/core): introduce stream data support in toAIStreamResponse
+
+## 3.2.28
+
+### Patch Changes
+
+- 68d1f78c: fix (ai/core): do not construct object promise in streamObject result until requested
+- f0bc1e79: feat (ai/ui): add system message support to convertToCoreMessages
+- 1f67fe49: feat (ai/ui): stream tool calls with streamText and useChat
+- Updated dependencies [1f67fe49]
+  - @ai-sdk/ui-utils@0.0.15
+  - @ai-sdk/react@0.0.23
+  - @ai-sdk/solid@0.0.17
+  - @ai-sdk/svelte@0.0.18
+  - @ai-sdk/vue@0.0.18
+
 ## 3.2.27
 
 ### Patch Changes

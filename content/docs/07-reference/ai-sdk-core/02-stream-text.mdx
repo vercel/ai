@@ -367,6 +367,13 @@ for await (const textPart of textStream) {
       ],
     },
     {
+      name: 'experimental_toolCallStreaming',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Enable streaming of tool call deltas as they are generated. Disabled by default.',
+    },
+    {
       name: 'onFinish',
       type: '(result: OnFinishResult) => void',
       isOptional: true,
@@ -592,6 +599,55 @@ for await (const textPart of textStream) {
         },
         {
           type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'tool-call-streaming-start'",
+              description:
+                'Indicates the start of a tool call streaming. Only available when streaming tool calls.',
+            },
+            {
+              name: 'toolCallId',
+              type: 'string',
+              description: 'The id of the tool call.',
+            },
+            {
+              name: 'toolName',
+              type: 'string',
+              description:
+                'The name of the tool, which typically would be the name of the function.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'tool-call-delta'",
+              description:
+                'The type to identify the object as tool call delta. Only available when streaming tool calls.',
+            },
+            {
+              name: 'toolCallId',
+              type: 'string',
+              description: 'The id of the tool call.',
+            },
+            {
+              name: 'toolName',
+              type: 'string',
+              description:
+                'The name of the tool, which typically would be the name of the function.',
+            },
+            {
+              name: 'argsTextDelta',
+              type: 'string',
+              description: 'The text delta of the tool call arguments.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
           description: 'The result of a tool call execution.',
           parameters: [
             {
@@ -705,9 +761,47 @@ for await (const textPart of textStream) {
     },
     {
       name: 'toAIStreamResponse',
-      type: '(init?: ResponseInit) => Response',
+      type: '(options?: ToAIStreamOptions) => Response',
       description:
         'Converts the result to a streamed response object with a stream data part stream. It can be used with the `useChat` and `useCompletion` hooks.',
+      properties: [
+        {
+          type: 'ToAIStreamOptions',
+          parameters: [
+            {
+              name: 'init',
+              type: 'ResponseInit',
+              optional: true,
+              description: 'The response init options.',
+              properties: [
+                {
+                  type: 'ResponseInit',
+                  parameters: [
+                    {
+                      name: 'status',
+                      type: 'number',
+                      optional: true,
+                      description: 'The response status code.',
+                    },
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string>',
+                      optional: true,
+                      description: 'The response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'data',
+              type: 'StreamData',
+              optional: true,
+              description: 'The stream data object.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'toTextStreamResponse',

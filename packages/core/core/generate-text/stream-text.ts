@@ -2,7 +2,7 @@ import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
-  StreamingTextResponse,
+  StreamData,
   formatStreamPart,
 } from '../../streams';
 import { CallSettings } from '../prompt/call-settings';
@@ -28,6 +28,7 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { mergeStreams } from '../util/merge-streams';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
@@ -83,6 +84,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
+  experimental_toolCallStreaming: toolCallStreaming = false,
   onFinish,
   ...settings
 }: CallSettings &
@@ -103,9 +105,14 @@ The tool choice strategy. Default: 'auto'.
     toolChoice?: CoreToolChoice<TOOLS>;
 
     /**
-     * Optional telemetry configuration (experimental).
+Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
+
+    /**
+Enable streaming of tool call deltas as they are generated. Disabled by default.
+     */
+    experimental_toolCallStreaming?: boolean;
 
     /**
 Callback that is called when the LLM response and all request tool executions 
@@ -212,6 +219,7 @@ Warnings from the model provider (e.g. unsupported settings).
         stream: runToolsTransformation({
           tools,
           generatorStream: stream,
+          toolCallStreaming,
           tracer,
         }),
         warnings,
@@ -233,8 +241,15 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       type: 'tool-call';
     } & ToToolCall<TOOLS>)
   | {
-      type: 'error';
-      error: unknown;
+      type: 'tool-call-streaming-start';
+      toolCallId: string;
+      toolName: string;
+    }
+  | {
+      type: 'tool-call-delta';
+      toolCallId: string;
+      toolName: string;
+      argsTextDelta: string;
     }
   | ({
       type: 'tool-result';
@@ -248,6 +263,10 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
         completionTokens: number;
         totalTokens: number;
       };
+    }
+  | {
+      type: 'error';
+      error: unknown;
     };
 
 /**
@@ -407,6 +426,8 @@ Response headers.
               resolveToolCalls(toolCalls);
               break;
 
+            case 'tool-call-streaming-start':
+            case 'tool-call-delta':
             case 'error':
               // ignored
               break;
@@ -572,14 +593,31 @@ Stream callbacks that will be called when the stream emits events.
       },
     });
 
-    const streamDataTransformer = new TransformStream<
+    const streamPartsTransformer = new TransformStream<
       TextStreamPart<TOOLS>,
       string
     >({
       transform: async (chunk, controller) => {
-        switch (chunk.type) {
+        const chunkType = chunk.type;
+        switch (chunkType) {
           case 'text-delta':
             controller.enqueue(formatStreamPart('text', chunk.textDelta));
+            break;
+          case 'tool-call-streaming-start':
+            controller.enqueue(
+              formatStreamPart('tool_call_streaming_start', {
+                toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
+              }),
+            );
+            break;
+          case 'tool-call-delta':
+            controller.enqueue(
+              formatStreamPart('tool_call_delta', {
+                toolCallId: chunk.toolCallId,
+                argsTextDelta: chunk.argsTextDelta,
+              }),
+            );
             break;
           case 'tool-call':
             controller.enqueue(
@@ -605,13 +643,19 @@ Stream callbacks that will be called when the stream emits events.
               formatStreamPart('error', JSON.stringify(chunk.error)),
             );
             break;
+          case 'finish':
+            break; // ignored
+          default: {
+            const exhaustiveCheck: never = chunkType;
+            throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+          }
         }
       },
     });
 
     return this.fullStream
       .pipeThrough(callbackTransformer)
-      .pipeThrough(streamDataTransformer)
+      .pipeThrough(streamPartsTransformer)
       .pipeThrough(new TextEncoderStream());
   }
 
@@ -693,12 +737,44 @@ writes each text delta as a separate chunk.
 Converts the result to a streamed response object with a stream data part stream.
 It can be used with the `useChat` and `useCompletion` hooks.
 
-@param init Optional headers.
+@param options An object with an init property (ResponseInit) and a data property. 
+You can also pass in a ResponseInit directly (deprecated).
 
 @return A response object.
    */
-  toAIStreamResponse(init?: ResponseInit): Response {
-    return new StreamingTextResponse(this.toAIStream(), init);
+  toAIStreamResponse(
+    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
+  ): Response {
+    const init: ResponseInit | undefined =
+      options == null
+        ? undefined
+        : 'init' in options
+        ? options.init
+        : {
+            headers: 'headers' in options ? options.headers : undefined,
+            status: 'status' in options ? options.status : undefined,
+            statusText:
+              'statusText' in options ? options.statusText : undefined,
+          };
+
+    const data: StreamData | undefined =
+      options == null
+        ? undefined
+        : 'data' in options
+        ? options.data
+        : undefined;
+
+    const stream = data
+      ? mergeStreams(data.stream, this.toAIStream())
+      : this.toAIStream();
+
+    return new Response(stream, {
+      status: init?.status ?? 200,
+      statusText: init?.statusText,
+      headers: prepareResponseHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
+    });
   }
 
   /**

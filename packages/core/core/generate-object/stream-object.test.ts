@@ -423,18 +423,6 @@ describe('result.object', () => {
     const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'object-json' });
-          assert.deepStrictEqual(prompt, [
-            {
-              role: 'system',
-              content:
-                'JSON schema:\n' +
-                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
-                'You MUST answer with a JSON object that matches the JSON schema above.',
-            },
-            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
-          ]);
-
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: '{ ' },
@@ -470,18 +458,6 @@ describe('result.object', () => {
     const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'object-json' });
-          assert.deepStrictEqual(prompt, [
-            {
-              role: 'system',
-              content:
-                'JSON schema:\n' +
-                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
-                'You MUST answer with a JSON object that matches the JSON schema above.',
-            },
-            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
-          ]);
-
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: '{ ' },
@@ -515,6 +491,39 @@ describe('result.object', () => {
       .catch(error => {
         expect(TypeValidationError.isTypeValidationError(error)).toBeTruthy();
       });
+  });
+
+  it('should not lead to unhandled promise rejections when the streamed object does not match the schema', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"invalid": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    // consume stream (runs in parallel)
+    convertAsyncIterableToArray(result.partialObjectStream);
+
+    // unhandled promise rejection should not be thrown (Vitest does this automatically)
   });
 });
 

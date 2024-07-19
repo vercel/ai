@@ -35,8 +35,7 @@ Let's modify our previous example to call `getWeather` tool for multiple cities 
 import { useState } from 'react';
 import { Message, continueConversation } from './actions';
 
-// Force the page to be dynamic and allow streaming responses up to 30 seconds
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export default function Home() {

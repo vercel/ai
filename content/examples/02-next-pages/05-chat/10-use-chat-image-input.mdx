@@ -18,7 +18,6 @@ The last message is the user's message, and we add the image URL to it.
 import { openai } from '@ai-sdk/openai';
 import { convertToCoreMessages, streamText } from 'ai';
 
-export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
@@ -58,8 +57,7 @@ You can replace the `imageUrl` with the actual URL of the image you want to send
 
 import { useChat } from 'ai/react';
 
-// Force the page to be dynamic and allow streaming responses up to 30 seconds
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export default function Chat() {

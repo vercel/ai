@@ -1,4 +1,5 @@
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
+import { parsePartialJson } from './parse-partial-json';
 import { readDataStream } from './read-data-stream';
 import type {
   FunctionCall,
@@ -58,6 +59,12 @@ export async function parseComplexResponse({
   // keep list of current message annotations for message
   let message_annotations: JSONValue[] | undefined = undefined;
 
+  // keep track of partial tool calls
+  const partialToolCalls: Record<
+    string,
+    { text: string; prefixMapIndex: number; toolName: string }
+  > = {};
+
   // we create a map of each prefix, and for each prefixed message we push to the map
   for await (const { type, value } of readDataStream(reader, {
     isAborted: () => abortControllerRef?.current === null,
@@ -79,7 +86,7 @@ export async function parseComplexResponse({
     }
 
     // Tool invocations are part of an assistant message
-    if (type === 'tool_call') {
+    if (type === 'tool_call_streaming_start') {
       // create message if it doesn't exist
       if (prefixMap.text == null) {
         prefixMap.text = {
@@ -94,7 +101,56 @@ export async function parseComplexResponse({
         prefixMap.text.toolInvocations = [];
       }
 
-      prefixMap.text.toolInvocations.push(value);
+      // add the partial tool call to the map
+      partialToolCalls[value.toolCallId] = {
+        text: '',
+        toolName: value.toolName,
+        prefixMapIndex: prefixMap.text.toolInvocations.length,
+      };
+
+      prefixMap.text.toolInvocations.push({
+        state: 'partial-call',
+        toolCallId: value.toolCallId,
+        toolName: value.toolName,
+        args: undefined,
+      });
+    } else if (type === 'tool_call_delta') {
+      const partialToolCall = partialToolCalls[value.toolCallId];
+
+      partialToolCall.text += value.argsTextDelta;
+
+      prefixMap.text!.toolInvocations![partialToolCall.prefixMapIndex] = {
+        state: 'partial-call',
+        toolCallId: value.toolCallId,
+        toolName: partialToolCall.toolName,
+        args: parsePartialJson(partialToolCall.text),
+      };
+    } else if (type === 'tool_call') {
+      if (partialToolCalls[value.toolCallId] != null) {
+        // change the partial tool call to a full tool call
+        prefixMap.text!.toolInvocations![
+          partialToolCalls[value.toolCallId].prefixMapIndex
+        ] = { state: 'call', ...value };
+      } else {
+        // create message if it doesn't exist
+        if (prefixMap.text == null) {
+          prefixMap.text = {
+            id: generateId(),
+            role: 'assistant',
+            content: '',
+            createdAt,
+          };
+        }
+
+        if (prefixMap.text.toolInvocations == null) {
+          prefixMap.text.toolInvocations = [];
+        }
+
+        prefixMap.text.toolInvocations.push({
+          state: 'call',
+          ...value,
+        });
+      }
 
       // invoke the onToolCall callback if it exists. This is blocking.
       // In the future we should make this non-blocking, which
@@ -103,9 +159,9 @@ export async function parseComplexResponse({
         const result = await onToolCall({ toolCall: value });
         if (result != null) {
           // store the result in the tool invocation
-          prefixMap.text.toolInvocations[
-            prefixMap.text.toolInvocations.length - 1
-          ] = { ...value, result };
+          prefixMap.text!.toolInvocations![
+            prefixMap.text!.toolInvocations!.length - 1
+          ] = { state: 'result', ...value, result };
         }
       }
     } else if (type === 'tool_result') {
@@ -129,10 +185,11 @@ export async function parseComplexResponse({
         invocation => invocation.toolCallId === value.toolCallId,
       );
 
+      const result = { state: 'result' as const, ...value };
       if (toolInvocationIndex !== -1) {
-        prefixMap.text.toolInvocations[toolInvocationIndex] = value;
+        prefixMap.text.toolInvocations[toolInvocationIndex] = result;
       } else {
-        prefixMap.text.toolInvocations.push(value);
+        prefixMap.text.toolInvocations.push(result);
       }
     }
 

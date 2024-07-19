@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.15
+
+### Patch Changes
+
+- 1f67fe49: feat (ai/ui): stream tool calls with streamText and useChat
+
 ## 0.0.14
 
 ### Patch Changes

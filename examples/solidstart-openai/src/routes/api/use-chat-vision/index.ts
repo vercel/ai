@@ -1,6 +1,6 @@
-import { StreamingTextResponse, convertToCoreMessages, streamText } from 'ai';
-import { APIEvent } from '@solidjs/start/server';
 import { openai } from '@ai-sdk/openai';
+import { APIEvent } from '@solidjs/start/server';
+import { convertToCoreMessages, streamText } from 'ai';
 
 export const POST = async (event: APIEvent) => {
   // 'data' contains the additional data that you have sent:
@@ -27,5 +27,5 @@ export const POST = async (event: APIEvent) => {
   });
 
   // Respond with the stream
-  return new StreamingTextResponse(result.toAIStream());
+  return result.toAIStreamResponse();
 };

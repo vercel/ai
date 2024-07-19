@@ -28,6 +28,7 @@ import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { DelayedPromise } from '../util/delayed-promise';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -316,16 +317,12 @@ The result of a `streamObject` call that contains the partial object stream and 
  */
 export class StreamObjectResult<T> {
   private readonly originalStream: ReadableStream<ObjectStreamPart<T>>;
+  private readonly objectPromise: DelayedPromise<T>;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: CallWarning[] | undefined;
-
-  /**
-The generated object (typed according to the schema). Resolved when the response is finished.
-   */
-  readonly object: Promise<T>;
 
   /**
 The token usage of the generated response. Resolved when the response is finished.
@@ -363,12 +360,7 @@ Response headers.
     this.rawResponse = rawResponse;
 
     // initialize object promise
-    let resolveObject: (value: T | PromiseLike<T>) => void;
-    let rejectObject: (reason?: any) => void;
-    this.object = new Promise<T>((resolve, reject) => {
-      resolveObject = resolve;
-      rejectObject = reject;
-    });
+    this.objectPromise = new DelayedPromise<T>();
 
     // initialize usage promise
     let resolveUsage: (
@@ -388,6 +380,7 @@ Response headers.
     let delta = '';
     let latestObject: DeepPartial<T> | undefined = undefined;
 
+    const self = this;
     this.originalStream = stream.pipeThrough(
       new TransformStream<string | ObjectStreamInputPart, ObjectStreamPart<T>>({
         async transform(chunk, controller): Promise<void> {
@@ -445,10 +438,10 @@ Response headers.
 
               if (validationResult.success) {
                 object = validationResult.value;
-                resolveObject(object);
+                self.objectPromise.resolve(object);
               } else {
                 error = validationResult.error;
-                rejectObject(error);
+                self.objectPromise.reject(error);
               }
 
               break;
@@ -482,6 +475,13 @@ Response headers.
         },
       }),
     );
+  }
+
+  /**
+The generated object (typed according to the schema). Resolved when the response is finished.
+   */
+  get object(): Promise<T> {
+    return this.objectPromise.value;
   }
 
   /**

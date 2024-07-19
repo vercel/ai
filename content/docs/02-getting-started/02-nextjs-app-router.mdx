@@ -179,9 +179,9 @@ Depending on your use case, you may want to stream additional data alongside the
 
 Make the following changes to your Route Handler (`app/api/chat/route.ts`):
 
-```ts filename="app/api/chat/route.ts" highlight="2,15-25"
+```ts filename="app/api/chat/route.ts" highlight="2,10-11,16-18,21"
 import { openai } from '@ai-sdk/openai';
-import { StreamingTextResponse, streamText, StreamData } from 'ai';
+import { streamText, StreamData } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -189,22 +189,18 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
+  const data = new StreamData();
+  data.append({ test: 'value' });
+
   const result = await streamText({
     model: openai('gpt-4-turbo'),
     messages,
-  });
-
-  const data = new StreamData();
-
-  data.append({ test: 'value' });
-
-  const stream = result.toAIStream({
-    onFinal(_) {
+    onFinish() {
       data.close();
     },
   });
 
-  return new StreamingTextResponse(stream, {}, data);
+  return result.toAIStreamResponse({ data });
 }
 ```
 
@@ -212,9 +208,8 @@ In this code, you:
 
 1. Create a new instance of `StreamData`.
 2. Append the data you want to stream alongside the model's response.
-3. Create a new AI stream with the `toAIStream` method on the `StreamTextResult` object.
-4. Listen for the `onFinal` callback on the AI Stream created above.
-5. Pass the data alongside the stream to the new `StreamingTextResponse`.
+3. Listen for the `onFinish` callback on `streamText` and close the stream data.
+4. Pass the data into the `toAIStreamResponse` method.
 
 ### Update your frontend
 
@@ -316,8 +311,7 @@ import { useState } from 'react';
 import { continueConversation } from './actions';
 import { readStreamableValue } from 'ai/rsc';
 
-// Force the page to be dynamic and allow streaming responses up to 30 seconds
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export default function Chat() {
@@ -415,8 +409,7 @@ import { useState } from 'react';
 import { continueConversation } from './actions';
 import { readStreamableValue } from 'ai/rsc';
 
-// Force the page to be dynamic and allow streaming responses up to 30 seconds
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export default function Chat() {
