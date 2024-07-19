@@ -16,9 +16,9 @@ const provider = createAzure({
 
 describe('chat', () => {
   describe('doGenerate', () => {
-    const serverUrl =
-      'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions';
-    const server = new JsonTestServer(serverUrl);
+    const server = new JsonTestServer(
+      'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions',
+    );
 
     server.setupTestEnvironment();
 
