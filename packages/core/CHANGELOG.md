@@ -1,5 +1,13 @@
 # ai
 
+## 3.2.30
+
+### Patch Changes
+
+- Updated dependencies [19c3d50f]
+  - @ai-sdk/react@0.0.24
+  - @ai-sdk/vue@0.0.19
+
 ## 3.2.29
 
 ### Patch Changes

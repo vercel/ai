@@ -1,5 +1,11 @@
 # @ai-sdk/vue
 
+## 0.0.19
+
+### Patch Changes
+
+- 19c3d50f: fix (ai/ui): add missing createdAt
+
 ## 0.0.18
 
 ### Patch Changes
