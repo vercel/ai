@@ -240,11 +240,6 @@ export function useChat({
       message.id = generateId();
     }
 
-    const requestOptions = {
-      headers: options?.headers ?? options?.options?.headers,
-      body: options?.body ?? options?.options?.body,
-    };
-
     return triggerRequest(messages.value.concat(message as Message), options);
   };
 
