@@ -27,7 +27,7 @@
   "dependencies": {
     "@ai-sdk/provider-utils": "1.0.2",
     "@ai-sdk/ui-utils": "0.0.15",
-    "swr": "2.2.0"
+    "swr": "2.2.5"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.5",

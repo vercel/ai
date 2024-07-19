@@ -125,6 +125,10 @@ export async function parseComplexResponse({
         toolName: partialToolCall.toolName,
         args: parsePartialJson(partialToolCall.text),
       };
+
+      // trigger update for streaming by copying adding a update id that changes
+      // (without it, the changes get stuck in SWR and are not forwarded to rendering):
+      (prefixMap.text! as any).internalUpdateId = generateId();
     } else if (type === 'tool_call') {
       if (partialToolCalls[value.toolCallId] != null) {
         // change the partial tool call to a full tool call
@@ -151,6 +155,10 @@ export async function parseComplexResponse({
           ...value,
         });
       }
+
+      // trigger update for streaming by copying adding a update id that changes
+      // (without it, the changes get stuck in SWR and are not forwarded to rendering):
+      (prefixMap.text! as any).internalUpdateId = generateId();
 
       // invoke the onToolCall callback if it exists. This is blocking.
       // In the future we should make this non-blocking, which
