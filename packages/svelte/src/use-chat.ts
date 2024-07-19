@@ -369,6 +369,8 @@ export function useChat({
     event?.preventDefault?.();
     const inputValue = get(input);
 
+    if (!inputValue && !options.allowEmptySubmit) return;
+
     const requestOptions = {
       headers: options.headers ?? options.options?.headers,
       body: options.body ?? options.options?.body,
