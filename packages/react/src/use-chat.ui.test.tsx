@@ -299,16 +299,12 @@ describe('form actions', () => {
         await userEvent.type(secondInput, '{Enter}');
 
         expect(screen.queryByTestId('message-2')).not.toBeInTheDocument();
-
-        // expect(screen.getByTestId('message-2')).toHaveTextContent(
-        //   'AI: How can I help you?',
-        // );
       },
     ),
   );
 });
 
-describe('form actions (with request options)', () => {
+describe('form actions (with options)', () => {
   const TestComponent = () => {
     const { messages, handleSubmit, handleInputChange, isLoading, input } =
       useChat({ streamMode: 'text' });
