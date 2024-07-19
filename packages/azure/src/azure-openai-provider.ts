@@ -59,7 +59,7 @@ export interface AzureOpenAIProviderSettings {
   /**
 Name of the Azure OpenAI resource. Either this or `baseURL` can be used.
 
-The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}?api-version=2024-05-01-preview`.
+The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}`.
      */
   resourceName?: string;
 
@@ -67,9 +67,7 @@ The resource name is used in the assembled URL: `https://{resourceName}.openai.a
 Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
 When a baseURL is provided, the resourceName is ignored.
 
-The default prefix is `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}?api-version=2024-05-01-preview`.
-
-With a baseURL, the resolved URL is `{baseURL}/{modelId}{path}?api-version=2024-05-01-preview`.
+With a baseURL, the resolved URL is `{baseURL}/{modelId}{path}`.
    */
   baseURL?: string;
 
