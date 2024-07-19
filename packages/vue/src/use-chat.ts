@@ -278,6 +278,8 @@ export function useChat({
 
     const inputValue = input.value;
 
+    if (!inputValue && !options.allowEmptySubmit) return;
+
     triggerRequest(
       inputValue
         ? messages.value.concat({
