@@ -1,5 +1,11 @@
 # ai
 
+## 3.2.31
+
+### Patch Changes
+
+- b86af092: feat (ai/core): add langchain stream event v2 support to LangChainAdapter
+
 ## 3.2.30
 
 ### Patch Changes
