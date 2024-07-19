@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.24
+
+### Patch Changes
+
+- 19c3d50f: fix (ai/ui): add missing createdAt
+
 ## 0.0.23
 
 ### Patch Changes

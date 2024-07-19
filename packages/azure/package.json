@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/azure",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,7 +29,7 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai": "0.0.36",
+    "@ai-sdk/openai": "0.0.37",
     "@ai-sdk/provider": "0.0.12",
     "@ai-sdk/provider-utils": "1.0.2"
   },
