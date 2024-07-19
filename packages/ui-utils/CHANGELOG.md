@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.16
+
+### Patch Changes
+
+- 5b7b3bbe: fix (ai/ui): tool call streaming
+
 ## 0.0.15
 
 ### Patch Changes

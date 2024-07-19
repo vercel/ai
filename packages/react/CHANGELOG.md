@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 0.0.25
+
+### Patch Changes
+
+- 5b7b3bbe: fix (ai/ui): tool call streaming
+- Updated dependencies [5b7b3bbe]
+  - @ai-sdk/ui-utils@0.0.16
+
 ## 0.0.24
 
 ### Patch Changes
