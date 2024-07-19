@@ -20,8 +20,6 @@ export default function Chat() {
   // used to only render the role when it changes:
   let lastRole: string | undefined = undefined;
 
-  console.log('RENDER');
-
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages?.map((m: Message) => {
