@@ -920,19 +920,19 @@ importers:
         specifier: 1.0.2
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 0.0.24
+        specifier: 0.0.25
         version: link:../react
       '@ai-sdk/solid':
-        specifier: 0.0.17
+        specifier: 0.0.18
         version: link:../solid
       '@ai-sdk/svelte':
-        specifier: 0.0.18
+        specifier: 0.0.19
         version: link:../svelte
       '@ai-sdk/ui-utils':
-        specifier: 0.0.15
+        specifier: 0.0.16
         version: link:../ui-utils
       '@ai-sdk/vue':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../vue
       '@opentelemetry/api':
         specifier: 1.9.0
@@ -1230,14 +1230,14 @@ importers:
         specifier: 1.0.2
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.15
+        specifier: 0.0.16
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19
         version: 18.2.0
       swr:
-        specifier: 2.2.0
-        version: 2.2.0(react@18.2.0)
+        specifier: 2.2.5
+        version: 2.2.5(react@18.2.0)
     devDependencies:
       '@testing-library/jest-dom':
         specifier: ^6.4.5
@@ -1288,7 +1288,7 @@ importers:
   packages/solid:
     dependencies:
       '@ai-sdk/ui-utils':
-        specifier: 0.0.15
+        specifier: 0.0.16
         version: link:../ui-utils
       solid-js:
         specifier: ^1.7.7
@@ -1340,7 +1340,7 @@ importers:
         specifier: 1.0.2
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.15
+        specifier: 0.0.16
         version: link:../ui-utils
       sswr:
         specifier: 2.1.0
@@ -1402,7 +1402,7 @@ importers:
         specifier: 0.0.14
         version: 0.0.14
       '@ai-sdk/ui-utils':
-        specifier: 0.0.15
+        specifier: 0.0.16
         version: link:../ui-utils
       swrv:
         specifier: 1.0.4
@@ -18271,11 +18271,12 @@ packages:
       picocolors: 1.0.1
     dev: true
 
-  /swr@2.2.0(react@18.2.0):
-    resolution: {integrity: sha512-AjqHOv2lAhkuUdIiBu9xbuettzAzWXmCEcLONNKJRba87WAefz8Ca9d6ds/SzrPc235n1IxWYdhJ2zF3MNUaoQ==}
+  /swr@2.2.5(react@18.2.0):
+    resolution: {integrity: sha512-QtxqyclFeAsxEUeZIYmsaQ0UjimSq1RZ9Un7I68/0ClKK/U3LoyQunwkQfJZr2fc22DfIXLNDc2wFyTEikCUpg==}
     peerDependencies:
       react: ^16.11.0 || ^17.0.0 || ^18.0.0
     dependencies:
+      client-only: 0.0.1
       react: 18.2.0
       use-sync-external-store: 1.2.0(react@18.2.0)
     dev: false

@@ -551,8 +551,6 @@ describe('onToolCall', () => {
 });
 
 describe('tool invocations', () => {
-  let rerender: RenderResult['rerender'];
-
   const TestComponent = () => {
     const { messages, append } = useChat();
 
@@ -581,8 +579,7 @@ describe('tool invocations', () => {
   };
 
   beforeEach(() => {
-    const result = render(<TestComponent />);
-    rerender = result.rerender;
+    render(<TestComponent />);
   });
 
   afterEach(() => {
@@ -618,7 +615,6 @@ describe('tool invocations', () => {
         );
 
         await waitFor(() => {
-          rerender(<TestComponent />);
           expect(screen.getByTestId('message-1')).toHaveTextContent(
             '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
           );
@@ -632,7 +628,6 @@ describe('tool invocations', () => {
         );
 
         await waitFor(() => {
-          rerender(<TestComponent />);
           expect(screen.getByTestId('message-1')).toHaveTextContent(
             '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );
@@ -647,7 +642,6 @@ describe('tool invocations', () => {
         );
 
         await waitFor(() => {
-          rerender(<TestComponent />);
           expect(screen.getByTestId('message-1')).toHaveTextContent(
             '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
           );

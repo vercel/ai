@@ -388,7 +388,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'setMessages',
-      type: '(messages: Message[]) => void',
+      type: '(messages: Message[] | ((messages: Message[]) => Message[]) => void',
       description:
         'Function to update the `messages` state locally without triggering an API call.',
     },

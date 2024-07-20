@@ -1,5 +1,22 @@
 # ai
 
+## 3.2.32
+
+### Patch Changes
+
+- Updated dependencies [5b7b3bbe]
+  - @ai-sdk/ui-utils@0.0.16
+  - @ai-sdk/react@0.0.25
+  - @ai-sdk/solid@0.0.18
+  - @ai-sdk/svelte@0.0.19
+  - @ai-sdk/vue@0.0.20
+
+## 3.2.31
+
+### Patch Changes
+
+- b86af092: feat (ai/core): add langchain stream event v2 support to LangChainAdapter
+
 ## 3.2.30
 
 ### Patch Changes

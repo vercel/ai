@@ -49,7 +49,10 @@ export type UseChatHelpers = {
    * edit the messages on the client, and then trigger the `reload` method
    * manually to regenerate the AI response.
    */
-  setMessages: (messages: Message[]) => void;
+  setMessages: (
+    messages: Message[] | ((messages: Message[]) => Message[]),
+  ) => void;
+
   /** The current value of the input */
   input: Writable<string>;
   /** Form submission handler to automatically reset input and append a user message  */
@@ -356,8 +359,14 @@ export function useChat({
     }
   };
 
-  const setMessages = (messages: Message[]) => {
-    mutate(messages);
+  const setMessages = (
+    messagesArg: Message[] | ((messages: Message[]) => Message[]),
+  ) => {
+    if (typeof messagesArg === 'function') {
+      messagesArg = messagesArg(get(messages));
+    }
+
+    mutate(messagesArg);
   };
 
   const input = writable(initialInput);
