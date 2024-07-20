@@ -394,14 +394,15 @@ export function useChat(
     };
 
     const chatRequest: ChatRequest = {
-      messages: inputValue
-        ? messagesRef.concat({
-            id: generateId()(),
-            role: 'user',
-            content: inputValue,
-            createdAt: new Date(),
-          })
-        : messagesRef,
+      messages:
+        !inputValue && options.allowEmptySubmit
+          ? messagesRef
+          : messagesRef.concat({
+              id: generateId()(),
+              role: 'user',
+              content: inputValue,
+              createdAt: new Date(),
+            }),
       options: requestOptions,
       body: requestOptions.body,
       headers: requestOptions.headers,
