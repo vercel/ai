@@ -222,5 +222,26 @@ describe('form actions (with options)', () => {
     expect(screen.getByTestId('message-2')).toHaveTextContent(
       'AI: How can I help you?',
     );
+
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['The', ' sky', ' is', ' blue.'].map(token =>
+        formatStreamPart('text', token),
+      ),
+    });
+
+    const thirdInput = screen.getByTestId('do-input');
+    await userEvent.type(thirdInput, 'what color is the sky?');
+    await userEvent.keyboard('{Enter}');
+
+    await screen.findByTestId('message-3');
+    expect(screen.getByTestId('message-3')).toHaveTextContent(
+      'User: what color is the sky?',
+    );
+
+    await screen.findByTestId('message-4');
+    expect(screen.getByTestId('message-4')).toHaveTextContent(
+      'AI: The sky is blue.',
+    );
   });
 });

@@ -281,14 +281,14 @@ export function useChat({
     if (!inputValue && !options.allowEmptySubmit) return;
 
     triggerRequest(
-      inputValue
-        ? messages.value.concat({
+      !inputValue && options.allowEmptySubmit
+        ? messages.value
+        : messages.value.concat({
             id: generateId(),
             createdAt: new Date(),
             content: inputValue,
             role: 'user',
-          })
-        : messages.value,
+          }),
       options,
     );
 
