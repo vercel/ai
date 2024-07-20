@@ -577,17 +577,22 @@ By default, it's set to 0, which will disable the feature.
         body: options.body ?? options.options?.body,
       };
 
+      const messages =
+        !input && options.allowEmptySubmit
+          ? messagesRef.current
+          : messagesRef.current.concat({
+              id: generateId(),
+              createdAt: new Date(),
+              role: 'user',
+              content: input,
+              experimental_attachments:
+                attachmentsForRequest.length > 0
+                  ? attachmentsForRequest
+                  : undefined,
+            });
+
       const chatRequest: ChatRequest = {
-        messages: messagesRef.current.concat({
-          id: generateId(),
-          createdAt: new Date(),
-          role: 'user',
-          content: input,
-          experimental_attachments:
-            attachmentsForRequest.length > 0
-              ? attachmentsForRequest
-              : undefined,
-        }),
+        messages,
         options: requestOptions,
         headers: requestOptions.headers,
         body: requestOptions.body,
