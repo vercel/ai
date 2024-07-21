@@ -384,6 +384,11 @@ export function useChat(
     options = {},
     metadata?: Object,
   ) => {
+    event?.preventDefault?.();
+    const inputValue = input();
+
+    if (!inputValue && !options.allowEmptySubmit) return;
+
     if (metadata) {
       extraMetadata = {
         ...extraMetadata,
@@ -391,23 +396,21 @@ export function useChat(
       };
     }
 
-    event?.preventDefault?.();
-    const inputValue = input();
-
     const requestOptions = {
       headers: options.headers ?? options.options?.headers,
       body: options.body ?? options.options?.body,
     };
 
     const chatRequest: ChatRequest = {
-      messages: inputValue
-        ? messagesRef.concat({
-            id: generateId()(),
-            role: 'user',
-            content: inputValue,
-            createdAt: new Date(),
-          })
-        : messagesRef,
+      messages:
+        !inputValue && options.allowEmptySubmit
+          ? messagesRef
+          : messagesRef.concat({
+              id: generateId()(),
+              role: 'user',
+              content: inputValue,
+              createdAt: new Date(),
+            }),
       options: requestOptions,
       body: requestOptions.body,
       headers: requestOptions.headers,

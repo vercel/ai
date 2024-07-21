@@ -10,6 +10,7 @@ import TestChatComponent from './TestChatComponent.vue';
 import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
 import TestChatFormComponent from './TestChatFormComponent.vue';
 import { formatStreamPart } from '@ai-sdk/ui-utils';
+import TestChatFormComponentOptions from './TestChatFormComponentOptions.vue';
 
 describe('stream data stream', () => {
   beforeEach(() => {
@@ -173,9 +174,74 @@ describe('form actions', () => {
     const secondInput = screen.getByTestId('do-input');
     await userEvent.type(secondInput, '{Enter}');
 
+    expect(screen.queryByTestId('message-2')).not.toBeInTheDocument();
+  });
+});
+
+describe('form actions (with options)', () => {
+  beforeEach(() => {
+    render(TestChatFormComponentOptions);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should show streamed response using handleSubmit', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['Hello', ',', ' world', '.'].map(token =>
+        formatStreamPart('text', token),
+      ),
+    });
+
+    const firstInput = screen.getByTestId('do-input');
+    await userEvent.type(firstInput, 'hi');
+    await userEvent.keyboard('{Enter}');
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
+        formatStreamPart('text', token),
+      ),
+    });
+
+    const secondInput = screen.getByTestId('do-input');
+    await userEvent.type(secondInput, '{Enter}');
+
     await screen.findByTestId('message-2');
     expect(screen.getByTestId('message-2')).toHaveTextContent(
       'AI: How can I help you?',
+    );
+
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['The', ' sky', ' is', ' blue.'].map(token =>
+        formatStreamPart('text', token),
+      ),
+    });
+
+    const thirdInput = screen.getByTestId('do-input');
+    await userEvent.type(thirdInput, 'what color is the sky?');
+    await userEvent.keyboard('{Enter}');
+
+    await screen.findByTestId('message-3');
+    expect(screen.getByTestId('message-3')).toHaveTextContent(
+      'User: what color is the sky?',
+    );
+
+    await screen.findByTestId('message-4');
+    expect(screen.getByTestId('message-4')).toHaveTextContent(
+      'AI: The sky is blue.',
     );
   });
 });

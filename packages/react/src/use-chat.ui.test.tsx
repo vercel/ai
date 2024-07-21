@@ -298,9 +298,105 @@ describe('form actions', () => {
         const secondInput = screen.getByTestId('do-input');
         await userEvent.type(secondInput, '{Enter}');
 
-        await screen.findByTestId('message-2');
+        expect(screen.queryByTestId('message-2')).not.toBeInTheDocument();
+      },
+    ),
+  );
+});
+
+describe('form actions (with options)', () => {
+  const TestComponent = () => {
+    const { messages, handleSubmit, handleInputChange, isLoading, input } =
+      useChat({ streamMode: 'text' });
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+          </div>
+        ))}
+
+        <form
+          onSubmit={event => {
+            handleSubmit(event, {
+              allowEmptySubmit: true,
+            });
+          }}
+        >
+          <input
+            value={input}
+            placeholder="Send message..."
+            onChange={handleInputChange}
+            disabled={isLoading}
+            data-testid="do-input"
+          />
+        </form>
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it(
+    'allowEmptySubmit',
+    withTestServer(
+      [
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: ['Hello', ',', ' world', '.'],
+        },
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: ['How', ' can', ' I', ' help', ' you', '?'],
+        },
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: ['The', ' sky', ' is', ' blue', '.'],
+        },
+      ],
+      async () => {
+        const firstInput = screen.getByTestId('do-input');
+        await userEvent.type(firstInput, 'hi');
+        await userEvent.keyboard('{Enter}');
+
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: Hello, world.',
+        );
+
+        const secondInput = screen.getByTestId('do-input');
+        await userEvent.type(secondInput, '{Enter}');
+
         expect(screen.getByTestId('message-2')).toHaveTextContent(
           'AI: How can I help you?',
+        );
+
+        const thirdInput = screen.getByTestId('do-input');
+        await userEvent.type(thirdInput, 'what color is the sky?');
+        await userEvent.type(thirdInput, '{Enter}');
+
+        expect(screen.getByTestId('message-3')).toHaveTextContent(
+          'User: what color is the sky?',
+        );
+
+        await screen.findByTestId('message-4');
+        expect(screen.getByTestId('message-4')).toHaveTextContent(
+          'AI: The sky is blue.',
         );
       },
     ),

@@ -529,14 +529,16 @@ By default, it's set to 0, which will disable the feature.
       options: ChatRequestOptions = {},
       metadata?: Object,
     ) => {
+      event?.preventDefault?.();
+
+      if (!input && !options.allowEmptySubmit) return;
+
       if (metadata) {
         extraMetadataRef.current = {
           ...extraMetadataRef.current,
           ...metadata,
         };
       }
-
-      event?.preventDefault?.();
 
       const attachmentsForRequest: Attachment[] = [];
       const attachmentsFromOptions = options.experimental_attachments;
@@ -581,9 +583,10 @@ By default, it's set to 0, which will disable the feature.
         body: options.body ?? options.options?.body,
       };
 
-      const chatRequest: ChatRequest = {
-        messages: input
-          ? messagesRef.current.concat({
+      const messages =
+        !input && options.allowEmptySubmit
+          ? messagesRef.current
+          : messagesRef.current.concat({
               id: generateId(),
               createdAt: new Date(),
               role: 'user',
@@ -592,8 +595,10 @@ By default, it's set to 0, which will disable the feature.
                 attachmentsForRequest.length > 0
                   ? attachmentsForRequest
                   : undefined,
-            })
-          : messagesRef.current,
+            });
+
+      const chatRequest: ChatRequest = {
+        messages,
         options: requestOptions,
         headers: requestOptions.headers,
         body: requestOptions.body,
