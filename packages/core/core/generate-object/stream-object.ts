@@ -546,6 +546,7 @@ When the stream is finished, the object is valid JSON that can be parsed.
 
   /**
 Stream of different types of events, including partial objects, errors, and finish events.
+Only errors that break the break the stream are thrown.
    */
   get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
     return createAsyncIterableStream(this.originalStream, {

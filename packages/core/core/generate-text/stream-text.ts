@@ -535,8 +535,8 @@ stream will throw the error.
   /**
 A stream with all events, including text deltas, tool calls, tool results, and
 errors.
-You can use it as either an AsyncIterable or a ReadableStream. When an error occurs, the
-stream will throw the error.
+You can use it as either an AsyncIterable or a ReadableStream.
+Only errors that break the break the stream are thrown.
    */
   get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
     return createAsyncIterableStream(this.teeStream(), {
