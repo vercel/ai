@@ -204,7 +204,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: {
-        ...this.getArgs(options),
+        ...args,
         stream: true,
 
         // only include stream_options when in strict compatibility mode:
