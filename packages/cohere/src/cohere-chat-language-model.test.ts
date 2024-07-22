@@ -162,6 +162,42 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
     });
   });
+
+  it('should pass response format', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            text: { type: 'string' },
+          },
+          required: ['text'],
+        },
+      },
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'command-r-plus',
+      message: 'Hello',
+      chat_history: [],
+      response_format: {
+        type: 'json_object',
+        schema: {
+          type: 'object',
+          properties: {
+            text: { type: 'string' },
+          },
+          required: ['text'],
+        },
+      },
+    });
+  });
 });
 
 describe('doStream', () => {

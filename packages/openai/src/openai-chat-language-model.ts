@@ -66,6 +66,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     frequencyPenalty,
     presencePenalty,
     stopSequences,
+    responseFormat,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -76,6 +77,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'topK',
+      });
+    }
+
+    if (
+      responseFormat != null &&
+      responseFormat.type === 'json' &&
+      responseFormat.schema != null
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'JSON response format schema is not supported',
       });
     }
 
@@ -109,6 +122,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       presence_penalty: presencePenalty,
       stop: stopSequences,
       seed,
+
+      // response format:
+      response_format:
+        responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // messages:
       messages: convertToOpenAIChatMessages(prompt),

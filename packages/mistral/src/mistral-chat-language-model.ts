@@ -62,6 +62,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     frequencyPenalty,
     presencePenalty,
     stopSequences,
+    responseFormat,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -96,6 +97,18 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (
+      responseFormat != null &&
+      responseFormat.type === 'json' &&
+      responseFormat.schema != null
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'JSON response format schema is not supported',
+      });
+    }
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -108,6 +121,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       temperature,
       top_p: topP,
       random_seed: seed,
+
+      // response format:
+      response_format:
+        responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // messages:
       messages: convertToMistralChatMessages(prompt),

@@ -57,8 +57,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     topK,
     frequencyPenalty,
     presencePenalty,
-    seed,
     stopSequences,
+    responseFormat,
+    seed,
     headers,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -97,6 +98,14 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'topK',
+      });
+    }
+
+    if (responseFormat != null && responseFormat.type !== 'text') {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'JSON response format is not supported.',
       });
     }
 
