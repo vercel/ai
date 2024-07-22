@@ -3,7 +3,6 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   ParseResult,
@@ -62,6 +61,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     frequencyPenalty,
     presencePenalty,
     stopSequences,
+    responseFormat,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -98,6 +98,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       temperature,
       topP,
       stopSequences,
+
+      // response format:
+      responseMimeType:
+        responseFormat?.type === 'json' ? 'application/json' : undefined,
+      responseSchema:
+        responseFormat?.type === 'json' && responseFormat.schema != null
+          ? prepareJsonSchema(responseFormat.schema)
+          : undefined,
     };
 
     const { contents, systemInstruction } =

@@ -380,6 +380,41 @@ describe('doGenerate', () => {
       });
     }),
   );
+
+  it(
+    'should pass response format',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              text: { type: 'string' },
+            },
+            required: ['text'],
+          },
+        },
+      });
+
+      expect(await call(0).getRequestBodyJson()).toStrictEqual({
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'object',
+            properties: {
+              text: { type: 'string' },
+            },
+            required: ['text'],
+          },
+        },
+      });
+    }),
+  );
 });
 
 describe('doStream', () => {

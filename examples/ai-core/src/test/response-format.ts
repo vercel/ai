@@ -1,10 +1,10 @@
-import { cohere } from '@ai-sdk/cohere';
+import { google } from '@ai-sdk/google';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 async function main() {
-  const result = await cohere('command-r-plus').doStream({
+  const result = await google('models/gemini-1.5-pro-latest').doStream({
     mode: { type: 'regular' },
     inputFormat: 'prompt',
     responseFormat: {
