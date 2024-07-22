@@ -50,7 +50,10 @@ It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param presencePenalty - Presence penalty setting. 
+@param topK - Only sample from the top K options for each subsequent token.
+Used to remove "long tail" low probability responses.
+Recommended for advanced use cases only. You usually only need to use temperature.
+@param presencePenalty - Presence penalty setting.
 It affects the likelihood of the model to repeat information that is already in the prompt.
 The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
@@ -109,8 +112,8 @@ The tool choice strategy. Default: 'auto'.
     /**
 Maximal number of automatic roundtrips for tool calls.
 
-An automatic tool call roundtrip is another LLM call with the 
-tool call results when all tool calls of the last assistant 
+An automatic tool call roundtrip is another LLM call with the
+tool call results when all tool calls of the last assistant
 message have results.
 
 A maximum number is required to prevent infinite loops in the
@@ -387,7 +390,7 @@ Warnings from the model provider (e.g. unsupported settings)
 
   /**
 The response messages that were generated during the call. It consists of an assistant message,
-potentially containing tool calls. 
+potentially containing tool calls.
 When there are tool results, there is an additional tool message with the tool results that are available.
 If there are tools that do not have execute functions, they are not included in the tool results and
 need to be added separately.

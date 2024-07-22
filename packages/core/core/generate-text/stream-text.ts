@@ -54,7 +54,10 @@ It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param presencePenalty - Presence penalty setting. 
+@param topK - Only sample from the top K options for each subsequent token.
+Used to remove "long tail" low probability responses.
+Recommended for advanced use cases only. You usually only need to use temperature.
+@param presencePenalty - Presence penalty setting.
 It affects the likelihood of the model to repeat information that is already in the prompt.
 The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
@@ -69,7 +72,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@param onFinish - Callback that is called when the LLM response and all request tool executions 
+@param onFinish - Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
 
 @return
@@ -117,7 +120,7 @@ Enable streaming of tool call deltas as they are generated. Disabled by default.
     experimental_toolCallStreaming?: boolean;
 
     /**
-Callback that is called when the LLM response and all request tool executions 
+Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
      */
     onFinish?: (event: {
@@ -559,7 +562,7 @@ Only errors that stop the stream, such as network errors, are thrown.
 Converts the result to an `AIStream` object that is compatible with `StreamingTextResponse`.
 It can be used with the `useChat` and `useCompletion` hooks.
 
-@param callbacks 
+@param callbacks
 Stream callbacks that will be called when the stream emits events.
 
 @returns an `AIStream` object.
@@ -663,7 +666,7 @@ Stream callbacks that will be called when the stream emits events.
 
   /**
 Writes stream data output to a Node.js response-like object.
-It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and
 writes each stream data part as a separate chunk.
 
 @param response A Node.js response-like object (ServerResponse).
@@ -699,7 +702,7 @@ writes each stream data part as a separate chunk.
 
   /**
 Writes text delta output to a Node.js response-like object.
-It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and
 writes each text delta as a separate chunk.
 
 @param response A Node.js response-like object (ServerResponse).
@@ -739,7 +742,7 @@ writes each text delta as a separate chunk.
 Converts the result to a streamed response object with a stream data part stream.
 It can be used with the `useChat` and `useCompletion` hooks.
 
-@param options An object with an init property (ResponseInit) and a data property. 
+@param options An object with an init property (ResponseInit) and a data property.
 You can also pass in a ResponseInit directly (deprecated).
 
 @return A response object.

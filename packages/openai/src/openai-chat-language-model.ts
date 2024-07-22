@@ -1,10 +1,10 @@
 import {
   InvalidResponseDataError,
   LanguageModelV1,
+  LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   ParseResult,
@@ -62,12 +62,22 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
     stopSequences,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
+
+    const warnings: LanguageModelV1CallWarning[] = [];
+
+    if (topK != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'topK',
+      });
+    }
 
     const baseArgs = {
       // model id:
@@ -106,30 +116,42 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        return { ...baseArgs, ...prepareToolsAndToolChoice(mode) };
+        return {
+          args: { ...baseArgs, ...prepareToolsAndToolChoice(mode) },
+          warnings,
+        };
       }
 
       case 'object-json': {
         return {
-          ...baseArgs,
-          response_format: { type: 'json_object' },
+          args: {
+            ...baseArgs,
+            response_format: { type: 'json_object' },
+          },
+          warnings,
         };
       }
 
       case 'object-tool': {
         return {
-          ...baseArgs,
-          tool_choice: { type: 'function', function: { name: mode.tool.name } },
-          tools: [
-            {
+          args: {
+            ...baseArgs,
+            tool_choice: {
               type: 'function',
-              function: {
-                name: mode.tool.name,
-                description: mode.tool.description,
-                parameters: mode.tool.parameters,
-              },
+              function: { name: mode.tool.name },
             },
-          ],
+            tools: [
+              {
+                type: 'function',
+                function: {
+                  name: mode.tool.name,
+                  description: mode.tool.description,
+                  parameters: mode.tool.parameters,
+                },
+              },
+            ],
+          },
+          warnings,
         };
       }
 
@@ -143,7 +165,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const args = this.getArgs(options);
+    const { args, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -178,7 +200,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
-      warnings: [],
+      warnings,
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
     };
   }
@@ -186,7 +208,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const args = this.getArgs(options);
+    const { args, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -400,7 +422,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       ),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
-      warnings: [],
+      warnings,
     };
   }
 }
