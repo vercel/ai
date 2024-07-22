@@ -12,6 +12,12 @@ It is recommended to set either `temperature` or `topP`, but not both.
   temperature?: number;
 
   /**
+Stop sequences. Character sequences that will stop generation. Providers
+may have limits on the number of stop sequences.
+   */
+  stopSequences?: string[];
+
+  /**
 Nucleus sampling.
 
 It is recommended to set either `temperature` or `topP`, but not both.

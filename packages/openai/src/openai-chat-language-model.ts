@@ -64,6 +64,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     topP,
     frequencyPenalty,
     presencePenalty,
+    stopSequences,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -96,6 +97,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
+      stop: stopSequences,
       seed,
 
       // messages:

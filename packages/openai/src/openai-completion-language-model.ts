@@ -65,6 +65,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     topP,
     frequencyPenalty,
     presencePenalty,
+    stopSequences: userStopSequences,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -102,7 +103,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       prompt: completionPrompt,
 
       // stop sequences:
-      stop: stopSequences,
+      stop: [stopSequences, ...(userStopSequences ?? [])],
     };
 
     switch (type) {

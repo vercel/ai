@@ -60,6 +60,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     topP,
     frequencyPenalty,
     presencePenalty,
+    stopSequences,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -77,6 +78,13 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'presencePenalty',
+      });
+    }
+
+    if (stopSequences != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'stopSequences',
       });
     }
 
