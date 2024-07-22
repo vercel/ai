@@ -253,6 +253,13 @@ A helper function to create a streamable UI from LLM providers. This function is
         'Frequency penalty setting. It affects the likelihood of the model to repeatedly use the same words or phrases. The value is passed through to the provider. The range depends on the provider and model.',
     },
     {
+      name: 'stopSequences',
+      type: 'string[]',
+      isOptional: true,
+      description:
+        'Sequences that will stop the generation of the text. If the model generates any of these sequences, it will stop generating further text.',
+    },
+    {
       name: 'seed',
       type: 'number',
       isOptional: true,
