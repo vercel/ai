@@ -1,10 +1,10 @@
-import { google } from '@ai-sdk/google';
+import { openai } from '@ai-sdk/openai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 async function main() {
-  const result = await google('models/gemini-1.5-pro-latest').doStream({
+  const result = await openai('gpt-4-turbo').doStream({
     mode: { type: 'regular' },
     inputFormat: 'prompt',
     responseFormat: {
@@ -17,13 +17,14 @@ async function main() {
         required: ['text'],
       },
     },
+    temperature: 0,
     prompt: [
       {
         role: 'user',
         content: [
           {
             type: 'text',
-            text: 'Invent a new holiday and describe its traditions.',
+            text: 'Invent a new holiday and describe its traditions. Output as JSON object.',
           },
         ],
       },

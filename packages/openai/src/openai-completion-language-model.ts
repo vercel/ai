@@ -68,6 +68,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     frequencyPenalty,
     presencePenalty,
     stopSequences: userStopSequences,
+    responseFormat,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -78,6 +79,14 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'topK',
+      });
+    }
+
+    if (responseFormat != null && responseFormat.type !== 'text') {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'JSON response format is not supported.',
       });
     }
 
