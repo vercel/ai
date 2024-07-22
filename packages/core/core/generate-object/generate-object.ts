@@ -35,13 +35,16 @@ This function does not stream the output. If you want to stream the output, use 
 @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
 
 @param maxTokens - Maximum number of tokens to generate.
-@param temperature - Temperature setting. 
+@param temperature - Temperature setting.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param presencePenalty - Presence penalty setting. 
+@param topK - Only sample from the top K options for each subsequent token.
+Used to remove "long tail" low probability responses.
+Recommended for advanced use cases only. You usually only need to use temperature.
+@param presencePenalty - Presence penalty setting.
 It affects the likelihood of the model to repeat information that is already in the prompt.
 The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
@@ -54,7 +57,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@returns 
+@returns
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<T>({
@@ -336,7 +339,7 @@ Response headers.
   };
 
   /**
-Logprobs for the completion. 
+Logprobs for the completion.
 `undefined` if the mode does not support logprobs or if was not enabled
    */
   readonly logprobs: LogProbs | undefined;
