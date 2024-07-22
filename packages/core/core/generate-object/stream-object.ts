@@ -79,7 +79,7 @@ export async function streamObject<T>({
   headers,
   onFinish,
   ...settings
-}: CallSettings &
+}: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
     /**
 The language model to use.

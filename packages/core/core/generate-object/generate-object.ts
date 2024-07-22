@@ -69,7 +69,7 @@ export async function generateObject<T>({
   headers,
   experimental_telemetry: telemetry,
   ...settings
-}: CallSettings &
+}: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
     /**
 The language model to use.
