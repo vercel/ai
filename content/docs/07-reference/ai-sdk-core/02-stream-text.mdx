@@ -553,7 +553,7 @@ for await (const textPart of textStream) {
       name: 'fullStream',
       type: 'AsyncIterable<TextStreamPart> & ReadableStream<TextStreamPart>',
       description:
-        'A stream with all events, including text deltas, tool calls, tool results, and errors. You can use it as either an AsyncIterable or a ReadableStream. Only errors that break the break the stream are thrown.',
+        'A stream with all events, including text deltas, tool calls, tool results, and errors. You can use it as either an AsyncIterable or a ReadableStream. Only errors that break the stream are thrown.',
       properties: [
         {
           type: 'TextStreamPart',
