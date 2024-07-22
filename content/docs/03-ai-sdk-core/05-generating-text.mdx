@@ -61,6 +61,12 @@ for await (const textPart of result.textStream) {
 }
 ```
 
+<Note>
+  You can use `streamText` on it's own or in combination with [AI SDK
+  UI](/examples/next-pages/basics/streaming-text-generation) and [AI SDK
+  RSC](/examples/next-app/basics/streaming-text-generation)
+</Note>
+
 `result.textStream` is also a `ReadableStream`, so you can use it in a browser or Node.js environment.
 
 ```ts
@@ -117,3 +123,47 @@ The result object of `streamText` contains several promises that resolve when al
 - `result.toolResults`: The tool results from the tool calls.
 - `result.finishReason`: The reason the model finished generating text.
 - `result.usage`: The usage of the model during text generation.
+
+## Examples
+
+You can see `generateText` and `streamText` in action using various frameworks in the following examples:
+
+### `generateText`
+
+<ExampleLinks
+  examples={[
+    {
+      title: 'Learn to generate text in Node.js',
+      link: '/examples/node/generating-text/generate-text',
+    },
+    {
+      title:
+        'Learn to generate text in Next.js with Route Handlers (AI SDK UI)',
+      link: '/examples/next-pages/basics/generating-text-generation',
+    },
+    {
+      title:
+        'Learn to generate text in Next.js with Server Actions (AI SDK RSC)',
+      link: '/examples/next-app/basics/generating-text',
+    },
+  ]}
+/>
+
+### `streamText`
+
+<ExampleLinks
+  examples={[
+    {
+      title: 'Learn to stream text in Node.js',
+      link: '/examples/node/generating-text/stream-text',
+    },
+    {
+      title: 'Learn to stream text in Next.js with Route Handlers (AI SDK UI)',
+      link: '/examples/next-pages/basics/streaming-text-generation',
+    },
+    {
+      title: 'Learn to stream text in Next.js with Server Actions (AI SDK RSC)',
+      link: '/examples/next-app/basics/streaming-text-generation',
+    },
+  ]}
+/>
