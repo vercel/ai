@@ -81,8 +81,8 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       p: topP,
       seed,
       stop_sequences: stopSequences,
-      responseFormat:
-        // TODO test
+      response_format:
+        // TODO unit test
         responseFormat?.type === 'json'
           ? { type: 'json_object', schema: responseFormat.schema }
           : undefined,
