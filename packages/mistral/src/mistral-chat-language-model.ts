@@ -62,6 +62,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     frequencyPenalty,
     presencePenalty,
     stopSequences,
+    responseFormat,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -93,6 +94,14 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'stopSequences',
+      });
+    }
+
+    if (responseFormat != null && responseFormat.type !== 'text') {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'JSON response format is not supported.',
       });
     }
 
