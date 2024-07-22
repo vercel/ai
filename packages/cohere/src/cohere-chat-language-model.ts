@@ -54,6 +54,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
     stopSequences,
@@ -78,6 +79,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       max_tokens: maxTokens,
       temperature,
       p: topP,
+      k: topK,
       seed,
       stop_sequences: stopSequences,
 

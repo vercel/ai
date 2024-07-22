@@ -59,6 +59,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
     stopSequences,
@@ -91,7 +92,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const generationConfig = {
       // model specific settings:
-      topK: this.settings.topK,
+      topK: topK ?? this.settings.topK,
 
       // standardized settings:
       maxOutputTokens: maxTokens,

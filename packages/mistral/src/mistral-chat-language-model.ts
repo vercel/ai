@@ -58,6 +58,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
     stopSequences,
@@ -66,6 +67,13 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     const type = mode.type;
 
     const warnings: LanguageModelV1CallWarning[] = [];
+
+    if (topK != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'topK',
+      });
+    }
 
     if (frequencyPenalty != null) {
       warnings.push({
