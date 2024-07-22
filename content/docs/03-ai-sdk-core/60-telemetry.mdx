@@ -84,6 +84,22 @@ const result = await generateText({
   - `ai.prompt.messages`: the messages that were passed into the provider
 - `ai.toolCall`: a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
 
+### generateObject function
+
+`generateObject` records 2 types of spans:
+
+- `ai.generateObject`: the full length of the generateObject call. It contains 1 or more `ai.generateObject.doGenerate` spans.
+  It contains the [basic span information](#basic-span-information) and the following attributes:
+  - `operation.name`: `ai.generateObject`
+  - `ai.prompt`: the prompt that was used when calling `generateObject`
+  - `ai.settings.mode`: the object generation mode
+- `ai.generateObject.doGenerate`: a provider doGenerate call.
+  It contains the [basic span information](#basic-span-information) and the following attributes:
+  - `operation.name`: `ai.generateText`
+  - `ai.prompt.format`: the format of the prompt
+  - `ai.prompt.messages`: the messages that were passed into the provider
+  - `ai.settings.mode`: the object generation mode
+
 ## Span Details
 
 ### Basic span information

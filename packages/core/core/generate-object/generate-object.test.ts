@@ -92,12 +92,10 @@ describe('result.toJsonResponse', () => {
   it('should return JSON response', async () => {
     const result = await generateObject({
       model: new MockLanguageModelV1({
-        doGenerate: async ({ prompt, mode }) => {
-          return {
-            ...dummyResponseValues,
-            text: `{ "content": "Hello, world!" }`,
-          };
-        },
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          text: `{ "content": "Hello, world!" }`,
+        }),
       }),
       schema: z.object({ content: z.string() }),
       mode: 'json',
