@@ -15,6 +15,10 @@ import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getTracer } from '../telemetry/get-tracer';
+import { recordSpan } from '../telemetry/record-span';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -63,6 +67,7 @@ export async function generateObject<T>({
   maxRetries,
   abortSignal,
   headers,
+  experimental_telemetry: telemetry,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -91,152 +96,182 @@ Please note that most providers do not support all modes.
 Default and recommended: 'auto' (best mode for the model).
      */
     mode?: 'auto' | 'json' | 'tool' | 'grammar';
+
+    /**
+     * Optional telemetry configuration (experimental).
+     */
+    experimental_telemetry?: TelemetrySettings;
   }): Promise<GenerateObjectResult<T>> {
-  const retry = retryWithExponentialBackoff({ maxRetries });
+  const baseTelemetryAttributes = getBaseTelemetryAttributes({
+    operationName: 'ai.generateObject',
+    model,
+    telemetry,
+    headers,
+    settings: { ...settings, maxRetries },
+  });
+
   const jsonSchema = convertZodToJSONSchema(schema);
 
-  // use the default provider mode when the mode is set to 'auto' or unspecified
-  if (mode === 'auto' || mode == null) {
-    mode = model.defaultObjectGenerationMode;
-  }
+  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+  return recordSpan({
+    name: 'ai.generateText',
+    attributes: {
+      ...baseTelemetryAttributes,
+      // specific settings that only make sense on the outer level:
+      'ai.prompt': JSON.stringify({ system, prompt, messages }),
+      'ai.settings.jsonSchema': JSON.stringify(jsonSchema),
+      'ai.settings.mode': mode,
+    },
+    tracer,
+    fn: async span => {
+      const retry = retryWithExponentialBackoff({ maxRetries });
 
-  let result: string;
-  let finishReason: FinishReason;
-  let usage: Parameters<typeof calculateCompletionTokenUsage>[0];
-  let warnings: CallWarning[] | undefined;
-  let rawResponse: { headers?: Record<string, string> } | undefined;
-  let logprobs: LogProbs | undefined;
-
-  switch (mode) {
-    case 'json': {
-      const validatedPrompt = getValidatedPrompt({
-        system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-        prompt,
-        messages,
-      });
-
-      const generateResult = await retry(() => {
-        return model.doGenerate({
-          mode: { type: 'object-json' },
-          ...prepareCallSettings(settings),
-          inputFormat: validatedPrompt.type,
-          prompt: convertToLanguageModelPrompt(validatedPrompt),
-          abortSignal,
-          headers,
-        });
-      });
-
-      if (generateResult.text === undefined) {
-        throw new NoObjectGeneratedError();
+      // use the default provider mode when the mode is set to 'auto' or unspecified
+      if (mode === 'auto' || mode == null) {
+        mode = model.defaultObjectGenerationMode;
       }
 
-      result = generateResult.text;
-      finishReason = generateResult.finishReason;
-      usage = generateResult.usage;
-      warnings = generateResult.warnings;
-      rawResponse = generateResult.rawResponse;
-      logprobs = generateResult.logprobs;
+      let result: string;
+      let finishReason: FinishReason;
+      let usage: Parameters<typeof calculateCompletionTokenUsage>[0];
+      let warnings: CallWarning[] | undefined;
+      let rawResponse: { headers?: Record<string, string> } | undefined;
+      let logprobs: LogProbs | undefined;
 
-      break;
-    }
+      switch (mode) {
+        case 'json': {
+          const validatedPrompt = getValidatedPrompt({
+            system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
+            prompt,
+            messages,
+          });
 
-    case 'grammar': {
-      const validatedPrompt = getValidatedPrompt({
-        system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-        prompt,
-        messages,
-      });
+          const generateResult = await retry(() => {
+            return model.doGenerate({
+              mode: { type: 'object-json' },
+              ...prepareCallSettings(settings),
+              inputFormat: validatedPrompt.type,
+              prompt: convertToLanguageModelPrompt(validatedPrompt),
+              abortSignal,
+              headers,
+            });
+          });
 
-      const generateResult = await retry(() =>
-        model.doGenerate({
-          mode: { type: 'object-grammar', schema: jsonSchema },
-          ...prepareCallSettings(settings),
-          inputFormat: validatedPrompt.type,
-          prompt: convertToLanguageModelPrompt(validatedPrompt),
-          abortSignal,
-          headers,
-        }),
-      );
+          if (generateResult.text === undefined) {
+            throw new NoObjectGeneratedError();
+          }
 
-      if (generateResult.text === undefined) {
-        throw new NoObjectGeneratedError();
+          result = generateResult.text;
+          finishReason = generateResult.finishReason;
+          usage = generateResult.usage;
+          warnings = generateResult.warnings;
+          rawResponse = generateResult.rawResponse;
+          logprobs = generateResult.logprobs;
+
+          break;
+        }
+
+        case 'grammar': {
+          const validatedPrompt = getValidatedPrompt({
+            system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
+            prompt,
+            messages,
+          });
+
+          const generateResult = await retry(() =>
+            model.doGenerate({
+              mode: { type: 'object-grammar', schema: jsonSchema },
+              ...prepareCallSettings(settings),
+              inputFormat: validatedPrompt.type,
+              prompt: convertToLanguageModelPrompt(validatedPrompt),
+              abortSignal,
+              headers,
+            }),
+          );
+
+          if (generateResult.text === undefined) {
+            throw new NoObjectGeneratedError();
+          }
+
+          result = generateResult.text;
+          finishReason = generateResult.finishReason;
+          usage = generateResult.usage;
+          warnings = generateResult.warnings;
+          rawResponse = generateResult.rawResponse;
+          logprobs = generateResult.logprobs;
+
+          break;
+        }
+
+        case 'tool': {
+          const validatedPrompt = getValidatedPrompt({
+            system,
+            prompt,
+            messages,
+          });
+
+          const generateResult = await retry(() =>
+            model.doGenerate({
+              mode: {
+                type: 'object-tool',
+                tool: {
+                  type: 'function',
+                  name: 'json',
+                  description: 'Respond with a JSON object.',
+                  parameters: jsonSchema,
+                },
+              },
+              ...prepareCallSettings(settings),
+              inputFormat: validatedPrompt.type,
+              prompt: convertToLanguageModelPrompt(validatedPrompt),
+              abortSignal,
+              headers,
+            }),
+          );
+
+          const functionArgs = generateResult.toolCalls?.[0]?.args;
+
+          if (functionArgs === undefined) {
+            throw new NoObjectGeneratedError();
+          }
+
+          result = functionArgs;
+          finishReason = generateResult.finishReason;
+          usage = generateResult.usage;
+          warnings = generateResult.warnings;
+          rawResponse = generateResult.rawResponse;
+          logprobs = generateResult.logprobs;
+
+          break;
+        }
+
+        case undefined: {
+          throw new Error(
+            'Model does not have a default object generation mode.',
+          );
+        }
+
+        default: {
+          const _exhaustiveCheck: never = mode;
+          throw new Error(`Unsupported mode: ${_exhaustiveCheck}`);
+        }
       }
 
-      result = generateResult.text;
-      finishReason = generateResult.finishReason;
-      usage = generateResult.usage;
-      warnings = generateResult.warnings;
-      rawResponse = generateResult.rawResponse;
-      logprobs = generateResult.logprobs;
+      const parseResult = safeParseJSON({ text: result, schema });
 
-      break;
-    }
-
-    case 'tool': {
-      const validatedPrompt = getValidatedPrompt({
-        system,
-        prompt,
-        messages,
-      });
-
-      const generateResult = await retry(() =>
-        model.doGenerate({
-          mode: {
-            type: 'object-tool',
-            tool: {
-              type: 'function',
-              name: 'json',
-              description: 'Respond with a JSON object.',
-              parameters: jsonSchema,
-            },
-          },
-          ...prepareCallSettings(settings),
-          inputFormat: validatedPrompt.type,
-          prompt: convertToLanguageModelPrompt(validatedPrompt),
-          abortSignal,
-          headers,
-        }),
-      );
-
-      const functionArgs = generateResult.toolCalls?.[0]?.args;
-
-      if (functionArgs === undefined) {
-        throw new NoObjectGeneratedError();
+      if (!parseResult.success) {
+        throw parseResult.error;
       }
 
-      result = functionArgs;
-      finishReason = generateResult.finishReason;
-      usage = generateResult.usage;
-      warnings = generateResult.warnings;
-      rawResponse = generateResult.rawResponse;
-      logprobs = generateResult.logprobs;
-
-      break;
-    }
-
-    case undefined: {
-      throw new Error('Model does not have a default object generation mode.');
-    }
-
-    default: {
-      const _exhaustiveCheck: never = mode;
-      throw new Error(`Unsupported mode: ${_exhaustiveCheck}`);
-    }
-  }
-
-  const parseResult = safeParseJSON({ text: result, schema });
-
-  if (!parseResult.success) {
-    throw parseResult.error;
-  }
-
-  return new GenerateObjectResult({
-    object: parseResult.value,
-    finishReason,
-    usage: calculateCompletionTokenUsage(usage),
-    warnings,
-    rawResponse,
-    logprobs,
+      return new GenerateObjectResult({
+        object: parseResult.value,
+        finishReason,
+        usage: calculateCompletionTokenUsage(usage),
+        warnings,
+        rawResponse,
+        logprobs,
+      });
+    },
   });
 }
 

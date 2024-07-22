@@ -3,6 +3,8 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { generateObject } from './generate-object';
+import { MockTracer } from '../test/mock-tracer';
+import { setTestTracer } from '../telemetry/get-tracer';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -141,5 +143,78 @@ describe('options.headers', () => {
     });
 
     assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
+  });
+});
+
+describe('telemetry', () => {
+  let tracer: MockTracer;
+
+  beforeEach(() => {
+    tracer = new MockTracer();
+    setTestTracer(tracer);
+  });
+
+  afterEach(() => {
+    setTestTracer(undefined);
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: `{ "content": "Hello, world!" }`,
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, []);
+  });
+
+  it('should record telemetry data when enabled with mode "json"', async () => {
+    await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: `{ "content": "Hello, world!" }`,
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+      },
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        attributes: {
+          'operation.name': 'ai.generateObject',
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt': '{"prompt":"prompt"}',
+          'ai.settings.jsonSchema':
+            '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],' +
+            '"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
+          'ai.settings.maxRetries': undefined,
+          'ai.settings.mode': 'json',
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'resource.name': 'test-function-id',
+        },
+        events: [],
+        name: 'ai.generateText',
+      },
+    ]);
   });
 });
