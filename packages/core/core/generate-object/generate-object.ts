@@ -156,6 +156,7 @@ Default and recommended: 'auto' (best mode for the model).
                 ...baseTelemetryAttributes,
                 'ai.prompt.format': inputFormat,
                 'ai.prompt.messages': JSON.stringify(promptMessages),
+                'ai.settings.mode': mode,
               },
               tracer,
               fn: async span => {
@@ -234,22 +235,48 @@ Default and recommended: 'auto' (best mode for the model).
             messages,
           });
 
+          const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
+          const inputFormat = validatedPrompt.type;
+
           const generateResult = await retry(() =>
-            model.doGenerate({
-              mode: {
-                type: 'object-tool',
-                tool: {
-                  type: 'function',
-                  name: 'json',
-                  description: 'Respond with a JSON object.',
-                  parameters: jsonSchema,
-                },
+            recordSpan({
+              name: 'ai.generateObject.doGenerate',
+              attributes: {
+                ...baseTelemetryAttributes,
+                'ai.prompt.format': inputFormat,
+                'ai.prompt.messages': JSON.stringify(promptMessages),
+                'ai.settings.mode': mode,
               },
-              ...prepareCallSettings(settings),
-              inputFormat: validatedPrompt.type,
-              prompt: convertToLanguageModelPrompt(validatedPrompt),
-              abortSignal,
-              headers,
+              tracer,
+              fn: async span => {
+                const result = await model.doGenerate({
+                  mode: {
+                    type: 'object-tool',
+                    tool: {
+                      type: 'function',
+                      name: 'json',
+                      description: 'Respond with a JSON object.',
+                      parameters: jsonSchema,
+                    },
+                  },
+                  ...prepareCallSettings(settings),
+                  inputFormat,
+                  prompt: promptMessages,
+                  abortSignal,
+                  headers,
+                });
+
+                // Add response information to the span:
+                span.setAttributes({
+                  'ai.finishReason': result.finishReason,
+                  'ai.usage.promptTokens': result.usage.promptTokens,
+                  'ai.usage.completionTokens': result.usage.completionTokens,
+                  'ai.result.text': result.text,
+                  'ai.result.toolCalls': JSON.stringify(result.toolCalls),
+                });
+
+                return result;
+              },
             }),
           );
 
