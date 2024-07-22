@@ -21,8 +21,9 @@ const result = await generateText({
 
 <Note>
   Some providers do not support all common settings. If you use a setting with a
-  provider that does not support it, a warning will be included in the AI
-  function result object.
+  provider that does not support it, a warning will be generated. You can check
+  the `warnings` property in the result object to see if any warnings were
+  generated.
 </Note>
 
 ### `maxTokens`
@@ -61,6 +62,13 @@ The frequency penalty affects the likelihood of the model to repeatedly use the 
 
 The value is passed through to the provider. The range depends on the provider and model.
 For most providers, `0` means no penalty.
+
+### `stopSequences`
+
+The stop sequences to use for stopping the text generation.
+
+If set, the model will stop generating text when one of the stop sequences is generated.
+Providers ay have limits on the number of stop sequences.
 
 ### `seed`
 
