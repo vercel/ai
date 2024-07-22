@@ -26,6 +26,14 @@ It is recommended to set either `temperature` or `topP`, but not both.
   topP?: number;
 
   /**
+Only sample from the top K options for each subsequent token.
+
+Used to remove "long tail" low probability responses. 
+Recommended for advanced use cases only. You usually only need to use temperature.
+   */
+  topK?: number;
+
+  /**
 Presence penalty setting. It affects the likelihood of the model to
 repeat information that is already in the prompt.
    */

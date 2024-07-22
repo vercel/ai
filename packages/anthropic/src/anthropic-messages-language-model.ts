@@ -58,6 +58,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
     seed,
@@ -95,7 +96,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       model: this.modelId,
 
       // model specific settings:
-      top_k: this.settings.topK,
+      top_k: topK ?? this.settings.topK,
 
       // standardized settings:
       max_tokens: maxTokens ?? 4096, // 4096: max model output tokens

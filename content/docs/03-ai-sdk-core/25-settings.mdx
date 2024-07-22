@@ -49,6 +49,13 @@ E.g. 0.1 would mean that only tokens with the top 10% probability mass are consi
 
 It is recommended to set either `temperature` or `topP`, but not both.
 
+### `topK`
+
+Only sample from the top K options for each subsequent token.
+
+Used to remove "long tail" low probability responses.
+Recommended for advanced use cases only. You usually only need to use `temperature`.
+
 ### `presencePenalty`
 
 The presence penalty affects the likelihood of the model to repeat information that is already in the prompt.

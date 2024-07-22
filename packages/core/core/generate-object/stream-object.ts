@@ -45,13 +45,16 @@ This function streams the output. If you do not want to stream the output, use `
 @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
 
 @param maxTokens - Maximum number of tokens to generate.
-@param temperature - Temperature setting. 
+@param temperature - Temperature setting.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param presencePenalty - Presence penalty setting. 
+@param topK - Only sample from the top K options for each subsequent token.
+Used to remove "long tail" low probability responses.
+Recommended for advanced use cases only. You usually only need to use temperature.
+@param presencePenalty - Presence penalty setting.
 It affects the likelihood of the model to repeat information that is already in the prompt.
 The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
@@ -452,8 +455,8 @@ The generated object (typed according to the schema). Resolved when the response
 
   /**
 Stream of partial objects. It gets more complete as the stream progresses.
-  
-Note that the partial object is not validated. 
+
+Note that the partial object is not validated.
 If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.
    */
   get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
@@ -482,7 +485,7 @@ If you want to be certain that the actual content matches your schema, you need 
   }
 
   /**
-Text stream of the JSON representation of the generated object. It contains text chunks. 
+Text stream of the JSON representation of the generated object. It contains text chunks.
 When the stream is finished, the object is valid JSON that can be parsed.
    */
   get textStream(): AsyncIterableStream<string> {
@@ -524,7 +527,7 @@ Only errors that stop the stream, such as network errors, are thrown.
 
   /**
 Writes text delta output to a Node.js response-like object.
-It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and
 writes each text delta as a separate chunk.
 
 @param response A Node.js response-like object (ServerResponse).

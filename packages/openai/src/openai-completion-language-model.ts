@@ -1,5 +1,6 @@
 import {
   LanguageModelV1,
+  LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
@@ -63,12 +64,22 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
     stopSequences: userStopSequences,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
+
+    const warnings: LanguageModelV1CallWarning[] = [];
+
+    if (topK != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'topK',
+      });
+    }
 
     const { prompt: completionPrompt, stopSequences } =
       convertToOpenAICompletionPrompt({ prompt, inputFormat });
@@ -122,7 +133,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
           });
         }
 
-        return baseArgs;
+        return { args: baseArgs, warnings };
       }
 
       case 'object-json': {
@@ -147,7 +158,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const args = this.getArgs(options);
+    const { args, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -177,14 +188,14 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       logprobs: mapOpenAICompletionLogProbs(choice.logprobs),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
-      warnings: [],
+      warnings,
     };
   }
 
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const args = this.getArgs(options);
+    const { args, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -193,7 +204,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: {
-        ...this.getArgs(options),
+        ...args,
         stream: true,
 
         // only include stream_options when in strict compatibility mode:
@@ -283,7 +294,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       ),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
-      warnings: [],
+      warnings,
     };
   }
 }
