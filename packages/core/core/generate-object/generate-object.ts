@@ -114,7 +114,7 @@ Default and recommended: 'auto' (best mode for the model).
 
   const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
   return recordSpan({
-    name: 'ai.generateText',
+    name: 'ai.generateObject',
     attributes: {
       ...baseTelemetryAttributes,
       // specific settings that only make sense on the outer level:
@@ -146,16 +146,40 @@ Default and recommended: 'auto' (best mode for the model).
             messages,
           });
 
-          const generateResult = await retry(() => {
-            return model.doGenerate({
-              mode: { type: 'object-json' },
-              ...prepareCallSettings(settings),
-              inputFormat: validatedPrompt.type,
-              prompt: convertToLanguageModelPrompt(validatedPrompt),
-              abortSignal,
-              headers,
-            });
-          });
+          const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
+          const inputFormat = validatedPrompt.type;
+
+          const generateResult = await retry(() =>
+            recordSpan({
+              name: 'ai.generateObject.doGenerate',
+              attributes: {
+                ...baseTelemetryAttributes,
+                'ai.prompt.format': inputFormat,
+                'ai.prompt.messages': JSON.stringify(promptMessages),
+              },
+              tracer,
+              fn: async span => {
+                const result = await model.doGenerate({
+                  mode: { type: 'object-json' },
+                  ...prepareCallSettings(settings),
+                  inputFormat,
+                  prompt: promptMessages,
+                  abortSignal,
+                  headers,
+                });
+
+                // Add response information to the span:
+                span.setAttributes({
+                  'ai.finishReason': result.finishReason,
+                  'ai.usage.promptTokens': result.usage.promptTokens,
+                  'ai.usage.completionTokens': result.usage.completionTokens,
+                  'ai.result.text': result.text,
+                });
+
+                return result;
+              },
+            }),
+          );
 
           if (generateResult.text === undefined) {
             throw new NoObjectGeneratedError();
@@ -262,6 +286,14 @@ Default and recommended: 'auto' (best mode for the model).
       if (!parseResult.success) {
         throw parseResult.error;
       }
+
+      // Add response information to the span:
+      span.setAttributes({
+        'ai.finishReason': finishReason,
+        'ai.usage.promptTokens': usage.promptTokens,
+        'ai.usage.completionTokens': usage.completionTokens,
+        'ai.result.object': JSON.stringify(parseResult.value),
+      });
 
       return new GenerateObjectResult({
         object: parseResult.value,
