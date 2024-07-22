@@ -40,7 +40,7 @@ to repeatedly use the same words or phrases.
   frequencyPenalty?: number;
 
   /**
-Response format. The output can either be text or JSON. 
+Response format. The output can either be text or JSON. Default is text.
 
 If JSON is selected, a schema can optionally be provided to guide the LLM.
    */

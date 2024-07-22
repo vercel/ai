@@ -57,6 +57,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     frequencyPenalty,
     presencePenalty,
     stopSequences,
+    responseFormat,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -80,6 +81,11 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       p: topP,
       seed,
       stop_sequences: stopSequences,
+      responseFormat:
+        // TODO test
+        responseFormat?.type === 'json'
+          ? { type: 'json_object', schema: responseFormat.schema }
+          : undefined,
 
       // messages:
       chat_history: history,
