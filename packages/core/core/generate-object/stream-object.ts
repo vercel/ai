@@ -98,14 +98,13 @@ The Zod schema is converted in a JSON schema and used in one of the following wa
 
 - 'auto': The provider will choose the best mode for the model.
 - 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
-- 'json': The JSON schema and a instruction is injected into the prompt. If the provider supports JSON mode, it is enabled.
-- 'grammar': The provider is instructed to converted the JSON schema into a provider specific grammar and use it to select the output tokens.
+- 'json': The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
 
 Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
      */
-    mode?: 'auto' | 'json' | 'tool' | 'grammar';
+    mode?: 'auto' | 'json' | 'tool';
 
     /**
 Callback that is called when the LLM response and the final object validation are finished.
@@ -166,39 +165,6 @@ Warnings from the model provider (e.g. unsupported settings).
 
       callOptions = {
         mode: { type: 'object-json' },
-        ...prepareCallSettings(settings),
-        inputFormat: validatedPrompt.type,
-        prompt: convertToLanguageModelPrompt(validatedPrompt),
-        abortSignal,
-        headers,
-      };
-
-      transformer = {
-        transform: (chunk, controller) => {
-          switch (chunk.type) {
-            case 'text-delta':
-              controller.enqueue(chunk.textDelta);
-              break;
-            case 'finish':
-            case 'error':
-              controller.enqueue(chunk);
-              break;
-          }
-        },
-      };
-
-      break;
-    }
-
-    case 'grammar': {
-      const validatedPrompt = getValidatedPrompt({
-        system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-        prompt,
-        messages,
-      });
-
-      callOptions = {
-        mode: { type: 'object-grammar', schema: jsonSchema },
         ...prepareCallSettings(settings),
         inputFormat: validatedPrompt.type,
         prompt: convertToLanguageModelPrompt(validatedPrompt),
