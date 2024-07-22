@@ -73,6 +73,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     const { prompt: completionPrompt, stopSequences } =
       convertToOpenAICompletionPrompt({ prompt, inputFormat });
 
+    const stop = [...(stopSequences ?? []), ...(userStopSequences ?? [])];
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -103,7 +105,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       prompt: completionPrompt,
 
       // stop sequences:
-      stop: [stopSequences, ...(userStopSequences ?? [])],
+      stop: stop.length > 0 ? stop : undefined,
     };
 
     switch (type) {
