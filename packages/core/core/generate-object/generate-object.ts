@@ -83,14 +83,13 @@ The Zod schema is converted in a JSON schema and used in one of the following wa
 
 - 'auto': The provider will choose the best mode for the model.
 - 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
-- 'json': The JSON schema and a instruction is injected into the prompt. If the provider supports JSON mode, it is enabled.
-- 'grammar': The provider is instructed to converted the JSON schema into a provider specific grammar and use it to select the output tokens.
+- 'json': The JSON schema and a instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
 
 Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
      */
-    mode?: 'auto' | 'json' | 'tool' | 'grammar';
+    mode?: 'auto' | 'json' | 'tool';
   }): Promise<GenerateObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const jsonSchema = convertZodToJSONSchema(schema);
@@ -125,38 +124,6 @@ Default and recommended: 'auto' (best mode for the model).
           headers,
         });
       });
-
-      if (generateResult.text === undefined) {
-        throw new NoObjectGeneratedError();
-      }
-
-      result = generateResult.text;
-      finishReason = generateResult.finishReason;
-      usage = generateResult.usage;
-      warnings = generateResult.warnings;
-      rawResponse = generateResult.rawResponse;
-      logprobs = generateResult.logprobs;
-
-      break;
-    }
-
-    case 'grammar': {
-      const validatedPrompt = getValidatedPrompt({
-        system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-        prompt,
-        messages,
-      });
-
-      const generateResult = await retry(() =>
-        model.doGenerate({
-          mode: { type: 'object-grammar', schema: jsonSchema },
-          ...prepareCallSettings(settings),
-          inputFormat: validatedPrompt.type,
-          prompt: convertToLanguageModelPrompt(validatedPrompt),
-          abortSignal,
-          headers,
-        }),
-      );
 
       if (generateResult.text === undefined) {
         throw new NoObjectGeneratedError();

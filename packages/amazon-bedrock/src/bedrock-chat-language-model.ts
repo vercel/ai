@@ -141,12 +141,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         } satisfies ConverseCommandInput;
       }
 
-      case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'grammar-mode object generation',
-        });
-      }
-
       default: {
         const _exhaustiveCheck: never = type;
         throw new Error(`Unsupported type: ${_exhaustiveCheck}`);

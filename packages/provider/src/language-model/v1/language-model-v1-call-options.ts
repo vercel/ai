@@ -1,4 +1,3 @@
-import { JSONSchema7 } from 'json-schema';
 import { LanguageModelV1CallSettings } from './language-model-v1-call-settings';
 import { LanguageModelV1FunctionTool } from './language-model-v1-function-tool';
 import { LanguageModelV1Prompt } from './language-model-v1-prompt';
@@ -41,11 +40,6 @@ Specifies how the tool should be selected. Defaults to 'auto'.
     | {
         // object generation with json mode enabled (streaming: text delta)
         type: 'object-json';
-      }
-    | {
-        // object generation with grammar enabled (streaming: text delta)
-        type: 'object-grammar';
-        schema: JSONSchema7;
       }
     | {
         // object generation with tool mode enabled (streaming: tool call deltas)
