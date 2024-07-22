@@ -1,3 +1,5 @@
+import { JSONSchema7 } from 'json-schema';
+
 export type LanguageModelV1CallSettings = {
   /**
 Maximum number of tokens to generate.
@@ -36,6 +38,13 @@ Frequency penalty setting. It affects the likelihood of the model
 to repeatedly use the same words or phrases.
    */
   frequencyPenalty?: number;
+
+  /**
+Response format. The output can either be text or JSON. 
+
+If JSON is selected, a schema can optionally be provided to guide the LLM.
+   */
+  responseFormat?: { type: 'text' } | { type: 'json'; schema?: JSONSchema7 };
 
   /**
 The seed (integer) to use for random sampling. If set and supported
