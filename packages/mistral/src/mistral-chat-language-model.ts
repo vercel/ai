@@ -97,11 +97,15 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    if (responseFormat != null && responseFormat.type !== 'text') {
+    if (
+      responseFormat != null &&
+      responseFormat.type === 'json' &&
+      responseFormat.schema != null
+    ) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'responseFormat',
-        details: 'JSON response format is not supported.',
+        details: 'JSON response format schema is not supported',
       });
     }
 
@@ -117,6 +121,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       temperature,
       top_p: topP,
       random_seed: seed,
+
+      // response format:
+      response_format:
+        responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // messages:
       messages: convertToMistralChatMessages(prompt),
