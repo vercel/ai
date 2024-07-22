@@ -57,6 +57,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     frequencyPenalty,
     presencePenalty,
     seed,
+    stopSequences,
     headers,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -101,6 +102,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         maxTokens,
         temperature,
         topP,
+        stopSequences,
       },
       messages,
     };

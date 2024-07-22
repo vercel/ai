@@ -56,6 +56,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     topP,
     frequencyPenalty,
     presencePenalty,
+    stopSequences,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -78,6 +79,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       temperature,
       p: topP,
       seed,
+      stop_sequences: stopSequences,
 
       // messages:
       chat_history: history,

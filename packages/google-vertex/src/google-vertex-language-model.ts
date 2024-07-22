@@ -49,14 +49,15 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   }
 
   private async getArgs({
-    prompt,
     mode,
-    frequencyPenalty,
-    presencePenalty,
-    seed,
+    prompt,
     maxTokens,
     temperature,
     topP,
+    frequencyPenalty,
+    presencePenalty,
+    stopSequences,
+    seed,
     headers,
   }: LanguageModelV1CallOptions) {
     const warnings: LanguageModelV1CallWarning[] = [];
@@ -97,6 +98,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       maxOutputTokens: maxTokens,
       temperature,
       topP,
+      stopSequences,
     };
 
     const type = mode.type;

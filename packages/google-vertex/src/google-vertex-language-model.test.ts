@@ -191,6 +191,7 @@ describe('doGenerate', () => {
       temperature: 0.5,
       maxTokens: 100,
       topP: 0.9,
+      stopSequences: ['abc', 'def'],
     });
 
     expect(mockVertexAI.lastModelParams).toStrictEqual({
@@ -200,6 +201,7 @@ describe('doGenerate', () => {
         temperature: 0.5,
         topK: 0.1,
         topP: 0.9,
+        stopSequences: ['abc', 'def'],
       },
       tools: undefined,
       safetySettings: undefined,

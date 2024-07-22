@@ -47,6 +47,13 @@ and 1 (maximum penalty, decrease repetition). 0 means no penalty.
   frequencyPenalty?: number;
 
   /**
+Stop sequences.
+If set, the model will stop generating text when one of the stop sequences is generated.
+Providers may have limits on the number of stop sequences.
+   */
+  stopSequences?: string[];
+
+  /**
 The seed (integer) to use for random sampling. If set and supported
 by the model, calls will generate deterministic results.
    */

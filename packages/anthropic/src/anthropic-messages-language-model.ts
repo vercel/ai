@@ -61,6 +61,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     frequencyPenalty,
     presencePenalty,
     seed,
+    stopSequences,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -100,6 +101,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       max_tokens: maxTokens ?? 4096, // 4096: max model output tokens
       temperature,
       top_p: topP,
+      stop_sequences: stopSequences,
 
       // prompt:
       system: messagesPrompt.system,

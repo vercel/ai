@@ -12,6 +12,13 @@ It is recommended to set either `temperature` or `topP`, but not both.
   temperature?: number;
 
   /**
+Stop sequences. 
+If set, the model will stop generating text when one of the stop sequences is generated.
+Providers may have limits on the number of stop sequences.
+   */
+  stopSequences?: string[];
+
+  /**
 Nucleus sampling.
 
 It is recommended to set either `temperature` or `topP`, but not both.

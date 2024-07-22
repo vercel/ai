@@ -60,6 +60,8 @@ The value is passed through to the provider. The range depends on the provider a
 @param frequencyPenalty - Frequency penalty setting.
 It affects the likelihood of the model to repeatedly use the same words or phrases.
 The value is passed through to the provider. The range depends on the provider and model.
+@param stopSequences - Stop sequences.
+If set, the model will stop generating text when one of the stop sequences is generated.
 @param seed - The seed (integer) to use for random sampling.
 If set and supported by the model, calls will generate deterministic results.
 

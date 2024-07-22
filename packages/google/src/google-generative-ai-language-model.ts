@@ -61,6 +61,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     topP,
     frequencyPenalty,
     presencePenalty,
+    stopSequences,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -96,6 +97,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       maxOutputTokens: maxTokens,
       temperature,
       topP,
+      stopSequences,
     };
 
     const { contents, systemInstruction } =
