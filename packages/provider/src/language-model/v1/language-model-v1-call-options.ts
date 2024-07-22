@@ -20,6 +20,7 @@ low level grammar, etc. It can also be used to optimize the efficiency of the
 streaming, e.g. tool-delta stream parts are only needed in the
 object-tool mode.
    */
+  // TODO v2 remove all modes (everything will be regular mode / no mode)
   mode:
     | {
         // stream text & complete tool calls
@@ -36,6 +37,13 @@ Specifies how the tool should be selected. Defaults to 'auto'.
          */
         // TODO Spec V2: make mandatory
         toolChoice?: LanguageModelV1ToolChoice;
+
+        /**
+Stop sequences.
+If set, the model will stop generating text when one of the stop sequences is generated.
+Providers may have limits on the number of stop sequences.
+         */
+        stopSequences?: string[];
       }
     | {
         // object generation with json mode enabled (streaming: text delta)
