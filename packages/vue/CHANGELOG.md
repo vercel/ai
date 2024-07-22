@@ -1,5 +1,14 @@
 # @ai-sdk/vue
 
+## 0.0.21
+
+### Patch Changes
+
+- f63829fe: feat (ai/ui): add allowEmptySubmit flag to handleSubmit
+- 4b2c09d9: feat (ai/ui): add mutator function support to useChat / setMessages
+- Updated dependencies [f63829fe]
+  - @ai-sdk/ui-utils@0.0.17
+
 ## 0.0.20
 
 ### Patch Changes

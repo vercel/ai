@@ -1,5 +1,19 @@
 # ai
 
+## 3.2.33
+
+### Patch Changes
+
+- 4b2c09d9: feat (ai/ui): add mutator function support to useChat / setMessages
+- 281e7662: chore: add description to ai package
+- Updated dependencies [f63829fe]
+- Updated dependencies [4b2c09d9]
+  - @ai-sdk/ui-utils@0.0.17
+  - @ai-sdk/svelte@0.0.20
+  - @ai-sdk/react@0.0.26
+  - @ai-sdk/solid@0.0.19
+  - @ai-sdk/vue@0.0.21
+
 ## 3.2.32
 
 ### Patch Changes
