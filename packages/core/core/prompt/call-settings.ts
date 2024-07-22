@@ -49,7 +49,7 @@ and 1 (maximum penalty, decrease repetition). 0 means no penalty.
   /**
 Stop sequences.
 If set, the model will stop generating text when one of the stop sequences is generated.
-Providers ay have limits on the number of stop sequences.
+Providers may have limits on the number of stop sequences.
    */
   stopSequences?: string[];
 
