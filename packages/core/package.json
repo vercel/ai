@@ -1,6 +1,7 @@
 {
   "name": "ai",
   "version": "3.2.32",
+  "description": "The AI Toolkit for TypeScript",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
