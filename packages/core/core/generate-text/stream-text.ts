@@ -546,6 +546,8 @@ stream will throw the error.
           if (chunk.textDelta.length > 0) {
             controller.enqueue(chunk);
           }
+        } else if (chunk.type === 'error') {
+          controller.error(chunk.error);
         } else {
           controller.enqueue(chunk);
         }
