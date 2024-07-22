@@ -448,7 +448,7 @@ for await (const partialObject of partialObjectStream) {
       name: 'fullStream',
       type: 'AsyncIterableStream<ObjectStreamPart<T>>',
       description:
-        'Stream of different types of events, including partial objects, errors, and finish events.',
+        'Stream of different types of events, including partial objects, errors, and finish events. Only errors that stop the stream, such as network errors, are thrown.',
       properties: [
         {
           type: 'ObjectPart',
