@@ -350,6 +350,39 @@ export async function POST(req: Request) {
 }
 ```
 
+## Empty Submissions
+
+You can configure the `useChat` hook to allow empty submissions by setting the `allowEmptySubmit` option to `true`.
+
+```tsx filename="app/page.tsx" highlight="18"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role}: {m.content}
+        </div>
+      ))}
+
+      <form
+        onSubmit={event => {
+          handleSubmit(event, {
+            allowEmptySubmit: true,
+          });
+        }}
+      >
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </div>
+  );
+}
+```
+
 ## Attachments (Experimental)
 
 The `useChat` hook supports sending attachments along with a message as well as rendering them on the client. This can be useful for building applications that involve sending images, files, or other media content to the AI provider.

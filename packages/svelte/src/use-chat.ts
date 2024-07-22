@@ -378,20 +378,23 @@ export function useChat({
     event?.preventDefault?.();
     const inputValue = get(input);
 
+    if (!inputValue && !options.allowEmptySubmit) return;
+
     const requestOptions = {
       headers: options.headers ?? options.options?.headers,
       body: options.body ?? options.options?.body,
     };
 
     const chatRequest: ChatRequest = {
-      messages: inputValue
-        ? get(messages).concat({
-            id: generateId(),
-            content: inputValue,
-            role: 'user',
-            createdAt: new Date(),
-          } as Message)
-        : get(messages),
+      messages:
+        !inputValue && options.allowEmptySubmit
+          ? get(messages)
+          : get(messages).concat({
+              id: generateId(),
+              content: inputValue,
+              role: 'user',
+              createdAt: new Date(),
+            } as Message),
       options: requestOptions,
       body: requestOptions.body,
       headers: requestOptions.headers,

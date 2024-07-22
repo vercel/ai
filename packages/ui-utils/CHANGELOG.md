@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.17
+
+### Patch Changes
+
+- f63829fe: feat (ai/ui): add allowEmptySubmit flag to handleSubmit
+
 ## 0.0.16
 
 ### Patch Changes
