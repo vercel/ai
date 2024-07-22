@@ -3,6 +3,8 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { generateObject } from './generate-object';
+import { MockTracer } from '../test/mock-tracer';
+import { setTestTracer } from '../telemetry/get-tracer';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -90,12 +92,10 @@ describe('result.toJsonResponse', () => {
   it('should return JSON response', async () => {
     const result = await generateObject({
       model: new MockLanguageModelV1({
-        doGenerate: async ({ prompt, mode }) => {
-          return {
-            ...dummyResponseValues,
-            text: `{ "content": "Hello, world!" }`,
-          };
-        },
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          text: `{ "content": "Hello, world!" }`,
+        }),
       }),
       schema: z.object({ content: z.string() }),
       mode: 'json',
@@ -141,5 +141,185 @@ describe('options.headers', () => {
     });
 
     assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
+  });
+});
+
+describe('telemetry', () => {
+  let tracer: MockTracer;
+
+  beforeEach(() => {
+    tracer = new MockTracer();
+    setTestTracer(tracer);
+  });
+
+  afterEach(() => {
+    setTestTracer(undefined);
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: `{ "content": "Hello, world!" }`,
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, []);
+  });
+
+  it('should record telemetry data when enabled with mode "json"', async () => {
+    await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: `{ "content": "Hello, world!" }`,
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+      },
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        attributes: {
+          'operation.name': 'ai.generateObject',
+          'ai.finishReason': 'stop',
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt': '{"prompt":"prompt"}',
+          'ai.result.object': '{"content":"Hello, world!"}',
+          'ai.settings.jsonSchema':
+            '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
+          'ai.settings.maxRetries': undefined,
+          'ai.settings.mode': 'json',
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'resource.name': 'test-function-id',
+        },
+        events: [],
+        name: 'ai.generateObject',
+      },
+      {
+        attributes: {
+          'operation.name': 'ai.generateObject',
+          'ai.settings.mode': 'json',
+          'ai.finishReason': 'stop',
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt.format': 'prompt',
+          'ai.prompt.messages':
+            '[{"role":"system","content":"JSON schema:\\n{\\"type\\":\\"object\\",' +
+            '\\"properties\\":{\\"content\\":{\\"type\\":\\"string\\"}},\\"required\\":' +
+            '[\\"content\\"],\\"additionalProperties\\":false,\\"$schema\\":\\"http://json-schema.org/draft-07/schema#\\"}' +
+            '\\nYou MUST answer with a JSON object that matches the JSON schema above."},' +
+            '{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
+          'ai.result.text': '{ "content": "Hello, world!" }',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'resource.name': 'test-function-id',
+        },
+        events: [],
+        name: 'ai.generateObject.doGenerate',
+      },
+    ]);
+  });
+
+  it('should record telemetry data when enabled with mode "tool"', async () => {
+    await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          toolCalls: [
+            {
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              args: `{ "content": "Hello, world!" }`,
+            },
+          ],
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'tool',
+      prompt: 'prompt',
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+      },
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        attributes: {
+          'ai.finishReason': 'stop',
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt': '{"prompt":"prompt"}',
+          'ai.result.object': '{"content":"Hello, world!"}',
+          'ai.settings.jsonSchema':
+            '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
+          'ai.settings.maxRetries': undefined,
+          'ai.settings.mode': 'tool',
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'operation.name': 'ai.generateObject',
+          'resource.name': 'test-function-id',
+        },
+        events: [],
+        name: 'ai.generateObject',
+      },
+      {
+        attributes: {
+          'ai.finishReason': 'stop',
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt.format': 'prompt',
+          'ai.prompt.messages':
+            '[{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
+          'ai.result.text': undefined,
+          'ai.result.toolCalls':
+            '[{"toolCallType":"function","toolCallId":"tool-call-1","toolName":"json","args":"{ \\"content\\": \\"Hello, world!\\" }"}]',
+          'ai.settings.maxRetries': undefined,
+          'ai.settings.mode': 'tool',
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'operation.name': 'ai.generateObject',
+          'resource.name': 'test-function-id',
+        },
+        events: [],
+        name: 'ai.generateObject.doGenerate',
+      },
+    ]);
   });
 });
