@@ -212,7 +212,7 @@ AI SDK UI provides robust abstractions that simplify the complex tasks of managi
 
 With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion), [`useObject`](/docs/reference/ai-sdk-ui/use-object), and [`useAssistant`](/docs/reference/ai-sdk-ui/use-assistant) — you can incorporate real-time chat capabilities, text completions, streamed JSON, and interactive assistant features into your app.
 
-Let's look at how you can build a chatbot with [Next.js](https://nextjs.org), Vercel AI SDK, and Llama 3.1 (via [Groq](https://groq.com/)):
+Let's explore building a chatbot with [Next.js](https://nextjs.org), Vercel AI SDK, and Llama 3.1 (via [Groq](https://groq.com/)):
 
 ```tsx filename="app/api/chat/route.ts"
 import { convertToCoreMessages, streamText } from 'ai';
@@ -270,7 +270,7 @@ This enables a seamless chat experience where the user can see the AI response a
 
 ### Going Beyond Text
 
-The Vercel AI SDK's React Server Components (RSC) API enables you to create rich, interactive interfaces that go beyond simple text generation. With the `streamUI` function, you can dynamically stream React components from the server to the client.
+The Vercel AI SDK's React Server Components (RSC) API enables you to create rich, interactive interfaces that go beyond simple text generation. With the [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui) function, you can dynamically stream React components from the server to the client.
 
 Let's dive into how you can leverage tools with [AI SDK RSC](/docs/ai-sdk-rsc/overview) to build a generative user interface with Next.js (App Router).
 
