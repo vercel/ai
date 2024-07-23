@@ -1,0 +1,71 @@
+import { Validator, validatorSymbol } from '@ai-sdk/provider-utils';
+import { JSONSchema7 } from 'json-schema';
+import { z } from 'zod';
+import zodToJsonSchema from 'zod-to-json-schema';
+
+/**
+ * Used to mark schemas so we can support both Zod and custom schemas.
+ */
+const schemaSymbol = Symbol('vercel.ai.schema');
+
+export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
+  /**
+   * Used to mark schemas so we can support both Zod and custom schemas.
+   */
+  [schemaSymbol]: true;
+
+  /**
+   * The JSON Schema for the schema. It is passed to the providers.
+   */
+  readonly jsonSchema: JSONSchema7;
+};
+
+/**
+ * Create a schema.
+ *
+ * @param jsonSchema The JSON Schema for the schema.
+ * @param validate Optional. A validation function for the schema.
+ */
+export function schema<OBJECT>({
+  jsonSchema,
+  validate,
+}: {
+  jsonSchema: JSONSchema7;
+  validate?: (
+    value: unknown,
+  ) => { success: true; value: OBJECT } | { success: false; error: unknown };
+}): Schema<OBJECT> {
+  return {
+    [schemaSymbol]: true,
+    [validatorSymbol]: true,
+    jsonSchema,
+    validate,
+  };
+}
+
+export function isSchema(value: unknown): value is Schema {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    schemaSymbol in value &&
+    value[schemaSymbol] === true &&
+    'jsonSchema' in value &&
+    'validate' in value
+  );
+}
+
+export function zodSchema<OBJECT>(
+  zodSchema: z.Schema<OBJECT>,
+): Validator<OBJECT> {
+  return schema({
+    // we assume that zodToJsonSchema will return a valid JSONSchema7:
+    jsonSchema: zodToJsonSchema(zodSchema) as JSONSchema7,
+
+    validate: value => {
+      const result = zodSchema.safeParse(value);
+      return result.success
+        ? { success: true, value: result.data }
+        : { success: false, error: result.error };
+    },
+  });
+}
