@@ -21,20 +21,21 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
 };
 
 /**
- * Create a schema.
+ * Create a schema using a JSON Schema.
  *
  * @param jsonSchema The JSON Schema for the schema.
- * @param validate Optional. A validation function for the schema.
+ * @param options.validate Optional. A validation function for the schema.
  */
-export function schema<OBJECT>({
-  jsonSchema,
-  validate,
-}: {
-  jsonSchema: JSONSchema7;
-  validate?: (
-    value: unknown,
-  ) => { success: true; value: OBJECT } | { success: false; error: unknown };
-}): Schema<OBJECT> {
+export function jsonSchema<OBJECT>(
+  jsonSchema: JSONSchema7,
+  {
+    validate,
+  }: {
+    validate?: (
+      value: unknown,
+    ) => { success: true; value: OBJECT } | { success: false; error: unknown };
+  } = {},
+): Schema<OBJECT> {
   return {
     [schemaSymbol]: true,
     [validatorSymbol]: true,
@@ -54,18 +55,17 @@ export function isSchema(value: unknown): value is Schema {
   );
 }
 
-export function zodSchema<OBJECT>(
-  zodSchema: z.Schema<OBJECT>,
-): Validator<OBJECT> {
-  return schema({
+export function zodSchema<OBJECT>(zodSchema: z.Schema<OBJECT>): Schema<OBJECT> {
+  return jsonSchema(
     // we assume that zodToJsonSchema will return a valid JSONSchema7:
-    jsonSchema: zodToJsonSchema(zodSchema) as JSONSchema7,
-
-    validate: value => {
-      const result = zodSchema.safeParse(value);
-      return result.success
-        ? { success: true, value: result.data }
-        : { success: false, error: result.error };
+    zodToJsonSchema(zodSchema) as JSONSchema7,
+    {
+      validate: value => {
+        const result = zodSchema.safeParse(value);
+        return result.success
+          ? { success: true, value: result.data }
+          : { success: false, error: result.error };
+      },
     },
-  });
+  );
 }

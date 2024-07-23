@@ -7,5 +7,4 @@ export * from './registry';
 export * from './tool';
 export * from './types';
 export { cosineSimilarity } from './util/cosine-similarity';
-export { schema } from './util/schema';
-export type { Schema } from './util/schema';
+export { jsonSchema } from './util/schema';
