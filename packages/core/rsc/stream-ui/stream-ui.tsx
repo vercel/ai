@@ -21,10 +21,6 @@ import {
 import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
 import { createStreamableUI } from '../streamable';
 import { createResolvablePromise } from '../utils';
-import {
-  TokenUsage,
-  calculateTokenUsage,
-} from '../../core/generate-text/token-usage';
 
 type Streamable = ReactNode | Promise<ReactNode>;
 
