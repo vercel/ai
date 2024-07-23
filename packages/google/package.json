@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google",
-  "version": "0.0.27",
+  "version": "0.0.28",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,8 +29,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.12",
-    "@ai-sdk/provider-utils": "1.0.2"
+    "@ai-sdk/provider": "0.0.13",
+    "@ai-sdk/provider-utils": "1.0.3"
   },
   "devDependencies": {
     "@types/node": "^18",

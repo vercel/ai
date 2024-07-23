@@ -1,5 +1,26 @@
 # ai
 
+## 3.2.34
+
+### Patch Changes
+
+- 2b9da0f0: feat (core): support stopSequences setting.
+- a5b58845: feat (core): support topK setting
+- 420f170f: chore (ai/core): use interfaces for core function results
+- 13b27ec6: chore (ai/core): remove grammar mode
+- 644f6582: feat (ai/core): add telemetry to generateObject
+- Updated dependencies [2b9da0f0]
+- Updated dependencies [a5b58845]
+- Updated dependencies [4aa8deb3]
+- Updated dependencies [13b27ec6]
+  - @ai-sdk/provider@0.0.13
+  - @ai-sdk/provider-utils@1.0.3
+  - @ai-sdk/react@0.0.27
+  - @ai-sdk/svelte@0.0.21
+  - @ai-sdk/ui-utils@0.0.18
+  - @ai-sdk/solid@0.0.20
+  - @ai-sdk/vue@0.0.22
+
 ## 3.2.33
 
 ### Patch Changes

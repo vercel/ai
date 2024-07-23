@@ -1,5 +1,20 @@
 # @ai-sdk/anthropic
 
+## 0.0.31
+
+### Patch Changes
+
+- 2b9da0f0: feat (core): support stopSequences setting.
+- a5b58845: feat (core): support topK setting
+- 4aa8deb3: feat (provider): support responseFormat setting in provider api
+- 13b27ec6: chore (ai/core): remove grammar mode
+- Updated dependencies [2b9da0f0]
+- Updated dependencies [a5b58845]
+- Updated dependencies [4aa8deb3]
+- Updated dependencies [13b27ec6]
+  - @ai-sdk/provider@0.0.13
+  - @ai-sdk/provider-utils@1.0.3
+
 ## 0.0.30
 
 ### Patch Changes
