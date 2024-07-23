@@ -122,6 +122,8 @@ describe('doGenerate', () => {
 
   function prepareJsonResponse({
     content = '',
+    tool_calls,
+    function_call,
     usage = {
       prompt_tokens: 4,
       total_tokens: 34,
@@ -131,6 +133,18 @@ describe('doGenerate', () => {
     finish_reason = 'stop',
   }: {
     content?: string;
+    tool_calls?: Array<{
+      id: string;
+      type: 'function';
+      function: {
+        name: string;
+        arguments: string;
+      };
+    }>;
+    function_call?: {
+      name: string;
+      arguments: string;
+    };
     usage?: {
       prompt_tokens: number;
       total_tokens: number;
@@ -158,6 +172,8 @@ describe('doGenerate', () => {
           message: {
             role: 'assistant',
             content,
+            tool_calls,
+            function_call,
           },
           logprobs,
           finish_reason,
@@ -260,6 +276,7 @@ describe('doGenerate', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
+      'content-length': '337',
       'content-type': 'application/json',
 
       // custom header
@@ -362,7 +379,58 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should pass custom headers', async () => {
+  it('should pass functions and function_call with useLegacyFunctionCalling', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('gpt-3.5-turbo', {
+      useLegacyFunctionCalling: true,
+    });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'test-tool',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toEqual({
+      messages: [{ role: 'user', content: 'Hello' }],
+      model: 'gpt-3.5-turbo',
+      functions: [
+        {
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      function_call: { name: 'test-tool' },
+    });
+  });
+
+  it('should pass headers', async () => {
     prepareJsonResponse({ content: '' });
 
     const provider = createOpenAI({
@@ -370,7 +438,7 @@ describe('doGenerate', () => {
       organization: 'test-organization',
       project: 'test-project',
       headers: {
-        'Custom-Header': 'test-header',
+        'Custom-Provider-Header': 'provider-header-value',
       },
     });
 
@@ -378,31 +446,117 @@ describe('doGenerate', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      headers: {
+        'Custom-Request-Header': 'request-header-value',
+      },
     });
 
     const requestHeaders = await server.getRequestHeaders();
 
-    expect(requestHeaders.get('OpenAI-Organization')).toStrictEqual(
-      'test-organization',
-    );
-    expect(requestHeaders.get('OpenAI-Project')).toStrictEqual('test-project');
-    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
+    expect(requestHeaders).toStrictEqual({
+      authorization: 'Bearer test-api-key',
+      'content-type': 'application/json',
+      'custom-provider-header': 'provider-header-value',
+      'custom-request-header': 'request-header-value',
+      'openai-organization': 'test-organization',
+      'openai-project': 'test-project',
+    });
   });
 
-  it('should pass the api key as Authorization header', async () => {
-    prepareJsonResponse({ content: '' });
+  it('should parse tool results', async () => {
+    prepareJsonResponse({
+      tool_calls: [
+        {
+          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            arguments: '{"value":"Spark"}',
+          },
+        },
+      ],
+    });
 
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-
-    await provider.chat('gpt-3.5-turbo').doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'test-tool',
+        },
+      },
       prompt: TEST_PROMPT,
     });
 
-    expect(
-      (await server.getRequestHeaders()).get('Authorization'),
-    ).toStrictEqual('Bearer test-api-key');
+    expect(result.toolCalls).toStrictEqual([
+      {
+        args: '{"value":"Spark"}',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+      },
+    ]);
+  });
+
+  it('should parse function results with useLegacyFunctionCalling', async () => {
+    prepareJsonResponse({
+      function_call: {
+        name: 'test-tool',
+        arguments: '{"value":"Spark"}',
+      },
+    });
+
+    const model = provider.chat('gpt-3.5-turbo', {
+      useLegacyFunctionCalling: true,
+    });
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'test-tool',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.toolCalls).toStrictEqual([
+      {
+        args: '{"value":"Spark"}',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool',
+      },
+    ]);
   });
 });
 
@@ -673,6 +827,76 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should stream function deltas with legacy function calling', async () => {
+    server.responseChunks = [
+      `data: {"id":"chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2","object":"chat.completion.chunk","created":1721720519,"model":"gpt-4-turbo-2024-04-09","system_fingerprint":"fp_7b3074c4b0",` +
+        `"choices":[{"index":0,"delta":{"role":"assistant","content":null,"function_call":{"name":"test-tool","arguments":""}},"logprobs":null,"finish_reason":null}],"usage":null}\n\n`,
+      `data: {"id":"chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2","object":"chat.completion.chunk","created":1721720519,"model":"gpt-4-turbo-2024-04-09","system_fingerprint":"fp_7b3074c4b0",` +
+        `"choices":[{"index":0,"delta":{"function_call":{"arguments":"{\\"value\\""}},"logprobs":null,"finish_reason":null}],"usage":null}\n\n`,
+      `data: {"id":"chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2","object":"chat.completion.chunk","created":1721720519,"model":"gpt-4-turbo-2024-04-09","system_fingerprint":"fp_7b3074c4b0",` +
+        `"choices":[{"index":0,"delta":{"function_call":{"arguments":":\\"Sparkle Day\\"}"}},"logprobs":null,"finish_reason":null}],"usage":null}\n\n`,
+      `data: {"id":"chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2","object":"chat.completion.chunk","created":1721720519,"model":"gpt-4-turbo-2024-04-09","system_fingerprint":"fp_7b3074c4b0",` +
+        `"choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}],"usage":null}\n\n`,
+      `data: {"id":"chatcmpl-9o4RjdXk92In6yOzgND3bJxtedhS2","object":"chat.completion.chunk","created":1721720519,"model":"gpt-4-turbo-2024-04-09","system_fingerprint":"fp_7b3074c4b0",` +
+        `"choices":[],"usage":{"prompt_tokens":53,"completion_tokens":17,"total_tokens":70}}\n\n`,
+    ];
+
+    const model = provider.chat('gpt-4-turbo', {
+      useLegacyFunctionCalling: true,
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '{"value"',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: ':"Sparkle Day"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        args: '{"value":"Sparkle Day"}',
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        logprobs: undefined,
+        usage: { promptTokens: 53, completionTokens: 17 },
+      },
+    ]);
+  });
+
   it('should handle error stream parts', async () => {
     server.responseChunks = [
       `data: {"error":{"message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our ` +
@@ -776,7 +1000,7 @@ describe('doStream', () => {
     });
   });
 
-  it('should pass custom headers', async () => {
+  it('should pass headers', async () => {
     prepareStreamResponse({ content: [] });
 
     const provider = createOpenAI({
@@ -784,7 +1008,7 @@ describe('doStream', () => {
       organization: 'test-organization',
       project: 'test-project',
       headers: {
-        'Custom-Header': 'test-header',
+        'Custom-Provider-Header': 'provider-header-value',
       },
     });
 
@@ -792,30 +1016,20 @@ describe('doStream', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      headers: {
+        'Custom-Request-Header': 'request-header-value',
+      },
     });
 
     const requestHeaders = await server.getRequestHeaders();
 
-    expect(requestHeaders.get('OpenAI-Organization')).toStrictEqual(
-      'test-organization',
-    );
-    expect(requestHeaders.get('OpenAI-Project')).toStrictEqual('test-project');
-    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
-  });
-
-  it('should pass the api key as Authorization header', async () => {
-    prepareStreamResponse({ content: [] });
-
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-
-    await provider.chat('gpt-3.5-turbo').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
+    expect(requestHeaders).toStrictEqual({
+      authorization: 'Bearer test-api-key',
+      'content-type': 'application/json',
+      'custom-provider-header': 'provider-header-value',
+      'custom-request-header': 'request-header-value',
+      'openai-organization': 'test-organization',
+      'openai-project': 'test-project',
     });
-
-    expect(
-      (await server.getRequestHeaders()).get('Authorization'),
-    ).toStrictEqual('Bearer test-api-key');
   });
 });

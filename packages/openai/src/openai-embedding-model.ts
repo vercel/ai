@@ -3,6 +3,7 @@ import {
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
+  combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -51,6 +52,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
 
   async doEmbed({
     values,
+    headers,
     abortSignal,
   }: Parameters<EmbeddingModelV1<string>['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>
@@ -69,7 +71,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
         path: '/embeddings',
         modelId: this.modelId,
       }),
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,
         input: values,
@@ -87,6 +89,9 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
 
     return {
       embeddings: response.data.map(item => item.embedding),
+      usage: response.usage
+        ? { tokens: response.usage.prompt_tokens }
+        : undefined,
       rawResponse: { headers: responseHeaders },
     };
   }
@@ -95,9 +100,6 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV1<string> {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiTextEmbeddingResponseSchema = z.object({
-  data: z.array(
-    z.object({
-      embedding: z.array(z.number()),
-    }),
-  ),
+  data: z.array(z.object({ embedding: z.array(z.number()) })),
+  usage: z.object({ prompt_tokens: z.number() }).nullish(),
 });

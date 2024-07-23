@@ -48,8 +48,6 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
-export const dynamic = 'force-dynamic';
-
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { messages } = await req.json();
@@ -89,7 +87,7 @@ By default, the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook will use th
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client';
 
-import { useChat } from '@ai-sdk/react';
+import { useChat } from 'ai/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -131,8 +129,6 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
-export const dynamic = 'force-dynamic';
-
 export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
@@ -160,7 +156,7 @@ We can use the [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hook 
 ```tsx filename="app/page.tsx" showLineNumbers
 'use client';
 
-import { useCompletion } from '@ai-sdk/react';
+import { useCompletion } from 'ai/react';
 
 export default function Completion() {
   const {

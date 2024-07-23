@@ -7,6 +7,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   ParseResult,
+  combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
@@ -57,13 +58,23 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
+    stopSequences,
+    responseFormat,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
     const warnings: LanguageModelV1CallWarning[] = [];
+
+    if (topK != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'topK',
+      });
+    }
 
     if (frequencyPenalty != null) {
       warnings.push({
@@ -79,6 +90,25 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (stopSequences != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'stopSequences',
+      });
+    }
+
+    if (
+      responseFormat != null &&
+      responseFormat.type === 'json' &&
+      responseFormat.schema != null
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'JSON response format schema is not supported',
+      });
+    }
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -91,6 +121,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       temperature,
       top_p: topP,
       random_seed: seed,
+
+      // response format:
+      response_format:
+        responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // messages:
       messages: convertToMistralChatMessages(prompt),
@@ -125,12 +159,6 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
         };
       }
 
-      case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-grammar mode',
-        });
-      }
-
       default: {
         const _exhaustiveCheck: never = type;
         throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
@@ -145,7 +173,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -184,7 +212,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: {
         ...args,
         stream: true,

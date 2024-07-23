@@ -1,5 +1,83 @@
 # @ai-sdk/anthropic
 
+## 0.0.31
+
+### Patch Changes
+
+- 2b9da0f0: feat (core): support stopSequences setting.
+- a5b58845: feat (core): support topK setting
+- 4aa8deb3: feat (provider): support responseFormat setting in provider api
+- 13b27ec6: chore (ai/core): remove grammar mode
+- Updated dependencies [2b9da0f0]
+- Updated dependencies [a5b58845]
+- Updated dependencies [4aa8deb3]
+- Updated dependencies [13b27ec6]
+  - @ai-sdk/provider@0.0.13
+  - @ai-sdk/provider-utils@1.0.3
+
+## 0.0.30
+
+### Patch Changes
+
+- 4c6b80f7: chore (provider/anthropic): improve object-tool mode
+
+## 0.0.29
+
+### Patch Changes
+
+- Updated dependencies [b7290943]
+  - @ai-sdk/provider@0.0.12
+  - @ai-sdk/provider-utils@1.0.2
+
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [d481729f]
+  - @ai-sdk/provider-utils@1.0.1
+
+## 0.0.27
+
+### Patch Changes
+
+- 7e86b45e: fix (provider/anthropic): automatically trim trailing whitespace on pre-filled assistant responses
+
+## 0.0.26
+
+### Patch Changes
+
+- 5edc6110: feat (ai/core): add custom request header support
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+  - @ai-sdk/provider@0.0.11
+  - @ai-sdk/provider-utils@1.0.0
+
+## 0.0.25
+
+### Patch Changes
+
+- 91dc4296: chore (@ai-sdk/anthropic): remove anthropic-beta header
+
+## 0.0.24
+
+### Patch Changes
+
+- 04800838: fix (@ai-sdk/anthropic): combine tool and user messages, combine system messages
+
+## 0.0.23
+
+### Patch Changes
+
+- Updated dependencies [02f6a088]
+  - @ai-sdk/provider-utils@0.0.16
+
+## 0.0.22
+
+### Patch Changes
+
+- 0a22b05b: feat (@ai-sdk/anthropic): add claude-3.5-sonnet model
+
 ## 0.0.21
 
 ### Patch Changes

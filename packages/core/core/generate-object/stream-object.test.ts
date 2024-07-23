@@ -423,18 +423,6 @@ describe('result.object', () => {
     const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'object-json' });
-          assert.deepStrictEqual(prompt, [
-            {
-              role: 'system',
-              content:
-                'JSON schema:\n' +
-                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
-                'You MUST answer with a JSON object that matches the JSON schema above.',
-            },
-            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
-          ]);
-
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: '{ ' },
@@ -470,18 +458,6 @@ describe('result.object', () => {
     const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'object-json' });
-          assert.deepStrictEqual(prompt, [
-            {
-              role: 'system',
-              content:
-                'JSON schema:\n' +
-                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
-                'You MUST answer with a JSON object that matches the JSON schema above.',
-            },
-            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
-          ]);
-
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: '{ ' },
@@ -516,9 +492,42 @@ describe('result.object', () => {
         expect(TypeValidationError.isTypeValidationError(error)).toBeTruthy();
       });
   });
+
+  it('should not lead to unhandled promise rejections when the streamed object does not match the schema', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"invalid": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    // consume stream (runs in parallel)
+    convertAsyncIterableToArray(result.partialObjectStream);
+
+    // unhandled promise rejection should not be thrown (Vitest does this automatically)
+  });
 });
 
-describe('onFinish callback', () => {
+describe('options.onFinish', () => {
   describe('with successfully validated object', () => {
     let result: Parameters<
       Required<Parameters<typeof streamObject>[0]>['onFinish']
@@ -661,5 +670,45 @@ describe('onFinish callback', () => {
         true,
       );
     });
+  });
+});
+
+describe('options.headers', () => {
+  it('should set headers', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async ({ headers }) => {
+          assert.deepStrictEqual(headers, {
+            'custom-request-header': 'request-header-value',
+          });
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+      headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.partialObjectStream),
+      [
+        {},
+        { content: 'Hello, ' },
+        { content: 'Hello, world' },
+        { content: 'Hello, world!' },
+      ],
+    );
   });
 });

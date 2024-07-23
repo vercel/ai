@@ -49,10 +49,26 @@ You can use the following optional settings to customize the OpenAI provider ins
   Azure resource name.
   It defaults to the `AZURE_RESOURCE_NAME` environment variable.
 
+  The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}`.
+  You can use `baseURL` instead to specify the URL prefix.
+
 - **apiKey** _string_
 
   API key that is being send using the `api-key` header.
   It defaults to the `AZURE_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+
+  Either this or `resourceName` can be used.
+  When a baseURL is provided, the resourceName is ignored.
+
+  With a baseURL, the resolved URL is `{baseURL}/{modelId}{path}`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
 
 - **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
 

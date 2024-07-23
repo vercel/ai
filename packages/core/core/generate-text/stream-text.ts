@@ -1,7 +1,9 @@
+import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
-  StreamingTextResponse,
+  StreamData,
+  TextStreamPart,
   formatStreamPart,
 } from '../../streams';
 import { CallSettings } from '../prompt/call-settings';
@@ -10,22 +12,27 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getTracer } from '../telemetry/get-tracer';
+import { recordSpan } from '../telemetry/record-span';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
 import {
   CallWarning,
   CoreToolChoice,
   FinishReason,
   LanguageModel,
-  LogProbs,
 } from '../types';
+import { CompletionTokenUsage } from '../types/token-usage';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { mergeStreams } from '../util/merge-streams';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
-import { TokenUsage } from './token-usage';
+import { StreamTextResult } from './stream-text-result';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
 
@@ -48,19 +55,25 @@ It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param presencePenalty - Presence penalty setting. 
+@param topK - Only sample from the top K options for each subsequent token.
+Used to remove "long tail" low probability responses.
+Recommended for advanced use cases only. You usually only need to use temperature.
+@param presencePenalty - Presence penalty setting.
 It affects the likelihood of the model to repeat information that is already in the prompt.
 The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
 It affects the likelihood of the model to repeatedly use the same words or phrases.
 The value is passed through to the provider. The range depends on the provider and model.
+@param stopSequences - Stop sequences.
+If set, the model will stop generating text when one of the stop sequences is generated.
 @param seed - The seed (integer) to use for random sampling.
 If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@param onFinish - Callback that is called when the LLM response and all request tool executions 
+@param onFinish - Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
 
 @return
@@ -75,6 +88,9 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   messages,
   maxRetries,
   abortSignal,
+  headers,
+  experimental_telemetry: telemetry,
+  experimental_toolCallStreaming: toolCallStreaming = false,
   onFinish,
   ...settings
 }: CallSettings &
@@ -95,7 +111,17 @@ The tool choice strategy. Default: 'auto'.
     toolChoice?: CoreToolChoice<TOOLS>;
 
     /**
-Callback that is called when the LLM response and all request tool executions 
+Optional telemetry configuration (experimental).
+     */
+    experimental_telemetry?: TelemetrySettings;
+
+    /**
+Enable streaming of tool call deltas as they are generated. Disabled by default.
+     */
+    experimental_toolCallStreaming?: boolean;
+
+    /**
+Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
      */
     onFinish?: (event: {
@@ -107,7 +133,7 @@ The reason why the generation finished.
       /**
 The token usage of the generated response.
  */
-      usage: TokenUsage;
+      usage: CompletionTokenUsage;
 
       /**
 The full text that has been generated.
@@ -139,126 +165,117 @@ Warnings from the model provider (e.g. unsupported settings).
        */
       warnings?: CallWarning[];
     }) => Promise<void> | void;
-  }): Promise<StreamTextResult<TOOLS>> {
-  const retry = retryWithExponentialBackoff({ maxRetries });
-  const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
-  const { stream, warnings, rawResponse } = await retry(() =>
-    model.doStream({
-      mode: {
-        type: 'regular',
-        ...prepareToolsAndToolChoice({ tools, toolChoice }),
-      },
-      ...prepareCallSettings(settings),
-      inputFormat: validatedPrompt.type,
-      prompt: convertToLanguageModelPrompt(validatedPrompt),
-      abortSignal,
-    }),
-  );
+  }): Promise<DefaultStreamTextResult<TOOLS>> {
+  const baseTelemetryAttributes = getBaseTelemetryAttributes({
+    operationName: 'ai.streamText',
+    model,
+    telemetry,
+    headers,
+    settings: { ...settings, maxRetries },
+  });
 
-  return new StreamTextResult({
-    stream: runToolsTransformation({
-      tools,
-      generatorStream: stream,
-    }),
-    warnings,
-    rawResponse,
-    onFinish,
+  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+
+  return recordSpan({
+    name: 'ai.streamText',
+    attributes: {
+      ...baseTelemetryAttributes,
+      // specific settings that only make sense on the outer level:
+      'ai.prompt': JSON.stringify({ system, prompt, messages }),
+    },
+    tracer,
+    endWhenDone: false,
+    fn: async rootSpan => {
+      const retry = retryWithExponentialBackoff({ maxRetries });
+      const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
+      const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
+      const {
+        result: { stream, warnings, rawResponse },
+        doStreamSpan,
+      } = await retry(() =>
+        recordSpan({
+          name: 'ai.streamText.doStream',
+          attributes: {
+            ...baseTelemetryAttributes,
+            'ai.prompt.format': validatedPrompt.type,
+            'ai.prompt.messages': JSON.stringify(promptMessages),
+          },
+          tracer,
+          endWhenDone: false,
+          fn: async doStreamSpan => {
+            return {
+              result: await model.doStream({
+                mode: {
+                  type: 'regular',
+                  ...prepareToolsAndToolChoice({ tools, toolChoice }),
+                },
+                ...prepareCallSettings(settings),
+                inputFormat: validatedPrompt.type,
+                prompt: promptMessages,
+                abortSignal,
+                headers,
+              }),
+              doStreamSpan,
+            };
+          },
+        }),
+      );
+
+      return new DefaultStreamTextResult({
+        stream: runToolsTransformation({
+          tools,
+          generatorStream: stream,
+          toolCallStreaming,
+          tracer,
+        }),
+        warnings,
+        rawResponse,
+        onFinish,
+        rootSpan,
+        doStreamSpan,
+      });
+    },
   });
 }
 
-export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
-  | {
-      type: 'text-delta';
-      textDelta: string;
-    }
-  | ({
-      type: 'tool-call';
-    } & ToToolCall<TOOLS>)
-  | {
-      type: 'error';
-      error: unknown;
-    }
-  | ({
-      type: 'tool-result';
-    } & ToToolResult<TOOLS>)
-  | {
-      type: 'finish';
-      finishReason: FinishReason;
-      logprobs?: LogProbs;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
-    };
-
-/**
-A result object for accessing different stream types and additional information.
- */
-export class StreamTextResult<TOOLS extends Record<string, CoreTool>> {
+class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
+  implements StreamTextResult<TOOLS>
+{
   private originalStream: ReadableStream<TextStreamPart<TOOLS>>;
   private onFinish?: Parameters<typeof streamText>[0]['onFinish'];
 
-  /**
-Warnings from the model provider (e.g. unsupported settings).
-   */
-  readonly warnings: CallWarning[] | undefined;
-
-  /**
-The token usage of the generated response. Resolved when the response is finished.
-   */
-  readonly usage: Promise<TokenUsage>;
-
-  /**
-The reason why the generation finished. Resolved when the response is finished.
-   */
-  readonly finishReason: Promise<FinishReason>;
-
-  /**
-The full text that has been generated. Resolved when the response is finished.
-   */
-  readonly text: Promise<string>;
-
-  /**
-The tool calls that have been executed. Resolved when the response is finished.
-   */
-  readonly toolCalls: Promise<ToToolCall<TOOLS>[]>;
-
-  /**
-The tool results that have been generated. Resolved when the all tool executions are finished.
-   */
-  readonly toolResults: Promise<ToToolResult<TOOLS>[]>;
-
-  /**
-Optional raw response data.
-   */
-  readonly rawResponse?: {
-    /**
-Response headers.
-     */
-    headers?: Record<string, string>;
-  };
+  readonly warnings: StreamTextResult<TOOLS>['warnings'];
+  readonly usage: StreamTextResult<TOOLS>['usage'];
+  readonly finishReason: StreamTextResult<TOOLS>['finishReason'];
+  readonly text: StreamTextResult<TOOLS>['text'];
+  readonly toolCalls: StreamTextResult<TOOLS>['toolCalls'];
+  readonly toolResults: StreamTextResult<TOOLS>['toolResults'];
+  readonly rawResponse: StreamTextResult<TOOLS>['rawResponse'];
 
   constructor({
     stream,
     warnings,
     rawResponse,
     onFinish,
+    rootSpan,
+    doStreamSpan,
   }: {
     stream: ReadableStream<TextStreamPart<TOOLS>>;
-    warnings: CallWarning[] | undefined;
-    rawResponse?: {
-      headers?: Record<string, string>;
-    };
+    warnings: StreamTextResult<TOOLS>['warnings'];
+    rawResponse: StreamTextResult<TOOLS>['rawResponse'];
     onFinish?: Parameters<typeof streamText>[0]['onFinish'];
+    rootSpan: Span;
+    doStreamSpan: Span;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
     this.onFinish = onFinish;
 
     // initialize usage promise
-    let resolveUsage: (value: TokenUsage | PromiseLike<TokenUsage>) => void;
-    this.usage = new Promise<TokenUsage>(resolve => {
+    let resolveUsage: (
+      value: CompletionTokenUsage | PromiseLike<CompletionTokenUsage>,
+    ) => void;
+    this.usage = new Promise<CompletionTokenUsage>(resolve => {
       resolveUsage = resolve;
     });
 
@@ -294,10 +311,11 @@ Response headers.
 
     // store information for onFinish callback:
     let finishReason: FinishReason | undefined;
-    let usage: TokenUsage | undefined;
+    let usage: CompletionTokenUsage | undefined;
     let text = '';
     const toolCalls: ToToolCall<TOOLS>[] = [];
     const toolResults: ToToolResult<TOOLS>[] = [];
+    let firstChunk = true;
 
     // pipe chunks through a transformation stream that extracts metadata:
     const self = this;
@@ -306,49 +324,94 @@ Response headers.
         async transform(chunk, controller): Promise<void> {
           controller.enqueue(chunk);
 
-          // Create the full text from text deltas (for onFinish callback and text promise):
-          if (chunk.type === 'text-delta') {
-            text += chunk.textDelta;
+          // Telemetry event for first chunk:
+          if (firstChunk) {
+            firstChunk = false;
+            doStreamSpan.addEvent('ai.stream.firstChunk');
           }
 
-          // store tool calls for onFinish callback and toolCalls promise:
-          if (chunk.type === 'tool-call') {
-            toolCalls.push(chunk);
-          }
+          const chunkType = chunk.type;
+          switch (chunkType) {
+            case 'text-delta':
+              // create the full text from text deltas (for onFinish callback and text promise):
+              text += chunk.textDelta;
+              break;
 
-          // store tool results for onFinish callback and toolResults promise:
-          if (chunk.type === 'tool-result') {
-            toolResults.push(chunk);
-          }
+            case 'tool-call':
+              // store tool calls for onFinish callback and toolCalls promise:
+              toolCalls.push(chunk);
+              break;
 
-          // Note: tool executions might not be finished yet when the finish event is emitted.
-          if (chunk.type === 'finish') {
-            // store usage and finish reason for promises and onFinish callback:
-            usage = chunk.usage;
-            finishReason = chunk.finishReason;
+            case 'tool-result':
+              // store tool results for onFinish callback and toolResults promise:
+              toolResults.push(chunk);
+              break;
 
-            // resolve promises that can be resolved now:
-            resolveUsage(usage);
-            resolveFinishReason(finishReason);
-            resolveText(text);
-            resolveToolCalls(toolCalls);
+            case 'finish':
+              // Note: tool executions might not be finished yet when the finish event is emitted.
+              // store usage and finish reason for promises and onFinish callback:
+              usage = chunk.usage;
+              finishReason = chunk.finishReason;
+
+              // resolve promises that can be resolved now:
+              resolveUsage(usage);
+              resolveFinishReason(finishReason);
+              resolveText(text);
+              resolveToolCalls(toolCalls);
+              break;
+
+            case 'tool-call-streaming-start':
+            case 'tool-call-delta':
+            case 'error':
+              // ignored
+              break;
+
+            default: {
+              const exhaustiveCheck: never = chunkType;
+              throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+            }
           }
         },
 
         // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
         async flush(controller) {
           try {
+            const finalUsage = usage ?? {
+              promptTokens: NaN,
+              completionTokens: NaN,
+              totalTokens: NaN,
+            };
+            const finalFinishReason = finishReason ?? 'unknown';
+            const telemetryToolCalls =
+              toolCalls.length > 0 ? JSON.stringify(toolCalls) : undefined;
+
+            doStreamSpan.setAttributes({
+              'ai.finishReason': finalFinishReason,
+              'ai.usage.promptTokens': finalUsage.promptTokens,
+              'ai.usage.completionTokens': finalUsage.completionTokens,
+              'ai.result.text': text,
+              'ai.result.toolCalls': telemetryToolCalls,
+            });
+
+            // finish doStreamSpan before other operations for correct timing:
+            doStreamSpan.end();
+
+            // Add response information to the root span:
+            rootSpan.setAttributes({
+              'ai.finishReason': finalFinishReason,
+              'ai.usage.promptTokens': finalUsage.promptTokens,
+              'ai.usage.completionTokens': finalUsage.completionTokens,
+              'ai.result.text': text,
+              'ai.result.toolCalls': telemetryToolCalls,
+            });
+
             // resolve toolResults promise:
             resolveToolResults(toolResults);
 
             // call onFinish callback:
             await self.onFinish?.({
-              finishReason: finishReason ?? 'unknown',
-              usage: usage ?? {
-                promptTokens: NaN,
-                completionTokens: NaN,
-                totalTokens: NaN,
-              },
+              finishReason: finalFinishReason,
+              usage: finalUsage,
               text,
               toolCalls,
               // The tool results are inferred as a never[] type, because they are
@@ -361,6 +424,8 @@ Response headers.
             });
           } catch (error) {
             controller.error(error);
+          } finally {
+            rootSpan.end();
           }
         },
       }),
@@ -381,11 +446,6 @@ However, the LLM results are expected to be small enough to not cause issues.
     return stream1;
   }
 
-  /**
-A text stream that returns only the generated text deltas. You can use it
-as either an AsyncIterable or a ReadableStream. When an error occurs, the
-stream will throw the error.
-   */
   get textStream(): AsyncIterableStream<string> {
     return createAsyncIterableStream(this.teeStream(), {
       transform(chunk, controller) {
@@ -395,18 +455,12 @@ stream will throw the error.
             controller.enqueue(chunk.textDelta);
           }
         } else if (chunk.type === 'error') {
-          throw chunk.error;
+          controller.error(chunk.error);
         }
       },
     });
   }
 
-  /**
-A stream with all events, including text deltas, tool calls, tool results, and
-errors.
-You can use it as either an AsyncIterable or a ReadableStream. When an error occurs, the
-stream will throw the error.
-   */
   get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
     return createAsyncIterableStream(this.teeStream(), {
       transform(chunk, controller) {
@@ -422,15 +476,6 @@ stream will throw the error.
     });
   }
 
-  /**
-Converts the result to an `AIStream` object that is compatible with `StreamingTextResponse`.
-It can be used with the `useChat` and `useCompletion` hooks.
-
-@param callbacks 
-Stream callbacks that will be called when the stream emits events.
-
-@returns an `AIStream` object.
-   */
   toAIStream(callbacks: AIStreamCallbacksAndOptions = {}) {
     let aggregatedResponse = '';
 
@@ -462,14 +507,31 @@ Stream callbacks that will be called when the stream emits events.
       },
     });
 
-    const streamDataTransformer = new TransformStream<
+    const streamPartsTransformer = new TransformStream<
       TextStreamPart<TOOLS>,
       string
     >({
       transform: async (chunk, controller) => {
-        switch (chunk.type) {
+        const chunkType = chunk.type;
+        switch (chunkType) {
           case 'text-delta':
             controller.enqueue(formatStreamPart('text', chunk.textDelta));
+            break;
+          case 'tool-call-streaming-start':
+            controller.enqueue(
+              formatStreamPart('tool_call_streaming_start', {
+                toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
+              }),
+            );
+            break;
+          case 'tool-call-delta':
+            controller.enqueue(
+              formatStreamPart('tool_call_delta', {
+                toolCallId: chunk.toolCallId,
+                argsTextDelta: chunk.argsTextDelta,
+              }),
+            );
             break;
           case 'tool-call':
             controller.enqueue(
@@ -495,24 +557,22 @@ Stream callbacks that will be called when the stream emits events.
               formatStreamPart('error', JSON.stringify(chunk.error)),
             );
             break;
+          case 'finish':
+            break; // ignored
+          default: {
+            const exhaustiveCheck: never = chunkType;
+            throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+          }
         }
       },
     });
 
     return this.fullStream
       .pipeThrough(callbackTransformer)
-      .pipeThrough(streamDataTransformer)
+      .pipeThrough(streamPartsTransformer)
       .pipeThrough(new TextEncoderStream());
   }
 
-  /**
-Writes stream data output to a Node.js response-like object.
-It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
-writes each stream data part as a separate chunk.
-
-@param response A Node.js response-like object (ServerResponse).
-@param init Optional headers and status code.
-   */
   pipeAIStreamToResponse(
     response: ServerResponse,
     init?: { headers?: Record<string, string>; status?: number },
@@ -541,14 +601,6 @@ writes each stream data part as a separate chunk.
     read();
   }
 
-  /**
-Writes text delta output to a Node.js response-like object.
-It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
-writes each text delta as a separate chunk.
-
-@param response A Node.js response-like object (ServerResponse).
-@param init Optional headers and status code.
-   */
   pipeTextStreamToResponse(
     response: ServerResponse,
     init?: { headers?: Record<string, string>; status?: number },
@@ -579,25 +631,41 @@ writes each text delta as a separate chunk.
     read();
   }
 
-  /**
-Converts the result to a streamed response object with a stream data part stream.
-It can be used with the `useChat` and `useCompletion` hooks.
+  toAIStreamResponse(
+    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
+  ): Response {
+    const init: ResponseInit | undefined =
+      options == null
+        ? undefined
+        : 'init' in options
+        ? options.init
+        : {
+            headers: 'headers' in options ? options.headers : undefined,
+            status: 'status' in options ? options.status : undefined,
+            statusText:
+              'statusText' in options ? options.statusText : undefined,
+          };
 
-@param init Optional headers.
+    const data: StreamData | undefined =
+      options == null
+        ? undefined
+        : 'data' in options
+        ? options.data
+        : undefined;
 
-@return A response object.
-   */
-  toAIStreamResponse(init?: ResponseInit): Response {
-    return new StreamingTextResponse(this.toAIStream(), init);
+    const stream = data
+      ? mergeStreams(data.stream, this.toAIStream())
+      : this.toAIStream();
+
+    return new Response(stream, {
+      status: init?.status ?? 200,
+      statusText: init?.statusText,
+      headers: prepareResponseHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
+    });
   }
 
-  /**
-Creates a simple text stream response.
-Each text delta is encoded as UTF-8 and sent as a separate chunk.
-Non-text-delta events are ignored.
-
-@param init Optional headers and status code.
-   */
   toTextStreamResponse(init?: ResponseInit): Response {
     return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
       status: init?.status ?? 200,

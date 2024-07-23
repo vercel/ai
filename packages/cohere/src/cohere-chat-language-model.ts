@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   ParseResult,
+  combineHeaders,
   createJsonResponseHandler,
   createJsonStreamResponseHandler,
   postJsonToApi,
@@ -53,8 +54,11 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
+    stopSequences,
+    responseFormat,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -76,7 +80,15 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       max_tokens: maxTokens,
       temperature,
       p: topP,
+      k: topK,
       seed,
+      stop_sequences: stopSequences,
+
+      // response format:
+      response_format:
+        responseFormat?.type === 'json'
+          ? { type: 'json_object', schema: responseFormat.schema }
+          : undefined,
 
       // messages:
       chat_history: history,
@@ -100,12 +112,6 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
         });
       }
 
-      case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-grammar mode',
-        });
-      }
-
       default: {
         const _exhaustiveCheck: never = type;
         throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
@@ -120,7 +126,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -158,7 +164,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: {
         ...args,
         stream: true,

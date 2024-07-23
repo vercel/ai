@@ -53,6 +53,47 @@ const { embedding } = await embed({
       description:
         'An optional abort signal that can be used to cancel the call.',
     },
+    {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
+    {
+      name: 'experimental_telemetry',
+      type: 'TelemetrySettings',
+      isOptional: true,
+      description: 'Telemetry configuration. Experimental feature.',
+      properties: [
+        {
+          type: 'TelemetrySettings',
+          parameters: [
+            {
+              name: 'isEnabled',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Enable or disable telemetry. Disabled by default while experimental.',
+            },
+            {
+              name: 'functionId',
+              type: 'string',
+              isOptional: true,
+              description:
+                'Identifier for this function. Used to group telemetry data by function.',
+            },
+            {
+              name: 'metadata',
+              isOptional: true,
+              type: 'Record<string, string | number | boolean | Array<null | undefined | string> | Array<null | undefined | number> | Array<null | undefined | boolean>>',
+              description:
+                'Additional information to include in the telemetry data.',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
@@ -71,6 +112,23 @@ const { embedding } = await embed({
       description: 'The embedding of the value.',
     },
     {
+      name: 'usage',
+      type: 'EmbeddingTokenUsage',
+      description: 'The token usage for generating the embeddings.',
+      properties: [
+        {
+          type: 'EmbeddingTokenUsage',
+          parameters: [
+            {
+              name: 'tokens',
+              type: 'number',
+              description: 'The total number of input tokens.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'rawResponse',
       type: 'RawResponse',
       optional: true,
@@ -80,7 +138,7 @@ const { embedding } = await embed({
           type: 'RawResponse',
           parameters: [
             {
-              name: 'header',
+              name: 'headers',
               optional: true,
               type: 'Record<string, string>',
               description: 'Response headers.',

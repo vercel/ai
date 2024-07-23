@@ -12,7 +12,7 @@ with the UI updated automatically as the assistant is streaming its execution.
 This works in conjunction with [`AssistantResponse`](./assistant-response) in the backend.
 
 <Note>
-  `useAssistant` is currently supported with `ai/react` and `ai/svelte`.
+  `useAssistant` is supported in `ai/react`, `ai/svelte`, and `ai/vue`.
 </Note>
 
 ## Import
@@ -20,7 +20,7 @@ This works in conjunction with [`AssistantResponse`](./assistant-response) in th
 <Tabs items={['React', 'Svelte']}>
   <Tab>
     <Snippet
-      text="import { useAssistant } from '@ai-sdk/react'"
+      text="import { useAssistant } from 'ai/react'"
       dark
       prompt={false}
     />
@@ -78,6 +78,13 @@ This works in conjunction with [`AssistantResponse`](./assistant-response) in th
       description:
         'Callback that will be called when the assistant encounters an error',
     },
+    {
+      name: 'fetch',
+      type: 'FetchFunction',
+      optional: true,
+      description:
+        'Optional. A custom fetch function to be used for the API call. Defaults to the global fetch function.',
+    },
   ]}
 />
 
@@ -101,6 +108,12 @@ This works in conjunction with [`AssistantResponse`](./assistant-response) in th
       description: 'The current thread ID.',
     },
     {
+      name: 'setThreadId',
+      type: '(threadId: string | undefined) => void',
+      description:
+        "Set the current thread ID. Specifying a thread ID will switch to that thread, if it exists. If set to 'undefined', a new thread will be created. For both cases, `threadId` will be updated with the new value and `messages` will be cleared.",
+    },
+    {
       name: 'input',
       type: 'string',
       description: 'The current value of the input field.',
@@ -118,7 +131,7 @@ This works in conjunction with [`AssistantResponse`](./assistant-response) in th
     },
     {
       name: 'submitMessage',
-      type: '(event?: React.FormEvent<HTMLFormElement>) => void',
+      type: '(event?: { preventDefault?: () => void }) => void',
       description:
         'Form submission handler that automatically resets the input field and appends a user message.',
     },

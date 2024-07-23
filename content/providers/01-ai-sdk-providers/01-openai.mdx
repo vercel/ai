@@ -182,6 +182,16 @@ The following optional settings are available for OpenAI chat models:
 
   Whether to enable parallel function calling during tool use. Default to true.
 
+- **useLegacyFunctionCalls**
+
+  Whether to use legacy function calling. Defaults to false.
+
+  Required by some open source inference engines which do not support the `tools` API. May also
+  provide a workaround for `parallelToolCalls` resulting in the provider buffering tool calls,
+  which causes `streamObject` to be non-streaming.
+
+  Prefer setting `parallelToolCalls: false` over this option.
+
 - **user** _string_
 
   A unique identifier representing your end-user, which can help OpenAI to

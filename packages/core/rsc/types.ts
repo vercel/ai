@@ -87,10 +87,7 @@ export type MutableAIState<AIState> = {
   done: ((newState: AIState) => void) | (() => void);
 };
 
-export type StreamablePatch =
-  | undefined
-  | [0, string] // Append string
-  | [1, React.ReactElement | string]; // Append element
+export type StreamablePatch = undefined | [0, string]; // Append string.
 
 declare const __internal_curr: unique symbol;
 declare const __internal_error: unique symbol;

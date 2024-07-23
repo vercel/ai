@@ -4,7 +4,6 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
 } from '@ai-sdk/provider';
-import { CoreTool } from '../tool/tool';
 
 /**
 Language model that is used by the AI SDK Core functions.
@@ -41,7 +40,7 @@ Tool choice for the generation. It supports the following settings:
 - `auto` (default): the model can choose whether and which tools to call.
 - `required`: the model must call a tool. It can choose which tool to call.
 - `none`: the model must not call tools
-- `{ type: 'tool', tooName: string (typed) }`: the model must call the specified tool
+- `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
  */
 // TODO rename to ToolChoice once shared/types.ts ToolChoice is gone
 export type CoreToolChoice<TOOLS extends Record<string, unknown>> =

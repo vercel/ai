@@ -1,18 +1,26 @@
 import type {
+  FetchFunction,
   JSONValue,
   RequestOptions,
   UseCompletionOptions,
 } from '@ai-sdk/ui-utils';
 import { callCompletionApi } from '@ai-sdk/ui-utils';
-import { Accessor, Resource, Setter, createSignal } from 'solid-js';
-import { useSWRStore } from 'solid-swr-store';
-import { createSWRStore } from 'swr-store';
+import {
+  Accessor,
+  JSX,
+  Setter,
+  createEffect,
+  createMemo,
+  createSignal,
+  createUniqueId,
+} from 'solid-js';
+import { createStore } from 'solid-js/store';
 
 export type { UseCompletionOptions };
 
 export type UseCompletionHelpers = {
   /** The current completion result */
-  completion: Resource<string>;
+  completion: Accessor<string>;
   /** The error object of the API request */
   error: Accessor<undefined | Error>;
   /**
@@ -34,6 +42,12 @@ export type UseCompletionHelpers = {
   input: Accessor<string>;
   /** Signal Setter to update the input value */
   setInput: Setter<string>;
+
+  /** An input/textarea-ready onChange handler to control the value of the input */
+  handleInputChange: JSX.ChangeEventHandlerUnion<
+    HTMLInputElement | HTMLTextAreaElement,
+    Event
+  >;
   /**
    * Form submission handler to automatically reset input and append a user message
    * @example
@@ -43,53 +57,47 @@ export type UseCompletionHelpers = {
    * </form>
    * ```
    */
-  handleSubmit: (e: any) => void;
+  handleSubmit: (event?: { preventDefault?: () => void }) => void;
   /** Whether the API request is in progress */
   isLoading: Accessor<boolean>;
   /** Additional data added on the server via StreamData */
   data: Accessor<JSONValue[] | undefined>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+    */
+  fetch?: FetchFunction;
 };
 
-let uniqueId = 0;
+const [store, setStore] = createStore<Record<string, string>>({});
 
-const store: Record<string, any> = {};
-const completionApiStore = createSWRStore<any, string[]>({
-  get: async (key: string) => {
-    return store[key] ?? [];
-  },
-});
+export function useCompletion(
+  rawUseCompletionOptions:
+    | UseCompletionOptions
+    | Accessor<UseCompletionOptions> = {},
+): UseCompletionHelpers {
+  const useCompletionOptions = createMemo(() =>
+    convertToAccessorOptions(rawUseCompletionOptions),
+  );
 
-export function useCompletion({
-  api = '/api/completion',
-  id,
-  initialCompletion = '',
-  initialInput = '',
-  credentials,
-  headers,
-  body,
-  streamMode,
-  onResponse,
-  onFinish,
-  onError,
-}: UseCompletionOptions = {}): UseCompletionHelpers {
+  const api = createMemo(
+    () => useCompletionOptions().api?.() ?? '/api/completion',
+  );
   // Generate an unique id for the completion if not provided.
-  const completionId = id || `completion-${uniqueId++}`;
+  const idKey = createMemo(
+    () => useCompletionOptions().id?.() ?? `completion-${createUniqueId()}`,
+  );
+  const completionKey = createMemo(() => `${api()}|${idKey()}|completion`);
 
-  const key = `${api}|${completionId}`;
-  const data = useSWRStore(completionApiStore, () => [key], {
-    initialData: initialCompletion,
-  });
+  const completion = createMemo(
+    () =>
+      store[completionKey()] ?? useCompletionOptions().initialCompletion?.(),
+  );
 
   const mutate = (data: string) => {
-    store[key] = data;
-    return completionApiStore.mutate([key], {
-      data,
-      status: 'success',
-    });
+    setStore(completionKey(), data);
   };
-
-  // Because of the `initialData` option, the `data` will never be `undefined`.
-  const completion = data as Resource<string>;
 
   const [error, setError] = createSignal<undefined | Error>(undefined);
   const [streamData, setStreamData] = createSignal<JSONValue[] | undefined>(
@@ -97,7 +105,21 @@ export function useCompletion({
   );
   const [isLoading, setIsLoading] = createSignal(false);
 
-  let abortController: AbortController | null = null;
+  const [abortController, setAbortController] =
+    createSignal<AbortController | null>(null);
+
+  let extraMetadata = {
+    credentials: useCompletionOptions().credentials?.(),
+    headers: useCompletionOptions().headers?.(),
+    body: useCompletionOptions().body?.(),
+  };
+  createEffect(() => {
+    extraMetadata = {
+      credentials: useCompletionOptions().credentials?.(),
+      headers: useCompletionOptions().headers?.(),
+      body: useCompletionOptions().body?.(),
+    };
+  });
 
   const complete: UseCompletionHelpers['complete'] = async (
     prompt: string,
@@ -105,37 +127,32 @@ export function useCompletion({
   ) => {
     const existingData = streamData() ?? [];
     return callCompletionApi({
-      api,
+      api: api(),
       prompt,
-      credentials,
-      headers: {
-        ...headers,
-        ...options?.headers,
-      },
+      credentials: useCompletionOptions().credentials?.(),
+      headers: { ...extraMetadata.headers, ...options?.headers },
       body: {
-        ...body,
+        ...extraMetadata.body,
         ...options?.body,
       },
-      streamMode,
+      streamMode: useCompletionOptions().streamMode?.(),
       setCompletion: mutate,
       setLoading: setIsLoading,
       setError,
-      setAbortController: controller => {
-        abortController = controller;
-      },
-      onResponse,
-      onFinish,
-      onError,
+      setAbortController,
+      onResponse: useCompletionOptions().onResponse?.(),
+      onFinish: useCompletionOptions().onFinish?.(),
+      onError: useCompletionOptions().onError?.(),
       onData: data => {
         setStreamData([...existingData, ...(data ?? [])]);
       },
+      fetch: useCompletionOptions().fetch?.(),
     });
   };
 
   const stop = () => {
-    if (abortController) {
-      abortController.abort();
-      abortController = null;
+    if (abortController()) {
+      abortController()!.abort();
     }
   };
 
@@ -143,13 +160,20 @@ export function useCompletion({
     mutate(completion);
   };
 
-  const [input, setInput] = createSignal(initialInput);
+  const [input, setInput] = createSignal(
+    useCompletionOptions().initialInput?.() ?? '',
+  );
 
-  const handleSubmit = (e: any) => {
-    e.preventDefault();
+  const handleInputChange: UseCompletionHelpers['handleInputChange'] =
+    event => {
+      setInput(event.target.value);
+    };
+
+  const handleSubmit: UseCompletionHelpers['handleSubmit'] = event => {
+    event?.preventDefault?.();
+
     const inputValue = input();
-    if (!inputValue) return;
-    return complete(inputValue);
+    return inputValue ? complete(inputValue) : undefined;
   };
 
   return {
@@ -160,8 +184,30 @@ export function useCompletion({
     setCompletion,
     input,
     setInput,
+    handleInputChange,
     handleSubmit,
     isLoading,
     data: streamData,
   };
+}
+
+/**
+ * Handle reactive and non-reactive useChatOptions
+ */
+function convertToAccessorOptions(
+  options: UseCompletionOptions | Accessor<UseCompletionOptions>,
+) {
+  const resolvedOptions = typeof options === 'function' ? options() : options;
+
+  return Object.entries(resolvedOptions).reduce(
+    (reactiveOptions, [key, value]) => {
+      reactiveOptions[key as keyof UseCompletionOptions] = createMemo(
+        () => value,
+      ) as any;
+      return reactiveOptions;
+    },
+    {} as {
+      [K in keyof UseCompletionOptions]: Accessor<UseCompletionOptions[K]>;
+    },
+  );
 }

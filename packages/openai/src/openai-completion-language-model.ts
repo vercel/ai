@@ -1,5 +1,6 @@
 import {
   LanguageModelV1,
+  LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
@@ -7,6 +8,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   ParseResult,
+  combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
@@ -62,14 +64,36 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
+    stopSequences: userStopSequences,
+    responseFormat,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
+    const warnings: LanguageModelV1CallWarning[] = [];
+
+    if (topK != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'topK',
+      });
+    }
+
+    if (responseFormat != null && responseFormat.type !== 'text') {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'JSON response format is not supported.',
+      });
+    }
+
     const { prompt: completionPrompt, stopSequences } =
       convertToOpenAICompletionPrompt({ prompt, inputFormat });
+
+    const stop = [...(stopSequences ?? []), ...(userStopSequences ?? [])];
 
     const baseArgs = {
       // model id:
@@ -101,7 +125,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       prompt: completionPrompt,
 
       // stop sequences:
-      stop: stopSequences,
+      stop: stop.length > 0 ? stop : undefined,
     };
 
     switch (type) {
@@ -118,7 +142,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
           });
         }
 
-        return baseArgs;
+        return { args: baseArgs, warnings };
       }
 
       case 'object-json': {
@@ -133,12 +157,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         });
       }
 
-      case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-grammar mode',
-        });
-      }
-
       default: {
         const _exhaustiveCheck: never = type;
         throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
@@ -149,14 +167,14 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const args = this.getArgs(options);
+    const { args, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -179,23 +197,23 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       logprobs: mapOpenAICompletionLogProbs(choice.logprobs),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
-      warnings: [],
+      warnings,
     };
   }
 
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const args = this.getArgs(options);
+    const { args, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: this.config.headers(),
+      headers: combineHeaders(this.config.headers(), options.headers),
       body: {
-        ...this.getArgs(options),
+        ...args,
         stream: true,
 
         // only include stream_options when in strict compatibility mode:
@@ -285,7 +303,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
       ),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
-      warnings: [],
+      warnings,
     };
   }
 }

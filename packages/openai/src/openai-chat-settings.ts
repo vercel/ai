@@ -2,22 +2,18 @@
 export type OpenAIChatModelId =
   | 'gpt-4o'
   | 'gpt-4o-2024-05-13'
+  | 'gpt-4o-mini'
+  | 'gpt-4o-mini-2024-07-18'
   | 'gpt-4-turbo'
   | 'gpt-4-turbo-2024-04-09'
   | 'gpt-4-turbo-preview'
   | 'gpt-4-0125-preview'
   | 'gpt-4-1106-preview'
-  | 'gpt-4-vision-preview'
   | 'gpt-4'
   | 'gpt-4-0613'
-  | 'gpt-4-32k'
-  | 'gpt-4-32k-0613'
   | 'gpt-3.5-turbo-0125'
   | 'gpt-3.5-turbo'
   | 'gpt-3.5-turbo-1106'
-  | 'gpt-3.5-turbo-16k'
-  | 'gpt-3.5-turbo-0613'
-  | 'gpt-3.5-turbo-16k-0613'
   | (string & {});
 
 export interface OpenAIChatSettings {
@@ -54,6 +50,19 @@ tokens that were generated.
 Whether to enable parallel function calling during tool use. Default to true.
    */
   parallelToolCalls?: boolean;
+
+  /**
+Whether to use legacy function calling. Defaults to false.
+
+Required by some open source inference engines which do not support the `tools` API. May also
+provide a workaround for `parallelToolCalls` resulting in the provider buffering tool calls,
+which causes `streamObject` to be non-streaming.
+
+Prefer setting `parallelToolCalls: false` over this option.
+
+@deprecated this API is supported but deprecated by OpenAI.
+   */
+  useLegacyFunctionCalling?: boolean;
 
   /**
 A unique identifier representing your end-user, which can help OpenAI to

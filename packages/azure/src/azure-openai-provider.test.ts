@@ -9,10 +9,15 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
+const provider = createAzure({
+  resourceName: 'test-resource',
+  apiKey: 'test-api-key',
+});
+
 describe('chat', () => {
   describe('doGenerate', () => {
     const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-05-01-preview',
+      'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions',
     );
 
     server.setupTestEnvironment();
@@ -42,11 +47,56 @@ describe('chat', () => {
       };
     }
 
-    it('should pass the api key as api-key header', async () => {
+    it('should set the correct api version', async () => {
+      prepareJsonResponse();
+
+      await provider('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const searchParams = await server.getRequestUrlSearchParams();
+      expect(searchParams.get('api-version')).toStrictEqual(
+        '2024-05-01-preview',
+      );
+    });
+
+    it('should pass headers', async () => {
       prepareJsonResponse();
 
       const provider = createAzure({
         resourceName: 'test-resource',
+        apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
+      });
+
+      await provider('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      const requestHeaders = await server.getRequestHeaders();
+
+      expect(requestHeaders).toStrictEqual({
+        'api-key': 'test-api-key',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
+    });
+
+    it('should use the baseURL correctly', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        baseURL: 'https://test-resource.openai.azure.com/openai/deployments',
         apiKey: 'test-api-key',
       });
 
@@ -56,8 +106,9 @@ describe('chat', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect((await server.getRequestHeaders()).get('api-key')).toStrictEqual(
-        'test-api-key',
+      const requestUrl = await server.getRequestUrl();
+      expect(requestUrl).toStrictEqual(
+        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-05-01-preview',
       );
     });
   });
@@ -66,7 +117,7 @@ describe('chat', () => {
 describe('completion', () => {
   describe('doGenerate', () => {
     const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/gpt-35-turbo-instruct/completions?api-version=2024-05-01-preview',
+      'https://test-resource.openai.azure.com/openai/deployments/gpt-35-turbo-instruct/completions',
     );
 
     server.setupTestEnvironment();
@@ -111,13 +162,8 @@ describe('completion', () => {
       };
     }
 
-    it('should pass the api key as Authorization header', async () => {
+    it('should set the correct api version', async () => {
       prepareJsonCompletionResponse({ content: 'Hello World!' });
-
-      const provider = createAzure({
-        resourceName: 'test-resource',
-        apiKey: 'test-api-key',
-      });
 
       await provider.completion('gpt-35-turbo-instruct').doGenerate({
         inputFormat: 'prompt',
@@ -125,9 +171,40 @@ describe('completion', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect((await server.getRequestHeaders()).get('api-key')).toStrictEqual(
-        'test-api-key',
+      const searchParams = await server.getRequestUrlSearchParams();
+      expect(searchParams.get('api-version')).toStrictEqual(
+        '2024-05-01-preview',
       );
+    });
+
+    it('should pass headers', async () => {
+      prepareJsonCompletionResponse({ content: 'Hello World!' });
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
+      });
+
+      await provider.completion('gpt-35-turbo-instruct').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      const requestHeaders = await server.getRequestHeaders();
+
+      expect(requestHeaders).toStrictEqual({
+        'api-key': 'test-api-key',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
     });
   });
 });
@@ -139,14 +216,9 @@ describe('embedding', () => {
   ];
   const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
-  const provider = createAzure({
-    resourceName: 'test-resource',
-    apiKey: 'test-api-key',
-  });
-
   describe('doEmbed', () => {
     const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/my-embedding/embeddings?api-version=2024-05-01-preview',
+      'https://test-resource.openai.azure.com/openai/deployments/my-embedding/embeddings',
     );
 
     const model = provider.embedding('my-embedding');
@@ -170,74 +242,45 @@ describe('embedding', () => {
       };
     }
 
-    it('should extract embedding', async () => {
+    it('should set the correct api version', async () => {
       prepareJsonResponse();
 
-      const { embeddings } = await model.doEmbed({ values: testValues });
-
-      expect(embeddings).toStrictEqual(dummyEmbeddings);
-    });
-
-    it('should expose the raw response headers', async () => {
-      prepareJsonResponse();
-
-      server.responseHeaders = {
-        'test-header': 'test-value',
-      };
-
-      const { rawResponse } = await model.doEmbed({ values: testValues });
-
-      expect(rawResponse?.headers).toStrictEqual({
-        // default headers:
-        'content-type': 'application/json',
-
-        // custom header
-        'test-header': 'test-value',
+      await model.doEmbed({
+        values: testValues,
       });
+
+      const searchParams = await server.getRequestUrlSearchParams();
+      expect(searchParams.get('api-version')).toStrictEqual(
+        '2024-05-01-preview',
+      );
     });
 
-    it('should pass the model and the values', async () => {
-      prepareJsonResponse();
-
-      await model.doEmbed({ values: testValues });
-
-      expect(await server.getRequestBodyJson()).toStrictEqual({
-        model: 'my-embedding',
-        input: testValues,
-        encoding_format: 'float',
-      });
-    });
-
-    it('should pass the dimensions setting', async () => {
-      prepareJsonResponse();
-
-      await provider
-        .embedding('my-embedding', { dimensions: 64 })
-        .doEmbed({ values: testValues });
-
-      expect(await server.getRequestBodyJson()).toStrictEqual({
-        model: 'my-embedding',
-        input: testValues,
-        encoding_format: 'float',
-        dimensions: 64,
-      });
-    });
-
-    it('should pass the api key as api-key header', async () => {
+    it('should pass headers', async () => {
       prepareJsonResponse();
 
       const provider = createAzure({
         resourceName: 'test-resource',
         apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
       });
 
       await provider.embedding('my-embedding').doEmbed({
         values: testValues,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
       });
 
-      expect((await server.getRequestHeaders()).get('api-key')).toStrictEqual(
-        'test-api-key',
-      );
+      const requestHeaders = await server.getRequestHeaders();
+
+      expect(requestHeaders).toStrictEqual({
+        'api-key': 'test-api-key',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
     });
   });
 });

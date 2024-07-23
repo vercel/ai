@@ -1,7 +1,9 @@
 import type {
   ChatRequest,
   ChatRequestOptions,
+  Attachment,
   CreateMessage,
+  FetchFunction,
   IdGenerator,
   JSONValue,
   Message,
@@ -49,7 +51,9 @@ export type UseChatHelpers = {
    * edit the messages on the client, and then trigger the `reload` method
    * manually to regenerate the AI response.
    */
-  setMessages: (messages: Message[]) => void;
+  setMessages: (
+    messages: Message[] | ((messages: Message[]) => Message[]),
+  ) => void;
   /** The current value of the input */
   input: string;
   /** setState-powered method to update the input value */
@@ -62,7 +66,7 @@ export type UseChatHelpers = {
   ) => void;
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
-    e: React.FormEvent<HTMLFormElement>,
+    event?: { preventDefault?: () => void },
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   metadata?: Object;
@@ -82,14 +86,22 @@ const getStreamedResponse = async (
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
   generateId: IdGenerator,
-  streamMode?: 'stream-data' | 'text',
-  onFinish?: (message: Message) => void,
-  onResponse?: (response: Response) => void | Promise<void>,
-  onToolCall?: UseChatOptions['onToolCall'],
-  sendExtraMessageFields?: boolean,
+  streamMode: 'stream-data' | 'text' | undefined,
+  onFinish: ((message: Message) => void) | undefined,
+  onResponse: ((response: Response) => void | Promise<void>) | undefined,
+  onToolCall: UseChatOptions['onToolCall'] | undefined,
+  sendExtraMessageFields: boolean | undefined,
+  experimental_prepareRequestBody:
+    | ((options: {
+        messages: Message[];
+        requestData?: JSONValue;
+        requestBody?: object;
+      }) => JSONValue)
+    | undefined,
+  fetch: FetchFunction | undefined,
+  keepLastMessageOnError: boolean,
 ) => {
-  // Do an optimistic update to the chat state to show the updated messages
-  // immediately.
+  // Do an optimistic update to the chat state to show the updated messages immediately:
   const previousMessages = messagesRef.current;
   mutate(chatRequest.messages, false);
 
@@ -99,6 +111,7 @@ const getStreamedResponse = async (
         ({
           role,
           content,
+          experimental_attachments,
           name,
           data,
           annotations,
@@ -109,6 +122,9 @@ const getStreamedResponse = async (
         }) => ({
           role,
           content,
+          ...(experimental_attachments !== undefined && {
+            experimental_attachments,
+          }),
           ...(name !== undefined && { name }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
@@ -122,11 +138,15 @@ const getStreamedResponse = async (
 
   return await callChatApi({
     api,
-    messages: constructedMessagesPayload,
-    body: {
+    body: experimental_prepareRequestBody?.({
+      messages: chatRequest.messages,
+      requestData: chatRequest.data,
+      requestBody: chatRequest.body,
+    }) ?? {
+      messages: constructedMessagesPayload,
       data: chatRequest.data,
       ...extraMetadataRef.current.body,
-      ...chatRequest.options?.body,
+      ...chatRequest.body,
       ...(chatRequest.functions !== undefined && {
         functions: chatRequest.functions,
       }),
@@ -144,11 +164,13 @@ const getStreamedResponse = async (
     credentials: extraMetadataRef.current.credentials,
     headers: {
       ...extraMetadataRef.current.headers,
-      ...chatRequest.options?.headers,
+      ...chatRequest.headers,
     },
     abortController: () => abortControllerRef.current,
     restoreMessagesOnFailure() {
-      mutate(previousMessages, false);
+      if (!keepLastMessageOnError) {
+        mutate(previousMessages, false);
+      }
     },
     onResponse,
     onUpdate(merged, data) {
@@ -158,6 +180,7 @@ const getStreamedResponse = async (
     onToolCall,
     onFinish,
     generateId,
+    fetch,
   });
 };
 
@@ -170,6 +193,7 @@ export function useChat({
   experimental_onFunctionCall,
   experimental_onToolCall,
   onToolCall,
+  experimental_prepareRequestBody,
   experimental_maxAutomaticRoundtrips = 0,
   maxAutomaticRoundtrips = experimental_maxAutomaticRoundtrips,
   maxToolRoundtrips = maxAutomaticRoundtrips,
@@ -181,9 +205,11 @@ export function useChat({
   headers,
   body,
   generateId = generateIdFunc,
-}: Omit<UseChatOptions, 'api'> & {
-  api?: string;
+  fetch,
+  keepLastMessageOnError = false,
+}: UseChatOptions & {
   key?: string;
+
   /**
 @deprecated Use `maxToolRoundtrips` instead.
    */
@@ -193,6 +219,21 @@ export function useChat({
 @deprecated Use `maxToolRoundtrips` instead.
    */
   maxAutomaticRoundtrips?: number;
+
+  /**
+   * Experimental (React only). When a function is provided, it will be used
+   * to prepare the request body for the chat API. This can be useful for
+   * customizing the request body based on the messages and data in the chat.
+   *
+   * @param messages The current messages in the chat.
+   * @param requestData The data object passed in the chat request.
+   * @param requestBody The request body object passed in the chat request.
+   */
+  experimental_prepareRequestBody?: (options: {
+    messages: Message[];
+    requestData?: JSONValue;
+    requestBody?: object;
+  }) => JSONValue;
 
   /**
 Maximal number of automatic roundtrips for tool calls.
@@ -282,6 +323,8 @@ By default, it's set to 0, which will disable the feature.
 
   const triggerRequest = useCallback(
     async (chatRequest: ChatRequest) => {
+      const messageCount = messagesRef.current.length;
+
       try {
         mutateLoading(true);
         setError(undefined);
@@ -306,6 +349,9 @@ By default, it's set to 0, which will disable the feature.
               onResponse,
               onToolCall,
               sendExtraMessageFields,
+              experimental_prepareRequestBody,
+              fetch,
+              keepLastMessageOnError,
             ),
           experimental_onFunctionCall,
           experimental_onToolCall,
@@ -336,6 +382,8 @@ By default, it's set to 0, which will disable the feature.
       const messages = messagesRef.current;
       const lastMessage = messages[messages.length - 1];
       if (
+        // ensure we actually have new messages (to prevent infinite loops in case of errors):
+        messages.length > messageCount &&
         // ensure there is a last message:
         lastMessage != null &&
         // check if the feature is enabled:
@@ -363,11 +411,14 @@ By default, it's set to 0, which will disable the feature.
       sendExtraMessageFields,
       experimental_onFunctionCall,
       experimental_onToolCall,
+      experimental_prepareRequestBody,
       onToolCall,
       maxToolRoundtrips,
       messagesRef,
       abortControllerRef,
       generateId,
+      fetch,
+      keepLastMessageOnError,
     ],
   );
 
@@ -381,15 +432,24 @@ By default, it's set to 0, which will disable the feature.
         tools,
         tool_choice,
         data,
+        headers,
+        body,
       }: ChatRequestOptions = {},
     ) => {
       if (!message.id) {
         message.id = generateId();
       }
 
+      const requestOptions = {
+        headers: headers ?? options?.headers,
+        body: body ?? options?.body,
+      };
+
       const chatRequest: ChatRequest = {
         messages: messagesRef.current.concat(message as Message),
-        options,
+        options: requestOptions,
+        headers: requestOptions.headers,
+        body: requestOptions.body,
         data,
         ...(functions !== undefined && { functions }),
         ...(function_call !== undefined && { function_call }),
@@ -449,7 +509,11 @@ By default, it's set to 0, which will disable the feature.
   }, []);
 
   const setMessages = useCallback(
-    (messages: Message[]) => {
+    (messages: Message[] | ((messages: Message[]) => Message[])) => {
+      if (typeof messages === 'function') {
+        messages = messages(messagesRef.current);
+      }
+
       mutate(messages, false);
       messagesRef.current = messages;
     },
@@ -460,11 +524,15 @@ By default, it's set to 0, which will disable the feature.
   const [input, setInput] = useState(initialInput);
 
   const handleSubmit = useCallback(
-    (
-      e: React.FormEvent<HTMLFormElement>,
+    async (
+      event?: { preventDefault?: () => void },
       options: ChatRequestOptions = {},
       metadata?: Object,
     ) => {
+      event?.preventDefault?.();
+
+      if (!input && !options.allowEmptySubmit) return;
+
       if (metadata) {
         extraMetadataRef.current = {
           ...extraMetadataRef.current,
@@ -472,20 +540,76 @@ By default, it's set to 0, which will disable the feature.
         };
       }
 
-      e.preventDefault();
-      if (!input) return;
+      const attachmentsForRequest: Attachment[] = [];
+      const attachmentsFromOptions = options.experimental_attachments;
 
-      append(
-        {
-          content: input,
-          role: 'user',
-          createdAt: new Date(),
-        },
-        options,
-      );
+      if (attachmentsFromOptions) {
+        if (attachmentsFromOptions instanceof FileList) {
+          for (const attachment of Array.from(attachmentsFromOptions)) {
+            const { name, type } = attachment;
+
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = readerEvent => {
+                resolve(readerEvent.target?.result as string);
+              };
+              reader.onerror = error => reject(error);
+              reader.readAsDataURL(attachment);
+            });
+
+            attachmentsForRequest.push({
+              name,
+              contentType: type,
+              url: dataUrl,
+            });
+          }
+        } else if (Array.isArray(attachmentsFromOptions)) {
+          for (const file of attachmentsFromOptions) {
+            const { name, url, contentType } = file;
+
+            attachmentsForRequest.push({
+              name,
+              contentType,
+              url,
+            });
+          }
+        } else {
+          throw new Error('Invalid attachments type');
+        }
+      }
+
+      const requestOptions = {
+        headers: options.headers ?? options.options?.headers,
+        body: options.body ?? options.options?.body,
+      };
+
+      const messages =
+        !input && options.allowEmptySubmit
+          ? messagesRef.current
+          : messagesRef.current.concat({
+              id: generateId(),
+              createdAt: new Date(),
+              role: 'user',
+              content: input,
+              experimental_attachments:
+                attachmentsForRequest.length > 0
+                  ? attachmentsForRequest
+                  : undefined,
+            });
+
+      const chatRequest: ChatRequest = {
+        messages,
+        options: requestOptions,
+        headers: requestOptions.headers,
+        body: requestOptions.body,
+        data: options.data,
+      };
+
+      triggerRequest(chatRequest);
+
       setInput('');
     },
-    [input, append],
+    [input, generateId, triggerRequest],
   );
 
   const handleInputChange = (e: any) => {

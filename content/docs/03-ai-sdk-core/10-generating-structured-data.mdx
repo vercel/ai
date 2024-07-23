@@ -25,12 +25,7 @@ const { object } = await generateObject({
   schema: z.object({
     recipe: z.object({
       name: z.string(),
-      ingredients: z.array(
-        z.object({
-          name: z.string(),
-          amount: z.string(),
-        }),
-      ),
+      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
       steps: z.array(z.string()),
     }),
   }),
@@ -38,14 +33,13 @@ const { object } = await generateObject({
 });
 ```
 
-## Specifying Generation Mode
+### Specifying Generation Mode
 
 While some models (like OpenAI) natively support object generation, others require alternative methods, like modified [tool calling](/docs/ai-sdk-core/tools-and-tool-calling). The `generateObject` function allows you to specify the method it will use to return structured data.
 
-- `auto`: The provider will choose the best mode for the model.
+- `auto`: The provider will choose the best mode for the model. This recommended mode is used by default.
 - `tool`: A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- `json`: The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled.
-- `grammar`: The provider is instructed to convert the JSON schema into a provider specific grammar and use it to select the output tokens.
+- `json`: The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
 
 <Note>Please note that not every provider supports all generation modes.</Note>
 
@@ -66,4 +60,150 @@ for await (const partialObject of partialObjectStream) {
 }
 ```
 
-You can also use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](../ai-sdk-rsc)).
+You can use `streamObject` to stream generated UIs in combination with React Server Components (see [Generative UI](../ai-sdk-rsc))) or the [`useObject`](/docs/reference/ai-sdk-ui/use-object) hook.
+
+## Schema Writing Tips
+
+The mapping from Zod schemas to LLM inputs (typically JSON schema) is not always straightforward, since the mapping is not one-to-one.
+Please checkout the following tips and the [Prompt Engineering with Tools](/docs/ai-sdk-core/tools-and-tool-calling#prompt-engineering-with-tools) guide.
+
+### Generating Arrays
+
+Most models require an object as the top-level schema. If you want to generate an array, you can wrap it in an object with a single descriptive key and use destructuring to access the array.
+
+```ts highlight="2,5-6"
+const {
+  object: { users },
+} = await generateObject({
+  model: yourModel,
+  schema: z.object({
+    users: z.array(
+      z.object({
+        login: z.string(),
+        fullName: z.string(),
+        age: z.number(),
+      }),
+    ),
+  }),
+  prompt: 'Generate a list of fake user profiles for testing.',
+});
+
+console.log('users', users);
+```
+
+### Dates
+
+Zod expects JavaScript Date objects, but most models return dates as strings. You can use the `z.string().datetime()` method to specify and validate datetime strings.
+
+```ts highlight="6-9"
+const result = await generateObject({
+  model: openai('gpt-4o'),
+  schema: z.object({
+    user: z.object({
+      login: z.string(),
+      lastSeen: z
+        .string()
+        .datetime()
+        .describe('Last time the user was seen (ISO 8601 date string().'),
+    }),
+  }),
+  prompt: 'Generate a fake user profile for testing.',
+});
+```
+
+## Error Handling
+
+When you use `generateObject`, errors are thrown when the model fails to generate proper JSON (`JSONParseError`)
+or when the generated JSON does not match the schema (`TypeValidationError`).
+Both error types contain additional information, e.g. the generated text or the invalid value.
+
+You can use this to e.g. design a function that safely process the result object and also returns values in error cases:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { JSONParseError, TypeValidationError, generateObject } from 'ai';
+import { z } from 'zod';
+
+const recipeSchema = z.object({
+  recipe: z.object({
+    name: z.string(),
+    ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
+    steps: z.array(z.string()),
+  }),
+});
+
+type Recipe = z.infer<typeof recipeSchema>;
+
+async function generateRecipe(
+  food: string,
+): Promise<
+  | { type: 'success'; recipe: Recipe }
+  | { type: 'parse-error'; text: string }
+  | { type: 'validation-error'; value: unknown }
+  | { type: 'unknown-error'; error: unknown }
+> {
+  try {
+    const result = await generateObject({
+      model: openai('gpt-4-turbo'),
+      schema: recipeSchema,
+      prompt: `Generate a ${food} recipe.`,
+    });
+
+    return { type: 'success', recipe: result.object };
+  } catch (error) {
+    if (TypeValidationError.isTypeValidationError(error)) {
+      return { type: 'validation-error', value: error.value };
+    } else if (JSONParseError.isJSONParseError(error)) {
+      return { type: 'parse-error', text: error.text };
+    } else {
+      return { type: 'unknown-error', error };
+    }
+  }
+}
+```
+
+## Examples
+
+You can see `generateObject` and `streamObject` in action using various frameworks in the following examples:
+
+### `generateObject`
+
+<ExampleLinks
+  examples={[
+    {
+      title: 'Learn to generate objects in Node.js',
+      link: '/examples/node/generating-structured-data/generate-object',
+    },
+    {
+      title:
+        'Learn to generate objects in Next.js with Route Handlers (AI SDK UI)',
+      link: '/examples/next-pages/basics/generating-object',
+    },
+    {
+      title:
+        'Learn to generate objects in Next.js with Server Actions (AI SDK RSC)',
+      link: '/examples/next-app/basics/generating-object',
+    },
+  ]}
+/>
+
+### `streamObject`
+
+<ExampleLinks
+  examples={[
+    {
+      title: 'Learn to stream objects in Node.js',
+      link: '/examples/node/streaming-structured-data/stream-object',
+    },
+    {
+      title:
+        'Learn to stream objects in Next.js with Route Handlers (AI SDK UI)',
+      link: '/examples/next-pages/basics/streaming-object-generation',
+    },
+    {
+      title:
+        'Learn to stream objects in Next.js with Server Actions (AI SDK RSC)',
+      link: '/examples/next-app/basics/streaming-object-generation',
+    },
+  ]}
+/>

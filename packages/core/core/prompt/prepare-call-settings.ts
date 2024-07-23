@@ -10,6 +10,7 @@ export function prepareCallSettings({
   topP,
   presencePenalty,
   frequencyPenalty,
+  stopSequences,
   seed,
   maxRetries,
 }: CallSettings): CallSettings {
@@ -105,6 +106,10 @@ export function prepareCallSettings({
     topP,
     presencePenalty,
     frequencyPenalty,
+    stopSequences:
+      stopSequences != null && stopSequences.length > 0
+        ? stopSequences
+        : undefined,
     seed,
     maxRetries: maxRetries ?? 2,
   };

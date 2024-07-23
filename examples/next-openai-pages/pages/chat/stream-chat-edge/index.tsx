@@ -1,9 +1,10 @@
-import { useChat } from '@ai-sdk/react';
+import { useChat } from 'ai/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: '/api/chat-edge',
-  });
+  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+    useChat({
+      api: '/api/chat-edge',
+    });
 
   return (
     <div className="flex flex-col gap-2">
@@ -19,8 +20,10 @@ export default function Chat() {
       <form onSubmit={handleSubmit} className="fixed bottom-0 p-2 w-full">
         <input
           value={input}
+          placeholder="Send message..."
           onChange={handleInputChange}
           className="bg-zinc-100 w-full p-2"
+          disabled={isLoading}
         />
       </form>
     </div>

@@ -5,6 +5,12 @@ description: Learn to generate structured data using the Vercel AI SDK in your N
 
 # Generate Object
 
+<Note>
+  This example client side rendering and hooks. If you want to use React Server
+  Components (RSC) instead, check out the ["generate object" example with
+  RSCs](/examples/next-app/basics/generating-object).
+</Note>
+
 Earlier functions like `generateText` and `streamText` gave us the ability to generate unstructured text. However, if you want to generate structured data like JSON, you can provide a schema that describes the structure of your desired object to the `generateObject` function.
 
 The function requires you to provide a schema using [zod](https://zod.dev), a library for defining schemas for JavaScript objects. By using zod, you can also use it to validate the generated object and ensure that it conforms to the specified structure.

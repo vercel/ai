@@ -31,6 +31,17 @@ export function getValidatedPrompt(prompt: Prompt): ValidatedPrompt {
     });
   }
 
+  if (prompt.messages != null) {
+    for (const message of prompt.messages) {
+      if (message.role === 'system' && typeof message.content !== 'string') {
+        throw new InvalidPromptError({
+          prompt,
+          message: 'system message content must be a string',
+        });
+      }
+    }
+  }
+
   return prompt.prompt != null
     ? {
         type: 'prompt',

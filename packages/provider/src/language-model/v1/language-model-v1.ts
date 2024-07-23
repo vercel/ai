@@ -35,7 +35,7 @@ model. `undefined` can be returned if object generation is not supported.
 This is needed to generate the best objects possible w/o requiring the
 user to explicitly specify the object generation mode.
    */
-  readonly defaultObjectGenerationMode: 'json' | 'tool' | 'grammar' | undefined;
+  readonly defaultObjectGenerationMode: 'json' | 'tool' | undefined;
 
   /**
 Generates a language model output (non-streaming).

@@ -11,11 +11,7 @@ Allows you to easily create a conversational user interface for your chatbot app
 
 <Tabs items={['React', 'Svelte', 'Vue', 'Solid']}>
   <Tab>
-    <Snippet
-      text="import { useChat } from '@ai-sdk/react'"
-      dark
-      prompt={false}
-    />
+    <Snippet text="import { useChat } from 'ai/react'" dark prompt={false} />
   </Tab>
   <Tab>
     <Snippet
@@ -46,6 +42,12 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'api',
       type: "string = '/api/chat'",
       description: 'The chat completion API endpoint offered by the provider.',
+    },
+    {
+      name: 'keepLastMessageOnError',
+      type: 'boolean',
+      description:
+        'Keeps the last message when an error happens. This will be the default behavior starting with the next major release. The flag was introduced for backwards compatibility and currently defaults to `false`. Please enable it and update your error handling/resubmit behavior.',
     },
     {
       name: 'id',
@@ -122,7 +124,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'maxToolRoundtrips',
       type: 'number',
       description:
-        'React only. Maximal number of automatic roundtrips for tool calls. An automatic tool call roundtrip is a call to the server with the  tool call results when all tool calls in the last assistant  message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
+        'React and SolidJS only. Maximal number of automatic roundtrips for tool calls. An automatic tool call roundtrip is a call to the server with the  tool call results when all tool calls in the last assistant  message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
     },
     {
       name: 'streamMode',
@@ -130,6 +132,20 @@ Allows you to easily create a conversational user interface for your chatbot app
       optional: true,
       description:
         'An optional literal that sets the mode of the stream to be used. Defaults to `stream-data`. If set to `text`, the stream will be treated as a text stream.',
+    },
+    {
+      name: 'fetch',
+      type: 'FetchFunction',
+      optional: true,
+      description:
+        'Optional. A custom fetch function to be used for the API call. Defaults to the global fetch function.',
+    },
+    {
+      name: 'experimental_prepareRequestBody',
+      type: '(options: { messages: Message[]; requestData?: JSONValue; requestBody?: object }) => JSONValue',
+      optional: true,
+      description:
+        'Experimental (React only). When a function is provided, it will be used to prepare the request body for the chat API. This can be useful for customizing the request body based on the messages and data in the chat.',
     },
   ]}
 />
@@ -142,6 +158,187 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'messages',
       type: 'Message[]',
       description: 'The current array of chat messages.',
+      properties: [
+        {
+          type: 'Message',
+          parameters: [
+            {
+              name: 'id',
+              type: 'string',
+              description: 'The unique identifier of the message.',
+            },
+            {
+              name: 'role',
+              type: "'system' | 'user' | 'assistant' | 'data'",
+              description: 'The role of the message.',
+            },
+            {
+              name: 'content',
+              type: 'string',
+              description: 'The content of the message.',
+            },
+            {
+              name: 'createdAt',
+              type: 'Date',
+              isOptional: true,
+              description: 'The creation date of the message.',
+            },
+            {
+              name: 'name',
+              type: 'string',
+              isOptional: true,
+              description: 'The name of the message.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              isOptional: true,
+              description: 'Additional data sent along with the message.',
+            },
+            {
+              name: 'annotations',
+              type: 'Array<JSONValue>',
+              isOptional: true,
+              description:
+                'Additional annotations sent along with the message.',
+            },
+            {
+              name: 'toolInvocations',
+              type: 'Array<ToolInvocation>',
+              isOptional: true,
+              description:
+                'An array of tool invocations that are associated with the (assistant) message.',
+              properties: [
+                {
+                  type: 'ToolInvocation',
+                  parameters: [
+                    {
+                      name: 'state',
+                      type: "'partial-call'",
+                      description:
+                        'The state of the tool call when it was partially created.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description: 'Name of the tool that is being called.',
+                    },
+                    {
+                      name: 'args',
+                      type: 'any',
+                      description:
+                        'Partial arguments of the tool call. This is a JSON-serializable object.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ToolInvocation',
+                  parameters: [
+                    {
+                      name: 'state',
+                      type: "'call'",
+                      description:
+                        'The state of the tool call when it was fully created.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description: 'Name of the tool that is being called.',
+                    },
+                    {
+                      name: 'args',
+                      type: 'any',
+                      description:
+                        'Arguments of the tool call. This is a JSON-serializable object that matches the tools input schema.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ToolInvocation',
+                  parameters: [
+                    {
+                      name: 'state',
+                      type: "'result'",
+                      description:
+                        'The state of the tool call when the result is available.',
+                    },
+                    {
+                      name: 'toolCallId',
+                      type: 'string',
+                      description:
+                        'ID of the tool call. This ID is used to match the tool call with the tool result.',
+                    },
+                    {
+                      name: 'toolName',
+                      type: 'string',
+                      description: 'Name of the tool that is being called.',
+                    },
+                    {
+                      name: 'args',
+                      type: 'any',
+                      description:
+                        'Arguments of the tool call. This is a JSON-serializable object that matches the tools input schema.',
+                    },
+                    {
+                      name: 'result',
+                      type: 'any',
+                      description: 'The result of the tool call.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'experimental_attachments',
+              type: 'Array<Attachment>',
+              isOptional: true,
+              description:
+                'Additional attachments sent along with the message.',
+              properties: [
+                {
+                  type: 'Attachment',
+                  description:
+                    'An attachment object that can be used to describe the metadata of the file.',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'The name of the attachment, usually the file name.',
+                    },
+                    {
+                      name: 'contentType',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'A string indicating the media type of the file.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description:
+                        'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'error',
@@ -150,9 +347,33 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'append',
-      type: '(message: Message | CreateMessage, chatRequestOptions: { options: { headers, body } }) => Promise<string | undefined>',
+      type: '(message: Message | CreateMessage, options?: ChatRequestOptions) => Promise<string | undefined>',
       description:
         'Function to append a message to the chat, triggering an API call for the AI response. It returns a promise that resolves to full response message content when the API call is successfully finished, or throws an error when the API call fails.',
+      properties: [
+        {
+          type: 'ChatRequestOptions',
+          parameters: [
+            {
+              name: 'headers',
+              type: 'Record<string, string> | Headers',
+              description:
+                'Additional headers that should be to be passed to the API endpoint.',
+            },
+            {
+              name: 'body',
+              type: 'object',
+              description:
+                'Additional body JSON properties that should be sent to the API endpoint.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              description: 'Additional data to be sent to the API endpoint.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'reload',
@@ -167,7 +388,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'setMessages',
-      type: '(messages: Message[]) => void',
+      type: '(messages: Message[] | ((messages: Message[]) => Message[]) => void',
       description:
         'Function to update the `messages` state locally without triggering an API call.',
     },
@@ -189,7 +410,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'handleSubmit',
-      type: '(event: React.FormEvent<HTMLFormElement>, chatRequestOptions?: ChatRequestOptions) => void',
+      type: '(event?: { preventDefault?: () => void }, options?: ChatRequestOptions) => void',
       description:
         'Form submission handler that automatically resets the input field and appends a user message. You can use the `options` parameter to send additional data, headers and more to the server.',
       properties: [
@@ -197,33 +418,75 @@ Allows you to easily create a conversational user interface for your chatbot app
           type: 'ChatRequestOptions',
           parameters: [
             {
-              name: 'options',
-              type: 'RequestOptions',
-              description: 'The options to be passed to the fetch call.',
+              name: 'headers',
+              type: 'Record<string, string> | Headers',
+              description:
+                'Additional headers that should be to be passed to the API endpoint.',
+            },
+            {
+              name: 'body',
+              type: 'object',
+              description:
+                'Additional body JSON properties that should be sent to the API endpoint.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              description: 'Additional data to be sent to the API endpoint.',
+            },
+            {
+              name: 'allowEmptySubmit',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'A boolean that determines whether to allow submitting an empty input that triggers a generation. Defaults to `false`.',
+            },
+            {
+              name: 'experimental_attachments',
+              type: 'FileList | Array<Attachment>',
+              isOptional: true,
+              description:
+                'An array of attachments to be sent to the API endpoint.',
               properties: [
                 {
-                  type: 'ChatRequestOptions',
+                  type: 'FileList',
                   parameters: [
                     {
-                      name: 'headers',
-                      type: 'Record<string, string> | Headers',
+                      name: '',
+                      type: '',
                       description:
-                        'An optional object of headers to be passed to the API endpoint.',
+                        "A list of files that have been selected by the user using an <input type='file'> element. It's also used for a list of files dropped into web content when using the drag and drop API.",
+                    },
+                  ],
+                },
+                {
+                  type: 'Attachment',
+                  description:
+                    'An attachment object that can be used to describe the metadata of the file.',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'The name of the attachment, usually the file name.',
                     },
                     {
-                      name: 'body',
-                      type: 'object',
+                      name: 'contentType',
+                      type: 'string',
+                      isOptional: true,
                       description:
-                        'An optional object to be passed to the API endpoint.',
+                        'A string indicating the media type of the file.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description:
+                        'The URL of the attachment. It can either be a URL to a hosted file or a Data URL.',
                     },
                   ],
                 },
               ],
-            },
-            {
-              name: 'data',
-              type: 'Record<string,string>',
-              description: 'Additional data to be sent to the server.',
             },
           ],
         },
@@ -244,7 +507,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'addToolResult',
       type: '({toolCallId: string; result: any;}) => void',
       description:
-        'React only. Function to add a tool result to the chat. This will update the chat messages with the tool result and call the API route if all tool results for the last message are available.',
+        'React and SolidJS only. Function to add a tool result to the chat. This will update the chat messages with the tool result and call the API route if all tool results for the last message are available.',
     },
   ]}
 />

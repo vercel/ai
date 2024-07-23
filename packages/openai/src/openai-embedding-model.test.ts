@@ -18,8 +18,10 @@ describe('doEmbed', () => {
 
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
+    usage = { prompt_tokens: 8, total_tokens: 8 },
   }: {
     embeddings?: EmbeddingModelV1Embedding[];
+    usage?: { prompt_tokens: number; total_tokens: number };
   } = {}) {
     server.responseBodyJson = {
       object: 'list',
@@ -29,7 +31,7 @@ describe('doEmbed', () => {
         embedding,
       })),
       model: 'text-embedding-3-large',
-      usage: { prompt_tokens: 8, total_tokens: 8 },
+      usage,
     };
   }
 
@@ -52,11 +54,22 @@ describe('doEmbed', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
+      'content-length': '236',
       'content-type': 'application/json',
 
       // custom header
       'test-header': 'test-value',
     });
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonResponse({
+      usage: { prompt_tokens: 20, total_tokens: 20 },
+    });
+
+    const { usage } = await model.doEmbed({ values: testValues });
+
+    expect(usage).toStrictEqual({ tokens: 20 });
   });
 
   it('should pass the model and the values', async () => {
@@ -86,7 +99,7 @@ describe('doEmbed', () => {
     });
   });
 
-  it('should pass custom headers', async () => {
+  it('should pass headers', async () => {
     prepareJsonResponse();
 
     const provider = createOpenAI({
@@ -94,34 +107,26 @@ describe('doEmbed', () => {
       organization: 'test-organization',
       project: 'test-project',
       headers: {
-        'Custom-Header': 'test-header',
+        'Custom-Provider-Header': 'provider-header-value',
       },
     });
 
     await provider.embedding('text-embedding-3-large').doEmbed({
       values: testValues,
+      headers: {
+        'Custom-Request-Header': 'request-header-value',
+      },
     });
 
     const requestHeaders = await server.getRequestHeaders();
 
-    expect(requestHeaders.get('OpenAI-Organization')).toStrictEqual(
-      'test-organization',
-    );
-    expect(requestHeaders.get('OpenAI-Project')).toStrictEqual('test-project');
-    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
-  });
-
-  it('should pass the api key as Authorization header', async () => {
-    prepareJsonResponse();
-
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-
-    await provider.embedding('text-embedding-3-large').doEmbed({
-      values: testValues,
+    expect(requestHeaders).toStrictEqual({
+      authorization: 'Bearer test-api-key',
+      'content-type': 'application/json',
+      'custom-provider-header': 'provider-header-value',
+      'custom-request-header': 'request-header-value',
+      'openai-organization': 'test-organization',
+      'openai-project': 'test-project',
     });
-
-    expect(
-      (await server.getRequestHeaders()).get('Authorization'),
-    ).toStrictEqual('Bearer test-api-key');
   });
 });

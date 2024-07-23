@@ -2,6 +2,7 @@ import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
+  FetchFunction,
   IdGenerator,
   JSONValue,
   Message,
@@ -48,11 +49,17 @@ export type UseChatHelpers = {
    * edit the messages on the client, and then trigger the `reload` method
    * manually to regenerate the AI response.
    */
-  setMessages: (messages: Message[]) => void;
+  setMessages: (
+    messages: Message[] | ((messages: Message[]) => Message[]),
+  ) => void;
+
   /** The current value of the input */
   input: Writable<string>;
   /** Form submission handler to automatically reset input and append a user message  */
-  handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void;
+  handleSubmit: (
+    event?: { preventDefault?: () => void },
+    chatRequestOptions?: ChatRequestOptions,
+  ) => void;
   metadata?: Object;
   /** Whether the API request is in progress */
   isLoading: Readable<boolean | undefined>;
@@ -74,10 +81,12 @@ const getStreamedResponse = async (
   previousMessages: Message[],
   abortControllerRef: AbortController | null,
   generateId: IdGenerator,
-  streamMode?: 'stream-data' | 'text',
-  onFinish?: (message: Message) => void,
-  onResponse?: (response: Response) => void | Promise<void>,
-  sendExtraMessageFields?: boolean,
+  streamMode: 'stream-data' | 'text' | undefined,
+  onFinish: ((message: Message) => void) | undefined,
+  onResponse: ((response: Response) => void | Promise<void>) | undefined,
+  sendExtraMessageFields: boolean | undefined,
+  fetch: FetchFunction | undefined,
+  keepLastMessageOnError: boolean | undefined,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -110,10 +119,11 @@ const getStreamedResponse = async (
 
   return await callChatApi({
     api,
-    messages: constructedMessagesPayload,
     body: {
+      messages: constructedMessagesPayload,
+      data: chatRequest.data,
       ...extraMetadata.body,
-      ...chatRequest.options?.body,
+      ...chatRequest.body,
       ...(chatRequest.functions !== undefined && {
         functions: chatRequest.functions,
       }),
@@ -131,11 +141,13 @@ const getStreamedResponse = async (
     credentials: extraMetadata.credentials,
     headers: {
       ...extraMetadata.headers,
-      ...chatRequest.options?.headers,
+      ...chatRequest.headers,
     },
     abortController: () => abortControllerRef,
     restoreMessagesOnFailure() {
-      mutate(previousMessages);
+      if (!keepLastMessageOnError) {
+        mutate(previousMessages);
+      }
     },
     onResponse,
     onUpdate(merged, data) {
@@ -144,6 +156,8 @@ const getStreamedResponse = async (
     },
     onFinish,
     generateId,
+    onToolCall: undefined, // not implemented yet
+    fetch,
   });
 };
 
@@ -167,6 +181,8 @@ export function useChat({
   headers,
   body,
   generateId = generateIdFunc,
+  fetch,
+  keepLastMessageOnError = false,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
@@ -233,6 +249,8 @@ export function useChat({
             onFinish,
             onResponse,
             sendExtraMessageFields,
+            fetch,
+            keepLastMessageOnError,
           ),
         experimental_onFunctionCall,
         experimental_onToolCall,
@@ -271,15 +289,24 @@ export function useChat({
       tools,
       tool_choice,
       data,
+      headers,
+      body,
     }: ChatRequestOptions = {},
   ) => {
     if (!message.id) {
       message.id = generateId();
     }
 
+    const requestOptions = {
+      headers: headers ?? options?.headers,
+      body: body ?? options?.body,
+    };
+
     const chatRequest: ChatRequest = {
       messages: get(messages).concat(message as Message),
-      options,
+      options: requestOptions,
+      headers: requestOptions.headers,
+      body: requestOptions.body,
       data,
       ...(functions !== undefined && { functions }),
       ...(function_call !== undefined && { function_call }),
@@ -332,25 +359,50 @@ export function useChat({
     }
   };
 
-  const setMessages = (messages: Message[]) => {
-    mutate(messages);
+  const setMessages = (
+    messagesArg: Message[] | ((messages: Message[]) => Message[]),
+  ) => {
+    if (typeof messagesArg === 'function') {
+      messagesArg = messagesArg(get(messages));
+    }
+
+    mutate(messagesArg);
   };
 
   const input = writable(initialInput);
 
-  const handleSubmit = (e: any, options: ChatRequestOptions = {}) => {
-    e.preventDefault();
+  const handleSubmit = (
+    event?: { preventDefault?: () => void },
+    options: ChatRequestOptions = {},
+  ) => {
+    event?.preventDefault?.();
     const inputValue = get(input);
-    if (!inputValue) return;
 
-    append(
-      {
-        content: inputValue,
-        role: 'user',
-        createdAt: new Date(),
-      },
-      options,
-    );
+    if (!inputValue && !options.allowEmptySubmit) return;
+
+    const requestOptions = {
+      headers: options.headers ?? options.options?.headers,
+      body: options.body ?? options.options?.body,
+    };
+
+    const chatRequest: ChatRequest = {
+      messages:
+        !inputValue && options.allowEmptySubmit
+          ? get(messages)
+          : get(messages).concat({
+              id: generateId(),
+              content: inputValue,
+              role: 'user',
+              createdAt: new Date(),
+            } as Message),
+      options: requestOptions,
+      body: requestOptions.body,
+      headers: requestOptions.headers,
+      data: options.data,
+    };
+
+    triggerRequest(chatRequest);
+
     input.set('');
   };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCompletion } from '@ai-sdk/react';
+import { useCompletion } from 'ai/react';
 
 export default function Page() {
   const { completion, complete } = useCompletion({
@@ -18,7 +18,7 @@ export default function Page() {
         Generate
       </div>
 
-      {completion}
+      <div data-testid="generation">{completion}</div>
     </div>
   );
 }

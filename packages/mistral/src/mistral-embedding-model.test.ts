@@ -18,8 +18,10 @@ describe('doEmbed', () => {
 
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
+    usage = { prompt_tokens: 8, total_tokens: 8 },
   }: {
     embeddings?: EmbeddingModelV1Embedding[];
+    usage?: { prompt_tokens: number; total_tokens: number };
   } = {}) {
     server.responseBodyJson = {
       id: 'b322cfc2b9d34e2f8e14fc99874faee5',
@@ -30,7 +32,7 @@ describe('doEmbed', () => {
         index: i,
       })),
       model: 'mistral-embed',
-      usage: { prompt_tokens: 8, total_tokens: 8, completion_tokens: 0 },
+      usage,
     };
   }
 
@@ -40,6 +42,16 @@ describe('doEmbed', () => {
     const { embeddings } = await model.doEmbed({ values: testValues });
 
     expect(embeddings).toStrictEqual(dummyEmbeddings);
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonResponse({
+      usage: { prompt_tokens: 20, total_tokens: 20 },
+    });
+
+    const { usage } = await model.doEmbed({ values: testValues });
+
+    expect(usage).toStrictEqual({ tokens: 20 });
   });
 
   it('should expose the raw response headers', async () => {
@@ -53,6 +65,7 @@ describe('doEmbed', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
+      'content-length': '267',
       'content-type': 'application/json',
 
       // custom header
@@ -72,35 +85,30 @@ describe('doEmbed', () => {
     });
   });
 
-  it('should pass custom headers', async () => {
+  it('should pass headers', async () => {
     prepareJsonResponse();
 
     const provider = createMistral({
       apiKey: 'test-api-key',
       headers: {
-        'Custom-Header': 'test-header',
+        'Custom-Provider-Header': 'provider-header-value',
       },
     });
 
     await provider.embedding('mistral-embed').doEmbed({
       values: testValues,
+      headers: {
+        'Custom-Request-Header': 'request-header-value',
+      },
     });
 
     const requestHeaders = await server.getRequestHeaders();
-    expect(requestHeaders.get('Custom-Header')).toStrictEqual('test-header');
-  });
 
-  it('should pass the api key as Authorization header', async () => {
-    prepareJsonResponse();
-
-    const provider = createMistral({ apiKey: 'test-api-key' });
-
-    await provider.embedding('mistral-embed').doEmbed({
-      values: testValues,
+    expect(requestHeaders).toStrictEqual({
+      authorization: 'Bearer test-api-key',
+      'content-type': 'application/json',
+      'custom-provider-header': 'provider-header-value',
+      'custom-request-header': 'request-header-value',
     });
-
-    expect(
-      (await server.getRequestHeaders()).get('Authorization'),
-    ).toStrictEqual('Bearer test-api-key');
   });
 });
