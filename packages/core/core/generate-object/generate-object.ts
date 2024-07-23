@@ -85,7 +85,7 @@ The schema of the object that the model should generate.
     /**
 The mode to use for object generation.
 
-The Zod schema is converted in a JSON schema and used in one of the following ways
+The schema is converted in a JSON schema and used in one of the following ways
 
 - 'auto': The provider will choose the best mode for the model.
 - 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
