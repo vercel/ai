@@ -123,6 +123,7 @@ describe('doGenerate', () => {
   function prepareJsonResponse({
     content = '',
     tool_calls,
+    function_call,
     usage = {
       prompt_tokens: 4,
       total_tokens: 34,
@@ -140,6 +141,10 @@ describe('doGenerate', () => {
         arguments: string;
       };
     }>;
+    function_call?: {
+      name: string;
+      arguments: string;
+    };
     usage?: {
       prompt_tokens: number;
       total_tokens: number;
@@ -168,6 +173,7 @@ describe('doGenerate', () => {
             role: 'assistant',
             content,
             tool_calls,
+            function_call,
           },
           logprobs,
           finish_reason,
@@ -471,8 +477,6 @@ describe('doGenerate', () => {
       ],
     });
 
-    const model = provider.chat('gpt-3.5-turbo');
-
     const result = await model.doGenerate({
       inputFormat: 'prompt',
       mode: {
@@ -502,6 +506,53 @@ describe('doGenerate', () => {
       {
         args: '{"value":"Spark"}',
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+      },
+    ]);
+  });
+
+  it('should parse function results with useLegacyFunctionCalling', async () => {
+    prepareJsonResponse({
+      function_call: {
+        name: 'test-tool',
+        arguments: '{"value":"Spark"}',
+      },
+    });
+
+    const model = provider.chat('gpt-3.5-turbo', {
+      useLegacyFunctionCalling: true,
+    });
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'test-tool',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.toolCalls).toStrictEqual([
+      {
+        args: '{"value":"Spark"}',
+        toolCallId: expect.any(String),
         toolCallType: 'function',
         toolName: 'test-tool',
       },
