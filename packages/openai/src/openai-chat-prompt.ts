@@ -44,7 +44,7 @@ export interface ChatCompletionAssistantMessageParam {
   function_call?: {
     arguments: string;
     name: string;
-  }
+  };
 }
 
 export interface ChatCompletionMessageToolCall {
