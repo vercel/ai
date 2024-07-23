@@ -5,6 +5,7 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   ParseResult,
@@ -92,6 +93,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    const useLegacyFunctionCalling = this.settings.useLegacyFunctionCalling;
+
+    if (useLegacyFunctionCalling && this.settings.parallelToolCalls === true) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'useLegacyFunctionCalling with parallelToolCalls',
+      });
+    }
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -128,13 +137,19 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // messages:
-      messages: convertToOpenAIChatMessages(prompt),
+      messages: convertToOpenAIChatMessages({
+        prompt,
+        useLegacyFunctionCalling,
+      }),
     };
 
     switch (type) {
       case 'regular': {
         return {
-          args: { ...baseArgs, ...prepareToolsAndToolChoice(mode) },
+          args: {
+            ...baseArgs,
+            ...prepareToolsAndToolChoice({ mode, useLegacyFunctionCalling }),
+          },
           warnings,
         };
       }
@@ -151,23 +166,37 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
       case 'object-tool': {
         return {
-          args: {
-            ...baseArgs,
-            tool_choice: {
-              type: 'function',
-              function: { name: mode.tool.name },
-            },
-            tools: [
-              {
-                type: 'function',
-                function: {
+          args: useLegacyFunctionCalling
+            ? {
+                ...baseArgs,
+                function_call: {
                   name: mode.tool.name,
-                  description: mode.tool.description,
-                  parameters: mode.tool.parameters,
                 },
+                functions: [
+                  {
+                    name: mode.tool.name,
+                    description: mode.tool.description,
+                    parameters: mode.tool.parameters,
+                  },
+                ],
+              }
+            : {
+                ...baseArgs,
+                tool_choice: {
+                  type: 'function',
+                  function: { name: mode.tool.name },
+                },
+                tools: [
+                  {
+                    type: 'function',
+                    function: {
+                      name: mode.tool.name,
+                      description: mode.tool.description,
+                      parameters: mode.tool.parameters,
+                    },
+                  },
+                ],
               },
-            ],
-          },
           warnings,
         };
       }
@@ -204,12 +233,22 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
     return {
       text: choice.message.content ?? undefined,
-      toolCalls: choice.message.tool_calls?.map(toolCall => ({
-        toolCallType: 'function',
-        toolCallId: toolCall.id ?? generateId(),
-        toolName: toolCall.function.name,
-        args: toolCall.function.arguments!,
-      })),
+      toolCalls:
+        this.settings.useLegacyFunctionCalling && choice.message.function_call
+          ? [
+              {
+                toolCallType: 'function',
+                toolCallId: generateId(),
+                toolName: choice.message.function_call.name,
+                args: choice.message.function_call.arguments,
+              },
+            ]
+          : choice.message.tool_calls?.map(toolCall => ({
+              toolCallType: 'function',
+              toolCallId: toolCall.id ?? generateId(),
+              toolName: toolCall.function.name,
+              args: toolCall.function.arguments!,
+            })),
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       usage: {
         promptTokens: response.usage.prompt_tokens,
@@ -269,6 +308,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     };
     let logprobs: LanguageModelV1LogProbs;
 
+    const { useLegacyFunctionCalling } = this.settings;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -326,8 +367,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               logprobs.push(...mappedLogprobs);
             }
 
-            if (delta.tool_calls != null) {
-              for (const toolCallDelta of delta.tool_calls) {
+            const mappedToolCalls: typeof delta.tool_calls =
+              useLegacyFunctionCalling && delta.function_call != null
+                ? [
+                    {
+                      type: 'function',
+                      id: generateId(),
+                      function: delta.function_call,
+                      index: 0,
+                    },
+                  ]
+                : delta.tool_calls;
+
+            if (mappedToolCalls != null) {
+              for (const toolCallDelta of mappedToolCalls) {
                 const index = toolCallDelta.index;
 
                 // Tool call start. OpenAI returns all information except the arguments in the first chunk.
@@ -451,11 +504,17 @@ const openAIChatResponseSchema = z.object({
     z.object({
       message: z.object({
         role: z.literal('assistant'),
-        content: z.string().nullable().optional(),
+        content: z.string().nullish(),
+        function_call: z
+          .object({
+            arguments: z.string(),
+            name: z.string(),
+          })
+          .nullish(),
         tool_calls: z
           .array(
             z.object({
-              id: z.string().optional().nullable(),
+              id: z.string().nullish(),
               type: z.literal('function'),
               function: z.object({
                 name: z.string(),
@@ -463,7 +522,7 @@ const openAIChatResponseSchema = z.object({
               }),
             }),
           )
-          .optional(),
+          .nullish(),
       }),
       index: z.number(),
       logprobs: z
@@ -483,9 +542,8 @@ const openAIChatResponseSchema = z.object({
             )
             .nullable(),
         })
-        .nullable()
-        .optional(),
-      finish_reason: z.string().optional().nullable(),
+        .nullish(),
+      finish_reason: z.string().nullish(),
     }),
   ),
   usage: z.object({
@@ -504,6 +562,12 @@ const openaiChatChunkSchema = z.union([
           .object({
             role: z.enum(['assistant']).optional(),
             content: z.string().nullish(),
+            function_call: z
+              .object({
+                name: z.string().optional(),
+                arguments: z.string().optional(),
+              })
+              .nullish(),
             tool_calls: z
               .array(
                 z.object({
@@ -551,16 +615,55 @@ const openaiChatChunkSchema = z.union([
   openAIErrorDataSchema,
 ]);
 
-function prepareToolsAndToolChoice(
+function prepareToolsAndToolChoice({
+  mode,
+  useLegacyFunctionCalling = false,
+}: {
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
-  },
-) {
+  };
+  useLegacyFunctionCalling?: boolean;
+}) {
   // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
 
   if (tools == null) {
     return { tools: undefined, tool_choice: undefined };
+  }
+
+  const toolChoice = mode.toolChoice;
+
+  if (useLegacyFunctionCalling) {
+    const mappedFunctions = tools.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+    }));
+
+    if (toolChoice == null) {
+      return { functions: mappedFunctions, function_call: undefined };
+    }
+
+    const type = toolChoice.type;
+
+    switch (type) {
+      case 'auto':
+      case 'none':
+      case undefined:
+        return {
+          functions: mappedFunctions,
+          function_call: undefined,
+        };
+      case 'required':
+        throw new UnsupportedFunctionalityError({
+          functionality: 'useLegacyFunctionCalling and toolChoice: required',
+        });
+      default:
+        return {
+          functions: mappedFunctions,
+          function_call: { name: toolChoice.toolName },
+        };
+    }
   }
 
   const mappedTools = tools.map(tool => ({
@@ -571,8 +674,6 @@ function prepareToolsAndToolChoice(
       parameters: tool.parameters,
     },
   }));
-
-  const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
     return { tools: mappedTools, tool_choice: undefined };
