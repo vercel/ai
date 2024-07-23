@@ -139,7 +139,7 @@ const groq = createGroq({
 
 const { text } = await generateText({
   model: groq('llama-3.1-70b-versatile'),
-  prompt: "What's the weather like today?",
+  prompt: 'What is the weather like today?',
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
