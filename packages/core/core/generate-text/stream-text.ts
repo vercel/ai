@@ -3,6 +3,7 @@ import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
   StreamData,
+  TextStreamPart,
   formatStreamPart,
 } from '../../streams';
 import { CallSettings } from '../prompt/call-settings';
@@ -21,7 +22,6 @@ import {
   CoreToolChoice,
   FinishReason,
   LanguageModel,
-  LogProbs,
 } from '../types';
 import { CompletionTokenUsage } from '../types/token-usage';
 import {
@@ -237,43 +237,6 @@ Warnings from the model provider (e.g. unsupported settings).
     },
   });
 }
-
-export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
-  | {
-      type: 'text-delta';
-      textDelta: string;
-    }
-  | ({
-      type: 'tool-call';
-    } & ToToolCall<TOOLS>)
-  | {
-      type: 'tool-call-streaming-start';
-      toolCallId: string;
-      toolName: string;
-    }
-  | {
-      type: 'tool-call-delta';
-      toolCallId: string;
-      toolName: string;
-      argsTextDelta: string;
-    }
-  | ({
-      type: 'tool-result';
-    } & ToToolResult<TOOLS>)
-  | {
-      type: 'finish';
-      finishReason: FinishReason;
-      logprobs?: LogProbs;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
-    }
-  | {
-      type: 'error';
-      error: unknown;
-    };
 
 class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   implements StreamTextResult<TOOLS>

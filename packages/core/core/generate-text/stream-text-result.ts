@@ -1,10 +1,9 @@
 import { ServerResponse } from 'node:http';
 import { AIStreamCallbacksAndOptions, StreamData } from '../../streams';
 import { CoreTool } from '../tool';
-import { CallWarning, FinishReason } from '../types';
+import { CallWarning, FinishReason, LogProbs } from '../types';
 import { CompletionTokenUsage } from '../types/token-usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
-import { TextStreamPart } from './stream-text';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
 
@@ -128,3 +127,40 @@ export interface StreamTextResult<TOOLS extends Record<string, CoreTool>> {
      */
   toTextStreamResponse(init?: ResponseInit): Response;
 }
+
+export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
+  | {
+      type: 'text-delta';
+      textDelta: string;
+    }
+  | ({
+      type: 'tool-call';
+    } & ToToolCall<TOOLS>)
+  | {
+      type: 'tool-call-streaming-start';
+      toolCallId: string;
+      toolName: string;
+    }
+  | {
+      type: 'tool-call-delta';
+      toolCallId: string;
+      toolName: string;
+      argsTextDelta: string;
+    }
+  | ({
+      type: 'tool-result';
+    } & ToToolResult<TOOLS>)
+  | {
+      type: 'finish';
+      finishReason: FinishReason;
+      logprobs?: LogProbs;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+    }
+  | {
+      type: 'error';
+      error: unknown;
+    };
