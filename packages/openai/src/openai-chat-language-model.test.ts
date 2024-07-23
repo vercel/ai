@@ -122,6 +122,7 @@ describe('doGenerate', () => {
 
   function prepareJsonResponse({
     content = '',
+    tool_calls,
     usage = {
       prompt_tokens: 4,
       total_tokens: 34,
@@ -131,6 +132,14 @@ describe('doGenerate', () => {
     finish_reason = 'stop',
   }: {
     content?: string;
+    tool_calls?: Array<{
+      id: string;
+      type: 'function';
+      function: {
+        name: string;
+        arguments: string;
+      };
+    }>;
     usage?: {
       prompt_tokens: number;
       total_tokens: number;
@@ -158,6 +167,7 @@ describe('doGenerate', () => {
           message: {
             role: 'assistant',
             content,
+            tool_calls,
           },
           logprobs,
           finish_reason,
@@ -445,6 +455,57 @@ describe('doGenerate', () => {
       'openai-organization': 'test-organization',
       'openai-project': 'test-project',
     });
+  });
+
+  it('should parse tool results', async () => {
+    prepareJsonResponse({
+      tool_calls: [
+        {
+          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            arguments: '{"value":"Spark"}',
+          },
+        },
+      ],
+    });
+
+    const model = provider.chat('gpt-3.5-turbo');
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'test-tool',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.toolCalls).toStrictEqual([
+      {
+        args: '{"value":"Spark"}',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+      },
+    ]);
   });
 });
 

@@ -504,17 +504,17 @@ const openAIChatResponseSchema = z.object({
     z.object({
       message: z.object({
         role: z.literal('assistant'),
-        content: z.string().nullable().optional(),
+        content: z.string().nullish(),
         function_call: z
           .object({
             arguments: z.string(),
             name: z.string(),
           })
-          .optional(),
+          .nullish(),
         tool_calls: z
           .array(
             z.object({
-              id: z.string().optional().nullable(),
+              id: z.string().nullish(),
               type: z.literal('function'),
               function: z.object({
                 name: z.string(),
@@ -522,7 +522,7 @@ const openAIChatResponseSchema = z.object({
               }),
             }),
           )
-          .optional(),
+          .nullish(),
       }),
       index: z.number(),
       logprobs: z
@@ -542,9 +542,8 @@ const openAIChatResponseSchema = z.object({
             )
             .nullable(),
         })
-        .nullable()
-        .optional(),
-      finish_reason: z.string().optional().nullable(),
+        .nullish(),
+      finish_reason: z.string().nullish(),
     }),
   ),
   usage: z.object({
