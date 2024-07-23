@@ -1,5 +1,26 @@
 # @ai-sdk/provider
 
+## 0.0.13
+
+### Patch Changes
+
+- 2b9da0f0: feat (core): support stopSequences setting.
+- a5b58845: feat (core): support topK setting
+- 4aa8deb3: feat (provider): support responseFormat setting in provider api
+- 13b27ec6: chore (ai/core): remove grammar mode
+
+## 0.0.12
+
+### Patch Changes
+
+- b7290943: feat (ai/core): add token usage to embed and embedMany
+
+## 0.0.11
+
+### Patch Changes
+
+- 5edc6110: feat (provider): add headers support to language and embedding model spec
+
 ## 0.0.10
 
 ### Patch Changes

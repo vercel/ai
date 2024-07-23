@@ -1,5 +1,342 @@
 # ai
 
+## 3.2.34
+
+### Patch Changes
+
+- 2b9da0f0: feat (core): support stopSequences setting.
+- a5b58845: feat (core): support topK setting
+- 420f170f: chore (ai/core): use interfaces for core function results
+- 13b27ec6: chore (ai/core): remove grammar mode
+- 644f6582: feat (ai/core): add telemetry to generateObject
+- Updated dependencies [2b9da0f0]
+- Updated dependencies [a5b58845]
+- Updated dependencies [4aa8deb3]
+- Updated dependencies [13b27ec6]
+  - @ai-sdk/provider@0.0.13
+  - @ai-sdk/provider-utils@1.0.3
+  - @ai-sdk/react@0.0.27
+  - @ai-sdk/svelte@0.0.21
+  - @ai-sdk/ui-utils@0.0.18
+  - @ai-sdk/solid@0.0.20
+  - @ai-sdk/vue@0.0.22
+
+## 3.2.33
+
+### Patch Changes
+
+- 4b2c09d9: feat (ai/ui): add mutator function support to useChat / setMessages
+- 281e7662: chore: add description to ai package
+- Updated dependencies [f63829fe]
+- Updated dependencies [4b2c09d9]
+  - @ai-sdk/ui-utils@0.0.17
+  - @ai-sdk/svelte@0.0.20
+  - @ai-sdk/react@0.0.26
+  - @ai-sdk/solid@0.0.19
+  - @ai-sdk/vue@0.0.21
+
+## 3.2.32
+
+### Patch Changes
+
+- Updated dependencies [5b7b3bbe]
+  - @ai-sdk/ui-utils@0.0.16
+  - @ai-sdk/react@0.0.25
+  - @ai-sdk/solid@0.0.18
+  - @ai-sdk/svelte@0.0.19
+  - @ai-sdk/vue@0.0.20
+
+## 3.2.31
+
+### Patch Changes
+
+- b86af092: feat (ai/core): add langchain stream event v2 support to LangChainAdapter
+
+## 3.2.30
+
+### Patch Changes
+
+- Updated dependencies [19c3d50f]
+  - @ai-sdk/react@0.0.24
+  - @ai-sdk/vue@0.0.19
+
+## 3.2.29
+
+### Patch Changes
+
+- e710b388: fix (ai/core): race condition in mergeStreams
+- 6078a690: feat (ai/core): introduce stream data support in toAIStreamResponse
+
+## 3.2.28
+
+### Patch Changes
+
+- 68d1f78c: fix (ai/core): do not construct object promise in streamObject result until requested
+- f0bc1e79: feat (ai/ui): add system message support to convertToCoreMessages
+- 1f67fe49: feat (ai/ui): stream tool calls with streamText and useChat
+- Updated dependencies [1f67fe49]
+  - @ai-sdk/ui-utils@0.0.15
+  - @ai-sdk/react@0.0.23
+  - @ai-sdk/solid@0.0.17
+  - @ai-sdk/svelte@0.0.18
+  - @ai-sdk/vue@0.0.18
+
+## 3.2.27
+
+### Patch Changes
+
+- 811f4493: fix (ai/core): generateText token usage is sum over all roundtrips
+
+## 3.2.26
+
+### Patch Changes
+
+- 8f545ce9: fix (ai/core): forward request headers in generateObject and streamObject
+
+## 3.2.25
+
+### Patch Changes
+
+- 99ddbb74: feat (ai/react): add experimental support for managing attachments to useChat
+- Updated dependencies [99ddbb74]
+  - @ai-sdk/ui-utils@0.0.14
+  - @ai-sdk/react@0.0.22
+  - @ai-sdk/solid@0.0.16
+  - @ai-sdk/svelte@0.0.17
+  - @ai-sdk/vue@0.0.17
+
+## 3.2.24
+
+### Patch Changes
+
+- f041c056: feat (ai/core): add roundtrips property to generateText result
+
+## 3.2.23
+
+### Patch Changes
+
+- a6cb2c8b: feat (ai/ui): add keepLastMessageOnError option to useChat
+- Updated dependencies [a6cb2c8b]
+  - @ai-sdk/ui-utils@0.0.13
+  - @ai-sdk/svelte@0.0.16
+  - @ai-sdk/react@0.0.21
+  - @ai-sdk/solid@0.0.15
+  - @ai-sdk/vue@0.0.16
+
+## 3.2.22
+
+### Patch Changes
+
+- 53fccf1c: fix (ai/core): report error on controller
+- dd0d854e: feat (ai/vue): add useAssistant
+- Updated dependencies [dd0d854e]
+  - @ai-sdk/vue@0.0.15
+
+## 3.2.21
+
+### Patch Changes
+
+- 56bbc2a7: feat (ai/ui): set body and headers directly on options for handleSubmit and append
+- Updated dependencies [56bbc2a7]
+  - @ai-sdk/ui-utils@0.0.12
+  - @ai-sdk/svelte@0.0.15
+  - @ai-sdk/react@0.0.20
+  - @ai-sdk/solid@0.0.14
+  - @ai-sdk/vue@0.0.14
+
+## 3.2.20
+
+### Patch Changes
+
+- 671331b6: feat (core): add experimental OpenTelemetry support for generateText and streamText
+
+## 3.2.19
+
+### Patch Changes
+
+- b7290943: chore (ai/core): rename TokenUsage type to CompletionTokenUsage
+- b7290943: feat (ai/core): add token usage to embed and embedMany
+- Updated dependencies [b7290943]
+  - @ai-sdk/provider@0.0.12
+  - @ai-sdk/provider-utils@1.0.2
+  - @ai-sdk/react@0.0.19
+  - @ai-sdk/svelte@0.0.14
+  - @ai-sdk/ui-utils@0.0.11
+  - @ai-sdk/solid@0.0.13
+  - @ai-sdk/vue@0.0.13
+
+## 3.2.18
+
+### Patch Changes
+
+- Updated dependencies [70d18003]
+  - @ai-sdk/react@0.0.18
+
+## 3.2.17
+
+### Patch Changes
+
+- 3db90c3d: allow empty handleSubmit submissions for useChat
+- abb22602: feat (ai): verify that system messages have string content
+- 5c1f0bd3: fix unclosed streamable value console message
+- Updated dependencies [6a11cfaa]
+- Updated dependencies [3db90c3d]
+- Updated dependencies [d481729f]
+  - @ai-sdk/react@0.0.17
+  - @ai-sdk/svelte@0.0.13
+  - @ai-sdk/solid@0.0.12
+  - @ai-sdk/vue@0.0.12
+  - @ai-sdk/provider-utils@1.0.1
+  - @ai-sdk/ui-utils@0.0.10
+
+## 3.2.16
+
+### Patch Changes
+
+- Updated dependencies [3f756a6b]
+  - @ai-sdk/react@0.0.16
+
+## 3.2.15
+
+### Patch Changes
+
+- 6c99581e: fix (ai/react): stop() on useObject does not throw error and clears isLoading
+- Updated dependencies [6c99581e]
+  - @ai-sdk/react@0.0.15
+
+## 3.2.14
+
+### Patch Changes
+
+- Updated dependencies [9b50003d]
+- Updated dependencies [1894f811]
+  - @ai-sdk/react@0.0.14
+  - @ai-sdk/ui-utils@0.0.9
+  - @ai-sdk/solid@0.0.11
+  - @ai-sdk/svelte@0.0.12
+  - @ai-sdk/vue@0.0.11
+
+## 3.2.13
+
+### Patch Changes
+
+- d3100b9c: feat (ai/ui): support custom fetch function in useChat, useCompletion, useAssistant, useObject
+- Updated dependencies [d3100b9c]
+  - @ai-sdk/ui-utils@0.0.8
+  - @ai-sdk/svelte@0.0.11
+  - @ai-sdk/react@0.0.13
+  - @ai-sdk/solid@0.0.10
+  - @ai-sdk/vue@0.0.10
+
+## 3.2.12
+
+### Patch Changes
+
+- 5edc6110: feat (ai/core): add custom request header support
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+- Updated dependencies [5edc6110]
+  - @ai-sdk/provider@0.0.11
+  - @ai-sdk/provider-utils@1.0.0
+  - @ai-sdk/react@0.0.12
+  - @ai-sdk/svelte@0.0.10
+  - @ai-sdk/ui-utils@0.0.7
+  - @ai-sdk/solid@0.0.9
+  - @ai-sdk/vue@0.0.9
+
+## 3.2.11
+
+### Patch Changes
+
+- c908f741: chore (ui/solid): update solidjs useChat and useCompletion to feature parity with React
+- 827ef450: feat (ai/ui): improve error handling in useAssistant
+- Updated dependencies [c908f741]
+- Updated dependencies [827ef450]
+  - @ai-sdk/solid@0.0.8
+  - @ai-sdk/svelte@0.0.9
+  - @ai-sdk/react@0.0.11
+
+## 3.2.10
+
+### Patch Changes
+
+- Updated dependencies [5b04204b]
+- Updated dependencies [8f482903]
+  - @ai-sdk/react@0.0.10
+
+## 3.2.9
+
+### Patch Changes
+
+- 82d9c8de: feat (ai/ui): make event in useAssistant submitMessage optional
+- Updated dependencies [82d9c8de]
+- Updated dependencies [321a7d0e]
+- Updated dependencies [82d9c8de]
+  - @ai-sdk/svelte@0.0.8
+  - @ai-sdk/react@0.0.9
+  - @ai-sdk/vue@0.0.8
+
+## 3.2.8
+
+### Patch Changes
+
+- 54bf4083: feat (ai/react): control request body in useChat
+- Updated dependencies [54bf4083]
+  - @ai-sdk/ui-utils@0.0.6
+  - @ai-sdk/react@0.0.8
+  - @ai-sdk/solid@0.0.7
+  - @ai-sdk/svelte@0.0.7
+  - @ai-sdk/vue@0.0.7
+
+## 3.2.7
+
+### Patch Changes
+
+- d42b8907: feat (ui): make event in handleSubmit optional
+- Updated dependencies [d42b8907]
+  - @ai-sdk/svelte@0.0.6
+  - @ai-sdk/react@0.0.7
+  - @ai-sdk/solid@0.0.6
+  - @ai-sdk/vue@0.0.6
+
+## 3.2.6
+
+### Patch Changes
+
+- 74e28222: fix (ai/rsc): "could not find InternalStreamableUIClient" bug
+
+## 3.2.5
+
+### Patch Changes
+
+- 4d426d0c: fix (ai): split provider and model ids correctly in the provider registry
+
+## 3.2.4
+
+### Patch Changes
+
+- Updated dependencies [3cb103bc]
+  - @ai-sdk/react@0.0.6
+
+## 3.2.3
+
+### Patch Changes
+
+- 89b7552b: chore (ai): remove deprecation from ai/react imports, add experimental_useObject
+- Updated dependencies [02f6a088]
+  - @ai-sdk/provider-utils@0.0.16
+  - @ai-sdk/react@0.0.5
+  - @ai-sdk/svelte@0.0.5
+  - @ai-sdk/ui-utils@0.0.5
+  - @ai-sdk/solid@0.0.5
+  - @ai-sdk/vue@0.0.5
+
+## 3.2.2
+
+### Patch Changes
+
+- 0565cd72: feat (ai/core): add toJsonResponse to generateObject result.
+
 ## 3.2.1
 
 ### Patch Changes

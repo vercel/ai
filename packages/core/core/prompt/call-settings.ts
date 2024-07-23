@@ -25,6 +25,14 @@ It is recommended to set either `temperature` or `topP`, but not both.
   topP?: number;
 
   /**
+Only sample from the top K options for each subsequent token.
+
+Used to remove "long tail" low probability responses.
+Recommended for advanced use cases only. You usually only need to use temperature.
+   */
+  topK?: number;
+
+  /**
 Presence penalty setting. It affects the likelihood of the model to
 repeat information that is already in the prompt.
 
@@ -47,6 +55,13 @@ and 1 (maximum penalty, decrease repetition). 0 means no penalty.
   frequencyPenalty?: number;
 
   /**
+Stop sequences.
+If set, the model will stop generating text when one of the stop sequences is generated.
+Providers may have limits on the number of stop sequences.
+   */
+  stopSequences?: string[];
+
+  /**
 The seed (integer) to use for random sampling. If set and supported
 by the model, calls will generate deterministic results.
    */
@@ -63,4 +78,10 @@ Maximum number of retries. Set to 0 to disable retries.
 Abort signal.
    */
   abortSignal?: AbortSignal;
+
+  /**
+Additional HTTP headers to be sent with the request.
+Only applicable for HTTP-based providers.
+   */
+  headers?: Record<string, string | undefined>;
 };

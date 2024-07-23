@@ -100,19 +100,13 @@ You can pass them as an options argument:
 
 ```ts
 const model = vertex('gemini-1.5-pro', {
-  topK: 0.2,
+  safetySettings: [
+    { category: 'HARM_CATEGORY_UNSPECIFIED', threshold: 'BLOCK_LOW_AND_ABOVE' },
+  ],
 });
 ```
 
 The following optional settings are available for Google Vertex models:
-
-- **topK** _number_
-
-  Optional. The maximum number of tokens to consider when sampling.
-
-  Models use nucleus sampling or combined Top-k and nucleus sampling.
-  Top-k sampling considers the set of topK most probable tokens.
-  Models running with nucleus sampling don't allow topK setting.
 
 - **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
 

@@ -11,6 +11,7 @@ export async function POST(req: Request) {
   const result = await streamText({
     model: openai('gpt-4-turbo'),
     messages: convertToCoreMessages(messages),
+    experimental_toolCallStreaming: true,
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: {

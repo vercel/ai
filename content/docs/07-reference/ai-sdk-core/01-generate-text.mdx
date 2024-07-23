@@ -289,6 +289,12 @@ console.log(text);
         'Nucleus sampling. The value is passed through to the provider. The range depends on the provider and model. It is recommended to set either `temperature` or `topP`, but not both.',
     },
     {
+      name: 'topK',
+      type: 'number',
+      isOptional: true,
+      description: `Only sample from the top K options for each subsequent token. Used to remove "long tail" low probability responses. Recommended for advanced use cases only. You usually only need to use temperature.`,
+    },
+    {
       name: 'presencePenalty',
       type: 'number',
       isOptional: true,
@@ -301,6 +307,13 @@ console.log(text);
       isOptional: true,
       description:
         'Frequency penalty setting. It affects the likelihood of the model to repeatedly use the same words or phrases. The value is passed through to the provider. The range depends on the provider and model.',
+    },
+    {
+      name: 'stopSequences',
+      type: 'string[]',
+      isOptional: true,
+      description:
+        'Sequences that will stop the generation of the text. If the model generates any of these sequences, it will stop generating further text.',
     },
     {
       name: 'seed',
@@ -324,11 +337,52 @@ console.log(text);
         'An optional abort signal that can be used to cancel the call.',
     },
     {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
+    {
       name: 'maxAutomaticRoundtrips',
       type: 'number',
       isOptional: true,
       description:
         'Maximum number of automatic roundtrips for tool calls. An automatic tool call roundtrip is another LLM call with the tool call results when all tool calls of the last assistant message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
+    },
+    {
+      name: 'experimental_telemetry',
+      type: 'TelemetrySettings',
+      isOptional: true,
+      description: 'Telemetry configuration. Experimental feature.',
+      properties: [
+        {
+          type: 'TelemetrySettings',
+          parameters: [
+            {
+              name: 'isEnabled',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Enable or disable telemetry. Disabled by default while experimental.',
+            },
+            {
+              name: 'functionId',
+              type: 'string',
+              isOptional: true,
+              description:
+                'Identifier for this function. Used to group telemetry data by function.',
+            },
+            {
+              name: 'metadata',
+              isOptional: true,
+              type: 'Record<string, string | number | boolean | Array<null | undefined | string> | Array<null | undefined | number> | Array<null | undefined | boolean>>',
+              description:
+                'Additional information to include in the telemetry data.',
+            },
+          ],
+        },
+      ],
     },
   ]}
 />
@@ -360,11 +414,11 @@ console.log(text);
     },
     {
       name: 'usage',
-      type: 'TokenUsage',
+      type: 'CompletionTokenUsage',
       description: 'The token usage of the generated text.',
       properties: [
         {
-          type: 'TokenUsage',
+          type: 'CompletionTokenUsage',
           parameters: [
             {
               name: 'promptTokens',
@@ -395,7 +449,7 @@ console.log(text);
           type: 'RawResponse',
           parameters: [
             {
-              name: 'header',
+              name: 'headers',
               optional: true,
               type: 'Record<string, string>',
               description: 'Response headers.',
@@ -416,9 +470,126 @@ console.log(text);
       description:
         'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
     },
+    {
+      name: 'roundtrips',
+      type: 'Array<Roundtrip>',
+      description:
+        'Response information for every roundtrip. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
+      properties: [
+        {
+          type: 'Roundtrip',
+          parameters: [
+            {
+              name: 'text',
+              type: 'string',
+              description: 'The generated text by the model.',
+            },
+            {
+              name: 'toolCalls',
+              type: 'array',
+              description: 'A list of tool calls made by the model.',
+            },
+            {
+              name: 'toolResults',
+              type: 'array',
+              description:
+                'A list of tool results returned as responses to earlier tool calls.',
+            },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'usage',
+              type: 'CompletionTokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'CompletionTokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'rawResponse',
+              type: 'RawResponse',
+              optional: true,
+              description: 'Optional raw response data.',
+              properties: [
+                {
+                  type: 'RawResponse',
+                  parameters: [
+                    {
+                      name: 'headers',
+                      optional: true,
+                      type: 'Record<string, string>',
+                      description: 'Response headers.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'warnings',
+              type: 'Warning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
 ## Examples
 
-<ExamplesList packageName="core" functionName="generateText" />
+<ExampleLinks
+  examples={[
+    {
+      title: 'Learn to generate text using a language model in Next.js',
+      link: '/examples/next-app/basics/generating-text',
+    },
+    {
+      title:
+        'Learn to generate a chat completion using a language model in Next.js',
+      link: '/examples/next-app/basics/generating-text',
+    },
+    {
+      title: 'Learn to call tools using a language model in Next.js',
+      link: '/examples/next-app/tools/call-tool',
+    },
+    {
+      title:
+        'Learn to render a React component as a tool call using a language model in Next.js',
+      link: '/examples/next-app/tools/render-interface-during-tool-call',
+    },
+    {
+      title: 'Learn to generate text using a language model in Node.js',
+      link: '/examples/node/generating-text/generate-text',
+    },
+    {
+      title:
+        'Learn to generate chat completions using a language model in Node.js',
+      link: '/examples/node/generating-text/generate-text-with-chat-prompt',
+    },
+  ]}
+/>

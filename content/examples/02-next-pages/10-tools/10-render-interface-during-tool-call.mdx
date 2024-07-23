@@ -42,7 +42,7 @@ Let's build an assistant that gets the weather for any city by calling the `getW
 
 ```tsx filename='pages/index.tsx'
 import { ToolInvocation } from 'ai';
-import { Message, useChat } from '@ai-sdk/react';
+import { Message, useChat } from 'ai/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =

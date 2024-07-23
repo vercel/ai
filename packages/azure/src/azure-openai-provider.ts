@@ -57,14 +57,29 @@ Creates an Azure OpenAI model for text embeddings.
 
 export interface AzureOpenAIProviderSettings {
   /**
-Name of the Azure OpenAI resource.
+Name of the Azure OpenAI resource. Either this or `baseURL` can be used.
+
+The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}`.
      */
   resourceName?: string;
+
+  /**
+Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
+When a baseURL is provided, the resourceName is ignored.
+
+With a baseURL, the resolved URL is `{baseURL}/{modelId}{path}`.
+   */
+  baseURL?: string;
 
   /**
 API key for authenticating requests.
      */
   apiKey?: string;
+
+  /**
+Custom headers to include in the requests.
+     */
+  headers?: Record<string, string>;
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -85,6 +100,7 @@ export function createAzure(
       environmentVariableName: 'AZURE_API_KEY',
       description: 'Azure OpenAI',
     }),
+    ...options.headers,
   });
 
   const getResourceName = () =>
@@ -96,7 +112,9 @@ export function createAzure(
     });
 
   const url = ({ path, modelId }: { path: string; modelId: string }) =>
-    `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-05-01-preview`;
+    options.baseURL
+      ? `${options.baseURL}/${modelId}${path}?api-version=2024-05-01-preview`
+      : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-05-01-preview`;
 
   const createChatModel = (
     deploymentName: string,

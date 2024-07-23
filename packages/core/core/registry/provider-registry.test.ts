@@ -21,10 +21,25 @@ describe('languageModel', () => {
     expect(modelRegistry.languageModel('provider:model')).toEqual(model);
   });
 
+  it('should return language model with additional colon from provider', () => {
+    const model = new MockLanguageModelV1();
+
+    const modelRegistry = experimental_createProviderRegistry({
+      provider: {
+        languageModel: id => {
+          expect(id).toEqual('model:part2');
+          return model;
+        },
+      },
+    });
+
+    expect(modelRegistry.languageModel('provider:model:part2')).toEqual(model);
+  });
+
   it('should throw NoSuchProviderError if provider does not exist', () => {
     const registry = experimental_createProviderRegistry({});
 
-    expect(() => registry.languageModel('provider:model')).toThrowError(
+    expect(() => registry.languageModel('provider:model:part2')).toThrowError(
       NoSuchProviderError,
     );
   });

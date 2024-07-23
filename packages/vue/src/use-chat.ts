@@ -47,11 +47,16 @@ export type UseChatHelpers = {
    * edit the messages on the client, and then trigger the `reload` method
    * manually to regenerate the AI response.
    */
-  setMessages: (messages: Message[]) => void;
+  setMessages: (
+    messages: Message[] | ((messages: Message[]) => Message[]),
+  ) => void;
   /** The current value of the input */
   input: Ref<string>;
   /** Form submission handler to automatically reset input and append a user message  */
-  handleSubmit: (e: any, chatRequestOptions?: ChatRequestOptions) => void;
+  handleSubmit: (
+    event?: { preventDefault?: () => void },
+    chatRequestOptions?: ChatRequestOptions,
+  ) => void;
   /** Whether the API request is in progress */
   isLoading: Ref<boolean | undefined>;
 
@@ -80,6 +85,8 @@ export function useChat({
   headers,
   body,
   generateId = generateIdFunc,
+  fetch,
+  keepLastMessageOnError = false,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
@@ -115,7 +122,7 @@ export function useChat({
   let abortController: AbortController | null = null;
   async function triggerRequest(
     messagesSnapshot: Message[],
-    { options, data }: ChatRequestOptions = {},
+    { options, data, headers, body }: ChatRequestOptions = {},
   ) {
     try {
       error.value = undefined;
@@ -125,12 +132,19 @@ export function useChat({
 
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
-      const previousMessages = messagesData.value;
+      const previousMessages = messagesSnapshot;
       mutate(messagesSnapshot);
+
+      const requestOptions = {
+        headers: headers ?? options?.headers,
+        body: body ?? options?.body,
+      };
 
       let chatRequest: ChatRequest = {
         messages: messagesSnapshot,
-        options,
+        options: requestOptions,
+        body: requestOptions.body,
+        headers: requestOptions.headers,
         data,
       };
 
@@ -138,37 +152,39 @@ export function useChat({
         getStreamedResponse: async () => {
           const existingData = (streamData.value ?? []) as JSONValue[];
 
+          const constructedMessagesPayload = sendExtraMessageFields
+            ? chatRequest.messages
+            : chatRequest.messages.map(
+                ({
+                  role,
+                  content,
+                  name,
+                  data,
+                  annotations,
+                  function_call,
+                }) => ({
+                  role,
+                  content,
+                  ...(name !== undefined && { name }),
+                  ...(data !== undefined && { data }),
+                  ...(annotations !== undefined && { annotations }),
+                  // outdated function/tool call handling (TODO deprecate):
+                  ...(function_call !== undefined && { function_call }),
+                }),
+              );
+
           return await callChatApi({
             api,
-            messages: sendExtraMessageFields
-              ? chatRequest.messages
-              : chatRequest.messages.map(
-                  ({
-                    role,
-                    content,
-                    name,
-                    data,
-                    annotations,
-                    function_call,
-                  }) => ({
-                    role,
-                    content,
-                    ...(name !== undefined && { name }),
-                    ...(data !== undefined && { data }),
-                    ...(annotations !== undefined && { annotations }),
-                    // outdated function/tool call handling (TODO deprecate):
-                    ...(function_call !== undefined && { function_call }),
-                  }),
-                ),
             body: {
+              messages: constructedMessagesPayload,
               data: chatRequest.data,
               ...unref(body), // Use unref to unwrap the ref value
-              ...options?.body,
+              ...requestOptions.body,
             },
             streamMode,
             headers: {
               ...headers,
-              ...options?.headers,
+              ...requestOptions.headers,
             },
             abortController: () => abortController,
             credentials,
@@ -185,9 +201,13 @@ export function useChat({
             },
             restoreMessagesOnFailure() {
               // Restore the previous messages if the request fails.
-              mutate(previousMessages);
+              if (!keepLastMessageOnError) {
+                mutate(previousMessages);
+              }
             },
             generateId,
+            onToolCall: undefined, // not implemented yet
+            fetch,
           });
         },
         experimental_onFunctionCall,
@@ -219,6 +239,7 @@ export function useChat({
     if (!message.id) {
       message.id = generateId();
     }
+
     return triggerRequest(messages.value.concat(message as Message), options);
   };
 
@@ -240,23 +261,40 @@ export function useChat({
     }
   };
 
-  const setMessages = (messages: Message[]) => {
-    mutate(messages);
+  const setMessages = (
+    messagesArg: Message[] | ((messages: Message[]) => Message[]),
+  ) => {
+    if (typeof messagesArg === 'function') {
+      messagesArg = messagesArg(messages.value);
+    }
+
+    mutate(messagesArg);
   };
 
   const input = ref(initialInput);
 
-  const handleSubmit = (e: any, options: ChatRequestOptions = {}) => {
-    e.preventDefault();
+  const handleSubmit = (
+    event?: { preventDefault?: () => void },
+    options: ChatRequestOptions = {},
+  ) => {
+    event?.preventDefault?.();
+
     const inputValue = input.value;
-    if (!inputValue) return;
-    append(
-      {
-        content: inputValue,
-        role: 'user',
-      },
+
+    if (!inputValue && !options.allowEmptySubmit) return;
+
+    triggerRequest(
+      !inputValue && options.allowEmptySubmit
+        ? messages.value
+        : messages.value.concat({
+            id: generateId(),
+            createdAt: new Date(),
+            content: inputValue,
+            role: 'user',
+          }),
       options,
     );
+
     input.value = '';
   };
 

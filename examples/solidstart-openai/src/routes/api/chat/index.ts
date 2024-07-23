@@ -1,19 +1,21 @@
 import { openai } from '@ai-sdk/openai';
-import { StreamingTextResponse, streamText } from 'ai';
-import { APIEvent } from 'solid-start/api';
+import { APIEvent } from '@solidjs/start/server';
+import { convertToCoreMessages, streamText } from 'ai';
 
 export const POST = async (event: APIEvent) => {
-  try {
-    const { messages } = await event.request.json();
+  // Extract the `messages` from the body of the request
+  const { messages } = await event.request.json();
 
-    const result = await streamText({
-      model: openai('gpt-4-turbo-preview'),
-      messages,
-    });
+  // Call the language model
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages: convertToCoreMessages(messages),
+    async onFinish({ text, toolCalls, toolResults, usage, finishReason }) {
+      // implement your own logic here, e.g. for storing messages
+      // or recording token usage
+    },
+  });
 
-    return new StreamingTextResponse(result.toAIStream());
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+  // Respond with the stream
+  return result.toAIStreamResponse();
 };

@@ -1,0 +1,139 @@
+---
+title: Error Handling
+description: Learn how to handle errors in the AI SDK UI
+---
+
+# Error Handling
+
+### useChat: Keep Last Message on Error
+
+`useChat` has a `keepLastMessageOnError` option that defaults to `false`.
+This option can be enabled to keep the last message on error.
+We will make this the default behavior in the next major release,
+and recommend enabling it.
+
+### Error Helper Object
+
+Each AI SDK UI hook also returns an [error](/docs/reference/ai-sdk-ui/use-chat#error) object that you can use to render the error in your UI.
+You can use the error object to show an error message, disable the submit button, or show a retry button.
+
+<Note>
+  We recommend showing a generic error message to the user, such as "Something
+  went wrong." This is a good practice to avoid leaking information from the
+  server.
+</Note>
+
+```tsx file="app/page.tsx" highlight="7,17-24,30"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit, error, reload } =
+    useChat({ keepLastMessageOnError: true });
+
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role}: {m.content}
+        </div>
+      ))}
+
+      {error && (
+        <>
+          <div>An error occurred.</div>
+          <button type="button" onClick={() => reload()}>
+            Retry
+          </button>
+        </>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          value={input}
+          onChange={handleInputChange}
+          disabled={error != null}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+#### Alternative: replace last message
+
+Alternatively you can write a custom submit handler that replaces the last message when an error is present.
+
+```tsx file="app/page.tsx" highlight="15-21,33"
+'use client';
+
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const {
+    handleInputChange,
+    handleSubmit,
+    error,
+    input,
+    messages,
+    setMesages,
+  } = useChat({ keepLastMessageOnError: true });
+
+  function customSubmit(event: React.FormEvent<HTMLFormElement>) {
+    if (error != null) {
+      setMessages(messages.slice(0, -1)); // remove last message
+    }
+
+    handleSubmit(event);
+  }
+
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role}: {m.content}
+        </div>
+      ))}
+
+      {error && <div>An error occurred.</div>}
+
+      <form onSubmit={customSubmit}>
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </div>
+  );
+}
+```
+
+### Error Handling Callback
+
+Errors can be processed by passing an [`onError`](/docs/reference/ai-sdk-ui/use-chat#on-error) callback function as an option to the [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) or [`useAssistant`](/docs/reference/ai-sdk-ui/use-assistant) hooks.
+The callback function receives an error object as an argument.
+
+```tsx file="app/page.tsx" highlight="8-11"
+import { useChat } from 'ai/react';
+
+export default function Page() {
+  const {
+    /* ... */
+  } = useChat({
+    keepLastMessageOnError: true,
+    // handle error:
+    onError: error => {
+      console.error(error);
+    },
+  });
+}
+```
+
+### Injecting Errors for Testing
+
+You might want to create errors for testing.
+You can easily do so by throwing an error in your route handler:
+
+```ts file="app/api/chat/route.ts"
+export async function POST(req: Request) {
+  throw new Error('This is a test error');
+}
+```

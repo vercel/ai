@@ -1,5 +1,31 @@
 import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
 
+describe('system messages', () => {
+  it('should store system message in system instruction', async () => {
+    const result = await convertToGoogleVertexContentRequest({
+      prompt: [{ role: 'system', content: 'Test' }],
+    });
+
+    expect(result).toEqual({
+      systemInstruction: { role: 'system', parts: [{ text: 'Test' }] },
+      contents: [],
+    });
+  });
+
+  it('should throw error when there was already a user message', async () => {
+    await expect(
+      convertToGoogleVertexContentRequest({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Test' }] },
+          { role: 'system', content: 'Test' },
+        ],
+      }),
+    ).rejects.toThrow(
+      'system messages are only supported at the beginning of the conversation',
+    );
+  });
+});
+
 describe('user message', () => {
   it('should download images for user image parts with URLs', async () => {
     const result = await convertToGoogleVertexContentRequest({

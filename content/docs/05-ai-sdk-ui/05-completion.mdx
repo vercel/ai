@@ -14,7 +14,7 @@ In this guide, you will learn how to use the `useCompletion` hook in your applic
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { useCompletion } from '@ai-sdk/react';
+import { useCompletion } from 'ai/react';
 
 export default function Page() {
   const { completion, input, handleInputChange, handleSubmit } = useCompletion({
@@ -37,7 +37,7 @@ export default function Page() {
 ```
 
 ```ts filename='app/api/completion/route.ts'
-import { StreamingTextResponse, streamText } from 'ai';
+import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 // Allow streaming responses up to 30 seconds
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     prompt,
   });
 
-  return new StreamingTextResponse(result.toAIStream());
+  return result.toAIStreamResponse();
 }
 ```
 

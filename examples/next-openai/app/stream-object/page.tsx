@@ -5,8 +5,7 @@ import { useState } from 'react';
 import { generateNotifications } from './actions';
 import { PartialNotification } from './schema';
 
-// Force the page to be dynamic and allow streaming responses up to 30 seconds
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 // page component with a button to generate notifications

@@ -1,5 +1,7 @@
+import { Attachment } from '@ai-sdk/ui-utils';
 import { ToolResult } from '../generate-text/tool-result';
 import { CoreMessage } from '../prompt';
+import { attachmentsToParts } from './attachments-to-parts';
 
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used
@@ -7,17 +9,39 @@ with the AI core functions (e.g. `streamText`).
  */
 export function convertToCoreMessages(
   messages: Array<{
-    role: 'user' | 'assistant';
+    role: 'user' | 'assistant' | 'system';
     content: string;
     toolInvocations?: Array<ToolResult<string, unknown, unknown>>;
+    experimental_attachments?: Attachment[];
   }>,
 ) {
   const coreMessages: CoreMessage[] = [];
 
-  for (const { role, content, toolInvocations } of messages) {
+  for (const {
+    role,
+    content,
+    toolInvocations,
+    experimental_attachments,
+  } of messages) {
     switch (role) {
+      case 'system': {
+        coreMessages.push({
+          role: 'system',
+          content,
+        });
+        break;
+      }
+
       case 'user': {
-        coreMessages.push({ role: 'user', content });
+        coreMessages.push({
+          role: 'user',
+          content: experimental_attachments
+            ? [
+                { type: 'text', text: content },
+                ...attachmentsToParts(experimental_attachments),
+              ]
+            : content,
+        });
         break;
       }
 

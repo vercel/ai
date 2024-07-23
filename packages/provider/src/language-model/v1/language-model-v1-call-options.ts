@@ -1,4 +1,3 @@
-import { JSONSchema7 } from 'json-schema';
 import { LanguageModelV1CallSettings } from './language-model-v1-call-settings';
 import { LanguageModelV1FunctionTool } from './language-model-v1-function-tool';
 import { LanguageModelV1Prompt } from './language-model-v1-prompt';
@@ -20,6 +19,9 @@ The model can take this information and e.g. configure json mode, the correct
 low level grammar, etc. It can also be used to optimize the efficiency of the
 streaming, e.g. tool-delta stream parts are only needed in the
 object-tool mode.
+
+@deprecated mode will be removed in v2. 
+All necessary settings will be directly supported through the call settings.
    */
   mode:
     | {
@@ -29,23 +31,18 @@ object-tool mode.
         /**
 The tools that are available for the model.
          */
-        // TODO Spec V2: make mandatory, but allow empty array for no tools.
+        // TODO Spec V2: move to call settings
         tools?: Array<LanguageModelV1FunctionTool>;
 
         /**
 Specifies how the tool should be selected. Defaults to 'auto'.
          */
-        // TODO Spec V2: make mandatory
+        // TODO Spec V2: move to call settings
         toolChoice?: LanguageModelV1ToolChoice;
       }
     | {
         // object generation with json mode enabled (streaming: text delta)
         type: 'object-json';
-      }
-    | {
-        // object generation with grammar enabled (streaming: text delta)
-        type: 'object-grammar';
-        schema: JSONSchema7;
       }
     | {
         // object generation with tool mode enabled (streaming: tool call deltas)
