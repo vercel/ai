@@ -7,10 +7,6 @@ import { ReactNode } from 'react';
 import { z } from 'zod';
 
 import { safeParseJSON } from '@ai-sdk/provider-utils';
-import {
-  TokenUsage,
-  calculateTokenUsage,
-} from '../../core/generate-text/token-usage';
 import { CallSettings } from '../../core/prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../../core/prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../../core/prompt/get-validated-prompt';
@@ -21,6 +17,10 @@ import { CallWarning, CoreToolChoice, FinishReason } from '../../core/types';
 import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
 import { createStreamableUI } from '../streamable';
 import { createResolvablePromise } from '../utils';
+import {
+  TokenUsage,
+  calculateTokenUsage,
+} from '../../core/generate-text/token-usage';
 
 type Streamable = ReactNode | Promise<ReactNode>;
 
