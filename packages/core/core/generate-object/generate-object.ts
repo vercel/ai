@@ -6,19 +6,17 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
-import {
-  CompletionTokenUsage,
-  calculateCompletionTokenUsage,
-} from '../types/token-usage';
-import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
-import { prepareResponseHeaders } from '../util/prepare-response-headers';
-import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
-import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
+import { calculateCompletionTokenUsage } from '../types/token-usage';
+import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
+import { prepareResponseHeaders } from '../util/prepare-response-headers';
+import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
+import { GenerateObjectResult } from './generate-object-result';
+import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -103,7 +101,7 @@ Default and recommended: 'auto' (best mode for the model).
      * Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
-  }): Promise<GenerateObjectResult<T>> {
+  }): Promise<DefaultGenerateObjectResult<T>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     operationName: 'ai.generateObject',
     model,
@@ -292,7 +290,7 @@ Default and recommended: 'auto' (best mode for the model).
         'ai.result.object': JSON.stringify(parseResult.value),
       });
 
-      return new GenerateObjectResult({
+      return new DefaultGenerateObjectResult({
         object: parseResult.value,
         finishReason,
         usage: calculateCompletionTokenUsage(usage),
@@ -304,55 +302,21 @@ Default and recommended: 'auto' (best mode for the model).
   });
 }
 
-/**
-The result of a `generateObject` call.
- */
-export class GenerateObjectResult<T> {
-  /**
-The generated object (typed according to the schema).
-   */
-  readonly object: T;
-
-  /**
-The reason why the generation finished.
-   */
-  readonly finishReason: FinishReason;
-
-  /**
-The token usage of the generated text.
-   */
-  readonly usage: CompletionTokenUsage;
-
-  /**
-Warnings from the model provider (e.g. unsupported settings)
-   */
-  readonly warnings: CallWarning[] | undefined;
-
-  /**
-Optional raw response data.
-   */
-  rawResponse?: {
-    /**
-Response headers.
- */
-    headers?: Record<string, string>;
-  };
-
-  /**
-Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if was not enabled
-   */
-  readonly logprobs: LogProbs | undefined;
+class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
+  readonly object: GenerateObjectResult<T>['object'];
+  readonly finishReason: GenerateObjectResult<T>['finishReason'];
+  readonly usage: GenerateObjectResult<T>['usage'];
+  readonly warnings: GenerateObjectResult<T>['warnings'];
+  readonly rawResponse: GenerateObjectResult<T>['rawResponse'];
+  readonly logprobs: GenerateObjectResult<T>['logprobs'];
 
   constructor(options: {
-    object: T;
-    finishReason: FinishReason;
-    usage: CompletionTokenUsage;
-    warnings: CallWarning[] | undefined;
-    rawResponse?: {
-      headers?: Record<string, string>;
-    };
-    logprobs: LogProbs | undefined;
+    object: GenerateObjectResult<T>['object'];
+    finishReason: GenerateObjectResult<T>['finishReason'];
+    usage: GenerateObjectResult<T>['usage'];
+    warnings: GenerateObjectResult<T>['warnings'];
+    rawResponse: GenerateObjectResult<T>['rawResponse'];
+    logprobs: GenerateObjectResult<T>['logprobs'];
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
@@ -362,10 +326,6 @@ Logprobs for the completion.
     this.logprobs = options.logprobs;
   }
 
-  /**
-Converts the object to a JSON response.
-The response will have a status code of 200 and a content type of `application/json; charset=utf-8`.
-   */
   toJsonResponse(init?: ResponseInit): Response {
     return new Response(JSON.stringify(this.object), {
       status: init?.status ?? 200,
