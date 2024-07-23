@@ -15,6 +15,11 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
   [schemaSymbol]: true;
 
   /**
+   * Schema type for inference.
+   */
+  _type: OBJECT;
+
+  /**
    * The JSON Schema for the schema. It is passed to the providers.
    */
   readonly jsonSchema: JSONSchema7;
@@ -38,6 +43,7 @@ export function jsonSchema<OBJECT>(
 ): Schema<OBJECT> {
   return {
     [schemaSymbol]: true,
+    _type: undefined as OBJECT, // should never be used directly
     [validatorSymbol]: true,
     jsonSchema,
     validate,
