@@ -57,22 +57,19 @@ const { text } = await generateText({
   [Fireworks](/providers/ai-sdk-providers/fireworks), and more.
 </Note>
 
-AI SDK Core abstracts away the differences between model providers, allowing you to focus on building great applications. Prefer to use Llama 3.1-70b? the unified interface also means that you can easily switch between models by changing just two lines of code.
+AI SDK Core abstracts away the differences between model providers, allowing you to focus on building great applications. Prefer to use [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock)? The unified interface also means that you can easily switch between models by changing just two lines of code.
 
-```tsx
+```tsx highlight="2,5"
 import { generateText } from 'ai';
-import { createOpenAI as createGroq } from '@ai-sdk/openai';
-
-const groq = createGroq({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
+import { bedrock } from '@ai-sdk/amazon-bedrock';
 
 const { text } = await generateText({
-  model: groq('llama-3.1-70b-versatile'),
+  model: bedrock('meta.llama3-1-405b-instruct-v1'),
   prompt: 'What is love?',
 });
 ```
+
+### Streaming the Response
 
 To stream the model's response as it's being generated, update your code snippet to use the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function.
 
@@ -142,7 +139,7 @@ const groq = createGroq({
 
 const { text } = await generateText({
   model: groq('llama-3.1-70b-versatile'),
-  prompt: "What's the weather like today?",
+  prompt: 'What is the weather like today?',
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
