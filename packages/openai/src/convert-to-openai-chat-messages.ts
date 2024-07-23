@@ -1,11 +1,17 @@
-import { LanguageModelV1Prompt, UnsupportedFunctionalityError } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64, generateId } from '@ai-sdk/provider-utils';
+import {
+  LanguageModelV1Prompt,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 
-export function convertToOpenAIChatMessages(
-  prompt: LanguageModelV1Prompt,
-  useLegacyFunctionCalling?: boolean,
-): OpenAIChatPrompt {
+export function convertToOpenAIChatMessages({
+  prompt,
+  useLegacyFunctionCalling = false,
+}: {
+  prompt: LanguageModelV1Prompt;
+  useLegacyFunctionCalling?: boolean;
+}): OpenAIChatPrompt {
   const messages: OpenAIChatPrompt = [];
 
   for (const { role, content } of prompt) {
@@ -80,17 +86,20 @@ export function convertToOpenAIChatMessages(
           }
         }
 
-        if (useLegacyFunctionCalling && toolCalls.length > 0) {
+        if (useLegacyFunctionCalling) {
           if (toolCalls.length > 1) {
             throw new UnsupportedFunctionalityError({
-              functionality: 'useLegacyFunctionCalling with multiple tool calls in one message',
+              functionality:
+                'useLegacyFunctionCalling with multiple tool calls in one message',
             });
           }
-            messages.push({
-              role: 'assistant',
-              content: text,
-              function_call: toolCalls[0].function,
-            });
+
+          messages.push({
+            role: 'assistant',
+            content: text,
+            function_call:
+              toolCalls.length > 0 ? toolCalls[0].function : undefined,
+          });
         } else {
           messages.push({
             role: 'assistant',
@@ -98,7 +107,6 @@ export function convertToOpenAIChatMessages(
             tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           });
         }
-
 
         break;
       }

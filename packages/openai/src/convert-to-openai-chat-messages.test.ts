@@ -2,19 +2,21 @@ import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 
 describe('user messages', () => {
   it('should convert messages with image parts to multiple parts', async () => {
-    const result = convertToOpenAIChatMessages([
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Hello' },
-          {
-            type: 'image',
-            image: new Uint8Array([0, 1, 2, 3]),
-            mimeType: 'image/png',
-          },
-        ],
-      },
-    ]);
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Hello' },
+            {
+              type: 'image',
+              image: new Uint8Array([0, 1, 2, 3]),
+              mimeType: 'image/png',
+            },
+          ],
+        },
+      ],
+    });
 
     expect(result).toEqual([
       {
@@ -31,12 +33,14 @@ describe('user messages', () => {
   });
 
   it('should convert messages with only a text part to a string content', async () => {
-    const result = convertToOpenAIChatMessages([
-      {
-        role: 'user',
-        content: [{ type: 'text', text: 'Hello' }],
-      },
-    ]);
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+        },
+      ],
+    });
 
     expect(result).toEqual([{ role: 'user', content: 'Hello' }]);
   });
@@ -44,30 +48,32 @@ describe('user messages', () => {
 
 describe('tool calls', () => {
   it('should stringify arguments to tool calls', () => {
-    const result = convertToOpenAIChatMessages([
-      {
-        role: 'assistant',
-        content: [
-          {
-            type: 'tool-call',
-            args: { foo: 'bar123' },
-            toolCallId: 'quux',
-            toolName: 'thwomp',
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'quux',
-            toolName: 'thwomp',
-            result: { oof: '321rab' },
-          },
-        ],
-      },
-    ]);
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              args: { foo: 'bar123' },
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+              result: { oof: '321rab' },
+            },
+          ],
+        },
+      ],
+    });
 
     expect(result).toEqual([
       {
@@ -93,8 +99,8 @@ describe('tool calls', () => {
   });
 
   it('should convert tool calls to function calls with useLegacyFunctionCalling', () => {
-    const result = convertToOpenAIChatMessages(
-      [
+    const result = convertToOpenAIChatMessages({
+      prompt: [
         {
           role: 'assistant',
           content: [
@@ -118,8 +124,8 @@ describe('tool calls', () => {
           ],
         },
       ],
-      true /* useLegacyFunctionCalling */,
-    );
+      useLegacyFunctionCalling: true,
+    });
 
     expect(result).toEqual([
       {

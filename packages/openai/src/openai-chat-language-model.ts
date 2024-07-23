@@ -6,6 +6,7 @@ import {
   LanguageModelV1FunctionTool,
   LanguageModelV1LogProbs,
   LanguageModelV1StreamPart,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   ParseResult,
@@ -57,7 +58,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
-  private getArgsBase({
+  private getArgs({
     mode,
     prompt,
     maxTokens,
@@ -129,7 +130,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // messages:
-      messages: convertToOpenAIChatMessages(prompt, this.settings.useLegacyFunctionCalling),
+      messages: convertToOpenAIChatMessages({
+        prompt,
+        useLegacyFunctionCalling: this.settings.useLegacyFunctionCalling,
+      }),
     };
 
     switch (type) {
@@ -180,53 +184,56 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     }
   }
 
-  private getArgs(params: Parameters<LanguageModelV1['doGenerate']>[0]) {
-    const args = this.getArgsBase(params);
+  // private getArgs(params: Parameters<LanguageModelV1['doGenerate']>[0]) {
+  //   const { warnings, args } = this.getArgsBase(params);
 
-    if (
-      this.settings.useLegacyFunctionCalling === true &&
-      'tools' in args &&
-      args.tools
-    ) {
-      if (args.parallel_tool_calls === true) {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'useLegacyFunctionCalling with parallel_tool_calls',
-        });
-      }
+  //   if (
+  //     this.settings.useLegacyFunctionCalling === true &&
+  //     'tools' in args &&
+  //     args.tools
+  //   ) {
+  //     if (args.parallel_tool_calls === true) {
+  //       throw new UnsupportedFunctionalityError({
+  //         functionality: 'useLegacyFunctionCalling with parallel_tool_calls',
+  //       });
+  //     }
 
-      const { tools, tool_choice, ...rest } = args;
+  //     const { tools, tool_choice, ...rest } = args;
 
-      if (tools.some(tool => tool.type !== 'function')) {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'useLegacyFunctionCalling and non-function tools',
-        });
-      }
+  //     if (tools.some(tool => tool.type !== 'function')) {
+  //       throw new UnsupportedFunctionalityError({
+  //         functionality: 'useLegacyFunctionCalling and non-function tools',
+  //       });
+  //     }
 
-      let function_call: 'auto' | 'none' | { name: string } | undefined;
-      switch (tool_choice) {
-        case 'auto':
-        case 'none':
-        case undefined:
-          function_call = tool_choice;
-          break;
-        case 'required':
-          throw new UnsupportedFunctionalityError({
-            functionality: 'useLegacyFunctionCalling and tool_choice: required',
-          });
-        default:
-          function_call = { name: tool_choice.function.name };
-          break;
-      }
+  //     let function_call: 'auto' | 'none' | { name: string } | undefined;
+  //     switch (tool_choice) {
+  //       case 'auto':
+  //       case 'none':
+  //       case undefined:
+  //         function_call = tool_choice;
+  //         break;
+  //       case 'required':
+  //         throw new UnsupportedFunctionalityError({
+  //           functionality: 'useLegacyFunctionCalling and tool_choice: required',
+  //         });
+  //       default:
+  //         function_call = { name: tool_choice.function.name };
+  //         break;
+  //     }
 
-      return {
-        ...rest,
-        functions: tools.map(tool => tool.function),
-        function_call,
-      };
-    }
+  //     return {
+  //       args: {
+  //         ...rest,
+  //         functions: tools.map(tool => tool.function),
+  //         function_call,
+  //       },
+  //       warnings,
+  //     };
+  //   }
 
-    return args;
-  }
+  //   return { args, warnings };
+  // }
 
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
@@ -255,12 +262,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       text: choice.message.content ?? undefined,
       toolCalls:
         this.settings.useLegacyFunctionCalling && choice.message.function_call
-          ? [{
-              toolCallType: 'function',
-              toolCallId: generateId(),
-              toolName: choice.message.function_call.name,
-              args: choice.message.function_call.arguments,
-            }]
+          ? [
+              {
+                toolCallType: 'function',
+                toolCallId: generateId(),
+                toolName: choice.message.function_call.name,
+                args: choice.message.function_call.arguments,
+              },
+            ]
           : choice.message.tool_calls?.map(toolCall => ({
               toolCallType: 'function',
               toolCallId: toolCall.id ?? generateId(),
@@ -387,10 +396,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
             let mappedToolCalls: typeof delta.tool_calls;
             if (useLegacyFunctionCalling && delta.function_call != null) {
-              mappedToolCalls = [{
-                function: delta.function_call,
-                index: 0,
-              }]
+              mappedToolCalls = [
+                {
+                  function: delta.function_call,
+                  index: 0,
+                },
+              ];
             } else {
               mappedToolCalls = delta.tool_calls;
             }
