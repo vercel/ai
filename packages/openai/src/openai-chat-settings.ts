@@ -52,6 +52,19 @@ Whether to enable parallel function calling during tool use. Default to true.
   parallelToolCalls?: boolean;
 
   /**
+Whether to use legacy function calling. Defaults to false.
+
+Required by some open source inference engines which do not support the `tools` API. May also
+provide a workaround for `parallelToolCalls` resulting in the provider buffering tool calls,
+which causes `streamObject` to be non-streaming.
+
+Prefer setting `parallelToolCalls: false` over this option.
+
+@deprecated this API is supported but deprecated by OpenAI.
+   */
+  useLegacyFunctionCalling?: boolean;
+
+  /**
 A unique identifier representing your end-user, which can help OpenAI to
 monitor and detect abuse. Learn more.
 */
