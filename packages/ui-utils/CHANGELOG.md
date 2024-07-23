@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.18
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.3
+
 ## 0.0.17
 
 ### Patch Changes
