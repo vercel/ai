@@ -1,6 +1,7 @@
 import type {
   ChatRequest,
   ChatRequestOptions,
+  Attachment,
   CreateMessage,
   FetchFunction,
   IdGenerator,
@@ -50,7 +51,9 @@ export type UseChatHelpers = {
    * edit the messages on the client, and then trigger the `reload` method
    * manually to regenerate the AI response.
    */
-  setMessages: (messages: Message[]) => void;
+  setMessages: (
+    messages: Message[] | ((messages: Message[]) => Message[]),
+  ) => void;
   /** The current value of the input */
   input: string;
   /** setState-powered method to update the input value */
@@ -96,9 +99,9 @@ const getStreamedResponse = async (
       }) => JSONValue)
     | undefined,
   fetch: FetchFunction | undefined,
+  keepLastMessageOnError: boolean,
 ) => {
-  // Do an optimistic update to the chat state to show the updated messages
-  // immediately.
+  // Do an optimistic update to the chat state to show the updated messages immediately:
   const previousMessages = messagesRef.current;
   mutate(chatRequest.messages, false);
 
@@ -108,6 +111,7 @@ const getStreamedResponse = async (
         ({
           role,
           content,
+          experimental_attachments,
           name,
           data,
           annotations,
@@ -118,6 +122,9 @@ const getStreamedResponse = async (
         }) => ({
           role,
           content,
+          ...(experimental_attachments !== undefined && {
+            experimental_attachments,
+          }),
           ...(name !== undefined && { name }),
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
@@ -161,7 +168,9 @@ const getStreamedResponse = async (
     },
     abortController: () => abortControllerRef.current,
     restoreMessagesOnFailure() {
-      mutate(previousMessages, false);
+      if (!keepLastMessageOnError) {
+        mutate(previousMessages, false);
+      }
     },
     onResponse,
     onUpdate(merged, data) {
@@ -197,6 +206,7 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
+  keepLastMessageOnError = false,
 }: UseChatOptions & {
   key?: string;
 
@@ -341,6 +351,7 @@ By default, it's set to 0, which will disable the feature.
               sendExtraMessageFields,
               experimental_prepareRequestBody,
               fetch,
+              keepLastMessageOnError,
             ),
           experimental_onFunctionCall,
           experimental_onToolCall,
@@ -407,6 +418,7 @@ By default, it's set to 0, which will disable the feature.
       abortControllerRef,
       generateId,
       fetch,
+      keepLastMessageOnError,
     ],
   );
 
@@ -497,7 +509,11 @@ By default, it's set to 0, which will disable the feature.
   }, []);
 
   const setMessages = useCallback(
-    (messages: Message[]) => {
+    (messages: Message[] | ((messages: Message[]) => Message[])) => {
+      if (typeof messages === 'function') {
+        messages = messages(messagesRef.current);
+      }
+
       mutate(messages, false);
       messagesRef.current = messages;
     },
@@ -508,11 +524,15 @@ By default, it's set to 0, which will disable the feature.
   const [input, setInput] = useState(initialInput);
 
   const handleSubmit = useCallback(
-    (
+    async (
       event?: { preventDefault?: () => void },
       options: ChatRequestOptions = {},
       metadata?: Object,
     ) => {
+      event?.preventDefault?.();
+
+      if (!input && !options.allowEmptySubmit) return;
+
       if (metadata) {
         extraMetadataRef.current = {
           ...extraMetadataRef.current,
@@ -520,21 +540,65 @@ By default, it's set to 0, which will disable the feature.
         };
       }
 
-      event?.preventDefault?.();
+      const attachmentsForRequest: Attachment[] = [];
+      const attachmentsFromOptions = options.experimental_attachments;
+
+      if (attachmentsFromOptions) {
+        if (attachmentsFromOptions instanceof FileList) {
+          for (const attachment of Array.from(attachmentsFromOptions)) {
+            const { name, type } = attachment;
+
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = readerEvent => {
+                resolve(readerEvent.target?.result as string);
+              };
+              reader.onerror = error => reject(error);
+              reader.readAsDataURL(attachment);
+            });
+
+            attachmentsForRequest.push({
+              name,
+              contentType: type,
+              url: dataUrl,
+            });
+          }
+        } else if (Array.isArray(attachmentsFromOptions)) {
+          for (const file of attachmentsFromOptions) {
+            const { name, url, contentType } = file;
+
+            attachmentsForRequest.push({
+              name,
+              contentType,
+              url,
+            });
+          }
+        } else {
+          throw new Error('Invalid attachments type');
+        }
+      }
 
       const requestOptions = {
         headers: options.headers ?? options.options?.headers,
         body: options.body ?? options.options?.body,
       };
 
-      const chatRequest: ChatRequest = {
-        messages: input
-          ? messagesRef.current.concat({
+      const messages =
+        !input && options.allowEmptySubmit
+          ? messagesRef.current
+          : messagesRef.current.concat({
               id: generateId(),
+              createdAt: new Date(),
               role: 'user',
               content: input,
-            })
-          : messagesRef.current,
+              experimental_attachments:
+                attachmentsForRequest.length > 0
+                  ? attachmentsForRequest
+                  : undefined,
+            });
+
+      const chatRequest: ChatRequest = {
+        messages,
         options: requestOptions,
         headers: requestOptions.headers,
         body: requestOptions.body,

@@ -58,13 +58,23 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
+    stopSequences,
+    responseFormat,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
     const warnings: LanguageModelV1CallWarning[] = [];
+
+    if (topK != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'topK',
+      });
+    }
 
     if (frequencyPenalty != null) {
       warnings.push({
@@ -80,6 +90,25 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (stopSequences != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'stopSequences',
+      });
+    }
+
+    if (
+      responseFormat != null &&
+      responseFormat.type === 'json' &&
+      responseFormat.schema != null
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'JSON response format schema is not supported',
+      });
+    }
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -92,6 +121,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       temperature,
       top_p: topP,
       random_seed: seed,
+
+      // response format:
+      response_format:
+        responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // messages:
       messages: convertToMistralChatMessages(prompt),
@@ -124,12 +157,6 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
           },
           warnings,
         };
-      }
-
-      case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-grammar mode',
-        });
       }
 
       default: {

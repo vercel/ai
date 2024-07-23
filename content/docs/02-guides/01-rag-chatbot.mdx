@@ -65,7 +65,8 @@ In practice, this means that if you embedded the words `cat` and `dog`, you woul
 
 <Note>
   Don’t worry if this seems complicated. a high level understanding is all you
-  need to get started!
+  need to get started! For a more in-depth introduction to embeddings, check out
+  [this guide](https://jalammar.github.io/illustrated-word2vec/).
 </Note>
 
 As mentioned above, embeddings are a way to represent the semantic meaning of **words and phrases**. The implication here is that the larger the input to your embedding, the lower quality the embedding will be. So how would you approach embedding content longer than a simple phrase?
@@ -144,6 +145,14 @@ With that set up, you can now run your first database migration. Run the followi
 <Snippet text="pnpm db:migrate" />
 
 This will first add the `pgvector` extension to your database. Then it will create a new table for your `resources` schema that is defined in `lib/db/schema/resources.ts`. This schema has four columns: `id`, `content`, `createdAt`, and `updatedAt`.
+
+<Note>
+  If you experience an error with the migration, open your migration file
+  (`lib/db/migrations/0000_yielding_bloodaxe.sql`), cut (copy and remove) the
+  first line, and run it directly on your postgres instance. You should now be
+  able to run the updated migration. [More
+  info](https://github.com/vercel/ai-sdk-rag-starter/issues/1).
+</Note>
 
 ### OpenAI API Key
 
@@ -355,7 +364,7 @@ First, you call the `generateEmbeddings` function created in the previous step, 
 
 ### Create Root Page
 
-Great! Let's bulid the frontend. Vercel AI SDK’s [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook allows you to easily create a conversational user interface for your chatbot application.
+Great! Let's build the frontend. Vercel AI SDK’s [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook allows you to easily create a conversational user interface for your chatbot application.
 
 Replace your root page (`app/page.tsx`) with the following code.
 

@@ -14,6 +14,7 @@ import {
   ConverseStreamOutput,
   Tool,
   ToolConfiguration,
+  ToolInputSchema,
 } from '@aws-sdk/client-bedrock-runtime';
 import {
   BedrockChatModelId,
@@ -53,8 +54,11 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
+    stopSequences,
+    responseFormat,
     seed,
     headers,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
@@ -90,6 +94,21 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (topK != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'topK',
+      });
+    }
+
+    if (responseFormat != null && responseFormat.type !== 'text') {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'JSON response format is not supported.',
+      });
+    }
+
     const { system, messages } = await convertToBedrockChatMessages({ prompt });
 
     const baseArgs: ConverseCommandInput = {
@@ -100,6 +119,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         maxTokens,
         temperature,
         topP,
+        stopSequences,
       },
       messages,
     };
@@ -129,19 +149,15 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
                 toolSpec: {
                   name: mode.tool.name,
                   description: mode.tool.description,
-                  inputSchema: { json: JSON.stringify(mode.tool.parameters) },
+                  inputSchema: {
+                    json: mode.tool.parameters,
+                  } as ToolInputSchema,
                 },
               },
             ],
             toolChoice: { tool: { name: mode.tool.name } },
           },
         } satisfies ConverseCommandInput;
-      }
-
-      case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'grammar-mode object generation',
-        });
       }
 
       default: {
@@ -341,8 +357,8 @@ function prepareToolsAndToolChoice(
       name: tool.name,
       description: tool.description,
       inputSchema: {
-        json: tool.parameters as any,
-      },
+        json: tool.parameters,
+      } as ToolInputSchema,
     },
   }));
 

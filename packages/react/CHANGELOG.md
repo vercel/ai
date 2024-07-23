@@ -1,5 +1,51 @@
 # @ai-sdk/react
 
+## 0.0.26
+
+### Patch Changes
+
+- f63829fe: feat (ai/ui): add allowEmptySubmit flag to handleSubmit
+- 4b2c09d9: feat (ai/ui): add mutator function support to useChat / setMessages
+- Updated dependencies [f63829fe]
+  - @ai-sdk/ui-utils@0.0.17
+
+## 0.0.25
+
+### Patch Changes
+
+- 5b7b3bbe: fix (ai/ui): tool call streaming
+- Updated dependencies [5b7b3bbe]
+  - @ai-sdk/ui-utils@0.0.16
+
+## 0.0.24
+
+### Patch Changes
+
+- 19c3d50f: fix (ai/ui): add missing createdAt
+
+## 0.0.23
+
+### Patch Changes
+
+- Updated dependencies [1f67fe49]
+  - @ai-sdk/ui-utils@0.0.15
+
+## 0.0.22
+
+### Patch Changes
+
+- 99ddbb74: feat (ai/react): add experimental support for managing attachments to useChat
+- Updated dependencies [99ddbb74]
+  - @ai-sdk/ui-utils@0.0.14
+
+## 0.0.21
+
+### Patch Changes
+
+- a6cb2c8b: feat (ai/ui): add keepLastMessageOnError option to useChat
+- Updated dependencies [a6cb2c8b]
+  - @ai-sdk/ui-utils@0.0.13
+
 ## 0.0.20
 
 ### Patch Changes

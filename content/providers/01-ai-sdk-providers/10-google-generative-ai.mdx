@@ -67,31 +67,30 @@ You can use the following optional settings to customize the Google Generative A
 ## Language Models
 
 You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the provider instance.
-The first argument is the model id, e.g. `models/gemini-pro`.
+The first argument is the model id, e.g. `models/gemini-1.5-pro-latest`.
 The models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = google('models/gemini-pro');
+const model = google('models/gemini-1.5-pro-latest');
 ```
 
 Google Generative AI models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = google('models/gemini-pro', {
-  topK: 0.2,
+const model = google('models/gemini-1.5-pro-latest', {
+  safetySettings: [
+    { category: 'HARM_CATEGORY_UNSPECIFIED', threshold: 'BLOCK_LOW_AND_ABOVE' },
+  ],
 });
 ```
 
 The following optional settings are available for Google Generative AI models:
 
-- **topK** _number_
+- **cachedContent** _string_
 
-  Optional. The maximum number of tokens to consider when sampling.
-
-  Models use nucleus sampling or combined Top-k and nucleus sampling.
-  Top-k sampling considers the set of topK most probable tokens.
-  Models running with nucleus sampling don't allow topK setting.
+  Optional. The name of the cached content used as context to serve the prediction.
+  Format: cachedContents/\{cachedContent\}
 
 - **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
 

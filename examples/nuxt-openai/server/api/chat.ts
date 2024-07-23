@@ -1,22 +1,23 @@
-import { streamText } from 'ai';
+import { convertToCoreMessages, streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
 export default defineLazyEventHandler(async () => {
-  const apiKey = useRuntimeConfig().openaiApiKey;
-  if (!apiKey) throw new Error('Missing OpenAI API key');
-
   const openai = createOpenAI({
-    apiKey: apiKey,
+    apiKey: useRuntimeConfig().openaiApiKey,
   });
 
   return defineEventHandler(async (event: any) => {
-    // Extract the `prompt` from the body of the request
+    // Extract the `messages` from the body of the request
     const { messages } = await readBody(event);
 
-    // Ask OpenAI for a streaming chat completion given the prompt
+    // Call the language model
     const result = await streamText({
-      model: openai('gpt-3.5-turbo'),
-      messages,
+      model: openai('gpt-4-turbo'),
+      messages: convertToCoreMessages(messages),
+      async onFinish({ text, toolCalls, toolResults, usage, finishReason }) {
+        // implement your own logic here, e.g. for storing messages
+        // or recording token usage
+      },
     });
 
     // Respond with the stream

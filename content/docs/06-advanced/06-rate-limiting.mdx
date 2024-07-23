@@ -19,7 +19,7 @@ and [Upstash Ratelimit](https://github.com/upstash/ratelimit).
 ```tsx filename='app/api/generate/route.ts'
 import kv from '@vercel/kv';
 import { openai } from '@ai-sdk/openai';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { StreamingTextResponse } from 'ai';
 import { Ratelimit } from '@upstash/ratelimit';
 import { NextRequest } from 'next/server';
 
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     messages,
   });
 
-  return new StreamingTextResponse(result.toAIStream());
+  return result.toAIStreamResponse();
 }
 ```
 

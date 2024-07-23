@@ -207,7 +207,10 @@ describe('doGenerate', () => {
       await model.doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
+        prompt: [
+          { role: 'system', content: 'test system instruction' },
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        ],
       });
 
       expect(await call(0).getRequestBodyJson()).toStrictEqual({
@@ -217,6 +220,7 @@ describe('doGenerate', () => {
             parts: [{ text: 'Hello' }],
           },
         ],
+        systemInstruction: { parts: [{ text: 'test system instruction' }] },
         generationConfig: {},
       });
     }),
@@ -300,6 +304,54 @@ describe('doGenerate', () => {
   );
 
   it(
+    'should pass tool specification in object-tool mode',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      await provider.languageModel('models/gemini-pro').doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-tool',
+          tool: {
+            name: 'test-tool',
+            type: 'function',
+            parameters: {
+              type: 'object',
+              properties: {
+                property1: { type: 'string' },
+                property2: { type: 'number' },
+              },
+              required: ['property1', 'property2'],
+              additionalProperties: false,
+            },
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await call(0).getRequestBodyJson()).toStrictEqual({
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+        generationConfig: {},
+        toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+        tools: {
+          functionDeclarations: [
+            {
+              name: 'test-tool',
+              description: '',
+              parameters: {
+                properties: {
+                  property1: { type: 'string' },
+                  property2: { type: 'number' },
+                },
+                required: ['property1', 'property2'],
+                type: 'object',
+              },
+            },
+          ],
+        },
+      });
+    }),
+  );
+
+  it(
     'should pass headers',
     withTestServer(prepareJsonResponse({}), async ({ call }) => {
       const provider = createGoogleGenerativeAI({
@@ -325,6 +377,41 @@ describe('doGenerate', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
         'x-goog-api-key': 'test-api-key',
+      });
+    }),
+  );
+
+  it(
+    'should pass response format',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              text: { type: 'string' },
+            },
+            required: ['text'],
+          },
+        },
+      });
+
+      expect(await call(0).getRequestBodyJson()).toStrictEqual({
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'object',
+            properties: {
+              text: { type: 'string' },
+            },
+            required: ['text'],
+          },
+        },
       });
     }),
   );

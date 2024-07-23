@@ -49,7 +49,7 @@ for await (const partialObject of partialObjectStream) {
     },
     {
       name: 'mode',
-      type: "'auto' | 'json' | 'grammar' | 'tool'",
+      type: "'auto' | 'json' | 'tool'",
       description:
         "The mode to use for object generation. Not every model supports all modes. Defaults to 'auto'.",
     },
@@ -272,6 +272,12 @@ for await (const partialObject of partialObjectStream) {
         'Nucleus sampling. The value is passed through to the provider. The range depends on the provider and model. It is recommended to set either `temperature` or `topP`, but not both.',
     },
     {
+      name: 'topK',
+      type: 'number',
+      isOptional: true,
+      description: `Only sample from the top K options for each subsequent token. Used to remove "long tail" low probability responses. Recommended for advanced use cases only. You usually only need to use temperature.`,
+    },
+    {
       name: 'presencePenalty',
       type: 'number',
       isOptional: true,
@@ -378,7 +384,7 @@ for await (const partialObject of partialObjectStream) {
                   type: 'RawResponse',
                   parameters: [
                     {
-                      name: 'header',
+                      name: 'headers',
                       optional: true,
                       type: 'Record<string, string>',
                       description: 'Response headers.',
@@ -448,7 +454,7 @@ for await (const partialObject of partialObjectStream) {
       name: 'fullStream',
       type: 'AsyncIterableStream<ObjectStreamPart<T>>',
       description:
-        'Stream of different types of events, including partial objects, errors, and finish events.',
+        'Stream of different types of events, including partial objects, errors, and finish events. Only errors that stop the stream, such as network errors, are thrown.',
       properties: [
         {
           type: 'ObjectPart',
@@ -527,7 +533,7 @@ for await (const partialObject of partialObjectStream) {
           type: 'RawResponse',
           parameters: [
             {
-              name: 'header',
+              name: 'headers',
               optional: true,
               type: 'Record<string, string>',
               description: 'Response headers.',

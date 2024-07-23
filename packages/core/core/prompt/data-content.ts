@@ -46,7 +46,7 @@ export function convertDataContentToUint8Array(
     } catch (error) {
       throw new InvalidDataContentError({
         message:
-          'Invalid data content. Content string is not a base64-encoded image.',
+          'Invalid data content. Content string is not a base64-encoded media.',
         content,
         cause: error,
       });
@@ -58,4 +58,18 @@ export function convertDataContentToUint8Array(
   }
 
   throw new InvalidDataContentError({ content });
+}
+
+/**
+ * Converts a Uint8Array to a string of text.
+ *
+ * @param uint8Array - The Uint8Array to convert.
+ * @returns The converted string.
+ */
+export function convertUint8ArrayToText(uint8Array: Uint8Array): string {
+  try {
+    return new TextDecoder().decode(uint8Array);
+  } catch (error) {
+    throw new Error('Error decoding Uint8Array to text');
+  }
 }

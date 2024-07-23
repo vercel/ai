@@ -58,8 +58,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
+    stopSequences,
+    responseFormat,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -87,6 +90,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (responseFormat != null && responseFormat.type !== 'text') {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'JSON response format is not supported.',
+      });
+    }
+
     const messagesPrompt = await convertToAnthropicMessagesPrompt({ prompt });
 
     const baseArgs = {
@@ -94,12 +105,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       model: this.modelId,
 
       // model specific settings:
-      top_k: this.settings.topK,
+      top_k: topK ?? this.settings.topK,
 
       // standardized settings:
       max_tokens: maxTokens ?? 4096, // 4096: max model output tokens
       temperature,
       top_p: topP,
+      stop_sequences: stopSequences,
 
       // prompt:
       system: messagesPrompt.system,
@@ -123,25 +135,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       case 'object-tool': {
         const { name, description, parameters } = mode.tool;
 
-        // add instruction to use tool:
-        baseArgs.messages[baseArgs.messages.length - 1].content.push({
-          type: 'text',
-          text: `\n\nUse the '${name}' tool.`,
-        });
-
         return {
           args: {
             ...baseArgs,
             tools: [{ name, description, input_schema: parameters }],
+            tool_choice: { type: 'tool', name },
           },
           warnings,
         };
-      }
-
-      case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'grammar-mode object generation',
-        });
       }
 
       default: {

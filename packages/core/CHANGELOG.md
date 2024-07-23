@@ -1,5 +1,107 @@
 # ai
 
+## 3.2.33
+
+### Patch Changes
+
+- 4b2c09d9: feat (ai/ui): add mutator function support to useChat / setMessages
+- 281e7662: chore: add description to ai package
+- Updated dependencies [f63829fe]
+- Updated dependencies [4b2c09d9]
+  - @ai-sdk/ui-utils@0.0.17
+  - @ai-sdk/svelte@0.0.20
+  - @ai-sdk/react@0.0.26
+  - @ai-sdk/solid@0.0.19
+  - @ai-sdk/vue@0.0.21
+
+## 3.2.32
+
+### Patch Changes
+
+- Updated dependencies [5b7b3bbe]
+  - @ai-sdk/ui-utils@0.0.16
+  - @ai-sdk/react@0.0.25
+  - @ai-sdk/solid@0.0.18
+  - @ai-sdk/svelte@0.0.19
+  - @ai-sdk/vue@0.0.20
+
+## 3.2.31
+
+### Patch Changes
+
+- b86af092: feat (ai/core): add langchain stream event v2 support to LangChainAdapter
+
+## 3.2.30
+
+### Patch Changes
+
+- Updated dependencies [19c3d50f]
+  - @ai-sdk/react@0.0.24
+  - @ai-sdk/vue@0.0.19
+
+## 3.2.29
+
+### Patch Changes
+
+- e710b388: fix (ai/core): race condition in mergeStreams
+- 6078a690: feat (ai/core): introduce stream data support in toAIStreamResponse
+
+## 3.2.28
+
+### Patch Changes
+
+- 68d1f78c: fix (ai/core): do not construct object promise in streamObject result until requested
+- f0bc1e79: feat (ai/ui): add system message support to convertToCoreMessages
+- 1f67fe49: feat (ai/ui): stream tool calls with streamText and useChat
+- Updated dependencies [1f67fe49]
+  - @ai-sdk/ui-utils@0.0.15
+  - @ai-sdk/react@0.0.23
+  - @ai-sdk/solid@0.0.17
+  - @ai-sdk/svelte@0.0.18
+  - @ai-sdk/vue@0.0.18
+
+## 3.2.27
+
+### Patch Changes
+
+- 811f4493: fix (ai/core): generateText token usage is sum over all roundtrips
+
+## 3.2.26
+
+### Patch Changes
+
+- 8f545ce9: fix (ai/core): forward request headers in generateObject and streamObject
+
+## 3.2.25
+
+### Patch Changes
+
+- 99ddbb74: feat (ai/react): add experimental support for managing attachments to useChat
+- Updated dependencies [99ddbb74]
+  - @ai-sdk/ui-utils@0.0.14
+  - @ai-sdk/react@0.0.22
+  - @ai-sdk/solid@0.0.16
+  - @ai-sdk/svelte@0.0.17
+  - @ai-sdk/vue@0.0.17
+
+## 3.2.24
+
+### Patch Changes
+
+- f041c056: feat (ai/core): add roundtrips property to generateText result
+
+## 3.2.23
+
+### Patch Changes
+
+- a6cb2c8b: feat (ai/ui): add keepLastMessageOnError option to useChat
+- Updated dependencies [a6cb2c8b]
+  - @ai-sdk/ui-utils@0.0.13
+  - @ai-sdk/svelte@0.0.16
+  - @ai-sdk/react@0.0.21
+  - @ai-sdk/solid@0.0.15
+  - @ai-sdk/vue@0.0.16
+
 ## 3.2.22
 
 ### Patch Changes

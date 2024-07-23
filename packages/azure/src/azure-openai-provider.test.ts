@@ -91,6 +91,26 @@ describe('chat', () => {
         'custom-request-header': 'request-header-value',
       });
     });
+
+    it('should use the baseURL correctly', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        baseURL: 'https://test-resource.openai.azure.com/openai/deployments',
+        apiKey: 'test-api-key',
+      });
+
+      await provider('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const requestUrl = await server.getRequestUrl();
+      expect(requestUrl).toStrictEqual(
+        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-05-01-preview',
+      );
+    });
   });
 });
 

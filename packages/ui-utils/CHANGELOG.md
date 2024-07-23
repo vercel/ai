@@ -1,5 +1,35 @@
 # @ai-sdk/ui-utils
 
+## 0.0.17
+
+### Patch Changes
+
+- f63829fe: feat (ai/ui): add allowEmptySubmit flag to handleSubmit
+
+## 0.0.16
+
+### Patch Changes
+
+- 5b7b3bbe: fix (ai/ui): tool call streaming
+
+## 0.0.15
+
+### Patch Changes
+
+- 1f67fe49: feat (ai/ui): stream tool calls with streamText and useChat
+
+## 0.0.14
+
+### Patch Changes
+
+- 99ddbb74: feat (ai/react): add experimental support for managing attachments to useChat
+
+## 0.0.13
+
+### Patch Changes
+
+- a6cb2c8b: feat (ai/ui): add keepLastMessageOnError option to useChat
+
 ## 0.0.12
 
 ### Patch Changes

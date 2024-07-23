@@ -2,7 +2,7 @@ import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
-  StreamingTextResponse,
+  StreamData,
   formatStreamPart,
 } from '../../streams';
 import { CallSettings } from '../prompt/call-settings';
@@ -28,6 +28,7 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { mergeStreams } from '../util/merge-streams';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
@@ -53,12 +54,17 @@ It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param presencePenalty - Presence penalty setting. 
+@param topK - Only sample from the top K options for each subsequent token.
+Used to remove "long tail" low probability responses.
+Recommended for advanced use cases only. You usually only need to use temperature.
+@param presencePenalty - Presence penalty setting.
 It affects the likelihood of the model to repeat information that is already in the prompt.
 The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
 It affects the likelihood of the model to repeatedly use the same words or phrases.
 The value is passed through to the provider. The range depends on the provider and model.
+@param stopSequences - Stop sequences.
+If set, the model will stop generating text when one of the stop sequences is generated.
 @param seed - The seed (integer) to use for random sampling.
 If set and supported by the model, calls will generate deterministic results.
 
@@ -66,7 +72,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@param onFinish - Callback that is called when the LLM response and all request tool executions 
+@param onFinish - Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
 
 @return
@@ -83,6 +89,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
+  experimental_toolCallStreaming: toolCallStreaming = false,
   onFinish,
   ...settings
 }: CallSettings &
@@ -103,12 +110,17 @@ The tool choice strategy. Default: 'auto'.
     toolChoice?: CoreToolChoice<TOOLS>;
 
     /**
-     * Optional telemetry configuration (experimental).
+Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
 
     /**
-Callback that is called when the LLM response and all request tool executions 
+Enable streaming of tool call deltas as they are generated. Disabled by default.
+     */
+    experimental_toolCallStreaming?: boolean;
+
+    /**
+Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
      */
     onFinish?: (event: {
@@ -212,6 +224,7 @@ Warnings from the model provider (e.g. unsupported settings).
         stream: runToolsTransformation({
           tools,
           generatorStream: stream,
+          toolCallStreaming,
           tracer,
         }),
         warnings,
@@ -233,8 +246,15 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       type: 'tool-call';
     } & ToToolCall<TOOLS>)
   | {
-      type: 'error';
-      error: unknown;
+      type: 'tool-call-streaming-start';
+      toolCallId: string;
+      toolName: string;
+    }
+  | {
+      type: 'tool-call-delta';
+      toolCallId: string;
+      toolName: string;
+      argsTextDelta: string;
     }
   | ({
       type: 'tool-result';
@@ -248,6 +268,10 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
         completionTokens: number;
         totalTokens: number;
       };
+    }
+  | {
+      type: 'error';
+      error: unknown;
     };
 
 /**
@@ -407,6 +431,8 @@ Response headers.
               resolveToolCalls(toolCalls);
               break;
 
+            case 'tool-call-streaming-start':
+            case 'tool-call-delta':
             case 'error':
               // ignored
               break;
@@ -514,8 +540,8 @@ stream will throw the error.
   /**
 A stream with all events, including text deltas, tool calls, tool results, and
 errors.
-You can use it as either an AsyncIterable or a ReadableStream. When an error occurs, the
-stream will throw the error.
+You can use it as either an AsyncIterable or a ReadableStream.
+Only errors that stop the stream, such as network errors, are thrown.
    */
   get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
     return createAsyncIterableStream(this.teeStream(), {
@@ -536,7 +562,7 @@ stream will throw the error.
 Converts the result to an `AIStream` object that is compatible with `StreamingTextResponse`.
 It can be used with the `useChat` and `useCompletion` hooks.
 
-@param callbacks 
+@param callbacks
 Stream callbacks that will be called when the stream emits events.
 
 @returns an `AIStream` object.
@@ -572,14 +598,31 @@ Stream callbacks that will be called when the stream emits events.
       },
     });
 
-    const streamDataTransformer = new TransformStream<
+    const streamPartsTransformer = new TransformStream<
       TextStreamPart<TOOLS>,
       string
     >({
       transform: async (chunk, controller) => {
-        switch (chunk.type) {
+        const chunkType = chunk.type;
+        switch (chunkType) {
           case 'text-delta':
             controller.enqueue(formatStreamPart('text', chunk.textDelta));
+            break;
+          case 'tool-call-streaming-start':
+            controller.enqueue(
+              formatStreamPart('tool_call_streaming_start', {
+                toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
+              }),
+            );
+            break;
+          case 'tool-call-delta':
+            controller.enqueue(
+              formatStreamPart('tool_call_delta', {
+                toolCallId: chunk.toolCallId,
+                argsTextDelta: chunk.argsTextDelta,
+              }),
+            );
             break;
           case 'tool-call':
             controller.enqueue(
@@ -605,19 +648,25 @@ Stream callbacks that will be called when the stream emits events.
               formatStreamPart('error', JSON.stringify(chunk.error)),
             );
             break;
+          case 'finish':
+            break; // ignored
+          default: {
+            const exhaustiveCheck: never = chunkType;
+            throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+          }
         }
       },
     });
 
     return this.fullStream
       .pipeThrough(callbackTransformer)
-      .pipeThrough(streamDataTransformer)
+      .pipeThrough(streamPartsTransformer)
       .pipeThrough(new TextEncoderStream());
   }
 
   /**
 Writes stream data output to a Node.js response-like object.
-It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and
 writes each stream data part as a separate chunk.
 
 @param response A Node.js response-like object (ServerResponse).
@@ -653,7 +702,7 @@ writes each stream data part as a separate chunk.
 
   /**
 Writes text delta output to a Node.js response-like object.
-It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and
 writes each text delta as a separate chunk.
 
 @param response A Node.js response-like object (ServerResponse).
@@ -693,12 +742,44 @@ writes each text delta as a separate chunk.
 Converts the result to a streamed response object with a stream data part stream.
 It can be used with the `useChat` and `useCompletion` hooks.
 
-@param init Optional headers.
+@param options An object with an init property (ResponseInit) and a data property.
+You can also pass in a ResponseInit directly (deprecated).
 
 @return A response object.
    */
-  toAIStreamResponse(init?: ResponseInit): Response {
-    return new StreamingTextResponse(this.toAIStream(), init);
+  toAIStreamResponse(
+    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
+  ): Response {
+    const init: ResponseInit | undefined =
+      options == null
+        ? undefined
+        : 'init' in options
+        ? options.init
+        : {
+            headers: 'headers' in options ? options.headers : undefined,
+            status: 'status' in options ? options.status : undefined,
+            statusText:
+              'statusText' in options ? options.statusText : undefined,
+          };
+
+    const data: StreamData | undefined =
+      options == null
+        ? undefined
+        : 'data' in options
+        ? options.data
+        : undefined;
+
+    const stream = data
+      ? mergeStreams(data.stream, this.toAIStream())
+      : this.toAIStream();
+
+    return new Response(stream, {
+      status: init?.status ?? 200,
+      statusText: init?.statusText,
+      headers: prepareResponseHeaders(init, {
+        contentType: 'text/plain; charset=utf-8',
+      }),
+    });
   }
 
   /**

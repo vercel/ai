@@ -51,8 +51,7 @@ Let's create a simple React component that will call the `getNotifications` func
 import { useState } from 'react';
 import { getNotifications } from './actions';
 
-// Force the page to be dynamic and allow streaming responses up to 30 seconds
-export const dynamic = 'force-dynamic';
+// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export default function Home() {

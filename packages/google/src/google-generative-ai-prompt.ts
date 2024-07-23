@@ -1,4 +1,11 @@
-export type GoogleGenerativeAIPrompt = Array<GoogleGenerativeAIContent>;
+export type GoogleGenerativeAIPrompt = {
+  systemInstruction?: GoogleGenerativeAISystemInstruction;
+  contents: Array<GoogleGenerativeAIContent>;
+};
+
+export type GoogleGenerativeAISystemInstruction = {
+  parts: Array<{ text: string }>;
+};
 
 export type GoogleGenerativeAIContent = {
   role: 'user' | 'model';

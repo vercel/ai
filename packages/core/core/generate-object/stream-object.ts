@@ -28,6 +28,7 @@ import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { DelayedPromise } from '../util/delayed-promise';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -44,13 +45,16 @@ This function streams the output. If you do not want to stream the output, use `
 @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
 
 @param maxTokens - Maximum number of tokens to generate.
-@param temperature - Temperature setting. 
+@param temperature - Temperature setting.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param presencePenalty - Presence penalty setting. 
+@param topK - Only sample from the top K options for each subsequent token.
+Used to remove "long tail" low probability responses.
+Recommended for advanced use cases only. You usually only need to use temperature.
+@param presencePenalty - Presence penalty setting.
 It affects the likelihood of the model to repeat information that is already in the prompt.
 The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
@@ -78,7 +82,7 @@ export async function streamObject<T>({
   headers,
   onFinish,
   ...settings
-}: CallSettings &
+}: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
     /**
 The language model to use.
@@ -97,14 +101,13 @@ The Zod schema is converted in a JSON schema and used in one of the following wa
 
 - 'auto': The provider will choose the best mode for the model.
 - 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
-- 'json': The JSON schema and a instruction is injected into the prompt. If the provider supports JSON mode, it is enabled.
-- 'grammar': The provider is instructed to converted the JSON schema into a provider specific grammar and use it to select the output tokens.
+- 'json': The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
 
 Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
      */
-    mode?: 'auto' | 'json' | 'tool' | 'grammar';
+    mode?: 'auto' | 'json' | 'tool';
 
     /**
 Callback that is called when the LLM response and the final object validation are finished.
@@ -165,39 +168,6 @@ Warnings from the model provider (e.g. unsupported settings).
 
       callOptions = {
         mode: { type: 'object-json' },
-        ...prepareCallSettings(settings),
-        inputFormat: validatedPrompt.type,
-        prompt: convertToLanguageModelPrompt(validatedPrompt),
-        abortSignal,
-        headers,
-      };
-
-      transformer = {
-        transform: (chunk, controller) => {
-          switch (chunk.type) {
-            case 'text-delta':
-              controller.enqueue(chunk.textDelta);
-              break;
-            case 'finish':
-            case 'error':
-              controller.enqueue(chunk);
-              break;
-          }
-        },
-      };
-
-      break;
-    }
-
-    case 'grammar': {
-      const validatedPrompt = getValidatedPrompt({
-        system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
-        prompt,
-        messages,
-      });
-
-      callOptions = {
-        mode: { type: 'object-grammar', schema: jsonSchema },
         ...prepareCallSettings(settings),
         inputFormat: validatedPrompt.type,
         prompt: convertToLanguageModelPrompt(validatedPrompt),
@@ -316,16 +286,12 @@ The result of a `streamObject` call that contains the partial object stream and 
  */
 export class StreamObjectResult<T> {
   private readonly originalStream: ReadableStream<ObjectStreamPart<T>>;
+  private readonly objectPromise: DelayedPromise<T>;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: CallWarning[] | undefined;
-
-  /**
-The generated object (typed according to the schema). Resolved when the response is finished.
-   */
-  readonly object: Promise<T>;
 
   /**
 The token usage of the generated response. Resolved when the response is finished.
@@ -363,12 +329,7 @@ Response headers.
     this.rawResponse = rawResponse;
 
     // initialize object promise
-    let resolveObject: (value: T | PromiseLike<T>) => void;
-    let rejectObject: (reason?: any) => void;
-    this.object = new Promise<T>((resolve, reject) => {
-      resolveObject = resolve;
-      rejectObject = reject;
-    });
+    this.objectPromise = new DelayedPromise<T>();
 
     // initialize usage promise
     let resolveUsage: (
@@ -388,6 +349,7 @@ Response headers.
     let delta = '';
     let latestObject: DeepPartial<T> | undefined = undefined;
 
+    const self = this;
     this.originalStream = stream.pipeThrough(
       new TransformStream<string | ObjectStreamInputPart, ObjectStreamPart<T>>({
         async transform(chunk, controller): Promise<void> {
@@ -445,10 +407,10 @@ Response headers.
 
               if (validationResult.success) {
                 object = validationResult.value;
-                resolveObject(object);
+                self.objectPromise.resolve(object);
               } else {
                 error = validationResult.error;
-                rejectObject(error);
+                self.objectPromise.reject(error);
               }
 
               break;
@@ -485,9 +447,16 @@ Response headers.
   }
 
   /**
+The generated object (typed according to the schema). Resolved when the response is finished.
+   */
+  get object(): Promise<T> {
+    return this.objectPromise.value;
+  }
+
+  /**
 Stream of partial objects. It gets more complete as the stream progresses.
-  
-Note that the partial object is not validated. 
+
+Note that the partial object is not validated.
 If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.
    */
   get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
@@ -516,7 +485,7 @@ If you want to be certain that the actual content matches your schema, you need 
   }
 
   /**
-Text stream of the JSON representation of the generated object. It contains text chunks. 
+Text stream of the JSON representation of the generated object. It contains text chunks.
 When the stream is finished, the object is valid JSON that can be parsed.
    */
   get textStream(): AsyncIterableStream<string> {
@@ -546,6 +515,7 @@ When the stream is finished, the object is valid JSON that can be parsed.
 
   /**
 Stream of different types of events, including partial objects, errors, and finish events.
+Only errors that stop the stream, such as network errors, are thrown.
    */
   get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
     return createAsyncIterableStream(this.originalStream, {
@@ -557,7 +527,7 @@ Stream of different types of events, including partial objects, errors, and fini
 
   /**
 Writes text delta output to a Node.js response-like object.
-It sets a `Content-Type` header to `text/plain; charset=utf-8` and 
+It sets a `Content-Type` header to `text/plain; charset=utf-8` and
 writes each text delta as a separate chunk.
 
 @param response A Node.js response-like object (ServerResponse).

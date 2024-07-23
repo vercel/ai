@@ -15,3 +15,4 @@ export { processChatStream } from './process-chat-stream';
 export { readDataStream } from './read-data-stream';
 export { formatStreamPart, parseStreamPart } from './stream-parts';
 export type { StreamPart, StreamString } from './stream-parts';
+export { getTextFromDataUrl } from './data-url';

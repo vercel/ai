@@ -1,5 +1,17 @@
 # @ai-sdk/google-vertex
 
+## 0.0.16
+
+### Patch Changes
+
+- 0eabc798: feat (provider/google-vertex): change vertexai library into peer dependency
+
+## 0.0.15
+
+### Patch Changes
+
+- bb584330: feat (provider/google-vertex): use systemInstruction content parts
+
 ## 0.0.14
 
 ### Patch Changes

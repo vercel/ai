@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.6
+
+### Patch Changes
+
+- 42b11b8e: fix (provider/aws-bedrock): pass tool parameters for object generation without stringify
+
 ## 0.0.5
 
 ### Patch Changes

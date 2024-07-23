@@ -50,12 +50,17 @@ It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
-@param presencePenalty - Presence penalty setting. 
+@param topK - Only sample from the top K options for each subsequent token.
+Used to remove "long tail" low probability responses.
+Recommended for advanced use cases only. You usually only need to use temperature.
+@param presencePenalty - Presence penalty setting.
 It affects the likelihood of the model to repeat information that is already in the prompt.
 The value is passed through to the provider. The range depends on the provider and model.
 @param frequencyPenalty - Frequency penalty setting.
 It affects the likelihood of the model to repeatedly use the same words or phrases.
 The value is passed through to the provider. The range depends on the provider and model.
+@param stopSequences - Stop sequences.
+If set, the model will stop generating text when one of the stop sequences is generated.
 @param seed - The seed (integer) to use for random sampling.
 If set and supported by the model, calls will generate deterministic results.
 
@@ -107,8 +112,8 @@ The tool choice strategy. Default: 'auto'.
     /**
 Maximal number of automatic roundtrips for tool calls.
 
-An automatic tool call roundtrip is another LLM call with the 
-tool call results when all tool calls of the last assistant 
+An automatic tool call roundtrip is another LLM call with the
+tool call results when all tool calls of the last assistant
 message have results.
 
 A maximum number is required to prevent infinite loops in the
@@ -161,14 +166,20 @@ By default, it's set to 0, which will disable the feature.
       >;
       let currentToolCalls: ToToolCallArray<TOOLS> = [];
       let currentToolResults: ToToolResultArray<TOOLS> = [];
-      let roundtrips = 0;
+      let roundtripCount = 0;
       const responseMessages: Array<CoreAssistantMessage | CoreToolMessage> =
         [];
+      const roundtrips: GenerateTextResult<TOOLS>['roundtrips'] = [];
+      const usage: CompletionTokenUsage = {
+        completionTokens: 0,
+        promptTokens: 0,
+        totalTokens: 0,
+      };
 
       do {
         // once we have a roundtrip, we need to switch to messages format:
         const currentInputFormat =
-          roundtrips === 0 ? validatedPrompt.type : 'messages';
+          roundtripCount === 0 ? validatedPrompt.type : 'messages';
 
         currentModelResponse = await retry(() =>
           recordSpan({
@@ -218,6 +229,25 @@ By default, it's set to 0, which will disable the feature.
                 tracer,
               });
 
+        // token usage:
+        const currentUsage = calculateCompletionTokenUsage(
+          currentModelResponse.usage,
+        );
+        usage.completionTokens += currentUsage.completionTokens;
+        usage.promptTokens += currentUsage.promptTokens;
+        usage.totalTokens += currentUsage.totalTokens;
+
+        // add roundtrip information:
+        roundtrips.push({
+          text: currentModelResponse.text ?? '',
+          toolCalls: currentToolCalls,
+          toolResults: currentToolResults,
+          finishReason: currentModelResponse.finishReason,
+          usage: currentUsage,
+          warnings: currentModelResponse.warnings,
+          logprobs: currentModelResponse.logprobs,
+        });
+
         // append to messages for potential next roundtrip:
         const newResponseMessages = toResponseMessages({
           text: currentModelResponse.text ?? '',
@@ -234,7 +264,7 @@ By default, it's set to 0, which will disable the feature.
         // all current tool calls have results:
         currentToolResults.length === currentToolCalls.length &&
         // the number of roundtrips is less than the maximum:
-        roundtrips++ < maxToolRoundtrips
+        roundtripCount++ < maxToolRoundtrips
       );
 
       // Add response information to the span:
@@ -255,11 +285,12 @@ By default, it's set to 0, which will disable the feature.
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
-        usage: calculateCompletionTokenUsage(currentModelResponse.usage),
+        usage,
         warnings: currentModelResponse.warnings,
         rawResponse: currentModelResponse.rawResponse,
         logprobs: currentModelResponse.logprobs,
         responseMessages,
+        roundtrips,
       });
     },
   });
@@ -359,7 +390,7 @@ Warnings from the model provider (e.g. unsupported settings)
 
   /**
 The response messages that were generated during the call. It consists of an assistant message,
-potentially containing tool calls. 
+potentially containing tool calls.
 When there are tool results, there is an additional tool message with the tool results that are available.
 If there are tools that do not have execute functions, they are not included in the tool results and
 need to be added separately.
@@ -367,33 +398,84 @@ need to be added separately.
   readonly responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
 
   /**
+Response information for every roundtrip.
+You can use this to get information about intermediate steps, such as the tool calls or the response headers.
+   */
+  readonly roundtrips: Array<{
+    /**
+The generated text.
+   */
+    readonly text: string;
+
+    /**
+The tool calls that were made during the generation.
+ */
+    readonly toolCalls: ToToolCallArray<TOOLS>;
+
+    /**
+The results of the tool calls.
+ */
+    readonly toolResults: ToToolResultArray<TOOLS>;
+
+    /**
+The reason why the generation finished.
+   */
+    readonly finishReason: FinishReason;
+
+    /**
+The token usage of the generated text.
+ */
+    readonly usage: CompletionTokenUsage;
+
+    /**
+Warnings from the model provider (e.g. unsupported settings)
+   */
+    readonly warnings: CallWarning[] | undefined;
+
+    /**
+Logprobs for the completion.
+`undefined` if the mode does not support logprobs or if was not enabled.
+   */
+    readonly logprobs: LogProbs | undefined;
+
+    /**
+  Optional raw response data.
+     */
+    readonly rawResponse?: {
+      /**
+  Response headers.
+     */
+      readonly headers?: Record<string, string>;
+    };
+  }>;
+
+  /**
 Optional raw response data.
    */
-  rawResponse?: {
+  readonly rawResponse?: {
     /**
 Response headers.
    */
-    headers?: Record<string, string>;
+    readonly headers?: Record<string, string>;
   };
 
   /**
-Logprobs for the completion. 
-`undefined` if the mode does not support logprobs or if was not enabled
+Logprobs for the completion.
+`undefined` if the mode does not support logprobs or if was not enabled.
    */
   readonly logprobs: LogProbs | undefined;
 
   constructor(options: {
-    text: string;
-    toolCalls: ToToolCallArray<TOOLS>;
-    toolResults: ToToolResultArray<TOOLS>;
-    finishReason: FinishReason;
-    usage: CompletionTokenUsage;
-    warnings: CallWarning[] | undefined;
-    rawResponse?: {
-      headers?: Record<string, string>;
-    };
-    logprobs: LogProbs | undefined;
-    responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
+    text: GenerateTextResult<TOOLS>['text'];
+    toolCalls: GenerateTextResult<TOOLS>['toolCalls'];
+    toolResults: GenerateTextResult<TOOLS>['toolResults'];
+    finishReason: GenerateTextResult<TOOLS>['finishReason'];
+    usage: GenerateTextResult<TOOLS>['usage'];
+    warnings: GenerateTextResult<TOOLS>['warnings'];
+    rawResponse?: GenerateTextResult<TOOLS>['rawResponse'];
+    logprobs: GenerateTextResult<TOOLS>['logprobs'];
+    responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
+    roundtrips: GenerateTextResult<TOOLS>['roundtrips'];
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -404,6 +486,7 @@ Logprobs for the completion.
     this.rawResponse = options.rawResponse;
     this.logprobs = options.logprobs;
     this.responseMessages = options.responseMessages;
+    this.roundtrips = options.roundtrips;
   }
 }
 

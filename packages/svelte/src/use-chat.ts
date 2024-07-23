@@ -49,7 +49,10 @@ export type UseChatHelpers = {
    * edit the messages on the client, and then trigger the `reload` method
    * manually to regenerate the AI response.
    */
-  setMessages: (messages: Message[]) => void;
+  setMessages: (
+    messages: Message[] | ((messages: Message[]) => Message[]),
+  ) => void;
+
   /** The current value of the input */
   input: Writable<string>;
   /** Form submission handler to automatically reset input and append a user message  */
@@ -83,6 +86,7 @@ const getStreamedResponse = async (
   onResponse: ((response: Response) => void | Promise<void>) | undefined,
   sendExtraMessageFields: boolean | undefined,
   fetch: FetchFunction | undefined,
+  keepLastMessageOnError: boolean | undefined,
 ) => {
   // Do an optimistic update to the chat state to show the updated messages
   // immediately.
@@ -141,7 +145,9 @@ const getStreamedResponse = async (
     },
     abortController: () => abortControllerRef,
     restoreMessagesOnFailure() {
-      mutate(previousMessages);
+      if (!keepLastMessageOnError) {
+        mutate(previousMessages);
+      }
     },
     onResponse,
     onUpdate(merged, data) {
@@ -176,6 +182,7 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
+  keepLastMessageOnError = false,
 }: UseChatOptions = {}): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
@@ -243,6 +250,7 @@ export function useChat({
             onResponse,
             sendExtraMessageFields,
             fetch,
+            keepLastMessageOnError,
           ),
         experimental_onFunctionCall,
         experimental_onToolCall,
@@ -351,8 +359,14 @@ export function useChat({
     }
   };
 
-  const setMessages = (messages: Message[]) => {
-    mutate(messages);
+  const setMessages = (
+    messagesArg: Message[] | ((messages: Message[]) => Message[]),
+  ) => {
+    if (typeof messagesArg === 'function') {
+      messagesArg = messagesArg(get(messages));
+    }
+
+    mutate(messagesArg);
   };
 
   const input = writable(initialInput);
@@ -364,20 +378,23 @@ export function useChat({
     event?.preventDefault?.();
     const inputValue = get(input);
 
+    if (!inputValue && !options.allowEmptySubmit) return;
+
     const requestOptions = {
       headers: options.headers ?? options.options?.headers,
       body: options.body ?? options.options?.body,
     };
 
     const chatRequest: ChatRequest = {
-      messages: inputValue
-        ? get(messages).concat({
-            id: generateId(),
-            content: inputValue,
-            role: 'user',
-            createdAt: new Date(),
-          } as Message)
-        : get(messages),
+      messages:
+        !inputValue && options.allowEmptySubmit
+          ? get(messages)
+          : get(messages).concat({
+              id: generateId(),
+              content: inputValue,
+              role: 'user',
+              createdAt: new Date(),
+            } as Message),
       options: requestOptions,
       body: requestOptions.body,
       headers: requestOptions.headers,

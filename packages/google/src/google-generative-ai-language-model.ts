@@ -3,7 +3,6 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   ParseResult,
@@ -32,7 +31,7 @@ type GoogleGenerativeAIConfig = {
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'json';
+  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: GoogleGenerativeAIModelId;
   readonly settings: GoogleGenerativeAISettings;
@@ -59,8 +58,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     maxTokens,
     temperature,
     topP,
+    topK,
     frequencyPenalty,
     presencePenalty,
+    stopSequences,
+    responseFormat,
     seed,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -90,15 +92,25 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const generationConfig = {
       // model specific settings:
-      topK: this.settings.topK,
+      topK: topK ?? this.settings.topK,
 
       // standardized settings:
       maxOutputTokens: maxTokens,
       temperature,
       topP,
+      stopSequences,
+
+      // response format:
+      responseMimeType:
+        responseFormat?.type === 'json' ? 'application/json' : undefined,
+      responseSchema:
+        responseFormat?.type === 'json' && responseFormat.schema != null
+          ? prepareJsonSchema(responseFormat.schema)
+          : undefined,
     };
 
-    const contents = await convertToGoogleGenerativeAIMessages({ prompt });
+    const { contents, systemInstruction } =
+      await convertToGoogleGenerativeAIMessages({ prompt });
 
     switch (type) {
       case 'regular': {
@@ -106,8 +118,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           args: {
             generationConfig,
             contents,
+            systemInstruction,
             safetySettings: this.settings.safetySettings,
             ...prepareToolsAndToolConfig(mode),
+            cachedContent: this.settings.cachedContent,
           },
           warnings,
         };
@@ -121,22 +135,34 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               response_mime_type: 'application/json',
             },
             contents,
+            systemInstruction,
             safetySettings: this.settings.safetySettings,
+            cachedContent: this.settings.cachedContent,
           },
           warnings,
         };
       }
 
       case 'object-tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-tool mode',
-        });
-      }
-
-      case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-grammar mode',
-        });
+        return {
+          args: {
+            generationConfig,
+            contents,
+            tools: {
+              functionDeclarations: [
+                {
+                  name: mode.tool.name,
+                  description: mode.tool.description ?? '',
+                  parameters: prepareJsonSchema(mode.tool.parameters),
+                },
+              ],
+            },
+            toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+            safetySettings: this.settings.safetySettings,
+            cachedContent: this.settings.cachedContent,
+          },
+          warnings,
+        };
       }
 
       default: {

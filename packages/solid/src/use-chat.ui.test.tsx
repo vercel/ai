@@ -491,10 +491,110 @@ describe('form actions', () => {
     await userEvent.click(input);
     await userEvent.keyboard('{Enter}');
 
-    // Wait for the second AI response to complete
+    expect(screen.queryByTestId('message-2')).not.toBeInTheDocument();
+  });
+});
+
+describe('form actions (with options)', () => {
+  const TestComponent = () => {
+    const { messages, handleSubmit, handleInputChange, isLoading, input } =
+      useChat();
+
+    return (
+      <div>
+        <For each={messages()}>
+          {(m, idx) => (
+            <div data-testid={`message-${idx()}`}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          )}
+        </For>
+
+        <form
+          onSubmit={event => {
+            handleSubmit(event, {
+              allowEmptySubmit: true,
+            });
+          }}
+        >
+          <input
+            value={input()}
+            placeholder="Send message..."
+            onInput={handleInputChange}
+            disabled={isLoading()}
+            data-testid="do-input"
+          />
+        </form>
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(() => <TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('allowEmptySubmit', async () => {
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['Hello', ',', ' world', '.'].map(token =>
+        formatStreamPart('text', token),
+      ),
+    });
+
+    const input = screen.getByTestId('do-input');
+    await userEvent.type(input, 'hi');
+    await userEvent.keyboard('{Enter}');
+    expect(input).toHaveValue('');
+
+    // Wait for the user message to appear
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    // Wait for the AI response to complete
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
+        formatStreamPart('text', token),
+      ),
+    });
+
+    await userEvent.click(input);
+    await userEvent.keyboard('{Enter}');
+
     await screen.findByTestId('message-2');
     expect(screen.getByTestId('message-2')).toHaveTextContent(
       'AI: How can I help you?',
+    );
+
+    mockFetchDataStream({
+      url: 'https://example.com/api/chat',
+      chunks: ['The', ' sky', ' is', ' blue.'].map(token =>
+        formatStreamPart('text', token),
+      ),
+    });
+
+    await userEvent.type(input, 'what color is the sky?');
+    await userEvent.keyboard('{Enter}');
+
+    await screen.findByTestId('message-3');
+    expect(screen.getByTestId('message-3')).toHaveTextContent(
+      'User: what color is the sky?',
+    );
+
+    await screen.findByTestId('message-4');
+    expect(screen.getByTestId('message-4')).toHaveTextContent(
+      'AI: The sky is blue.',
     );
   });
 });

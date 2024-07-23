@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.37
+
+### Patch Changes
+
+- 89947fc5: chore (provider/openai): update model list for type-ahead support
+
 ## 0.0.36
 
 ### Patch Changes

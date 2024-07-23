@@ -12,7 +12,7 @@ One approach to implementing agents is to allow the LLM to choose the next step 
 With `generateText`, you can combine [tools](/docs/ai-sdk-core/tools-and-tool-calling) with `maxToolRoundtrips`.
 This makes it possible to implement basic agents that reason at each step and make decisions based on the context.
 
-## Example
+### Example
 
 This example demonstrates how to create an agent that solves math problems.
 It has a calculator tool (using [math.js](https://mathjs.org/)) that it can call to evaluate mathematical expressions.
@@ -54,4 +54,20 @@ const { text: answer } = await generateText({
 });
 
 console.log(`ANSWER: ${answer}`);
+```
+
+## Accessing information from all roundtrips
+
+Calling `generateText` with `maxToolRoundtrips` can result in several calls to the LLM (roundtrips).
+You can access information from all roundtrips by using the `roundtrips` property of the response.
+
+```ts
+const { roundtrips } = await generateText({
+  model: openai('gpt-4-turbo'),
+  maxToolRoundtrips: 10,
+  // ...
+});
+
+// extract all tool calls from the roundtrips:
+const allToolCalls = roundtrips.flatMap(roundtrip => roundtrip.toolCalls);
 ```

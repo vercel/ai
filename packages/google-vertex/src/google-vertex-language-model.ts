@@ -49,14 +49,17 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   }
 
   private async getArgs({
-    prompt,
     mode,
-    frequencyPenalty,
-    presencePenalty,
-    seed,
+    prompt,
     maxTokens,
     temperature,
     topP,
+    topK,
+    frequencyPenalty,
+    presencePenalty,
+    stopSequences,
+    responseFormat,
+    seed,
     headers,
   }: LanguageModelV1CallOptions) {
     const warnings: LanguageModelV1CallWarning[] = [];
@@ -89,14 +92,23 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (responseFormat != null && responseFormat.type !== 'text') {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'responseFormat',
+        details: 'JSON response format is not supported.',
+      });
+    }
+
     const generationConfig: GenerationConfig = {
       // model specific settings:
-      topK: this.settings.topK,
+      topK: topK ?? this.settings.topK,
 
       // standardized settings:
       maxOutputTokens: maxTokens,
       temperature,
       topP,
+      stopSequences,
     };
 
     const type = mode.type;
@@ -126,12 +138,6 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       case 'object-tool': {
         throw new UnsupportedFunctionalityError({
           functionality: 'object-tool mode',
-        });
-      }
-
-      case 'object-grammar': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-grammar mode',
         });
       }
 

@@ -114,17 +114,54 @@ there is one tool invocation. While the call is in progress, the invocation is a
 Once the call is complete, the invocation is a tool result.
  */
 export type ToolInvocation =
-  | CoreToolCall<string, any>
-  | CoreToolResult<string, any, any>;
+  | ({ state: 'partial-call' } & CoreToolCall<string, any>)
+  | ({ state: 'call' } & CoreToolCall<string, any>)
+  | ({ state: 'result' } & CoreToolResult<string, any, any>);
+
+/**
+ * An attachment that can be sent along with a message.
+ */
+export interface Attachment {
+  /**
+   * The name of the attachment, usually the file name.
+   */
+  name?: string;
+
+  /**
+   * A string indicating the [media type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type).
+   * By default, it's extracted from the pathname's extension.
+   */
+  contentType?: string;
+
+  /**
+   * The URL of the attachment. It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
+   */
+  url: string;
+}
 
 /**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
 export interface Message {
+  /**
+A unique identifier for the message.
+   */
   id: string;
+
+  /**
+The timestamp of the message.
+   */
   createdAt?: Date;
 
+  /**
+Text content of the message.
+   */
   content: string;
+
+  /**
+   * Additional attachments to be sent along with the message.
+   */
+  experimental_attachments?: Attachment[];
 
   /**
    * @deprecated Use AI SDK 3.1 `toolInvocations` instead.
@@ -283,6 +320,16 @@ Additional data to be sent to the API endpoint.
   data?: JSONValue;
 
   /**
+   * Additional files to be sent to the server.
+   */
+  experimental_attachments?: FileList | Array<Attachment>;
+
+  /**
+   * Allow submitting an empty message. Defaults to `false`.
+   */
+  allowEmptySubmit?: boolean;
+
+  /**
 The options to be passed to the fetch call.
 
 @deprecated use `headers` and `body` directly
@@ -311,6 +358,14 @@ The options to be passed to the fetch call.
 };
 
 export type UseChatOptions = {
+  /**
+Keeps the last message when an error happens. This will be the default behavior
+starting with the next major release.
+The flag was introduced for backwards compatibility and currently defaults to `false`.
+Please enable it and update your error handling/resubmit behavior.
+   */
+  keepLastMessageOnError?: boolean;
+
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
    * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
