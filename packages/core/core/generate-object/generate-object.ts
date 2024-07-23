@@ -14,7 +14,7 @@ import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import { calculateCompletionTokenUsage } from '../types/token-usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
-import { JsonSchema, isSchema, zodSchema } from '../util/schema';
+import { Schema, isSchema, zodSchema } from '../util/schema';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 
@@ -80,7 +80,7 @@ The language model to use.
     /**
 The schema of the object that the model should generate.
      */
-    schema: z.Schema<T> | JsonSchema<T>;
+    schema: z.Schema<T> | Schema<T>;
 
     /**
 The mode to use for object generation.
