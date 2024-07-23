@@ -1,7 +1,11 @@
 import { Embedding } from '../types';
 import { EmbeddingTokenUsage } from '../types/token-usage';
 
-export type EmbedResult<VALUE> = {
+/**
+The result of a `embed` call.
+It contains the embedding, the value, and additional information.
+ */
+export interface EmbedResult<VALUE> {
   /**
   The value that was embedded.
      */
@@ -26,4 +30,4 @@ export type EmbedResult<VALUE> = {
        */
     headers?: Record<string, string>;
   };
-};
+}
