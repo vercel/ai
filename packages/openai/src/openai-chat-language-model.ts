@@ -367,17 +367,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               logprobs.push(...mappedLogprobs);
             }
 
-            let mappedToolCalls: typeof delta.tool_calls;
-            if (useLegacyFunctionCalling && delta.function_call != null) {
-              mappedToolCalls = [
-                {
-                  function: delta.function_call,
-                  index: 0,
-                },
-              ];
-            } else {
-              mappedToolCalls = delta.tool_calls;
-            }
+            const mappedToolCalls: typeof delta.tool_calls =
+              useLegacyFunctionCalling && delta.function_call != null
+                ? [
+                    {
+                      type: 'function',
+                      id: generateId(),
+                      function: delta.function_call,
+                      index: 0,
+                    },
+                  ]
+                : delta.tool_calls;
 
             if (mappedToolCalls != null) {
               for (const toolCallDelta of mappedToolCalls) {
