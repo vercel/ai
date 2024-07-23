@@ -12,4 +12,5 @@ export * from './post-to-api';
 export * from './response-handler';
 export * from './uint8-utils';
 export * from './validate-types';
+export * from './validator';
 export * from './without-trailing-slash';
