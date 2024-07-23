@@ -1,6 +1,5 @@
 import { Attributes } from '@opentelemetry/api';
 import { CallSettings } from '../prompt/call-settings';
-import { LanguageModel } from '../types/language-model';
 import { TelemetrySettings } from './telemetry-settings';
 
 export function getBaseTelemetryAttributes({
@@ -11,7 +10,7 @@ export function getBaseTelemetryAttributes({
   headers,
 }: {
   operationName: string;
-  model: LanguageModel;
+  model: { modelId: string; provider: string };
   settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
   telemetry: TelemetrySettings | undefined;
   headers: Record<string, string | undefined> | undefined;
