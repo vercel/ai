@@ -28,7 +28,7 @@ export interface GenerateObjectResult<T> {
   /**
   Optional raw response data.
      */
-  rawResponse?: {
+  readonly rawResponse?: {
     /**
   Response headers.
    */
