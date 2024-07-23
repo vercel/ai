@@ -1,10 +1,10 @@
-import { Embedding, EmbeddingModel } from '../types';
-import { EmbeddingTokenUsage } from '../types/token-usage';
+import { EmbeddingModel } from '../types';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { splitArray } from '../util/split-array';
+import { EmbedManyResult } from './embed-many-result';
 
 /**
-Embed several values using an embedding model. The type of the value is defined 
+Embed several values using an embedding model. The type of the value is defined
 by the embedding model.
 
 `embedMany` automatically splits large requests into smaller chunks if the model
@@ -64,7 +64,7 @@ Only applicable for HTTP-based providers.
       model.doEmbed({ values, abortSignal, headers }),
     );
 
-    return new EmbedManyResult({
+    return new DefaultEmbedManyResult({
       values,
       embeddings: modelResponse.embeddings,
       usage: modelResponse.usage ?? { tokens: NaN },
@@ -86,33 +86,18 @@ Only applicable for HTTP-based providers.
     tokens += modelResponse.usage?.tokens ?? NaN;
   }
 
-  return new EmbedManyResult({ values, embeddings, usage: { tokens } });
+  return new DefaultEmbedManyResult({ values, embeddings, usage: { tokens } });
 }
 
-/**
-The result of a `embedMany` call.
-It contains the embeddings, the values, and additional information.
- */
-export class EmbedManyResult<VALUE> {
-  /**
-The values that were embedded.
-   */
-  readonly values: Array<VALUE>;
-
-  /**
-The embeddings. They are in the same order as the values.
-  */
-  readonly embeddings: Array<Embedding>;
-
-  /**
-The embedding token usage.
-  */
-  readonly usage: EmbeddingTokenUsage;
+class DefaultEmbedManyResult<VALUE> implements EmbedManyResult<VALUE> {
+  readonly values: EmbedManyResult<VALUE>['values'];
+  readonly embeddings: EmbedManyResult<VALUE>['embeddings'];
+  readonly usage: EmbedManyResult<VALUE>['usage'];
 
   constructor(options: {
-    values: Array<VALUE>;
-    embeddings: Array<Embedding>;
-    usage: EmbeddingTokenUsage;
+    values: EmbedManyResult<VALUE>['values'];
+    embeddings: EmbedManyResult<VALUE>['embeddings'];
+    usage: EmbedManyResult<VALUE>['usage'];
   }) {
     this.values = options.values;
     this.embeddings = options.embeddings;

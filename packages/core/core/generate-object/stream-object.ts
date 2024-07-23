@@ -15,7 +15,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
-import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
+import { CallWarning, LanguageModel } from '../types';
 import {
   CompletionTokenUsage,
   calculateCompletionTokenUsage,
@@ -25,10 +25,15 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
+import { DelayedPromise } from '../util/delayed-promise';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
-import { DelayedPromise } from '../util/delayed-promise';
+import {
+  ObjectStreamInputPart,
+  ObjectStreamPart,
+  StreamObjectResult,
+} from './stream-object-result';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -143,7 +148,7 @@ Warnings from the model provider (e.g. unsupported settings).
        */
       warnings?: CallWarning[];
     }) => Promise<void> | void;
-  }): Promise<StreamObjectResult<T>> {
+  }): Promise<DefaultStreamObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
   const jsonSchema = convertZodToJSONSchema(schema);
 
@@ -245,7 +250,7 @@ Warnings from the model provider (e.g. unsupported settings).
 
   const result = await retry(() => model.doStream(callOptions));
 
-  return new StreamObjectResult({
+  return new DefaultStreamObjectResult({
     stream: result.stream.pipeThrough(new TransformStream(transformer)),
     warnings: result.warnings,
     rawResponse: result.rawResponse,
@@ -254,59 +259,13 @@ Warnings from the model provider (e.g. unsupported settings).
   });
 }
 
-export type ObjectStreamInputPart =
-  | {
-      type: 'error';
-      error: unknown;
-    }
-  | {
-      type: 'finish';
-      finishReason: FinishReason;
-      logprobs?: LogProbs;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
-    };
-
-export type ObjectStreamPart<T> =
-  | ObjectStreamInputPart
-  | {
-      type: 'object';
-      object: DeepPartial<T>;
-    }
-  | {
-      type: 'text-delta';
-      textDelta: string;
-    };
-
-/**
-The result of a `streamObject` call that contains the partial object stream and additional information.
- */
-export class StreamObjectResult<T> {
+class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
   private readonly originalStream: ReadableStream<ObjectStreamPart<T>>;
   private readonly objectPromise: DelayedPromise<T>;
 
-  /**
-Warnings from the model provider (e.g. unsupported settings)
-   */
-  readonly warnings: CallWarning[] | undefined;
-
-  /**
-The token usage of the generated response. Resolved when the response is finished.
-   */
-  readonly usage: Promise<CompletionTokenUsage>;
-
-  /**
-Optional raw response data.
-   */
-  rawResponse?: {
-    /**
-Response headers.
- */
-    headers?: Record<string, string>;
-  };
+  readonly warnings: StreamObjectResult<T>['warnings'];
+  readonly usage: StreamObjectResult<T>['usage'];
+  readonly rawResponse: StreamObjectResult<T>['rawResponse'];
 
   constructor({
     stream,
@@ -318,10 +277,8 @@ Response headers.
     stream: ReadableStream<
       string | Omit<LanguageModelV1StreamPart, 'text-delta'>
     >;
-    warnings: CallWarning[] | undefined;
-    rawResponse?: {
-      headers?: Record<string, string>;
-    };
+    warnings: StreamObjectResult<T>['warnings'];
+    rawResponse?: StreamObjectResult<T>['rawResponse'];
     schema: z.Schema<T>;
     onFinish: Parameters<typeof streamObject<T>>[0]['onFinish'];
   }) {
@@ -446,19 +403,10 @@ Response headers.
     );
   }
 
-  /**
-The generated object (typed according to the schema). Resolved when the response is finished.
-   */
   get object(): Promise<T> {
     return this.objectPromise.value;
   }
 
-  /**
-Stream of partial objects. It gets more complete as the stream progresses.
-
-Note that the partial object is not validated.
-If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.
-   */
   get partialObjectStream(): AsyncIterableStream<DeepPartial<T>> {
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
@@ -484,10 +432,6 @@ If you want to be certain that the actual content matches your schema, you need 
     });
   }
 
-  /**
-Text stream of the JSON representation of the generated object. It contains text chunks.
-When the stream is finished, the object is valid JSON that can be parsed.
-   */
   get textStream(): AsyncIterableStream<string> {
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
@@ -513,10 +457,6 @@ When the stream is finished, the object is valid JSON that can be parsed.
     });
   }
 
-  /**
-Stream of different types of events, including partial objects, errors, and finish events.
-Only errors that stop the stream, such as network errors, are thrown.
-   */
   get fullStream(): AsyncIterableStream<ObjectStreamPart<T>> {
     return createAsyncIterableStream(this.originalStream, {
       transform(chunk, controller) {
@@ -525,14 +465,6 @@ Only errors that stop the stream, such as network errors, are thrown.
     });
   }
 
-  /**
-Writes text delta output to a Node.js response-like object.
-It sets a `Content-Type` header to `text/plain; charset=utf-8` and
-writes each text delta as a separate chunk.
-
-@param response A Node.js response-like object (ServerResponse).
-@param init Optional headers and status code.
-   */
   pipeTextStreamToResponse(
     response: ServerResponse,
     init?: { headers?: Record<string, string>; status?: number },
@@ -563,14 +495,6 @@ writes each text delta as a separate chunk.
     read();
   }
 
-  /**
-Creates a simple text stream response.
-The response has a `Content-Type` header set to `text/plain; charset=utf-8`.
-Each text delta is encoded as UTF-8 and sent as a separate chunk.
-Non-text-delta events are ignored.
-
-@param init Optional headers and status code.
-   */
   toTextStreamResponse(init?: ResponseInit): Response {
     return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
       status: init?.status ?? 200,

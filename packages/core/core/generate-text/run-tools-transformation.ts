@@ -4,7 +4,7 @@ import { Tracer } from '@opentelemetry/api';
 import { recordSpan } from '../telemetry/record-span';
 import { CoreTool } from '../tool';
 import { calculateCompletionTokenUsage } from '../types/token-usage';
-import { TextStreamPart } from './stream-text';
+import { TextStreamPart } from './stream-text-result';
 import { parseToolCall } from './tool-call';
 
 export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({

@@ -1,6 +1,6 @@
-import { Embedding, EmbeddingModel } from '../types';
-import { EmbeddingTokenUsage } from '../types/token-usage';
+import { EmbeddingModel } from '../types';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
+import { EmbedResult } from './embed-result';
 
 /**
 Embed a value using an embedding model. The type of the value is defined by the embedding model.
@@ -55,7 +55,7 @@ Only applicable for HTTP-based providers.
     model.doEmbed({ values: [value], abortSignal, headers }),
   );
 
-  return new EmbedResult({
+  return new DefaultEmbedResult({
     value,
     embedding: modelResponse.embeddings[0],
     usage: modelResponse.usage ?? { tokens: NaN },
@@ -63,41 +63,17 @@ Only applicable for HTTP-based providers.
   });
 }
 
-/**
-The result of a `embed` call.
-It contains the embedding, the value, and additional information.
- */
-export class EmbedResult<VALUE> {
-  /**
-The value that was embedded.
-   */
-  readonly value: VALUE;
-
-  /**
-The embedding of the value.
-  */
-  readonly embedding: Embedding;
-
-  /**
-The embedding token usage.
-  */
-  readonly usage: EmbeddingTokenUsage;
-
-  /**
-Optional raw response data.
-   */
-  readonly rawResponse?: {
-    /**
-Response headers.
-     */
-    headers?: Record<string, string>;
-  };
+class DefaultEmbedResult<VALUE> implements EmbedResult<VALUE> {
+  readonly value: EmbedResult<VALUE>['value'];
+  readonly embedding: EmbedResult<VALUE>['embedding'];
+  readonly usage: EmbedResult<VALUE>['usage'];
+  readonly rawResponse: EmbedResult<VALUE>['rawResponse'];
 
   constructor(options: {
-    value: VALUE;
-    embedding: Embedding;
-    usage: EmbeddingTokenUsage;
-    rawResponse?: { headers?: Record<string, string> };
+    value: EmbedResult<VALUE>['value'];
+    embedding: EmbedResult<VALUE>['embedding'];
+    usage: EmbedResult<VALUE>['usage'];
+    rawResponse?: EmbedResult<VALUE>['rawResponse'];
   }) {
     this.value = options.value;
     this.embedding = options.embedding;

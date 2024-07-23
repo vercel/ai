@@ -14,18 +14,13 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool/tool';
-import {
-  CallWarning,
-  CoreToolChoice,
-  FinishReason,
-  LanguageModel,
-  LogProbs,
-} from '../types';
+import { CoreToolChoice, LanguageModel } from '../types';
 import {
   CompletionTokenUsage,
   calculateCompletionTokenUsage,
 } from '../types/token-usage';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
+import { GenerateTextResult } from './generate-text-result';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
 
@@ -277,7 +272,7 @@ By default, it's set to 0, which will disable the feature.
         'ai.result.toolCalls': JSON.stringify(currentModelResponse.toolCalls),
       });
 
-      return new GenerateTextResult({
+      return new DefaultGenerateTextResult({
         // Always return a string so that the caller doesn't have to check for undefined.
         // If they need to check if the model did not return any text,
         // they can check the length of the string:
@@ -353,117 +348,19 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
   );
 }
 
-/**
-The result of a `generateText` call.
-It contains the generated text, the tool calls that were made during the generation, and the results of the tool calls.
- */
-export class GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
-  /**
-The generated text.
-   */
-  readonly text: string;
-
-  /**
-The tool calls that were made during the generation.
-   */
-  readonly toolCalls: ToToolCallArray<TOOLS>;
-
-  /**
-The results of the tool calls.
-   */
-  readonly toolResults: ToToolResultArray<TOOLS>;
-
-  /**
-The reason why the generation finished.
-   */
-  readonly finishReason: FinishReason;
-
-  /**
-The token usage of the generated text.
-   */
-  readonly usage: CompletionTokenUsage;
-
-  /**
-Warnings from the model provider (e.g. unsupported settings)
-   */
-  readonly warnings: CallWarning[] | undefined;
-
-  /**
-The response messages that were generated during the call. It consists of an assistant message,
-potentially containing tool calls.
-When there are tool results, there is an additional tool message with the tool results that are available.
-If there are tools that do not have execute functions, they are not included in the tool results and
-need to be added separately.
-   */
-  readonly responseMessages: Array<CoreAssistantMessage | CoreToolMessage>;
-
-  /**
-Response information for every roundtrip.
-You can use this to get information about intermediate steps, such as the tool calls or the response headers.
-   */
-  readonly roundtrips: Array<{
-    /**
-The generated text.
-   */
-    readonly text: string;
-
-    /**
-The tool calls that were made during the generation.
- */
-    readonly toolCalls: ToToolCallArray<TOOLS>;
-
-    /**
-The results of the tool calls.
- */
-    readonly toolResults: ToToolResultArray<TOOLS>;
-
-    /**
-The reason why the generation finished.
-   */
-    readonly finishReason: FinishReason;
-
-    /**
-The token usage of the generated text.
- */
-    readonly usage: CompletionTokenUsage;
-
-    /**
-Warnings from the model provider (e.g. unsupported settings)
-   */
-    readonly warnings: CallWarning[] | undefined;
-
-    /**
-Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if was not enabled.
-   */
-    readonly logprobs: LogProbs | undefined;
-
-    /**
-  Optional raw response data.
-     */
-    readonly rawResponse?: {
-      /**
-  Response headers.
-     */
-      readonly headers?: Record<string, string>;
-    };
-  }>;
-
-  /**
-Optional raw response data.
-   */
-  readonly rawResponse?: {
-    /**
-Response headers.
-   */
-    readonly headers?: Record<string, string>;
-  };
-
-  /**
-Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if was not enabled.
-   */
-  readonly logprobs: LogProbs | undefined;
+class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
+  implements GenerateTextResult<TOOLS>
+{
+  readonly text: GenerateTextResult<TOOLS>['text'];
+  readonly toolCalls: GenerateTextResult<TOOLS>['toolCalls'];
+  readonly toolResults: GenerateTextResult<TOOLS>['toolResults'];
+  readonly finishReason: GenerateTextResult<TOOLS>['finishReason'];
+  readonly usage: GenerateTextResult<TOOLS>['usage'];
+  readonly warnings: GenerateTextResult<TOOLS>['warnings'];
+  readonly responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
+  readonly roundtrips: GenerateTextResult<TOOLS>['roundtrips'];
+  readonly rawResponse: GenerateTextResult<TOOLS>['rawResponse'];
+  readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
 
   constructor(options: {
     text: GenerateTextResult<TOOLS>['text'];
