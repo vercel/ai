@@ -6,8 +6,8 @@ import {
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { CoreTool } from '../tool';
 import { inferParameters } from '../tool/tool';
+import { Schema, asSchema } from '../util/schema';
 import { ValueOf } from '../util/value-of';
-import { Schema, isSchema, zodSchema } from '../util/schema';
 
 /**
 Typed tool call that is returned by generateText and streamText.
@@ -66,13 +66,9 @@ export function parseToolCall<TOOLS extends Record<string, CoreTool>>({
     });
   }
 
-  const parameters = isSchema(tool.parameters)
-    ? tool.parameters
-    : zodSchema(tool.parameters);
-
   const parseResult = safeParseJSON({
     text: toolCall.args,
-    schema: parameters as Schema<
+    schema: asSchema(tool.parameters) as Schema<
       inferParameters<TOOLS[keyof TOOLS]['parameters']>
     >,
   });

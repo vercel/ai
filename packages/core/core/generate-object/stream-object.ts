@@ -27,7 +27,7 @@ import {
 import { DelayedPromise } from '../util/delayed-promise';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
-import { Schema, isSchema, zodSchema } from '../util/schema';
+import { Schema, asSchema } from '../util/schema';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 import {
   ObjectStreamInputPart,
@@ -151,7 +151,7 @@ Warnings from the model provider (e.g. unsupported settings).
   }): Promise<DefaultStreamObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
 
-  const schema = isSchema(inputSchema) ? inputSchema : zodSchema(inputSchema);
+  const schema = asSchema(inputSchema);
 
   // use the default provider mode when the mode is set to 'auto' or unspecified
   if (mode === 'auto' || mode == null) {

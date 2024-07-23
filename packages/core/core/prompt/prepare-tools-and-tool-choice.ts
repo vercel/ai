@@ -4,8 +4,8 @@ import {
 } from '@ai-sdk/provider';
 import { CoreTool } from '../tool/tool';
 import { CoreToolChoice } from '../types/language-model';
-import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
+import { asSchema } from '../util/schema';
 
 export function prepareToolsAndToolChoice<
   TOOLS extends Record<string, CoreTool>,
@@ -31,7 +31,7 @@ export function prepareToolsAndToolChoice<
       type: 'function' as const,
       name,
       description: tool.description,
-      parameters: convertZodToJSONSchema(tool.parameters),
+      parameters: asSchema(tool.parameters).jsonSchema,
     })),
     toolChoice:
       toolChoice == null

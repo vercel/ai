@@ -14,7 +14,7 @@ import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import { calculateCompletionTokenUsage } from '../types/token-usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
-import { Schema, isSchema, zodSchema } from '../util/schema';
+import { Schema, asSchema } from '../util/schema';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 
@@ -110,7 +110,7 @@ Default and recommended: 'auto' (best mode for the model).
     settings: { ...settings, maxRetries },
   });
 
-  const schema = isSchema(inputSchema) ? inputSchema : zodSchema(inputSchema);
+  const schema = asSchema(inputSchema);
 
   const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
   return recordSpan({

@@ -50,7 +50,7 @@ export function jsonSchema<OBJECT>(
   };
 }
 
-export function isSchema(value: unknown): value is Schema {
+function isSchema(value: unknown): value is Schema {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -59,6 +59,12 @@ export function isSchema(value: unknown): value is Schema {
     'jsonSchema' in value &&
     'validate' in value
   );
+}
+
+export function asSchema<OBJECT>(
+  schema: z.Schema<OBJECT> | Schema<OBJECT>,
+): Schema<OBJECT> {
+  return isSchema(schema) ? schema : zodSchema(schema);
 }
 
 export function zodSchema<OBJECT>(zodSchema: z.Schema<OBJECT>): Schema<OBJECT> {
