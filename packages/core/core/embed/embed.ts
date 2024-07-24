@@ -1,3 +1,7 @@
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getTracer } from '../telemetry/get-tracer';
+import { recordSpan } from '../telemetry/record-span';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel } from '../types';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { EmbedResult } from './embed-result';
@@ -20,6 +24,7 @@ export async function embed<VALUE>({
   maxRetries,
   abortSignal,
   headers,
+  experimental_telemetry: telemetry,
 }: {
   /**
 The embedding model to use.
@@ -48,18 +53,76 @@ Additional headers to include in the request.
 Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
+
+  /**
+   * Optional telemetry configuration (experimental).
+   */
+  experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedResult<VALUE>> {
-  const retry = retryWithExponentialBackoff({ maxRetries });
+  const baseTelemetryAttributes = getBaseTelemetryAttributes({
+    operationName: 'ai.embed',
+    model,
+    telemetry,
+    headers,
+    settings: { maxRetries },
+  });
 
-  const modelResponse = await retry(() =>
-    model.doEmbed({ values: [value], abortSignal, headers }),
-  );
+  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
 
-  return new DefaultEmbedResult({
-    value,
-    embedding: modelResponse.embeddings[0],
-    usage: modelResponse.usage ?? { tokens: NaN },
-    rawResponse: modelResponse.rawResponse,
+  return recordSpan({
+    name: 'ai.embed',
+    attributes: {
+      ...baseTelemetryAttributes,
+      // specific settings that only make sense on the outer level:
+      'ai.value': JSON.stringify(value),
+    },
+    tracer,
+    fn: async span => {
+      const retry = retryWithExponentialBackoff({ maxRetries });
+
+      const { embedding, usage, rawResponse } = await retry(() =>
+        // nested spans to align with the embedMany telemetry data:
+        recordSpan({
+          name: 'ai.embed.doEmbed',
+          attributes: {
+            ...baseTelemetryAttributes,
+            // specific settings that only make sense on the outer level:
+            'ai.values': [JSON.stringify(value)],
+          },
+          tracer,
+          fn: async doEmbedSpan => {
+            const modelResponse = await model.doEmbed({
+              values: [value],
+              abortSignal,
+              headers,
+            });
+
+            const embedding = modelResponse.embeddings[0];
+            const usage = modelResponse.usage ?? { tokens: NaN };
+
+            doEmbedSpan.setAttributes({
+              'ai.embeddings': modelResponse.embeddings.map(embedding =>
+                JSON.stringify(embedding),
+              ),
+              'ai.usage.tokens': usage.tokens,
+            });
+
+            return {
+              embedding,
+              usage,
+              rawResponse: modelResponse.rawResponse,
+            };
+          },
+        }),
+      );
+
+      span.setAttributes({
+        'ai.embedding': JSON.stringify(embedding),
+        'ai.usage.tokens': usage.tokens,
+      });
+
+      return new DefaultEmbedResult({ value, embedding, usage, rawResponse });
+    },
   });
 }
 
