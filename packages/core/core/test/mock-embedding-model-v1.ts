@@ -21,13 +21,15 @@ export class MockEmbeddingModelV1<VALUE> implements EmbeddingModelV1<VALUE> {
   }: {
     provider?: EmbeddingModelV1<VALUE>['provider'];
     modelId?: EmbeddingModelV1<VALUE>['modelId'];
-    maxEmbeddingsPerCall?: EmbeddingModelV1<VALUE>['maxEmbeddingsPerCall'];
+    maxEmbeddingsPerCall?:
+      | EmbeddingModelV1<VALUE>['maxEmbeddingsPerCall']
+      | null;
     supportsParallelCalls?: EmbeddingModelV1<VALUE>['supportsParallelCalls'];
     doEmbed?: EmbeddingModelV1<VALUE>['doEmbed'];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;
-    this.maxEmbeddingsPerCall = maxEmbeddingsPerCall;
+    this.maxEmbeddingsPerCall = maxEmbeddingsPerCall ?? undefined;
     this.supportsParallelCalls = supportsParallelCalls;
     this.doEmbed = doEmbed;
   }
