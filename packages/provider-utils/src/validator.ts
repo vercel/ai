@@ -17,7 +17,7 @@ export type Validator<OBJECT = unknown> = {
    */
   readonly validate?: (
     value: unknown,
-  ) => { success: true; value: OBJECT } | { success: false; error: unknown };
+  ) => { success: true; value: OBJECT } | { success: false; error: Error };
 };
 
 /**
@@ -28,7 +28,7 @@ export type Validator<OBJECT = unknown> = {
 export function validator<OBJECT>(
   validate: (
     value: unknown,
-  ) => { success: true; value: OBJECT } | { success: false; error: unknown },
+  ) => { success: true; value: OBJECT } | { success: false; error: Error },
 ): Validator<OBJECT> {
   return { [validatorSymbol]: true, validate };
 }
