@@ -13,4 +13,29 @@ Allows you to stream additional data to the client.
 
 <Snippet text={`import { streamData } from "ai"`} prompt={false} />
 
-<ReferenceTable packageName="streams" functionName="streamData" />
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'value',
+      type: 'any',
+      description: 'Any data',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'stream',
+      type: '',
+      description:
+        'A special value that can be streamed to the client. It can be accessed through the data field in useChat and useCompletion hooks.',
+    },
+  ]}
+/>

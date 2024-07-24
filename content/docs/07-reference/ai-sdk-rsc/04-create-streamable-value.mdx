@@ -14,4 +14,29 @@ Create a stream that sends values from the server to the client. The value can b
   prompt={false}
 />
 
-<ReferenceTable packageName="rsc" functionName="createStreamableValue" />
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'value',
+      type: 'any',
+      description: 'Any data that RSC supports. Example, JSON.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'value',
+      type: 'streamable',
+      description:
+        'This creates a special value that can be returned from Actions to the client. It holds the data inside and can be updated via the update method.',
+    },
+  ]}
+/>

@@ -45,12 +45,14 @@ The `experimental_createProviderRegistry` function returns a `experimental_Provi
     {
       name: 'languageModel',
       type: '(id: string) => LanguageModel',
-      description: `A function that returns a language model by its id (format: providerId:modelId)`,
+      description:
+        'A function that returns a language model by its id (format: providerId:modelId)',
     },
     {
       name: 'textEmbeddingModel',
       type: '(id: string) => EmbeddingModel<string>',
-      description: `A function that returns a text embedding model by its id (format: providerId:modelId)`,
+      description:
+        'A function that returns a text embedding model by its id (format: providerId:modelId)',
     },
   ]}
 />

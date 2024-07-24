@@ -45,7 +45,7 @@ for await (const partialObject of partialObjectStream) {
     {
       name: 'model',
       type: 'LanguageModel',
-      description: `The language model to use. Example: openai('gpt-4-turbo')`,
+      description: "The language model to use. Example: openai('gpt-4-turbo')",
     },
     {
       name: 'mode',
@@ -275,7 +275,8 @@ for await (const partialObject of partialObjectStream) {
       name: 'topK',
       type: 'number',
       isOptional: true,
-      description: `Only sample from the top K options for each subsequent token. Used to remove "long tail" low probability responses. Recommended for advanced use cases only. You usually only need to use temperature.`,
+      description:
+        'Only sample from the top K options for each subsequent token. Used to remove "long tail" low probability responses. Recommended for advanced use cases only. You usually only need to use temperature.',
     },
     {
       name: 'presencePenalty',
