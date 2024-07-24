@@ -50,16 +50,20 @@ export default function Page() {
 }
 ```
 
-<ObjectTableList
-  content={{
-    Parameters: [
-      {
-        name: 'stream',
-        type: 'StreamableValue',
-        description: 'The streamable value to read from.',
-      },
-    ],
-    Response:
-      'It returns an async iterator that contains the values emitted by the streamable value.',
-  }}
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'stream',
+      type: 'StreamableValue',
+      description: 'The streamable value to read from.',
+    },
+  ]}
 />
+
+### Returns
+
+It returns an async iterator that contains the values emitted by the streamable value.

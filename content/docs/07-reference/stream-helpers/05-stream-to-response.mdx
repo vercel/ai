@@ -18,55 +18,6 @@ By default, the status code is set to 200 and the Content-Type header is set to 
 
 <Snippet text={`import { streamToResponse } from "ai"`} prompt={false} />
 
-<ObjectTableList
-  content={{
-    Parameters: [
-      {
-        name: 'stream',
-        type: 'ReadableStream',
-        description:
-          'The Web Stream to pipe to the response. It can be the return value of OpenAIStream, HuggingFaceStream, AnthropicStream, or an AIStream instance.',
-      },
-      {
-        name: 'response',
-        type: 'ServerResponse',
-        description:
-          'The Node.js ServerResponse object to pipe the stream to. This is usually the second argument of a Node.js HTTP request handler.',
-      },
-      {
-        name: 'options',
-        type: 'Options',
-        description: 'Configure the response',
-        properties: [
-          {
-            type: 'Options',
-            parameters: [
-              {
-                name: 'status',
-                type: 'number',
-                description:
-                  'The status code to set on the response. Defaults to `200`.',
-              },
-              {
-                name: 'headers',
-                type: 'Record<string, string>',
-                description:
-                  "Additional headers to set on the response. Defaults to `{ 'Content-Type': 'text/plain; charset=utf-8' }`.",
-              },
-            ],
-          },
-        ],
-      },
-      {
-        name: 'data',
-        type: 'StreamData',
-        description:
-          'StreamData object for forwarding additional data to the client.',
-      },
-    ],
-  }}
-/>
-
 ## Example
 
 You can e.g. use `streamToResponse` to pipe an AI stream to a Node.js HTTP server response:
@@ -100,3 +51,54 @@ createServer(async (req, res) => {
   );
 }).listen(8080);
 ```
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'stream',
+      type: 'ReadableStream',
+      description:
+        'The Web Stream to pipe to the response. It can be the return value of OpenAIStream, HuggingFaceStream, AnthropicStream, or an AIStream instance.',
+    },
+    {
+      name: 'response',
+      type: 'ServerResponse',
+      description:
+        'The Node.js ServerResponse object to pipe the stream to. This is usually the second argument of a Node.js HTTP request handler.',
+    },
+    {
+      name: 'options',
+      type: 'Options',
+      description: 'Configure the response',
+      properties: [
+        {
+          type: 'Options',
+          parameters: [
+            {
+              name: 'status',
+              type: 'number',
+              description:
+                'The status code to set on the response. Defaults to `200`.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              description:
+                "Additional headers to set on the response. Defaults to `{ 'Content-Type': 'text/plain; charset=utf-8' }`.",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'data',
+      type: 'StreamData',
+      description:
+        'StreamData object for forwarding additional data to the client.',
+    },
+  ]}
+/>

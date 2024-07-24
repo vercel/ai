@@ -25,4 +25,59 @@ Currently, `</s>` and `<|endoftext|>` are recognized as end-of-stream tokens.
 
 <Snippet text={`import { HuggingFaceStream } from "ai"`} prompt={false} />
 
-<ReferenceTable packageName="streams" functionName="HuggingFaceStream" />
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'iter',
+      type: 'AsyncGenerator<any>',
+      description:
+        'This parameter should be the generator function returned by the hf.textGenerationStream method in the Hugging Face Inference SDK.',
+    },
+    {
+      name: 'callbacks',
+      type: 'AIStreamCallbacksAndOptions',
+      isOptional: true,
+      description:
+        'An object containing callback functions to handle the start, each token, and completion of the AI response. In the absence of this parameter, default behavior is implemented.',
+      properties: [
+        {
+          type: 'AIStreamCallbacksAndOptions',
+          parameters: [
+            {
+              name: 'onStart',
+              type: '() => Promise<void>',
+              description:
+                'An optional function that is called at the start of the stream processing.',
+            },
+            {
+              name: 'onCompletion',
+              type: '(completion: string) => Promise<void>',
+              description:
+                "An optional function that is called for every completion. It's passed the completion as a string.",
+            },
+            {
+              name: 'onFinal',
+              type: '(completion: string) => Promise<void>',
+              description:
+                'An optional function that is called once when the stream is closed with the final completion message.',
+            },
+            {
+              name: 'onToken',
+              type: '(token: string) => Promise<void>',
+              description:
+                "An optional function that is called for each token in the stream. It's passed the token as a string.",
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
+
+### Returns
+
+A `ReadableStream`.
