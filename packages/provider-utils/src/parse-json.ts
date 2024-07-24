@@ -2,6 +2,7 @@ import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 import SecureJSON from 'secure-json-parse';
 import { ZodSchema } from 'zod';
 import { safeValidateTypes, validateTypes } from './validate-types';
+import { Validator } from './validator';
 
 /**
  * Parses a JSON string into an unknown object.
@@ -15,7 +16,7 @@ export function parseJSON({ text }: { text: string }): unknown;
  *
  * @template T - The type of the object to parse the JSON into.
  * @param {string} text - The JSON string to parse.
- * @param {Schema<T>} schema - The schema to use for parsing the JSON.
+ * @param {Validator<T>} schema - The schema to use for parsing the JSON.
  * @returns {T} - The parsed object.
  */
 export function parseJSON<T>({
@@ -23,14 +24,14 @@ export function parseJSON<T>({
   schema,
 }: {
   text: string;
-  schema: ZodSchema<T>;
+  schema: ZodSchema<T> | Validator<T>;
 }): T;
 export function parseJSON<T>({
   text,
   schema,
 }: {
   text: string;
-  schema?: ZodSchema<T>;
+  schema?: ZodSchema<T> | Validator<T>;
 }): T {
   try {
     const value = SecureJSON.parse(text);
@@ -68,7 +69,7 @@ export function safeParseJSON({ text }: { text: string }): ParseResult<unknown>;
  *
  * @template T - The type of the object to parse the JSON into.
  * @param {string} text - The JSON string to parse.
- * @param {Schema<T>} schema - The schema to use for parsing the JSON.
+ * @param {Validator<T>} schema - The schema to use for parsing the JSON.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
 export function safeParseJSON<T>({
@@ -76,14 +77,14 @@ export function safeParseJSON<T>({
   schema,
 }: {
   text: string;
-  schema: ZodSchema<T>;
+  schema: ZodSchema<T> | Validator<T>;
 }): ParseResult<T>;
 export function safeParseJSON<T>({
   text,
   schema,
 }: {
   text: string;
-  schema?: ZodSchema<T>;
+  schema?: ZodSchema<T> | Validator<T>;
 }):
   | { success: true; value: T }
   | { success: false; error: JSONParseError | TypeValidationError } {
@@ -118,6 +119,6 @@ export function isParsableJson(input: string): boolean {
 }
 
 /**
-@deprecated Use `isParsableJson` instead.  
+@deprecated Use `isParsableJson` instead.
  */
 export const isParseableJson = isParsableJson;

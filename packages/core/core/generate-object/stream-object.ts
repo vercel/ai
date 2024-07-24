@@ -24,10 +24,10 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
-import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { DelayedPromise } from '../util/delayed-promise';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
+import { Schema, asSchema } from '../util/schema';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 import {
   ObjectStreamInputPart,
@@ -77,7 +77,7 @@ A result object for accessing the partial object stream and additional informati
  */
 export async function streamObject<T>({
   model,
-  schema,
+  schema: inputSchema,
   mode,
   system,
   prompt,
@@ -97,12 +97,12 @@ The language model to use.
     /**
 The schema of the object that the model should generate.
  */
-    schema: z.Schema<T>;
+    schema: z.Schema<T> | Schema<T>;
 
     /**
 The mode to use for object generation.
 
-The Zod schema is converted in a JSON schema and used in one of the following ways
+The schema is converted in a JSON schema and used in one of the following ways
 
 - 'auto': The provider will choose the best mode for the model.
 - 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
@@ -150,7 +150,8 @@ Warnings from the model provider (e.g. unsupported settings).
     }) => Promise<void> | void;
   }): Promise<DefaultStreamObjectResult<T>> {
   const retry = retryWithExponentialBackoff({ maxRetries });
-  const jsonSchema = convertZodToJSONSchema(schema);
+
+  const schema = asSchema(inputSchema);
 
   // use the default provider mode when the mode is set to 'auto' or unspecified
   if (mode === 'auto' || mode == null) {
@@ -166,7 +167,10 @@ Warnings from the model provider (e.g. unsupported settings).
   switch (mode) {
     case 'json': {
       const validatedPrompt = getValidatedPrompt({
-        system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
+        system: injectJsonSchemaIntoSystem({
+          system,
+          schema: schema.jsonSchema,
+        }),
         prompt,
         messages,
       });
@@ -211,7 +215,7 @@ Warnings from the model provider (e.g. unsupported settings).
             type: 'function',
             name: 'json',
             description: 'Respond with a JSON object.',
-            parameters: jsonSchema,
+            parameters: schema.jsonSchema,
           },
         },
         ...prepareCallSettings(settings),
@@ -279,7 +283,7 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
     >;
     warnings: StreamObjectResult<T>['warnings'];
     rawResponse?: StreamObjectResult<T>['rawResponse'];
-    schema: z.Schema<T>;
+    schema: z.Schema<T> | Schema<T>;
     onFinish: Parameters<typeof streamObject<T>>[0]['onFinish'];
   }) {
     this.warnings = warnings;

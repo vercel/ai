@@ -7,8 +7,9 @@ import {
 import assert from 'node:assert';
 import { z } from 'zod';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
-import { streamObject } from './stream-object';
 import { createMockServerResponse } from '../test/mock-server-response';
+import { jsonSchema } from '../util/schema';
+import { streamObject } from './stream-object';
 
 describe('result.objectStream', () => {
   it('should send object deltas with json mode', async () => {
@@ -699,6 +700,58 @@ describe('options.headers', () => {
       mode: 'json',
       prompt: 'prompt',
       headers: { 'custom-request-header': 'request-header-value' },
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.partialObjectStream),
+      [
+        {},
+        { content: 'Hello, ' },
+        { content: 'Hello, world' },
+        { content: 'Hello, world!' },
+      ],
+    );
+  });
+});
+
+describe('custom schema', () => {
+  it('should send object deltas with json mode', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, { type: 'object-json' });
+          assert.deepStrictEqual(prompt, [
+            {
+              role: 'system',
+              content:
+                'JSON schema:\n' +
+                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}\n' +
+                'You MUST answer with a JSON object that matches the JSON schema above.',
+            },
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: jsonSchema({
+        type: 'object',
+        properties: { content: { type: 'string' } },
+        required: ['content'],
+        additionalProperties: false,
+      }),
+      mode: 'json',
+      prompt: 'prompt',
     });
 
     assert.deepStrictEqual(

@@ -1,5 +1,6 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import { ZodSchema } from 'zod';
+import { Validator, isValidator, zodValidator } from './validator';
 
 /**
  * Validates the types of an unknown object using a schema and
@@ -7,21 +8,23 @@ import { ZodSchema } from 'zod';
  *
  * @template T - The type of the object to validate.
  * @param {string} options.value - The object to validate.
- * @param {Schema<T>} options.schema - The schema to use for validating the JSON.
+ * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
  * @returns {T} - The typed object.
  */
 export function validateTypes<T>({
   value,
-  schema,
+  schema: inputSchema,
 }: {
   value: unknown;
-  schema: ZodSchema<T>;
+  schema: ZodSchema<T> | Validator<T>;
 }): T {
-  try {
-    return schema.parse(value);
-  } catch (error) {
-    throw new TypeValidationError({ value, cause: error });
+  const result = safeValidateTypes({ value, schema: inputSchema });
+
+  if (!result.success) {
+    throw new TypeValidationError({ value, cause: result.error });
   }
+
+  return result.value;
 }
 
 /**
@@ -30,26 +33,31 @@ export function validateTypes<T>({
  *
  * @template T - The type of the object to validate.
  * @param {string} options.value - The JSON object to validate.
- * @param {Schema<T>} options.schema - The schema to use for validating the JSON.
+ * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
 export function safeValidateTypes<T>({
   value,
-  schema,
+  schema: inputSchema,
 }: {
   value: unknown;
-  schema: ZodSchema<T>;
+  schema: ZodSchema<T> | Validator<T>;
 }):
   | { success: true; value: T }
   | { success: false; error: TypeValidationError } {
+  const schema = isValidator(inputSchema)
+    ? inputSchema
+    : zodValidator(inputSchema);
+
   try {
-    const validationResult = schema.safeParse(value);
+    if (schema.validate == null) {
+      return { success: true, value: value as T };
+    }
+
+    const validationResult = schema.validate(value);
 
     if (validationResult.success) {
-      return {
-        success: true,
-        value: validationResult.data,
-      };
+      return validationResult;
     }
 
     return {

@@ -5,6 +5,7 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { generateObject } from './generate-object';
 import { MockTracer } from '../test/mock-tracer';
 import { setTestTracer } from '../telemetry/get-tracer';
+import { jsonSchema } from '../util/schema';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -321,5 +322,42 @@ describe('telemetry', () => {
         name: 'ai.generateObject.doGenerate',
       },
     ]);
+  });
+});
+
+describe('custom schema', () => {
+  it('should generate object with json mode', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, { type: 'object-json' });
+          assert.deepStrictEqual(prompt, [
+            {
+              role: 'system',
+              content:
+                'JSON schema:\n' +
+                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}\n' +
+                'You MUST answer with a JSON object that matches the JSON schema above.',
+            },
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+          };
+        },
+      }),
+      schema: jsonSchema({
+        type: 'object',
+        properties: { content: { type: 'string' } },
+        required: ['content'],
+        additionalProperties: false,
+      }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
   });
 });

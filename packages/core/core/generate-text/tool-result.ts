@@ -1,9 +1,9 @@
-import { z } from 'zod';
 import { CoreTool } from '../tool';
+import { inferParameters } from '../tool/tool';
 import { ValueOf } from '../util/value-of';
 
 /**
-Typed tool result that is returned by generateText and streamText. 
+Typed tool result that is returned by generateText and streamText.
 It contains the tool call ID, the tool name, the tool arguments, and the tool result.
  */
 export interface ToolResult<NAME extends string, ARGS, RESULT> {
@@ -46,7 +46,7 @@ type ToToolResultObject<TOOLS extends Record<string, CoreTool>> = ValueOf<{
     type: 'tool-result';
     toolCallId: string;
     toolName: NAME & string;
-    args: z.infer<TOOLS[NAME]['parameters']>;
+    args: inferParameters<TOOLS[NAME]['parameters']>;
     result: Awaited<ReturnType<Exclude<TOOLS[NAME]['execute'], undefined>>>;
   };
 }>;

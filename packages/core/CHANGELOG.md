@@ -1,5 +1,20 @@
 # ai
 
+## 3.2.35
+
+### Patch Changes
+
+- 1be014b7: feat (ai/core): add telemetry support for embed function.
+- 4f88248f: feat (core): support json schema
+- 0d545231: chore (ai/svelte): change sswr into optional peer dependency
+- Updated dependencies [4f88248f]
+  - @ai-sdk/provider-utils@1.0.4
+  - @ai-sdk/react@0.0.28
+  - @ai-sdk/svelte@0.0.22
+  - @ai-sdk/ui-utils@0.0.19
+  - @ai-sdk/vue@0.0.23
+  - @ai-sdk/solid@0.0.21
+
 ## 3.2.34
 
 ### Patch Changes

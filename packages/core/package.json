@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "3.2.34",
+  "version": "3.2.35",
   "description": "Vercel AI SDK - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -77,19 +77,18 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "0.0.13",
-    "@ai-sdk/provider-utils": "1.0.3",
-    "@ai-sdk/react": "0.0.27",
-    "@ai-sdk/solid": "0.0.20",
-    "@ai-sdk/svelte": "0.0.21",
-    "@ai-sdk/ui-utils": "0.0.18",
-    "@ai-sdk/vue": "0.0.22",
+    "@ai-sdk/provider-utils": "1.0.4",
+    "@ai-sdk/react": "0.0.28",
+    "@ai-sdk/solid": "0.0.21",
+    "@ai-sdk/svelte": "0.0.22",
+    "@ai-sdk/ui-utils": "0.0.19",
+    "@ai-sdk/vue": "0.0.23",
     "@opentelemetry/api": "1.9.0",
     "eventsource-parser": "1.1.2",
     "jsondiffpatch": "0.6.0",
     "json-schema": "0.4.0",
     "nanoid": "3.3.6",
     "secure-json-parse": "2.7.0",
-    "sswr": "2.1.0",
     "zod-to-json-schema": "3.22.5"
   },
   "devDependencies": {
@@ -117,6 +116,7 @@
     "openai": "4.52.6",
     "react-dom": "^18",
     "react-server-dom-webpack": "18.3.0-canary-eb33bd747-20240312",
+    "sswr": "2.1.0",
     "tsup": "^7.2.0",
     "typescript": "5.1.3",
     "zod": "3.23.8"
@@ -125,6 +125,7 @@
     "openai": "^4.42.0",
     "react": "^18 || ^19",
     "zod": "^3.0.0",
+    "sswr": "^2.1.0",
     "svelte": "^3.0.0 || ^4.0.0"
   },
   "peerDependenciesMeta": {
@@ -135,6 +136,9 @@
       "optional": true
     },
     "openai": {
+      "optional": true
+    },
+    "sswr": {
       "optional": true
     },
     "svelte": {

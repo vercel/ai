@@ -12,9 +12,9 @@ import { recordSpan } from '../telemetry/record-span';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import { calculateCompletionTokenUsage } from '../types/token-usage';
-import { convertZodToJSONSchema } from '../util/convert-zod-to-json-schema';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
+import { Schema, asSchema } from '../util/schema';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 
@@ -60,7 +60,7 @@ A result object that contains the generated object, the finish reason, the token
  */
 export async function generateObject<T>({
   model,
-  schema,
+  schema: inputSchema,
   mode,
   system,
   prompt,
@@ -80,12 +80,12 @@ The language model to use.
     /**
 The schema of the object that the model should generate.
      */
-    schema: z.Schema<T>;
+    schema: z.Schema<T> | Schema<T>;
 
     /**
 The mode to use for object generation.
 
-The Zod schema is converted in a JSON schema and used in one of the following ways
+The schema is converted in a JSON schema and used in one of the following ways
 
 - 'auto': The provider will choose the best mode for the model.
 - 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
@@ -110,7 +110,7 @@ Default and recommended: 'auto' (best mode for the model).
     settings: { ...settings, maxRetries },
   });
 
-  const jsonSchema = convertZodToJSONSchema(schema);
+  const schema = asSchema(inputSchema);
 
   const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
   return recordSpan({
@@ -119,7 +119,7 @@ Default and recommended: 'auto' (best mode for the model).
       ...baseTelemetryAttributes,
       // specific settings that only make sense on the outer level:
       'ai.prompt': JSON.stringify({ system, prompt, messages }),
-      'ai.settings.jsonSchema': JSON.stringify(jsonSchema),
+      'ai.settings.jsonSchema': JSON.stringify(schema.jsonSchema),
       'ai.settings.mode': mode,
     },
     tracer,
@@ -141,7 +141,10 @@ Default and recommended: 'auto' (best mode for the model).
       switch (mode) {
         case 'json': {
           const validatedPrompt = getValidatedPrompt({
-            system: injectJsonSchemaIntoSystem({ system, schema: jsonSchema }),
+            system: injectJsonSchemaIntoSystem({
+              system,
+              schema: schema.jsonSchema,
+            }),
             prompt,
             messages,
           });
@@ -224,7 +227,7 @@ Default and recommended: 'auto' (best mode for the model).
                       type: 'function',
                       name: 'json',
                       description: 'Respond with a JSON object.',
-                      parameters: jsonSchema,
+                      parameters: schema.jsonSchema,
                     },
                   },
                   ...prepareCallSettings(settings),
