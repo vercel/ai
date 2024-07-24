@@ -13,7 +13,7 @@ However, you need to manually provide schemas and then validate the generated da
 
 The Vercel AI SDK standardises structured object generation across model providers with the [`generateObject`](/docs/reference/ai-sdk-core/generate-object) function.
 
-The `generateObject` function uses [Zod schemas](./schemas-and-zod) to specify the shape of the data that you want, and the AI model will generate data that conforms to that structure.
+The `generateObject` function uses [Zod schemas](./schemas-and-zod) or [JSON schemas](/docs/reference/ai-sdk-core/json-schema) to specify the shape of the data that you want, and the AI model will generate data that conforms to that structure.
 The schema is also used to validate the generated data, ensuring type safety and correctness.
 
 ```ts

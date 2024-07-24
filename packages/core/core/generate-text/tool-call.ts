@@ -4,13 +4,14 @@ import {
   NoSuchToolError,
 } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
 import { CoreTool } from '../tool';
+import { inferParameters } from '../tool/tool';
+import { Schema, asSchema } from '../util/schema';
 import { ValueOf } from '../util/value-of';
 
 /**
-Typed tool call that is returned by generateText and streamText. 
-It contains the tool call ID, the tool name, and the tool arguments. 
+Typed tool call that is returned by generateText and streamText.
+It contains the tool call ID, the tool name, and the tool arguments.
  */
 export interface ToolCall<NAME extends string, ARGS> {
   /**
@@ -35,7 +36,7 @@ export type ToToolCall<TOOLS extends Record<string, CoreTool>> = ValueOf<{
     type: 'tool-call';
     toolCallId: string;
     toolName: NAME & string;
-    args: z.infer<TOOLS[NAME]['parameters']>;
+    args: inferParameters<TOOLS[NAME]['parameters']>;
   };
 }>;
 
@@ -67,7 +68,9 @@ export function parseToolCall<TOOLS extends Record<string, CoreTool>>({
 
   const parseResult = safeParseJSON({
     text: toolCall.args,
-    schema: tool.parameters,
+    schema: asSchema(tool.parameters) as Schema<
+      inferParameters<TOOLS[keyof TOOLS]['parameters']>
+    >,
   });
 
   if (parseResult.success === false) {

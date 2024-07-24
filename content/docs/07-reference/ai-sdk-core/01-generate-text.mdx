@@ -246,9 +246,9 @@ console.log(text);
             },
             {
               name: 'parameters',
-              type: 'zod schema',
+              type: 'Zod Schema | JSON Schema',
               description:
-                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model.',
+                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).',
             },
             {
               name: 'execute',

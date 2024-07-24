@@ -1,1 +1,2 @@
-export * from './tool';
+export { tool } from './tool';
+export type { CoreTool, ExperimentalTool } from './tool';
