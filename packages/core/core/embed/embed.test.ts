@@ -92,7 +92,7 @@ describe('telemetry', () => {
     assert.deepStrictEqual(tracer.jsonSpans, []);
   });
 
-  it('should record telemetry data when enabled with mode "json"', async () => {
+  it('should record telemetry data when enabled', async () => {
     await embed({
       model: new MockEmbeddingModelV1({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
