@@ -3,4 +3,4 @@
 'ai': patch
 ---
 
-feat (core): support raw json schema (no zod required)
+feat (core): support json schema (no zod required)
