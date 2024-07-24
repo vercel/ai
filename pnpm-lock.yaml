@@ -955,9 +955,6 @@ importers:
       secure-json-parse:
         specifier: 2.7.0
         version: 2.7.0
-      sswr:
-        specifier: 2.1.0
-        version: 2.1.0(svelte@4.2.3)
       svelte:
         specifier: ^3.0.0 || ^4.0.0
         version: 4.2.3
@@ -1037,6 +1034,9 @@ importers:
       react-server-dom-webpack:
         specifier: 18.3.0-canary-eb33bd747-20240312
         version: 18.3.0-canary-eb33bd747-20240312(react-dom@18.2.0)(react@18.2.0)(webpack@5.89.0)
+      sswr:
+        specifier: 2.1.0
+        version: 2.1.0(svelte@4.2.3)
       tsup:
         specifier: ^7.2.0
         version: 7.2.0(typescript@5.1.3)
@@ -17842,7 +17842,6 @@ packages:
     dependencies:
       svelte: 4.2.3
       swrev: 4.0.0
-    dev: false
 
   /stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
@@ -18261,7 +18260,6 @@ packages:
 
   /swrev@4.0.0:
     resolution: {integrity: sha512-LqVcOHSB4cPGgitD1riJ1Hh4vdmITOp+BkmfmXRh4hSF/t7EnS4iD+SOTmq7w5pPm/SiPeto4ADbKS6dHUDWFA==}
-    dev: false
 
   /swrv@1.0.4(vue@3.3.8):
     resolution: {integrity: sha512-zjEkcP8Ywmj+xOJW3lIT65ciY/4AL4e/Or7Gj0MzU3zBJNMdJiT8geVZhINavnlHRMMCcJLHhraLTAiDOTmQ9g==}
