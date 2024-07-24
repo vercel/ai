@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 1.0.4
+
+### Patch Changes
+
+- 4f88248f: feat (core): support json schema
+
 ## 1.0.3
 
 ### Patch Changes
