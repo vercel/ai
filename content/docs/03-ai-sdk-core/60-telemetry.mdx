@@ -56,12 +56,12 @@ const result = await generateText({
 `generateText` records 3 types of spans:
 
 - `ai.generateText`: the full length of the generateText call. It contains 1 or more `ai.generateText.doGenerate` spans.
-  It contains the [basic span information](#basic-span-information) and the following attributes:
+  It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
   - `operation.name`: `ai.generateText`
   - `ai.prompt`: the prompt that was used when calling `generateText`
   - `ai.settings.maxToolRoundtrips`: the maximum number of tool roundtrips that were set
 - `ai.generateText.doGenerate`: a provider doGenerate call. It can contain `ai.toolCall` spans.
-  It contains the [basic span information](#basic-span-information) and the following attributes:
+  It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
   - `operation.name`: `ai.generateText`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
@@ -72,13 +72,13 @@ const result = await generateText({
 `streamText` records 3 types of spans:
 
 - `ai.streamText`: the full length of the streamText call. It contains a `ai.streamText.doStream` span.
-  It contains the [basic span information](#basic-span-information) and the following attributes:
+  It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
   - `operation.name`: `ai.streamText`
   - `ai.prompt`: the prompt that was used when calling `streamText`
 - `ai.streamText.doStream`: a provider doStream call.
   This span contains an `ai.stream.firstChunk` event that is emitted when the first chunk of the stream is received.
   The `doStream` span can also contain `ai.toolCall` spans.
-  It contains the [basic span information](#basic-span-information) and the following attributes:
+  It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
   - `operation.name`: `ai.streamText`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
@@ -89,22 +89,38 @@ const result = await generateText({
 `generateObject` records 2 types of spans:
 
 - `ai.generateObject`: the full length of the generateObject call. It contains 1 or more `ai.generateObject.doGenerate` spans.
-  It contains the [basic span information](#basic-span-information) and the following attributes:
+  It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
   - `operation.name`: `ai.generateObject`
   - `ai.prompt`: the prompt that was used when calling `generateObject`
   - `ai.settings.mode`: the object generation mode
 - `ai.generateObject.doGenerate`: a provider doGenerate call.
-  It contains the [basic span information](#basic-span-information) and the following attributes:
-  - `operation.name`: `ai.generateText`
+  It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
+  - `operation.name`: `ai.generateObject`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.settings.mode`: the object generation mode
 
+### embed function
+
+`embed` records 2 types of spans:
+
+- `ai.embed`: the full length of the embed call. It contains 1 `ai.embed.doEmbed` spans.
+  It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
+  - `operation.name`: `ai.embed`
+  - `ai.value`: the value that was passed into the `embed` function
+  - `ai.embedding`: a JSON-stringified embedding
+- `ai.embed.doEmbed`: a provider doEmbed call.
+  It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
+  - `operation.name`: `ai.embed`
+  - `ai.values`: the values that were passed into the provider (array)
+  - `ai.embeddings`: an array of JSON-stringified embeddings
+
 ## Span Details
 
-### Basic span information
+### Basic LLM span information
 
-Many spans (`ai.generateText`, `ai.generateText.doGenerate`, `ai.streamText`, `ai.streamText.doStream`) contain the following attributes:
+Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.streamText`, `ai.streamText.doStream`,
+`ai.generateObject`, `ai.generateObject.doGenerate`) contain the following attributes:
 
 - `ai.finishReason`: the reason why the generation finished
 - `ai.model.id`: the id of the model
@@ -117,6 +133,20 @@ Many spans (`ai.generateText`, `ai.generateText.doGenerate`, `ai.streamText`, `a
 - `ai.telemetry.metadata.*`: the metadata that was passed in through `telemetry.metadata`
 - `ai.usage.completionTokens`: the number of completion tokens that were used
 - `ai.usage.promptTokens`: the number of prompt tokens that were used
+- `resource.name`: the functionId that was set through `telemetry.functionId`
+
+### Basic embedding span information
+
+Many spans that use embedding models (`ai.embed`, `ai.embed.doEmbed`) contain the following attributes:
+
+- `ai.finishReason`: the reason why the generation finished
+- `ai.model.id`: the id of the model
+- `ai.model.provider`: the provider of the model
+- `ai.request.headers.*`: the request headers that were passed in through `headers`
+- `ai.settings.maxRetries`: the maximum number of retries that were set
+- `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
+- `ai.telemetry.metadata.*`: the metadata that was passed in through `telemetry.metadata`
+- `ai.usage.tokens`: the number of tokens that were used
 - `resource.name`: the functionId that was set through `telemetry.functionId`
 
 ### Tool call spans
