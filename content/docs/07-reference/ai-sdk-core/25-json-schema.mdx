@@ -14,14 +14,14 @@ You can use it to [generate structured data](/docs/ai-sdk-core/generating-struct
 (e.g. when using OpenAPI definitions) or for using other validation libraries.
 
 ```ts
-import { jsonSchema } from 'ai'
+import { jsonSchema } from 'ai';
 
 const mySchema = jsonSchema<{
   recipe: {
-    name: string
-    ingredients: { name: string; amount: string }[]
-    steps: string[]
-  }
+    name: string;
+    ingredients: { name: string; amount: string }[];
+    steps: string[];
+  };
 }>({
   type: 'object',
   properties: {
@@ -35,21 +35,21 @@ const mySchema = jsonSchema<{
             type: 'object',
             properties: {
               name: { type: 'string' },
-              amount: { type: 'string' }
+              amount: { type: 'string' },
             },
-            required: ['name', 'amount']
-          }
+            required: ['name', 'amount'],
+          },
         },
         steps: {
           type: 'array',
-          items: { type: 'string' }
-        }
+          items: { type: 'string' },
+        },
       },
-      required: ['name', 'ingredients', 'steps']
-    }
+      required: ['name', 'ingredients', 'steps'],
+    },
   },
-  required: ['recipe']
-})
+  required: ['recipe'],
+});
 ```
 
 ## Import
@@ -65,7 +65,7 @@ const mySchema = jsonSchema<{
     {
       name: 'schema',
       type: 'JSONSchema7',
-      description: `The JSON schema definition.`
+      description: `The JSON schema definition.`,
     },
     {
       name: 'options',
@@ -80,12 +80,12 @@ const mySchema = jsonSchema<{
               isOptional: true,
               type: '(value: unknown) => { success: true; value: OBJECT } | { success: false; error: Error };',
               description:
-                'A function that validates the value against the JSON schema. If the value is valid, the function should return an object with a `success` property set to `true` and a `value` property set to the validated value. If the value is invalid, the function should return an object with a `success` property set to `false` and an `error` property set to the error.'
-            }
-          ]
-        }
-      ]
-    }
+                'A function that validates the value against the JSON schema. If the value is valid, the function should return an object with a `success` property set to `true` and a `value` property set to the validated value. If the value is invalid, the function should return an object with a `success` property set to `false` and an `error` property set to the error.',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
