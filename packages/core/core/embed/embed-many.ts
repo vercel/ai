@@ -1,3 +1,7 @@
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getTracer } from '../telemetry/get-tracer';
+import { recordSpan } from '../telemetry/record-span';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel } from '../types';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { splitArray } from '../util/split-array';
@@ -25,6 +29,7 @@ export async function embedMany<VALUE>({
   maxRetries,
   abortSignal,
   headers,
+  experimental_telemetry: telemetry,
 }: {
   /**
 The embedding model to use.
@@ -53,40 +58,135 @@ Additional headers to include in the request.
 Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
+
+  /**
+   * Optional telemetry configuration (experimental).
+   */
+  experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedManyResult<VALUE>> {
-  const retry = retryWithExponentialBackoff({ maxRetries });
-  const maxEmbeddingsPerCall = model.maxEmbeddingsPerCall;
+  const baseTelemetryAttributes = getBaseTelemetryAttributes({
+    operationName: 'ai.embedMany',
+    model,
+    telemetry,
+    headers,
+    settings: { maxRetries },
+  });
 
-  // the model has not specified limits on
-  // how many embeddings can be generated in a single call
-  if (maxEmbeddingsPerCall == null) {
-    const modelResponse = await retry(() =>
-      model.doEmbed({ values, abortSignal, headers }),
-    );
+  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
 
-    return new DefaultEmbedManyResult({
-      values,
-      embeddings: modelResponse.embeddings,
-      usage: modelResponse.usage ?? { tokens: NaN },
-    });
-  }
+  return recordSpan({
+    name: 'ai.embedMany',
+    attributes: {
+      ...baseTelemetryAttributes,
+      // specific settings that only make sense on the outer level:
+      'ai.values': values.map(value => JSON.stringify(value)),
+    },
+    tracer,
+    fn: async span => {
+      const retry = retryWithExponentialBackoff({ maxRetries });
+      const maxEmbeddingsPerCall = model.maxEmbeddingsPerCall;
 
-  // split the values into chunks that are small enough for the model:
-  const valueChunks = splitArray(values, maxEmbeddingsPerCall);
+      // the model has not specified limits on
+      // how many embeddings can be generated in a single call
+      if (maxEmbeddingsPerCall == null) {
+        const { embeddings, usage } = await retry(() => {
+          // nested spans to align with the embedMany telemetry data:
+          return recordSpan({
+            name: 'ai.embedMany.doEmbed',
+            attributes: {
+              ...baseTelemetryAttributes,
+              // specific settings that only make sense on the outer level:
+              'ai.values': values.map(value => JSON.stringify(value)),
+            },
+            tracer,
+            fn: async doEmbedSpan => {
+              const modelResponse = await model.doEmbed({
+                values,
+                abortSignal,
+                headers,
+              });
 
-  // serially embed the chunks:
-  const embeddings = [];
-  let tokens = 0;
+              const embeddings = modelResponse.embeddings;
+              const usage = modelResponse.usage ?? { tokens: NaN };
 
-  for (const chunk of valueChunks) {
-    const modelResponse = await retry(() =>
-      model.doEmbed({ values: chunk, abortSignal, headers }),
-    );
-    embeddings.push(...modelResponse.embeddings);
-    tokens += modelResponse.usage?.tokens ?? NaN;
-  }
+              doEmbedSpan.setAttributes({
+                'ai.embeddings': embeddings.map(embedding =>
+                  JSON.stringify(embedding),
+                ),
+                'ai.usage.tokens': usage.tokens,
+              });
 
-  return new DefaultEmbedManyResult({ values, embeddings, usage: { tokens } });
+              return { embeddings, usage };
+            },
+          });
+        });
+
+        span.setAttributes({
+          'ai.embeddings': embeddings.map(embedding =>
+            JSON.stringify(embedding),
+          ),
+          'ai.usage.tokens': usage.tokens,
+        });
+
+        return new DefaultEmbedManyResult({ values, embeddings, usage });
+      }
+
+      // split the values into chunks that are small enough for the model:
+      const valueChunks = splitArray(values, maxEmbeddingsPerCall);
+
+      // serially embed the chunks:
+      const embeddings = [];
+      let tokens = 0;
+
+      for (const chunk of valueChunks) {
+        const { embeddings: responseEmbeddings, usage } = await retry(() => {
+          // nested spans to align with the embedMany telemetry data:
+          return recordSpan({
+            name: 'ai.embedMany.doEmbed',
+            attributes: {
+              ...baseTelemetryAttributes,
+              // specific settings that only make sense on the outer level:
+              'ai.values': chunk.map(value => JSON.stringify(value)),
+            },
+            tracer,
+            fn: async doEmbedSpan => {
+              const modelResponse = await model.doEmbed({
+                values: chunk,
+                abortSignal,
+                headers,
+              });
+
+              const embeddings = modelResponse.embeddings;
+              const usage = modelResponse.usage ?? { tokens: NaN };
+
+              doEmbedSpan.setAttributes({
+                'ai.embeddings': embeddings.map(embedding =>
+                  JSON.stringify(embedding),
+                ),
+                'ai.usage.tokens': usage.tokens,
+              });
+
+              return { embeddings, usage };
+            },
+          });
+        });
+
+        embeddings.push(...responseEmbeddings);
+        tokens += usage.tokens;
+      }
+
+      span.setAttributes({
+        'ai.embeddings': embeddings.map(embedding => JSON.stringify(embedding)),
+        'ai.usage.tokens': tokens,
+      });
+
+      return new DefaultEmbedManyResult({
+        values,
+        embeddings,
+        usage: { tokens },
+      });
+    },
+  });
 }
 
 class DefaultEmbedManyResult<VALUE> implements EmbedManyResult<VALUE> {

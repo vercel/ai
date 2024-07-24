@@ -18,8 +18,7 @@ standardized instrumentation for collecting telemetry data.
 
 For Next.js applications, please follow the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) to enable telemetry first.
 
-You can then use the `experimental_telemetry` option to enable telemetry on specific `streamText` and `generateText` calls while
-the feature is experimental:
+You can then use the `experimental_telemetry` option to enable telemetry on specific function calls while the feature is experimental:
 
 ```ts highlight="4"
 const result = await generateText({
@@ -28,6 +27,14 @@ const result = await generateText({
   experimental_telemetry: { isEnabled: true },
 });
 ```
+
+The following functions currently support telemetry:
+
+- `generateText`
+- `streamText`
+- `generateObject`
+- `embed`
+- `embedMany`
 
 ## Telemetry Metadata
 
@@ -115,6 +122,21 @@ const result = await generateText({
   - `ai.values`: the values that were passed into the provider (array)
   - `ai.embeddings`: an array of JSON-stringified embeddings
 
+### embedMany function
+
+`embedMany` records 2 types of spans:
+
+- `ai.embedMany`: the full length of the embedMany call. It contains 1 or more `ai.embedMany.doEmbed` spans.
+  It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
+  - `operation.name`: `ai.embedMany`
+  - `ai.values`: the values that were passed into the `embedMany` function
+  - `ai.embeddings`: an array of JSON-stringified embedding
+- `ai.embedMany.doEmbed`: a provider doEmbed call.
+  It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
+  - `operation.name`: `ai.embedMany`
+  - `ai.values`: the values that were sent to the provider
+  - `ai.embeddings`: an array of JSON-stringified embeddings for each value
+
 ## Span Details
 
 ### Basic LLM span information
@@ -137,7 +159,7 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 
 ### Basic embedding span information
 
-Many spans that use embedding models (`ai.embed`, `ai.embed.doEmbed`) contain the following attributes:
+Many spans that use embedding models (`ai.embed`, `ai.embed.doEmbed`, `ai.embedMany`, `ai.embedMany.doEmbed`) contain the following attributes:
 
 - `ai.finishReason`: the reason why the generation finished
 - `ai.model.id`: the id of the model
