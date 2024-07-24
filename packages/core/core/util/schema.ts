@@ -31,7 +31,7 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
  * @param jsonSchema The JSON Schema for the schema.
  * @param options.validate Optional. A validation function for the schema.
  */
-export function jsonSchema<OBJECT>(
+export function jsonSchema<OBJECT = unknown>(
   jsonSchema: JSONSchema7,
   {
     validate,

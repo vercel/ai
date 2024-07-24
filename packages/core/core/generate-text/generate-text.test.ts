@@ -5,6 +5,7 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
+import { jsonSchema } from '../util/schema';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -755,6 +756,95 @@ describe('telemetry', () => {
           'ai.toolCall.result': '"result1"',
         },
         events: [],
+      },
+    ]);
+  });
+});
+
+describe('tools with custom schema', () => {
+  it('should contain tool calls', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            toolChoice: { type: 'required' },
+            tools: [
+              {
+                type: 'function',
+                name: 'tool1',
+                description: undefined,
+                parameters: {
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
+                },
+              },
+              {
+                type: 'function',
+                name: 'tool2',
+                description: undefined,
+                parameters: {
+                  additionalProperties: false,
+                  properties: { somethingElse: { type: 'string' } },
+                  required: ['somethingElse'],
+                  type: 'object',
+                },
+              },
+            ],
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            toolCalls: [
+              {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          parameters: jsonSchema<{ value: string }>({
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+          }),
+        },
+        // 2nd tool to show typing:
+        tool2: {
+          parameters: jsonSchema<{ somethingElse: string }>({
+            type: 'object',
+            properties: { somethingElse: { type: 'string' } },
+            required: ['somethingElse'],
+            additionalProperties: false,
+          }),
+        },
+      },
+      toolChoice: 'required',
+      prompt: 'test-input',
+    });
+
+    // test type inference
+    if (result.toolCalls[0].toolName === 'tool1') {
+      assertType<string>(result.toolCalls[0].args.value);
+    }
+
+    assert.deepStrictEqual(result.toolCalls, [
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        args: { value: 'value' },
       },
     ]);
   });
