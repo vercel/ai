@@ -203,7 +203,7 @@ You can now allow the model to respond to your prompt with a React component. Ho
 Learn how to stream React components with the Next.js App Router using `streamUI` with this [example](https://sdk.vercel.ai/examples/next-app/interface/route-components).
 
 ## Advanced Usage
-In some cases, you might need to stream text or components within a tool call of a streamUI function. This can be achieved by nesting another streamUI call inside the tool. Here's an example of how you might structure this:
+In some cases, you might need to stream text or components within a tool call of a `streamUI` function. This can be achieved by nesting another `streamUI` call inside the tool. Here's an example of how you might structure this:
 
 ```typescript
 const result = await streamUI({
@@ -239,11 +239,11 @@ const result = await streamUI({
 ```
 In this example:
 
-The outer streamUI call handles the main conversation and determines when to generate a dashboard.
+The outer `streamUI` call handles the main conversation and determines when to generate a dashboard.
 When the generateDashboard tool is called, it yields a loading component initially.
-Inside the tool, another streamUI call is made to handle the dashboard generation process.
-This inner streamUI can stream text updates about the dashboard generation progress.
-Once the inner streamUI is complete, the final dashboard component is returned.
+Inside the tool, another `streamUI` call is made to handle the dashboard generation process.
+This inner `streamUI` can stream text updates about the dashboard generation progress.
+Once the inner `streamUI` is complete, the final dashboard component is returned.
 
 This nested structure allows for more complex interactions and real-time updates during tool execution.
 
