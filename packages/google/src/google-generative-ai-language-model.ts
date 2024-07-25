@@ -32,6 +32,7 @@ type GoogleGenerativeAIConfig = {
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = 'tool';
+  readonly supportsImageUrls = false;
 
   readonly modelId: GoogleGenerativeAIModelId;
   readonly settings: GoogleGenerativeAISettings;
@@ -110,7 +111,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     };
 
     const { contents, systemInstruction } =
-      await convertToGoogleGenerativeAIMessages({ prompt });
+      convertToGoogleGenerativeAIMessages(prompt);
 
     switch (type) {
       case 'regular': {
