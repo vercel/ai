@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 0.0.33
+
+### Patch Changes
+
+- a8d1c9e9: feat (ai/core): parallel image download
+- Updated dependencies [a8d1c9e9]
+  - @ai-sdk/provider-utils@1.0.5
+  - @ai-sdk/provider@0.0.14
+
 ## 0.0.32
 
 ### Patch Changes
