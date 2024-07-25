@@ -13,6 +13,7 @@ export interface AmazonBedrockProviderSettings {
   region?: string;
   accessKeyId?: string;
   secretAccessKey?: string;
+  sessionToken?: string;
 
   /**
    * Complete Bedrock configuration for setting advanced authentication and
