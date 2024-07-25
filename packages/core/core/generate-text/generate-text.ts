@@ -81,6 +81,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
   experimental_telemetry: telemetry,
+  experimental_responseFormat: responseFormat,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -117,6 +118,11 @@ case of misconfigured tools.
 By default, it's set to 0, which will disable the feature.
      */
     maxToolRoundtrips?: number;
+
+    /**
+The response format. Can be either text or json.
+     */
+    experimental_responseFormat?: { type: 'text' } | { type: 'json' };
 
     /**
      * Optional telemetry configuration (experimental).
@@ -189,6 +195,7 @@ By default, it's set to 0, which will disable the feature.
               const result = await model.doGenerate({
                 mode,
                 ...callSettings,
+                responseFormat,
                 inputFormat: currentInputFormat,
                 prompt: promptMessages,
                 abortSignal,
