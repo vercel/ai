@@ -190,6 +190,7 @@ Warnings from the model provider (e.g. unsupported settings).
       const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
       const promptMessages = convertToLanguageModelPrompt({
         prompt: validatedPrompt,
+        modelSupportsImageUrls: model.supportsImageUrls,
       });
 
       const {

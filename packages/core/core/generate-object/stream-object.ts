@@ -181,6 +181,7 @@ Warnings from the model provider (e.g. unsupported settings).
         inputFormat: validatedPrompt.type,
         prompt: convertToLanguageModelPrompt({
           prompt: validatedPrompt,
+          modelSupportsImageUrls: model.supportsImageUrls,
         }),
         abortSignal,
         headers,
@@ -224,6 +225,7 @@ Warnings from the model provider (e.g. unsupported settings).
         inputFormat: validatedPrompt.type,
         prompt: convertToLanguageModelPrompt({
           prompt: validatedPrompt,
+          modelSupportsImageUrls: model.supportsImageUrls,
         }),
         abortSignal,
         headers,

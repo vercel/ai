@@ -156,6 +156,7 @@ By default, it's set to 0, which will disable the feature.
       const callSettings = prepareCallSettings(settings);
       const promptMessages = convertToLanguageModelPrompt({
         prompt: validatedPrompt,
+        modelSupportsImageUrls: model.supportsImageUrls,
       });
 
       let currentModelResponse: Awaited<

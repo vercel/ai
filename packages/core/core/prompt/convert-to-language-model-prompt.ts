@@ -13,8 +13,10 @@ import { getErrorMessage } from '@ai-sdk/provider-utils';
 
 export function convertToLanguageModelPrompt({
   prompt,
+  modelSupportsImageUrls = true,
 }: {
   prompt: ValidatedPrompt;
+  modelSupportsImageUrls: boolean | undefined;
 }): LanguageModelV1Prompt {
   const languageModelMessages: LanguageModelV1Prompt = [];
 

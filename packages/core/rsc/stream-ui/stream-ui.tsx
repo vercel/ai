@@ -264,6 +264,7 @@ export async function streamUI<
       inputFormat: validatedPrompt.type,
       prompt: convertToLanguageModelPrompt({
         prompt: validatedPrompt,
+        modelSupportsImageUrls: model.supportsImageUrls,
       }),
       abortSignal,
       headers,
