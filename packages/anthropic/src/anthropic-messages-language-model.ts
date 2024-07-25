@@ -32,6 +32,7 @@ type AnthropicMessagesConfig = {
 export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = 'tool';
+  readonly supportsImageUrls = false;
 
   readonly modelId: AnthropicMessagesModelId;
   readonly settings: AnthropicMessagesSettings;
@@ -98,7 +99,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const messagesPrompt = await convertToAnthropicMessagesPrompt({ prompt });
+    const messagesPrompt = await convertToAnthropicMessagesPrompt(prompt);
 
     const baseArgs = {
       // model id:

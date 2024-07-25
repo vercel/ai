@@ -3,20 +3,16 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64, download } from '@ai-sdk/provider-utils';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
   AnthropicMessage,
   AnthropicMessagesPrompt,
   AnthropicUserMessage,
 } from './anthropic-messages-prompt';
 
-export async function convertToAnthropicMessagesPrompt({
-  prompt,
-  downloadImplementation = download,
-}: {
-  prompt: LanguageModelV1Prompt;
-  downloadImplementation?: typeof download;
-}): Promise<AnthropicMessagesPrompt> {
+export async function convertToAnthropicMessagesPrompt(
+  prompt: LanguageModelV1Prompt,
+): Promise<AnthropicMessagesPrompt> {
   const blocks = groupIntoBlocks(prompt);
 
   let system: string | undefined = undefined;
@@ -53,27 +49,19 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
                   case 'image': {
-                    let data: Uint8Array;
-                    let mimeType: string | undefined;
-
                     if (part.image instanceof URL) {
-                      const downloadResult = await downloadImplementation({
-                        url: part.image,
+                      // The AI SDK automatically downloads images for user image parts with URLs
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'Image URLs in user messages',
                       });
-
-                      data = downloadResult.data;
-                      mimeType = downloadResult.mimeType;
-                    } else {
-                      data = part.image;
-                      mimeType = part.mimeType;
                     }
 
                     anthropicContent.push({
                       type: 'image',
                       source: {
                         type: 'base64',
-                        media_type: mimeType ?? 'image/jpeg',
-                        data: convertUint8ArrayToBase64(data),
+                        media_type: part.mimeType ?? 'image/jpeg',
+                        data: convertUint8ArrayToBase64(part.image),
                       },
                     });
 
