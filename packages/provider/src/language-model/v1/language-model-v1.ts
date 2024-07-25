@@ -38,6 +38,14 @@ user to explicitly specify the object generation mode.
   readonly defaultObjectGenerationMode: 'json' | 'tool' | undefined;
 
   /**
+Flag whether this model supports image URLs. Default is `true`.
+
+When the flag is set to `false`, the AI SDK will download the image and
+pass the image data to the model.
+   */
+  readonly supportsImageUrls?: boolean;
+
+  /**
 Generates a language model output (non-streaming).
 
 Naming: "do" prefix to prevent accidental direct usage of the method
