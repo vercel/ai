@@ -34,6 +34,11 @@ import {
   ObjectStreamPart,
   StreamObjectResult,
 } from './stream-object-result';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getTracer } from '../telemetry/get-tracer';
+import { recordSpan } from '../telemetry/record-span';
+import { Span } from '@opentelemetry/api';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -85,6 +90,7 @@ export async function streamObject<T>({
   maxRetries,
   abortSignal,
   headers,
+  experimental_telemetry: telemetry,
   onFinish,
   ...settings
 }: Omit<CallSettings, 'stopSequences'> &
@@ -113,6 +119,11 @@ Please note that most providers do not support all modes.
 Default and recommended: 'auto' (best mode for the model).
      */
     mode?: 'auto' | 'json' | 'tool';
+
+    /**
+Optional telemetry configuration (experimental).
+     */
+    experimental_telemetry?: TelemetrySettings;
 
     /**
 Callback that is called when the LLM response and the final object validation are finished.
@@ -149,117 +160,167 @@ Warnings from the model provider (e.g. unsupported settings).
       warnings?: CallWarning[];
     }) => Promise<void> | void;
   }): Promise<DefaultStreamObjectResult<T>> {
+  const baseTelemetryAttributes = getBaseTelemetryAttributes({
+    operationName: 'ai.streamObject',
+    model,
+    telemetry,
+    headers,
+    settings: { ...settings, maxRetries },
+  });
+
+  const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
+
   const retry = retryWithExponentialBackoff({ maxRetries });
 
   const schema = asSchema(inputSchema);
 
-  // use the default provider mode when the mode is set to 'auto' or unspecified
-  if (mode === 'auto' || mode == null) {
-    mode = model.defaultObjectGenerationMode;
-  }
+  return recordSpan({
+    name: 'ai.streamObject',
+    attributes: {
+      ...baseTelemetryAttributes,
+      // specific settings that only make sense on the outer level:
+      'ai.prompt': JSON.stringify({ system, prompt, messages }),
+      'ai.schema': JSON.stringify(schema.jsonSchema),
+      'ai.settings.mode': mode,
+    },
+    tracer,
+    endWhenDone: false,
+    fn: async rootSpan => {
+      // use the default provider mode when the mode is set to 'auto' or unspecified
+      if (mode === 'auto' || mode == null) {
+        mode = model.defaultObjectGenerationMode;
+      }
 
-  let callOptions: LanguageModelV1CallOptions;
-  let transformer: Transformer<
-    LanguageModelV1StreamPart,
-    string | Omit<LanguageModelV1StreamPart, 'text-delta'>
-  >;
+      let callOptions: LanguageModelV1CallOptions;
+      let transformer: Transformer<
+        LanguageModelV1StreamPart,
+        string | Omit<LanguageModelV1StreamPart, 'text-delta'>
+      >;
 
-  switch (mode) {
-    case 'json': {
-      const validatedPrompt = getValidatedPrompt({
-        system: injectJsonSchemaIntoSystem({
-          system,
-          schema: schema.jsonSchema,
-        }),
-        prompt,
-        messages,
-      });
+      switch (mode) {
+        case 'json': {
+          const validatedPrompt = getValidatedPrompt({
+            system: injectJsonSchemaIntoSystem({
+              system,
+              schema: schema.jsonSchema,
+            }),
+            prompt,
+            messages,
+          });
 
-      callOptions = {
-        mode: { type: 'object-json' },
-        ...prepareCallSettings(settings),
-        inputFormat: validatedPrompt.type,
-        prompt: convertToLanguageModelPrompt(validatedPrompt),
-        abortSignal,
-        headers,
-      };
+          callOptions = {
+            mode: { type: 'object-json' },
+            ...prepareCallSettings(settings),
+            inputFormat: validatedPrompt.type,
+            prompt: convertToLanguageModelPrompt(validatedPrompt),
+            abortSignal,
+            headers,
+          };
 
-      transformer = {
-        transform: (chunk, controller) => {
-          switch (chunk.type) {
-            case 'text-delta':
-              controller.enqueue(chunk.textDelta);
-              break;
-            case 'finish':
-            case 'error':
-              controller.enqueue(chunk);
-              break;
-          }
-        },
-      };
+          transformer = {
+            transform: (chunk, controller) => {
+              switch (chunk.type) {
+                case 'text-delta':
+                  controller.enqueue(chunk.textDelta);
+                  break;
+                case 'finish':
+                case 'error':
+                  controller.enqueue(chunk);
+                  break;
+              }
+            },
+          };
 
-      break;
-    }
+          break;
+        }
 
-    case 'tool': {
-      const validatedPrompt = getValidatedPrompt({
-        system,
-        prompt,
-        messages,
-      });
+        case 'tool': {
+          const validatedPrompt = getValidatedPrompt({
+            system,
+            prompt,
+            messages,
+          });
 
-      callOptions = {
-        mode: {
-          type: 'object-tool',
-          tool: {
-            type: 'function',
-            name: 'json',
-            description: 'Respond with a JSON object.',
-            parameters: schema.jsonSchema,
+          callOptions = {
+            mode: {
+              type: 'object-tool',
+              tool: {
+                type: 'function',
+                name: 'json',
+                description: 'Respond with a JSON object.',
+                parameters: schema.jsonSchema,
+              },
+            },
+            ...prepareCallSettings(settings),
+            inputFormat: validatedPrompt.type,
+            prompt: convertToLanguageModelPrompt(validatedPrompt),
+            abortSignal,
+            headers,
+          };
+
+          transformer = {
+            transform(chunk, controller) {
+              switch (chunk.type) {
+                case 'tool-call-delta':
+                  controller.enqueue(chunk.argsTextDelta);
+                  break;
+                case 'finish':
+                case 'error':
+                  controller.enqueue(chunk);
+                  break;
+              }
+            },
+          };
+
+          break;
+        }
+
+        case undefined: {
+          throw new Error(
+            'Model does not have a default object generation mode.',
+          );
+        }
+
+        default: {
+          const _exhaustiveCheck: never = mode;
+          throw new Error(`Unsupported mode: ${_exhaustiveCheck}`);
+        }
+      }
+
+      // const result = await retry(() => model.doStream(callOptions));
+      const {
+        result: { stream, warnings, rawResponse },
+        doStreamSpan,
+      } = await retry(() =>
+        recordSpan({
+          name: 'ai.streamObject.doStream',
+          attributes: {
+            ...baseTelemetryAttributes,
+            'ai.prompt.format': callOptions.inputFormat,
+            'ai.prompt.messages': JSON.stringify(callOptions.prompt),
+            'ai.settings.mode': mode,
           },
-        },
-        ...prepareCallSettings(settings),
-        inputFormat: validatedPrompt.type,
-        prompt: convertToLanguageModelPrompt(validatedPrompt),
-        abortSignal,
-        headers,
-      };
+          tracer,
+          endWhenDone: false,
+          fn: async doStreamSpan => {
+            return {
+              result: await model.doStream(callOptions),
+              doStreamSpan,
+            };
+          },
+        }),
+      );
 
-      transformer = {
-        transform(chunk, controller) {
-          switch (chunk.type) {
-            case 'tool-call-delta':
-              controller.enqueue(chunk.argsTextDelta);
-              break;
-            case 'finish':
-            case 'error':
-              controller.enqueue(chunk);
-              break;
-          }
-        },
-      };
-
-      break;
-    }
-
-    case undefined: {
-      throw new Error('Model does not have a default object generation mode.');
-    }
-
-    default: {
-      const _exhaustiveCheck: never = mode;
-      throw new Error(`Unsupported mode: ${_exhaustiveCheck}`);
-    }
-  }
-
-  const result = await retry(() => model.doStream(callOptions));
-
-  return new DefaultStreamObjectResult({
-    stream: result.stream.pipeThrough(new TransformStream(transformer)),
-    warnings: result.warnings,
-    rawResponse: result.rawResponse,
-    schema,
-    onFinish,
+      return new DefaultStreamObjectResult({
+        stream: stream.pipeThrough(new TransformStream(transformer)),
+        warnings,
+        rawResponse,
+        schema,
+        onFinish,
+        rootSpan,
+        doStreamSpan,
+      });
+    },
   });
 }
 
@@ -277,6 +338,8 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
     rawResponse,
     schema,
     onFinish,
+    rootSpan,
+    doStreamSpan,
   }: {
     stream: ReadableStream<
       string | Omit<LanguageModelV1StreamPart, 'text-delta'>
@@ -285,6 +348,8 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
     rawResponse?: StreamObjectResult<T>['rawResponse'];
     schema: z.Schema<T> | Schema<T>;
     onFinish: Parameters<typeof streamObject<T>>[0]['onFinish'];
+    rootSpan: Span;
+    doStreamSpan: Span;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -309,11 +374,18 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
     let accumulatedText = '';
     let delta = '';
     let latestObject: DeepPartial<T> | undefined = undefined;
+    let firstChunk = true;
 
     const self = this;
     this.originalStream = stream.pipeThrough(
       new TransformStream<string | ObjectStreamInputPart, ObjectStreamPart<T>>({
         async transform(chunk, controller): Promise<void> {
+          // Telemetry event for first chunk:
+          if (firstChunk) {
+            firstChunk = false;
+            doStreamSpan.addEvent('ai.stream.firstChunk');
+          }
+
           // process partial text chunks
           if (typeof chunk === 'string') {
             accumulatedText += chunk;
@@ -387,13 +459,31 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
         // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
         async flush(controller) {
           try {
+            const finalUsage = usage ?? {
+              promptTokens: NaN,
+              completionTokens: NaN,
+              totalTokens: NaN,
+            };
+
+            doStreamSpan.setAttributes({
+              'ai.usage.promptTokens': finalUsage.promptTokens,
+              'ai.usage.completionTokens': finalUsage.completionTokens,
+              'ai.result.object': JSON.stringify(object),
+            });
+
+            // finish doStreamSpan before other operations for correct timing:
+            doStreamSpan.end();
+
+            // Add response information to the root span:
+            rootSpan.setAttributes({
+              'ai.usage.promptTokens': finalUsage.promptTokens,
+              'ai.usage.completionTokens': finalUsage.completionTokens,
+              'ai.result.object': JSON.stringify(object),
+            });
+
             // call onFinish callback:
             await onFinish?.({
-              usage: usage ?? {
-                promptTokens: NaN,
-                completionTokens: NaN,
-                totalTokens: NaN,
-              },
+              usage: finalUsage,
               object,
               error,
               rawResponse,
@@ -401,6 +491,8 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
             });
           } catch (error) {
             controller.error(error);
+          } finally {
+            rootSpan.end();
           }
         },
       }),

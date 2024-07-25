@@ -119,7 +119,7 @@ Default and recommended: 'auto' (best mode for the model).
       ...baseTelemetryAttributes,
       // specific settings that only make sense on the outer level:
       'ai.prompt': JSON.stringify({ system, prompt, messages }),
-      'ai.settings.jsonSchema': JSON.stringify(schema.jsonSchema),
+      'ai.schema': JSON.stringify(schema.jsonSchema),
       'ai.settings.mode': mode,
     },
     tracer,
