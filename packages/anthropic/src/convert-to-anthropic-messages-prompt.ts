@@ -10,9 +10,9 @@ import {
   AnthropicUserMessage,
 } from './anthropic-messages-prompt';
 
-export async function convertToAnthropicMessagesPrompt(
+export function convertToAnthropicMessagesPrompt(
   prompt: LanguageModelV1Prompt,
-): Promise<AnthropicMessagesPrompt> {
+): AnthropicMessagesPrompt {
   const blocks = groupIntoBlocks(prompt);
 
   let system: string | undefined = undefined;
