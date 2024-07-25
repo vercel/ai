@@ -66,12 +66,14 @@ const result = await generateText({
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
   - `operation.name`: `ai.generateText`
   - `ai.prompt`: the prompt that was used when calling `generateText`
+  - `ai.finishReason`: the reason why the generation finished
   - `ai.settings.maxToolRoundtrips`: the maximum number of tool roundtrips that were set
 - `ai.generateText.doGenerate`: a provider doGenerate call. It can contain `ai.toolCall` spans.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
   - `operation.name`: `ai.generateText`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
+  - `ai.finishReason`: the reason why the generation finished
 - `ai.toolCall`: a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
 
 ### streamText function
@@ -82,6 +84,7 @@ const result = await generateText({
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
   - `operation.name`: `ai.streamText`
   - `ai.prompt`: the prompt that was used when calling `streamText`
+  - `ai.finishReason`: the reason why the generation finished
 - `ai.streamText.doStream`: a provider doStream call.
   This span contains an `ai.stream.firstChunk` event that is emitted when the first chunk of the stream is received.
   The `doStream` span can also contain `ai.toolCall` spans.
@@ -89,7 +92,10 @@ const result = await generateText({
   - `operation.name`: `ai.streamText`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
+  - `ai.finishReason`: the reason why the generation finished
 - `ai.toolCall`: a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
+
+It also records a `ai.stream.firstChunk` event when the first chunk of the stream is received.
 
 ### generateObject function
 
@@ -99,6 +105,7 @@ const result = await generateText({
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
   - `operation.name`: `ai.generateObject`
   - `ai.prompt`: the prompt that was used when calling `generateObject`
+  - `ai.schema`: Stringified JSON schema version of the schema that was passed into the `generateObject` function
   - `ai.settings.mode`: the object generation mode
 - `ai.generateObject.doGenerate`: a provider doGenerate call.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
@@ -106,6 +113,25 @@ const result = await generateText({
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.settings.mode`: the object generation mode
+
+### streamObject function
+
+`streamObject` records 2 types of spans:
+
+- `ai.streamObject`: the full length of the streamObject call. It contains 1 or more `ai.streamObject.doStream` spans.
+  It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
+  - `operation.name`: `ai.streamObject`
+  - `ai.prompt`: the prompt that was used when calling `streamObject`
+  - `ai.schema`: Stringified JSON schema version of the schema that was passed into the `streamObject` function
+  - `ai.settings.mode`: the object generation mode
+- `ai.streamObject.doStream`: a provider doStream call.
+  It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
+  - `operation.name`: `ai.streamObject`
+  - `ai.prompt.format`: the format of the prompt
+  - `ai.prompt.messages`: the messages that were passed into the provider
+  - `ai.settings.mode`: the object generation mode
+
+It also records a `ai.stream.firstChunk` event when the first chunk of the stream is received.
 
 ### embed function
 
@@ -144,7 +170,6 @@ const result = await generateText({
 Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.streamText`, `ai.streamText.doStream`,
 `ai.generateObject`, `ai.generateObject.doGenerate`) contain the following attributes:
 
-- `ai.finishReason`: the reason why the generation finished
 - `ai.model.id`: the id of the model
 - `ai.model.provider`: the provider of the model
 - `ai.request.headers.*`: the request headers that were passed in through `headers`
@@ -161,7 +186,6 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 
 Many spans that use embedding models (`ai.embed`, `ai.embed.doEmbed`, `ai.embedMany`, `ai.embedMany.doEmbed`) contain the following attributes:
 
-- `ai.finishReason`: the reason why the generation finished
 - `ai.model.id`: the id of the model
 - `ai.model.provider`: the provider of the model
 - `ai.request.headers.*`: the request headers that were passed in through `headers`
