@@ -179,7 +179,7 @@ Warnings from the model provider (e.g. unsupported settings).
         mode: { type: 'object-json' },
         ...prepareCallSettings(settings),
         inputFormat: validatedPrompt.type,
-        prompt: convertToLanguageModelPrompt({
+        prompt: await convertToLanguageModelPrompt({
           prompt: validatedPrompt,
           modelSupportsImageUrls: model.supportsImageUrls,
         }),
@@ -223,7 +223,7 @@ Warnings from the model provider (e.g. unsupported settings).
         },
         ...prepareCallSettings(settings),
         inputFormat: validatedPrompt.type,
-        prompt: convertToLanguageModelPrompt({
+        prompt: await convertToLanguageModelPrompt({
           prompt: validatedPrompt,
           modelSupportsImageUrls: model.supportsImageUrls,
         }),

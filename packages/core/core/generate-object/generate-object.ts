@@ -149,7 +149,7 @@ Default and recommended: 'auto' (best mode for the model).
             messages,
           });
 
-          const promptMessages = convertToLanguageModelPrompt({
+          const promptMessages = await convertToLanguageModelPrompt({
             prompt: validatedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
           });
@@ -210,7 +210,7 @@ Default and recommended: 'auto' (best mode for the model).
             messages,
           });
 
-          const promptMessages = convertToLanguageModelPrompt({
+          const promptMessages = await convertToLanguageModelPrompt({
             prompt: validatedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
           });

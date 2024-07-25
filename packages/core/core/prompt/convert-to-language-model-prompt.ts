@@ -4,25 +4,33 @@ import {
   LanguageModelV1Prompt,
   LanguageModelV1TextPart,
 } from '@ai-sdk/provider';
+import { download, getErrorMessage } from '@ai-sdk/provider-utils';
 import { CoreMessage } from '../prompt/message';
 import { detectImageMimeType } from '../util/detect-image-mimetype';
 import { convertDataContentToUint8Array } from './data-content';
 import { ValidatedPrompt } from './get-validated-prompt';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
-import { getErrorMessage } from '@ai-sdk/provider-utils';
+import { ImagePart, TextPart } from './content-part';
 
-export function convertToLanguageModelPrompt({
+export async function convertToLanguageModelPrompt({
   prompt,
   modelSupportsImageUrls = true,
+  downloadImplementation = download,
 }: {
   prompt: ValidatedPrompt;
   modelSupportsImageUrls: boolean | undefined;
-}): LanguageModelV1Prompt {
+  downloadImplementation?: typeof download;
+}): Promise<LanguageModelV1Prompt> {
   const languageModelMessages: LanguageModelV1Prompt = [];
 
   if (prompt.system != null) {
     languageModelMessages.push({ role: 'system', content: prompt.system });
   }
+
+  const downloadedImages =
+    modelSupportsImageUrls || prompt.messages == null
+      ? null
+      : await downloadImages(prompt.messages, downloadImplementation);
 
   const promptType = prompt.type;
   switch (promptType) {
@@ -36,7 +44,10 @@ export function convertToLanguageModelPrompt({
 
     case 'messages': {
       languageModelMessages.push(
-        ...prompt.messages.map(convertToLanguageModelMessage),
+        ...prompt.messages.map(
+          (message): LanguageModelV1Message =>
+            convertToLanguageModelMessage(message, downloadedImages),
+        ),
       );
       break;
     }
@@ -50,8 +61,19 @@ export function convertToLanguageModelPrompt({
   return languageModelMessages;
 }
 
+/**
+ * Convert a CoreMessage to a LanguageModelV1Message.
+ *
+ * @param message The CoreMessage to convert.
+ * @param downloadedImages A map of image URLs to their downloaded data. Only
+ *   available if the model does not support image URLs, null otherwise.
+ */
 export function convertToLanguageModelMessage(
   message: CoreMessage,
+  downloadedImages: Record<
+    string,
+    { mimeType: string | undefined; data: Uint8Array }
+  > | null,
 ): LanguageModelV1Message {
   const role = message.role;
   switch (role) {
@@ -78,11 +100,21 @@ export function convertToLanguageModelMessage(
 
               case 'image': {
                 if (part.image instanceof URL) {
-                  return {
-                    type: 'image',
-                    image: part.image,
-                    mimeType: part.mimeType,
-                  };
+                  if (downloadedImages == null) {
+                    return {
+                      type: 'image',
+                      image: part.image,
+                      mimeType: part.mimeType,
+                    };
+                  } else {
+                    const downloadedImage =
+                      downloadedImages[part.image.toString()];
+                    return {
+                      type: 'image',
+                      image: downloadedImage.data,
+                      mimeType: part.mimeType ?? downloadedImage.mimeType,
+                    };
+                  }
                 }
 
                 // try to convert string image parts to urls
@@ -93,11 +125,20 @@ export function convertToLanguageModelMessage(
                     switch (url.protocol) {
                       case 'http:':
                       case 'https:': {
-                        return {
-                          type: 'image',
-                          image: url,
-                          mimeType: part.mimeType,
-                        };
+                        if (downloadedImages == null) {
+                          return {
+                            type: 'image',
+                            image: url,
+                            mimeType: part.mimeType,
+                          };
+                        } else {
+                          const downloadedImage = downloadedImages[part.image];
+                          return {
+                            type: 'image',
+                            image: downloadedImage.data,
+                            mimeType: part.mimeType ?? downloadedImage.mimeType,
+                          };
+                        }
                       }
                       case 'data:': {
                         try {
@@ -173,4 +214,39 @@ export function convertToLanguageModelMessage(
       throw new InvalidMessageRoleError({ role: _exhaustiveCheck });
     }
   }
+}
+
+async function downloadImages(
+  messages: CoreMessage[],
+  downloadImplementation: typeof download,
+): Promise<Record<string, { mimeType: string | undefined; data: Uint8Array }>> {
+  const urls = messages
+    .filter(message => message.role === 'user')
+    .map(message => message.content)
+    .filter((content): content is Array<TextPart | ImagePart> =>
+      Array.isArray(content),
+    )
+    .flat()
+    .filter((part): part is ImagePart => part.type === 'image')
+    .map(part => part.image)
+    .map(part =>
+      // support string urls in image parts:
+      typeof part === 'string' &&
+      (part.startsWith('http:') || part.startsWith('https:'))
+        ? new URL(part)
+        : part,
+    )
+    .filter((image): image is URL => image instanceof URL);
+
+  // download images in parallel:
+  const downloadedImages = await Promise.all(
+    urls.map(async url => ({
+      url,
+      data: await downloadImplementation({ url }),
+    })),
+  );
+
+  return Object.fromEntries(
+    downloadedImages.map(({ url, data }) => [url.toString(), data]),
+  );
 }

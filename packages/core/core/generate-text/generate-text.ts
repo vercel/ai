@@ -154,7 +154,7 @@ By default, it's set to 0, which will disable the feature.
         ...prepareToolsAndToolChoice({ tools, toolChoice }),
       };
       const callSettings = prepareCallSettings(settings);
-      const promptMessages = convertToLanguageModelPrompt({
+      const promptMessages = await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         modelSupportsImageUrls: model.supportsImageUrls,
       });
@@ -254,7 +254,9 @@ By default, it's set to 0, which will disable the feature.
         });
         responseMessages.push(...newResponseMessages);
         promptMessages.push(
-          ...newResponseMessages.map(convertToLanguageModelMessage),
+          ...newResponseMessages.map(message =>
+            convertToLanguageModelMessage(message, null),
+          ),
         );
       } while (
         // there are tool calls:
