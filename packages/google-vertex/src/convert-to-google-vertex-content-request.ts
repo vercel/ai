@@ -2,16 +2,12 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64, download } from '@ai-sdk/provider-utils';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { Content, GenerateContentRequest, Part } from '@google-cloud/vertexai';
 
-export async function convertToGoogleVertexContentRequest({
-  prompt,
-  downloadImplementation = download,
-}: {
-  prompt: LanguageModelV1Prompt;
-  downloadImplementation?: typeof download;
-}): Promise<GenerateContentRequest> {
+export function convertToGoogleVertexContentRequest(
+  prompt: LanguageModelV1Prompt,
+): GenerateContentRequest {
   const systemInstructionParts: Part[] = [];
   const contents: Content[] = [];
   let systemMessagesAllowed = true;
@@ -21,8 +17,7 @@ export async function convertToGoogleVertexContentRequest({
       case 'system': {
         if (!systemMessagesAllowed) {
           throw new UnsupportedFunctionalityError({
-            functionality:
-              'system messages are only supported at the beginning of the conversation',
+            functionality: 'system messages after first user message',
           });
         }
         systemInstructionParts.push({ text: content });
@@ -42,27 +37,20 @@ export async function convertToGoogleVertexContentRequest({
             }
 
             case 'image': {
-              let data: Uint8Array;
-              let mimeType: string | undefined;
-
               if (part.image instanceof URL) {
-                const downloadResult = await downloadImplementation({
-                  url: part.image,
+                // The AI SDK automatically downloads images for user image parts with URLs
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'Image URLs in user messages',
                 });
-
-                data = downloadResult.data;
-                mimeType = downloadResult.mimeType;
-              } else {
-                data = part.image;
-                mimeType = part.mimeType;
               }
 
               parts.push({
                 inlineData: {
-                  mimeType: mimeType ?? 'image/jpeg',
-                  data: convertUint8ArrayToBase64(data),
+                  mimeType: part.mimeType ?? 'image/jpeg',
+                  data: convertUint8ArrayToBase64(part.image),
                 },
               });
+
               break;
             }
 

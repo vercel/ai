@@ -32,6 +32,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly provider = 'google-vertex';
   readonly defaultObjectGenerationMode = undefined;
+  readonly supportsImageUrls = false;
 
   readonly modelId: GoogleVertexModelId;
   readonly settings: GoogleVertexSettings;
@@ -124,7 +125,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
               | undefined
               | Array<SafetySetting>,
           }),
-          contentRequest: await convertToGoogleVertexContentRequest({ prompt }),
+          contentRequest: convertToGoogleVertexContentRequest(prompt),
           warnings,
         };
       }
