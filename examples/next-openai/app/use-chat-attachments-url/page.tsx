@@ -83,7 +83,7 @@ export default function Page() {
               for (const file of Array.from(event.target.files)) {
                 const blob = await upload(file.name, file, {
                   access: 'public',
-                  handleUploadUrl: '/api/file',
+                  handleUploadUrl: '/api/files',
                 });
 
                 setAttachments(prevAttachments => [
