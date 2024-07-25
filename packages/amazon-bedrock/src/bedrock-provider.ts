@@ -65,6 +65,12 @@ export function createAmazonBedrock(
             environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
             description: 'AWS secret access key',
           }),
+          sessionToken: loadSetting({
+            settingName: 'sessionToken',
+            settingValue: options.accessKeyId,
+            environmentVariableName: 'AWS_SESSION_TOKEN',
+            description: 'AWS session token',
+          }),
         },
       },
     );
