@@ -2,19 +2,12 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { BedrockMessages, BedrockMessagesPrompt } from './bedrock-chat-prompt';
 import { ContentBlock, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
-import { download } from '@ai-sdk/provider-utils';
+import { BedrockMessages, BedrockMessagesPrompt } from './bedrock-chat-prompt';
 
-type ConvertToBedrockChatMessagesArgs = {
-  prompt: LanguageModelV1Prompt;
-  downloadImplementation?: typeof download;
-};
-
-export async function convertToBedrockChatMessages({
-  prompt,
-  downloadImplementation = download,
-}: ConvertToBedrockChatMessagesArgs): Promise<BedrockMessagesPrompt> {
+export async function convertToBedrockChatMessages(
+  prompt: LanguageModelV1Prompt,
+): Promise<BedrockMessagesPrompt> {
   let system: string | undefined = undefined;
   const messages: BedrockMessages = [];
 
@@ -42,28 +35,18 @@ export async function convertToBedrockChatMessages({
             }
 
             case 'image': {
-              let data: Uint8Array;
-              let mimeType: string | undefined;
-
               if (part.image instanceof URL) {
-                const downloadResult = await downloadImplementation({
-                  url: part.image,
+                // The AI SDK automatically downloads images for user image parts with URLs
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'Image URLs in user messages',
                 });
-
-                data = downloadResult.data;
-                mimeType = downloadResult.mimeType;
-              } else {
-                data = part.image;
-                mimeType = part.mimeType;
               }
 
               bedrockMessageContent.push({
                 image: {
-                  format: (mimeType ?? part.mimeType)?.split(
-                    '/',
-                  )?.[1] as ImageFormat,
+                  format: part.mimeType?.split('/')?.[1] as ImageFormat,
                   source: {
-                    bytes: data ?? (part.image as Uint8Array),
+                    bytes: part.image ?? (part.image as Uint8Array),
                   },
                 },
               });

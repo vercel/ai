@@ -109,7 +109,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const { system, messages } = await convertToBedrockChatMessages({ prompt });
+    const { system, messages } = await convertToBedrockChatMessages(prompt);
 
     const baseArgs: ConverseCommandInput = {
       modelId: this.modelId,
