@@ -262,7 +262,9 @@ export async function streamUI<
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,
-      prompt: convertToLanguageModelPrompt(validatedPrompt),
+      prompt: convertToLanguageModelPrompt({
+        prompt: validatedPrompt,
+      }),
       abortSignal,
       headers,
     }),

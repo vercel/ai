@@ -11,9 +11,11 @@ import { ValidatedPrompt } from './get-validated-prompt';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { getErrorMessage } from '@ai-sdk/provider-utils';
 
-export function convertToLanguageModelPrompt(
-  prompt: ValidatedPrompt,
-): LanguageModelV1Prompt {
+export function convertToLanguageModelPrompt({
+  prompt,
+}: {
+  prompt: ValidatedPrompt;
+}): LanguageModelV1Prompt {
   const languageModelMessages: LanguageModelV1Prompt = [];
 
   if (prompt.system != null) {

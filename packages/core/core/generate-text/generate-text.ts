@@ -154,7 +154,9 @@ By default, it's set to 0, which will disable the feature.
         ...prepareToolsAndToolChoice({ tools, toolChoice }),
       };
       const callSettings = prepareCallSettings(settings);
-      const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
+      const promptMessages = convertToLanguageModelPrompt({
+        prompt: validatedPrompt,
+      });
 
       let currentModelResponse: Awaited<
         ReturnType<LanguageModel['doGenerate']>

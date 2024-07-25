@@ -179,7 +179,9 @@ Warnings from the model provider (e.g. unsupported settings).
         mode: { type: 'object-json' },
         ...prepareCallSettings(settings),
         inputFormat: validatedPrompt.type,
-        prompt: convertToLanguageModelPrompt(validatedPrompt),
+        prompt: convertToLanguageModelPrompt({
+          prompt: validatedPrompt,
+        }),
         abortSignal,
         headers,
       };
@@ -220,7 +222,9 @@ Warnings from the model provider (e.g. unsupported settings).
         },
         ...prepareCallSettings(settings),
         inputFormat: validatedPrompt.type,
-        prompt: convertToLanguageModelPrompt(validatedPrompt),
+        prompt: convertToLanguageModelPrompt({
+          prompt: validatedPrompt,
+        }),
         abortSignal,
         headers,
       };
