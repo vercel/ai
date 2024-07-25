@@ -68,7 +68,7 @@ export function createAmazonBedrock(
           }),
           sessionToken: loadSetting({
             settingName: 'sessionToken',
-            settingValue: options.accessKeyId,
+            settingValue: options.sessionToken,
             environmentVariableName: 'AWS_SESSION_TOKEN',
             description: 'AWS session token',
           }),
