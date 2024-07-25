@@ -38,6 +38,11 @@ describe('result.objectStream', () => {
               { type: 'text-delta', textDelta: `world` },
               { type: 'text-delta', textDelta: `!"` },
               { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
@@ -125,6 +130,11 @@ describe('result.objectStream', () => {
                 toolCallId: 'tool-call-1',
                 toolName: 'json',
                 argsTextDelta: ' }',
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
               },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -741,6 +751,11 @@ describe('custom schema', () => {
               { type: 'text-delta', textDelta: `world` },
               { type: 'text-delta', textDelta: `!"` },
               { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
@@ -791,6 +806,11 @@ describe('telemetry', () => {
             { type: 'text-delta', textDelta: `world` },
             { type: 'text-delta', textDelta: `!"` },
             { type: 'text-delta', textDelta: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
           ]),
           rawCall: { rawPrompt: 'prompt', rawSettings: {} },
         }),
@@ -806,7 +826,7 @@ describe('telemetry', () => {
     assert.deepStrictEqual(tracer.jsonSpans, []);
   });
 
-  it('should record telemetry data when enabled', async () => {
+  it('should record telemetry data when enabled with mode "json"', async () => {
     const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async () => ({
@@ -817,6 +837,11 @@ describe('telemetry', () => {
             { type: 'text-delta', textDelta: `world` },
             { type: 'text-delta', textDelta: `!"` },
             { type: 'text-delta', textDelta: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
           ]),
           rawCall: { rawPrompt: 'prompt', rawSettings: {} },
         }),
@@ -844,12 +869,48 @@ describe('telemetry', () => {
     assert.deepStrictEqual(tracer.jsonSpans, [
       {
         name: 'ai.streamObject',
-        attributes: {},
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt': '{"prompt":"prompt"}',
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.result.object': '{"content":"Hello, world!"}',
+          'ai.usage.completionTokens': 10,
+          'ai.usage.promptTokens': 3,
+          'ai.settings.mode': 'json',
+          'ai.schema':
+            '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
+          'operation.name': 'ai.streamObject',
+          'resource.name': 'test-function-id',
+        },
         events: [],
       },
       {
         name: 'ai.streamObject.doStream',
-        attributes: {},
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
+          'ai.result.object': '{"content":"Hello, world!"}',
+          'ai.settings.maxRetries': undefined,
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.usage.completionTokens': 10,
+          'ai.usage.promptTokens': 3,
+          'operation.name': 'ai.streamObject',
+          'resource.name': 'test-function-id',
+          'ai.settings.mode': 'json',
+          'ai.prompt.format': 'prompt',
+          'ai.prompt.messages':
+            '[{"role":"system","content":"JSON schema:\\n{\\"type\\":\\"object\\",\\"properties\\":{\\"content\\":{\\"type\\":\\"string\\"}},\\"required\\":[\\"content\\"],\\"additionalProperties\\":false,\\"$schema\\":\\"http://json-schema.org/draft-07/schema#\\"}\\nYou MUST answer with a JSON object that matches the JSON schema above."},{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
+        },
         events: ['ai.stream.firstChunk'],
       },
     ]);

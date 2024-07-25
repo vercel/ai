@@ -203,7 +203,7 @@ describe('telemetry', () => {
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"prompt"}',
           'ai.result.object': '{"content":"Hello, world!"}',
-          'ai.settings.jsonSchema':
+          'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
           'ai.settings.maxRetries': undefined,
           'ai.settings.mode': 'json',
@@ -282,7 +282,7 @@ describe('telemetry', () => {
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"prompt"}',
           'ai.result.object': '{"content":"Hello, world!"}',
-          'ai.settings.jsonSchema':
+          'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
           'ai.settings.maxRetries': undefined,
           'ai.settings.mode': 'tool',
