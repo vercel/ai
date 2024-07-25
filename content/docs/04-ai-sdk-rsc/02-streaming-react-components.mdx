@@ -204,7 +204,9 @@ Learn how to stream React components with the Next.js App Router using `streamUI
 
 ## Advanced Usage
 In some cases, you might need to stream text or components within a tool call of a streamUI function. This can be achieved by nesting another streamUI call inside the tool. Here's an example of how you might structure this:
-typescriptCopyconst result = await streamUI({
+
+```typescript
+const  result = await streamUI({
   model: openai('gpt-4'),
   prompt: 'Create a data visualization dashboard',
   text: ({ content }) => <div>{content}</div>,
@@ -234,6 +236,7 @@ typescriptCopyconst result = await streamUI({
     },
   },
 });
+```
 In this example:
 
 The outer streamUI call handles the main conversation and determines when to generate a dashboard.
