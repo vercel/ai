@@ -8,6 +8,7 @@ import {
   isDeepEqualData,
   parsePartialJson,
 } from '@ai-sdk/ui-utils';
+import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'http';
 import { z } from 'zod';
 import { CallSettings } from '../prompt/call-settings';
@@ -15,6 +16,10 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getTracer } from '../telemetry/get-tracer';
+import { recordSpan } from '../telemetry/record-span';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CallWarning, LanguageModel } from '../types';
 import {
   CompletionTokenUsage,
@@ -34,11 +39,6 @@ import {
   ObjectStreamPart,
   StreamObjectResult,
 } from './stream-object-result';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
-import { getTracer } from '../telemetry/get-tracer';
-import { recordSpan } from '../telemetry/record-span';
-import { Span } from '@opentelemetry/api';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -212,7 +212,10 @@ Warnings from the model provider (e.g. unsupported settings).
             mode: { type: 'object-json' },
             ...prepareCallSettings(settings),
             inputFormat: validatedPrompt.type,
-            prompt: convertToLanguageModelPrompt(validatedPrompt),
+            prompt: await convertToLanguageModelPrompt({
+              prompt: validatedPrompt,
+              modelSupportsImageUrls: model.supportsImageUrls,
+            }),
             abortSignal,
             headers,
           };
@@ -253,7 +256,10 @@ Warnings from the model provider (e.g. unsupported settings).
             },
             ...prepareCallSettings(settings),
             inputFormat: validatedPrompt.type,
-            prompt: convertToLanguageModelPrompt(validatedPrompt),
+            prompt: await convertToLanguageModelPrompt({
+              prompt: validatedPrompt,
+              modelSupportsImageUrls: model.supportsImageUrls,
+            }),
             abortSignal,
             headers,
           };
