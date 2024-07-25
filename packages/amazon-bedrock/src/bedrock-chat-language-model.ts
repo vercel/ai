@@ -32,6 +32,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly provider = 'amazon-bedrock';
   readonly defaultObjectGenerationMode = 'tool';
+  readonly supportsImageUrls = false;
 
   readonly modelId: BedrockChatModelId;
   readonly settings: BedrockChatSettings;
@@ -109,7 +110,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const { system, messages } = await convertToBedrockChatMessages(prompt);
+    const { system, messages } = convertToBedrockChatMessages(prompt);
 
     const baseArgs: ConverseCommandInput = {
       modelId: this.modelId,

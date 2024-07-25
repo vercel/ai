@@ -2,7 +2,7 @@ import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages
 
 describe('user messages', () => {
   it('should convert messages with image and text parts to multiple parts', async () => {
-    const { messages } = await convertToBedrockChatMessages([
+    const { messages } = convertToBedrockChatMessages([
       {
         role: 'user',
         content: [
@@ -33,7 +33,7 @@ describe('user messages', () => {
   });
 
   it('should extract the system message', async () => {
-    const { system } = await convertToBedrockChatMessages([
+    const { system } = convertToBedrockChatMessages([
       {
         role: 'system',
         content: 'Hello',
@@ -49,6 +49,6 @@ describe('user messages', () => {
         { role: 'system', content: 'Hello' },
         { role: 'system', content: 'World' },
       ]),
-    ).rejects.toThrowError();
+    ).toThrowError();
   });
 });

@@ -5,9 +5,9 @@ import {
 import { ContentBlock, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
 import { BedrockMessages, BedrockMessagesPrompt } from './bedrock-chat-prompt';
 
-export async function convertToBedrockChatMessages(
+export function convertToBedrockChatMessages(
   prompt: LanguageModelV1Prompt,
-): Promise<BedrockMessagesPrompt> {
+): BedrockMessagesPrompt {
   let system: string | undefined = undefined;
   const messages: BedrockMessages = [];
 
