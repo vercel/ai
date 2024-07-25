@@ -10,6 +10,8 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { jsonSchema } from '../util/schema';
 import { streamObject } from './stream-object';
+import { MockTracer } from '../test/mock-tracer';
+import { setTestTracer } from '../telemetry/get-tracer';
 
 describe('result.objectStream', () => {
   it('should send object deltas with json mode', async () => {
@@ -150,7 +152,7 @@ describe('result.fullStream', () => {
   it('should send full stream data', async () => {
     const result = await streamObject({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: '{ ' },
@@ -235,7 +237,7 @@ describe('result.textStream', () => {
   it('should send text stream', async () => {
     const result = await streamObject({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: '{ ' },
@@ -270,7 +272,7 @@ describe('result.toTextStreamResponse', () => {
   it('should create a Response with a text stream', async () => {
     const result = await streamObject({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: '{ ' },
@@ -317,7 +319,7 @@ describe('result.pipeTextStreamToResponse', async () => {
 
     const result = await streamObject({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: '{ ' },
@@ -423,7 +425,7 @@ describe('result.object', () => {
   it('should resolve with typed object', async () => {
     const result = await streamObject({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: '{ ' },
@@ -458,7 +460,7 @@ describe('result.object', () => {
   it('should reject object promise when the streamed object does not match the schema', async () => {
     const result = await streamObject({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: '{ ' },
@@ -497,7 +499,7 @@ describe('result.object', () => {
   it('should not lead to unhandled promise rejections when the streamed object does not match the schema', async () => {
     const result = await streamObject({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: '{ ' },
@@ -763,5 +765,93 @@ describe('custom schema', () => {
         { content: 'Hello, world!' },
       ],
     );
+  });
+});
+
+describe('telemetry', () => {
+  let tracer: MockTracer;
+
+  beforeEach(() => {
+    tracer = new MockTracer();
+    setTestTracer(tracer);
+  });
+
+  afterEach(() => {
+    setTestTracer(undefined);
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: '{ ' },
+            { type: 'text-delta', textDelta: '"content": ' },
+            { type: 'text-delta', textDelta: `"Hello, ` },
+            { type: 'text-delta', textDelta: `world` },
+            { type: 'text-delta', textDelta: `!"` },
+            { type: 'text-delta', textDelta: ' }' },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(result.partialObjectStream);
+
+    assert.deepStrictEqual(tracer.jsonSpans, []);
+  });
+
+  it('should record telemetry data when enabled', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: '{ ' },
+            { type: 'text-delta', textDelta: '"content": ' },
+            { type: 'text-delta', textDelta: `"Hello, ` },
+            { type: 'text-delta', textDelta: `world` },
+            { type: 'text-delta', textDelta: `!"` },
+            { type: 'text-delta', textDelta: ' }' },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+      headers: {
+        header1: 'value1',
+        header2: 'value2',
+      },
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+      },
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(result.partialObjectStream);
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        name: 'ai.streamObject',
+        attributes: {},
+        events: [],
+      },
+      {
+        name: 'ai.streamObject.doStream',
+        attributes: {},
+        events: ['ai.stream.firstChunk'],
+      },
+    ]);
   });
 });
