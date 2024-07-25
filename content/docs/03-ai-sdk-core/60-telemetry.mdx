@@ -33,6 +33,7 @@ The following functions currently support telemetry:
 - `generateText`
 - `streamText`
 - `generateObject`
+- `streamObject`
 - `embed`
 - `embedMany`
 
@@ -168,7 +169,7 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
 ### Basic LLM span information
 
 Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.streamText`, `ai.streamText.doStream`,
-`ai.generateObject`, `ai.generateObject.doGenerate`) contain the following attributes:
+`ai.generateObject`, `ai.generateObject.doGenerate`, `ai.streamObject`, `ai.streamObject.doStream`) contain the following attributes:
 
 - `ai.model.id`: the id of the model
 - `ai.model.provider`: the provider of the model
