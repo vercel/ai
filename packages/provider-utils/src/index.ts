@@ -1,6 +1,5 @@
 export * from './combine-headers';
 export * from './convert-async-generator-to-readable-stream';
-export * from './download';
 export * from './extract-response-headers';
 export * from './generate-id';
 export * from './get-error-message';
