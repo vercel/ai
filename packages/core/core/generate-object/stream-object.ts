@@ -34,6 +34,7 @@ import {
   ObjectStreamPart,
   StreamObjectResult,
 } from './stream-object-result';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -85,6 +86,7 @@ export async function streamObject<T>({
   maxRetries,
   abortSignal,
   headers,
+  experimental_telemetry: telemetry,
   onFinish,
   ...settings
 }: Omit<CallSettings, 'stopSequences'> &
@@ -113,6 +115,11 @@ Please note that most providers do not support all modes.
 Default and recommended: 'auto' (best mode for the model).
      */
     mode?: 'auto' | 'json' | 'tool';
+
+    /**
+Optional telemetry configuration (experimental).
+     */
+    experimental_telemetry?: TelemetrySettings;
 
     /**
 Callback that is called when the LLM response and the final object validation are finished.
