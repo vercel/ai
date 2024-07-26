@@ -1192,3 +1192,92 @@ describe('file attachments with url', () => {
     ),
   );
 });
+
+describe('reload', () => {
+  const TestComponent = () => {
+    const { messages, append, reload } = useChat();
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+          </div>
+        ))}
+
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append({ role: 'user', content: 'hi' });
+          }}
+        />
+
+        <button
+          data-testid="do-reload"
+          onClick={() => {
+            reload({
+              data: { 'test-data-key': 'test-data-value' },
+              body: { 'request-body-key': 'request-body-value' },
+              headers: { 'header-key': 'header-value' },
+            });
+          }}
+        />
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it(
+    'should show streamed response',
+    withTestServer(
+      [
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: ['0:"first response"\n'],
+        },
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: ['0:"second response"\n'],
+        },
+      ],
+      async ({ call }) => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+        await screen.findByTestId('message-1');
+
+        // setup done, click reload:
+        await userEvent.click(screen.getByTestId('do-reload'));
+
+        expect(await call(1).getRequestBodyJson()).toStrictEqual({
+          messages: [{ content: 'hi', role: 'user' }],
+          data: { 'test-data-key': 'test-data-value' },
+          'request-body-key': 'request-body-value',
+        });
+
+        expect(call(1).getRequestHeaders()).toStrictEqual({
+          'content-type': 'application/json',
+          'header-key': 'header-value',
+        });
+
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: second response',
+        );
+      },
+    ),
+  );
+});
