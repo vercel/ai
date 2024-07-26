@@ -3,7 +3,6 @@ import { withTestServer } from '@ai-sdk/provider-utils/test';
 import { formatStreamPart, getTextFromDataUrl } from '@ai-sdk/ui-utils';
 import '@testing-library/jest-dom/vitest';
 import {
-  RenderResult,
   cleanup,
   findByText,
   render,
