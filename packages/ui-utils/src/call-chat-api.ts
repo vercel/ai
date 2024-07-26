@@ -118,17 +118,9 @@ export async function callChatApi({
           abortController != null ? { current: abortController() } : undefined,
         update: onUpdate,
         onToolCall,
-        onFinish(prefixMap) {
+        onFinish({ prefixMap, finishReason, usage }) {
           if (onFinish && prefixMap.text != null) {
-            // TODO
-            onFinish(prefixMap.text, {
-              usage: {
-                completionTokens: 0,
-                promptTokens: 0,
-                totalTokens: 0,
-              },
-              finishReason: 'stop',
-            });
+            onFinish(prefixMap.text, { usage, finishReason });
           }
         },
         generateId,
