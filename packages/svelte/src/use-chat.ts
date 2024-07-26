@@ -322,16 +322,27 @@ export function useChat({
     function_call,
     tools,
     tool_choice,
+    data,
+    headers,
+    body,
   }: ChatRequestOptions = {}) => {
     const messagesSnapshot = get(messages);
     if (messagesSnapshot.length === 0) return null;
+
+    const requestOptions = {
+      headers: headers ?? options?.headers,
+      body: body ?? options?.body,
+    };
 
     // Remove last assistant message and retry last user message.
     const lastMessage = messagesSnapshot.at(-1);
     if (lastMessage?.role === 'assistant') {
       const chatRequest: ChatRequest = {
         messages: messagesSnapshot.slice(0, -1),
-        options,
+        options: requestOptions,
+        headers: requestOptions.headers,
+        body: requestOptions.body,
+        data,
         ...(functions !== undefined && { functions }),
         ...(function_call !== undefined && { function_call }),
         ...(tools !== undefined && { tools }),
@@ -340,9 +351,13 @@ export function useChat({
 
       return triggerRequest(chatRequest);
     }
+
     const chatRequest: ChatRequest = {
       messages: messagesSnapshot,
-      options,
+      options: requestOptions,
+      headers: requestOptions.headers,
+      body: requestOptions.body,
+      data,
       ...(functions !== undefined && { functions }),
       ...(function_call !== undefined && { function_call }),
       ...(tools !== undefined && { tools }),
