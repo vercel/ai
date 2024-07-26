@@ -562,7 +562,13 @@ However, the LLM results are expected to be small enough to not cause issues.
             );
             break;
           case 'finish':
-            break; // ignored
+            controller.enqueue(
+              formatStreamPart('finish_message', {
+                finishReason: chunk.finishReason,
+                usage: chunk.usage,
+              }),
+            );
+            break;
           default: {
             const exhaustiveCheck: never = chunkType;
             throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
