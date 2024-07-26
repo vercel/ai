@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 0.0.24
+
+### Patch Changes
+
+- b2bee4c5: fix (ai/ui): send data, body, headers in useChat().reload
+
 ## 0.0.23
 
 ### Patch Changes

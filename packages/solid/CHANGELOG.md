@@ -1,5 +1,11 @@
 # @ai-sdk/solid
 
+## 0.0.23
+
+### Patch Changes
+
+- b2bee4c5: fix (ai/ui): send data, body, headers in useChat().reload
+
 ## 0.0.22
 
 ### Patch Changes
