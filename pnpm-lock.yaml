@@ -1370,6 +1370,9 @@ importers:
 
   packages/ui-utils:
     dependencies:
+      '@ai-sdk/provider':
+        specifier: 0.0.14
+        version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: 1.0.5
         version: link:../provider-utils
