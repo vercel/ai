@@ -1,3 +1,5 @@
+import { withTestServer } from '@ai-sdk/provider-utils/test';
+import { formatStreamPart } from '@ai-sdk/ui-utils';
 import {
   mockFetchDataStream,
   mockFetchDataStreamWithGenerator,
@@ -7,10 +9,10 @@ import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { cleanup, findByText, render, screen } from '@testing-library/vue';
 import TestChatComponent from './TestChatComponent.vue';
-import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
 import TestChatFormComponent from './TestChatFormComponent.vue';
-import { formatStreamPart } from '@ai-sdk/ui-utils';
-import TestChatFormComponentOptions from './TestChatFormComponentOptions.vue';
+import TestChatFormOptionsComponent from './TestChatFormOptionsComponent.vue';
+import TestChatReloadComponent from './TestChatReloadComponent.vue';
+import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
 
 describe('stream data stream', () => {
   beforeEach(() => {
@@ -180,7 +182,7 @@ describe('form actions', () => {
 
 describe('form actions (with options)', () => {
   beforeEach(() => {
-    render(TestChatFormComponentOptions);
+    render(TestChatFormOptionsComponent);
   });
 
   afterEach(() => {
@@ -244,4 +246,60 @@ describe('form actions (with options)', () => {
       'AI: The sky is blue.',
     );
   });
+});
+
+describe('reload', () => {
+  beforeEach(() => {
+    render(TestChatReloadComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it(
+    'should show streamed response',
+    withTestServer(
+      [
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: ['0:"first response"\n'],
+        },
+        {
+          url: '/api/chat',
+          type: 'stream-values',
+          content: ['0:"second response"\n'],
+        },
+      ],
+      async ({ call }) => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+        await screen.findByTestId('message-1');
+
+        // setup done, click reload:
+        await userEvent.click(screen.getByTestId('do-reload'));
+
+        expect(await call(1).getRequestBodyJson()).toStrictEqual({
+          messages: [{ content: 'hi', role: 'user' }],
+          data: { 'test-data-key': 'test-data-value' },
+          'request-body-key': 'request-body-value',
+        });
+
+        expect(call(1).getRequestHeaders()).toStrictEqual({
+          'content-type': 'application/json',
+          'header-key': 'header-value',
+        });
+
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: second response',
+        );
+      },
+    ),
+  );
 });

@@ -251,6 +251,7 @@ export function useChat({
     if (lastMessage.role === 'assistant') {
       return triggerRequest(messagesSnapshot.slice(0, -1), options);
     }
+
     return triggerRequest(messagesSnapshot, options);
   };
 

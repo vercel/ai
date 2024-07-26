@@ -188,7 +188,11 @@ Warnings from the model provider (e.g. unsupported settings).
     fn: async rootSpan => {
       const retry = retryWithExponentialBackoff({ maxRetries });
       const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
-      const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
+      const promptMessages = await convertToLanguageModelPrompt({
+        prompt: validatedPrompt,
+        modelSupportsImageUrls: model.supportsImageUrls,
+      });
+
       const {
         result: { stream, warnings, rawResponse },
         doStreamSpan,

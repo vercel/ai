@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.14
+
+### Patch Changes
+
+- a8d1c9e9: feat (ai/core): parallel image download
+
 ## 0.0.13
 
 ### Patch Changes

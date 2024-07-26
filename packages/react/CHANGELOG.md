@@ -1,5 +1,19 @@
 # @ai-sdk/react
 
+## 0.0.30
+
+### Patch Changes
+
+- b2bee4c5: fix (ai/ui): send data, body, headers in useChat().reload
+
+## 0.0.29
+
+### Patch Changes
+
+- Updated dependencies [a8d1c9e9]
+  - @ai-sdk/provider-utils@1.0.5
+  - @ai-sdk/ui-utils@0.0.20
+
 ## 0.0.28
 
 ### Patch Changes

@@ -5,7 +5,7 @@ const { messages, handleSubmit, input } = useChat();
 </script>
 
 <template>
-  <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+  <div>
     <div
       v-for="(m, idx) in messages"
       key="m.id"
@@ -16,13 +16,7 @@ const { messages, handleSubmit, input } = useChat();
     </div>
 
     <form @submit.prevent="handleSubmit">
-      <input
-        :data-testid="`do-input`"
-        v-model="input"
-        type="text"
-        placeholder="Type a message..."
-      />
+      <input :data-testid="`do-input`" v-model="input" type="text" />
     </form>
-    
   </div>
 </template>

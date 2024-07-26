@@ -1,5 +1,31 @@
 # ai
 
+## 3.2.37
+
+### Patch Changes
+
+- b2bee4c5: fix (ai/ui): send data, body, headers in useChat().reload
+- Updated dependencies [b2bee4c5]
+  - @ai-sdk/svelte@0.0.24
+  - @ai-sdk/react@0.0.30
+  - @ai-sdk/solid@0.0.23
+
+## 3.2.36
+
+### Patch Changes
+
+- a8d1c9e9: feat (ai/core): parallel image download
+- cfa360a8: feat (ai/core): add telemetry support to embedMany function.
+- 49808ca5: feat (ai/core): add telemetry to streamObject
+- Updated dependencies [a8d1c9e9]
+  - @ai-sdk/provider-utils@1.0.5
+  - @ai-sdk/provider@0.0.14
+  - @ai-sdk/react@0.0.29
+  - @ai-sdk/svelte@0.0.23
+  - @ai-sdk/ui-utils@0.0.20
+  - @ai-sdk/vue@0.0.24
+  - @ai-sdk/solid@0.0.22
+
 ## 3.2.35
 
 ### Patch Changes

@@ -119,7 +119,7 @@ Default and recommended: 'auto' (best mode for the model).
       ...baseTelemetryAttributes,
       // specific settings that only make sense on the outer level:
       'ai.prompt': JSON.stringify({ system, prompt, messages }),
-      'ai.settings.jsonSchema': JSON.stringify(schema.jsonSchema),
+      'ai.schema': JSON.stringify(schema.jsonSchema),
       'ai.settings.mode': mode,
     },
     tracer,
@@ -149,7 +149,11 @@ Default and recommended: 'auto' (best mode for the model).
             messages,
           });
 
-          const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
+          const promptMessages = await convertToLanguageModelPrompt({
+            prompt: validatedPrompt,
+            modelSupportsImageUrls: model.supportsImageUrls,
+          });
+
           const inputFormat = validatedPrompt.type;
 
           const generateResult = await retry(() =>
@@ -206,7 +210,10 @@ Default and recommended: 'auto' (best mode for the model).
             messages,
           });
 
-          const promptMessages = convertToLanguageModelPrompt(validatedPrompt);
+          const promptMessages = await convertToLanguageModelPrompt({
+            prompt: validatedPrompt,
+            modelSupportsImageUrls: model.supportsImageUrls,
+          });
           const inputFormat = validatedPrompt.type;
 
           const generateResult = await retry(() =>

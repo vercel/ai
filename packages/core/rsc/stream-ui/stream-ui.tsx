@@ -254,7 +254,7 @@ export async function streamUI<
 
   const retry = retryWithExponentialBackoff({ maxRetries });
   const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
-  const result = await retry(() =>
+  const result = await retry(async () =>
     model.doStream({
       mode: {
         type: 'regular',
@@ -262,7 +262,10 @@ export async function streamUI<
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,
-      prompt: convertToLanguageModelPrompt(validatedPrompt),
+      prompt: await convertToLanguageModelPrompt({
+        prompt: validatedPrompt,
+        modelSupportsImageUrls: model.supportsImageUrls,
+      }),
       abortSignal,
       headers,
     }),
