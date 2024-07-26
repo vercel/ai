@@ -238,8 +238,8 @@ export function useChat({
   /**
 Maximal number of automatic roundtrips for tool calls.
 
-An automatic tool call roundtrip is a call to the server with the 
-tool call results when all tool calls in the last assistant 
+An automatic tool call roundtrip is a call to the server with the
+tool call results when all tool calls in the last assistant
 message have results.
 
 A maximum number is required to prevent infinite loops in the
@@ -469,15 +469,26 @@ By default, it's set to 0, which will disable the feature.
       function_call,
       tools,
       tool_choice,
+      data,
+      headers,
+      body,
     }: ChatRequestOptions = {}) => {
       if (messagesRef.current.length === 0) return null;
+
+      const requestOptions = {
+        headers: headers ?? options?.headers,
+        body: body ?? options?.body,
+      };
 
       // Remove last assistant message and retry last user message.
       const lastMessage = messagesRef.current[messagesRef.current.length - 1];
       if (lastMessage.role === 'assistant') {
         const chatRequest: ChatRequest = {
           messages: messagesRef.current.slice(0, -1),
-          options,
+          options: requestOptions,
+          headers: requestOptions.headers,
+          body: requestOptions.body,
+          data,
           ...(functions !== undefined && { functions }),
           ...(function_call !== undefined && { function_call }),
           ...(tools !== undefined && { tools }),
@@ -489,7 +500,10 @@ By default, it's set to 0, which will disable the feature.
 
       const chatRequest: ChatRequest = {
         messages: messagesRef.current,
-        options,
+        options: requestOptions,
+        headers: requestOptions.headers,
+        body: requestOptions.body,
+        data,
         ...(functions !== undefined && { functions }),
         ...(function_call !== undefined && { function_call }),
         ...(tools !== undefined && { tools }),
@@ -667,7 +681,7 @@ By default, it's set to 0, which will disable the feature.
 }
 
 /**
-Check if the message is an assistant message with completed tool calls. 
+Check if the message is an assistant message with completed tool calls.
 The message must have at least one tool invocation and all tool invocations
 must have a result.
  */

@@ -1287,6 +1287,9 @@ importers:
 
   packages/solid:
     dependencies:
+      '@ai-sdk/provider-utils':
+        specifier: 1.0.5
+        version: link:../provider-utils
       '@ai-sdk/ui-utils':
         specifier: 0.0.20
         version: link:../ui-utils

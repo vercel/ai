@@ -7,7 +7,7 @@ const { completion, handleSubmit, input, isLoading, error } = useCompletion({
 </script>
 
 <template>
-  <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+  <div>
     <div data-testid="loading">{{ isLoading?.toString() }}</div>
     <div data-testid="error">{{ error?.toString() }}</div>
     <div data-testid="completion">{{ completion }}</div>
