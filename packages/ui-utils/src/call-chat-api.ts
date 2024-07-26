@@ -1,6 +1,6 @@
+import { createChunkDecoder } from './index';
 import { parseComplexResponse } from './parse-complex-response';
 import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
-import { createChunkDecoder } from './index';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -29,8 +29,8 @@ export async function callChatApi({
   restoreMessagesOnFailure: () => void;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onUpdate: (merged: Message[], data: JSONValue[] | undefined) => void;
-  onFinish: ((message: Message) => void) | undefined;
-  onToolCall: UseChatOptions['onToolCall'] | undefined;
+  onFinish: UseChatOptions['onFinish'];
+  onToolCall: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
 }) {
@@ -99,7 +99,11 @@ export async function callChatApi({
         }
       }
 
-      onFinish?.(resultMessage);
+      // in text mode, we don't have usage information or finish reason:
+      onFinish?.(resultMessage, {
+        usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
+        finishReason: 'unknown',
+      });
 
       return {
         messages: [resultMessage],
@@ -116,7 +120,15 @@ export async function callChatApi({
         onToolCall,
         onFinish(prefixMap) {
           if (onFinish && prefixMap.text != null) {
-            onFinish(prefixMap.text);
+            // TODO
+            onFinish(prefixMap.text, {
+              usage: {
+                completionTokens: 0,
+                promptTokens: 0,
+                totalTokens: 0,
+              },
+              finishReason: 'stop',
+            });
           }
         },
         generateId,
