@@ -1,16 +1,11 @@
 <script setup lang="ts">
 import { useChat } from './use-chat';
 
-const { messages, append, data, error, isLoading } = useChat({
-  streamMode: 'text',
-});
+const { messages, append, reload } = useChat();
 </script>
 
 <template>
   <div>
-    <div data-testid="loading">{{ isLoading?.toString() }}</div>
-    <div data-testid="error">{{ error?.toString() }}</div>
-    <div data-testid="data">{{ JSON.stringify(data) }}</div>
     <div
       v-for="(m, idx) in messages"
       key="m.id"
@@ -21,8 +16,19 @@ const { messages, append, data, error, isLoading } = useChat({
     </div>
 
     <button
-      data-testid="button"
+      data-testid="do-append"
       @click="append({ role: 'user', content: 'hi' })"
+    />
+
+    <button
+      data-testid="do-reload"
+      @click="
+        reload({
+          data: { 'test-data-key': 'test-data-value' },
+          body: { 'request-body-key': 'request-body-value' },
+          headers: { 'header-key': 'header-value' },
+        })
+      "
     />
   </div>
 </template>

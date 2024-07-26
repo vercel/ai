@@ -25,6 +25,7 @@
     }
   },
   "dependencies": {
+    "@ai-sdk/provider-utils": "1.0.5",
     "@ai-sdk/ui-utils": "0.0.20"
   },
   "devDependencies": {

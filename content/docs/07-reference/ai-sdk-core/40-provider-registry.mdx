@@ -31,7 +31,8 @@ Registers a language model provider with a given id.
     {
       name: 'providers',
       type: 'Record<string, { languageModel: (id: string) => LanguageModel; textEmbedding: (id: string) => EmbeddingModel<string> }>',
-      description: `The unique identifier for the provider. It should be unique within the registry.`,
+      description:
+        'The unique identifier for the provider. It should be unique within the registry.',
     },
   ]}
 />
