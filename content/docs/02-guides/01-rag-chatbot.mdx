@@ -77,13 +77,23 @@ Chunking refers to the process of breaking down a particular source material int
 
 Once your source material is appropriately chunked, you can embed each one and then store the embedding and the chunk together in a database. Embeddings can be stored in any database that supports vectors. For this tutorial, you will be using [Postgres](https://www.postgresql.org/) alongside the [pgvector](https://github.com/pgvector/pgvector) plugin.
 
-<MDXImage srcLight="/images/rag-guide-1.png" srcDark="/images/rag-guide-1-dark.png" width={800} height={800}  />
+<MDXImage
+  srcLight="/images/rag-guide-1.png"
+  srcDark="/images/rag-guide-1-dark.png"
+  width={800}
+  height={800}
+/>
 
 ### All Together Now
 
 Combining all of this together, RAG is the process of enabling the model to respond with information outside of it’s training data by embedding a users query, retrieving the relevant source material (chunks) with the highest semantic similarity, and then passing them alongside the initial query as context. Going back to the example where you ask the model for your favorite food, the prompt preparation process would look like this.
 
-<MDXImage srcLight="/images/rag-guide-2.png" srcDark="/images/rag-guide-2-dark.png" width={800} height={800}  />
+<MDXImage
+  srcLight="/images/rag-guide-2.png"
+  srcDark="/images/rag-guide-2-dark.png"
+  width={800}
+  height={800}
+/>
 
 By passing the appropriate context and refining the model’s objective, you are able to fully leverage its strengths as a reasoning machine.
 
