@@ -1,5 +1,15 @@
 # ai
 
+## 3.2.37
+
+### Patch Changes
+
+- b2bee4c5: fix (ai/ui): send data, body, headers in useChat().reload
+- Updated dependencies [b2bee4c5]
+  - @ai-sdk/svelte@0.0.24
+  - @ai-sdk/react@0.0.30
+  - @ai-sdk/solid@0.0.23
+
 ## 3.2.36
 
 ### Patch Changes
