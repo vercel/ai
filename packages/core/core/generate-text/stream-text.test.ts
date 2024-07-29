@@ -586,7 +586,7 @@ describe('result.toAIStream', () => {
         formatStreamPart('text', 'world!'),
         formatStreamPart('finish_message', {
           finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10, totalTokens: 13 },
+          usage: { promptTokens: 3, completionTokens: 10 },
         }),
       ],
     );
@@ -739,7 +739,7 @@ describe('result.toAIStream', () => {
         }),
         formatStreamPart('finish_message', {
           finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10, totalTokens: 13 },
+          usage: { promptTokens: 3, completionTokens: 10 },
         }),
       ],
     );
@@ -845,7 +845,7 @@ describe('result.toAIStream', () => {
         }),
         formatStreamPart('finish_message', {
           finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10, totalTokens: 13 },
+          usage: { promptTokens: 3, completionTokens: 10 },
         }),
       ],
     );
@@ -1132,7 +1132,7 @@ describe('multiple stream consumption', () => {
         formatStreamPart('text', 'world!'),
         formatStreamPart('finish_message', {
           finishReason: 'stop',
-          usage: { promptTokens: 3, completionTokens: 10, totalTokens: 13 },
+          usage: { promptTokens: 3, completionTokens: 10 },
         }),
       ],
     );
