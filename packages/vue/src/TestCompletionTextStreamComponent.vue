@@ -2,7 +2,7 @@
 import { useCompletion } from './use-completion';
 
 const { completion, handleSubmit, input, isLoading, error } = useCompletion({
-  streamMode: 'text',
+  streamProtocol: 'text',
 });
 </script>
 

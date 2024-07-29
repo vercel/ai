@@ -11,7 +11,7 @@ export async function callCompletionApi({
   credentials,
   headers,
   body,
-  streamMode = 'stream-data',
+  streamProtocol = 'data',
   setCompletion,
   setLoading,
   setError,
@@ -27,7 +27,7 @@ export async function callCompletionApi({
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
   body: Record<string, any>;
-  streamMode: 'stream-data' | 'text' | undefined;
+  streamProtocol: 'data' | 'text' | undefined;
   setCompletion: (completion: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: Error | undefined) => void;
@@ -85,7 +85,7 @@ export async function callCompletionApi({
     let result = '';
     const reader = res.body.getReader();
 
-    switch (streamMode) {
+    switch (streamProtocol) {
       case 'text': {
         const decoder = createChunkDecoder();
 
@@ -109,7 +109,7 @@ export async function callCompletionApi({
         break;
       }
 
-      case 'stream-data': {
+      case 'data': {
         for await (const { type, value } of readDataStream(reader, {
           isAborted: () => abortController === null,
         })) {
@@ -129,8 +129,8 @@ export async function callCompletionApi({
       }
 
       default: {
-        const exhaustiveCheck: never = streamMode;
-        throw new Error(`Unknown stream mode: ${exhaustiveCheck}`);
+        const exhaustiveCheck: never = streamProtocol;
+        throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);
       }
     }
 

@@ -14,7 +14,7 @@ const onFinishCalls: Array<{
 }> = [];
 
 const { messages, append, data, error, isLoading } = useChat({
-  streamMode: 'text',
+  streamProtocol: 'text',
   onFinish: (message, options) => {
     onFinishCalls.push({ message, options });
   },

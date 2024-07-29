@@ -251,7 +251,7 @@ describe('text stream', () => {
 
   const TestComponent = () => {
     const { messages, append } = useChat(() => ({
-      streamMode: 'text',
+      streamProtocol: 'text',
       onFinish: (message, options) => {
         onFinishCalls.push({ message, options });
       },
