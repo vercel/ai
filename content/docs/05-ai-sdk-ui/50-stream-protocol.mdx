@@ -1,0 +1,195 @@
+---
+title: Stream Protocols
+description: Learn more about the supported stream protocols in the Vercel AI SDK.
+---
+
+# Stream Protocols
+
+AI SDK UI functions such as `useChat` and `useCompletion` support both text streams and data streams.
+The stream protocol defines how the data is streamed to the frontend on top of the HTTP protocol.
+
+This page describes both protocols and how to use them in the backend and frontend.
+
+You can use this information develop custom backends and frontends for your use case, e.g.,
+to provide compatible API endpoints that are implemented in a different language such as Python.
+
+## Text Stream Protocol
+
+Text streams are simple text chunks that are streamed to the frontend.
+Each chunk is a string that is appended to the response text.
+
+Text streams are supported by `useChat`, `useCompletion`, and `useObject`.
+When you use `useChat` or `useCompletion`, you need to enable text streaming
+by setting the `streamProtocol` options to `text`.
+
+You can generate text streams with `streamText` in the backend.
+When you call `toTextStreamResponse()` on the result object,
+a streaming HTTP response is returned.
+
+<Note>
+  Text streams only support basic text data. If you need to stream other types
+  of data such as tool calls, use data streams.
+</Note>
+
+### Text Stream Example
+
+Here is a Next.js example that uses the text stream protocol:
+
+```tsx filename='app/page.tsx' highlight="7"
+'use client';
+
+import { useCompletion } from 'ai/react';
+
+export default function Page() {
+  const { completion, input, handleInputChange, handleSubmit } = useCompletion({
+    streamProtocol: 'text',
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input name="prompt" value={input} onChange={handleInputChange} />
+      <button type="submit">Submit</button>
+      <div>{completion}</div>
+    </form>
+  );
+}
+```
+
+```ts filename='app/api/completion/route.ts' highlight="15"
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { prompt }: { prompt: string } = await req.json();
+
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    prompt,
+  });
+
+  return result.toTextStreamResponse();
+}
+```
+
+## Data Streams
+
+Data streams are a special protocol that the Vercel AI SDK provides to stream data to the frontend.
+Each stream part has the format `TYPE_ID:CONTENT_JSON\n`.
+
+<Note>
+  When you provide data streams from a custom backend, you need to set the
+  `x-vercel-ai-data-stream` header to `v1`.
+</Note>
+
+The following stream parts are currently supported:
+
+- **text**: A text part.
+
+  The text parts are appended to the message as they are received.
+
+  Format: `0:string\n`
+
+  Example: `0:"example"\n`
+
+- **data**: A data part. Available through `data`.
+
+  Format: `2:Array<JSONValue>\n`
+
+  Example: `2:[{"key":"object1"},{"anotherKey":"object2"}]\n`
+
+- **error**: An error message part.
+
+  Format: `3:string\n`
+
+  Example: `3:"error message"\n`
+
+- **tool call streaming start**: A part indicating the start of a streaming tool call.
+
+  This part needs to be sent before any tool call delta for that tool call.
+  Tool call streaming is optional, you can use tool call and tool result parts without it.
+
+  Format: `b:{toolCallId:string; toolName:string}\n`
+
+  Example: `b:{"toolCallId":"call-456","toolName":"streaming-tool"}\n`
+
+- **tool call delta**: A part representing a delta update for a streaming tool call.
+
+  Format: `c:{toolCallId:string; argsTextDelta:string}\n`
+
+  Example: `c:{"toolCallId":"call-456","argsTextDelta":"partial arg"}\n`
+
+- **tool call**: A tool call part.
+
+  When there are streamed tool calls, the tool call part needs to come after the tool call streaming is finished.
+
+  Format: `9:{toolCallId:string; toolName:string; args:object}\n`
+
+  Example: `9:{"toolCallId":"call-123","toolName":"my-tool","args":{"some":"argument"}}\n`
+
+- **tool result**: A tool result part.
+
+  The result part needs to be sent after the tool call part for that tool call.
+
+  Format: `a:{toolCallId:string; toolName:string; args:object; result:object}\n`
+
+  Example: `a:{"toolCallId":"call-123","toolName":"my-tool","args":{"some":"argument"},"result":"tool output"}\n`
+
+- **finish message**: A part indicating the completion of a message with additional metadata.
+
+  This part needs to be the last part in the stream.
+
+  Format: `d:{finishReason:'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown';usage:{promptTokens:number; completionTokens:number;}}\n`
+
+  Example: `d:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n`
+
+The data stream protocol is supported
+by `useChat` and `useCompletion` on the frontend and used by default.
+`useCompletion` only supports the `text` and `data` stream parts.
+
+On the backend, you can use `toDataStreamResponse()` from the `streamText` result object to return a streaming HTTP response.
+
+### Data Stream Example
+
+Here is a Next.js example that uses the data stream protocol:
+
+```tsx filename='app/page.tsx' highlight="7"
+'use client';
+
+import { useCompletion } from 'ai/react';
+
+export default function Page() {
+  const { completion, input, handleInputChange, handleSubmit } = useCompletion({
+    streamProtocol: 'data', // optional, this is the default
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input name="prompt" value={input} onChange={handleInputChange} />
+      <button type="submit">Submit</button>
+      <div>{completion}</div>
+    </form>
+  );
+}
+```
+
+```ts filename='app/api/completion/route.ts' highlight="15"
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { prompt }: { prompt: string } = await req.json();
+
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    prompt,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
