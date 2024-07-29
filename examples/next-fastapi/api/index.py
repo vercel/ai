@@ -76,7 +76,7 @@ def stream_text(messages: List[ClientMessage], protocol: str = 'data'):
         for chunk in stream:
             for choice in chunk.choices:
                 if choice.finish_reason == "stop":
-                    yield 'd:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n'
+                    continue
 
                 elif choice.finish_reason == "tool_calls":
                     for tool_call in draft_tool_calls:
@@ -95,8 +95,6 @@ def stream_text(messages: List[ClientMessage], protocol: str = 'data'):
                             args=tool_call["arguments"],
                             result=json.dumps(tool_result))
 
-                    yield 'd:{"finishReason":"tool-calls","usage":{"promptTokens":10,"completionTokens":20}}\n'
-
                 elif choice.delta.tool_calls:
                     for tool_call in choice.delta.tool_calls:
                         id = tool_call.id
@@ -113,6 +111,18 @@ def stream_text(messages: List[ClientMessage], protocol: str = 'data'):
 
                 else:
                     yield '0:"{text}"\n'.format(text=choice.delta.content)
+
+            if chunk.choices == []:
+                usage = chunk.usage
+                prompt_tokens = usage.prompt_tokens
+                completion_tokens = usage.completion_tokens
+
+                yield 'd:{{"finishReason":"{reason}","usage":{{"promptTokens":{prompt},"completionTokens":{completion}}}}}\n'.format(
+                    reason="tool-calls" if len(
+                        draft_tool_calls) > 0 else "stop",
+                    prompt=prompt_tokens,
+                    completion=completion_tokens
+                )
 
 
 @app.post("/api/chat")
