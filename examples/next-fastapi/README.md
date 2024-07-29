@@ -24,6 +24,8 @@ yarn create next-app --example https://github.com/vercel/ai/tree/main/examples/n
 pnpm create next-app --example https://github.com/vercel/ai/tree/main/examples/next-fastapi next-fastapi-app
 ```
 
+You will also need [Python 3.6+](https://www.python.org/downloads) and [virtualenv](https://virtualenv.pypa.io/en/latest/installation.html) installed to run the FastAPI server.
+
 To run the example locally you need to:
 
 1. Sign up at [OpenAI's Developer Platform](https://platform.openai.com/signup).
@@ -42,5 +44,5 @@ To learn more about the Vercel AI SDK, Next.js, and FastAPI take a look at the f
 
 - [Vercel AI SDK Docs](https://sdk.vercel.ai/docs) - view documentation and reference for the Vercel AI SDK.
 - [Vercel AI Playground](https://play.vercel.ai) - try different models and choose the best one for your use case.
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [FastAPI Documentation](https://fastapi.tiangolo.com) - learn about FastAPI features and API.
+- [Next.js Docs](https://nextjs.org/docs) - learn about Next.js features and API.
+- [FastAPI Docs](https://fastapi.tiangolo.com) - learn about FastAPI features and API.
