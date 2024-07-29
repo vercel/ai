@@ -5,7 +5,7 @@ import { useChat } from 'ai/react';
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, isLoading } =
     useChat({
-      streamMode: 'text',
+      streamProtocol: 'text',
     });
 
   return (

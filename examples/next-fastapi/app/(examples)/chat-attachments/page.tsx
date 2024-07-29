@@ -8,7 +8,7 @@ import { useRef, useState } from 'react';
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, isLoading } =
     useChat({
-      streamMode: 'text',
+      streamProtocol: 'text',
     });
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
