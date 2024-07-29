@@ -15,8 +15,8 @@ to provide compatible API endpoints that are implemented in a different language
 
 ## Text Stream Protocol
 
-Text streams are simple text chunks that are streamed to the frontend.
-Each chunk is a string that is appended to the response text.
+A text stream contains chunks in plain text, that are streamed to the frontend.
+Each chunk is then appended together to form a full text response.
 
 Text streams are supported by `useChat`, `useCompletion`, and `useObject`.
 When you use `useChat` or `useCompletion`, you need to enable text streaming
