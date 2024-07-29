@@ -3,6 +3,12 @@ import { LogoNext, LogoPython } from './icons';
 import Link from 'next/link';
 import { GeistSans } from 'geist/font/sans';
 
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Vercel AI SDK and FastAPI Examples',
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -12,7 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={GeistSans.className}>
         <Link href="/">
-          <div className="border-b py-3 px-2 flex flex-row gap-2">
+          <div className="border-b p-4 flex flex-row gap-2">
             <LogoNext />
             <div className="text-sm text-zinc-500">+</div>
             <LogoPython />

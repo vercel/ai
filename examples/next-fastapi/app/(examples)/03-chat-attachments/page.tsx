@@ -1,5 +1,6 @@
 'use client';
 
+import { Card } from '@/app/components';
 /* eslint-disable @next/next/no-img-element */
 import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
 import { useChat } from 'ai/react';
@@ -8,7 +9,7 @@ import { useRef, useState } from 'react';
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, isLoading } =
     useChat({
-      streamProtocol: 'text',
+      streamProtocol: 'data',
     });
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
@@ -16,7 +17,7 @@ export default function Page() {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-col p-2 gap-2">
+      <div className="flex flex-col p-4 gap-2">
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
             <div className="w-24 text-zinc-500 flex-shrink-0">{`${message.role}: `}</div>
@@ -45,6 +46,8 @@ export default function Page() {
         ))}
       </div>
 
+      {messages.length === 0 && <Card type="chat-attachments" />}
+
       <form
         onSubmit={event => {
           handleSubmit(event, {
@@ -56,9 +59,9 @@ export default function Page() {
             fileInputRef.current.value = '';
           }
         }}
-        className="flex flex-col gap-2 fixed bottom-0 p-2 w-full"
+        className="flex flex-col fixed gap-3 bottom-0 p-4 w-full border-t h-28"
       >
-        <div className="flex flex-row gap-2 fixed right-2 bottom-14 items-end">
+        <div className="flex flex-row gap-2 fixed right-8 bottom-32 items-end">
           {files
             ? Array.from(files).map(attachment => {
                 const { type } = attachment;
@@ -102,9 +105,9 @@ export default function Page() {
         />
         <input
           value={input}
-          placeholder="Send message..."
+          placeholder="What's the weather in San Francisco?"
           onChange={handleInputChange}
-          className="bg-zinc-100 w-full p-2 rounded-md"
+          className="w-full outline-none bg-transparent"
           disabled={isLoading}
         />
       </form>

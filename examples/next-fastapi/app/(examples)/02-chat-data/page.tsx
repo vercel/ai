@@ -1,5 +1,6 @@
 'use client';
 
+import { Card } from '@/app/components';
 import { useChat } from 'ai/react';
 import { GeistMono } from 'geist/font/mono';
 
@@ -12,7 +13,7 @@ export default function Page() {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-col p-2 gap-2">
+      <div className="flex flex-col p-4 gap-2">
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
             <div className="w-24 text-zinc-500 flex-shrink-0">{`${message.role}: `}</div>
@@ -39,15 +40,17 @@ export default function Page() {
         ))}
       </div>
 
+      {messages.length === 0 && <Card type="chat-data" />}
+
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col gap-2 fixed bottom-0 p-2 w-full"
+        className="flex flex-col fixed bottom-0 w-full border-t"
       >
         <input
           value={input}
-          placeholder="Send message..."
+          placeholder="What's the weather in San Francisco?"
           onChange={handleInputChange}
-          className="bg-zinc-100 w-full p-2 rounded-md"
+          className="w-full p-4 outline-none bg-transparent"
           disabled={isLoading}
         />
       </form>
