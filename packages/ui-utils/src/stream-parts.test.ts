@@ -201,20 +201,20 @@ describe('finish_message stream part', () => {
     expect(
       formatStreamPart('finish_message', {
         finishReason: 'stop',
-        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+        usage: { promptTokens: 10, completionTokens: 20 },
       }),
     ).toEqual(
-      `d:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20,"totalTokens":30}}\n`,
+      `d:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n`,
     );
   });
 
   it('should parse a finish_message stream part', () => {
-    const input = `d:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20,"totalTokens":30}}`;
+    const input = `d:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}`;
     expect(parseStreamPart(input)).toEqual({
       type: 'finish_message',
       value: {
         finishReason: 'stop',
-        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+        usage: { promptTokens: 10, completionTokens: 20 },
       },
     });
   });

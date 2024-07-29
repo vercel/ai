@@ -565,7 +565,10 @@ However, the LLM results are expected to be small enough to not cause issues.
             controller.enqueue(
               formatStreamPart('finish_message', {
                 finishReason: chunk.finishReason,
-                usage: chunk.usage,
+                usage: {
+                  promptTokens: chunk.usage.promptTokens,
+                  completionTokens: chunk.usage.completionTokens,
+                },
               }),
             );
             break;
