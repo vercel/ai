@@ -183,11 +183,7 @@ describe('stream data stream', () => {
           formatStreamPart('text', '.'),
           formatStreamPart('finish_message', {
             finishReason: 'stop',
-            usage: {
-              completionTokens: 1,
-              promptTokens: 3,
-              totalTokens: 4,
-            },
+            usage: { completionTokens: 1, promptTokens: 3 },
           }),
         ],
       },
