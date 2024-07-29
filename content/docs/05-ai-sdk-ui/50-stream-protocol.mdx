@@ -10,7 +10,7 @@ The stream protocol defines how the data is streamed to the frontend on top of t
 
 This page describes both protocols and how to use them in the backend and frontend.
 
-You can use this information develop custom backends and frontends for your use case, e.g.,
+You can use this information to develop custom backends and frontends for your use case, e.g.,
 to provide compatible API endpoints that are implemented in a different language such as Python.
 
 ## Text Stream Protocol
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
 }
 ```
 
-## Data Streams
+## Data Stream Protocol
 
 Data streams are a special protocol that the Vercel AI SDK provides to stream data to the frontend.
 Each stream part has the format `TYPE_ID:CONTENT_JSON\n`.
