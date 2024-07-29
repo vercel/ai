@@ -103,7 +103,7 @@ export async function POST(req: Request) {
         }),
         execute: async ({ city, unit }) => {
           const { value, description } = getWeather({ city, unit });
-          return `It is currently 25°${value}°${unit} and ${description} in ${city}!`;
+          return `It is currently ${value}°${unit} and ${description} in ${city}!`;
         },
       },
     },
