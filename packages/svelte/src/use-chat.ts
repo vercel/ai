@@ -132,6 +132,9 @@ const getStreamedResponse = async (
           name,
           data,
           annotations,
+          function_call,
+          tool_calls,
+          tool_call_id,
           toolInvocations,
         }) => ({
           role,
@@ -140,6 +143,10 @@ const getStreamedResponse = async (
           ...(data !== undefined && { data }),
           ...(annotations !== undefined && { annotations }),
           ...(toolInvocations !== undefined && { toolInvocations }),
+          // outdated function/tool call handling (TODO deprecate):
+          tool_call_id,
+          ...(function_call !== undefined && { function_call }),
+          ...(tool_calls !== undefined && { tool_calls }),
         }),
       );
 
@@ -150,6 +157,18 @@ const getStreamedResponse = async (
       data: chatRequest.data,
       ...extraMetadata.body,
       ...chatRequest.body,
+      ...(chatRequest.functions !== undefined && {
+        functions: chatRequest.functions,
+      }),
+      ...(chatRequest.function_call !== undefined && {
+        function_call: chatRequest.function_call,
+      }),
+      ...(chatRequest.tools !== undefined && {
+        tools: chatRequest.tools,
+      }),
+      ...(chatRequest.tool_choice !== undefined && {
+        tool_choice: chatRequest.tool_choice,
+      }),
     },
     streamProtocol,
     credentials: extraMetadata.credentials,
@@ -367,6 +386,10 @@ export function useChat({
     message: Message | CreateMessage,
     {
       options,
+      functions,
+      function_call,
+      tools,
+      tool_choice,
       data,
       headers,
       body,
@@ -386,13 +409,21 @@ export function useChat({
       options: requestOptions,
       headers: requestOptions.headers,
       body: requestOptions.body,
-      data
+      data,
+      ...(functions !== undefined && { functions }),
+      ...(function_call !== undefined && { function_call }),
+      ...(tools !== undefined && { tools }),
+      ...(tool_choice !== undefined && { tool_choice }),
     };
     return triggerRequest(chatRequest);
   };
 
   const reload: UseChatHelpers['reload'] = async ({
     options,
+    functions,
+    function_call,
+    tools,
+    tool_choice,
     data,
     headers,
     body,
@@ -413,7 +444,11 @@ export function useChat({
         options: requestOptions,
         headers: requestOptions.headers,
         body: requestOptions.body,
-        data
+        data,
+        ...(functions !== undefined && { functions }),
+        ...(function_call !== undefined && { function_call }),
+        ...(tools !== undefined && { tools }),
+        ...(tool_choice !== undefined && { tool_choice }),
       };
 
       return triggerRequest(chatRequest);
@@ -424,7 +459,7 @@ export function useChat({
       options: requestOptions,
       headers: requestOptions.headers,
       body: requestOptions.body,
-      data
+      data,
     };
 
     return triggerRequest(chatRequest);
