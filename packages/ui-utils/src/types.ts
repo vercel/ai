@@ -486,8 +486,17 @@ either synchronously or asynchronously.
    */
   sendExtraMessageFields?: boolean;
 
-  /** Stream mode (default to "stream-data") */
+  /**
+   * Stream mode (default to "stream-data")
+   *
+   * @deprecated Use `streamProtocol` instead.
+   */
   streamMode?: 'stream-data' | 'text';
+
+  /**
+Streaming protocol that is used. Defaults to `data`.
+   */
+  streamProtocol?: 'data' | 'text';
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -560,8 +569,17 @@ export type UseCompletionOptions = {
    */
   body?: object;
 
-  /** Stream mode (default to "stream-data") */
+  /**
+   * Stream mode (default to "stream-data")
+   *
+   * @deprecated Use `streamProtocol` instead.
+   */
   streamMode?: 'stream-data' | 'text';
+
+  /**
+Streaming protocol that is used. Defaults to `data`.
+   */
+  streamProtocol?: 'data' | 'text';
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,

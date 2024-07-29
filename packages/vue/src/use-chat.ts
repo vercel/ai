@@ -78,6 +78,7 @@ export function useChat({
   sendExtraMessageFields,
   experimental_onFunctionCall,
   streamMode,
+  streamProtocol,
   onResponse,
   onFinish,
   onError,
@@ -88,6 +89,11 @@ export function useChat({
   fetch,
   keepLastMessageOnError = false,
 }: UseChatOptions = {}): UseChatHelpers {
+  // streamMode is deprecated, use streamProtocol instead.
+  if (streamMode) {
+    streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
+  }
+
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
 
@@ -181,7 +187,7 @@ export function useChat({
               ...unref(body), // Use unref to unwrap the ref value
               ...requestOptions.body,
             },
-            streamMode,
+            streamProtocol,
             headers: {
               ...headers,
               ...requestOptions.headers,

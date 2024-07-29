@@ -259,7 +259,7 @@ describe('text stream', () => {
 
   const TestComponent = () => {
     const { messages, append } = useChat({
-      streamMode: 'text',
+      streamProtocol: 'text',
       onFinish: (message, options) => {
         onFinishCalls.push({ message, options });
       },
@@ -358,7 +358,7 @@ describe('text stream', () => {
 describe('form actions', () => {
   const TestComponent = () => {
     const { messages, handleSubmit, handleInputChange, isLoading, input } =
-      useChat({ streamMode: 'text' });
+      useChat({ streamProtocol: 'text' });
 
     return (
       <div>
@@ -431,7 +431,7 @@ describe('form actions', () => {
 describe('form actions (with options)', () => {
   const TestComponent = () => {
     const { messages, handleSubmit, handleInputChange, isLoading, input } =
-      useChat({ streamMode: 'text' });
+      useChat({ streamProtocol: 'text' });
 
     return (
       <div>

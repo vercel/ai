@@ -61,11 +61,17 @@ export function useCompletion({
   headers,
   body,
   streamMode,
+  streamProtocol,
   onResponse,
   onFinish,
   onError,
   fetch,
 }: UseCompletionOptions = {}): UseCompletionHelpers {
+  // streamMode is deprecated, use streamProtocol instead.
+  if (streamMode) {
+    streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
+  }
+
   // Generate an unique id for the completion if not provided.
   const completionId = id || `completion-${uniqueId++}`;
 
@@ -115,7 +121,7 @@ export function useCompletion({
         ...body,
         ...options?.body,
       },
-      streamMode,
+      streamProtocol,
       setCompletion: mutate,
       setLoading: loadingState => loading.set(loadingState),
       setError: err => error.set(err),
