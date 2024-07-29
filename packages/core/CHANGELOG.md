@@ -1,5 +1,21 @@
 # ai
 
+## 3.2.38
+
+### Patch Changes
+
+- 5c4b8cfc: chore (ai/core): rename ai stream methods to data stream (in streamText, LangChainAdapter).
+- c450fcf7: feat (ui): invoke useChat onFinish with finishReason and tokens
+- e4a1719f: chore (ai/ui): rename streamMode to streamProtocol
+- 10158bf2: fix (ai/core): generateObject.doGenerate sets object telemetry attribute
+- Updated dependencies [c450fcf7]
+- Updated dependencies [e4a1719f]
+  - @ai-sdk/ui-utils@0.0.21
+  - @ai-sdk/svelte@0.0.25
+  - @ai-sdk/react@0.0.31
+  - @ai-sdk/solid@0.0.24
+  - @ai-sdk/vue@0.0.25
+
 ## 3.2.37
 
 ### Patch Changes

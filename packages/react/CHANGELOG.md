@@ -1,5 +1,15 @@
 # @ai-sdk/react
 
+## 0.0.31
+
+### Patch Changes
+
+- c450fcf7: feat (ui): invoke useChat onFinish with finishReason and tokens
+- e4a1719f: chore (ai/ui): rename streamMode to streamProtocol
+- Updated dependencies [c450fcf7]
+- Updated dependencies [e4a1719f]
+  - @ai-sdk/ui-utils@0.0.21
+
 ## 0.0.30
 
 ### Patch Changes

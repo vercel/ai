@@ -1,5 +1,12 @@
 # @ai-sdk/ui-utils
 
+## 0.0.21
+
+### Patch Changes
+
+- c450fcf7: feat (ui): invoke useChat onFinish with finishReason and tokens
+- e4a1719f: chore (ai/ui): rename streamMode to streamProtocol
+
 ## 0.0.20
 
 ### Patch Changes
