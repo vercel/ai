@@ -29,7 +29,7 @@ async function main() {
     .filter(chunk => chunk.length > 0 && chunk !== '\n');
 
   const { embeddings } = await embedMany({
-    model: openai.embedding('text-embedding-ada-002'),
+    model: openai.embedding('text-embedding-3-small'),
     values: chunks,
   });
   embeddings.forEach((e, i) => {
@@ -43,7 +43,7 @@ async function main() {
     'What were the two main things the author worked on before college?';
 
   const { embedding } = await embed({
-    model: openai.embedding('text-embedding-ada-002'),
+    model: openai.embedding('text-embedding-3-small'),
     value: input,
   });
   const context = db
