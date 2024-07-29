@@ -73,7 +73,7 @@ export interface StreamTextResult<TOOLS extends Record<string, CoreTool>> {
   @param callbacks
   Stream callbacks that will be called when the stream emits events.
 
-  @returns an data stream.
+  @returns A data stream.
 
   @deprecated Use `toDataStreamResponse` instead.
      */
