@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toAIStreamResponse();
+  return result.toDataStreamResponse();
 }
 ```
 
@@ -61,6 +61,6 @@ export async function continueConversation(messages: CoreMessage[]) {
     },
   });
 
-  return result.toAIStreamResponse();
+  return result.toDataStreamResponse();
 }
 ```

@@ -852,7 +852,7 @@ describe('result.toAIStream', () => {
   });
 });
 
-describe('result.pipeAIStreamToResponse', async () => {
+describe('result.pipeDataStreamToResponse', async () => {
   it('should write data stream parts to a Node.js response-like object', async () => {
     const mockResponse = createMockServerResponse();
 
@@ -872,7 +872,7 @@ describe('result.pipeAIStreamToResponse', async () => {
       prompt: 'test-input',
     });
 
-    result.pipeAIStreamToResponse(mockResponse);
+    result.pipeDataStreamToResponse(mockResponse);
 
     // Wait for the stream to finish writing to the mock response
     await new Promise(resolve => {
@@ -946,8 +946,8 @@ describe('result.pipeTextStreamToResponse', async () => {
   });
 });
 
-describe('result.toAIStreamResponse', () => {
-  it('should create a Response with a stream data stream', async () => {
+describe('result.toDataStreamResponse', () => {
+  it('should create a Response with a data stream', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async () => ({
@@ -962,7 +962,7 @@ describe('result.toAIStreamResponse', () => {
       prompt: 'test-input',
     });
 
-    const response = result.toAIStreamResponse();
+    const response = result.toDataStreamResponse();
 
     assert.strictEqual(response.status, 200);
 
@@ -983,7 +983,7 @@ describe('result.toAIStreamResponse', () => {
     ]);
   });
 
-  it('should create a Response with a stream data stream and custom headers', async () => {
+  it('should create a Response with a data stream and custom headers', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async () => ({
@@ -998,7 +998,7 @@ describe('result.toAIStreamResponse', () => {
       prompt: 'test-input',
     });
 
-    const response = result.toAIStreamResponse({
+    const response = result.toDataStreamResponse({
       status: 201,
       statusText: 'foo',
       headers: {
@@ -1041,7 +1041,7 @@ describe('result.toAIStreamResponse', () => {
     streamData.append('stream-data-value');
     streamData.close();
 
-    const response = result.toAIStreamResponse({ data: streamData });
+    const response = result.toDataStreamResponse({ data: streamData });
 
     assert.strictEqual(response.status, 200);
     assert.strictEqual(

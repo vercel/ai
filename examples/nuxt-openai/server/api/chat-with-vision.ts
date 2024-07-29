@@ -32,6 +32,6 @@ export default defineLazyEventHandler(async () => {
     });
 
     // Respond with the stream
-    return response.toAIStreamResponse();
+    return response.toDataStreamResponse();
   });
 });
