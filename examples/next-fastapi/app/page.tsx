@@ -3,11 +3,15 @@ import Link from 'next/link';
 const examples = [
   {
     title: 'useChat',
-    link: '/chat',
+    link: '/01-chat-text',
+  },
+  {
+    title: 'useChat with tools',
+    link: '/02-chat-data',
   },
   {
     title: 'useChat with attachments',
-    link: '/chat-attachments',
+    link: '/03-chat-attachments',
   },
 ];
 

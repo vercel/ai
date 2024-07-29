@@ -1,11 +1,13 @@
 import os
+import json
 from typing import List
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from fastapi import FastAPI
-from fastapi.responses import PlainTextResponse
+from fastapi import FastAPI, Query
+from fastapi.responses import StreamingResponse
 from openai import OpenAI
 from .utils.prompt import ClientMessage, convert_to_openai_messages
+from .utils.tools import get_current_weather
 
 
 load_dotenv(".env.local")
@@ -21,16 +23,100 @@ class Request(BaseModel):
     messages: List[ClientMessage]
 
 
-@app.post("/api/chat", response_class=PlainTextResponse)
-def hello_world(request: Request):
-    messages = request.messages
-    openai_messages = convert_to_openai_messages(messages)
+available_tools = {
+    "get_current_weather": get_current_weather,
+}
 
-    completion = client.chat.completions.create(
-        messages=openai_messages,
+
+def stream_text(messages: List[ClientMessage], protocol: str = 'data'):
+    stream = client.chat.completions.create(
+        messages=messages,
         model="gpt-4o",
+        stream=True,
+        tools=[{
+            "type": "function",
+            "function": {
+                "name": "get_current_weather",
+                "description": "Get the current weather in a given location",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "The city and state, e.g. San Francisco, CA",
+                        },
+                        "unit": {
+                            "type": "string",
+                            "enum": ["celsius", "fahrenheit"]},
+                    },
+                    "required": ["location", "unit"],
+                },
+            },
+        }]
     )
 
-    for choice in completion.choices:
-        if choice.message.tool_calls is None:
-            return choice.message.content
+    # When protocol is set to "text", you will send a stream of plain text chunks
+    # https://sdk.vercel.ai/docs/ai-sdk-ui/stream-protocol#text-stream-protocol
+
+    if (protocol == 'text'):
+        for chunk in stream:
+            for choice in chunk.choices:
+                if choice.finish_reason == "stop":
+                    break
+                else:
+                    yield "{text}".format(text=choice.delta.content)
+
+    # When protocol is set to "data", you will send a stream data part chunks
+    # https://sdk.vercel.ai/docs/ai-sdk-ui/stream-protocol#data-stream-protocol
+
+    elif (protocol == 'data'):
+        draft_tool_calls = []
+        draft_tool_calls_index = -1
+
+        for chunk in stream:
+            for choice in chunk.choices:
+                if choice.finish_reason == "stop":
+                    yield 'd:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n'
+
+                elif choice.finish_reason == "tool_calls":
+                    for tool_call in draft_tool_calls:
+                        yield '9:{{"toolCallId":"{id}","toolName":"{name}","args":{args}}}\n'.format(
+                            id=tool_call["id"],
+                            name=tool_call["name"],
+                            args=tool_call["arguments"])
+
+                    for tool_call in draft_tool_calls:
+                        tool_result = available_tools[tool_call["name"]](
+                            **json.loads(tool_call["arguments"]))
+
+                        yield 'a:{{"toolCallId":"{id}","toolName":"{name}","args":{args},"result":{result}}}\n'.format(
+                            id=tool_call["id"],
+                            name=tool_call["name"],
+                            args=tool_call["arguments"],
+                            result=json.dumps(tool_result))
+
+                    yield 'd:{"finishReason":"tool-calls","usage":{"promptTokens":10,"completionTokens":20}}\n'
+
+                elif choice.delta.tool_calls:
+                    for tool_call in choice.delta.tool_calls:
+                        id = tool_call.id
+                        name = tool_call.function.name
+                        arguments = tool_call.function.arguments
+
+                        if (id is not None):
+                            draft_tool_calls_index += 1
+                            draft_tool_calls.append(
+                                {"id": id, "name": name, "arguments": ""})
+
+                        else:
+                            draft_tool_calls[draft_tool_calls_index]["arguments"] += arguments
+
+                else:
+                    yield '0:"{text}"\n'.format(text=choice.delta.content)
+
+
+@app.post("/api/chat")
+async def handle_chat_data(request: Request, protocol: str = Query('data')):
+    messages = request.messages
+    openai_messages = convert_to_openai_messages(messages)
+    return StreamingResponse(stream_text(openai_messages, protocol))
