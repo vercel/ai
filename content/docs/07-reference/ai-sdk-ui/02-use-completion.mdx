@@ -110,11 +110,11 @@ Allows you to create text completion based capabilities for your application. It
         "An optional boolean that determines whether to send extra fields you've added to `messages`. Defaults to `false` and only the `content` and `role` fields will be sent to the API endpoint.",
     },
     {
-      name: 'streamMode',
-      type: "'text' | 'stream-data'",
+      name: 'streamProtocol',
+      type: "'text' | 'data'",
       optional: true,
       description:
-        'An optional literal that sets the mode of the stream to be used. Defaults to `stream-data`. If set to `text`, the stream will be treated as a text stream.',
+        'An optional literal that sets the type of stream to be used. Defaults to `data`. If set to `text`, the stream will be treated as a text stream.',
     },
     {
       name: 'fetch',

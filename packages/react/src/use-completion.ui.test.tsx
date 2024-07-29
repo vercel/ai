@@ -124,9 +124,7 @@ describe('stream data stream', () => {
 describe('text stream', () => {
   const TestComponent = () => {
     const { completion, handleSubmit, handleInputChange, input } =
-      useCompletion({
-        streamMode: 'text',
-      });
+      useCompletion({ streamProtocol: 'text' });
 
     return (
       <div>

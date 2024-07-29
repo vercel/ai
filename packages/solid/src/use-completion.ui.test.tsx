@@ -91,7 +91,7 @@ describe('stream data stream', () => {
 
 describe('text stream', () => {
   const TestComponent = () => {
-    const { completion, complete } = useCompletion({ streamMode: 'text' });
+    const { completion, complete } = useCompletion({ streamProtocol: 'text' });
 
     return (
       <div>

@@ -8,7 +8,7 @@ const getOriginalFetch = () => fetch;
 export async function callChatApi({
   api,
   body,
-  streamMode = 'stream-data',
+  streamProtocol = 'data',
   credentials,
   headers,
   abortController,
@@ -22,7 +22,7 @@ export async function callChatApi({
 }: {
   api: string;
   body: Record<string, any>;
-  streamMode: 'stream-data' | 'text' | undefined;
+  streamProtocol: 'data' | 'text' | undefined;
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
@@ -69,7 +69,7 @@ export async function callChatApi({
 
   const reader = response.body.getReader();
 
-  switch (streamMode) {
+  switch (streamProtocol) {
     case 'text': {
       const decoder = createChunkDecoder();
 
@@ -111,7 +111,7 @@ export async function callChatApi({
       };
     }
 
-    case 'stream-data': {
+    case 'data': {
       return await parseComplexResponse({
         reader,
         abortControllerRef:
@@ -128,8 +128,8 @@ export async function callChatApi({
     }
 
     default: {
-      const exhaustiveCheck: never = streamMode;
-      throw new Error(`Unknown stream mode: ${exhaustiveCheck}`);
+      const exhaustiveCheck: never = streamProtocol;
+      throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);
     }
   }
 }
