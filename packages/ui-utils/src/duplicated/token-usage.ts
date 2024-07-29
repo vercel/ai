@@ -3,7 +3,7 @@ Represents the number of tokens used in a prompt and completion.
  */
 export type CompletionTokenUsage = {
   /**
-The number of tokens used in the prompt
+The number of tokens used in the prompt.
    */
   promptTokens: number;
 
