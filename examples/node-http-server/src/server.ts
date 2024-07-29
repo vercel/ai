@@ -17,7 +17,7 @@ createServer(async (req, res) => {
   data.append('initialized call');
 
   streamToResponse(
-    result.toAIStream({
+    result.toDataStream({
       onFinal() {
         data.append('call completed');
         data.close();

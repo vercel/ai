@@ -644,6 +644,12 @@ However, the LLM results are expected to be small enough to not cause issues.
   toAIStreamResponse(
     options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
   ): Response {
+    return this.toDataStreamResponse(options);
+  }
+
+  toDataStreamResponse(
+    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
+  ): Response {
     const init: ResponseInit | undefined =
       options == null
         ? undefined

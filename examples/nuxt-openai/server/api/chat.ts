@@ -21,6 +21,6 @@ export default defineLazyEventHandler(async () => {
     });
 
     // Respond with the stream
-    return result.toAIStreamResponse();
+    return result.toDataStreamResponse();
   });
 });

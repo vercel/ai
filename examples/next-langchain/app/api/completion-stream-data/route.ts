@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
   data.append({ test: 'value' });
 
-  const aiStream = LangChainAdapter.toAIStream(stream, {
+  const aiStream = LangChainAdapter.toDataStream(stream, {
     onFinal() {
       data.close();
     },

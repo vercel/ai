@@ -73,7 +73,9 @@ export interface StreamTextResult<TOOLS extends Record<string, CoreTool>> {
   @param callbacks
   Stream callbacks that will be called when the stream emits events.
 
-  @returns an `AIStream` object.
+  @returns an data stream.
+
+  @deprecated Use `toDataStreamResponse` instead.
      */
   toAIStream(
     callbacks?: AIStreamCallbacksAndOptions,
@@ -113,8 +115,23 @@ export interface StreamTextResult<TOOLS extends Record<string, CoreTool>> {
   You can also pass in a ResponseInit directly (deprecated).
 
   @return A response object.
+
+  @deprecated Use `toDataStreamResponse` instead.
      */
   toAIStreamResponse(
+    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
+  ): Response;
+
+  /**
+  Converts the result to a streamed response object with a stream data part stream.
+  It can be used with the `useChat` and `useCompletion` hooks.
+
+  @param options An object with an init property (ResponseInit) and a data property.
+  You can also pass in a ResponseInit directly (deprecated).
+
+  @return A response object.
+     */
+  toDataStreamResponse(
     options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
   ): Response;
 

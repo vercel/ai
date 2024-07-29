@@ -14,5 +14,5 @@ export async function POST(req: Request) {
 
   const stream = await model.stream(prompt);
 
-  return new StreamingTextResponse(LangChainAdapter.toAIStream(stream));
+  return new StreamingTextResponse(LangChainAdapter.toDataStream(stream));
 }

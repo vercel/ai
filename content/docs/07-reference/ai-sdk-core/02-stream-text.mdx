@@ -756,7 +756,7 @@ for await (const textPart of textStream) {
       ],
     },
     {
-      name: 'toAIStream',
+      name: 'toDataStream',
       type: '(callbacks?: AIStreamCallbacksAndOptions) => AIStream',
       description:
         'Converts the result to an `AIStream` object that is compatible with `StreamingTextResponse`. It can be used with the `useChat` and `useCompletion` hooks.',
@@ -774,13 +774,13 @@ for await (const textPart of textStream) {
         'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
     },
     {
-      name: 'toAIStreamResponse',
-      type: '(options?: ToAIStreamOptions) => Response',
+      name: 'toDataStreamResponse',
+      type: '(options?: toDataStreamOptions) => Response',
       description:
         'Converts the result to a streamed response object with a stream data part stream. It can be used with the `useChat` and `useCompletion` hooks.',
       properties: [
         {
-          type: 'ToAIStreamOptions',
+          type: 'toDataStreamOptions',
           parameters: [
             {
               name: 'init',

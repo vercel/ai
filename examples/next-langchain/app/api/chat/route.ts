@@ -25,5 +25,5 @@ export async function POST(req: Request) {
     ),
   );
 
-  return new StreamingTextResponse(LangChainAdapter.toAIStream(stream));
+  return new StreamingTextResponse(LangChainAdapter.toDataStream(stream));
 }
