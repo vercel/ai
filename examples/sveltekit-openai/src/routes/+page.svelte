@@ -1,16 +1,20 @@
 <script lang="ts">
   import { useChat } from '@ai-sdk/svelte';
 
-  const {    
+  const {
      error,
     input,
     isLoading,
     handleSubmit,
     messages,
     reload,
-    stop 
+    stop
   } = useChat({
     keepLastMessageOnError: true,
+    onFinish(message, { usage, finishReason }) {
+      console.log('Usage', usage);
+      console.log('FinishReason', finishReason);
+    },
   });
 </script>
 
