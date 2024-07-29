@@ -36,6 +36,7 @@
     }
   },
   "dependencies": {
+    "@ai-sdk/provider": "0.0.14",
     "@ai-sdk/provider-utils": "1.0.5",
     "secure-json-parse": "2.7.0"
   },

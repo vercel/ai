@@ -82,7 +82,7 @@ const getStreamedResponse = async (
   abortControllerRef: AbortController | null,
   generateId: IdGenerator,
   streamMode: 'stream-data' | 'text' | undefined,
-  onFinish: ((message: Message) => void) | undefined,
+  onFinish: UseChatOptions['onFinish'],
   onResponse: ((response: Response) => void | Promise<void>) | undefined,
   sendExtraMessageFields: boolean | undefined,
   fetch: FetchFunction | undefined,

@@ -556,12 +556,18 @@ describe('result.toAIStream', () => {
   it('should transform textStream through callbacks and data transformers', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: 'Hello' },
               { type: 'text-delta', textDelta: ', ' },
               { type: 'text-delta', textDelta: 'world!' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
@@ -574,19 +580,33 @@ describe('result.toAIStream', () => {
       await convertReadableStreamToArray(
         result.toAIStream().pipeThrough(new TextDecoderStream()),
       ),
-      ['0:"Hello"\n', '0:", "\n', '0:"world!"\n'],
+      [
+        formatStreamPart('text', 'Hello'),
+        formatStreamPart('text', ', '),
+        formatStreamPart('text', 'world!'),
+        formatStreamPart('finish_message', {
+          finishReason: 'stop',
+          usage: { promptTokens: 3, completionTokens: 10, totalTokens: 13 },
+        }),
+      ],
     );
   });
 
   it('should invoke callback', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: 'Hello' },
               { type: 'text-delta', textDelta: ', ' },
               { type: 'text-delta', textDelta: 'world!' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
@@ -717,6 +737,10 @@ describe('result.toAIStream', () => {
           args: { value: 'value' },
           result: 'value-result',
         }),
+        formatStreamPart('finish_message', {
+          finishReason: 'stop',
+          usage: { promptTokens: 3, completionTokens: 10, totalTokens: 13 },
+        }),
       ],
     );
   });
@@ -818,6 +842,10 @@ describe('result.toAIStream', () => {
           toolName: 'tool1',
           args: { value: 'value' },
           result: 'value-result',
+        }),
+        formatStreamPart('finish_message', {
+          finishReason: 'stop',
+          usage: { promptTokens: 3, completionTokens: 10, totalTokens: 13 },
         }),
       ],
     );
@@ -1029,7 +1057,7 @@ describe('result.toTextStreamResponse', () => {
   it('should create a Response with a text stream', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: 'Hello' },
@@ -1092,7 +1120,15 @@ describe('multiple stream consumption', () => {
       await convertReadableStreamToArray(
         result.toAIStream().pipeThrough(new TextDecoderStream()),
       ),
-      ['0:"Hello"\n', '0:", "\n', '0:"world!"\n'],
+      [
+        formatStreamPart('text', 'Hello'),
+        formatStreamPart('text', ', '),
+        formatStreamPart('text', 'world!'),
+        formatStreamPart('finish_message', {
+          finishReason: 'stop',
+          usage: { promptTokens: 3, completionTokens: 10, totalTokens: 13 },
+        }),
+      ],
     );
 
     assert.deepStrictEqual(

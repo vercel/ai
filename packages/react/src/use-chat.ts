@@ -87,7 +87,7 @@ const getStreamedResponse = async (
   abortControllerRef: React.MutableRefObject<AbortController | null>,
   generateId: IdGenerator,
   streamMode: 'stream-data' | 'text' | undefined,
-  onFinish: ((message: Message) => void) | undefined,
+  onFinish: UseChatOptions['onFinish'],
   onResponse: ((response: Response) => void | Promise<void>) | undefined,
   onToolCall: UseChatOptions['onToolCall'] | undefined,
   sendExtraMessageFields: boolean | undefined,

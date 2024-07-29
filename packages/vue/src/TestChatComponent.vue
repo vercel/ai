@@ -1,7 +1,23 @@
 <script setup lang="ts">
 import { useChat } from './use-chat';
 
-const { messages, append, data, error, isLoading } = useChat();
+const onFinishCalls: Array<{
+  message: Message;
+  options: {
+    finishReason: string;
+    usage: {
+      completionTokens: number;
+      promptTokens: number;
+      totalTokens: number;
+    };
+  };
+}> = [];
+
+const { messages, append, data, error, isLoading } = useChat({
+  onFinish: (message, options) => {
+    onFinishCalls.push({ message, options });
+  },
+});
 </script>
 
 <template>
@@ -19,8 +35,10 @@ const { messages, append, data, error, isLoading } = useChat();
     </div>
 
     <button
-      data-testid="button"
+      data-testid="do-append"
       @click="append({ role: 'user', content: 'hi' })"
     />
+
+    <div data-testid="on-finish-calls">{{ JSON.stringify(onFinishCalls) }}</div>
   </div>
 </template>

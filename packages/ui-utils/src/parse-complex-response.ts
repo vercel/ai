@@ -8,6 +8,7 @@ import type {
   ToolCall,
   UseChatOptions,
 } from './types';
+import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 
 type PrefixMap = {
   text?: Message;
@@ -47,7 +48,15 @@ export async function parseComplexResponse({
   };
   update: (merged: Message[], data: JSONValue[] | undefined) => void;
   onToolCall?: UseChatOptions['onToolCall'];
-  onFinish?: (prefixMap: PrefixMap) => void;
+  onFinish?: (options: {
+    prefixMap: PrefixMap;
+    finishReason: LanguageModelV1FinishReason;
+    usage: {
+      completionTokens: number;
+      promptTokens: number;
+      totalTokens: number;
+    };
+  }) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;
 }) {
@@ -64,6 +73,17 @@ export async function parseComplexResponse({
     string,
     { text: string; prefixMapIndex: number; toolName: string }
   > = {};
+
+  let usage: {
+    completionTokens: number;
+    promptTokens: number;
+    totalTokens: number;
+  } = {
+    completionTokens: NaN,
+    promptTokens: NaN,
+    totalTokens: NaN,
+  };
+  let finishReason: LanguageModelV1FinishReason = 'unknown';
 
   // we create a map of each prefix, and for each prefixed message we push to the map
   for await (const { type, value } of readDataStream(reader, {
@@ -83,6 +103,11 @@ export async function parseComplexResponse({
           createdAt,
         };
       }
+    }
+
+    if (type === 'finish_message') {
+      finishReason = value.finishReason;
+      usage = value.usage;
     }
 
     // Tool invocations are part of an assistant message
@@ -282,7 +307,7 @@ export async function parseComplexResponse({
     update(merged, [...prefixMap['data']]); // make a copy of the data array
   }
 
-  onFinish?.(prefixMap);
+  onFinish?.({ prefixMap, finishReason, usage });
 
   return {
     messages: [
