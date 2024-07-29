@@ -119,7 +119,7 @@ export async function continueConversation(history: Message[]) {
         }),
         execute: async ({ city, unit }) => {
           const weather = getWeather({ city, unit });
-          return `It is currently 25°${weather.value} and ${weather.description} in ${city}!`;
+          return `It is currently ${weather.value}°${unit} and ${weather.description} in ${city}!`;
         },
       },
     },
