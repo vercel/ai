@@ -365,6 +365,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                 return;
               }
 
+              case 'error': {
+                controller.enqueue({ type: 'error', error: value.error });
+                return;
+              }
+
               default: {
                 const _exhaustiveCheck: never = value;
                 throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
@@ -449,6 +454,13 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('content_block_stop'),
     index: z.number(),
+  }),
+  z.object({
+    type: z.literal('error'),
+    error: z.object({
+      type: z.string(),
+      message: z.string(),
+    }),
   }),
   z.object({
     type: z.literal('message_delta'),
