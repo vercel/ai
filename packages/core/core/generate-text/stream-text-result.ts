@@ -88,8 +88,23 @@ export interface StreamTextResult<TOOLS extends Record<string, CoreTool>> {
 
   @param response A Node.js response-like object (ServerResponse).
   @param init Optional headers and status code.
+
+  @deprecated Use `pipeDataStreamToResponse` instead.
      */
   pipeAIStreamToResponse(
+    response: ServerResponse,
+    init?: { headers?: Record<string, string>; status?: number },
+  ): void;
+
+  /**
+  Writes data stream output to a Node.js response-like object.
+  It sets a `Content-Type` header to `text/plain; charset=utf-8` and
+  writes each data stream part as a separate chunk.
+
+  @param response A Node.js response-like object (ServerResponse).
+  @param init Optional headers and status code.
+     */
+  pipeDataStreamToResponse(
     response: ServerResponse,
     init?: { headers?: Record<string, string>; status?: number },
   ): void;

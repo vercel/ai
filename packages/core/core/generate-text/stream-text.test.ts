@@ -852,7 +852,7 @@ describe('result.toAIStream', () => {
   });
 });
 
-describe('result.pipeAIStreamToResponse', async () => {
+describe('result.pipeDataStreamToResponse', async () => {
   it('should write data stream parts to a Node.js response-like object', async () => {
     const mockResponse = createMockServerResponse();
 
@@ -872,7 +872,7 @@ describe('result.pipeAIStreamToResponse', async () => {
       prompt: 'test-input',
     });
 
-    result.pipeAIStreamToResponse(mockResponse);
+    result.pipeDataStreamToResponse(mockResponse);
 
     // Wait for the stream to finish writing to the mock response
     await new Promise(resolve => {

@@ -586,6 +586,13 @@ However, the LLM results are expected to be small enough to not cause issues.
   pipeAIStreamToResponse(
     response: ServerResponse,
     init?: { headers?: Record<string, string>; status?: number },
+  ): void {
+    return this.pipeDataStreamToResponse(response, init);
+  }
+
+  pipeDataStreamToResponse(
+    response: ServerResponse,
+    init?: { headers?: Record<string, string>; status?: number },
   ) {
     response.writeHead(init?.status ?? 200, {
       'Content-Type': 'text/plain; charset=utf-8',

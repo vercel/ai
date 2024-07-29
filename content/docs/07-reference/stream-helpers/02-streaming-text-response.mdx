@@ -5,35 +5,17 @@ description: Learn to use StreamingTextResponse helper function in your applicat
 
 # `StreamingTextResponse`
 
-It is a utility class that simplifies the process of returning a ReadableStream of text in HTTP responses. It is a lightweight wrapper around the native Response class, automatically setting the status code to 200 and the Content-Type header to 'text/plain; charset=utf-8'
+<Note type="warning">
+  This helper function is deprecated. Use `streamText.toDataStreamResponse()`
+  instead.
+</Note>
+
+It is a utility class that simplifies the process of returning a ReadableStream of text in HTTP responses.
+It is a lightweight wrapper around the native Response class, automatically setting the status code to 200 and the Content-Type header to 'text/plain; charset=utf-8'.
 
 ## Import
 
 <Snippet text={`import { StreamingTextResponse } from "ai"`} prompt={false} />
-
-## Example
-
-```tsx
-const result = await streamText({ model, messages });
-
-// use stream data
-const data = new StreamData();
-
-data.append('initialized call');
-
-// return a StreamingTextResponse that combines
-// the result stream with the data stream:
-return new StreamingTextResponse(
-  result.toAIStream({
-    onFinal() {
-      data.append('call completed');
-      data.close();
-    },
-  }),
-  {},
-  data,
-);
-```
 
 ## API Signature
 

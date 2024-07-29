@@ -4,6 +4,8 @@ import { StreamData } from './stream-data';
 
 /**
  * A utility class for streaming text responses.
+ *
+ * @deprecated Use `streamText.toDataStreamResponse()` instead.
  */
 export class StreamingTextResponse extends Response {
   constructor(res: ReadableStream, init?: ResponseInit, data?: StreamData) {

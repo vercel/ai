@@ -670,7 +670,7 @@ A helper function to create a streamable UI from LLM providers. This function is
         'Converts the result to an `AIStream` object that is compatible with `StreamingTextResponse`. It can be used with the `useChat` and `useCompletion` hooks.',
     },
     {
-      name: 'pipeAIStreamToResponse',
+      name: 'pipeDataStreamToResponse',
       type: '(response: ServerResponse, init?: { headers?: Record<string, string>; status?: number } => void',
       description:
         'Writes stream data output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each stream data part as a separate chunk.',
