@@ -1,7 +1,7 @@
-import { Metadata } from "next";
+import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "useChat",
+  title: 'useChat',
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {
