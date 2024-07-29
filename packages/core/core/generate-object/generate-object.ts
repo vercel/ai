@@ -176,24 +176,24 @@ Default and recommended: 'auto' (best mode for the model).
                   headers,
                 });
 
+                if (result.text === undefined) {
+                  throw new NoObjectGeneratedError();
+                }
+
                 // Add response information to the span:
                 span.setAttributes({
                   'ai.finishReason': result.finishReason,
                   'ai.usage.promptTokens': result.usage.promptTokens,
                   'ai.usage.completionTokens': result.usage.completionTokens,
-                  'ai.result.text': result.text,
+                  'ai.result.object': result.text,
                 });
 
-                return result;
+                return { ...result, objectText: result.text };
               },
             }),
           );
 
-          if (generateResult.text === undefined) {
-            throw new NoObjectGeneratedError();
-          }
-
-          result = generateResult.text;
+          result = generateResult.objectText;
           finishReason = generateResult.finishReason;
           usage = generateResult.usage;
           warnings = generateResult.warnings;
@@ -244,27 +244,26 @@ Default and recommended: 'auto' (best mode for the model).
                   headers,
                 });
 
+                const objectText = result.toolCalls?.[0]?.args;
+
+                if (objectText === undefined) {
+                  throw new NoObjectGeneratedError();
+                }
+
                 // Add response information to the span:
                 span.setAttributes({
                   'ai.finishReason': result.finishReason,
                   'ai.usage.promptTokens': result.usage.promptTokens,
                   'ai.usage.completionTokens': result.usage.completionTokens,
-                  'ai.result.text': result.text,
-                  'ai.result.toolCalls': JSON.stringify(result.toolCalls),
+                  'ai.result.object': objectText,
                 });
 
-                return result;
+                return { ...result, objectText };
               },
             }),
           );
 
-          const functionArgs = generateResult.toolCalls?.[0]?.args;
-
-          if (functionArgs === undefined) {
-            throw new NoObjectGeneratedError();
-          }
-
-          result = functionArgs;
+          result = generateResult.objectText;
           finishReason = generateResult.finishReason;
           usage = generateResult.usage;
           warnings = generateResult.warnings;
