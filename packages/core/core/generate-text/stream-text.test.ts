@@ -968,7 +968,7 @@ describe('result.toAIStreamResponse', () => {
 
     assert.deepStrictEqual(Object.fromEntries(response.headers.entries()), {
       'content-type': 'text/plain; charset=utf-8',
-      'x-vercel-ai-stream': 'v1',
+      'x-vercel-ai-data-stream': 'v1',
     });
 
     assert.strictEqual(
@@ -1011,7 +1011,7 @@ describe('result.toAIStreamResponse', () => {
 
     assert.deepStrictEqual(Object.fromEntries(response.headers.entries()), {
       'content-type': 'text/plain; charset=utf-8',
-      'x-vercel-ai-stream': 'v1',
+      'x-vercel-ai-data-stream': 'v1',
       'custom-header': 'custom-value',
     });
 

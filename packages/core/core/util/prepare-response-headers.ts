@@ -2,8 +2,8 @@ export function prepareResponseHeaders(
   init: ResponseInit | undefined,
   {
     contentType,
-    aiStreamVersion,
-  }: { contentType: string; aiStreamVersion?: string | undefined },
+    dataStreamVersion,
+  }: { contentType: string; dataStreamVersion?: 'v1' | undefined },
 ) {
   const headers = new Headers(init?.headers ?? {});
 
@@ -11,8 +11,8 @@ export function prepareResponseHeaders(
     headers.set('Content-Type', contentType);
   }
 
-  if (aiStreamVersion !== undefined) {
-    headers.set('X-Vercel-AI-Stream', aiStreamVersion);
+  if (dataStreamVersion !== undefined) {
+    headers.set('X-Vercel-AI-Data-Stream', dataStreamVersion);
   }
 
   return headers;

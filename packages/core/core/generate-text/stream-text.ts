@@ -672,7 +672,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       statusText: init?.statusText,
       headers: prepareResponseHeaders(init, {
         contentType: 'text/plain; charset=utf-8',
-        aiStreamVersion: 'v1',
+        dataStreamVersion: 'v1',
       }),
     });
   }
