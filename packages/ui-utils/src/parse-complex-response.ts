@@ -106,8 +106,14 @@ export async function parseComplexResponse({
     }
 
     if (type === 'finish_message') {
+      const { completionTokens, promptTokens } = value.usage;
+
       finishReason = value.finishReason;
-      usage = value.usage;
+      usage = {
+        completionTokens,
+        promptTokens,
+        totalTokens: completionTokens + promptTokens,
+      };
     }
 
     // Tool invocations are part of an assistant message

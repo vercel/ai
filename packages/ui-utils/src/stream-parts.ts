@@ -371,7 +371,6 @@ const finishMessageStreamPart: StreamPart<
     usage: {
       promptTokens: number;
       completionTokens: number;
-      totalTokens: number;
     };
   }
 > = {
@@ -389,9 +388,7 @@ const finishMessageStreamPart: StreamPart<
       !('promptTokens' in value.usage) ||
       typeof value.usage.promptTokens !== 'number' ||
       !('completionTokens' in value.usage) ||
-      typeof value.usage.completionTokens !== 'number' ||
-      !('totalTokens' in value.usage) ||
-      typeof value.usage.totalTokens !== 'number'
+      typeof value.usage.completionTokens !== 'number'
     ) {
       throw new Error(
         '"finish_message" parts expect an object with a "finishReason" and "usage" property.',
