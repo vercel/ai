@@ -9,8 +9,8 @@ export function selectTelemetryAttributes({
   attributes: {
     [attributeKey: string]:
       | AttributeValue
-      | { input: () => AttributeValue }
-      | { output: () => AttributeValue }
+      | { input: () => AttributeValue | undefined }
+      | { output: () => AttributeValue | undefined }
       | undefined;
   };
 }): Attributes {
@@ -29,9 +29,15 @@ export function selectTelemetryAttributes({
       'input' in value &&
       typeof value.input === 'function'
     ) {
-      return telemetry?.recordInputs === false
+      if (telemetry?.recordInputs === false) {
+        return attributes;
+      }
+
+      const result = value.input();
+
+      return result === undefined
         ? attributes
-        : { ...attributes, [key]: value.input() };
+        : { ...attributes, [key]: result };
     }
 
     // output value, check if it should be recorded:
@@ -40,9 +46,15 @@ export function selectTelemetryAttributes({
       'output' in value &&
       typeof value.output === 'function'
     ) {
-      return telemetry?.recordOutputs === false
+      if (telemetry?.recordOutputs === false) {
+        return attributes;
+      }
+
+      const result = value.output();
+
+      return result === undefined
         ? attributes
-        : { ...attributes, [key]: value.output() };
+        : { ...attributes, [key]: result };
     }
 
     // value is an attribute value already:

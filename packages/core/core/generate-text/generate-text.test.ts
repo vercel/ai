@@ -634,14 +634,12 @@ describe('telemetry', () => {
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"prompt"}',
-          'ai.settings.maxRetries': undefined,
           'ai.settings.maxToolRoundtrips': 0,
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
           'ai.telemetry.metadata.test2': false,
           'ai.finishReason': 'stop',
           'ai.result.text': 'Hello, world!',
-          'ai.result.toolCalls': undefined,
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
           'ai.request.headers.header1': 'value1',
@@ -659,13 +657,11 @@ describe('telemetry', () => {
           'ai.prompt.format': 'prompt',
           'ai.prompt.messages':
             '[{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
-          'ai.settings.maxRetries': undefined,
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
           'ai.telemetry.metadata.test2': false,
           'ai.finishReason': 'stop',
           'ai.result.text': 'Hello, world!',
-          'ai.result.toolCalls': undefined,
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
           'ai.request.headers.header1': 'value1',
@@ -712,17 +708,13 @@ describe('telemetry', () => {
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"test-input"}',
-          'ai.settings.maxRetries': undefined,
           'ai.settings.maxToolRoundtrips': 0,
-          'ai.telemetry.functionId': undefined,
           'ai.finishReason': 'stop',
-          'ai.result.text': undefined,
           'ai.result.toolCalls':
             '[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{ \\"value\\": \\"value\\" }"}]',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
           'operation.name': 'ai.generateText',
-          'resource.name': undefined,
         },
         events: [],
       },
@@ -734,16 +726,12 @@ describe('telemetry', () => {
           'ai.prompt.format': 'prompt',
           'ai.prompt.messages':
             '[{"role":"user","content":[{"type":"text","text":"test-input"}]}]',
-          'ai.settings.maxRetries': undefined,
-          'ai.telemetry.functionId': undefined,
           'ai.finishReason': 'stop',
-          'ai.result.text': undefined,
           'ai.result.toolCalls':
             '[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{ \\"value\\": \\"value\\" }"}]',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
           'operation.name': 'ai.generateText',
-          'resource.name': undefined,
         },
         events: [],
       },
@@ -754,6 +742,72 @@ describe('telemetry', () => {
           'ai.toolCall.id': 'call-1',
           'ai.toolCall.args': '{"value":"value"}',
           'ai.toolCall.result': '"result1"',
+        },
+        events: [],
+      },
+    ]);
+  });
+
+  it('should not record telemetry inputs / outputs when disabled', async () => {
+    await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          toolCalls: [
+            {
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+          ],
+        }),
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async () => 'result1',
+        },
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+      },
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        name: 'ai.generateText',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.settings.maxToolRoundtrips': 0,
+          'ai.finishReason': 'stop',
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'operation.name': 'ai.generateText',
+        },
+        events: [],
+      },
+      {
+        name: 'ai.generateText.doGenerate',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.finishReason': 'stop',
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'operation.name': 'ai.generateText',
+        },
+        events: [],
+      },
+      {
+        name: 'ai.toolCall',
+        attributes: {
+          'ai.toolCall.name': 'tool1',
+          'ai.toolCall.id': 'call-1',
         },
         events: [],
       },

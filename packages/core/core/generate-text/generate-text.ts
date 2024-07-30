@@ -12,6 +12,7 @@ import { Prompt } from '../prompt/prompt';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
+import { selectTelemetryAttributes } from '../telemetry/select-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool/tool';
 import { CoreToolChoice, LanguageModel } from '../types';
@@ -134,12 +135,17 @@ By default, it's set to 0, which will disable the feature.
   const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
   return recordSpan({
     name: 'ai.generateText',
-    attributes: {
-      ...baseTelemetryAttributes,
-      // specific settings that only make sense on the outer level:
-      'ai.prompt': JSON.stringify({ system, prompt, messages }),
-      'ai.settings.maxToolRoundtrips': maxToolRoundtrips,
-    },
+    attributes: selectTelemetryAttributes({
+      telemetry,
+      attributes: {
+        ...baseTelemetryAttributes,
+        // specific settings that only make sense on the outer level:
+        'ai.prompt': {
+          input: () => JSON.stringify({ system, prompt, messages }),
+        },
+        'ai.settings.maxToolRoundtrips': maxToolRoundtrips,
+      },
+    }),
     tracer,
     fn: async span => {
       const retry = retryWithExponentialBackoff({ maxRetries });
@@ -182,11 +188,16 @@ By default, it's set to 0, which will disable the feature.
         currentModelResponse = await retry(() =>
           recordSpan({
             name: 'ai.generateText.doGenerate',
-            attributes: {
-              ...baseTelemetryAttributes,
-              'ai.prompt.format': currentInputFormat,
-              'ai.prompt.messages': JSON.stringify(promptMessages),
-            },
+            attributes: selectTelemetryAttributes({
+              telemetry,
+              attributes: {
+                ...baseTelemetryAttributes,
+                'ai.prompt.format': { input: () => currentInputFormat },
+                'ai.prompt.messages': {
+                  input: () => JSON.stringify(promptMessages),
+                },
+              },
+            }),
             tracer,
             fn: async span => {
               const result = await model.doGenerate({
@@ -199,13 +210,22 @@ By default, it's set to 0, which will disable the feature.
               });
 
               // Add response information to the span:
-              span.setAttributes({
-                'ai.finishReason': result.finishReason,
-                'ai.usage.promptTokens': result.usage.promptTokens,
-                'ai.usage.completionTokens': result.usage.completionTokens,
-                'ai.result.text': result.text,
-                'ai.result.toolCalls': JSON.stringify(result.toolCalls),
-              });
+              span.setAttributes(
+                selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    'ai.finishReason': result.finishReason,
+                    'ai.usage.promptTokens': result.usage.promptTokens,
+                    'ai.usage.completionTokens': result.usage.completionTokens,
+                    'ai.result.text': {
+                      output: () => result.text,
+                    },
+                    'ai.result.toolCalls': {
+                      output: () => JSON.stringify(result.toolCalls),
+                    },
+                  },
+                }),
+              );
 
               return result;
             },
@@ -225,6 +245,7 @@ By default, it's set to 0, which will disable the feature.
                 toolCalls: currentToolCalls,
                 tools,
                 tracer,
+                telemetry,
               });
 
         // token usage:
@@ -268,14 +289,23 @@ By default, it's set to 0, which will disable the feature.
       );
 
       // Add response information to the span:
-      span.setAttributes({
-        'ai.finishReason': currentModelResponse.finishReason,
-        'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
-        'ai.usage.completionTokens':
-          currentModelResponse.usage.completionTokens,
-        'ai.result.text': currentModelResponse.text,
-        'ai.result.toolCalls': JSON.stringify(currentModelResponse.toolCalls),
-      });
+      span.setAttributes(
+        selectTelemetryAttributes({
+          telemetry,
+          attributes: {
+            'ai.finishReason': currentModelResponse.finishReason,
+            'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
+            'ai.usage.completionTokens':
+              currentModelResponse.usage.completionTokens,
+            'ai.result.text': {
+              output: () => currentModelResponse.text,
+            },
+            'ai.result.toolCalls': {
+              output: () => JSON.stringify(currentModelResponse.toolCalls),
+            },
+          },
+        }),
+      );
 
       return new DefaultGenerateTextResult({
         // Always return a string so that the caller doesn't have to check for undefined.
@@ -300,10 +330,12 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
   toolCalls,
   tools,
   tracer,
+  telemetry,
 }: {
   toolCalls: ToToolCallArray<TOOLS>;
   tools: TOOLS;
   tracer: Tracer;
+  telemetry: TelemetrySettings | undefined;
 }): Promise<ToToolResultArray<TOOLS>> {
   const toolResults = await Promise.all(
     toolCalls.map(async toolCall => {
@@ -315,19 +347,31 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
 
       const result = await recordSpan({
         name: 'ai.toolCall',
-        attributes: {
-          'ai.toolCall.name': toolCall.toolName,
-          'ai.toolCall.id': toolCall.toolCallId,
-          'ai.toolCall.args': JSON.stringify(toolCall.args),
-        },
+        attributes: selectTelemetryAttributes({
+          telemetry,
+          attributes: {
+            'ai.toolCall.name': toolCall.toolName,
+            'ai.toolCall.id': toolCall.toolCallId,
+            'ai.toolCall.args': {
+              output: () => JSON.stringify(toolCall.args),
+            },
+          },
+        }),
         tracer,
         fn: async span => {
           const result = await tool.execute!(toolCall.args);
 
           try {
-            span.setAttributes({
-              'ai.toolCall.result': JSON.stringify(result),
-            });
+            span.setAttributes(
+              selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  'ai.toolCall.result': {
+                    output: () => JSON.stringify(result),
+                  },
+                },
+              }),
+            );
           } catch (ignored) {
             // JSON stringify might fail if the result is not serializable,
             // in which case we just ignore it. In the future we might want to
