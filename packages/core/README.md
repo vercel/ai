@@ -97,7 +97,7 @@ export async function POST(req: Request) {
     messages,
   });
 
-  return result.toDataStreamamResponse();
+  return result.toDataStreamResponse();
 }
 ```
 
