@@ -129,4 +129,7 @@ def stream_text(messages: List[ClientMessage], protocol: str = 'data'):
 async def handle_chat_data(request: Request, protocol: str = Query('data')):
     messages = request.messages
     openai_messages = convert_to_openai_messages(messages)
-    return StreamingResponse(stream_text(openai_messages, protocol))
+
+    response = StreamingResponse(stream_text(openai_messages, protocol))
+    response.headers['x-vercel-ai-data-stream'] = 'v1'
+    return response

@@ -65,8 +65,9 @@ export const Card = ({ type }: { type: string }) => {
               href="https://sdk.vercel.ai/docs/ai-sdk-ui/stream-protocol#data-stream-protocol"
             >
               data stream protocol
-            </Link>
-            .
+            </Link>{' '}
+            and that the response has <Code>x-vercel-ai-data-stream</Code>{' '}
+            header set to <Code>v1</Code>.
           </p>
         </div>
       </div>
