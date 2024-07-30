@@ -1,5 +1,13 @@
 # ai
 
+## 3.2.39
+
+### Patch Changes
+
+- b694f2f9: feat (ai/svelte): add tool calling support to useChat
+- Updated dependencies [b694f2f9]
+  - @ai-sdk/svelte@0.0.26
+
 ## 3.2.38
 
 ### Patch Changes
