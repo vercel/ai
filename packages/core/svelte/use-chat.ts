@@ -347,8 +347,6 @@ export function useChat({
       });
 
       abortController = null;
-
-      return null;
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
@@ -367,6 +365,7 @@ export function useChat({
 
     // auto-submit when all tool calls in the last assistant message have results:
     const newMessagesSnapshot = get(messages);
+
     const lastMessage = newMessagesSnapshot[newMessagesSnapshot.length - 1];
     if (
       // ensure we actually have new messages (to prevent infinite loops in case of errors):

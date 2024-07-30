@@ -15,8 +15,7 @@ const openai = createOpenAI({
 });
 
 export const POST = (async ({ request }) => {
-  const r = await request.json();
-  const { messages } = r;
+  const { messages } = await request.json();
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
@@ -49,5 +48,5 @@ export const POST = (async ({ request }) => {
     },
   });
 
-  return result.toAIStreamResponse();
+  return result.toDataStreamResponse();
 }) satisfies RequestHandler;
