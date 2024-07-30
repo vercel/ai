@@ -1,6 +1,7 @@
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
+import { selectTelemetryAttributes } from '../telemetry/select-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel } from '../types';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
@@ -71,11 +72,13 @@ Only applicable for HTTP-based providers.
 
   return recordSpan({
     name: 'ai.embed',
-    attributes: {
-      ...baseTelemetryAttributes,
-      // specific settings that only make sense on the outer level:
-      'ai.value': JSON.stringify(value),
-    },
+    attributes: selectTelemetryAttributes({
+      telemetry,
+      attributes: {
+        ...baseTelemetryAttributes,
+        'ai.value': { input: () => JSON.stringify(value) },
+      },
+    }),
     tracer,
     fn: async span => {
       const retry = retryWithExponentialBackoff({ maxRetries });
@@ -84,11 +87,14 @@ Only applicable for HTTP-based providers.
         // nested spans to align with the embedMany telemetry data:
         recordSpan({
           name: 'ai.embed.doEmbed',
-          attributes: {
-            ...baseTelemetryAttributes,
-            // specific settings that only make sense on the outer level:
-            'ai.values': [JSON.stringify(value)],
-          },
+          attributes: selectTelemetryAttributes({
+            telemetry,
+            attributes: {
+              ...baseTelemetryAttributes,
+              // specific settings that only make sense on the outer level:
+              'ai.values': { input: () => [JSON.stringify(value)] },
+            },
+          }),
           tracer,
           fn: async doEmbedSpan => {
             const modelResponse = await model.doEmbed({
@@ -100,12 +106,20 @@ Only applicable for HTTP-based providers.
             const embedding = modelResponse.embeddings[0];
             const usage = modelResponse.usage ?? { tokens: NaN };
 
-            doEmbedSpan.setAttributes({
-              'ai.embeddings': modelResponse.embeddings.map(embedding =>
-                JSON.stringify(embedding),
-              ),
-              'ai.usage.tokens': usage.tokens,
-            });
+            doEmbedSpan.setAttributes(
+              selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  'ai.embeddings': {
+                    output: () =>
+                      modelResponse.embeddings.map(embedding =>
+                        JSON.stringify(embedding),
+                      ),
+                  },
+                  'ai.usage.tokens': usage.tokens,
+                },
+              }),
+            );
 
             return {
               embedding,
@@ -116,10 +130,15 @@ Only applicable for HTTP-based providers.
         }),
       );
 
-      span.setAttributes({
-        'ai.embedding': JSON.stringify(embedding),
-        'ai.usage.tokens': usage.tokens,
-      });
+      span.setAttributes(
+        selectTelemetryAttributes({
+          telemetry,
+          attributes: {
+            'ai.embedding': { output: () => JSON.stringify(embedding) },
+            'ai.usage.tokens': usage.tokens,
+          },
+        }),
+      );
 
       return new DefaultEmbedResult({ value, embedding, usage, rawResponse });
     },
