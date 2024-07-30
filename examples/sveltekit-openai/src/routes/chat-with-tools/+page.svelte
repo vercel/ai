@@ -1,19 +1,20 @@
 <script lang="ts">
   import { useChat } from '@ai-sdk/svelte';
 
-  const { input, handleSubmit, messages, data, addToolResult } = useChat({
-      maxToolRoundtrips: 5,
-      // run client-side tools that are automatically executed:
+  const { input, handleSubmit, messages, addToolResult } = useChat({
+    api: '/api/use-chat-tools',
+    maxToolRoundtrips: 5,
+    // run client-side tools that are automatically executed:
 
-      async onToolCall({ toolCall }) {
-          if (toolCall.toolName === 'getLocation') {
-              const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+    async onToolCall({ toolCall }) {
+        if (toolCall.toolName === 'getLocation') {
+            const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
 
-              let city = cities[Math.floor(Math.random() * cities.length)];
-              addToolResult({toolCallId: toolCall.toolCallId, result: city});
-              return city;
-          }
-      }
+            let city = cities[Math.floor(Math.random() * cities.length)];
+            addToolResult({toolCallId: toolCall.toolCallId, result: city});
+            return city;
+        }
+    }
   });
 </script>
 
@@ -53,7 +54,7 @@
       {/each}
   </ul>
   <form on:submit={handleSubmit}>
-      <input class="outline-chaplin-1 bg-white outline outline-1" bind:value={$input} />
+      <input class="bg-white outline-chaplin-1 outline outline-1" bind:value={$input} />
       <button type="submit">Send</button>
   </form>
 </main>
