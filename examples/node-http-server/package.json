@@ -1,5 +1,5 @@
 {
-  "name": "ai-sdk-express-example",
+  "name": "ai-sdk-http-server-example",
   "version": "0.0.0",
   "private": true,
   "dependencies": {

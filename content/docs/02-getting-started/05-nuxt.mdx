@@ -44,7 +44,7 @@ Install `ai` and `@ai-sdk/openai`, Vercel AI SDK's OpenAI provider.
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm install ai @ai-sdk/openai @ai-sdk/vue zod" dark />
+      <Snippet text="pnpm add ai @ai-sdk/openai @ai-sdk/vue zod" dark />
     </Tab>
     <Tab>
       <Snippet text="npm install ai @ai-sdk/openai @ai-sdk/vue zod" dark />
@@ -109,7 +109,7 @@ export default defineLazyEventHandler(async () => {
       messages,
     });
 
-    return result.toAIStreamResponse();
+    return result.toDataStreamResponse();
   });
 });
 ```
@@ -119,7 +119,7 @@ Let's take a look at what is happening in this code:
 1. First, you create an OpenAI provider instance with the `createOpenAI` function that is imported from the `@ai-sdk/openai` package.
 2. Next, you define an Event Handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
 3. Next, you call the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function which is imported from the `ai` package. To use this function, you pass it a configuration object that contains a `model` provider (defined in step 1) and `messages` (defined in step 2). You can use pass additional [settings](/docs/ai-sdk-core/settings) in this configuration object to further customise the models behaviour.
-4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toAIStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function which converts the result to a streamed response object.
+4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toDataStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function which converts the result to a streamed response object.
 5. Return the result to the client to stream the response.
 
 ## Wire up the UI
@@ -201,7 +201,7 @@ export default defineLazyEventHandler(async () => {
       messages,
     });
 
-    return result.toAIStreamResponse({ data });
+    return result.toDataStreamResponse({ data });
   });
 });
 ```
@@ -211,7 +211,7 @@ In this code, you:
 1. Create a new instance of `StreamData`.
 2. Append the data you want to stream alongside the model's response.
 3. Listen for the `onFinish` callback on `streamText` and close the stream data.
-4. Pass the data into the `toAIStreamResponse` method.
+4. Pass the data into the `toDataStreamResponse` method.
 
 ### Update your frontend
 

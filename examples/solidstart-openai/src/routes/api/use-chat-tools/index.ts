@@ -37,5 +37,5 @@ export const POST = async (event: APIEvent) => {
     },
   });
 
-  return result.toAIStreamResponse();
+  return result.toDataStreamResponse();
 };

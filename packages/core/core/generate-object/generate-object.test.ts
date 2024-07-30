@@ -231,7 +231,7 @@ describe('telemetry', () => {
             '[\\"content\\"],\\"additionalProperties\\":false,\\"$schema\\":\\"http://json-schema.org/draft-07/schema#\\"}' +
             '\\nYou MUST answer with a JSON object that matches the JSON schema above."},' +
             '{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
-          'ai.result.text': '{ "content": "Hello, world!" }',
+          'ai.result.object': '{ "content": "Hello, world!" }',
           'ai.settings.maxRetries': undefined,
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
@@ -305,9 +305,7 @@ describe('telemetry', () => {
           'ai.prompt.format': 'prompt',
           'ai.prompt.messages':
             '[{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
-          'ai.result.text': undefined,
-          'ai.result.toolCalls':
-            '[{"toolCallType":"function","toolCallId":"tool-call-1","toolName":"json","args":"{ \\"content\\": \\"Hello, world!\\" }"}]',
+          'ai.result.object': '{ "content": "Hello, world!" }',
           'ai.settings.maxRetries': undefined,
           'ai.settings.mode': 'tool',
           'ai.telemetry.functionId': 'test-function-id',

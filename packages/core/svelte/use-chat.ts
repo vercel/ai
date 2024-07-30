@@ -81,8 +81,8 @@ const getStreamedResponse = async (
   previousMessages: Message[],
   abortControllerRef: AbortController | null,
   generateId: IdGenerator,
-  streamMode: 'stream-data' | 'text' | undefined,
-  onFinish: ((message: Message) => void) | undefined,
+  streamProtocol: UseChatOptions['streamProtocol'],
+  onFinish: UseChatOptions['onFinish'],
   onResponse: ((response: Response) => void | Promise<void>) | undefined,
   sendExtraMessageFields: boolean | undefined,
   fetch: FetchFunction | undefined,
@@ -137,7 +137,7 @@ const getStreamedResponse = async (
         tool_choice: chatRequest.tool_choice,
       }),
     },
-    streamMode,
+    streamProtocol,
     credentials: extraMetadata.credentials,
     headers: {
       ...extraMetadata.headers,
@@ -177,6 +177,7 @@ export function useChat({
   experimental_onFunctionCall,
   experimental_onToolCall,
   streamMode,
+  streamProtocol,
   onResponse,
   onFinish,
   onError,
@@ -187,6 +188,11 @@ export function useChat({
   fetch,
   keepLastMessageOnError = false,
 }: UseChatOptions = {}): UseChatHelpers {
+  // streamMode is deprecated, use streamProtocol instead.
+  if (streamMode) {
+    streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
+  }
+
   // Generate a unique id for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
 
@@ -248,7 +254,7 @@ export function useChat({
             get(messages),
             abortController,
             generateId,
-            streamMode,
+            streamProtocol,
             onFinish,
             onResponse,
             sendExtraMessageFields,

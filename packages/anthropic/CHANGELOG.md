@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.34
+
+### Patch Changes
+
+- 7d0fd5a8: fix (provider/anthropic): handle error stream chunks
+
 ## 0.0.33
 
 ### Patch Changes

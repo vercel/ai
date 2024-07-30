@@ -1,6 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 import { withTestServer } from '@ai-sdk/provider-utils/test';
-import { formatStreamPart, getTextFromDataUrl } from '@ai-sdk/ui-utils';
+import {
+  formatStreamPart,
+  getTextFromDataUrl,
+  Message,
+} from '@ai-sdk/ui-utils';
 import '@testing-library/jest-dom/vitest';
 import {
   cleanup,
@@ -14,9 +18,26 @@ import React, { useRef, useState } from 'react';
 import { useChat } from './use-chat';
 
 describe('stream data stream', () => {
+  let onFinishCalls: Array<{
+    message: Message;
+    options: {
+      finishReason: string;
+      usage: {
+        completionTokens: number;
+        promptTokens: number;
+        totalTokens: number;
+      };
+    };
+  }> = [];
+
   const TestComponent = () => {
     const [id, setId] = React.useState<string>('first-id');
-    const { messages, append, error, data, isLoading } = useChat({ id });
+    const { messages, append, error, data, isLoading } = useChat({
+      id,
+      onFinish: (message, options) => {
+        onFinishCalls.push({ message, options });
+      },
+    });
 
     return (
       <div>
@@ -48,11 +69,13 @@ describe('stream data stream', () => {
 
   beforeEach(() => {
     render(<TestComponent />);
+    onFinishCalls = [];
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     cleanup();
+    onFinishCalls = [];
   });
 
   it(
@@ -147,6 +170,50 @@ describe('stream data stream', () => {
     );
   });
 
+  it(
+    'should invoke onFinish when the stream finishes',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: [
+          formatStreamPart('text', 'Hello'),
+          formatStreamPart('text', ','),
+          formatStreamPart('text', ' world'),
+          formatStreamPart('text', '.'),
+          formatStreamPart('finish_message', {
+            finishReason: 'stop',
+            usage: { completionTokens: 1, promptTokens: 3 },
+          }),
+        ],
+      },
+      async () => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('message-1');
+
+        expect(onFinishCalls).toStrictEqual([
+          {
+            message: {
+              id: expect.any(String),
+              createdAt: expect.any(Date),
+              role: 'assistant',
+              content: 'Hello, world.',
+            },
+            options: {
+              finishReason: 'stop',
+              usage: {
+                completionTokens: 1,
+                promptTokens: 3,
+                totalTokens: 4,
+              },
+            },
+          },
+        ]);
+      },
+    ),
+  );
+
   describe('id', () => {
     it(
       'should clear out messages when the id changes',
@@ -174,8 +241,25 @@ describe('stream data stream', () => {
 });
 
 describe('text stream', () => {
+  let onFinishCalls: Array<{
+    message: Message;
+    options: {
+      finishReason: string;
+      usage: {
+        completionTokens: number;
+        promptTokens: number;
+        totalTokens: number;
+      };
+    };
+  }> = [];
+
   const TestComponent = () => {
-    const { messages, append } = useChat({ streamMode: 'text' });
+    const { messages, append } = useChat({
+      streamProtocol: 'text',
+      onFinish: (message, options) => {
+        onFinishCalls.push({ message, options });
+      },
+    });
 
     return (
       <div>
@@ -198,11 +282,13 @@ describe('text stream', () => {
 
   beforeEach(() => {
     render(<TestComponent />);
+    onFinishCalls = [];
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     cleanup();
+    onFinishCalls = [];
   });
 
   it(
@@ -228,12 +314,47 @@ describe('text stream', () => {
       },
     ),
   );
+
+  it(
+    'should invoke onFinish when the stream finishes',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['Hello', ',', ' world', '.'],
+      },
+      async () => {
+        await userEvent.click(screen.getByTestId('do-append-text-stream'));
+
+        await screen.findByTestId('message-1-text-stream');
+
+        expect(onFinishCalls).toStrictEqual([
+          {
+            message: {
+              id: expect.any(String),
+              createdAt: expect.any(Date),
+              role: 'assistant',
+              content: 'Hello, world.',
+            },
+            options: {
+              finishReason: 'unknown',
+              usage: {
+                completionTokens: NaN,
+                promptTokens: NaN,
+                totalTokens: NaN,
+              },
+            },
+          },
+        ]);
+      },
+    ),
+  );
 });
 
 describe('form actions', () => {
   const TestComponent = () => {
     const { messages, handleSubmit, handleInputChange, isLoading, input } =
-      useChat({ streamMode: 'text' });
+      useChat({ streamProtocol: 'text' });
 
     return (
       <div>
@@ -306,7 +427,7 @@ describe('form actions', () => {
 describe('form actions (with options)', () => {
   const TestComponent = () => {
     const { messages, handleSubmit, handleInputChange, isLoading, input } =
-      useChat({ streamMode: 'text' });
+      useChat({ streamProtocol: 'text' });
 
     return (
       <div>

@@ -1,6 +1,6 @@
+import { createChunkDecoder } from './index';
 import { parseComplexResponse } from './parse-complex-response';
 import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
-import { createChunkDecoder } from './index';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -8,7 +8,7 @@ const getOriginalFetch = () => fetch;
 export async function callChatApi({
   api,
   body,
-  streamMode = 'stream-data',
+  streamProtocol = 'data',
   credentials,
   headers,
   abortController,
@@ -22,15 +22,15 @@ export async function callChatApi({
 }: {
   api: string;
   body: Record<string, any>;
-  streamMode: 'stream-data' | 'text' | undefined;
+  streamProtocol: 'data' | 'text' | undefined;
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
   restoreMessagesOnFailure: () => void;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onUpdate: (merged: Message[], data: JSONValue[] | undefined) => void;
-  onFinish: ((message: Message) => void) | undefined;
-  onToolCall: UseChatOptions['onToolCall'] | undefined;
+  onFinish: UseChatOptions['onFinish'];
+  onToolCall: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
 }) {
@@ -69,7 +69,7 @@ export async function callChatApi({
 
   const reader = response.body.getReader();
 
-  switch (streamMode) {
+  switch (streamProtocol) {
     case 'text': {
       const decoder = createChunkDecoder();
 
@@ -99,7 +99,11 @@ export async function callChatApi({
         }
       }
 
-      onFinish?.(resultMessage);
+      // in text mode, we don't have usage information or finish reason:
+      onFinish?.(resultMessage, {
+        usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
+        finishReason: 'unknown',
+      });
 
       return {
         messages: [resultMessage],
@@ -107,16 +111,16 @@ export async function callChatApi({
       };
     }
 
-    case 'stream-data': {
+    case 'data': {
       return await parseComplexResponse({
         reader,
         abortControllerRef:
           abortController != null ? { current: abortController() } : undefined,
         update: onUpdate,
         onToolCall,
-        onFinish(prefixMap) {
+        onFinish({ prefixMap, finishReason, usage }) {
           if (onFinish && prefixMap.text != null) {
-            onFinish(prefixMap.text);
+            onFinish(prefixMap.text, { usage, finishReason });
           }
         },
         generateId,
@@ -124,8 +128,8 @@ export async function callChatApi({
     }
 
     default: {
-      const exhaustiveCheck: never = streamMode;
-      throw new Error(`Unknown stream mode: ${exhaustiveCheck}`);
+      const exhaustiveCheck: never = streamProtocol;
+      throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);
     }
   }
 }

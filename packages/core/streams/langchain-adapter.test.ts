@@ -2,9 +2,9 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { toAIStream } from './langchain-adapter';
+import { toDataStream } from './langchain-adapter';
 
-describe('toAIStream', () => {
+describe('toDataStream', () => {
   it('should convert ReadableStream<LangChainAIMessageChunk>', async () => {
     const inputStream = convertArrayToReadableStream([
       { content: 'Hello' },
@@ -13,7 +13,7 @@ describe('toAIStream', () => {
 
     assert.deepStrictEqual(
       await convertReadableStreamToArray(
-        toAIStream(inputStream).pipeThrough(new TextDecoderStream()),
+        toDataStream(inputStream).pipeThrough(new TextDecoderStream()),
       ),
       ['0:"Hello"\n', '0:"World"\n'],
     );
@@ -24,7 +24,7 @@ describe('toAIStream', () => {
 
     assert.deepStrictEqual(
       await convertReadableStreamToArray(
-        toAIStream(inputStream).pipeThrough(new TextDecoderStream()),
+        toDataStream(inputStream).pipeThrough(new TextDecoderStream()),
       ),
       ['0:"Hello"\n', '0:"World"\n'],
     );
@@ -38,7 +38,7 @@ describe('toAIStream', () => {
 
     assert.deepStrictEqual(
       await convertReadableStreamToArray(
-        toAIStream(inputStream).pipeThrough(new TextDecoderStream()),
+        toDataStream(inputStream).pipeThrough(new TextDecoderStream()),
       ),
       ['0:"Hello"\n', '0:"World"\n'],
     );

@@ -1,3 +1,4 @@
+import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 import { ToolCall as CoreToolCall } from './duplicated/tool-call';
 import { ToolResult as CoreToolResult } from './duplicated/tool-result';
 import {
@@ -362,6 +363,52 @@ const toolCallDeltaStreamPart: StreamPart<
   },
 };
 
+const finishMessageStreamPart: StreamPart<
+  'd',
+  'finish_message',
+  {
+    finishReason: LanguageModelV1FinishReason;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+    };
+  }
+> = {
+  code: 'd',
+  name: 'finish_message',
+  parse: (value: JSONValue) => {
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('finishReason' in value) ||
+      typeof value.finishReason !== 'string' ||
+      !('usage' in value) ||
+      value.usage == null ||
+      typeof value.usage !== 'object' ||
+      !('promptTokens' in value.usage) ||
+      typeof value.usage.promptTokens !== 'number' ||
+      !('completionTokens' in value.usage) ||
+      typeof value.usage.completionTokens !== 'number'
+    ) {
+      throw new Error(
+        '"finish_message" parts expect an object with a "finishReason" and "usage" property.',
+      );
+    }
+
+    return {
+      type: 'finish_message',
+      value: value as unknown as {
+        finishReason: LanguageModelV1FinishReason;
+        usage: {
+          promptTokens: number;
+          completionTokens: number;
+          totalTokens: number;
+        };
+      },
+    };
+  },
+};
+
 const streamParts = [
   textStreamPart,
   functionCallStreamPart,
@@ -376,6 +423,7 @@ const streamParts = [
   toolResultStreamPart,
   toolCallStreamingStartStreamPart,
   toolCallDeltaStreamPart,
+  finishMessageStreamPart,
 ] as const;
 
 // union type of all stream parts
@@ -392,7 +440,8 @@ type StreamParts =
   | typeof toolCallStreamPart
   | typeof toolResultStreamPart
   | typeof toolCallStreamingStartStreamPart
-  | typeof toolCallDeltaStreamPart;
+  | typeof toolCallDeltaStreamPart
+  | typeof finishMessageStreamPart;
 
 /**
  * Maps the type of a stream part to its value type.
@@ -414,7 +463,8 @@ export type StreamPartType =
   | ReturnType<typeof toolCallStreamPart.parse>
   | ReturnType<typeof toolResultStreamPart.parse>
   | ReturnType<typeof toolCallStreamingStartStreamPart.parse>
-  | ReturnType<typeof toolCallDeltaStreamPart.parse>;
+  | ReturnType<typeof toolCallDeltaStreamPart.parse>
+  | ReturnType<typeof finishMessageStreamPart.parse>;
 
 export const streamPartsByCode = {
   [textStreamPart.code]: textStreamPart,
@@ -430,6 +480,7 @@ export const streamPartsByCode = {
   [toolResultStreamPart.code]: toolResultStreamPart,
   [toolCallStreamingStartStreamPart.code]: toolCallStreamingStartStreamPart,
   [toolCallDeltaStreamPart.code]: toolCallDeltaStreamPart,
+  [finishMessageStreamPart.code]: finishMessageStreamPart,
 } as const;
 
 /**
@@ -469,6 +520,7 @@ export const StreamStringPrefixes = {
   [toolCallStreamingStartStreamPart.name]:
     toolCallStreamingStartStreamPart.code,
   [toolCallDeltaStreamPart.name]: toolCallDeltaStreamPart.code,
+  [finishMessageStreamPart.name]: finishMessageStreamPart.code,
 } as const;
 
 export const validCodes = streamParts.map(part => part.code);

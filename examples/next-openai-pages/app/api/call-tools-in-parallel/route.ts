@@ -31,11 +31,11 @@ export async function POST(req: Request) {
         }),
         execute: async ({ city, unit }) => {
           const weather = getWeather({ city, unit });
-          return `It is currently 25°${weather.value}°${unit} and ${weather.description} in ${city}!`;
+          return `It is currently ${weather.value}°${unit} and ${weather.description} in ${city}!`;
         },
       },
     },
   });
 
-  return result.toAIStreamResponse();
+  return result.toDataStreamResponse();
 }

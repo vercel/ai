@@ -86,8 +86,8 @@ const getStreamedResponse = async (
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
   generateId: IdGenerator,
-  streamMode: 'stream-data' | 'text' | undefined,
-  onFinish: ((message: Message) => void) | undefined,
+  streamProtocol: UseChatOptions['streamProtocol'],
+  onFinish: UseChatOptions['onFinish'],
   onResponse: ((response: Response) => void | Promise<void>) | undefined,
   onToolCall: UseChatOptions['onToolCall'] | undefined,
   sendExtraMessageFields: boolean | undefined,
@@ -160,7 +160,7 @@ const getStreamedResponse = async (
         tool_choice: chatRequest.tool_choice,
       }),
     },
-    streamMode,
+    streamProtocol,
     credentials: extraMetadataRef.current.credentials,
     headers: {
       ...extraMetadataRef.current.headers,
@@ -198,6 +198,7 @@ export function useChat({
   maxAutomaticRoundtrips = experimental_maxAutomaticRoundtrips,
   maxToolRoundtrips = maxAutomaticRoundtrips,
   streamMode,
+  streamProtocol,
   onResponse,
   onFinish,
   onError,
@@ -267,6 +268,11 @@ By default, it's set to 0, which will disable the feature.
     result: any;
   }) => void;
 } {
+  // streamMode is deprecated, use streamProtocol instead.
+  if (streamMode) {
+    streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
+  }
+
   // Generate a unique id for the chat if not provided.
   const hookId = useId();
   const idKey = id ?? hookId;
@@ -344,7 +350,7 @@ By default, it's set to 0, which will disable the feature.
               messagesRef,
               abortControllerRef,
               generateId,
-              streamMode,
+              streamProtocol,
               onFinish,
               onResponse,
               onToolCall,
@@ -407,7 +413,7 @@ By default, it's set to 0, which will disable the feature.
       setError,
       mutateStreamData,
       streamData,
-      streamMode,
+      streamProtocol,
       sendExtraMessageFields,
       experimental_onFunctionCall,
       experimental_onToolCall,

@@ -30,7 +30,7 @@ describe('stream data stream', () => {
       chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
     });
 
-    await userEvent.click(screen.getByTestId('button'));
+    await userEvent.click(screen.getByTestId('do-append'));
 
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
@@ -47,7 +47,7 @@ describe('stream data stream', () => {
       chunks: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
     });
 
-    await userEvent.click(screen.getByTestId('button'));
+    await userEvent.click(screen.getByTestId('do-append'));
 
     await screen.findByTestId('data');
     expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"v1"}]');
@@ -59,7 +59,7 @@ describe('stream data stream', () => {
   it('should show error response', async () => {
     mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
 
-    await userEvent.click(screen.getByTestId('button'));
+    await userEvent.click(screen.getByTestId('do-append'));
 
     // TODO bug? the user message does not show up
     // await screen.findByTestId('message-0');
@@ -85,7 +85,7 @@ describe('stream data stream', () => {
         })(),
       });
 
-      await userEvent.click(screen.getByTestId('button'));
+      await userEvent.click(screen.getByTestId('do-append'));
 
       await screen.findByTestId('loading');
       expect(screen.getByTestId('loading')).toHaveTextContent('true');
@@ -100,12 +100,58 @@ describe('stream data stream', () => {
     it('should reset loading state on error', async () => {
       mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
 
-      await userEvent.click(screen.getByTestId('button'));
+      await userEvent.click(screen.getByTestId('do-append'));
 
       await screen.findByTestId('loading');
       expect(screen.getByTestId('loading')).toHaveTextContent('false');
     });
   });
+
+  it(
+    'should invoke onFinish when the stream finishes',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: [
+          formatStreamPart('text', 'Hello'),
+          formatStreamPart('text', ','),
+          formatStreamPart('text', ' world'),
+          formatStreamPart('text', '.'),
+          formatStreamPart('finish_message', {
+            finishReason: 'stop',
+            usage: { completionTokens: 1, promptTokens: 3 },
+          }),
+        ],
+      },
+      async () => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('message-1');
+
+        const onFinishCalls = screen.getByTestId('on-finish-calls');
+        const onFinishCallsText = onFinishCalls.textContent ?? '';
+        expect(JSON.parse(onFinishCallsText)).toStrictEqual([
+          {
+            message: {
+              id: expect.any(String),
+              createdAt: expect.any(String),
+              role: 'assistant',
+              content: 'Hello, world.',
+            },
+            options: {
+              finishReason: 'stop',
+              usage: {
+                completionTokens: 1,
+                promptTokens: 3,
+                totalTokens: 4,
+              },
+            },
+          },
+        ]);
+      },
+    ),
+  );
 });
 
 describe('text stream', () => {
@@ -124,7 +170,7 @@ describe('text stream', () => {
       chunks: ['Hello', ',', ' world', '.'],
     });
 
-    await userEvent.click(screen.getByTestId('button'));
+    await userEvent.click(screen.getByTestId('do-append'));
 
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
@@ -134,6 +180,44 @@ describe('text stream', () => {
       'AI: Hello, world.',
     );
   });
+
+  it(
+    'should invoke onFinish when the stream finishes',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['Hello', ',', ' world', '.'],
+      },
+      async () => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('message-1');
+
+        const onFinishCalls = screen.getByTestId('on-finish-calls');
+        const onFinishCallsText = onFinishCalls.textContent ?? '';
+        expect(JSON.parse(onFinishCallsText)).toStrictEqual([
+          {
+            message: {
+              id: expect.any(String),
+              createdAt: expect.any(String),
+              role: 'assistant',
+              content: 'Hello, world.',
+            },
+            options: {
+              finishReason: 'unknown',
+              usage: {
+                // note: originally NaN (lost in JSON stringify)
+                completionTokens: null,
+                promptTokens: null,
+                totalTokens: null,
+              },
+            },
+          },
+        ]);
+      },
+    ),
+  );
 });
 
 describe('form actions', () => {

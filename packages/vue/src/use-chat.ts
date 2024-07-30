@@ -78,6 +78,7 @@ export function useChat({
   sendExtraMessageFields,
   experimental_onFunctionCall,
   streamMode,
+  streamProtocol,
   onResponse,
   onFinish,
   onError,
@@ -88,6 +89,11 @@ export function useChat({
   fetch,
   keepLastMessageOnError = false,
 }: UseChatOptions = {}): UseChatHelpers {
+  // streamMode is deprecated, use streamProtocol instead.
+  if (streamMode) {
+    streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
+  }
+
   // Generate a unique ID for the chat if not provided.
   const chatId = id || `chat-${uniqueId++}`;
 
@@ -181,7 +187,7 @@ export function useChat({
               ...unref(body), // Use unref to unwrap the ref value
               ...requestOptions.body,
             },
-            streamMode,
+            streamProtocol,
             headers: {
               ...headers,
               ...requestOptions.headers,
@@ -193,11 +199,11 @@ export function useChat({
               mutate([...chatRequest.messages, ...merged]);
               streamData.value = [...existingData, ...(data ?? [])];
             },
-            onFinish(message) {
+            onFinish(message, options) {
               // workaround: sometimes the last chunk is not shown in the UI.
               // push it twice to make sure it's displayed.
               mutate([...chatRequest.messages, message]);
-              onFinish?.(message);
+              onFinish?.(message, options);
             },
             restoreMessagesOnFailure() {
               // Restore the previous messages if the request fails.

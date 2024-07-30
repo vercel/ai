@@ -562,7 +562,16 @@ However, the LLM results are expected to be small enough to not cause issues.
             );
             break;
           case 'finish':
-            break; // ignored
+            controller.enqueue(
+              formatStreamPart('finish_message', {
+                finishReason: chunk.finishReason,
+                usage: {
+                  promptTokens: chunk.usage.promptTokens,
+                  completionTokens: chunk.usage.completionTokens,
+                },
+              }),
+            );
+            break;
           default: {
             const exhaustiveCheck: never = chunkType;
             throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
@@ -578,6 +587,13 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   pipeAIStreamToResponse(
+    response: ServerResponse,
+    init?: { headers?: Record<string, string>; status?: number },
+  ): void {
+    return this.pipeDataStreamToResponse(response, init);
+  }
+
+  pipeDataStreamToResponse(
     response: ServerResponse,
     init?: { headers?: Record<string, string>; status?: number },
   ) {
@@ -638,6 +654,12 @@ However, the LLM results are expected to be small enough to not cause issues.
   toAIStreamResponse(
     options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
   ): Response {
+    return this.toDataStreamResponse(options);
+  }
+
+  toDataStreamResponse(
+    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
+  ): Response {
     const init: ResponseInit | undefined =
       options == null
         ? undefined
@@ -666,6 +688,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       statusText: init?.statusText,
       headers: prepareResponseHeaders(init, {
         contentType: 'text/plain; charset=utf-8',
+        dataStreamVersion: 'v1',
       }),
     });
   }

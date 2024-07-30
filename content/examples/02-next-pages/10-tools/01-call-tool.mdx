@@ -103,13 +103,13 @@ export async function POST(req: Request) {
             description: 'Sunny',
           };
 
-          return `It is currently 25°${weather.value}°${unit} and ${weather.description} in ${city}!`;
+          return `It is currently ${weather.value}°${unit} and ${weather.description} in ${city}!`;
         },
       },
     },
   });
 
-  return result.toAIStreamResponse();
+  return result.toDataStreamResponse();
 }
 ```
 

@@ -25,7 +25,7 @@ It supports:
 <PropertiesTable
   content={[
     {
-      name: 'toAIStream',
+      name: 'toDataStream',
       type: '(stream: ReadableStream<LangChainAIMessageChunk> | ReadableStream<string>, AIStreamCallbacksAndOptions) => AIStream',
       description: 'Converts LangChain output streams to AIStream.',
     },
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
 
   const stream = await model.stream(prompt);
 
-  const aiStream = LangChainAdapter.toAIStream(stream);
+  const aiStream = LangChainAdapter.toDataStream(stream);
 
   return new StreamingTextResponse(aiStream);
 }
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
   const parser = new StringOutputParser();
   const stream = await model.pipe(parser).stream(prompt);
 
-  const aiStream = LangChainAdapter.toAIStream(stream);
+  const aiStream = LangChainAdapter.toDataStream(stream);
 
   return new StreamingTextResponse(aiStream);
 }

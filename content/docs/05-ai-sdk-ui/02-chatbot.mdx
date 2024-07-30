@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     messages: convertToCoreMessages(messages),
   });
 
-  return result.toAIStreamResponse();
+  return result.toDataStreamResponse();
 }
 ```
 
@@ -263,7 +263,13 @@ When the user clicks the "Regenerate" button, the AI provider will regenerate th
 
 ## Event Callbacks
 
-`useChat` also provides optional event callbacks that you can use to handle different stages of the chatbot lifecycle. These callbacks can be used to trigger additional actions, such as logging, analytics, or custom UI updates.
+`useChat` provides optional event callbacks that you can use to handle different stages of the chatbot lifecycle:
+
+- `onFinish`: Called when the assistant message is completed
+- `onError`: Called when an error occurs during the fetch request.
+- `onResponse`: Called when the response from the API is received.
+
+These callbacks can be used to trigger additional actions, such as logging, analytics, or custom UI updates.
 
 ```tsx
 import { Message } from 'ai/react';
@@ -271,14 +277,16 @@ import { Message } from 'ai/react';
 const {
   /* ... */
 } = useChat({
-  onResponse: (response: Response) => {
-    console.log('Received response from server:', response);
-  },
-  onFinish: (message: Message) => {
+  onFinish: (message, { usage, finishReason }) => {
     console.log('Finished streaming message:', message);
+    console.log('Token usage:', usage);
+    console.log('Finish reason:', finishReason);
   },
-  onError: (error: Error) => {
+  onError: error => {
     console.error('An error occurred:', error);
+  },
+  onResponse: response => {
+    console.log('Received HTTP response from server:', response);
   },
 });
 ```

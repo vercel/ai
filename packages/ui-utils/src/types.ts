@@ -1,5 +1,7 @@
 import { ToolCall as CoreToolCall } from './duplicated/tool-call';
 import { ToolResult as CoreToolResult } from './duplicated/tool-result';
+import { CompletionTokenUsage } from './duplicated/token-usage';
+import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 
 export * from './use-assistant-types';
 
@@ -426,9 +428,19 @@ either synchronously or asynchronously.
   onResponse?: (response: Response) => void | Promise<void>;
 
   /**
-   * Callback function to be called when the chat is finished streaming.
+   * Optional callback function that is called when the assistant message is finished streaming.
+   *
+   * @param message The message that was streamed.
+   * @param options.usage The token usage of the message.
+   * @param options.finishReason The finish reason of the message.
    */
-  onFinish?: (message: Message) => void;
+  onFinish?: (
+    message: Message,
+    options: {
+      usage: CompletionTokenUsage;
+      finishReason: LanguageModelV1FinishReason;
+    },
+  ) => void;
 
   /**
    * Callback function to be called when an error is encountered.
@@ -474,8 +486,17 @@ either synchronously or asynchronously.
    */
   sendExtraMessageFields?: boolean;
 
-  /** Stream mode (default to "stream-data") */
+  /**
+   * Stream mode (default to "stream-data")
+   *
+   * @deprecated Use `streamProtocol` instead.
+   */
   streamMode?: 'stream-data' | 'text';
+
+  /**
+Streaming protocol that is used. Defaults to `data`.
+   */
+  streamProtocol?: 'data' | 'text';
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -548,8 +569,17 @@ export type UseCompletionOptions = {
    */
   body?: object;
 
-  /** Stream mode (default to "stream-data") */
+  /**
+   * Stream mode (default to "stream-data")
+   *
+   * @deprecated Use `streamProtocol` instead.
+   */
   streamMode?: 'stream-data' | 'text';
+
+  /**
+Streaming protocol that is used. Defaults to `data`.
+   */
+  streamProtocol?: 'data' | 'text';
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -559,7 +589,7 @@ or to provide a custom fetch implementation for e.g. testing.
 };
 
 /**
-A JSON value can be a string, number, boolean, object, array, or null. 
+A JSON value can be a string, number, boolean, object, array, or null.
 JSON values can be serialized and deserialized by the JSON.stringify and JSON.parse methods.
  */
 export type JSONValue =

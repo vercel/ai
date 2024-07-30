@@ -556,12 +556,18 @@ describe('result.toAIStream', () => {
   it('should transform textStream through callbacks and data transformers', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: 'Hello' },
               { type: 'text-delta', textDelta: ', ' },
               { type: 'text-delta', textDelta: 'world!' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
@@ -574,19 +580,33 @@ describe('result.toAIStream', () => {
       await convertReadableStreamToArray(
         result.toAIStream().pipeThrough(new TextDecoderStream()),
       ),
-      ['0:"Hello"\n', '0:", "\n', '0:"world!"\n'],
+      [
+        formatStreamPart('text', 'Hello'),
+        formatStreamPart('text', ', '),
+        formatStreamPart('text', 'world!'),
+        formatStreamPart('finish_message', {
+          finishReason: 'stop',
+          usage: { promptTokens: 3, completionTokens: 10 },
+        }),
+      ],
     );
   });
 
   it('should invoke callback', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: 'Hello' },
               { type: 'text-delta', textDelta: ', ' },
               { type: 'text-delta', textDelta: 'world!' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
@@ -717,6 +737,10 @@ describe('result.toAIStream', () => {
           args: { value: 'value' },
           result: 'value-result',
         }),
+        formatStreamPart('finish_message', {
+          finishReason: 'stop',
+          usage: { promptTokens: 3, completionTokens: 10 },
+        }),
       ],
     );
   });
@@ -819,12 +843,16 @@ describe('result.toAIStream', () => {
           args: { value: 'value' },
           result: 'value-result',
         }),
+        formatStreamPart('finish_message', {
+          finishReason: 'stop',
+          usage: { promptTokens: 3, completionTokens: 10 },
+        }),
       ],
     );
   });
 });
 
-describe('result.pipeAIStreamToResponse', async () => {
+describe('result.pipeDataStreamToResponse', async () => {
   it('should write data stream parts to a Node.js response-like object', async () => {
     const mockResponse = createMockServerResponse();
 
@@ -844,7 +872,7 @@ describe('result.pipeAIStreamToResponse', async () => {
       prompt: 'test-input',
     });
 
-    result.pipeAIStreamToResponse(mockResponse);
+    result.pipeDataStreamToResponse(mockResponse);
 
     // Wait for the stream to finish writing to the mock response
     await new Promise(resolve => {
@@ -918,8 +946,8 @@ describe('result.pipeTextStreamToResponse', async () => {
   });
 });
 
-describe('result.toAIStreamResponse', () => {
-  it('should create a Response with a stream data stream', async () => {
+describe('result.toDataStreamResponse', () => {
+  it('should create a Response with a data stream', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async () => ({
@@ -934,9 +962,15 @@ describe('result.toAIStreamResponse', () => {
       prompt: 'test-input',
     });
 
-    const response = result.toAIStreamResponse();
+    const response = result.toDataStreamResponse();
 
     assert.strictEqual(response.status, 200);
+
+    assert.deepStrictEqual(Object.fromEntries(response.headers.entries()), {
+      'content-type': 'text/plain; charset=utf-8',
+      'x-vercel-ai-data-stream': 'v1',
+    });
+
     assert.strictEqual(
       response.headers.get('Content-Type'),
       'text/plain; charset=utf-8',
@@ -949,7 +983,7 @@ describe('result.toAIStreamResponse', () => {
     ]);
   });
 
-  it('should create a Response with a stream data stream and custom headers', async () => {
+  it('should create a Response with a data stream and custom headers', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
         doStream: async () => ({
@@ -964,7 +998,7 @@ describe('result.toAIStreamResponse', () => {
       prompt: 'test-input',
     });
 
-    const response = result.toAIStreamResponse({
+    const response = result.toDataStreamResponse({
       status: 201,
       statusText: 'foo',
       headers: {
@@ -974,11 +1008,12 @@ describe('result.toAIStreamResponse', () => {
 
     assert.strictEqual(response.status, 201);
     assert.strictEqual(response.statusText, 'foo');
-    assert.strictEqual(
-      response.headers.get('Content-Type'),
-      'text/plain; charset=utf-8',
-    );
-    assert.strictEqual(response.headers.get('custom-header'), 'custom-value');
+
+    assert.deepStrictEqual(Object.fromEntries(response.headers.entries()), {
+      'content-type': 'text/plain; charset=utf-8',
+      'x-vercel-ai-data-stream': 'v1',
+      'custom-header': 'custom-value',
+    });
 
     assert.deepStrictEqual(await convertResponseStreamToArray(response), [
       '0:"Hello"\n',
@@ -1006,7 +1041,7 @@ describe('result.toAIStreamResponse', () => {
     streamData.append('stream-data-value');
     streamData.close();
 
-    const response = result.toAIStreamResponse({ data: streamData });
+    const response = result.toDataStreamResponse({ data: streamData });
 
     assert.strictEqual(response.status, 200);
     assert.strictEqual(
@@ -1029,7 +1064,7 @@ describe('result.toTextStreamResponse', () => {
   it('should create a Response with a text stream', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
+        doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: 'Hello' },
@@ -1046,10 +1081,9 @@ describe('result.toTextStreamResponse', () => {
     const response = result.toTextStreamResponse();
 
     assert.strictEqual(response.status, 200);
-    assert.strictEqual(
-      response.headers.get('Content-Type'),
-      'text/plain; charset=utf-8',
-    );
+    assert.deepStrictEqual(Object.fromEntries(response.headers.entries()), {
+      'content-type': 'text/plain; charset=utf-8',
+    });
 
     assert.deepStrictEqual(await convertResponseStreamToArray(response), [
       'Hello',
@@ -1092,7 +1126,15 @@ describe('multiple stream consumption', () => {
       await convertReadableStreamToArray(
         result.toAIStream().pipeThrough(new TextDecoderStream()),
       ),
-      ['0:"Hello"\n', '0:", "\n', '0:"world!"\n'],
+      [
+        formatStreamPart('text', 'Hello'),
+        formatStreamPart('text', ', '),
+        formatStreamPart('text', 'world!'),
+        formatStreamPart('finish_message', {
+          finishReason: 'stop',
+          usage: { promptTokens: 3, completionTokens: 10 },
+        }),
+      ],
     );
 
     assert.deepStrictEqual(
