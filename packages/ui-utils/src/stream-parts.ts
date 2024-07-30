@@ -386,15 +386,19 @@ const finishMessageStreamPart: StreamPart<
       value.usage == null ||
       typeof value.usage !== 'object' ||
       !('promptTokens' in value.usage) ||
-      typeof value.usage.promptTokens !== 'number' ||
       !('completionTokens' in value.usage) ||
-      typeof value.usage.completionTokens !== 'number'
     ) {
       throw new Error(
         '"finish_message" parts expect an object with a "finishReason" and "usage" property.',
       );
     }
-
+    // NaN is JSON parsed as null.
+    if (typeof value.usage.promptTokens !== 'number') {
+      value.usage.promptTokens = Number.NaN;
+    }
+    if (typeof value.usage.completionTokens !== 'number') {
+      value.usage.completionTokens = Number.NaN;
+    }
     return {
       type: 'finish_message',
       value: value as unknown as {
