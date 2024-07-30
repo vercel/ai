@@ -17,6 +17,7 @@ import { retryWithExponentialBackoff } from '../util/retry-with-exponential-back
 import { Schema, asSchema } from '../util/schema';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -115,13 +116,20 @@ Default and recommended: 'auto' (best mode for the model).
   const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
   return recordSpan({
     name: 'ai.generateObject',
-    attributes: {
-      ...baseTelemetryAttributes,
-      // specific settings that only make sense on the outer level:
-      'ai.prompt': JSON.stringify({ system, prompt, messages }),
-      'ai.schema': JSON.stringify(schema.jsonSchema),
-      'ai.settings.mode': mode,
-    },
+    attributes: selectTelemetryAttributes({
+      telemetry,
+      attributes: {
+        ...baseTelemetryAttributes,
+        // specific settings that only make sense on the outer level:
+        'ai.prompt': {
+          input: () => JSON.stringify({ system, prompt, messages }),
+        },
+        'ai.schema': {
+          input: () => JSON.stringify(schema.jsonSchema),
+        },
+        'ai.settings.mode': mode,
+      },
+    }),
     tracer,
     fn: async span => {
       const retry = retryWithExponentialBackoff({ maxRetries });
@@ -159,12 +167,19 @@ Default and recommended: 'auto' (best mode for the model).
           const generateResult = await retry(() =>
             recordSpan({
               name: 'ai.generateObject.doGenerate',
-              attributes: {
-                ...baseTelemetryAttributes,
-                'ai.prompt.format': inputFormat,
-                'ai.prompt.messages': JSON.stringify(promptMessages),
-                'ai.settings.mode': mode,
-              },
+              attributes: selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  ...baseTelemetryAttributes,
+                  'ai.prompt.format': {
+                    input: () => inputFormat,
+                  },
+                  'ai.prompt.messages': {
+                    input: () => JSON.stringify(promptMessages),
+                  },
+                  'ai.settings.mode': mode,
+                },
+              }),
               tracer,
               fn: async span => {
                 const result = await model.doGenerate({
@@ -181,12 +196,18 @@ Default and recommended: 'auto' (best mode for the model).
                 }
 
                 // Add response information to the span:
-                span.setAttributes({
-                  'ai.finishReason': result.finishReason,
-                  'ai.usage.promptTokens': result.usage.promptTokens,
-                  'ai.usage.completionTokens': result.usage.completionTokens,
-                  'ai.result.object': result.text,
-                });
+                span.setAttributes(
+                  selectTelemetryAttributes({
+                    telemetry,
+                    attributes: {
+                      'ai.finishReason': result.finishReason,
+                      'ai.usage.promptTokens': result.usage.promptTokens,
+                      'ai.usage.completionTokens':
+                        result.usage.completionTokens,
+                      'ai.result.object': { output: () => result.text },
+                    },
+                  }),
+                );
 
                 return { ...result, objectText: result.text };
               },
@@ -219,12 +240,19 @@ Default and recommended: 'auto' (best mode for the model).
           const generateResult = await retry(() =>
             recordSpan({
               name: 'ai.generateObject.doGenerate',
-              attributes: {
-                ...baseTelemetryAttributes,
-                'ai.prompt.format': inputFormat,
-                'ai.prompt.messages': JSON.stringify(promptMessages),
-                'ai.settings.mode': mode,
-              },
+              attributes: selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  ...baseTelemetryAttributes,
+                  'ai.prompt.format': {
+                    input: () => inputFormat,
+                  },
+                  'ai.prompt.messages': {
+                    input: () => JSON.stringify(promptMessages),
+                  },
+                  'ai.settings.mode': mode,
+                },
+              }),
               tracer,
               fn: async span => {
                 const result = await model.doGenerate({
@@ -251,12 +279,18 @@ Default and recommended: 'auto' (best mode for the model).
                 }
 
                 // Add response information to the span:
-                span.setAttributes({
-                  'ai.finishReason': result.finishReason,
-                  'ai.usage.promptTokens': result.usage.promptTokens,
-                  'ai.usage.completionTokens': result.usage.completionTokens,
-                  'ai.result.object': objectText,
-                });
+                span.setAttributes(
+                  selectTelemetryAttributes({
+                    telemetry,
+                    attributes: {
+                      'ai.finishReason': result.finishReason,
+                      'ai.usage.promptTokens': result.usage.promptTokens,
+                      'ai.usage.completionTokens':
+                        result.usage.completionTokens,
+                      'ai.result.object': { output: () => objectText },
+                    },
+                  }),
+                );
 
                 return { ...result, objectText };
               },
@@ -292,12 +326,19 @@ Default and recommended: 'auto' (best mode for the model).
       }
 
       // Add response information to the span:
-      span.setAttributes({
-        'ai.finishReason': finishReason,
-        'ai.usage.promptTokens': usage.promptTokens,
-        'ai.usage.completionTokens': usage.completionTokens,
-        'ai.result.object': JSON.stringify(parseResult.value),
-      });
+      span.setAttributes(
+        selectTelemetryAttributes({
+          telemetry,
+          attributes: {
+            'ai.finishReason': finishReason,
+            'ai.usage.promptTokens': usage.promptTokens,
+            'ai.usage.completionTokens': usage.completionTokens,
+            'ai.result.object': {
+              output: () => JSON.stringify(parseResult.value),
+            },
+          },
+        }),
+      );
 
       return new DefaultGenerateObjectResult({
         object: parseResult.value,
