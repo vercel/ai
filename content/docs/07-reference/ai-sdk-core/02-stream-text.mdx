@@ -771,9 +771,8 @@ for await (const textPart of textStream) {
     },
     {
       name: 'toDataStream',
-      type: '(callbacks?: AIStreamCallbacksAndOptions) => AIStream',
-      description:
-        'Converts the result to an `AIStream` object that is compatible with `StreamingTextResponse`. It can be used with the `useChat` and `useCompletion` hooks.',
+      type: '(callbacks?: AIStreamCallbacksAndOptions) => data stream',
+      description: 'Converts the result to an data stream.',
     },
     {
       name: 'pipeDataStreamToResponse',

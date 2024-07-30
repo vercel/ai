@@ -91,7 +91,7 @@ export default defineNuxtConfig({
 Create an API route, `server/api/chat.ts` and add the following code:
 
 ```tsx filename="server/api/chat.ts"
-import { StreamingTextResponse, streamText } from 'ai';
+import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
 export default defineLazyEventHandler(async () => {
