@@ -259,7 +259,7 @@ describe('doStream', () => {
       `data: {"id":"ad6f7ce6543c4d0890280ae184fe4dd8","object":"chat.completion.chunk","created":1711365023,"model":"mistral-large-latest",` +
         `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null,"logprobs":null}]}\n\n`,
       `data: {"id":"ad6f7ce6543c4d0890280ae184fe4dd8","object":"chat.completion.chunk","created":1711365023,"model":"mistral-large-latest",` +
-        `"choices":[{"index":0,"delta":{"content":null,"tool_calls":[{"function":{"name":"test-tool","arguments":` +
+        `"choices":[{"index":0,"delta":{"content":null,"tool_calls":[{"id":"yfBEybNYi","function":{"name":"test-tool","arguments":` +
         `"{\\"value\\":\\"Sparkle Day\\"}"` +
         `}}]},"finish_reason":"tool_calls","logprobs":null}],"usage":{"prompt_tokens":183,"total_tokens":316,"completion_tokens":133}}\n\n`,
       'data: [DONE]\n\n',
@@ -298,14 +298,14 @@ describe('doStream', () => {
       },
       {
         type: 'tool-call-delta',
-        toolCallId: 'test-id',
+        toolCallId: 'yfBEybNYi',
         toolCallType: 'function',
         toolName: 'test-tool',
         argsTextDelta: '{"value":"Sparkle Day"}',
       },
       {
         type: 'tool-call',
-        toolCallId: 'test-id',
+        toolCallId: 'yfBEybNYi',
         toolCallType: 'function',
         toolName: 'test-tool',
         args: '{"value":"Sparkle Day"}',

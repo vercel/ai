@@ -279,7 +279,8 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
               for (const toolCall of delta.tool_calls) {
                 // mistral tool calls come in one piece
 
-                const toolCallId = generateId(); // delta and tool call must have same id
+                // delta and tool call must have same id:
+                const toolCallId = toolCall.id ?? generateId();
 
                 controller.enqueue({
                   type: 'tool-call-delta',
@@ -351,17 +352,17 @@ const mistralChatChunkSchema = z.object({
     z.object({
       delta: z.object({
         role: z.enum(['assistant']).optional(),
-        content: z.string().nullable().optional(),
+        content: z.string().nullish(),
         tool_calls: z
           .array(
             z.object({
+              id: z.string().nullish(),
               function: z.object({ name: z.string(), arguments: z.string() }),
             }),
           )
-          .optional()
-          .nullable(),
+          .nullish(),
       }),
-      finish_reason: z.string().nullable().optional(),
+      finish_reason: z.string().nullish(),
       index: z.number(),
     }),
   ),
@@ -370,8 +371,7 @@ const mistralChatChunkSchema = z.object({
       prompt_tokens: z.number(),
       completion_tokens: z.number(),
     })
-    .optional()
-    .nullable(),
+    .nullish(),
 });
 
 function prepareToolsAndToolChoice(
