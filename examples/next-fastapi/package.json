@@ -1,6 +1,6 @@
 {
-  "name": "nextjs-fastapi",
-  "version": "0.1.0",
+  "name": "next-fastapi",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "fastapi-dev": "pip3 install -r requirements.txt && python3 -m uvicorn api.index:app --reload",
