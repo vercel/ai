@@ -1,8 +1,10 @@
+import { mergeStreams } from '../core/util/merge-streams';
+import { prepareResponseHeaders } from '../core/util/prepare-response-headers';
 import {
   AIStreamCallbacksAndOptions,
   createCallbacksTransformer,
 } from './ai-stream';
-import { createStreamDataTransformer } from './stream-data';
+import { createStreamDataTransformer, StreamData } from './stream-data';
 
 type LangChainImageDetail = 'auto' | 'low' | 'high';
 
@@ -107,6 +109,35 @@ export function toDataStream(
     )
     .pipeThrough(createCallbacksTransformer(callbacks))
     .pipeThrough(createStreamDataTransformer());
+}
+
+export function toDataStreamResponse(
+  stream:
+    | ReadableStream<LangChainStreamEvent>
+    | ReadableStream<LangChainAIMessageChunk>
+    | ReadableStream<string>,
+  options?: {
+    init?: ResponseInit;
+    data?: StreamData;
+    callbacks?: AIStreamCallbacksAndOptions;
+  },
+) {
+  const dataStream = toDataStream(stream, options?.callbacks);
+  const data = options?.data;
+  const init = options?.init;
+
+  const responseStream = data
+    ? mergeStreams(data.stream, dataStream)
+    : dataStream;
+
+  return new Response(responseStream, {
+    status: init?.status ?? 200,
+    statusText: init?.statusText,
+    headers: prepareResponseHeaders(init, {
+      contentType: 'text/plain; charset=utf-8',
+      dataStreamVersion: 'v1',
+    }),
+  });
 }
 
 function forwardAIMessageChunk(

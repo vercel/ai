@@ -30,4 +30,5 @@ export interface MistralToolMessage {
   role: 'tool';
   name: string;
   content: string;
+  tool_call_id: string;
 }
