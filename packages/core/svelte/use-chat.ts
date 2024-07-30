@@ -308,8 +308,8 @@ export function useChat({
   // Actual mutation hook to send messages to the API endpoint and update the
   // chat state.
   async function triggerRequest(chatRequest: ChatRequest) {
-    let messagesSnapshot = get(messages);
-    let messageCount = messagesSnapshot.length;
+    const messagesSnapshot = get(messages);
+    const messageCount = messagesSnapshot.length;
 
     try {
       error.set(undefined);
@@ -367,7 +367,7 @@ export function useChat({
 
     maxToolRoundtrips = maxToolRoundtrips ?? 0;
     // auto-submit when all tool calls in the last assistant message have results:
-    let newMessagesSnapshot = get(messages);
+    const newMessagesSnapshot = get(messages);
     const lastMessage = newMessagesSnapshot[newMessagesSnapshot.length - 1];
     if (
       // ensure we actually have new messages (to prevent infinite loops in case of errors):
