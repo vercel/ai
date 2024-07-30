@@ -1,8 +1,4 @@
-import {
-  generateId,
-  loadApiKey,
-  withoutTrailingSlash,
-} from '@ai-sdk/provider-utils';
+import { loadApiKey, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import {
   MistralChatModelId,
@@ -23,8 +19,6 @@ export class Mistral {
 
   readonly headers?: Record<string, string>;
 
-  private readonly generateId: () => string;
-
   /**
    * Creates a new Mistral provider instance.
    */
@@ -35,7 +29,6 @@ export class Mistral {
 
     this.apiKey = options.apiKey;
     this.headers = options.headers;
-    this.generateId = options.generateId ?? generateId;
   }
 
   private get baseConfig() {
@@ -56,7 +49,6 @@ export class Mistral {
     return new MistralChatLanguageModel(modelId, settings, {
       provider: 'mistral.chat',
       ...this.baseConfig,
-      generateId: this.generateId,
     });
   }
 }

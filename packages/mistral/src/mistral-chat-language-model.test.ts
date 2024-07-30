@@ -68,6 +68,51 @@ describe('doGenerate', () => {
     expect(text).toStrictEqual('Hello, World!');
   });
 
+  it('should extract tool call response', async () => {
+    server.responseBodyJson = {
+      id: 'b3999b8c93e04e11bcbff7bcab829667',
+      object: 'chat.completion',
+      created: 1722349660,
+      model: 'mistral-large-latest',
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: '',
+            tool_calls: [
+              {
+                id: 'gSIMJiOkT',
+                function: {
+                  name: 'weatherTool',
+                  arguments: '{"location": "paris"}',
+                },
+              },
+            ],
+          },
+          finish_reason: 'tool_calls',
+          logprobs: null,
+        },
+      ],
+      usage: { prompt_tokens: 124, total_tokens: 146, completion_tokens: 22 },
+    };
+
+    const { toolCalls } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(toolCalls).toStrictEqual([
+      {
+        toolCallId: 'gSIMJiOkT',
+        toolCallType: 'function',
+        toolName: 'weatherTool',
+        args: '{"location": "paris"}',
+      },
+    ]);
+  });
+
   it('should extract usage', async () => {
     prepareJsonResponse({
       content: '',
@@ -267,7 +312,6 @@ describe('doStream', () => {
 
     const { stream } = await createMistral({
       apiKey: 'test-api-key',
-      generateId: () => 'test-id',
     })
       .chat('mistral-large-latest')
       .doStream({

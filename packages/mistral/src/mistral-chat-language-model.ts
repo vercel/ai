@@ -3,7 +3,6 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   ParseResult,
@@ -25,7 +24,6 @@ type MistralChatConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
-  generateId: () => string;
   fetch?: typeof fetch;
 };
 
@@ -190,7 +188,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       text: choice.message.content ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
-        toolCallId: this.config.generateId(),
+        toolCallId: toolCall.id,
         toolName: toolCall.function.name,
         args: toolCall.function.arguments!,
       })),
@@ -232,8 +230,6 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
-
-    const generateId = this.config.generateId;
 
     return {
       stream: response.pipeThrough(
@@ -277,23 +273,18 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
             if (delta.tool_calls != null) {
               for (const toolCall of delta.tool_calls) {
-                // mistral tool calls come in one piece
-
-                // delta and tool call must have same id:
-                const toolCallId = toolCall.id ?? generateId();
-
+                // mistral tool calls come in one piece:
                 controller.enqueue({
                   type: 'tool-call-delta',
                   toolCallType: 'function',
-                  toolCallId,
+                  toolCallId: toolCall.id,
                   toolName: toolCall.function.name,
                   argsTextDelta: toolCall.function.arguments,
                 });
-
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallType: 'function',
-                  toolCallId,
+                  toolCallId: toolCall.id,
                   toolName: toolCall.function.name,
                   args: toolCall.function.arguments,
                 });
@@ -324,17 +315,14 @@ const mistralChatResponseSchema = z.object({
         tool_calls: z
           .array(
             z.object({
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
+              id: z.string(),
+              function: z.object({ name: z.string(), arguments: z.string() }),
             }),
           )
-          .optional()
-          .nullable(),
+          .nullish(),
       }),
       index: z.number(),
-      finish_reason: z.string().optional().nullable(),
+      finish_reason: z.string().nullish(),
     }),
   ),
   object: z.literal('chat.completion'),
@@ -356,7 +344,7 @@ const mistralChatChunkSchema = z.object({
         tool_calls: z
           .array(
             z.object({
-              id: z.string().nullish(),
+              id: z.string(),
               function: z.object({ name: z.string(), arguments: z.string() }),
             }),
           )
