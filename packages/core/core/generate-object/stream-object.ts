@@ -39,6 +39,7 @@ import {
   ObjectStreamPart,
   StreamObjectResult,
 } from './stream-object-result';
+import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -176,13 +177,18 @@ Warnings from the model provider (e.g. unsupported settings).
 
   return recordSpan({
     name: 'ai.streamObject',
-    attributes: {
-      ...baseTelemetryAttributes,
-      // specific settings that only make sense on the outer level:
-      'ai.prompt': JSON.stringify({ system, prompt, messages }),
-      'ai.schema': JSON.stringify(schema.jsonSchema),
-      'ai.settings.mode': mode,
-    },
+    attributes: selectTelemetryAttributes({
+      telemetry,
+      attributes: {
+        ...baseTelemetryAttributes,
+        // specific settings that only make sense on the outer level:
+        'ai.prompt': {
+          input: () => JSON.stringify({ system, prompt, messages }),
+        },
+        'ai.schema': { input: () => JSON.stringify(schema.jsonSchema) },
+        'ai.settings.mode': mode,
+      },
+    }),
     tracer,
     endWhenDone: false,
     fn: async rootSpan => {
@@ -300,20 +306,25 @@ Warnings from the model provider (e.g. unsupported settings).
       } = await retry(() =>
         recordSpan({
           name: 'ai.streamObject.doStream',
-          attributes: {
-            ...baseTelemetryAttributes,
-            'ai.prompt.format': callOptions.inputFormat,
-            'ai.prompt.messages': JSON.stringify(callOptions.prompt),
-            'ai.settings.mode': mode,
-          },
+          attributes: selectTelemetryAttributes({
+            telemetry,
+            attributes: {
+              ...baseTelemetryAttributes,
+              'ai.prompt.format': {
+                input: () => callOptions.inputFormat,
+              },
+              'ai.prompt.messages': {
+                input: () => JSON.stringify(callOptions.prompt),
+              },
+              'ai.settings.mode': mode,
+            },
+          }),
           tracer,
           endWhenDone: false,
-          fn: async doStreamSpan => {
-            return {
-              result: await model.doStream(callOptions),
-              doStreamSpan,
-            };
-          },
+          fn: async doStreamSpan => ({
+            result: await model.doStream(callOptions),
+            doStreamSpan,
+          }),
         }),
       );
 
@@ -325,6 +336,7 @@ Warnings from the model provider (e.g. unsupported settings).
         onFinish,
         rootSpan,
         doStreamSpan,
+        telemetry,
       });
     },
   });
@@ -346,6 +358,7 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
     onFinish,
     rootSpan,
     doStreamSpan,
+    telemetry,
   }: {
     stream: ReadableStream<
       string | Omit<LanguageModelV1StreamPart, 'text-delta'>
@@ -356,6 +369,7 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
     onFinish: Parameters<typeof streamObject<T>>[0]['onFinish'];
     rootSpan: Span;
     doStreamSpan: Span;
+    telemetry: TelemetrySettings | undefined;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -471,21 +485,35 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
               totalTokens: NaN,
             };
 
-            doStreamSpan.setAttributes({
-              'ai.usage.promptTokens': finalUsage.promptTokens,
-              'ai.usage.completionTokens': finalUsage.completionTokens,
-              'ai.result.object': JSON.stringify(object),
-            });
+            doStreamSpan.setAttributes(
+              selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  'ai.usage.promptTokens': finalUsage.promptTokens,
+                  'ai.usage.completionTokens': finalUsage.completionTokens,
+                  'ai.result.object': {
+                    output: () => JSON.stringify(object),
+                  },
+                },
+              }),
+            );
 
             // finish doStreamSpan before other operations for correct timing:
             doStreamSpan.end();
 
             // Add response information to the root span:
-            rootSpan.setAttributes({
-              'ai.usage.promptTokens': finalUsage.promptTokens,
-              'ai.usage.completionTokens': finalUsage.completionTokens,
-              'ai.result.object': JSON.stringify(object),
-            });
+            rootSpan.setAttributes(
+              selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  'ai.usage.promptTokens': finalUsage.promptTokens,
+                  'ai.usage.completionTokens': finalUsage.completionTokens,
+                  'ai.result.object': {
+                    output: () => JSON.stringify(object),
+                  },
+                },
+              }),
+            );
 
             // call onFinish callback:
             await onFinish?.({
