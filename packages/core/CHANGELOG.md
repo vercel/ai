@@ -1,5 +1,11 @@
 # ai
 
+## 3.2.40
+
+### Patch Changes
+
+- f56b7e66: feat (ai/ui): add toDataStreamResponse to LangchainAdapter.
+
 ## 3.2.39
 
 ### Patch Changes

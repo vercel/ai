@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 0.0.26
+
+### Patch Changes
+
+- 66011be5: fix (provider/mistral): fix tool calling
+
 ## 0.0.25
 
 ### Patch Changes
