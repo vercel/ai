@@ -1,18 +1,14 @@
-import {
-  generateId,
-  loadApiKey,
-  withoutTrailingSlash,
-} from '@ai-sdk/provider-utils';
+import { loadApiKey, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import {
   MistralChatModelId,
   MistralChatSettings,
 } from './mistral-chat-settings';
+import { MistralEmbeddingModel } from './mistral-embedding-model';
 import {
   MistralEmbeddingModelId,
   MistralEmbeddingSettings,
 } from './mistral-embedding-settings';
-import { MistralEmbeddingModel } from './mistral-embedding-model';
 
 export interface MistralProvider {
   (
@@ -81,8 +77,6 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: typeof fetch;
-
-  generateId?: () => string;
 }
 
 /**
@@ -112,7 +106,6 @@ export function createMistral(
       provider: 'mistral.chat',
       baseURL,
       headers: getHeaders,
-      generateId: options.generateId ?? generateId,
       fetch: options.fetch,
     });
 
