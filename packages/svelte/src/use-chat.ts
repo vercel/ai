@@ -248,7 +248,7 @@ export function useChat({
   generateId = generateIdFunc,
   fetch,
   keepLastMessageOnError = false,
-  maxToolRoundtrips,
+  maxToolRoundtrips = 0,
 }: UseChatOptions = {}): UseChatHelpers & {
   addToolResult: ({
     toolCallId,
@@ -362,7 +362,6 @@ export function useChat({
       loading.set(false);
     }
 
-    maxToolRoundtrips = maxToolRoundtrips ?? 0;
     // auto-submit when all tool calls in the last assistant message have results:
     const newMessagesSnapshot = get(messages);
     const lastMessage = newMessagesSnapshot[newMessagesSnapshot.length - 1];
