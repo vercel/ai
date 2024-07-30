@@ -14,11 +14,7 @@ export function selectTelemetryAttributes({
       | undefined;
   };
 }): Attributes {
-  const entries = Object.entries(attributes);
-
-  return entries.reduce((attributes, entry) => {
-    const [key, value] = entry;
-
+  return Object.entries(attributes).reduce((attributes, [key, value]) => {
     if (value === undefined) {
       return attributes;
     }
@@ -29,6 +25,7 @@ export function selectTelemetryAttributes({
       'input' in value &&
       typeof value.input === 'function'
     ) {
+      // default to true:
       if (telemetry?.recordInputs === false) {
         return attributes;
       }
@@ -46,6 +43,7 @@ export function selectTelemetryAttributes({
       'output' in value &&
       typeof value.output === 'function'
     ) {
+      // default to true:
       if (telemetry?.recordOutputs === false) {
         return attributes;
       }
