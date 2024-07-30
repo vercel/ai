@@ -1,0 +1,194 @@
+---
+title: Loading State
+description: Learn to manage loading state using the Vercel AI SDK in your Next.js App Router application
+---
+
+# Handling Loading State
+
+<Note>
+  This example uses React Server Components (RSC).
+</Note>
+
+Given that responses from language models can often take a while to complete, it's crucial to be able to show loading state to users. This provides visual feedback that the system is working on their request and helps maintain a positive user experience. Managing loading state is very similar to how you would approach loading state in a traditional Next.js application.
+
+### Client
+
+Let's create a simple Next.js page that will call the `generateResponse` function when the form is submitted. The function will take in the user's prompt (`input`) and then generate a response (`response`). To handle the loading state, we'll use the `loading` state variable. When the form is submitted, we'll set `loading` to `true`, and when the response is received, we'll set it back to `false`. While the response is being streamed, we will disable the input field.
+
+```tsx filename='app/page.tsx'
+"use client";
+
+import { useState } from "react";
+import { generateResponse } from "./actions";
+import { readStreamableValue } from "ai/rsc";
+
+// Force the page to be dynamic and allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export default function Home() {
+  const [input, setInput] = useState<string>("");
+  const [generation, setGeneration] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+
+  return (
+    <div>
+      <div>{generation}</div>
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setLoading(true);
+          const response = await generateResponse(input);
+
+          let textContent = "";
+
+          for await (const delta of readStreamableValue(response)) {
+            textContent = `${textContent}${delta}`;
+            setGeneration(textContent);
+          }
+          setInput("");
+          setLoading(false);
+        }}
+      >
+        <input
+          type="text"
+          value={input}
+          disabled={loading}
+          className="disabled:opacity-50"
+          onChange={(event) => {
+            setInput(event.target.value);
+          }}
+        />
+        <button>Send Message</button>
+      </form>
+    </div>
+  );
+}
+```
+
+### Server
+
+Now let's implement the `generateResponse` function. We'll use the `streamText` function to generate a response to the input.
+
+```typescript filename='app/actions.ts'
+"use server";
+
+import { streamText } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { createStreamableValue } from "ai/rsc";
+
+export async function generateResponse(prompt: string) {
+  "use server";
+
+  const stream = createStreamableValue();
+
+  (async () => {
+    const { textStream } = await streamText({
+      model: openai("gpt-4o"),
+      prompt
+    });
+
+    for await (const text of textStream) {
+      stream.update(text);
+    }
+
+    stream.done();
+  })();
+
+  return stream.value;
+}
+```
+
+
+## Streaming Loading State from the Server
+
+If you are looking to track loading state on a more granular level, you can create a new streamable value to store a custom variable and then read this on the frontend. Let's update the example to create a new streamable value for tracking loading state:
+
+### Server
+```typescript filename='app/actions.ts' highlight='11,24,27'
+"use server";
+
+import { streamText } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { createStreamableValue } from "ai/rsc";
+
+export async function generateResponse(prompt: string) {
+  "use server";
+
+  const stream = createStreamableValue();
+  const loadingState = createStreamableValue({ loading: true });
+
+  (async () => {
+    const { textStream } = await streamText({
+      model: openai("gpt-4o"),
+      prompt,
+    });
+
+    for await (const text of textStream) {
+      stream.update(text);
+    }
+
+    stream.done();
+    loadingState.done({ loading: false });
+  })();
+
+  return { response: stream.value, loadingState: loadingState.value };
+}
+```
+
+### Client
+
+```tsx filename='app/page.tsx' highlight="22,30-34"
+"use client";
+
+import { useState } from "react";
+import { generateResponse } from "./actions";
+import { readStreamableValue } from "ai/rsc";
+
+// Force the page to be dynamic and allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export default function Home() {
+  const [input, setInput] = useState<string>("");
+  const [generation, setGeneration] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+
+  return (
+    <div>
+      <div>{generation}</div>
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setLoading(true);
+          const { response, loadingState } = await generateResponse(input);
+
+          let textContent = "";
+
+          for await (const responseDelta of readStreamableValue(response)) {
+            textContent = `${textContent}${responseDelta}`;
+            setGeneration(textContent);
+          }
+          for await (const loadingDelta of readStreamableValue(loadingState)) {
+            if (loadingDelta) {
+              setLoading(loadingDelta.loading);
+            }
+          }
+          setInput("");
+          setLoading(false);
+        }}
+      >
+        <input
+          type="text"
+          value={input}
+          disabled={loading}
+          className="disabled:opacity-50"
+          onChange={(event) => {
+            setInput(event.target.value);
+          }}
+        />
+        <button>Send Message</button>
+      </form>
+    </div>
+  );
+}
+```
+This allows you to provide more detailed feedback about the generation process to your users.
