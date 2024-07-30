@@ -84,7 +84,7 @@ Create a SvelteKit Endpoint, `src/routes/api/chat/+server.ts` and add the follow
 
 ```tsx filename="src/routes/api/chat/+server.ts"
 import { createOpenAI } from '@ai-sdk/openai';
-import { StreamingTextResponse, streamText } from 'ai';
+import { streamText } from 'ai';
 import type { RequestHandler } from './$types';
 
 import { env } from '$env/dynamic/private';
@@ -164,7 +164,7 @@ Make the following changes to your POST endpoint (`src/routes/api/chat/+server.t
 
 ```ts filename="src/routes/api/chat/+server.ts" highlight="2,14-15,19-21,25"
 import { createOpenAI } from '@ai-sdk/openai';
-import { StreamData, StreamingTextResponse, streamText } from 'ai';
+import { StreamData, streamText } from 'ai';
 import type { RequestHandler } from './$types';
 
 import { env } from '$env/dynamic/private';

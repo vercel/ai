@@ -5,7 +5,7 @@ description: API Reference for LangChainAdapter.
 
 # `LangChainAdapter`
 
-The `LangChainAdapter` module provides a way to transform LangChain output streams into AI streams.
+The `LangChainAdapter` module provides helper functions to transform LangChain output streams into data streams and data stream responses.
 See the [LangChain Adapter documentation](/providers/adapters/langchain) for more information.
 
 It supports:
@@ -27,7 +27,12 @@ It supports:
     {
       name: 'toDataStream',
       type: '(stream: ReadableStream<LangChainAIMessageChunk> | ReadableStream<string>, AIStreamCallbacksAndOptions) => AIStream',
-      description: 'Converts LangChain output streams to AIStream.',
+      description: 'Converts LangChain output streams to data stream.',
+    },
+    {
+      name: 'toDataStreamResponse',
+      type: '(stream: ReadableStream<LangChainAIMessageChunk> | ReadableStream<string>, options?: {init?: ResponseInit, data?: StreamData, callbacks?: AIStreamCallbacksAndOptions}) => Response',
+      description: 'Converts LangChain output streams to data stream response.',
     },
   ]}
 />
@@ -38,7 +43,7 @@ It supports:
 
 ```tsx filename="app/api/completion/route.ts" highlight={"14"}
 import { ChatOpenAI } from '@langchain/openai';
-import { LangChainAdapter, StreamingTextResponse } from 'ai';
+import { LangChainAdapter } from 'ai';
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
@@ -50,9 +55,7 @@ export async function POST(req: Request) {
 
   const stream = await model.stream(prompt);
 
-  const aiStream = LangChainAdapter.toDataStream(stream);
-
-  return new StreamingTextResponse(aiStream);
+  return LangChainAdapter.toDataStreamResponse(stream);
 }
 ```
 
@@ -60,7 +63,7 @@ export async function POST(req: Request) {
 
 ```tsx filename="app/api/completion/route.ts" highlight={"16"}
 import { ChatOpenAI } from '@langchain/openai';
-import { LangChainAdapter, StreamingTextResponse } from 'ai';
+import { LangChainAdapter } from 'ai';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 
 export async function POST(req: Request) {
@@ -74,8 +77,6 @@ export async function POST(req: Request) {
   const parser = new StringOutputParser();
   const stream = await model.pipe(parser).stream(prompt);
 
-  const aiStream = LangChainAdapter.toDataStream(stream);
-
-  return new StreamingTextResponse(aiStream);
+  return LangChainAdapter.toDataStreamResponse(stream);
 }
 ```
