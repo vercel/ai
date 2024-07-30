@@ -1,6 +1,6 @@
 # Vercel AI SDK, Next.js, and FastAPI Examples
 
-Here are examples that show you how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org) and [FastAPI](https://fastapi.tiangolo.com).
+These examples show you how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org) and [FastAPI](https://fastapi.tiangolo.com).
 
 ## How to use
 
