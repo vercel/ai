@@ -9,10 +9,7 @@
     async onToolCall({ toolCall }) {
         if (toolCall.toolName === 'getLocation') {
             const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
-
-            let city = cities[Math.floor(Math.random() * cities.length)];
-            addToolResult({toolCallId: toolCall.toolCallId, result: city});
-            return city;
+            return cities[Math.floor(Math.random() * cities.length)];
         }
     }
   });
