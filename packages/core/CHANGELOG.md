@@ -1,5 +1,17 @@
 # ai
 
+## 3.2.41
+
+### Patch Changes
+
+- a12044c7: feat (ai/core): add recordInputs / recordOutputs setting to telemetry options
+- Updated dependencies [1d93d716]
+  - @ai-sdk/ui-utils@0.0.22
+  - @ai-sdk/react@0.0.32
+  - @ai-sdk/solid@0.0.25
+  - @ai-sdk/svelte@0.0.27
+  - @ai-sdk/vue@0.0.26
+
 ## 3.2.40
 
 ### Patch Changes

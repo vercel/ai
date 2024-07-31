@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.22
+
+### Patch Changes
+
+- 1d93d716: fix (ai/ui): parse null as NaN in finish message stream parts
+
 ## 0.0.21
 
 ### Patch Changes
