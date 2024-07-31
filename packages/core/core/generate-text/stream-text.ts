@@ -215,6 +215,13 @@ Warnings from the model provider (e.g. unsupported settings).
               'ai.prompt.messages': {
                 input: () => JSON.stringify(promptMessages),
               },
+
+              // standardized gen-ai llm span attributes:
+              'gen_ai.request.model': model.modelId,
+              'gen_ai.system': model.provider,
+              'gen_ai.request.max_tokens': settings.maxTokens,
+              'gen_ai.request.temperature': settings.temperature,
+              'gen_ai.request.top_p': settings.topP,
             },
           }),
           tracer,
@@ -415,6 +422,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   'ai.usage.completionTokens': finalUsage.completionTokens,
                   'ai.result.text': { output: () => text },
                   'ai.result.toolCalls': { output: () => telemetryToolCalls },
+
+                  // standardized gen-ai llm span attributes:
+                  'gen_ai.response.finish_reasons': [finalFinishReason],
+                  'gen_ai.usage.prompt_tokens': finalUsage.promptTokens,
+                  'gen_ai.usage.completion_tokens': finalUsage.completionTokens,
                 },
               }),
             );
