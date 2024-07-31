@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.34
+
+### Patch Changes
+
+- b68fae4f: feat (ai/ui): add onFinish callback to useObject
+
 ## 0.0.33
 
 ### Patch Changes
