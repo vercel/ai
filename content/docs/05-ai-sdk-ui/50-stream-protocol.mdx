@@ -135,9 +135,9 @@ The following stream parts are currently supported:
 
   The result part needs to be sent after the tool call part for that tool call.
 
-  Format: `a:{toolCallId:string; toolName:string; result:object}\n`
+  Format: `a:{toolCallId:string; result:object}\n`
 
-  Example: `a:{"toolCallId":"call-123","toolName":"my-tool","result":"tool output"}\n`
+  Example: `a:{"toolCallId":"call-123","result":"tool output"}\n`
 
 - **finish message**: A part indicating the completion of a message with additional metadata.
 

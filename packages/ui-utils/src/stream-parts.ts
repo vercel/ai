@@ -276,7 +276,7 @@ const toolCallStreamPart: StreamPart<
 const toolResultStreamPart: StreamPart<
   'a',
   'tool_result',
-  Omit<CoreToolResult<string, any, any>, 'args'>
+  Omit<CoreToolResult<string, any, any>, 'args' | 'toolName'>
 > = {
   code: 'a',
   name: 'tool_result',
@@ -286,18 +286,19 @@ const toolResultStreamPart: StreamPart<
       typeof value !== 'object' ||
       !('toolCallId' in value) ||
       typeof value.toolCallId !== 'string' ||
-      !('toolName' in value) ||
-      typeof value.toolName !== 'string' ||
       !('result' in value)
     ) {
       throw new Error(
-        '"tool_result" parts expect an object with a "toolCallId", "toolName", and "result" property.',
+        '"tool_result" parts expect an object with a "toolCallId" and a "result" property.',
       );
     }
 
     return {
       type: 'tool_result',
-      value: value as unknown as Omit<CoreToolResult<string, any, any>, 'args'>,
+      value: value as unknown as Omit<
+        CoreToolResult<string, any, any>,
+        'args' | 'toolName'
+      >,
     };
   },
 };

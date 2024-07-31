@@ -770,8 +770,6 @@ describe('tool invocations', () => {
         streamController.enqueue(
           formatStreamPart('tool_result', {
             toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
             result: 'test-result',
           }),
         );
@@ -810,8 +808,6 @@ describe('tool invocations', () => {
         streamController.enqueue(
           formatStreamPart('tool_result', {
             toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
             result: 'test-result',
           }),
         );
