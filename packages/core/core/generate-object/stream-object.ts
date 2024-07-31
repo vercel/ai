@@ -1,5 +1,6 @@
 import {
   LanguageModelV1CallOptions,
+  LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
@@ -317,6 +318,13 @@ Warnings from the model provider (e.g. unsupported settings).
                 input: () => JSON.stringify(callOptions.prompt),
               },
               'ai.settings.mode': mode,
+
+              // standardized gen-ai llm span attributes:
+              'gen_ai.request.model': model.modelId,
+              'gen_ai.system': model.provider,
+              'gen_ai.request.max_tokens': settings.maxTokens,
+              'gen_ai.request.temperature': settings.temperature,
+              'gen_ai.request.top_p': settings.topP,
             },
           }),
           tracer,
@@ -387,6 +395,7 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
 
     // store information for onFinish callback:
     let usage: CompletionTokenUsage | undefined;
+    let finishReason: LanguageModelV1FinishReason | undefined;
     let object: T | undefined;
     let error: unknown | undefined;
 
@@ -444,6 +453,9 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
                 });
               }
 
+              // store finish reason for telemetry:
+              finishReason = chunk.finishReason;
+
               // store usage for promises and onFinish callback:
               usage = calculateCompletionTokenUsage(chunk.usage);
 
@@ -489,11 +501,17 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
               selectTelemetryAttributes({
                 telemetry,
                 attributes: {
+                  'ai.finishReason': finishReason,
                   'ai.usage.promptTokens': finalUsage.promptTokens,
                   'ai.usage.completionTokens': finalUsage.completionTokens,
                   'ai.result.object': {
                     output: () => JSON.stringify(object),
                   },
+
+                  // standardized gen-ai llm span attributes:
+                  'gen_ai.usage.prompt_tokens': finalUsage.promptTokens,
+                  'gen_ai.usage.completion_tokens': finalUsage.completionTokens,
+                  'gen_ai.response.finish_reasons': [finishReason],
                 },
               }),
             );

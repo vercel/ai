@@ -78,6 +78,12 @@ const result = await generateText({
   - `ai.result.text`: the text that was generated
   - `ai.result.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.finishReason`: the reason why the generation finished
+  - standardized [gen_ai attributes](https://opentelemetry.io/docs/specs/semconv/gen-ai/llm-spans/)
+    - `gen_ai.request.model`: the model that was used
+    - `gen_ai.response.finish_reasons`: the finish reasons that were returned by the provider
+    - `gen_ai.system`: the provider that was used
+    - `gen_ai.usage.completion_tokens`: the number of completion tokens that were used
+    - `gen_ai.usage.prompt_tokens`: the number of prompt tokens that were used
 - `ai.toolCall`: a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
 
 ### streamText function
@@ -101,6 +107,12 @@ const result = await generateText({
   - `ai.result.text`: the text that was generated
   - `ai.result.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.finishReason`: the reason why the generation finished
+  - standardized [gen_ai attributes](https://opentelemetry.io/docs/specs/semconv/gen-ai/llm-spans/)
+    - `gen_ai.request.model`: the model that was used
+    - `gen_ai.response.finish_reasons`: the finish reasons that were returned by the provider
+    - `gen_ai.system`: the provider that was used
+    - `gen_ai.usage.completion_tokens`: the number of completion tokens that were used
+    - `gen_ai.usage.prompt_tokens`: the number of prompt tokens that were used
 - `ai.toolCall`: a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
 
 It also records a `ai.stream.firstChunk` event when the first chunk of the stream is received.
@@ -123,6 +135,13 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.result.object`: the object that was generated (stringified JSON)
   - `ai.settings.mode`: the object generation mode
+  - `ai.finishReason`: the reason why the generation finished
+  - standardized [gen_ai attributes](https://opentelemetry.io/docs/specs/semconv/gen-ai/llm-spans/)
+    - `gen_ai.request.model`: the model that was used
+    - `gen_ai.response.finish_reasons`: the finish reasons that were returned by the provider
+    - `gen_ai.system`: the provider that was used
+    - `gen_ai.usage.completion_tokens`: the number of completion tokens that were used
+    - `gen_ai.usage.prompt_tokens`: the number of prompt tokens that were used
 
 ### streamObject function
 
@@ -142,6 +161,13 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.result.object`: the object that was generated (stringified JSON)
   - `ai.settings.mode`: the object generation mode
+  - `ai.finishReason`: the reason why the generation finished
+  - standardized [gen_ai attributes](https://opentelemetry.io/docs/specs/semconv/gen-ai/llm-spans/)
+    - `gen_ai.request.model`: the model that was used
+    - `gen_ai.response.finish_reasons`: the finish reasons that were returned by the provider
+    - `gen_ai.system`: the provider that was used
+    - `gen_ai.usage.completion_tokens`: the number of completion tokens that were used
+    - `gen_ai.usage.prompt_tokens`: the number of prompt tokens that were used
 
 It also records a `ai.stream.firstChunk` event when the first chunk of the stream is received.
 
