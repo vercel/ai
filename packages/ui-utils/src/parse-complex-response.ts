@@ -204,32 +204,29 @@ export async function parseComplexResponse({
         }
       }
     } else if (type === 'tool_result') {
-      // create message if it doesn't exist
-      if (prefixMap.text == null) {
-        prefixMap.text = {
-          id: generateId(),
-          role: 'assistant',
-          content: '',
-          createdAt,
-        };
-      }
+      const toolInvocations = prefixMap.text?.toolInvocations;
 
-      if (prefixMap.text.toolInvocations == null) {
-        prefixMap.text.toolInvocations = [];
+      if (toolInvocations == null) {
+        throw new Error('tool_result must be preceded by a tool_call');
       }
 
       // find if there is any tool invocation with the same toolCallId
       // and replace it with the result
-      const toolInvocationIndex = prefixMap.text.toolInvocations.findIndex(
+      const toolInvocationIndex = toolInvocations.findIndex(
         invocation => invocation.toolCallId === value.toolCallId,
       );
 
-      const result = { state: 'result' as const, ...value };
-      if (toolInvocationIndex !== -1) {
-        prefixMap.text.toolInvocations[toolInvocationIndex] = result;
-      } else {
-        prefixMap.text.toolInvocations.push(result);
+      if (toolInvocationIndex === -1) {
+        throw new Error(
+          'tool_result must be preceded by a tool_call with the same toolCallId',
+        );
       }
+
+      toolInvocations[toolInvocationIndex] = {
+        ...toolInvocations[toolInvocationIndex],
+        state: 'result' as const,
+        ...value,
+      };
     }
 
     let functionCallMessage: Message | null | undefined = null;

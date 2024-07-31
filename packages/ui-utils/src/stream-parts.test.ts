@@ -128,10 +128,11 @@ describe('tool_call stream part', () => {
 
 describe('tool_result stream part', () => {
   it('should format a tool_result stream part', () => {
-    const toolResult: CoreToolResult<string, any, any> = {
+    const toolResult: Omit<
+      CoreToolResult<string, any, any>,
+      'args' | 'toolName'
+    > = {
       toolCallId: 'tc_0',
-      toolName: 'example_tool',
-      args: { test: 'value' },
       result: 'result',
     };
 
@@ -143,8 +144,6 @@ describe('tool_result stream part', () => {
   it('should parse a tool_result stream part', () => {
     const toolResult = {
       toolCallId: 'tc_0',
-      toolName: 'example_tool',
-      args: { test: 'value' },
       result: 'result',
     };
 

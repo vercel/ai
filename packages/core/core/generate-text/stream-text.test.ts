@@ -733,8 +733,6 @@ describe('result.toAIStream', () => {
         }),
         formatStreamPart('tool_result', {
           toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
           result: 'value-result',
         }),
         formatStreamPart('finish_message', {
@@ -839,8 +837,6 @@ describe('result.toAIStream', () => {
         }),
         formatStreamPart('tool_result', {
           toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
           result: 'value-result',
         }),
         formatStreamPart('finish_message', {
