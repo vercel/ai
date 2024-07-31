@@ -10,6 +10,10 @@ import { experimental_useObject } from './use-object';
 
 describe('text stream', () => {
   let onErrorResult: Error | undefined;
+  let onFinishCalls: Array<{
+    object: { content: string } | undefined;
+    error: Error | undefined;
+  }> = [];
 
   const TestComponent = () => {
     const { object, error, submit, isLoading, stop } = experimental_useObject({
@@ -17,6 +21,9 @@ describe('text stream', () => {
       schema: z.object({ content: z.string() }),
       onError(error) {
         onErrorResult = error;
+      },
+      onFinish(event) {
+        onFinishCalls.push(event);
       },
     });
 
@@ -41,11 +48,14 @@ describe('text stream', () => {
   beforeEach(() => {
     render(<TestComponent />);
     onErrorResult = undefined;
+    onFinishCalls = [];
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     cleanup();
+    onErrorResult = undefined;
+    onFinishCalls = [];
   });
 
   describeWithTestServer(
@@ -167,4 +177,42 @@ describe('text stream', () => {
       ),
     );
   });
+
+  describe('onFinish', () => {
+    it(
+      'should be called with an object when the stream finishes and the object matches the schema',
+      withTestServer(
+        {
+          url: '/api/use-object',
+          type: 'stream-values',
+          content: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+        },
+        async () => {
+          await userEvent.click(screen.getByTestId('submit-button'));
+
+          expect(onFinishCalls).toStrictEqual([
+            { object: { content: 'Hello, world!' }, error: undefined },
+          ]);
+        },
+      ),
+    );
+  });
+
+  it(
+    'should be called with an error when the stream finishes and the object does not match the schema',
+    withTestServer(
+      {
+        url: '/api/use-object',
+        type: 'stream-values',
+        content: ['{ ', '"content-wrong": "Hello, ', 'world', '!"', '}'],
+      },
+      async () => {
+        await userEvent.click(screen.getByTestId('submit-button'));
+
+        expect(onFinishCalls).toStrictEqual([
+          { object: undefined, error: expect.any(Error) },
+        ]);
+      },
+    ),
+  );
 });
