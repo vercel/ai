@@ -101,6 +101,7 @@ The following stream parts are currently supported:
 The text parts are appended to the message as they are received.
 
 Format: `0:string\n`
+
 Example: `0:"example"\n`
 
 <MDXImage
@@ -115,6 +116,7 @@ Example: `0:"example"\n`
 The data parts are parsed as JSON and appended to the message as they are received. The data part is available through `data`.
 
 Format: `2:Array<JSONValue>\n`
+
 Example: `2:[{"key":"object1"},{"anotherKey":"object2"}]\n`
 
 <MDXImage
@@ -129,6 +131,7 @@ Example: `2:[{"key":"object1"},{"anotherKey":"object2"}]\n`
 The error parts are appended to the message as they are received.
 
 Format: `3:string\n`
+
 Example: `3:"error message"\n`
 
 <MDXImage
@@ -143,6 +146,7 @@ Example: `3:"error message"\n`
 A part indicating the start of a streaming tool call. This part needs to be sent before any tool call delta for that tool call. Tool call streaming is optional, you can use tool call and tool result parts without it.
 
 Format: `b:{toolCallId:string; toolName:string}\n`
+
 Example: `b:{"toolCallId":"call-456","toolName":"streaming-tool"}\n`
 
 <MDXImage
@@ -157,6 +161,7 @@ Example: `b:{"toolCallId":"call-456","toolName":"streaming-tool"}\n`
 A part representing a delta update for a streaming tool call.
 
 Format: `c:{toolCallId:string; argsTextDelta:string}\n`
+
 Example: `c:{"toolCallId":"call-456","argsTextDelta":"partial arg"}\n`
 
 <MDXImage
@@ -171,6 +176,7 @@ Example: `c:{"toolCallId":"call-456","argsTextDelta":"partial arg"}\n`
 A part representing a tool call. When there are streamed tool calls, the tool call part needs to come after the tool call streaming is finished.
 
 Format: `9:{toolCallId:string; toolName:string; args:object}\n`
+
 Example: `9:{"toolCallId":"call-123","toolName":"my-tool","args":{"some":"argument"}}\n`
 
 <MDXImage
@@ -185,6 +191,7 @@ Example: `9:{"toolCallId":"call-123","toolName":"my-tool","args":{"some":"argume
 A part representing a tool result. The result part needs to be sent after the tool call part for that tool call.
 
 Format: `a:{toolCallId:string; result:object}\n`
+
 Example: `a:{"toolCallId":"call-123","result":"tool output"}\n`
 
 <MDXImage
@@ -199,6 +206,7 @@ Example: `a:{"toolCallId":"call-123","result":"tool output"}\n`
 A part indicating the completion of a message with additional metadata, such as [`FinishReason`](/docs/reference/ai-sdk-ui/use-chat#on-finish-finish-reason) and [`Usage`](/docs/reference/ai-sdk-ui/use-chat#on-finish-usage). This part needs to be the last part in the stream.
 
 Format: `d:{finishReason:'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown';usage:{promptTokens:number; completionTokens:number;}}\n`
+
 Example: `d:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n`
 
 <MDXImage
