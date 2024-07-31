@@ -224,7 +224,12 @@ export async function parseComplexResponse({
         invocation => invocation.toolCallId === value.toolCallId,
       );
 
-      const result = { state: 'result' as const, ...value };
+      const result = {
+        state: 'result' as const,
+        args: prefixMap.text.toolInvocations[toolInvocationIndex].args,
+        ...value,
+      };
+
       if (toolInvocationIndex !== -1) {
         prefixMap.text.toolInvocations[toolInvocationIndex] = result;
       } else {
