@@ -317,6 +317,13 @@ Warnings from the model provider (e.g. unsupported settings).
                 input: () => JSON.stringify(callOptions.prompt),
               },
               'ai.settings.mode': mode,
+
+              // standardized gen-ai llm span attributes:
+              'gen_ai.request.model': model.modelId,
+              'gen_ai.system': model.provider,
+              'gen_ai.request.max_tokens': settings.maxTokens,
+              'gen_ai.request.temperature': settings.temperature,
+              'gen_ai.request.top_p': settings.topP,
             },
           }),
           tracer,
@@ -494,6 +501,10 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
                   'ai.result.object': {
                     output: () => JSON.stringify(object),
                   },
+
+                  // standardized gen-ai llm span attributes:
+                  'gen_ai.usage.prompt_tokens': finalUsage.promptTokens,
+                  'gen_ai.usage.completion_tokens': finalUsage.completionTokens,
                 },
               }),
             );
