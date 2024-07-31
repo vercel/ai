@@ -113,7 +113,6 @@ describe('telemetry', () => {
         attributes: {
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
-          'ai.settings.maxRetries': undefined,
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
           'ai.telemetry.metadata.test2': false,
@@ -131,7 +130,6 @@ describe('telemetry', () => {
           'ai.embeddings': ['[0.1,0.2,0.3]'],
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
-          'ai.settings.maxRetries': undefined,
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
           'ai.telemetry.metadata.test2': false,
@@ -139,6 +137,43 @@ describe('telemetry', () => {
           'ai.values': ['"sunny day at the beach"'],
           'operation.name': 'ai.embed',
           'resource.name': 'test-function-id',
+        },
+        events: [],
+        name: 'ai.embed.doEmbed',
+      },
+    ]);
+  });
+
+  it('should not record telemetry inputs / outputs when disabled', async () => {
+    await embed({
+      model: new MockEmbeddingModelV1({
+        doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
+      }),
+      value: testValue,
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+      },
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.usage.tokens': 10,
+          'operation.name': 'ai.embed',
+        },
+        events: [],
+        name: 'ai.embed',
+      },
+      {
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.usage.tokens': 10,
+          'operation.name': 'ai.embed',
         },
         events: [],
         name: 'ai.embed.doEmbed',

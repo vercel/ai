@@ -2,21 +2,25 @@ import { LanguageModelV1StreamPart, NoSuchToolError } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/ui-utils';
 import { Tracer } from '@opentelemetry/api';
 import { recordSpan } from '../telemetry/record-span';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
 import { calculateCompletionTokenUsage } from '../types/token-usage';
 import { TextStreamPart } from './stream-text-result';
 import { parseToolCall } from './tool-call';
+import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 
 export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   tools,
   generatorStream,
   toolCallStreaming,
   tracer,
+  telemetry,
 }: {
-  tools?: TOOLS;
+  tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV1StreamPart>;
   toolCallStreaming: boolean;
   tracer: Tracer;
+  telemetry: TelemetrySettings | undefined;
 }): ReadableStream<TextStreamPart<TOOLS>> {
   let canClose = false;
   const outstandingToolCalls = new Set<string>();
@@ -119,11 +123,16 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
               // This is important for the case where the tool execution takes a long time.
               recordSpan({
                 name: 'ai.toolCall',
-                attributes: {
-                  'ai.toolCall.name': toolCall.toolName,
-                  'ai.toolCall.id': toolCall.toolCallId,
-                  'ai.toolCall.args': JSON.stringify(toolCall.args),
-                },
+                attributes: selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    'ai.toolCall.name': toolCall.toolName,
+                    'ai.toolCall.id': toolCall.toolCallId,
+                    'ai.toolCall.args': {
+                      output: () => JSON.stringify(toolCall.args),
+                    },
+                  },
+                }),
                 tracer,
                 fn: async span =>
                   tool.execute!(toolCall.args).then(
@@ -143,9 +152,16 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
 
                       // record telemetry
                       try {
-                        span.setAttributes({
-                          'ai.toolCall.result': JSON.stringify(result),
-                        });
+                        span.setAttributes(
+                          selectTelemetryAttributes({
+                            telemetry,
+                            attributes: {
+                              'ai.toolCall.result': {
+                                output: () => JSON.stringify(result),
+                              },
+                            },
+                          }),
+                        );
                       } catch (ignored) {
                         // JSON stringify might fail if the result is not serializable,
                         // in which case we just ignore it. In the future we might want to

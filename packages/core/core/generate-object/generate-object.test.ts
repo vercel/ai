@@ -184,6 +184,10 @@ describe('telemetry', () => {
       schema: z.object({ content: z.string() }),
       mode: 'json',
       prompt: 'prompt',
+      headers: {
+        header1: 'value1',
+        header2: 'value2',
+      },
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
@@ -205,11 +209,12 @@ describe('telemetry', () => {
           'ai.result.object': '{"content":"Hello, world!"}',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
-          'ai.settings.maxRetries': undefined,
           'ai.settings.mode': 'json',
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
           'ai.telemetry.metadata.test2': false,
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
           'resource.name': 'test-function-id',
@@ -232,10 +237,11 @@ describe('telemetry', () => {
             '\\nYou MUST answer with a JSON object that matches the JSON schema above."},' +
             '{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
           'ai.result.object': '{ "content": "Hello, world!" }',
-          'ai.settings.maxRetries': undefined,
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
           'ai.telemetry.metadata.test2': false,
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
           'resource.name': 'test-function-id',
@@ -264,6 +270,10 @@ describe('telemetry', () => {
       schema: z.object({ content: z.string() }),
       mode: 'tool',
       prompt: 'prompt',
+      headers: {
+        header1: 'value1',
+        header2: 'value2',
+      },
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
@@ -284,13 +294,14 @@ describe('telemetry', () => {
           'ai.result.object': '{"content":"Hello, world!"}',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
-          'ai.settings.maxRetries': undefined,
           'ai.settings.mode': 'tool',
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
           'ai.telemetry.metadata.test2': false,
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
           'operation.name': 'ai.generateObject',
           'resource.name': 'test-function-id',
         },
@@ -306,15 +317,119 @@ describe('telemetry', () => {
           'ai.prompt.messages':
             '[{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
           'ai.result.object': '{ "content": "Hello, world!" }',
-          'ai.settings.maxRetries': undefined,
           'ai.settings.mode': 'tool',
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
           'ai.telemetry.metadata.test2': false,
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
           'operation.name': 'ai.generateObject',
           'resource.name': 'test-function-id',
+        },
+        events: [],
+        name: 'ai.generateObject.doGenerate',
+      },
+    ]);
+  });
+
+  it('should not record telemetry inputs / outputs when disabled with mode "json"', async () => {
+    await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          text: `{ "content": "Hello, world!" }`,
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+      },
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        attributes: {
+          'operation.name': 'ai.generateObject',
+          'ai.finishReason': 'stop',
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.settings.mode': 'json',
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+        },
+        events: [],
+        name: 'ai.generateObject',
+      },
+      {
+        attributes: {
+          'operation.name': 'ai.generateObject',
+          'ai.settings.mode': 'json',
+          'ai.finishReason': 'stop',
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+        },
+        events: [],
+        name: 'ai.generateObject.doGenerate',
+      },
+    ]);
+  });
+
+  it('should not record telemetry inputs / outputs when disabled with mode "tool"', async () => {
+    await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          toolCalls: [
+            {
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              args: `{ "content": "Hello, world!" }`,
+            },
+          ],
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'tool',
+      prompt: 'prompt',
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+      },
+    });
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        attributes: {
+          'ai.finishReason': 'stop',
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.settings.mode': 'tool',
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'operation.name': 'ai.generateObject',
+        },
+        events: [],
+        name: 'ai.generateObject',
+      },
+      {
+        attributes: {
+          'ai.finishReason': 'stop',
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.settings.mode': 'tool',
+          'ai.usage.completionTokens': 20,
+          'ai.usage.promptTokens': 10,
+          'operation.name': 'ai.generateObject',
         },
         events: [],
         name: 'ai.generateObject.doGenerate',
