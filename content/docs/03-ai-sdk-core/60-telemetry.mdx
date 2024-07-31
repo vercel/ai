@@ -14,6 +14,8 @@ The Vercel AI SDK uses [OpenTelemetry](https://opentelemetry.io/) to collect tel
 OpenTelemetry is an open-source observability framework designed to provide
 standardized instrumentation for collecting telemetry data.
 
+The following AI SDK functions currently support telemetry: `generateText`, `streamText`, `generateObject`, `streamObject`, `embed`, and `embedMany`.
+
 ## Enabling telemetry
 
 For Next.js applications, please follow the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) to enable telemetry first.
@@ -28,14 +30,11 @@ const result = await generateText({
 });
 ```
 
-The following functions currently support telemetry:
+When telemetry is enabled, you can also control if you want to record the input values and the output values for the function.
+By default, both are enabled. You can disable them by setting the `recordInputs` and `recordOutputs` options to `false`.
 
-- `generateText`
-- `streamText`
-- `generateObject`
-- `streamObject`
-- `embed`
-- `embedMany`
+Disabling the recording of inputs and outputs can be useful for privacy, data transfer, and performance reasons.
+You might for example want to disable recording inputs if they contain sensitive information.
 
 ## Telemetry Metadata
 

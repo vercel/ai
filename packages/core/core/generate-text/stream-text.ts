@@ -15,6 +15,7 @@ import { Prompt } from '../prompt/prompt';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
+import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
 import {
@@ -178,11 +179,16 @@ Warnings from the model provider (e.g. unsupported settings).
 
   return recordSpan({
     name: 'ai.streamText',
-    attributes: {
-      ...baseTelemetryAttributes,
-      // specific settings that only make sense on the outer level:
-      'ai.prompt': JSON.stringify({ system, prompt, messages }),
-    },
+    attributes: selectTelemetryAttributes({
+      telemetry,
+      attributes: {
+        ...baseTelemetryAttributes,
+        // specific settings that only make sense on the outer level:
+        'ai.prompt': {
+          input: () => JSON.stringify({ system, prompt, messages }),
+        },
+      },
+    }),
     tracer,
     endWhenDone: false,
     fn: async rootSpan => {
@@ -199,11 +205,18 @@ Warnings from the model provider (e.g. unsupported settings).
       } = await retry(() =>
         recordSpan({
           name: 'ai.streamText.doStream',
-          attributes: {
-            ...baseTelemetryAttributes,
-            'ai.prompt.format': validatedPrompt.type,
-            'ai.prompt.messages': JSON.stringify(promptMessages),
-          },
+          attributes: selectTelemetryAttributes({
+            telemetry,
+            attributes: {
+              ...baseTelemetryAttributes,
+              'ai.prompt.format': {
+                input: () => validatedPrompt.type,
+              },
+              'ai.prompt.messages': {
+                input: () => JSON.stringify(promptMessages),
+              },
+            },
+          }),
           tracer,
           endWhenDone: false,
           fn: async doStreamSpan => {
@@ -231,12 +244,14 @@ Warnings from the model provider (e.g. unsupported settings).
           generatorStream: stream,
           toolCallStreaming,
           tracer,
+          telemetry,
         }),
         warnings,
         rawResponse,
         onFinish,
         rootSpan,
         doStreamSpan,
+        telemetry,
       });
     },
   });
@@ -263,6 +278,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     onFinish,
     rootSpan,
     doStreamSpan,
+    telemetry,
   }: {
     stream: ReadableStream<TextStreamPart<TOOLS>>;
     warnings: StreamTextResult<TOOLS>['warnings'];
@@ -270,6 +286,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     onFinish?: Parameters<typeof streamText>[0]['onFinish'];
     rootSpan: Span;
     doStreamSpan: Span;
+    telemetry: TelemetrySettings | undefined;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -389,25 +406,35 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             const telemetryToolCalls =
               toolCalls.length > 0 ? JSON.stringify(toolCalls) : undefined;
 
-            doStreamSpan.setAttributes({
-              'ai.finishReason': finalFinishReason,
-              'ai.usage.promptTokens': finalUsage.promptTokens,
-              'ai.usage.completionTokens': finalUsage.completionTokens,
-              'ai.result.text': text,
-              'ai.result.toolCalls': telemetryToolCalls,
-            });
+            doStreamSpan.setAttributes(
+              selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  'ai.finishReason': finalFinishReason,
+                  'ai.usage.promptTokens': finalUsage.promptTokens,
+                  'ai.usage.completionTokens': finalUsage.completionTokens,
+                  'ai.result.text': { output: () => text },
+                  'ai.result.toolCalls': { output: () => telemetryToolCalls },
+                },
+              }),
+            );
 
             // finish doStreamSpan before other operations for correct timing:
             doStreamSpan.end();
 
             // Add response information to the root span:
-            rootSpan.setAttributes({
-              'ai.finishReason': finalFinishReason,
-              'ai.usage.promptTokens': finalUsage.promptTokens,
-              'ai.usage.completionTokens': finalUsage.completionTokens,
-              'ai.result.text': text,
-              'ai.result.toolCalls': telemetryToolCalls,
-            });
+            rootSpan.setAttributes(
+              selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  'ai.finishReason': finalFinishReason,
+                  'ai.usage.promptTokens': finalUsage.promptTokens,
+                  'ai.usage.completionTokens': finalUsage.completionTokens,
+                  'ai.result.text': { output: () => text },
+                  'ai.result.toolCalls': { output: () => telemetryToolCalls },
+                },
+              }),
+            );
 
             // resolve toolResults promise:
             resolveToolResults(toolResults);

@@ -875,7 +875,6 @@ describe('telemetry', () => {
           'ai.prompt': '{"prompt":"prompt"}',
           'ai.request.headers.header1': 'value1',
           'ai.request.headers.header2': 'value2',
-          'ai.settings.maxRetries': undefined,
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
           'ai.telemetry.metadata.test2': false,
@@ -898,7 +897,6 @@ describe('telemetry', () => {
           'ai.request.headers.header1': 'value1',
           'ai.request.headers.header2': 'value2',
           'ai.result.object': '{"content":"Hello, world!"}',
-          'ai.settings.maxRetries': undefined,
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
           'ai.telemetry.metadata.test2': false,
@@ -910,6 +908,288 @@ describe('telemetry', () => {
           'ai.prompt.format': 'prompt',
           'ai.prompt.messages':
             '[{"role":"system","content":"JSON schema:\\n{\\"type\\":\\"object\\",\\"properties\\":{\\"content\\":{\\"type\\":\\"string\\"}},\\"required\\":[\\"content\\"],\\"additionalProperties\\":false,\\"$schema\\":\\"http://json-schema.org/draft-07/schema#\\"}\\nYou MUST answer with a JSON object that matches the JSON schema above."},{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
+        },
+        events: ['ai.stream.firstChunk'],
+      },
+    ]);
+  });
+
+  it('should record telemetry data when enabled with mode "tool"', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call-delta',
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: '{ ',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: '"content": ',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: `"Hello, `,
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: `world`,
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: `!"`,
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: ' }',
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'tool',
+      prompt: 'prompt',
+      headers: {
+        header1: 'value1',
+        header2: 'value2',
+      },
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+      },
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(result.partialObjectStream);
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        name: 'ai.streamObject',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.prompt': '{"prompt":"prompt"}',
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.result.object': '{"content":"Hello, world!"}',
+          'ai.usage.completionTokens': 10,
+          'ai.usage.promptTokens': 3,
+          'ai.settings.mode': 'tool',
+          'ai.schema':
+            '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
+          'operation.name': 'ai.streamObject',
+          'resource.name': 'test-function-id',
+        },
+        events: [],
+      },
+      {
+        name: 'ai.streamObject.doStream',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.request.headers.header1': 'value1',
+          'ai.request.headers.header2': 'value2',
+          'ai.result.object': '{"content":"Hello, world!"}',
+          'ai.telemetry.functionId': 'test-function-id',
+          'ai.telemetry.metadata.test1': 'value1',
+          'ai.telemetry.metadata.test2': false,
+          'ai.usage.completionTokens': 10,
+          'ai.usage.promptTokens': 3,
+          'operation.name': 'ai.streamObject',
+          'resource.name': 'test-function-id',
+          'ai.settings.mode': 'tool',
+          'ai.prompt.format': 'prompt',
+          'ai.prompt.messages':
+            '[{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
+        },
+        events: ['ai.stream.firstChunk'],
+      },
+    ]);
+  });
+
+  it('should not record telemetry inputs / outputs when disabled with mode "json"', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: '{ ' },
+            { type: 'text-delta', textDelta: '"content": ' },
+            { type: 'text-delta', textDelta: `"Hello, ` },
+            { type: 'text-delta', textDelta: `world` },
+            { type: 'text-delta', textDelta: `!"` },
+            { type: 'text-delta', textDelta: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+      },
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(result.partialObjectStream);
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        name: 'ai.streamObject',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.usage.completionTokens': 10,
+          'ai.usage.promptTokens': 3,
+          'ai.settings.mode': 'json',
+          'operation.name': 'ai.streamObject',
+        },
+        events: [],
+      },
+      {
+        name: 'ai.streamObject.doStream',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.usage.completionTokens': 10,
+          'ai.usage.promptTokens': 3,
+          'operation.name': 'ai.streamObject',
+          'ai.settings.mode': 'json',
+        },
+        events: ['ai.stream.firstChunk'],
+      },
+    ]);
+  });
+
+  it('should not record telemetry inputs / outputs when disabled with mode "tool"', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call-delta',
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: '{ ',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: '"content": ',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: `"Hello, `,
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: `world`,
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: `!"`,
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallType: 'function',
+              toolCallId: 'tool-call-1',
+              toolName: 'json',
+              argsTextDelta: ' }',
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'tool',
+      prompt: 'prompt',
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+      },
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(result.partialObjectStream);
+
+    assert.deepStrictEqual(tracer.jsonSpans, [
+      {
+        name: 'ai.streamObject',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.usage.completionTokens': 10,
+          'ai.usage.promptTokens': 3,
+          'ai.settings.mode': 'tool',
+          'operation.name': 'ai.streamObject',
+        },
+        events: [],
+      },
+      {
+        name: 'ai.streamObject.doStream',
+        attributes: {
+          'ai.model.id': 'mock-model-id',
+          'ai.model.provider': 'mock-provider',
+          'ai.usage.completionTokens': 10,
+          'ai.usage.promptTokens': 3,
+          'operation.name': 'ai.streamObject',
+          'ai.settings.mode': 'tool',
         },
         events: ['ai.stream.firstChunk'],
       },
