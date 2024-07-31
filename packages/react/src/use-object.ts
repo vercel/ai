@@ -42,6 +42,22 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 
   /**
+Callback that is called when the stream has finished.
+     */
+  onFinish?: (event: {
+    /**
+The generated object (typed according to the schema).
+Can be undefined if the final object does not match the schema.
+   */
+    object: RESULT | undefined;
+
+    /**
+Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
+ */
+    error: Error | undefined;
+  }) => Promise<void> | void;
+
+  /**
    * Callback function to be called when an error is encountered.
    */
   onError?: (error: Error) => void;
@@ -86,6 +102,7 @@ function useObject<RESULT, INPUT = any>({
   initialValue,
   fetch,
   onError,
+  onFinish,
 }: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
   RESULT,
   INPUT
@@ -165,6 +182,15 @@ function useObject<RESULT, INPUT = any>({
           close() {
             setIsLoading(false);
             abortControllerRef.current = null;
+
+            if (onFinish != null) {
+              const validationResult = schema.safeParse(latestObject);
+              onFinish(
+                validationResult.success
+                  ? { object: validationResult.data, error: undefined }
+                  : { object: undefined, error: validationResult.error },
+              );
+            }
           },
         }),
       );

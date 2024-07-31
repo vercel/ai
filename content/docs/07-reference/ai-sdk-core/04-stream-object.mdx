@@ -373,7 +373,7 @@ for await (const partialObject of partialObjectStream) {
       type: '(result: OnFinishResult) => void',
       isOptional: true,
       description:
-        'Callback that is called when the LLM response and all request tool executions (for tools that have an `execute` function) are finished.',
+        'Callback that is called when the LLM response has finished.',
       properties: [
         {
           type: 'OnFinishResult',
