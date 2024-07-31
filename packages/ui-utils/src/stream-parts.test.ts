@@ -218,4 +218,15 @@ describe('finish_message stream part', () => {
       },
     });
   });
+
+  it('should parse a finish_message with null completion and prompt tokens', () => {
+    const input = `d:{"finishReason":"stop","usage":{"promptTokens":null,"completionTokens":null}}`;
+    expect(parseStreamPart(input)).toEqual({
+      type: 'finish_message',
+      value: {
+        finishReason: 'stop',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    });
+  });
 });
