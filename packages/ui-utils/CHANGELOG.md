@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.23
+
+### Patch Changes
+
+- fea7b604: chore (ai/ui): remove "args" and "toolName" from tool result stream part.
+
 ## 0.0.22
 
 ### Patch Changes

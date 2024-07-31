@@ -1,5 +1,17 @@
 # ai
 
+## 3.2.42
+
+### Patch Changes
+
+- f63c99e7: feat (ai/core): record OpenTelemetry gen_ai attributes
+- Updated dependencies [fea7b604]
+  - @ai-sdk/ui-utils@0.0.23
+  - @ai-sdk/react@0.0.33
+  - @ai-sdk/solid@0.0.26
+  - @ai-sdk/svelte@0.0.28
+  - @ai-sdk/vue@0.0.27
+
 ## 3.2.41
 
 ### Patch Changes
