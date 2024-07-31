@@ -386,7 +386,7 @@ const finishMessageStreamPart: StreamPart<
       value.usage == null ||
       typeof value.usage !== 'object' ||
       !('promptTokens' in value.usage) ||
-      !('completionTokens' in value.usage) ||
+      !('completionTokens' in value.usage)
     ) {
       throw new Error(
         '"finish_message" parts expect an object with a "finishReason" and "usage" property.',
