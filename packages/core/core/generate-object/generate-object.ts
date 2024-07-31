@@ -178,6 +178,13 @@ Default and recommended: 'auto' (best mode for the model).
                     input: () => JSON.stringify(promptMessages),
                   },
                   'ai.settings.mode': mode,
+
+                  // standardized gen-ai llm span attributes:
+                  'gen_ai.request.model': model.modelId,
+                  'gen_ai.system': model.provider,
+                  'gen_ai.request.max_tokens': settings.maxTokens,
+                  'gen_ai.request.temperature': settings.temperature,
+                  'gen_ai.request.top_p': settings.topP,
                 },
               }),
               tracer,
@@ -205,6 +212,12 @@ Default and recommended: 'auto' (best mode for the model).
                       'ai.usage.completionTokens':
                         result.usage.completionTokens,
                       'ai.result.object': { output: () => result.text },
+
+                      // standardized gen-ai llm span attributes:
+                      'gen_ai.response.finish_reasons': [result.finishReason],
+                      'gen_ai.usage.prompt_tokens': result.usage.promptTokens,
+                      'gen_ai.usage.completion_tokens':
+                        result.usage.completionTokens,
                     },
                   }),
                 );
@@ -251,6 +264,13 @@ Default and recommended: 'auto' (best mode for the model).
                     input: () => JSON.stringify(promptMessages),
                   },
                   'ai.settings.mode': mode,
+
+                  // standardized gen-ai llm span attributes:
+                  'gen_ai.request.model': model.modelId,
+                  'gen_ai.system': model.provider,
+                  'gen_ai.request.max_tokens': settings.maxTokens,
+                  'gen_ai.request.temperature': settings.temperature,
+                  'gen_ai.request.top_p': settings.topP,
                 },
               }),
               tracer,
@@ -288,6 +308,12 @@ Default and recommended: 'auto' (best mode for the model).
                       'ai.usage.completionTokens':
                         result.usage.completionTokens,
                       'ai.result.object': { output: () => objectText },
+
+                      // standardized gen-ai llm span attributes:
+                      'gen_ai.response.finish_reasons': [result.finishReason],
+                      'gen_ai.usage.prompt_tokens': result.usage.promptTokens,
+                      'gen_ai.usage.completion_tokens':
+                        result.usage.completionTokens,
                     },
                   }),
                 );
