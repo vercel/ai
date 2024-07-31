@@ -577,8 +577,6 @@ However, the LLM results are expected to be small enough to not cause issues.
             controller.enqueue(
               formatStreamPart('tool_result', {
                 toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
-                args: chunk.args,
                 result: chunk.result,
               }),
             );
