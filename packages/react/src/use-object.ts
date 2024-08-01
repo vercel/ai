@@ -136,6 +136,7 @@ function useObject<RESULT, INPUT = any>({
 
   const submit = async (input: INPUT) => {
     try {
+      mutate(undefined); // reset the data
       setIsLoading(true);
       setError(undefined);
 
