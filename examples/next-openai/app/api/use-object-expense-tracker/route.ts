@@ -13,6 +13,7 @@ export async function POST(req: Request) {
     system:
       'You categorize expenses into one of the following categories: ' +
       'TRAVEL, MEALS, ENTERTAINMENT, OFFICE SUPPLIES, OTHER.' +
+      // provide date (including day of week) for reference:
       'The current date is: ' +
       new Date()
         .toLocaleDateString('en-US', {
