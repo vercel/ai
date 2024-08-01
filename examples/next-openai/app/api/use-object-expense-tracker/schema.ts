@@ -16,7 +16,6 @@ export const expenseSchema = z.object({
   }),
 });
 
-// define a type for the partial notifications during generation
 export type PartialExpense = DeepPartial<typeof expenseSchema>['expense'];
 
 export type Expense = z.infer<typeof expenseSchema>['expense'];
