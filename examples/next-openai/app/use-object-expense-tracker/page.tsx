@@ -50,23 +50,17 @@ export default function Page() {
         </button>
       </form>
 
-      {isLoading && object?.expense && (
-        <div className="flex flex-col gap-4 mt-4">
-          <ExpenseView expense={object.expense} />
-        </div>
-      )}
+      {isLoading && object?.expense && <ExpenseView expense={object.expense} />}
 
-      <div className="flex flex-col gap-4 mt-4">
-        {expenses.map((expense, index) => (
-          <ExpenseView key={index} expense={expense} />
-        ))}
-      </div>
+      {expenses.map((expense, index) => (
+        <ExpenseView key={index} expense={expense} />
+      ))}
     </div>
   );
 }
 
 const ExpenseView = ({ expense }: { expense: PartialExpense | Expense }) => (
-  <div className="grid grid-cols-12 gap-4 p-4 bg-gray-100 rounded-md dark:bg-gray-800">
+  <div className="grid grid-cols-12 gap-4 p-4 mt-4 bg-gray-100 rounded-md dark:bg-gray-800">
     <div className="col-span-2">
       <p className="text-sm text-gray-500 dark:text-gray-400">
         {expense?.date ?? ''}
