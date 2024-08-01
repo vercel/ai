@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 0.0.36
+
+### Patch Changes
+
+- 5be25124: fix (ai/ui): useChat messages have stable ids with streamProtocol: "text"
+- Updated dependencies [5be25124]
+  - @ai-sdk/ui-utils@0.0.24
+
 ## 0.0.35
 
 ### Patch Changes
