@@ -27,11 +27,10 @@ export default function Page() {
         className="flex items-center w-full max-w-md"
         onSubmit={e => {
           e.preventDefault();
-          const form = e.target as HTMLFormElement;
-          const input = form.elements.namedItem('expense') as HTMLInputElement;
+          const input = e.currentTarget.expense as HTMLInputElement;
           if (input.value.trim()) {
             submit({ expense: input.value });
-            form.reset();
+            e.currentTarget.reset();
           }
         }}
       >
