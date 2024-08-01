@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.35
+
+### Patch Changes
+
+- a147d040: feat (ai/react): useObject clears object when loading new result
+
 ## 0.0.34
 
 ### Patch Changes
