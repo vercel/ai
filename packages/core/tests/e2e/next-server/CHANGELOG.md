@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@3.2.45
+
+## null
+
+### Patch Changes
+
 - ai@3.2.44
 
 ## null

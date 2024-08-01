@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.24
+
+### Patch Changes
+
+- 5be25124: fix (ai/ui): useChat messages have stable ids with streamProtocol: "text"
+
 ## 0.0.23
 
 ### Patch Changes

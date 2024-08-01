@@ -975,19 +975,19 @@ importers:
         specifier: 1.0.5
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 0.0.35
+        specifier: 0.0.36
         version: link:../react
       '@ai-sdk/solid':
-        specifier: 0.0.26
+        specifier: 0.0.27
         version: link:../solid
       '@ai-sdk/svelte':
-        specifier: 0.0.28
+        specifier: 0.0.29
         version: link:../svelte
       '@ai-sdk/ui-utils':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../ui-utils
       '@ai-sdk/vue':
-        specifier: 0.0.27
+        specifier: 0.0.28
         version: link:../vue
       '@opentelemetry/api':
         specifier: 1.9.0
@@ -1285,7 +1285,7 @@ importers:
         specifier: 1.0.5
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19
@@ -1346,7 +1346,7 @@ importers:
         specifier: 1.0.5
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../ui-utils
       solid-js:
         specifier: ^1.7.7
@@ -1398,7 +1398,7 @@ importers:
         specifier: 1.0.5
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../ui-utils
       sswr:
         specifier: 2.1.0
@@ -1463,7 +1463,7 @@ importers:
         specifier: 1.0.5
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.23
+        specifier: 0.0.24
         version: link:../ui-utils
       swrv:
         specifier: 1.0.4
