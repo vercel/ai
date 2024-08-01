@@ -8,14 +8,6 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { expense }: { expense: string } = await req.json();
 
-  console.log(
-    new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-    }),
-  );
-
   const result = await streamObject({
     model: openai('gpt-4-turbo'),
     system:
