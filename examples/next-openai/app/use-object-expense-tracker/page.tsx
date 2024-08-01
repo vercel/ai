@@ -65,11 +65,7 @@ export default function Page() {
   );
 }
 
-const ExpenseView = ({
-  expense,
-}: {
-  expense: PartialExpense['expense'] | Expense;
-}) => (
+const ExpenseView = ({ expense }: { expense: PartialExpense | Expense }) => (
   <div className="grid grid-cols-12 gap-4 p-4 bg-gray-100 rounded-md dark:bg-gray-800">
     <div className="col-span-2">
       <p className="text-sm text-gray-500 dark:text-gray-400">
