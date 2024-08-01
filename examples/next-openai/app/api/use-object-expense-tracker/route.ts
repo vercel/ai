@@ -19,8 +19,9 @@ export async function POST(req: Request) {
           year: 'numeric',
           month: 'short',
           day: '2-digit',
+          weekday: 'short',
         })
-        .replace(/(\w+) (\d+), (\d+)/, '$3-$1-$2') +
+        .replace(/(\w+), (\w+) (\d+), (\d+)/, '$4-$2-$3 ($1)') +
       '. When no date is supplied, use the current date.',
     prompt: `Please categorize the following expense: "${expense}"`,
     schema: expenseSchema,
