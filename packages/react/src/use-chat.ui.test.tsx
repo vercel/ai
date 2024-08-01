@@ -265,8 +265,11 @@ describe('text stream', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}-text-stream`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
+            <div data-testid={`message-${idx}-id`}>{m.id}</div>
+            <div data-testid={`message-${idx}-role`}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+            </div>
+            <div data-testid={`message-${idx}-content`}>{m.content}</div>
           </div>
         ))}
 
@@ -302,15 +305,39 @@ describe('text stream', () => {
       async () => {
         await userEvent.click(screen.getByTestId('do-append-text-stream'));
 
-        await screen.findByTestId('message-0-text-stream');
-        expect(screen.getByTestId('message-0-text-stream')).toHaveTextContent(
-          'User: hi',
-        );
+        await screen.findByTestId('message-0-content');
+        expect(screen.getByTestId('message-0-content')).toHaveTextContent('hi');
 
-        await screen.findByTestId('message-1-text-stream');
-        expect(screen.getByTestId('message-1-text-stream')).toHaveTextContent(
-          'AI: Hello, world.',
+        await screen.findByTestId('message-1-content');
+        expect(screen.getByTestId('message-1-content')).toHaveTextContent(
+          'Hello, world.',
         );
+      },
+    ),
+  );
+
+  it(
+    'should have stable message ids',
+    withTestServer(
+      { url: '/api/chat', type: 'controlled-stream' },
+      async ({ streamController }) => {
+        streamController.enqueue('He');
+
+        await userEvent.click(screen.getByTestId('do-append-text-stream'));
+
+        await screen.findByTestId('message-1-content');
+        expect(screen.getByTestId('message-1-content')).toHaveTextContent('He');
+
+        const id = screen.getByTestId('message-1-id').textContent;
+
+        streamController.enqueue('llo');
+        streamController.close();
+
+        await screen.findByTestId('message-1-content');
+        expect(screen.getByTestId('message-1-content')).toHaveTextContent(
+          'Hello',
+        );
+        expect(screen.getByTestId('message-1-id').textContent).toBe(id);
       },
     ),
   );
