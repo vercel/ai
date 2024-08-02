@@ -3,13 +3,11 @@ import { CallSettings } from '../prompt/call-settings';
 import { TelemetrySettings } from './telemetry-settings';
 
 export function getBaseTelemetryAttributes({
-  operationName,
   model,
   settings,
   telemetry,
   headers,
 }: {
-  operationName: string;
   model: { modelId: string; provider: string };
   settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
   telemetry: TelemetrySettings | undefined;
@@ -26,7 +24,6 @@ export function getBaseTelemetryAttributes({
     }, {} as Attributes),
 
     // special telemetry information
-    'operation.name': operationName,
     'resource.name': telemetry?.functionId,
     'ai.telemetry.functionId': telemetry?.functionId,
 

@@ -6,9 +6,11 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
+import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
+import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import { calculateCompletionTokenUsage } from '../types/token-usage';
@@ -17,7 +19,6 @@ import { retryWithExponentialBackoff } from '../util/retry-with-exponential-back
 import { Schema, asSchema } from '../util/schema';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -104,7 +105,6 @@ Default and recommended: 'auto' (best mode for the model).
     experimental_telemetry?: TelemetrySettings;
   }): Promise<DefaultGenerateObjectResult<T>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    operationName: 'ai.generateObject',
     model,
     telemetry,
     headers,
@@ -119,6 +119,10 @@ Default and recommended: 'auto' (best mode for the model).
     attributes: selectTelemetryAttributes({
       telemetry,
       attributes: {
+        ...assembleOperationName({
+          operationName: 'ai.generateObject',
+          telemetry,
+        }),
         ...baseTelemetryAttributes,
         // specific settings that only make sense on the outer level:
         'ai.prompt': {
@@ -170,6 +174,10 @@ Default and recommended: 'auto' (best mode for the model).
               attributes: selectTelemetryAttributes({
                 telemetry,
                 attributes: {
+                  ...assembleOperationName({
+                    operationName: 'ai.generateObject.doGenerate',
+                    telemetry,
+                  }),
                   ...baseTelemetryAttributes,
                   'ai.prompt.format': {
                     input: () => inputFormat,
@@ -256,6 +264,10 @@ Default and recommended: 'auto' (best mode for the model).
               attributes: selectTelemetryAttributes({
                 telemetry,
                 attributes: {
+                  ...assembleOperationName({
+                    operationName: 'ai.generateObject.doGenerate',
+                    telemetry,
+                  }),
                   ...baseTelemetryAttributes,
                   'ai.prompt.format': {
                     input: () => inputFormat,

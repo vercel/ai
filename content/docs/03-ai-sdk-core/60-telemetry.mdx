@@ -63,7 +63,7 @@ const result = await generateText({
 
 - `ai.generateText`: the full length of the generateText call. It contains 1 or more `ai.generateText.doGenerate` spans.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
-  - `operation.name`: `ai.generateText`
+  - `operation.name`: `ai.generateText` and the functionId that was set through `telemetry.functionId`
   - `ai.prompt`: the prompt that was used when calling `generateText`
   - `ai.result.text`: the text that was generated
   - `ai.result.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
@@ -71,7 +71,7 @@ const result = await generateText({
   - `ai.settings.maxToolRoundtrips`: the maximum number of tool roundtrips that were set
 - `ai.generateText.doGenerate`: a provider doGenerate call. It can contain `ai.toolCall` spans.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
-  - `operation.name`: `ai.generateText`
+  - `operation.name`: `ai.generateText.doGenerate` and the functionId that was set through `telemetry.functionId`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.result.text`: the text that was generated
@@ -91,7 +91,7 @@ const result = await generateText({
 
 - `ai.streamText`: the full length of the streamText call. It contains a `ai.streamText.doStream` span.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
-  - `operation.name`: `ai.streamText`
+  - `operation.name`: `ai.streamText` and the functionId that was set through `telemetry.functionId`
   - `ai.prompt`: the prompt that was used when calling `streamText`
   - `ai.result.text`: the text that was generated
   - `ai.result.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
@@ -100,7 +100,7 @@ const result = await generateText({
   This span contains an `ai.stream.firstChunk` event that is emitted when the first chunk of the stream is received.
   The `doStream` span can also contain `ai.toolCall` spans.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
-  - `operation.name`: `ai.streamText`
+  - `operation.name`: `ai.streamText.doStream` and the functionId that was set through `telemetry.functionId`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.result.text`: the text that was generated
@@ -122,14 +122,14 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
 
 - `ai.generateObject`: the full length of the generateObject call. It contains 1 or more `ai.generateObject.doGenerate` spans.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
-  - `operation.name`: `ai.generateObject`
+  - `operation.name`: `ai.generateObject` and the functionId that was set through `telemetry.functionId`
   - `ai.prompt`: the prompt that was used when calling `generateObject`
   - `ai.schema`: Stringified JSON schema version of the schema that was passed into the `generateObject` function
   - `ai.result.object`: the object that was generated (stringified JSON)
   - `ai.settings.mode`: the object generation mode
 - `ai.generateObject.doGenerate`: a provider doGenerate call.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
-  - `operation.name`: `ai.generateObject`
+  - `operation.name`: `ai.generateObject.doGenerate` and the functionId that was set through `telemetry.functionId`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.result.object`: the object that was generated (stringified JSON)
@@ -148,14 +148,14 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
 
 - `ai.streamObject`: the full length of the streamObject call. It contains 1 or more `ai.streamObject.doStream` spans.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
-  - `operation.name`: `ai.streamObject`
+  - `operation.name`: `ai.streamObject` and the functionId that was set through `telemetry.functionId`
   - `ai.prompt`: the prompt that was used when calling `streamObject`
   - `ai.schema`: Stringified JSON schema version of the schema that was passed into the `streamObject` function
   - `ai.result.object`: the object that was generated (stringified JSON)
   - `ai.settings.mode`: the object generation mode
 - `ai.streamObject.doStream`: a provider doStream call.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
-  - `operation.name`: `ai.streamObject`
+  - `operation.name`: `ai.streamObject.doStream` and the functionId that was set through `telemetry.functionId`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.result.object`: the object that was generated (stringified JSON)
@@ -176,12 +176,12 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
 
 - `ai.embed`: the full length of the embed call. It contains 1 `ai.embed.doEmbed` spans.
   It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
-  - `operation.name`: `ai.embed`
+  - `operation.name`: `ai.embed` and the functionId that was set through `telemetry.functionId`
   - `ai.value`: the value that was passed into the `embed` function
   - `ai.embedding`: a JSON-stringified embedding
 - `ai.embed.doEmbed`: a provider doEmbed call.
   It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
-  - `operation.name`: `ai.embed`
+  - `operation.name`: `ai.embed.doEmbed` and the functionId that was set through `telemetry.functionId`
   - `ai.values`: the values that were passed into the provider (array)
   - `ai.embeddings`: an array of JSON-stringified embeddings
 
@@ -191,12 +191,12 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
 
 - `ai.embedMany`: the full length of the embedMany call. It contains 1 or more `ai.embedMany.doEmbed` spans.
   It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
-  - `operation.name`: `ai.embedMany`
+  - `operation.name`: `ai.embedMany` and the functionId that was set through `telemetry.functionId`
   - `ai.values`: the values that were passed into the `embedMany` function
   - `ai.embeddings`: an array of JSON-stringified embedding
 - `ai.embedMany.doEmbed`: a provider doEmbed call.
   It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
-  - `operation.name`: `ai.embedMany`
+  - `operation.name`: `ai.embedMany.doEmbed` and the functionId that was set through `telemetry.functionId`
   - `ai.values`: the values that were sent to the provider
   - `ai.embeddings`: an array of JSON-stringified embeddings for each value
 

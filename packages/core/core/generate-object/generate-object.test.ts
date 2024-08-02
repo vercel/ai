@@ -201,7 +201,8 @@ describe('telemetry', () => {
     assert.deepStrictEqual(tracer.jsonSpans, [
       {
         attributes: {
-          'operation.name': 'ai.generateObject',
+          'operation.name': 'ai.generateObject test-function-id',
+          'resource.name': 'test-function-id',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
@@ -217,14 +218,14 @@ describe('telemetry', () => {
           'ai.request.headers.header2': 'value2',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'resource.name': 'test-function-id',
         },
         events: [],
         name: 'ai.generateObject',
       },
       {
         attributes: {
-          'operation.name': 'ai.generateObject',
+          'operation.name': 'ai.generateObject.doGenerate test-function-id',
+          'resource.name': 'test-function-id',
           'ai.settings.mode': 'json',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
@@ -244,7 +245,6 @@ describe('telemetry', () => {
           'ai.request.headers.header2': 'value2',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'resource.name': 'test-function-id',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.system': 'mock-provider',
@@ -292,6 +292,8 @@ describe('telemetry', () => {
     assert.deepStrictEqual(tracer.jsonSpans, [
       {
         attributes: {
+          'operation.name': 'ai.generateObject test-function-id',
+          'resource.name': 'test-function-id',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
@@ -307,14 +309,14 @@ describe('telemetry', () => {
           'ai.usage.promptTokens': 10,
           'ai.request.headers.header1': 'value1',
           'ai.request.headers.header2': 'value2',
-          'operation.name': 'ai.generateObject',
-          'resource.name': 'test-function-id',
         },
         events: [],
         name: 'ai.generateObject',
       },
       {
         attributes: {
+          'operation.name': 'ai.generateObject.doGenerate test-function-id',
+          'resource.name': 'test-function-id',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
@@ -330,8 +332,6 @@ describe('telemetry', () => {
           'ai.usage.promptTokens': 10,
           'ai.request.headers.header1': 'value1',
           'ai.request.headers.header2': 'value2',
-          'operation.name': 'ai.generateObject',
-          'resource.name': 'test-function-id',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.system': 'mock-provider',
@@ -378,7 +378,7 @@ describe('telemetry', () => {
       },
       {
         attributes: {
-          'operation.name': 'ai.generateObject',
+          'operation.name': 'ai.generateObject.doGenerate',
           'ai.settings.mode': 'json',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
@@ -444,7 +444,7 @@ describe('telemetry', () => {
           'ai.settings.mode': 'tool',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'operation.name': 'ai.generateObject',
+          'operation.name': 'ai.generateObject.doGenerate',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.system': 'mock-provider',

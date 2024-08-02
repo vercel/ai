@@ -1,3 +1,4 @@
+import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
@@ -61,7 +62,6 @@ Only applicable for HTTP-based providers.
   experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedResult<VALUE>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    operationName: 'ai.embed',
     model,
     telemetry,
     headers,
@@ -75,6 +75,7 @@ Only applicable for HTTP-based providers.
     attributes: selectTelemetryAttributes({
       telemetry,
       attributes: {
+        ...assembleOperationName({ operationName: 'ai.embed', telemetry }),
         ...baseTelemetryAttributes,
         'ai.value': { input: () => JSON.stringify(value) },
       },
@@ -90,6 +91,10 @@ Only applicable for HTTP-based providers.
           attributes: selectTelemetryAttributes({
             telemetry,
             attributes: {
+              ...assembleOperationName({
+                operationName: 'ai.embed.doEmbed',
+                telemetry,
+              }),
               ...baseTelemetryAttributes,
               // specific settings that only make sense on the outer level:
               'ai.values': { input: () => [JSON.stringify(value)] },

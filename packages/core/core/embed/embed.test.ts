@@ -111,6 +111,8 @@ describe('telemetry', () => {
     assert.deepStrictEqual(tracer.jsonSpans, [
       {
         attributes: {
+          'operation.name': 'ai.embed test-function-id',
+          'resource.name': 'test-function-id',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.telemetry.functionId': 'test-function-id',
@@ -119,14 +121,14 @@ describe('telemetry', () => {
           'ai.value': '"sunny day at the beach"',
           'ai.embedding': '[0.1,0.2,0.3]',
           'ai.usage.tokens': 10,
-          'operation.name': 'ai.embed',
-          'resource.name': 'test-function-id',
         },
         events: [],
         name: 'ai.embed',
       },
       {
         attributes: {
+          'operation.name': 'ai.embed.doEmbed test-function-id',
+          'resource.name': 'test-function-id',
           'ai.embeddings': ['[0.1,0.2,0.3]'],
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
@@ -135,8 +137,6 @@ describe('telemetry', () => {
           'ai.telemetry.metadata.test2': false,
           'ai.usage.tokens': 10,
           'ai.values': ['"sunny day at the beach"'],
-          'operation.name': 'ai.embed',
-          'resource.name': 'test-function-id',
         },
         events: [],
         name: 'ai.embed.doEmbed',
@@ -173,7 +173,7 @@ describe('telemetry', () => {
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.usage.tokens': 10,
-          'operation.name': 'ai.embed',
+          'operation.name': 'ai.embed.doEmbed',
         },
         events: [],
         name: 'ai.embed.doEmbed',
