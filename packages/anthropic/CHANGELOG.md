@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.35
+
+### Patch Changes
+
+- fe2128f0: feat (provider/anthropic): combine sequential assistant messages into one
+
 ## 0.0.34
 
 ### Patch Changes

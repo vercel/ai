@@ -1,5 +1,15 @@
 # ai
 
+## 3.3.0
+
+### Minor Changes
+
+- dbc3afb7: chore (ai): release AI SDK 3.3
+
+### Patch Changes
+
+- b9827186: feat (ai/core): update operation.name telemetry attribute to include function id and detailed name
+
 ## 3.2.45
 
 ### Patch Changes
