@@ -241,4 +241,28 @@ describe('assistant messages', () => {
       system: undefined,
     });
   });
+
+  it('should combine multiple sequential assistant messages into a single message', async () => {
+    const result = convertToAnthropicMessagesPrompt([
+      { role: 'user', content: [{ type: 'text', text: 'Hi!' }] },
+      { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
+      { role: 'assistant', content: [{ type: 'text', text: 'World' }] },
+      { role: 'assistant', content: [{ type: 'text', text: '!' }] },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        { role: 'user', content: [{ type: 'text', text: 'Hi!' }] },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Hello' },
+            { type: 'text', text: 'World' },
+            { type: 'text', text: '!' },
+          ],
+        },
+      ],
+      system: undefined,
+    });
+  });
 });

@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
+  AnthropicAssistantMessage,
   AnthropicMessage,
   AnthropicMessagesPrompt,
   AnthropicUserMessage,
@@ -97,42 +98,41 @@ export function convertToAnthropicMessagesPrompt(
       }
 
       case 'assistant': {
-        if (block.messages.length > 1) {
-          throw new UnsupportedFunctionalityError({
-            functionality: 'Multiple assistant messages in block',
-          });
-        }
+        // combines multiple assistant messages in this block into a single message:
+        const anthropicContent: AnthropicAssistantMessage['content'] = [];
 
-        const { content } = block.messages[0];
-
-        messages.push({
-          role: 'assistant',
-          content: content.map((part, j) => {
+        for (const { content } of block.messages) {
+          for (let j = 0; j < content.length; j++) {
+            const part = content[j];
             switch (part.type) {
               case 'text': {
-                // trim the last text part if it's the last message in the block
-                // because Anthropic does not allow trailing whitespace
-                // in pre-filled assistant responses
-                if (
-                  i === blocks.length - 1 &&
-                  j === block.messages.length - 1
-                ) {
-                  return { type: 'text', text: part.text.trim() };
-                }
-
-                return { type: 'text', text: part.text };
+                anthropicContent.push({
+                  type: 'text',
+                  text:
+                    // trim the last text part if it's the last message in the block
+                    // because Anthropic does not allow trailing whitespace
+                    // in pre-filled assistant responses
+                    i === blocks.length - 1 && j === block.messages.length - 1
+                      ? part.text.trim()
+                      : part.text,
+                });
+                break;
               }
+
               case 'tool-call': {
-                return {
+                anthropicContent.push({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
                   input: part.args,
-                };
+                });
+                break;
               }
             }
-          }),
-        });
+          }
+        }
+
+        messages.push({ role: 'assistant', content: anthropicContent });
 
         break;
       }
