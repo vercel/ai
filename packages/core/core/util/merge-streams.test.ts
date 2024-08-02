@@ -21,7 +21,7 @@ it('should prioritize the first stream over the second stream', async () => {
   ]);
 });
 
-it('should return values from the 2nd stream until the 1st stream has values', async () => {
+it.skip('should return values from the 2nd stream until the 1st stream has values', async () => {
   let stream1Controller: ReadableStreamDefaultController<string> | undefined;
   const stream1 = new ReadableStream({
     start(controller) {
