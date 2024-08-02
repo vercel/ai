@@ -12,6 +12,7 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
@@ -168,7 +169,6 @@ Warnings from the model provider (e.g. unsupported settings).
     }) => Promise<void> | void;
   }): Promise<DefaultStreamTextResult<TOOLS>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    operationName: 'ai.streamText',
     model,
     telemetry,
     headers,
@@ -182,6 +182,7 @@ Warnings from the model provider (e.g. unsupported settings).
     attributes: selectTelemetryAttributes({
       telemetry,
       attributes: {
+        ...assembleOperationName({ operationName: 'ai.streamText', telemetry }),
         ...baseTelemetryAttributes,
         // specific settings that only make sense on the outer level:
         'ai.prompt': {
@@ -208,6 +209,10 @@ Warnings from the model provider (e.g. unsupported settings).
           attributes: selectTelemetryAttributes({
             telemetry,
             attributes: {
+              ...assembleOperationName({
+                operationName: 'ai.streamText.doStream',
+                telemetry,
+              }),
               ...baseTelemetryAttributes,
               'ai.prompt.format': {
                 input: () => validatedPrompt.type,

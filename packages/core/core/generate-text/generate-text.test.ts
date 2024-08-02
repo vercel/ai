@@ -631,6 +631,7 @@ describe('telemetry', () => {
       {
         name: 'ai.generateText',
         attributes: {
+          'operation.name': 'ai.generateText test-function-id',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"prompt"}',
@@ -644,7 +645,6 @@ describe('telemetry', () => {
           'ai.usage.promptTokens': 10,
           'ai.request.headers.header1': 'value1',
           'ai.request.headers.header2': 'value2',
-          'operation.name': 'ai.generateText',
           'resource.name': 'test-function-id',
         },
         events: [],
@@ -652,6 +652,7 @@ describe('telemetry', () => {
       {
         name: 'ai.generateText.doGenerate',
         attributes: {
+          'operation.name': 'ai.generateText.doGenerate test-function-id',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt.format': 'prompt',
@@ -666,7 +667,6 @@ describe('telemetry', () => {
           'ai.usage.promptTokens': 10,
           'ai.request.headers.header1': 'value1',
           'ai.request.headers.header2': 'value2',
-          'operation.name': 'ai.generateText',
           'resource.name': 'test-function-id',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
@@ -736,7 +736,7 @@ describe('telemetry', () => {
             '[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{ \\"value\\": \\"value\\" }"}]',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'operation.name': 'ai.generateText',
+          'operation.name': 'ai.generateText.doGenerate',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.system': 'mock-provider',
@@ -748,6 +748,7 @@ describe('telemetry', () => {
       {
         name: 'ai.toolCall',
         attributes: {
+          'operation.name': 'ai.toolCall',
           'ai.toolCall.name': 'tool1',
           'ai.toolCall.id': 'call-1',
           'ai.toolCall.args': '{"value":"value"}',
@@ -809,7 +810,7 @@ describe('telemetry', () => {
           'ai.finishReason': 'stop',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'operation.name': 'ai.generateText',
+          'operation.name': 'ai.generateText.doGenerate',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.system': 'mock-provider',
@@ -821,6 +822,7 @@ describe('telemetry', () => {
       {
         name: 'ai.toolCall',
         attributes: {
+          'operation.name': 'ai.toolCall',
           'ai.toolCall.name': 'tool1',
           'ai.toolCall.id': 'call-1',
         },

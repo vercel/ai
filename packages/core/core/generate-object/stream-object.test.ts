@@ -870,6 +870,8 @@ describe('telemetry', () => {
       {
         name: 'ai.streamObject',
         attributes: {
+          'operation.name': 'ai.streamObject test-function-id',
+          'resource.name': 'test-function-id',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"prompt"}',
@@ -884,14 +886,13 @@ describe('telemetry', () => {
           'ai.settings.mode': 'json',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
-          'operation.name': 'ai.streamObject',
-          'resource.name': 'test-function-id',
         },
         events: [],
       },
       {
         name: 'ai.streamObject.doStream',
         attributes: {
+          'operation.name': 'ai.streamObject.doStream test-function-id',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.request.headers.header1': 'value1',
@@ -902,7 +903,6 @@ describe('telemetry', () => {
           'ai.telemetry.metadata.test2': false,
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
-          'operation.name': 'ai.streamObject',
           'resource.name': 'test-function-id',
           'ai.settings.mode': 'json',
           'ai.prompt.format': 'prompt',
@@ -1014,7 +1014,7 @@ describe('telemetry', () => {
           'ai.settings.mode': 'tool',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
-          'operation.name': 'ai.streamObject',
+          'operation.name': 'ai.streamObject test-function-id',
           'resource.name': 'test-function-id',
         },
         events: [],
@@ -1032,7 +1032,7 @@ describe('telemetry', () => {
           'ai.telemetry.metadata.test2': false,
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
-          'operation.name': 'ai.streamObject',
+          'operation.name': 'ai.streamObject.doStream test-function-id',
           'resource.name': 'test-function-id',
           'ai.settings.mode': 'tool',
           'ai.prompt.format': 'prompt',
@@ -1103,7 +1103,7 @@ describe('telemetry', () => {
           'ai.model.provider': 'mock-provider',
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
-          'operation.name': 'ai.streamObject',
+          'operation.name': 'ai.streamObject.doStream',
           'ai.settings.mode': 'json',
           'ai.finishReason': 'stop',
           'gen_ai.request.model': 'mock-model-id',
@@ -1207,7 +1207,7 @@ describe('telemetry', () => {
           'ai.finishReason': 'stop',
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
-          'operation.name': 'ai.streamObject',
+          'operation.name': 'ai.streamObject.doStream',
           'ai.settings.mode': 'tool',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.system': 'mock-provider',

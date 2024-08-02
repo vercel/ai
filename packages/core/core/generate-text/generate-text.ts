@@ -24,6 +24,7 @@ import { retryWithExponentialBackoff } from '../util/retry-with-exponential-back
 import { GenerateTextResult } from './generate-text-result';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
+import { assembleOperationName } from '../telemetry/assemble-operation-name';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -125,7 +126,6 @@ By default, it's set to 0, which will disable the feature.
     experimental_telemetry?: TelemetrySettings;
   }): Promise<GenerateTextResult<TOOLS>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    operationName: 'ai.generateText',
     model,
     telemetry,
     headers,
@@ -138,6 +138,10 @@ By default, it's set to 0, which will disable the feature.
     attributes: selectTelemetryAttributes({
       telemetry,
       attributes: {
+        ...assembleOperationName({
+          operationName: 'ai.generateText',
+          telemetry,
+        }),
         ...baseTelemetryAttributes,
         // specific settings that only make sense on the outer level:
         'ai.prompt': {
@@ -191,6 +195,10 @@ By default, it's set to 0, which will disable the feature.
             attributes: selectTelemetryAttributes({
               telemetry,
               attributes: {
+                ...assembleOperationName({
+                  operationName: 'ai.generateText.doGenerate',
+                  telemetry,
+                }),
                 ...baseTelemetryAttributes,
                 'ai.prompt.format': { input: () => currentInputFormat },
                 'ai.prompt.messages': {
@@ -363,6 +371,10 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
         attributes: selectTelemetryAttributes({
           telemetry,
           attributes: {
+            ...assembleOperationName({
+              operationName: 'ai.toolCall',
+              telemetry,
+            }),
             'ai.toolCall.name': toolCall.toolName,
             'ai.toolCall.id': toolCall.toolCallId,
             'ai.toolCall.args': {

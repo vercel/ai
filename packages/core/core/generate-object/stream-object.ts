@@ -17,9 +17,11 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
+import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
+import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CallWarning, LanguageModel } from '../types';
 import {
@@ -40,7 +42,6 @@ import {
   ObjectStreamPart,
   StreamObjectResult,
 } from './stream-object-result';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -163,7 +164,6 @@ Warnings from the model provider (e.g. unsupported settings).
     }) => Promise<void> | void;
   }): Promise<DefaultStreamObjectResult<T>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    operationName: 'ai.streamObject',
     model,
     telemetry,
     headers,
@@ -181,6 +181,10 @@ Warnings from the model provider (e.g. unsupported settings).
     attributes: selectTelemetryAttributes({
       telemetry,
       attributes: {
+        ...assembleOperationName({
+          operationName: 'ai.streamObject',
+          telemetry,
+        }),
         ...baseTelemetryAttributes,
         // specific settings that only make sense on the outer level:
         'ai.prompt': {
@@ -310,6 +314,10 @@ Warnings from the model provider (e.g. unsupported settings).
           attributes: selectTelemetryAttributes({
             telemetry,
             attributes: {
+              ...assembleOperationName({
+                operationName: 'ai.streamObject.doStream',
+                telemetry,
+              }),
               ...baseTelemetryAttributes,
               'ai.prompt.format': {
                 input: () => callOptions.inputFormat,

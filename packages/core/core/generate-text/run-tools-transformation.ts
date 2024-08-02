@@ -1,13 +1,14 @@
 import { LanguageModelV1StreamPart, NoSuchToolError } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/ui-utils';
 import { Tracer } from '@opentelemetry/api';
+import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordSpan } from '../telemetry/record-span';
+import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
 import { calculateCompletionTokenUsage } from '../types/token-usage';
 import { TextStreamPart } from './stream-text-result';
 import { parseToolCall } from './tool-call';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 
 export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   tools,
@@ -126,6 +127,10 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                 attributes: selectTelemetryAttributes({
                   telemetry,
                   attributes: {
+                    ...assembleOperationName({
+                      operationName: 'ai.toolCall',
+                      telemetry,
+                    }),
                     'ai.toolCall.name': toolCall.toolName,
                     'ai.toolCall.id': toolCall.toolCallId,
                     'ai.toolCall.args': {
