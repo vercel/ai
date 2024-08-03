@@ -34,7 +34,7 @@ export function prepareToolsAndToolChoice<
       parameters: asSchema(tool.parameters).jsonSchema,
     })),
     toolChoice:
-      toolChoice == null
+      toolChoice === undefined
         ? { type: 'auto' }
         : typeof toolChoice === 'string'
         ? { type: toolChoice }

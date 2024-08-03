@@ -44,6 +44,7 @@ Tool choice for the generation. It supports the following settings:
  */
 // TODO rename to ToolChoice once shared/types.ts ToolChoice is gone
 export type CoreToolChoice<TOOLS extends Record<string, unknown>> =
+  | null
   | 'auto'
   | 'none'
   | 'required'
