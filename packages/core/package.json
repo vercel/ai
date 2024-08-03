@@ -164,6 +164,7 @@
     "nextjs",
     "svelte",
     "react",
-    "vue"
+    "vue",
+    "solid"
   ]
 }
