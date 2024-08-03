@@ -22,7 +22,8 @@
         "ASSISTANT_ID",
         "INKEEP_API_KEY",
         "INKEEP_INTEGRATION_ID",
-        "VERCEL_URL"
+        "VERCEL_URL",
+        "ZEP_API_KEY"
       ],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
