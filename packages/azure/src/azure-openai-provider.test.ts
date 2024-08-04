@@ -58,7 +58,7 @@ describe('chat', () => {
 
       const searchParams = await server.getRequestUrlSearchParams();
       expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-05-01-preview',
+        '2024-06-01',
       );
     });
 
@@ -108,7 +108,7 @@ describe('chat', () => {
 
       const requestUrl = await server.getRequestUrl();
       expect(requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-05-01-preview',
+        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-06-01',
       );
     });
   });
@@ -173,7 +173,7 @@ describe('completion', () => {
 
       const searchParams = await server.getRequestUrlSearchParams();
       expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-05-01-preview',
+        '2024-06-01',
       );
     });
 
@@ -251,7 +251,7 @@ describe('embedding', () => {
 
       const searchParams = await server.getRequestUrlSearchParams();
       expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-05-01-preview',
+        '2024-06-01',
       );
     });
 
