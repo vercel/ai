@@ -1,5 +1,11 @@
 # @ai-sdk/azure
 
+## 0.0.18
+
+### Patch Changes
+
+- b99180b5: feat (provider/azure): update Azure API version to 2024-06-01
+
 ## 0.0.17
 
 ### Patch Changes
