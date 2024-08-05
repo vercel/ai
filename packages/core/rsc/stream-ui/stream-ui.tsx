@@ -19,6 +19,8 @@ import {
   calculateCompletionTokenUsage,
 } from '../../core/types/token-usage';
 import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
+import { isAsyncGenerator } from '../../util/is-async-generator';
+import { isGenerator } from '../../util/is-generator';
 import { createStreamableUI } from '../streamable';
 import { createResolvablePromise } from '../utils';
 
@@ -198,57 +200,28 @@ export async function streamUI<
       ? finished.then(() => renderFinished.promise)
       : renderFinished.promise;
 
-    const value = renderer(...args);
+    const rendererResult = renderer(...args);
 
-    if (
-      value instanceof Promise ||
-      (value &&
-        typeof value === 'object' &&
-        'then' in value &&
-        typeof value.then === 'function')
-    ) {
-      const node = await (value as Promise<React.ReactNode>);
+    if (isAsyncGenerator(rendererResult) || isGenerator(rendererResult)) {
+      while (true) {
+        const { done, value } = await rendererResult.next();
+        const node = await value;
+
+        if (isLastCall && done) {
+          streamableUI.done(node);
+        } else {
+          streamableUI.update(node);
+        }
+
+        if (done) break;
+      }
+    } else {
+      const node = await rendererResult;
 
       if (isLastCall) {
         streamableUI.done(node);
       } else {
         streamableUI.update(node);
-      }
-    } else if (
-      value &&
-      typeof value === 'object' &&
-      Symbol.asyncIterator in value
-    ) {
-      const it = value as AsyncGenerator<
-        React.ReactNode,
-        React.ReactNode,
-        void
-      >;
-      while (true) {
-        const { done, value } = await it.next();
-        if (isLastCall && done) {
-          streamableUI.done(value);
-        } else {
-          streamableUI.update(value);
-        }
-        if (done) break;
-      }
-    } else if (value && typeof value === 'object' && Symbol.iterator in value) {
-      const it = value as Generator<React.ReactNode, React.ReactNode, void>;
-      while (true) {
-        const { done, value } = it.next();
-        if (isLastCall && done) {
-          streamableUI.done(value);
-        } else {
-          streamableUI.update(value);
-        }
-        if (done) break;
-      }
-    } else {
-      if (isLastCall) {
-        streamableUI.done(value);
-      } else {
-        streamableUI.update(value);
       }
     }
 
