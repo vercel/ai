@@ -20,7 +20,7 @@
     "ai": "latest",
     "next": "latest",
     "openai": "4.52.6",
-    "react": "^18",
+    "react": "^19.0.0-rc-8269d55d-20240802",
     "react-dom": "^18",
     "zod": "3.23.8"
   },
