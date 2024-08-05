@@ -1,5 +1,5 @@
 import { TypeValidationError } from '@ai-sdk/provider';
-import { ZodSchema } from 'zod';
+import { z } from 'zod';
 import { Validator, isValidator, zodValidator } from './validator';
 
 /**
@@ -16,7 +16,7 @@ export function validateTypes<T>({
   schema: inputSchema,
 }: {
   value: unknown;
-  schema: ZodSchema<T> | Validator<T>;
+  schema: z.Schema<T, z.ZodTypeDef, any> | Validator<T>;
 }): T {
   const result = safeValidateTypes({ value, schema: inputSchema });
 
@@ -41,7 +41,7 @@ export function safeValidateTypes<T>({
   schema: inputSchema,
 }: {
   value: unknown;
-  schema: ZodSchema<T> | Validator<T>;
+  schema: z.Schema<T, z.ZodTypeDef, any> | Validator<T>;
 }):
   | { success: true; value: T }
   | { success: false; error: TypeValidationError } {

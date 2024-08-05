@@ -82,7 +82,7 @@ The language model to use.
     /**
 The schema of the object that the model should generate.
      */
-    schema: z.Schema<T> | Schema<T>;
+    schema: z.Schema<T, z.ZodTypeDef, any> | Schema<T>;
 
     /**
 The mode to use for object generation.

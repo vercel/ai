@@ -21,7 +21,7 @@ export type Experimental_UseObjectOptions<RESULT> = {
   /**
    * A Zod schema that defines the shape of the complete object.
    */
-  schema: z.Schema<RESULT>;
+  schema: z.Schema<RESULT, z.ZodTypeDef, any>;
 
   /**
    * An unique identifier. If not provided, a random one will be
