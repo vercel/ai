@@ -1,6 +1,6 @@
 # Vercel AI SDK, Next.js, and OpenAI Chat Example with Sentry
 
-This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) and [OpenAI](https://openai.com) to create a ChatGPT-like AI-powered streaming chat bot with [OpenTelemetry support](https://sdk.vercel.ai/docs/ai-sdk-core/telemetry).
+This example shows how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/), [OpenAI](https://openai.com) and [Sentry](https://sentry.io) to create a ChatGPT-like AI-powered streaming chat bot with [OpenTelemetry support](https://sdk.vercel.ai/docs/ai-sdk-core/telemetry).
 
 ## Deploy your own
 
