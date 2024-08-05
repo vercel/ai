@@ -1,0 +1,38 @@
+{
+  "name": "next-openai-telemetry-sentry",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "latest",
+    "@ai-sdk/react": "latest",
+    "@opentelemetry/api-logs": "0.52.1",
+    "@opentelemetry/instrumentation": "0.52.1",
+    "@opentelemetry/sdk-logs": "0.52.1",
+    "@sentry/nextjs": "^8.22.0",
+    "@sentry/opentelemetry": "8.22.0",
+    "@vercel/otel": "1.9.1",
+    "ai": "latest",
+    "next": "latest",
+    "openai": "4.52.6",
+    "react": "^18",
+    "react-dom": "^18",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^18",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.14",
+    "eslint": "^7.32.0",
+    "eslint-config-next": "14.2.3",
+    "postcss": "^8.4.23",
+    "tailwindcss": "^3.3.2",
+    "typescript": "5.1.3"
+  }
+}
