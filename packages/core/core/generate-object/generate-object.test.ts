@@ -494,3 +494,72 @@ describe('custom schema', () => {
     assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
   });
 });
+
+describe('zod schema', () => {
+  it('should generate object  when using zod transform', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, { type: 'object-json' });
+          assert.deepStrictEqual(prompt, [
+            {
+              role: 'system',
+              content:
+                'JSON schema:\n' +
+                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
+                'You MUST answer with a JSON object that matches the JSON schema above.',
+            },
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+          };
+        },
+      }),
+      schema: z.object({
+        content: z.string().transform(value => value.length),
+      }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.object, { content: 13 });
+  });
+
+  it('should generate object with tool mode when using zod prePreprocess', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, { type: 'object-json' });
+          assert.deepStrictEqual(prompt, [
+            {
+              role: 'system',
+              content:
+                'JSON schema:\n' +
+                '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
+                'You MUST answer with a JSON object that matches the JSON schema above.',
+            },
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+          };
+        },
+      }),
+      schema: z.object({
+        content: z.preprocess(
+          val => (typeof val === 'number' ? String(val) : val),
+          z.string(),
+        ),
+      }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
+  });
+});

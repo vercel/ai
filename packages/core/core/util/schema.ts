@@ -62,12 +62,14 @@ function isSchema(value: unknown): value is Schema {
 }
 
 export function asSchema<OBJECT>(
-  schema: z.Schema<OBJECT> | Schema<OBJECT>,
+  schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT>,
 ): Schema<OBJECT> {
   return isSchema(schema) ? schema : zodSchema(schema);
 }
 
-export function zodSchema<OBJECT>(zodSchema: z.Schema<OBJECT>): Schema<OBJECT> {
+export function zodSchema<OBJECT>(
+  zodSchema: z.Schema<OBJECT, z.ZodTypeDef, any>,
+): Schema<OBJECT> {
   return jsonSchema(
     // we assume that zodToJsonSchema will return a valid JSONSchema7:
     zodToJsonSchema(zodSchema) as JSONSchema7,

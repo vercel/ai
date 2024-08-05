@@ -107,7 +107,7 @@ The language model to use.
     /**
 The schema of the object that the model should generate.
  */
-    schema: z.Schema<T> | Schema<T>;
+    schema: z.Schema<T, z.ZodTypeDef, any> | Schema<T>;
 
     /**
 The mode to use for object generation.
@@ -382,7 +382,7 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
     >;
     warnings: StreamObjectResult<T>['warnings'];
     rawResponse?: StreamObjectResult<T>['rawResponse'];
-    schema: z.Schema<T> | Schema<T>;
+    schema: z.Schema<T, z.ZodTypeDef, any> | Schema<T>;
     onFinish: Parameters<typeof streamObject<T>>[0]['onFinish'];
     rootSpan: Span;
     doStreamSpan: Span;
