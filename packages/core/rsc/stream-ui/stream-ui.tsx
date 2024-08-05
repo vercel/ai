@@ -20,7 +20,7 @@ import {
 } from '../../core/types/token-usage';
 import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
 import { createStreamableUI } from '../streamable';
-import { createResolvablePromise } from '../utils';
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
 
 type Streamable = ReactNode | Promise<ReactNode>;
 

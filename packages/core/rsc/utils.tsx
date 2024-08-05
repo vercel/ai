@@ -1,17 +1,5 @@
 import React, { Suspense } from 'react';
-
-export function createResolvablePromise<T = any>() {
-  let resolve: (value: T) => void, reject: (error: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return {
-    promise,
-    resolve: resolve!,
-    reject: reject!,
-  };
-}
+import { createResolvablePromise } from '../util/create-resolvable-promise';
 
 // Use the name `R` for `Row` as it will be shorter in the RSC payload.
 const R = [
