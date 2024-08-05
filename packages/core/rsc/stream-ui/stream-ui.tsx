@@ -22,7 +22,7 @@ import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponent
 import { isAsyncGenerator } from '../../util/is-async-generator';
 import { isGenerator } from '../../util/is-generator';
 import { createStreamableUI } from '../streamable';
-import { createResolvablePromise } from '../utils';
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
 
 type Streamable = ReactNode | Promise<ReactNode>;
 
