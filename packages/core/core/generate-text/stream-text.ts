@@ -94,6 +94,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   headers,
   experimental_telemetry: telemetry,
   experimental_toolCallStreaming: toolCallStreaming = false,
+  experimental_responseFormat: responseFormat,
   onFinish,
   ...settings
 }: CallSettings &
@@ -112,6 +113,11 @@ The tools that the model can call. The model needs to support calling tools.
 The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: CoreToolChoice<TOOLS>;
+
+    /**
+The response format. Can be either text or json.
+     */
+    experimental_responseFormat?: { type: 'text' } | { type: 'json' };
 
     /**
 Optional telemetry configuration (experimental).
@@ -240,6 +246,7 @@ Warnings from the model provider (e.g. unsupported settings).
                   ...prepareToolsAndToolChoice({ tools, toolChoice }),
                 },
                 ...prepareCallSettings(settings),
+                responseFormat,
                 inputFormat: validatedPrompt.type,
                 prompt: promptMessages,
                 abortSignal,
