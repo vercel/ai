@@ -57,9 +57,7 @@ describe('chat', () => {
       });
 
       const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-06-01',
-      );
+      expect(searchParams.get('api-version')).toStrictEqual('2024-06-01');
     });
 
     it('should pass headers', async () => {
@@ -172,9 +170,7 @@ describe('completion', () => {
       });
 
       const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-06-01',
-      );
+      expect(searchParams.get('api-version')).toStrictEqual('2024-06-01');
     });
 
     it('should pass headers', async () => {
@@ -250,9 +246,7 @@ describe('embedding', () => {
       });
 
       const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-06-01',
-      );
+      expect(searchParams.get('api-version')).toStrictEqual('2024-06-01');
     });
 
     it('should pass headers', async () => {
