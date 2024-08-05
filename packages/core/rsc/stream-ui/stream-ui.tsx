@@ -253,7 +253,6 @@ export async function streamUI<
     }
 
     // resolve the promise to signal that the render call is finished
-    // TODO should this be in a finally block?
     renderFinished.resolve(undefined);
   }
 
