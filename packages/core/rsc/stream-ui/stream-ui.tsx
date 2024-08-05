@@ -19,6 +19,8 @@ import {
   calculateCompletionTokenUsage,
 } from '../../core/types/token-usage';
 import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
+import { isAsyncGenerator } from '../../util/is-async-generator';
+import { isGenerator } from '../../util/is-generator';
 import { createStreamableUI } from '../streamable';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 
@@ -177,79 +179,54 @@ export async function streamUI<
 
   let finished: Promise<void> | undefined;
 
-  async function handleRender(
-    args: [payload: any] | [payload: any, options: any],
-    renderer: undefined | Renderer<any>,
-    res: ReturnType<typeof createStreamableUI>,
-    lastCall = false,
-  ) {
+  async function render({
+    args,
+    renderer,
+    streamableUI,
+    isLastCall = false,
+  }: {
+    renderer: undefined | Renderer<any>;
+    args: [payload: any] | [payload: any, options: any];
+    streamableUI: ReturnType<typeof createStreamableUI>;
+    isLastCall?: boolean;
+  }) {
     if (!renderer) return;
 
-    const resolvable = createResolvablePromise<void>();
+    // create a promise that will be resolved when the render call is finished.
+    // it is appended to the `finished` promise chain to ensure the render call
+    // is finished before the next render call starts.
+    const renderFinished = createResolvablePromise<void>();
+    finished = finished
+      ? finished.then(() => renderFinished.promise)
+      : renderFinished.promise;
 
-    if (finished) {
-      finished = finished.then(() => resolvable.promise);
-    } else {
-      finished = resolvable.promise;
-    }
+    const rendererResult = renderer(...args);
 
-    const value = renderer(...args);
-    if (
-      value instanceof Promise ||
-      (value &&
-        typeof value === 'object' &&
-        'then' in value &&
-        typeof value.then === 'function')
-    ) {
-      const node = await (value as Promise<React.ReactNode>);
-
-      if (lastCall) {
-        res.done(node);
-      } else {
-        res.update(node);
-      }
-
-      resolvable.resolve(void 0);
-    } else if (
-      value &&
-      typeof value === 'object' &&
-      Symbol.asyncIterator in value
-    ) {
-      const it = value as AsyncGenerator<
-        React.ReactNode,
-        React.ReactNode,
-        void
-      >;
+    if (isAsyncGenerator(rendererResult) || isGenerator(rendererResult)) {
       while (true) {
-        const { done, value } = await it.next();
-        if (lastCall && done) {
-          res.done(value);
+        const { done, value } = await rendererResult.next();
+        const node = await value;
+
+        if (isLastCall && done) {
+          streamableUI.done(node);
         } else {
-          res.update(value);
+          streamableUI.update(node);
         }
+
         if (done) break;
       }
-      resolvable.resolve(void 0);
-    } else if (value && typeof value === 'object' && Symbol.iterator in value) {
-      const it = value as Generator<React.ReactNode, React.ReactNode, void>;
-      while (true) {
-        const { done, value } = it.next();
-        if (lastCall && done) {
-          res.done(value);
-        } else {
-          res.update(value);
-        }
-        if (done) break;
-      }
-      resolvable.resolve(void 0);
     } else {
-      if (lastCall) {
-        res.done(value);
+      const node = await rendererResult;
+
+      if (isLastCall) {
+        streamableUI.done(node);
       } else {
-        res.update(value);
+        streamableUI.update(node);
       }
-      resolvable.resolve(void 0);
     }
+
+    // resolve the promise to signal that the render call is finished
+    renderFinished.resolve(undefined);
   }
 
   const retry = retryWithExponentialBackoff({ maxRetries });
@@ -271,12 +248,10 @@ export async function streamUI<
     }),
   );
 
+  // For the stream and consume it asynchronously:
   const [stream, forkedStream] = result.stream.tee();
-
   (async () => {
     try {
-      // Consume the forked stream asynchonously.
-
       let content = '';
       let hasToolCall = false;
 
@@ -288,11 +263,11 @@ export async function streamUI<
         switch (value.type) {
           case 'text-delta': {
             content += value.textDelta;
-            handleRender(
-              [{ content, done: false, delta: value.textDelta }],
-              textRender,
-              ui,
-            );
+            render({
+              renderer: textRender,
+              args: [{ content, done: false, delta: value.textDelta }],
+              streamableUI: ui,
+            });
             break;
           }
 
@@ -305,7 +280,7 @@ export async function streamUI<
             const toolName = value.toolName as keyof TOOLS & string;
 
             if (!tools) {
-              throw new NoSuchToolError({ toolName: toolName });
+              throw new NoSuchToolError({ toolName });
             }
 
             const tool = tools[toolName];
@@ -330,18 +305,18 @@ export async function streamUI<
               });
             }
 
-            handleRender(
-              [
+            render({
+              renderer: tool.generate,
+              args: [
                 parseResult.value,
                 {
                   toolName,
                   toolCallId: value.toolCallId,
                 },
               ],
-              tool.generate,
-              ui,
-              true,
-            );
+              streamableUI: ui,
+              isLastCall: true,
+            });
 
             break;
           }
@@ -362,12 +337,16 @@ export async function streamUI<
         }
       }
 
-      if (hasToolCall) {
-        await finished;
-      } else {
-        handleRender([{ content, done: true }], textRender, ui, true);
-        await finished;
+      if (!hasToolCall) {
+        render({
+          renderer: textRender,
+          args: [{ content, done: true }],
+          streamableUI: ui,
+          isLastCall: true,
+        });
       }
+
+      await finished;
     } catch (error) {
       // During the stream rendering, we don't want to throw the error to the
       // parent scope but only let the React's error boundary to catch it.
