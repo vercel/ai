@@ -93,21 +93,25 @@ console.log('users', users);
 
 ### Dates
 
-Zod expects JavaScript Date objects, but most models return dates as strings. You can use the `z.string().datetime()` method to specify and validate datetime strings.
+Zod expects JavaScript Date objects, but models return dates as strings.
+You can specify and validate the date format using `z.string().datetime()` or `z.string().date()`,
+and then use a Zod transformer to convert the string to a Date object.
 
-```ts highlight="6-9"
+```ts highlight="7-10"
 const result = await generateObject({
-  model: openai('gpt-4o'),
+  model: openai('gpt-4-turbo'),
   schema: z.object({
-    user: z.object({
-      login: z.string(),
-      lastSeen: z
-        .string()
-        .datetime()
-        .describe('Last time the user was seen (ISO 8601 date string().'),
-    }),
+    events: z.array(
+      z.object({
+        event: z.string(),
+        date: z
+          .string()
+          .date()
+          .transform(value => new Date(value)),
+      }),
+    ),
   }),
-  prompt: 'Generate a fake user profile for testing.',
+  prompt: 'List 5 important events from the the year 2000.',
 });
 ```
 
