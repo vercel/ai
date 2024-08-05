@@ -10,12 +10,9 @@ import {
   STREAMABLE_VALUE_TYPE,
   DEV_DEFAULT_STREAMABLE_WARNING_TIME,
 } from './constants';
-import {
-  createResolvablePromise,
-  createSuspensedChunk,
-  consumeStream,
-} from './utils';
+import { createSuspensedChunk, consumeStream } from './utils';
 import type { StreamablePatch, StreamableValue } from './types';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
 
 // It's necessary to define the type manually here, otherwise TypeScript compiler
 // will not be able to infer the correct return type as it's circular.

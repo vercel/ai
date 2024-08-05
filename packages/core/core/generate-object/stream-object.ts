@@ -12,6 +12,8 @@ import {
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'http';
 import { z } from 'zod';
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
+import { DelayedPromise } from '../../util/delayed-promise';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
@@ -32,7 +34,6 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
-import { DelayedPromise } from '../util/delayed-promise';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { Schema, asSchema } from '../util/schema';
@@ -394,12 +395,9 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
     this.objectPromise = new DelayedPromise<T>();
 
     // initialize usage promise
-    let resolveUsage: (
-      value: CompletionTokenUsage | PromiseLike<CompletionTokenUsage>,
-    ) => void;
-    this.usage = new Promise<CompletionTokenUsage>(resolve => {
-      resolveUsage = resolve;
-    });
+    const { resolve: resolveUsage, promise: usagePromise } =
+      createResolvablePromise<CompletionTokenUsage>();
+    this.usage = usagePromise;
 
     // store information for onFinish callback:
     let usage: CompletionTokenUsage | undefined;
