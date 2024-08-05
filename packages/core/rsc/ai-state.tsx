@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import * as jsondiffpatch from 'jsondiffpatch';
-import { createResolvablePromise, isFunction } from './utils';
+import { isFunction } from './utils';
 import type {
   AIProvider,
   InternalAIStateStorageOptions,
@@ -8,6 +8,7 @@ import type {
   MutableAIState,
   ValueOrUpdater,
 } from './types';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
 
 // It is possible that multiple AI requests get in concurrently, for different
 // AI instances. So ALS is necessary here for a simpler API.

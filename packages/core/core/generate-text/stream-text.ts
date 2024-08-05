@@ -37,6 +37,7 @@ import { runToolsTransformation } from './run-tools-transformation';
 import { StreamTextResult } from './stream-text-result';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -305,42 +306,29 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     this.onFinish = onFinish;
 
     // initialize usage promise
-    let resolveUsage: (
-      value: CompletionTokenUsage | PromiseLike<CompletionTokenUsage>,
-    ) => void;
-    this.usage = new Promise<CompletionTokenUsage>(resolve => {
-      resolveUsage = resolve;
-    });
+    const { resolve: resolveUsage, promise: usagePromise } =
+      createResolvablePromise<CompletionTokenUsage>();
+    this.usage = usagePromise;
 
     // initialize finish reason promise
-    let resolveFinishReason: (
-      value: FinishReason | PromiseLike<FinishReason>,
-    ) => void;
-    this.finishReason = new Promise<FinishReason>(resolve => {
-      resolveFinishReason = resolve;
-    });
+    const { resolve: resolveFinishReason, promise: finishReasonPromise } =
+      createResolvablePromise<FinishReason>();
+    this.finishReason = finishReasonPromise;
 
     // initialize text promise
-    let resolveText: (value: string | PromiseLike<string>) => void;
-    this.text = new Promise<string>(resolve => {
-      resolveText = resolve;
-    });
+    const { resolve: resolveText, promise: textPromise } =
+      createResolvablePromise<string>();
+    this.text = textPromise;
 
     // initialize toolCalls promise
-    let resolveToolCalls: (
-      value: ToToolCall<TOOLS>[] | PromiseLike<ToToolCall<TOOLS>[]>,
-    ) => void;
-    this.toolCalls = new Promise<ToToolCall<TOOLS>[]>(resolve => {
-      resolveToolCalls = resolve;
-    });
+    const { resolve: resolveToolCalls, promise: toolCallsPromise } =
+      createResolvablePromise<ToToolCall<TOOLS>[]>();
+    this.toolCalls = toolCallsPromise;
 
     // initialize toolResults promise
-    let resolveToolResults: (
-      value: ToToolResult<TOOLS>[] | PromiseLike<ToToolResult<TOOLS>[]>,
-    ) => void;
-    this.toolResults = new Promise<ToToolResult<TOOLS>[]>(resolve => {
-      resolveToolResults = resolve;
-    });
+    const { resolve: resolveToolResults, promise: toolResultsPromise } =
+      createResolvablePromise<ToToolResult<TOOLS>[]>();
+    this.toolResults = toolResultsPromise;
 
     // store information for onFinish callback:
     let finishReason: FinishReason | undefined;
