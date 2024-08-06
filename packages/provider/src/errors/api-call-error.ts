@@ -1,4 +1,10 @@
-export class APICallError extends Error {
+import { AISDKError } from './ai-sdk-error';
+
+const marker = Symbol.for('vercel.ai.error.api-call-error');
+
+export class APICallError extends AISDKError {
+  private readonly [marker] = true; // used in isInstance
+
   readonly url: string;
   readonly requestBodyValues: unknown;
   readonly statusCode?: number;
@@ -6,7 +12,6 @@ export class APICallError extends Error {
   readonly responseHeaders?: Record<string, string>;
   readonly responseBody?: string;
 
-  readonly cause?: unknown;
   readonly isRetryable: boolean;
   readonly data?: unknown;
 
@@ -35,20 +40,35 @@ export class APICallError extends Error {
     isRetryable?: boolean;
     data?: unknown;
   }) {
-    super(message);
-
-    this.name = 'AI_APICallError';
+    super({
+      name: 'AI_APICallError',
+      message,
+      cause,
+    });
 
     this.url = url;
     this.requestBodyValues = requestBodyValues;
     this.statusCode = statusCode;
     this.responseHeaders = responseHeaders;
     this.responseBody = responseBody;
-    this.cause = cause;
     this.isRetryable = isRetryable;
     this.data = data;
   }
 
+  static isInstance(error: unknown): error is APICallError {
+    return (
+      error != null &&
+      (error instanceof APICallError ||
+        (typeof error === 'object' &&
+          marker in error &&
+          typeof error[marker] === 'boolean' &&
+          error[marker] === true))
+    );
+  }
+
+  /**
+   * @deprecated Use isInstance instead.
+   */
   static isAPICallError(error: unknown): error is APICallError {
     return (
       error instanceof Error &&

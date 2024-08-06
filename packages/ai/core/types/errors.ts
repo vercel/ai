@@ -1,4 +1,5 @@
 export {
+  AISDKError,
   APICallError,
   EmptyResponseBodyError,
   InvalidArgumentError,
@@ -11,8 +12,6 @@ export {
   NoObjectGeneratedError,
   NoSuchToolError,
   RetryError,
-  ToolCallParseError,
   TypeValidationError,
   UnsupportedFunctionalityError,
-  UnsupportedJSONSchemaError,
 } from '@ai-sdk/provider';

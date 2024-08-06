@@ -1,3 +1,4 @@
+// TODO move to ai package
 export class DownloadError extends Error {
   readonly url: string;
   readonly statusCode?: number;
