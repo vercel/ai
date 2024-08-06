@@ -24,7 +24,7 @@ export class TooManyEmbeddingValuesForCallError extends Error {
     this.values = options.values;
   }
 
-  static isInvalidPromptError(
+  static isTooManyEmbeddingValuesForCallError(
     error: unknown,
   ): error is TooManyEmbeddingValuesForCallError {
     return (

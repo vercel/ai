@@ -1,3 +1,4 @@
+// TODO move to ai package
 export class InvalidDataContentError extends Error {
   readonly content: unknown;
   readonly cause?: unknown;

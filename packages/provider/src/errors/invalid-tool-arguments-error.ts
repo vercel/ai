@@ -1,5 +1,6 @@
 import { getErrorMessage } from './get-error-message';
 
+// TODO move to ai package
 export class InvalidToolArgumentsError extends Error {
   readonly toolName: string;
   readonly toolArgs: string;

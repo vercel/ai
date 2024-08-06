@@ -1,3 +1,4 @@
+// TODO move to ai package
 export class InvalidArgumentError extends Error {
   readonly parameter: string;
   readonly value: unknown;

@@ -1,3 +1,4 @@
+// TODO move to ai package
 export class NoSuchToolError extends Error {
   readonly toolName: string;
   readonly availableTools: string[] | undefined;

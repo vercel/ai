@@ -3,6 +3,7 @@ export type RetryErrorReason =
   | 'errorNotRetryable'
   | 'abort';
 
+// TODO move to ai package
 export class RetryError extends Error {
   // note: property order determines debugging output
   readonly reason: RetryErrorReason;

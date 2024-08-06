@@ -1,6 +1,7 @@
 /**
 Thrown when the AI provider fails to generate a parsable object.
  */
+// TODO move to ai package
 export class NoObjectGeneratedError extends Error {
   readonly cause: unknown;
 
