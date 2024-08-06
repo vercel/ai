@@ -6,7 +6,6 @@ export {
   InvalidResponseDataError,
   JSONParseError,
   LoadAPIKeyError,
-  NoSuchToolError,
   RetryError,
   TypeValidationError,
   UnsupportedFunctionalityError,
@@ -14,6 +13,7 @@ export {
 
 export { InvalidArgumentError } from './invalid-argument-error';
 export { InvalidToolArgumentsError } from './invalid-tool-arguments-error';
+export { NoSuchToolError } from './no-such-tool-error';
 
 export { NoObjectGeneratedError } from '../core/generate-object/no-object-generated-error';
 export { InvalidDataContentError } from '../core/prompt/invalid-data-content-error';
