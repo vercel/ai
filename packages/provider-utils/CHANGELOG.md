@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 1.0.6
+
+### Patch Changes
+
+- 9614584: fix (ai/core): use Symbol.for
+- 0762a22: feat (ai/core): support zod transformers in generateObject & streamObject
+
 ## 1.0.5
 
 ### Patch Changes
