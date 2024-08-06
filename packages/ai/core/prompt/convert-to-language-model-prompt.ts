@@ -5,9 +5,9 @@ import {
   LanguageModelV1TextPart,
 } from '@ai-sdk/provider';
 import { getErrorMessage } from '@ai-sdk/provider-utils';
+import { download } from '../../util/download';
 import { CoreMessage } from '../prompt/message';
 import { detectImageMimeType } from '../util/detect-image-mimetype';
-import { download } from '../util/download';
 import { ImagePart, TextPart } from './content-part';
 import { convertDataContentToUint8Array } from './data-content';
 import { ValidatedPrompt } from './get-validated-prompt';

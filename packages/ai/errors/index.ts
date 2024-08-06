@@ -15,3 +15,5 @@ export {
   TypeValidationError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+
+export { DownloadError } from '../util/download-error';

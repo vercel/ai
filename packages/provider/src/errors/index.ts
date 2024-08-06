@@ -1,6 +1,5 @@
 export * from './ai-sdk-error';
 export * from './api-call-error';
-export * from './download-error';
 export * from './empty-response-body-error';
 export * from './invalid-argument-error';
 export * from './invalid-data-content-error';

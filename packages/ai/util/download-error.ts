@@ -1,9 +1,8 @@
-import { AISDKError } from './ai-sdk-error';
+import { AISDKError } from '@ai-sdk/provider';
 
 const marker = 'vercel.ai.error.download-error';
 const symbol = Symbol.for(marker);
 
-// TODO move to ai package
 export class DownloadError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
