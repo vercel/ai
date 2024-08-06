@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.15
+
+### Patch Changes
+
+- 96aed25: fix (ai/provider): release new version
+
 ## 0.0.14
 
 ### Patch Changes
