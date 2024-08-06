@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [96aed25]
+  - @ai-sdk/provider@0.0.15
+  - @ai-sdk/provider-utils@1.0.7
+
 ## 0.0.10
 
 ### Patch Changes

@@ -930,25 +930,25 @@ importers:
   packages/ai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 0.0.37
+        specifier: 0.0.38
         version: link:../react
       '@ai-sdk/solid':
-        specifier: 0.0.28
+        specifier: 0.0.29
         version: link:../solid
       '@ai-sdk/svelte':
-        specifier: 0.0.30
+        specifier: 0.0.31
         version: link:../svelte
       '@ai-sdk/ui-utils':
-        specifier: 0.0.25
+        specifier: 0.0.26
         version: link:../ui-utils
       '@ai-sdk/vue':
-        specifier: 0.0.29
+        specifier: 0.0.30
         version: link:../vue
       '@opentelemetry/api':
         specifier: 1.9.0
@@ -1070,21 +1070,21 @@ importers:
         version: link:../../..
       next:
         specifier: canary
-        version: 15.0.0-canary.103(@playwright/test@1.46.0)(react-dom@19.0.0-rc-65903583-20240805)(react@19.0.0-rc-65903583-20240805)
+        version: 15.0.0-canary.103(@playwright/test@1.46.0)(react-dom@19.0.0-rc-187dd6a7-20240806)(react@19.0.0-rc-187dd6a7-20240806)
       react:
         specifier: rc
-        version: 19.0.0-rc-65903583-20240805
+        version: 19.0.0-rc-187dd6a7-20240806
       react-dom:
         specifier: rc
-        version: 19.0.0-rc-65903583-20240805(react@19.0.0-rc-65903583-20240805)
+        version: 19.0.0-rc-187dd6a7-20240806(react@19.0.0-rc-187dd6a7-20240806)
 
   packages/amazon-bedrock:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
       '@aws-sdk/client-bedrock-runtime':
         specifier: 3.602.0
@@ -1115,10 +1115,10 @@ importers:
   packages/anthropic:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1140,13 +1140,13 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 0.0.41
+        specifier: 0.0.42
         version: link:../openai
       '@ai-sdk/provider':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1168,10 +1168,10 @@ importers:
   packages/cohere:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1193,10 +1193,10 @@ importers:
   packages/google:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1218,10 +1218,10 @@ importers:
   packages/google-vertex:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
       json-schema:
         specifier: 0.4.0
@@ -1249,10 +1249,10 @@ importers:
   packages/mistral:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1274,10 +1274,10 @@ importers:
   packages/openai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1321,7 +1321,7 @@ importers:
   packages/provider-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../provider
       eventsource-parser:
         specifier: 1.1.2
@@ -1355,10 +1355,10 @@ importers:
   packages/react:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.25
+        specifier: 0.0.26
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19
@@ -1416,10 +1416,10 @@ importers:
   packages/solid:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.25
+        specifier: 0.0.26
         version: link:../ui-utils
       solid-js:
         specifier: ^1.7.7
@@ -1468,10 +1468,10 @@ importers:
   packages/svelte:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.25
+        specifier: 0.0.26
         version: link:../ui-utils
       sswr:
         specifier: 2.1.0
@@ -1502,10 +1502,10 @@ importers:
   packages/ui-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.14
+        specifier: 0.0.15
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
       secure-json-parse:
         specifier: 2.7.0
@@ -1533,10 +1533,10 @@ importers:
   packages/vue:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.6
+        specifier: 1.0.7
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.25
+        specifier: 0.0.26
         version: link:../ui-utils
       swrv:
         specifier: 1.0.4
@@ -6827,7 +6827,7 @@ packages:
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/instrumentation': 0.52.1(@opentelemetry/api@1.9.0)
-      semver: 7.6.2
+      semver: 7.6.3
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -6988,7 +6988,7 @@ packages:
       '@opentelemetry/core': 1.25.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/instrumentation': 0.52.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.25.1
-      semver: 7.6.2
+      semver: 7.6.3
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -7436,7 +7436,7 @@ packages:
       '@types/shimmer': 1.0.5
       import-in-the-middle: 1.8.0
       require-in-the-middle: 7.3.0
-      semver: 7.6.2
+      semver: 7.6.3
       shimmer: 1.2.1
     transitivePeerDependencies:
       - supports-color
@@ -17821,7 +17821,7 @@ packages:
       - babel-plugin-macros
     dev: false
 
-  /next@15.0.0-canary.103(@playwright/test@1.46.0)(react-dom@19.0.0-rc-65903583-20240805)(react@19.0.0-rc-65903583-20240805):
+  /next@15.0.0-canary.103(@playwright/test@1.46.0)(react-dom@19.0.0-rc-187dd6a7-20240806)(react@19.0.0-rc-187dd6a7-20240806):
     resolution: {integrity: sha512-dNN3K/cWEXyISMIxHi+CcoYwbE2DkbcPkh5oyu1/49BF2DV+zG5uRo+u2LVsxcjtAzwMjgG64gNnb6E+jFGpSQ==}
     engines: {node: '>=18.18.0'}
     hasBin: true
@@ -17850,9 +17850,9 @@ packages:
       caniuse-lite: 1.0.30001649
       graceful-fs: 4.2.11
       postcss: 8.4.31
-      react: 19.0.0-rc-65903583-20240805
-      react-dom: 19.0.0-rc-65903583-20240805(react@19.0.0-rc-65903583-20240805)
-      styled-jsx: 5.1.6(react@19.0.0-rc-65903583-20240805)
+      react: 19.0.0-rc-187dd6a7-20240806
+      react-dom: 19.0.0-rc-187dd6a7-20240806(react@19.0.0-rc-187dd6a7-20240806)
+      styled-jsx: 5.1.6(react@19.0.0-rc-187dd6a7-20240806)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.0.0-canary.103
       '@next/swc-darwin-x64': 15.0.0-canary.103
@@ -19724,13 +19724,13 @@ packages:
       react: 18.3.1
       scheduler: 0.23.2
 
-  /react-dom@19.0.0-rc-65903583-20240805(react@19.0.0-rc-65903583-20240805):
-    resolution: {integrity: sha512-aq+5m8wbT642C5LT5fDqHAkIvBKuSzlEQLsmeDUyiaqFE1ETVLaB1k1hj6a4lqPPVXgkPxSzzyflUMmt8IsAwg==}
+  /react-dom@19.0.0-rc-187dd6a7-20240806(react@19.0.0-rc-187dd6a7-20240806):
+    resolution: {integrity: sha512-Lh7E4AolPf6iEBXQhSzSQoNDtwBPBG5255RLM/3lRzmWh+9jjXYpYd3YuMGQ5ZVCCaytHq5vkYtuFxWxBAfXCw==}
     peerDependencies:
-      react: 19.0.0-rc-65903583-20240805
+      react: 19.0.0-rc-187dd6a7-20240806
     dependencies:
-      react: 19.0.0-rc-65903583-20240805
-      scheduler: 0.25.0-rc-65903583-20240805
+      react: 19.0.0-rc-187dd6a7-20240806
+      scheduler: 0.25.0-rc-187dd6a7-20240806
     dev: false
 
   /react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607):
@@ -19785,8 +19785,8 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /react@19.0.0-rc-65903583-20240805:
-    resolution: {integrity: sha512-VdRerPb8uT3jh+Op+rTsZWi8VqPBBfyPIiFToNY6mzNdvHFtxkCHOaThpciy03+WKoirtx6vG3qv1sAsE3xbYg==}
+  /react@19.0.0-rc-187dd6a7-20240806:
+    resolution: {integrity: sha512-FbbwQBNk/UVmAgt57q5ao9NC3ducJhDfwxLoSf9A5p+O4rh8Lje4ucDCPevXMPm81GrxzkEF3rIVJdIhNf9tPw==}
     engines: {node: '>=0.10.0'}
     dev: false
 
@@ -20206,8 +20206,8 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /scheduler@0.25.0-rc-65903583-20240805:
-    resolution: {integrity: sha512-93mzJeBtywRo0ODdzOyP4oMNb/1kgpdWBGr+TlwJpciTeS8SToImiXzzMmNwj4wnxTFEhC6/L2dy0ucTJDL5lw==}
+  /scheduler@0.25.0-rc-187dd6a7-20240806:
+    resolution: {integrity: sha512-U40NT+/QH0t7oBP0m/oQJvOC+iCNJTlugDkfPQI+vSVWrbmHGYK9fso6zJ5g5y5OwDu4pELEys5BEUrXMOdxmw==}
     dev: false
 
   /scheduler@0.25.0-rc-cc1ec60d0d-20240607:
@@ -20915,7 +20915,7 @@ packages:
       react: 18.3.1
     dev: false
 
-  /styled-jsx@5.1.6(react@19.0.0-rc-65903583-20240805):
+  /styled-jsx@5.1.6(react@19.0.0-rc-187dd6a7-20240806):
     resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
     engines: {node: '>= 12.0.0'}
     peerDependencies:
@@ -20929,7 +20929,7 @@ packages:
         optional: true
     dependencies:
       client-only: 0.0.1
-      react: 19.0.0-rc-65903583-20240805
+      react: 19.0.0-rc-187dd6a7-20240806
     dev: false
 
   /styled-jsx@5.1.6(react@19.0.0-rc-cc1ec60d0d-20240607):

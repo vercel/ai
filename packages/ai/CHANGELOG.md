@@ -1,5 +1,18 @@
 # ai
 
+## 3.3.2
+
+### Patch Changes
+
+- Updated dependencies [96aed25]
+  - @ai-sdk/provider@0.0.15
+  - @ai-sdk/provider-utils@1.0.7
+  - @ai-sdk/ui-utils@0.0.26
+  - @ai-sdk/react@0.0.38
+  - @ai-sdk/solid@0.0.29
+  - @ai-sdk/svelte@0.0.31
+  - @ai-sdk/vue@0.0.30
+
 ## 3.3.1
 
 ### Patch Changes
