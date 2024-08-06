@@ -34,7 +34,7 @@
     "@aws-sdk/client-bedrock-runtime": "3.602.0"
   },
   "devDependencies": {
-    "@smithy/types": "^3.1.0",
+    "@smithy/types": "^3.3.0",
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
     "aws-sdk-client-mock": "^4.0.1",
