@@ -2,14 +2,15 @@
  * Symbol used for identifying AI SDK Error instances.
  * Enables checking if an error is an instance of AISDKError across package versions.
  */
-const marker = Symbol.for('vercel.ai.error');
+const marker = 'vercel.ai.error';
+const symbol = Symbol.for(marker);
 
 /**
  * Custom error class for AI SDK related errors.
  * @extends Error
  */
 export class AISDKError extends Error {
-  private readonly [marker] = true; // used in isInstance
+  private readonly [symbol] = true; // used in isInstance
 
   /**
    * The underlying cause of the error, if any.
@@ -45,13 +46,17 @@ export class AISDKError extends Error {
    * @returns {boolean} True if the error is an AI SDK Error, false otherwise.
    */
   static isInstance(error: unknown): error is AISDKError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  protected static hasMarker(error: unknown, marker: string): boolean {
+    const markerSymbol = Symbol.for(marker);
     return (
       error != null &&
-      (error instanceof AISDKError ||
-        (typeof error === 'object' &&
-          marker in error &&
-          typeof error[marker] === 'boolean' &&
-          error[marker] === true))
+      typeof error === 'object' &&
+      markerSymbol in error &&
+      typeof error[markerSymbol] === 'boolean' &&
+      error[markerSymbol] === true
     );
   }
 

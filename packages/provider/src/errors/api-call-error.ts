@@ -1,9 +1,10 @@
 import { AISDKError } from './ai-sdk-error';
 
-const marker = Symbol.for('vercel.ai.error.api-call-error');
+const marker = 'vercel.ai.error.api-call-error';
+const symbol = Symbol.for(marker);
 
 export class APICallError extends AISDKError {
-  private readonly [marker] = true; // used in isInstance
+  private readonly [symbol] = true; // used in isInstance
 
   readonly url: string;
   readonly requestBodyValues: unknown;
@@ -56,14 +57,7 @@ export class APICallError extends AISDKError {
   }
 
   static isInstance(error: unknown): error is APICallError {
-    return (
-      error != null &&
-      (error instanceof APICallError ||
-        (typeof error === 'object' &&
-          marker in error &&
-          typeof error[marker] === 'boolean' &&
-          error[marker] === true))
-    );
+    return AISDKError.hasMarker(error, marker);
   }
 
   /**
