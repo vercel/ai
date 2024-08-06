@@ -54,10 +54,12 @@ type RenderText = Renderer<
        * The full text content from the model so far.
        */
       content: string;
+
       /**
        * The new appended text content from the model since the last `text` call.
        */
       delta: string;
+
       /**
        * Whether the model is done generating text.
        * If `true`, the `content` will be the final output and this call will be the last.

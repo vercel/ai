@@ -4,15 +4,15 @@
 import * as React from 'react';
 
 import * as jsondiffpatch from 'jsondiffpatch';
+import { isFunction } from '../../util/is-function';
 import type {
-  InternalAIProviderProps,
   AIProvider,
-  InferAIState,
-  ValueOrUpdater,
   InferActions,
+  InferAIState,
   InferUIState,
+  InternalAIProviderProps,
+  ValueOrUpdater,
 } from '../types';
-import { isFunction } from '../utils';
 
 const InternalUIStateProvider = React.createContext<null | any>(null);
 const InternalAIStateProvider = React.createContext<undefined | any>(undefined);

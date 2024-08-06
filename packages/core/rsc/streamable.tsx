@@ -1,18 +1,19 @@
-import type { ReactNode } from 'react';
 import type OpenAI from 'openai';
+import type { ReactNode } from 'react';
 import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
 
 // TODO: This needs to be externalized.
 import { OpenAIStream } from '../streams';
 
-import {
-  STREAMABLE_VALUE_TYPE,
-  DEV_DEFAULT_STREAMABLE_WARNING_TIME,
-} from './constants';
-import { createSuspensedChunk, consumeStream } from './utils';
-import type { StreamablePatch, StreamableValue } from './types';
+import { consumeStream } from '../util/consume-stream';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
+import {
+  DEV_DEFAULT_STREAMABLE_WARNING_TIME,
+  STREAMABLE_VALUE_TYPE,
+} from './constants';
+import { createSuspensedChunk } from './create-suspensed-chunk';
+import type { StreamablePatch, StreamableValue } from './types';
 
 // It's necessary to define the type manually here, otherwise TypeScript compiler
 // will not be able to infer the correct return type as it's circular.
