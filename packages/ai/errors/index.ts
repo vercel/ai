@@ -2,7 +2,6 @@ export {
   AISDKError,
   APICallError,
   EmptyResponseBodyError,
-  InvalidArgumentError,
   InvalidDataContentError,
   InvalidPromptError,
   InvalidResponseDataError,
@@ -15,5 +14,7 @@ export {
   TypeValidationError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+
+export { InvalidArgumentError } from './invalid-argument-error';
 
 export { DownloadError } from '../util/download-error';

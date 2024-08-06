@@ -1,5 +1,11 @@
-// TODO move to ai package
-export class InvalidArgumentError extends Error {
+import { AISDKError } from '@ai-sdk/provider';
+
+const marker = 'vercel.ai.error.invalid-argument-error';
+const symbol = Symbol.for(marker);
+
+export class InvalidArgumentError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
   readonly parameter: string;
   readonly value: unknown;
 
@@ -12,14 +18,22 @@ export class InvalidArgumentError extends Error {
     value: unknown;
     message: string;
   }) {
-    super(`Invalid argument for parameter ${parameter}: ${message}`);
-
-    this.name = 'AI_InvalidArgumentError';
+    super({
+      name: 'AI_InvalidArgumentError',
+      message: `Invalid argument for parameter ${parameter}: ${message}`,
+    });
 
     this.parameter = parameter;
     this.value = value;
   }
 
+  static isInstance(error: unknown): error is InvalidArgumentError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  /**
+   * @deprecated use `isInstance` instead
+   */
   static isInvalidArgumentError(error: unknown): error is InvalidArgumentError {
     return (
       error instanceof Error &&

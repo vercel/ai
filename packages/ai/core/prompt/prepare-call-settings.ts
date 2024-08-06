@@ -1,4 +1,4 @@
-import { InvalidArgumentError } from '@ai-sdk/provider';
+import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { CallSettings } from './call-settings';
 
 /**
