@@ -6,7 +6,6 @@ const symbol = Symbol.for(marker);
 /**
 Thrown when the AI provider fails to generate a parsable object.
  */
-// TODO move to ai package
 export class NoObjectGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
