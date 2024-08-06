@@ -503,7 +503,7 @@ const openAIChatResponseSchema = z.object({
   choices: z.array(
     z.object({
       message: z.object({
-        role: z.literal('assistant'),
+        role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
         function_call: z
           .object({
@@ -560,7 +560,7 @@ const openaiChatChunkSchema = z.union([
       z.object({
         delta: z
           .object({
-            role: z.enum(['assistant']).optional(),
+            role: z.enum(['assistant']).nullish(),
             content: z.string().nullish(),
             function_call: z
               .object({
