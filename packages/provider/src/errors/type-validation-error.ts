@@ -1,24 +1,37 @@
+import { AISDKError } from './ai-sdk-error';
 import { getErrorMessage } from './get-error-message';
 
-export class TypeValidationError extends Error {
+const name = 'AI_TypeValidationError';
+const marker = `vercel.ai.error.${name}`;
+const symbol = Symbol.for(marker);
+
+export class TypeValidationError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
   readonly value: unknown;
-  readonly cause: unknown;
 
   constructor({ value, cause }: { value: unknown; cause: unknown }) {
-    super(
-      `Type validation failed: ` +
+    super({
+      name,
+      message:
+        `Type validation failed: ` +
         `Value: ${JSON.stringify(value)}.\n` +
         `Error message: ${getErrorMessage(cause)}`,
-    );
+      cause,
+    });
 
-    this.name = 'AI_TypeValidationError';
-
-    this.cause = cause;
     this.value = value;
   }
 
+  static isInstance(error: unknown): error is TypeValidationError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  /**
+   * @deprecated use `isInstance` instead
+   */
   static isTypeValidationError(error: unknown): error is TypeValidationError {
-    return error instanceof Error && error.name === 'AI_TypeValidationError';
+    return error instanceof Error && error.name === name;
   }
 
   /**
