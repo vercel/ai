@@ -1,4 +1,11 @@
-export class InvalidMessageRoleError extends Error {
+import { AISDKError } from '@ai-sdk/provider';
+
+const marker = 'vercel.ai.error.invalid-message-role-error';
+const symbol = Symbol.for(marker);
+
+export class InvalidMessageRoleError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
   readonly role: string;
 
   constructor({
@@ -8,13 +15,21 @@ export class InvalidMessageRoleError extends Error {
     role: string;
     message?: string;
   }) {
-    super(message);
-
-    this.name = 'AI_InvalidMessageRoleError';
+    super({
+      name: 'AI_InvalidMessageRoleError',
+      message,
+    });
 
     this.role = role;
   }
 
+  static isInstance(error: unknown): error is InvalidMessageRoleError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  /**
+   * @deprecated use `isInstance` instead
+   */
   static isInvalidMessageRoleError(
     error: unknown,
   ): error is InvalidMessageRoleError {

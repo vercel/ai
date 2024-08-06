@@ -2,7 +2,6 @@ export {
   AISDKError,
   APICallError,
   EmptyResponseBodyError,
-  InvalidDataContentError,
   InvalidPromptError,
   InvalidResponseDataError,
   InvalidToolArgumentsError,
@@ -16,5 +15,6 @@ export {
 } from '@ai-sdk/provider';
 
 export { InvalidArgumentError } from './invalid-argument-error';
-
+export { InvalidDataContentError } from '../core/prompt/invalid-data-content-error';
+export { InvalidMessageRoleError } from '../core/prompt/invalid-message-role-error';
 export { DownloadError } from '../util/download-error';

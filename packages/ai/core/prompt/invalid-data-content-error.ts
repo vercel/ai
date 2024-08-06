@@ -1,7 +1,12 @@
-// TODO move to ai package
-export class InvalidDataContentError extends Error {
+import { AISDKError } from '@ai-sdk/provider';
+
+const marker = 'vercel.ai.error.invalid-data-content-error';
+const symbol = Symbol.for(marker);
+
+export class InvalidDataContentError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
   readonly content: unknown;
-  readonly cause?: unknown;
 
   constructor({
     content,
@@ -12,14 +17,22 @@ export class InvalidDataContentError extends Error {
     cause?: unknown;
     message?: string;
   }) {
-    super(message);
+    super({
+      name: 'AI_InvalidDataContentError',
+      message,
+      cause,
+    });
 
-    this.name = 'AI_InvalidDataContentError';
-
-    this.cause = cause;
     this.content = content;
   }
 
+  static isInstance(error: unknown): error is InvalidDataContentError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  /**
+   * @deprecated use `isInstance` instead
+   */
   static isInvalidDataContentError(
     error: unknown,
   ): error is InvalidDataContentError {
