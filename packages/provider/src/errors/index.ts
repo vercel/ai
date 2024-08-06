@@ -1,3 +1,4 @@
+export * from './ai-sdk-error';
 export * from './api-call-error';
 export * from './download-error';
 export * from './empty-response-body-error';
