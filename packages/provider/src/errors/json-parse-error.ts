@@ -7,9 +7,7 @@ const symbol = Symbol.for(marker);
 export class JSONParseError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
-  // note: property order determines debugging output
   readonly text: string;
-  readonly cause: unknown;
 
   constructor({ text, cause }: { text: string; cause: unknown }) {
     super({
