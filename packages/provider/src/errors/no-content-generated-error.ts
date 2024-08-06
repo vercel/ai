@@ -20,6 +20,9 @@ export class NoContentGeneratedError extends Error {
     );
   }
 
+  /**
+   * @deprecated Do not use this method. It will be removed in the next major version.
+   */
   toJSON() {
     return {
       name: this.name,

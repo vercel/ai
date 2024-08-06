@@ -63,6 +63,8 @@ export class AISDKError extends Error {
   /**
    * Returns a JSON representation of the error.
    * @returns {Object} An object containing the error's name, message, and cause.
+   *
+   * @deprecated Do not use this method. It will be removed in the next major version.
    */
   toJSON() {
     return {

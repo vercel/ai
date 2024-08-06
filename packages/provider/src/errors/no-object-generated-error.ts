@@ -17,6 +17,9 @@ export class NoObjectGeneratedError extends Error {
     return error instanceof Error && error.name === 'AI_NoObjectGeneratedError';
   }
 
+  /**
+   * @deprecated Do not use this method. It will be removed in the next major version.
+   */
   toJSON() {
     return {
       name: this.name,

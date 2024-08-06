@@ -21,6 +21,9 @@ export class TypeValidationError extends Error {
     return error instanceof Error && error.name === 'AI_TypeValidationError';
   }
 
+  /**
+   * @deprecated Do not use this method. It will be removed in the next major version.
+   */
   toJSON() {
     return {
       name: this.name,
