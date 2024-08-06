@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 0.0.41
+
+### Patch Changes
+
+- 7a2eb27: feat (provider/openai): make role nullish to enhance provider support
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+  - @ai-sdk/provider-utils@1.0.6
+
 ## 0.0.40
 
 ### Patch Changes

@@ -1,5 +1,20 @@
 # ai
 
+## 3.3.1
+
+### Patch Changes
+
+- 9614584: fix (ai/core): use Symbol.for
+- 0762a22: feat (ai/core): support zod transformers in generateObject & streamObject
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+  - @ai-sdk/provider-utils@1.0.6
+  - @ai-sdk/react@0.0.37
+  - @ai-sdk/solid@0.0.28
+  - @ai-sdk/svelte@0.0.30
+  - @ai-sdk/ui-utils@0.0.25
+  - @ai-sdk/vue@0.0.29
+
 ## 3.3.0
 
 ### Minor Changes
