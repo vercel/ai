@@ -6,7 +6,7 @@ import zodToJsonSchema from 'zod-to-json-schema';
 /**
  * Used to mark schemas so we can support both Zod and custom schemas.
  */
-const schemaSymbol = Symbol('vercel.ai.schema');
+const schemaSymbol = Symbol.for('vercel.ai.schema');
 
 export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
   /**

@@ -3,7 +3,7 @@ import { z } from 'zod';
 /**
  * Used to mark validator functions so we can support both Zod and custom schemas.
  */
-export const validatorSymbol = Symbol('vercel.ai.validator');
+export const validatorSymbol = Symbol.for('vercel.ai.validator');
 
 export type Validator<OBJECT = unknown> = {
   /**
