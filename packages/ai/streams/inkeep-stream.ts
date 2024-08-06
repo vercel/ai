@@ -1,4 +1,4 @@
-// packages/core/streams/inkeep-stream.ts
+// packages/ai/streams/inkeep-stream.ts
 import {
   AIStream,
   type AIStreamCallbacksAndOptions,
