@@ -1,6 +1,7 @@
 import { AISDKError } from '@ai-sdk/provider';
 
-const marker = 'vercel.ai.error.invalid-data-content-error';
+const name = 'AI_InvalidDataContentError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 export class InvalidDataContentError extends AISDKError {
@@ -17,11 +18,7 @@ export class InvalidDataContentError extends AISDKError {
     cause?: unknown;
     message?: string;
   }) {
-    super({
-      name: 'AI_InvalidDataContentError',
-      message,
-      cause,
-    });
+    super({ name, message, cause });
 
     this.content = content;
   }
@@ -38,7 +35,7 @@ export class InvalidDataContentError extends AISDKError {
   ): error is InvalidDataContentError {
     return (
       error instanceof Error &&
-      error.name === 'AI_InvalidDataContentError' &&
+      error.name === name &&
       (error as InvalidDataContentError).content != null
     );
   }

@@ -1,16 +1,14 @@
 import { AISDKError } from './ai-sdk-error';
 
-const marker = 'vercel.ai.error.load-setting-error';
+const name = 'AI_LoadSettingError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 export class LoadSettingError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   constructor({ message }: { message: string }) {
-    super({
-      name: 'AI_LoadSettingError',
-      message,
-    });
+    super({ name, message });
   }
 
   static isInstance(error: unknown): error is LoadSettingError {
@@ -21,6 +19,6 @@ export class LoadSettingError extends AISDKError {
    * @deprecated Use isInstance instead.
    */
   static isLoadSettingError(error: unknown): error is LoadSettingError {
-    return error instanceof Error && error.name === 'AI_LoadSettingError';
+    return error instanceof Error && error.name === name;
   }
 }

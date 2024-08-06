@@ -1,6 +1,7 @@
 import { AISDKError } from './ai-sdk-error';
 
-const marker = 'vercel.ai.error.invalid-response-data-error';
+const name = 'AI_InvalidResponseDataError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 /**
@@ -19,10 +20,7 @@ export class InvalidResponseDataError extends AISDKError {
     data: unknown;
     message?: string;
   }) {
-    super({
-      name: 'AI_InvalidResponseDataError',
-      message,
-    });
+    super({ name, message });
 
     this.data = data;
   }
@@ -39,7 +37,7 @@ export class InvalidResponseDataError extends AISDKError {
   ): error is InvalidResponseDataError {
     return (
       error instanceof Error &&
-      error.name === 'AI_InvalidResponseDataError' &&
+      error.name === name &&
       (error as InvalidResponseDataError).data != null
     );
   }

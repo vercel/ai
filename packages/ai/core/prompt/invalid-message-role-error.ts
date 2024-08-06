@@ -1,6 +1,7 @@
 import { AISDKError } from '@ai-sdk/provider';
 
-const marker = 'vercel.ai.error.invalid-message-role-error';
+const name = 'AI_InvalidMessageRoleError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 export class InvalidMessageRoleError extends AISDKError {
@@ -15,10 +16,7 @@ export class InvalidMessageRoleError extends AISDKError {
     role: string;
     message?: string;
   }) {
-    super({
-      name: 'AI_InvalidMessageRoleError',
-      message,
-    });
+    super({ name, message });
 
     this.role = role;
   }
@@ -35,7 +33,7 @@ export class InvalidMessageRoleError extends AISDKError {
   ): error is InvalidMessageRoleError {
     return (
       error instanceof Error &&
-      error.name === 'AI_InvalidMessageRoleError' &&
+      error.name === name &&
       typeof (error as InvalidMessageRoleError).role === 'string'
     );
   }

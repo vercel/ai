@@ -1,6 +1,7 @@
 import { AISDKError } from './ai-sdk-error';
 
-const marker = 'vercel.ai.error.no-content-generated-error';
+const name = 'AI_NoContentGeneratedError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 /**
@@ -12,10 +13,7 @@ export class NoContentGeneratedError extends AISDKError {
   constructor({
     message = 'No content generated.',
   }: { message?: string } = {}) {
-    super({
-      name: 'AI_NoContentGeneratedError',
-      message,
-    });
+    super({ name, message });
   }
 
   static isInstance(error: unknown): error is NoContentGeneratedError {
@@ -28,9 +26,7 @@ export class NoContentGeneratedError extends AISDKError {
   static isNoContentGeneratedError(
     error: unknown,
   ): error is NoContentGeneratedError {
-    return (
-      error instanceof Error && error.name === 'AI_NoContentGeneratedError'
-    );
+    return error instanceof Error && error.name === name;
   }
 
   /**

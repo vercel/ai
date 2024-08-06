@@ -1,6 +1,7 @@
 import { AISDKError } from '@ai-sdk/provider';
 
-const marker = 'vercel.ai.error.invalid-argument-error';
+const name = 'AI_InvalidArgumentError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 export class InvalidArgumentError extends AISDKError {
@@ -19,7 +20,7 @@ export class InvalidArgumentError extends AISDKError {
     message: string;
   }) {
     super({
-      name: 'AI_InvalidArgumentError',
+      name,
       message: `Invalid argument for parameter ${parameter}: ${message}`,
     });
 
@@ -37,7 +38,7 @@ export class InvalidArgumentError extends AISDKError {
   static isInvalidArgumentError(error: unknown): error is InvalidArgumentError {
     return (
       error instanceof Error &&
-      error.name === 'AI_InvalidArgumentError' &&
+      error.name === name &&
       typeof (error as InvalidArgumentError).parameter === 'string' &&
       typeof (error as InvalidArgumentError).value === 'string'
     );

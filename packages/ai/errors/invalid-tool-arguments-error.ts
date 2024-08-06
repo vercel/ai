@@ -1,6 +1,7 @@
 import { AISDKError, getErrorMessage } from '@ai-sdk/provider';
 
-const marker = 'vercel.ai.error.invalid-tool-arguments-error';
+const name = 'AI_InvalidToolArgumentsError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 export class InvalidToolArgumentsError extends AISDKError {
@@ -22,11 +23,7 @@ export class InvalidToolArgumentsError extends AISDKError {
     toolName: string;
     cause: unknown;
   }) {
-    super({
-      name: 'AI_InvalidToolArgumentsError',
-      message,
-      cause,
-    });
+    super({ name, message, cause });
 
     this.toolArgs = toolArgs;
     this.toolName = toolName;
@@ -44,7 +41,7 @@ export class InvalidToolArgumentsError extends AISDKError {
   ): error is InvalidToolArgumentsError {
     return (
       error instanceof Error &&
-      error.name === 'AI_InvalidToolArgumentsError' &&
+      error.name === name &&
       typeof (error as InvalidToolArgumentsError).toolName === 'string' &&
       typeof (error as InvalidToolArgumentsError).toolArgs === 'string'
     );

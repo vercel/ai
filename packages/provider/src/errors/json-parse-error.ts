@@ -1,7 +1,8 @@
 import { AISDKError } from './ai-sdk-error';
 import { getErrorMessage } from './get-error-message';
 
-const marker = 'vercel.ai.error.json-parse-error';
+const name = 'AI_JSONParseError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 export class JSONParseError extends AISDKError {
@@ -11,7 +12,7 @@ export class JSONParseError extends AISDKError {
 
   constructor({ text, cause }: { text: string; cause: unknown }) {
     super({
-      name: 'AI_JSONParseError',
+      name,
       message:
         `JSON parsing failed: ` +
         `Text: ${text}.\n` +
@@ -32,7 +33,7 @@ export class JSONParseError extends AISDKError {
   static isJSONParseError(error: unknown): error is JSONParseError {
     return (
       error instanceof Error &&
-      error.name === 'AI_JSONParseError' &&
+      error.name === name &&
       typeof (error as JSONParseError).text === 'string' &&
       typeof (error as JSONParseError).cause === 'string'
     );

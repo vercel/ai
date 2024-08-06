@@ -1,6 +1,7 @@
 import { AISDKError } from './ai-sdk-error';
 
-const marker = 'vercel.ai.error.api-call-error';
+const name = 'AI_UnsupportedFunctionalityError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 export class UnsupportedFunctionalityError extends AISDKError {
@@ -10,7 +11,7 @@ export class UnsupportedFunctionalityError extends AISDKError {
 
   constructor({ functionality }: { functionality: string }) {
     super({
-      name: 'AI_UnsupportedFunctionalityError',
+      name,
       message: `'${functionality}' functionality not supported.`,
     });
 
@@ -29,7 +30,7 @@ export class UnsupportedFunctionalityError extends AISDKError {
   ): error is UnsupportedFunctionalityError {
     return (
       error instanceof Error &&
-      error.name === 'AI_UnsupportedFunctionalityError' &&
+      error.name === name &&
       typeof (error as UnsupportedFunctionalityError).functionality === 'string'
     );
   }

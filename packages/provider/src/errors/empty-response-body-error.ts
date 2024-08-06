@@ -1,16 +1,14 @@
 import { AISDKError } from './ai-sdk-error';
 
-const marker = 'vercel.ai.error.empty-response-body-error';
+const name = 'AI_EmptyResponseBodyError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 export class EmptyResponseBodyError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   constructor({ message = 'Empty response body' }: { message?: string } = {}) {
-    super({
-      name: 'AI_EmptyResponseBodyError',
-      message,
-    });
+    super({ name, message });
   }
 
   static isInstance(error: unknown): error is EmptyResponseBodyError {
@@ -23,6 +21,6 @@ export class EmptyResponseBodyError extends AISDKError {
   static isEmptyResponseBodyError(
     error: unknown,
   ): error is EmptyResponseBodyError {
-    return error instanceof Error && error.name === 'AI_EmptyResponseBodyError';
+    return error instanceof Error && error.name === name;
   }
 }

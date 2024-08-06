@@ -1,16 +1,14 @@
 import { AISDKError } from './ai-sdk-error';
 
-const marker = 'vercel.ai.error.load-api-key-error';
+const name = 'AI_LoadAPIKeyError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 export class LoadAPIKeyError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   constructor({ message }: { message: string }) {
-    super({
-      name: 'AI_LoadAPIKeyError',
-      message,
-    });
+    super({ name, message });
   }
 
   static isInstance(error: unknown): error is LoadAPIKeyError {
@@ -21,6 +19,6 @@ export class LoadAPIKeyError extends AISDKError {
    * @deprecated Use isInstance instead.
    */
   static isLoadAPIKeyError(error: unknown): error is LoadAPIKeyError {
-    return error instanceof Error && error.name === 'AI_LoadAPIKeyError';
+    return error instanceof Error && error.name === name;
   }
 }

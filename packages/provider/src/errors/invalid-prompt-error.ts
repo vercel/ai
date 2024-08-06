@@ -1,6 +1,7 @@
 import { AISDKError } from './ai-sdk-error';
 
-const marker = 'vercel.ai.error.invalid-prompt-error';
+const name = 'AI_InvalidPromptError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 /**
@@ -14,7 +15,7 @@ export class InvalidPromptError extends AISDKError {
 
   constructor({ prompt, message }: { prompt: unknown; message: string }) {
     super({
-      name: 'AI_InvalidPromptError',
+      name,
       message: `Invalid prompt: ${message}`,
     });
 
@@ -29,11 +30,7 @@ export class InvalidPromptError extends AISDKError {
    * @deprecated use `isInstance` instead
    */
   static isInvalidPromptError(error: unknown): error is InvalidPromptError {
-    return (
-      error instanceof Error &&
-      error.name === 'AI_InvalidPromptError' &&
-      prompt != null
-    );
+    return error instanceof Error && error.name === name && prompt != null;
   }
 
   /**

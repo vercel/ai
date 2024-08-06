@@ -1,6 +1,7 @@
 import { AISDKError } from './ai-sdk-error';
 
-const marker = 'vercel.ai.error.api-call-error';
+const name = 'AI_APICallError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 export class APICallError extends AISDKError {
@@ -41,11 +42,7 @@ export class APICallError extends AISDKError {
     isRetryable?: boolean;
     data?: unknown;
   }) {
-    super({
-      name: 'AI_APICallError',
-      message,
-      cause,
-    });
+    super({ name, message, cause });
 
     this.url = url;
     this.requestBodyValues = requestBodyValues;
@@ -66,7 +63,7 @@ export class APICallError extends AISDKError {
   static isAPICallError(error: unknown): error is APICallError {
     return (
       error instanceof Error &&
-      error.name === 'AI_APICallError' &&
+      error.name === name &&
       typeof (error as APICallError).url === 'string' &&
       typeof (error as APICallError).requestBodyValues === 'object' &&
       ((error as APICallError).statusCode == null ||

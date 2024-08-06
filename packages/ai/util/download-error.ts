@@ -1,6 +1,7 @@
 import { AISDKError } from '@ai-sdk/provider';
 
-const marker = 'vercel.ai.error.download-error';
+const name = 'AI_DownloadError';
+const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 export class DownloadError extends AISDKError {
@@ -25,11 +26,7 @@ export class DownloadError extends AISDKError {
     message?: string;
     cause?: unknown;
   }) {
-    super({
-      name: 'AI_DownloadError',
-      message,
-      cause,
-    });
+    super({ name, message, cause });
 
     this.url = url;
     this.statusCode = statusCode;
@@ -46,7 +43,7 @@ export class DownloadError extends AISDKError {
   static isDownloadError(error: unknown): error is DownloadError {
     return (
       error instanceof Error &&
-      error.name === 'AI_DownloadError' &&
+      error.name === name &&
       typeof (error as DownloadError).url === 'string' &&
       ((error as DownloadError).statusCode == null ||
         typeof (error as DownloadError).statusCode === 'number') &&
