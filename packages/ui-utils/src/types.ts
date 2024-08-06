@@ -161,6 +161,14 @@ Text content of the message.
   content: string;
 
   /**
+   * Added by Hypercontext for internal use
+   *
+   * If the sendMessageMetadata flag is enabled, this could be defined.
+   * Otherwise it should be null
+   */
+  metadata?: unknown;
+
+  /**
    * Additional attachments to be sent along with the message.
    */
   experimental_attachments?: Attachment[];
@@ -609,6 +617,7 @@ export type AssistantMessage = {
       value: string;
     };
   }>;
+  metadata?: unknown; // Added by Hypercontext for internal use
 };
 
 /*

@@ -113,6 +113,12 @@ This works in conjunction with [`AssistantResponse`](./assistant-response) in th
       description:
         "Set the current thread ID. Specifying a thread ID will switch to that thread, if it exists. If set to 'undefined', a new thread will be created. For both cases, `threadId` will be updated with the new value and `messages` will be cleared.",
     },
+    // Lines 117-121 have been added by Hypercontext for internal use
+    [
+      name: 'sendMessageMetadata',
+      type: 'boolean',
+      description: 'An optional flag to send metadata in the message object. Defaults to `false`.',
+    ],
     {
       name: 'input',
       type: 'string',
