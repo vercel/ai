@@ -1,6 +1,13 @@
-export class InvalidDataContentError extends Error {
+import { AISDKError } from '@ai-sdk/provider';
+
+const name = 'AI_InvalidDataContentError';
+const marker = `vercel.ai.error.${name}`;
+const symbol = Symbol.for(marker);
+
+export class InvalidDataContentError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
   readonly content: unknown;
-  readonly cause?: unknown;
 
   constructor({
     content,
@@ -11,24 +18,31 @@ export class InvalidDataContentError extends Error {
     cause?: unknown;
     message?: string;
   }) {
-    super(message);
+    super({ name, message, cause });
 
-    this.name = 'AI_InvalidDataContentError';
-
-    this.cause = cause;
     this.content = content;
   }
 
+  static isInstance(error: unknown): error is InvalidDataContentError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  /**
+   * @deprecated use `isInstance` instead
+   */
   static isInvalidDataContentError(
     error: unknown,
   ): error is InvalidDataContentError {
     return (
       error instanceof Error &&
-      error.name === 'AI_InvalidDataContentError' &&
+      error.name === name &&
       (error as InvalidDataContentError).content != null
     );
   }
 
+  /**
+   * @deprecated Do not use this method. It will be removed in the next major version.
+   */
   toJSON() {
     return {
       name: this.name,

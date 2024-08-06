@@ -1,3 +1,4 @@
+import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -5,7 +6,6 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel } from '../types';
-import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { splitArray } from '../util/split-array';
 import { EmbedManyResult } from './embed-many-result';
 

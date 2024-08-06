@@ -1,6 +1,6 @@
-import { NoObjectGeneratedError } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
+import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
@@ -15,10 +15,10 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
 import { calculateCompletionTokenUsage } from '../types/token-usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
-import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { Schema, asSchema } from '../util/schema';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { NoObjectGeneratedError } from './no-object-generated-error';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.

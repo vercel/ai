@@ -38,6 +38,8 @@ export const generateId = generateIdImpl;
 export const nanoid = generateIdImpl;
 
 export * from '../core/index';
+export * from '../errors/index';
+
 export * from './ai-stream';
 export * from './anthropic-stream';
 export * from './assistant-response';

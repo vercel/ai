@@ -1,9 +1,14 @@
-import { getErrorMessage } from './get-error-message';
+import { AISDKError, getErrorMessage } from '@ai-sdk/provider';
 
-export class InvalidToolArgumentsError extends Error {
+const name = 'AI_InvalidToolArgumentsError';
+const marker = `vercel.ai.error.${name}`;
+const symbol = Symbol.for(marker);
+
+export class InvalidToolArgumentsError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
   readonly toolName: string;
   readonly toolArgs: string;
-  readonly cause: unknown;
 
   constructor({
     toolArgs,
@@ -18,26 +23,33 @@ export class InvalidToolArgumentsError extends Error {
     toolName: string;
     cause: unknown;
   }) {
-    super(message);
-
-    this.name = 'AI_InvalidToolArgumentsError';
+    super({ name, message, cause });
 
     this.toolArgs = toolArgs;
     this.toolName = toolName;
-    this.cause = cause;
   }
 
+  static isInstance(error: unknown): error is InvalidToolArgumentsError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  /**
+   * @deprecated use `isInstance` instead
+   */
   static isInvalidToolArgumentsError(
     error: unknown,
   ): error is InvalidToolArgumentsError {
     return (
       error instanceof Error &&
-      error.name === 'AI_InvalidToolArgumentsError' &&
+      error.name === name &&
       typeof (error as InvalidToolArgumentsError).toolName === 'string' &&
       typeof (error as InvalidToolArgumentsError).toolArgs === 'string'
     );
   }
 
+  /**
+   * @deprecated Do not use this method. It will be removed in the next major version.
+   */
   toJSON() {
     return {
       name: this.name,

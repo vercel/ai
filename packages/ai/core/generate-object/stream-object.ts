@@ -14,6 +14,7 @@ import { ServerResponse } from 'http';
 import { z } from 'zod';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { DelayedPromise } from '../../util/delayed-promise';
+import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
@@ -35,7 +36,6 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
-import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { Schema, asSchema } from '../util/schema';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 import {

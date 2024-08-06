@@ -1,8 +1,15 @@
-export class DownloadError extends Error {
+import { AISDKError } from '@ai-sdk/provider';
+
+const name = 'AI_DownloadError';
+const marker = `vercel.ai.error.${name}`;
+const symbol = Symbol.for(marker);
+
+export class DownloadError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
   readonly url: string;
   readonly statusCode?: number;
   readonly statusText?: string;
-  readonly cause?: unknown;
 
   constructor({
     url,
@@ -19,20 +26,24 @@ export class DownloadError extends Error {
     message?: string;
     cause?: unknown;
   }) {
-    super(message);
-
-    this.name = 'AI_DownloadError';
+    super({ name, message, cause });
 
     this.url = url;
     this.statusCode = statusCode;
     this.statusText = statusText;
-    this.cause = cause;
   }
 
+  static isInstance(error: unknown): error is DownloadError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  /**
+   * @deprecated use `isInstance` instead
+   */
   static isDownloadError(error: unknown): error is DownloadError {
     return (
       error instanceof Error &&
-      error.name === 'AI_DownloadError' &&
+      error.name === name &&
       typeof (error as DownloadError).url === 'string' &&
       ((error as DownloadError).statusCode == null ||
         typeof (error as DownloadError).statusCode === 'number') &&
@@ -41,6 +52,9 @@ export class DownloadError extends Error {
     );
   }
 
+  /**
+   * @deprecated Do not use this method. It will be removed in the next major version.
+   */
   toJSON() {
     return {
       name: this.name,

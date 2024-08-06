@@ -1,4 +1,4 @@
-import { DownloadError } from '@ai-sdk/provider';
+import { DownloadError } from './download-error';
 
 export async function download({
   url,
@@ -27,7 +27,7 @@ export async function download({
       mimeType: response.headers.get('content-type') ?? undefined,
     };
   } catch (error) {
-    if (DownloadError.isDownloadError(error)) {
+    if (DownloadError.isInstance(error)) {
       throw error;
     }
 

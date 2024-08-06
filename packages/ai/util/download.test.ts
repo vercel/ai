@@ -1,5 +1,5 @@
 import { download } from './download';
-import { DownloadError } from '@ai-sdk/provider';
+import { DownloadError } from './download-error';
 
 it('should download data successfully and match expected bytes', async () => {
   const expectedBytes = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);

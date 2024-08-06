@@ -1,4 +1,12 @@
-export class NoSuchToolError extends Error {
+import { AISDKError } from '@ai-sdk/provider';
+
+const name = 'AI_NoSuchToolError';
+const marker = `vercel.ai.error.${name}`;
+const symbol = Symbol.for(marker);
+
+export class NoSuchToolError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
   readonly toolName: string;
   readonly availableTools: string[] | undefined;
 
@@ -15,24 +23,32 @@ export class NoSuchToolError extends Error {
     availableTools?: string[] | undefined;
     message?: string;
   }) {
-    super(message);
-
-    this.name = 'AI_NoSuchToolError';
+    super({ name, message });
 
     this.toolName = toolName;
     this.availableTools = availableTools;
   }
 
+  static isInstance(error: unknown): error is NoSuchToolError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  /**
+   * @deprecated use `isInstance` instead
+   */
   static isNoSuchToolError(error: unknown): error is NoSuchToolError {
     return (
       error instanceof Error &&
-      error.name === 'AI_NoSuchToolError' &&
+      error.name === name &&
       'toolName' in error &&
       error.toolName != undefined &&
       typeof error.name === 'string'
     );
   }
 
+  /**
+   * @deprecated Do not use this method. It will be removed in the next major version.
+   */
   toJSON() {
     return {
       name: this.name,

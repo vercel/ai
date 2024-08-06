@@ -1,4 +1,5 @@
 import { Tracer } from '@opentelemetry/api';
+import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import {
@@ -9,6 +10,7 @@ import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
@@ -20,11 +22,9 @@ import {
   CompletionTokenUsage,
   calculateCompletionTokenUsage,
 } from '../types/token-usage';
-import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { GenerateTextResult } from './generate-text-result';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
-import { assembleOperationName } from '../telemetry/assemble-operation-name';
 
 /**
 Generate a text and call tools for a given prompt using a language model.

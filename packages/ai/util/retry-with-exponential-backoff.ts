@@ -1,6 +1,7 @@
-import { APICallError, RetryError } from '@ai-sdk/provider';
+import { APICallError } from '@ai-sdk/provider';
 import { getErrorMessage, isAbortError } from '@ai-sdk/provider-utils';
 import { delay } from './delay';
+import { RetryError } from './retry-error';
 
 export type RetryFunction = <OUTPUT>(
   fn: () => PromiseLike<OUTPUT>,

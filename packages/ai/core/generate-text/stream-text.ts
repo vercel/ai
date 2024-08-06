@@ -6,6 +6,8 @@ import {
   TextStreamPart,
   formatStreamPart,
 } from '../../streams';
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
+import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
@@ -32,12 +34,10 @@ import {
 } from '../util/async-iterable-stream';
 import { mergeStreams } from '../util/merge-streams';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
-import { retryWithExponentialBackoff } from '../util/retry-with-exponential-backoff';
 import { runToolsTransformation } from './run-tools-transformation';
 import { StreamTextResult } from './stream-text-result';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
-import { createResolvablePromise } from '../../util/create-resolvable-promise';
 
 /**
 Generate a text and call tools for a given prompt using a language model.

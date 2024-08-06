@@ -1,6 +1,7 @@
-import { LanguageModelV1StreamPart, NoSuchToolError } from '@ai-sdk/provider';
+import { LanguageModelV1StreamPart } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/ui-utils';
 import { Tracer } from '@opentelemetry/api';
+import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
