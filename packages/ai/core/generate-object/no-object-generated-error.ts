@@ -1,16 +1,29 @@
+import { AISDKError } from '@ai-sdk/provider';
+
+const marker = 'vercel.ai.error.no-object-generated-error';
+const symbol = Symbol.for(marker);
+
 /**
 Thrown when the AI provider fails to generate a parsable object.
  */
 // TODO move to ai package
-export class NoObjectGeneratedError extends Error {
-  readonly cause: unknown;
+export class NoObjectGeneratedError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
 
   constructor({ message = 'No object generated.' }: { message?: string } = {}) {
-    super(message);
-
-    this.name = 'AI_NoObjectGeneratedError';
+    super({
+      name: 'AI_NoObjectGeneratedError',
+      message,
+    });
   }
 
+  static isInstance(error: unknown): error is NoObjectGeneratedError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  /**
+   * @deprecated Use isInstance instead.
+   */
   static isNoObjectGeneratedError(
     error: unknown,
   ): error is NoObjectGeneratedError {

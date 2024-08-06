@@ -1,4 +1,3 @@
-import { NoObjectGeneratedError } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { CallSettings } from '../prompt/call-settings';
@@ -19,6 +18,7 @@ import { retryWithExponentialBackoff } from '../util/retry-with-exponential-back
 import { Schema, asSchema } from '../util/schema';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { NoObjectGeneratedError } from './no-object-generated-error';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
