@@ -4,7 +4,6 @@ export {
   EmptyResponseBodyError,
   InvalidPromptError,
   InvalidResponseDataError,
-  InvalidToolArgumentsError,
   JSONParseError,
   LoadAPIKeyError,
   NoObjectGeneratedError,
@@ -15,6 +14,8 @@ export {
 } from '@ai-sdk/provider';
 
 export { InvalidArgumentError } from './invalid-argument-error';
+export { InvalidToolArgumentsError } from './invalid-tool-arguments-error';
+
 export { InvalidDataContentError } from '../core/prompt/invalid-data-content-error';
 export { InvalidMessageRoleError } from '../core/prompt/invalid-message-role-error';
 export { DownloadError } from '../util/download-error';

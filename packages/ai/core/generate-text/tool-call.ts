@@ -1,9 +1,9 @@
 import {
-  InvalidToolArgumentsError,
   LanguageModelV1FunctionToolCall,
   NoSuchToolError,
 } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
+import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { CoreTool } from '../tool';
 import { inferParameters } from '../tool/tool';
 import { Schema, asSchema } from '../util/schema';

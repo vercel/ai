@@ -1,10 +1,13 @@
-import { getErrorMessage } from './get-error-message';
+import { AISDKError, getErrorMessage } from '@ai-sdk/provider';
 
-// TODO move to ai package
-export class InvalidToolArgumentsError extends Error {
+const marker = 'vercel.ai.error.invalid-tool-arguments-error';
+const symbol = Symbol.for(marker);
+
+export class InvalidToolArgumentsError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
   readonly toolName: string;
   readonly toolArgs: string;
-  readonly cause: unknown;
 
   constructor({
     toolArgs,
@@ -19,15 +22,23 @@ export class InvalidToolArgumentsError extends Error {
     toolName: string;
     cause: unknown;
   }) {
-    super(message);
-
-    this.name = 'AI_InvalidToolArgumentsError';
+    super({
+      name: 'AI_InvalidToolArgumentsError',
+      message,
+      cause,
+    });
 
     this.toolArgs = toolArgs;
     this.toolName = toolName;
-    this.cause = cause;
   }
 
+  static isInstance(error: unknown): error is InvalidToolArgumentsError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  /**
+   * @deprecated use `isInstance` instead
+   */
   static isInvalidToolArgumentsError(
     error: unknown,
   ): error is InvalidToolArgumentsError {
