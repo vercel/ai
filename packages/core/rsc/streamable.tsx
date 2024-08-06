@@ -12,7 +12,7 @@ import {
   DEV_DEFAULT_STREAMABLE_WARNING_TIME,
   STREAMABLE_VALUE_TYPE,
 } from './constants';
-import { createSuspensedChunk } from './create-suspensed-chunk';
+import { createSuspendedChunk } from './create-suspensed-chunk';
 import type { StreamablePatch, StreamableValue } from './types';
 
 // It's necessary to define the type manually here, otherwise TypeScript compiler
@@ -68,7 +68,7 @@ type StreamableUIWrapper = {
 function createStreamableUI(initialValue?: React.ReactNode) {
   let currentValue = initialValue;
   let closed = false;
-  let { row, resolve, reject } = createSuspensedChunk(initialValue);
+  let { row, resolve, reject } = createSuspendedChunk(initialValue);
 
   function assertStream(method: string) {
     if (closed) {

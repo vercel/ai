@@ -65,7 +65,7 @@ const R = [
  *   - resolve: A function to resolve the promise with a new value.
  *   - reject: A function to reject the promise with an error.
  */
-export function createSuspensedChunk(initialValue: React.ReactNode): {
+export function createSuspendedChunk(initialValue: React.ReactNode): {
   row: React.ReactNode;
   resolve: (value: ChunkType) => void;
   reject: (error: unknown) => void;
