@@ -1,10 +1,17 @@
+import { AISDKError } from '@ai-sdk/provider';
+
+const name = 'AI_RetryError';
+const marker = `vercel.ai.error.${name}`;
+const symbol = Symbol.for(marker);
+
 export type RetryErrorReason =
   | 'maxRetriesExceeded'
   | 'errorNotRetryable'
   | 'abort';
 
-// TODO move to ai package
-export class RetryError extends Error {
+export class RetryError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
   // note: property order determines debugging output
   readonly reason: RetryErrorReason;
   readonly lastError: unknown;
@@ -19,9 +26,8 @@ export class RetryError extends Error {
     reason: RetryErrorReason;
     errors: Array<unknown>;
   }) {
-    super(message);
+    super({ name, message });
 
-    this.name = 'AI_RetryError';
     this.reason = reason;
     this.errors = errors;
 
@@ -29,10 +35,17 @@ export class RetryError extends Error {
     this.lastError = errors[errors.length - 1];
   }
 
+  static isInstance(error: unknown): error is RetryError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  /**
+   * @deprecated use `isInstance` instead
+   */
   static isRetryError(error: unknown): error is RetryError {
     return (
       error instanceof Error &&
-      error.name === 'AI_RetryError' &&
+      error.name === name &&
       typeof (error as RetryError).reason === 'string' &&
       Array.isArray((error as RetryError).errors)
     );

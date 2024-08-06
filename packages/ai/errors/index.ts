@@ -6,7 +6,6 @@ export {
   InvalidResponseDataError,
   JSONParseError,
   LoadAPIKeyError,
-  RetryError,
   TypeValidationError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -19,3 +18,4 @@ export { NoObjectGeneratedError } from '../core/generate-object/no-object-genera
 export { InvalidDataContentError } from '../core/prompt/invalid-data-content-error';
 export { InvalidMessageRoleError } from '../core/prompt/invalid-message-role-error';
 export { DownloadError } from '../util/download-error';
+export { RetryError } from '../util/retry-error';

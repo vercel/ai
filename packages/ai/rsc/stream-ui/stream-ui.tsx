@@ -13,12 +13,12 @@ import {
   CompletionTokenUsage,
   calculateCompletionTokenUsage,
 } from '../../core/types/token-usage';
-import { retryWithExponentialBackoff } from '../../core/util/retry-with-exponential-backoff';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { isAsyncGenerator } from '../../util/is-async-generator';
 import { isGenerator } from '../../util/is-generator';
+import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { createStreamableUI } from '../streamable';
 
 type Streamable = ReactNode | Promise<ReactNode>;

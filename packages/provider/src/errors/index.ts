@@ -8,7 +8,6 @@ export * from './json-parse-error';
 export * from './load-api-key-error';
 export * from './load-setting-error';
 export * from './no-content-generated-error';
-export * from './retry-error';
 export * from './too-many-embedding-values-for-call-error';
 export * from './type-validation-error';
 export * from './unsupported-functionality-error';
