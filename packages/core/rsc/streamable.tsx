@@ -12,7 +12,7 @@ import {
   DEV_DEFAULT_STREAMABLE_WARNING_TIME,
   STREAMABLE_VALUE_TYPE,
 } from './constants';
-import { createSuspendedChunk } from './create-suspensed-chunk';
+import { createSuspendedChunk } from './create-suspended-chunk';
 import type { StreamablePatch, StreamableValue } from './types';
 
 // It's necessary to define the type manually here, otherwise TypeScript compiler
