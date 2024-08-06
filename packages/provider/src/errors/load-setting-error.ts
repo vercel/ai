@@ -1,21 +1,26 @@
-export class LoadSettingError extends Error {
-  constructor({ message }: { message: string }) {
-    super(message);
+import { AISDKError } from './ai-sdk-error';
 
-    this.name = 'AI_LoadSettingError';
+const marker = 'vercel.ai.error.load-setting-error';
+const symbol = Symbol.for(marker);
+
+export class LoadSettingError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
+  constructor({ message }: { message: string }) {
+    super({
+      name: 'AI_LoadSettingError',
+      message,
+    });
   }
 
-  static isLoadSettingError(error: unknown): error is LoadSettingError {
-    return error instanceof Error && error.name === 'AI_LoadSettingError';
+  static isInstance(error: unknown): error is LoadSettingError {
+    return AISDKError.hasMarker(error, marker);
   }
 
   /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
+   * @deprecated Use isInstance instead.
    */
-  toJSON() {
-    return {
-      name: this.name,
-      message: this.message,
-    };
+  static isLoadSettingError(error: unknown): error is LoadSettingError {
+    return error instanceof Error && error.name === 'AI_LoadSettingError';
   }
 }
