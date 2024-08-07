@@ -559,36 +559,18 @@ describe('doGenerate', () => {
     ]);
   });
 
-  it('should use json_schema when structured outputs are enabled', async () => {
-    prepareJsonResponse({ content: '{"value":"Spark"}' });
+  describe('structuredOutputs', () => {
+    it('should use json_schema when structured outputs are enabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-    const model = provider.chat('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
-    });
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: true,
+      });
 
-    const response = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-json',
-        schema: {
-          type: 'object',
-          properties: { value: { type: 'string' } },
-          required: ['value'],
-          additionalProperties: false,
-          $schema: 'http://json-schema.org/draft-07/schema#',
-        },
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.getRequestBodyJson()).toStrictEqual({
-      model: 'gpt-4o-2024-08-06',
-      messages: [{ role: 'user', content: 'Hello' }],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          name: 'response',
-          strict: true,
+      const response = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-json',
           schema: {
             type: 'object',
             properties: { value: { type: 'string' } },
@@ -597,10 +579,30 @@ describe('doGenerate', () => {
             $schema: 'http://json-schema.org/draft-07/schema#',
           },
         },
-      },
-    });
+        prompt: TEST_PROMPT,
+      });
 
-    expect(response.text).toStrictEqual('{"value":"Spark"}');
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      });
+
+      expect(response.text).toStrictEqual('{"value":"Spark"}');
+    });
   });
 });
 
