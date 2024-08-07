@@ -684,19 +684,17 @@ describe('options.headers', () => {
 
 describe('custom schema', () => {
   it('should send object deltas with json mode', async () => {
-    const testSchema = jsonSchema({
-      type: 'object',
-      properties: { content: { type: 'string' } },
-      required: ['content'],
-      additionalProperties: false,
-    });
-
     const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
-            schema: testSchema.jsonSchema,
+            schema: jsonSchema({
+              type: 'object',
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              additionalProperties: false,
+            }).jsonSchema,
           });
 
           assert.deepStrictEqual(prompt, [
@@ -728,7 +726,12 @@ describe('custom schema', () => {
           };
         },
       }),
-      schema: testSchema,
+      schema: jsonSchema({
+        type: 'object',
+        properties: { content: { type: 'string' } },
+        required: ['content'],
+        additionalProperties: false,
+      }),
       mode: 'json',
       prompt: 'prompt',
     });
