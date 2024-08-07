@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [d58517b]
+  - @ai-sdk/provider@0.0.16
+
 ## 1.0.7
 
 ### Patch Changes
