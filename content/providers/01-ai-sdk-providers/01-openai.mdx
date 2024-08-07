@@ -188,7 +188,7 @@ The following optional settings are available for OpenAI chat models:
 
   Whether to enable parallel function calling during tool use. Default to true.
 
-- **useLegacyFunctionCalls**
+- **useLegacyFunctionCalls** _boolean_
 
   Whether to use legacy function calling. Defaults to false.
 
@@ -197,6 +197,12 @@ The following optional settings are available for OpenAI chat models:
   which causes `streamObject` to be non-streaming.
 
   Prefer setting `parallelToolCalls: false` over this option.
+
+- **structuredOutputs** _boolean_
+
+  Whether to use structured outputs. Defaults to false.
+
+  When enabled, tool calls and object generation will be strict and follow the provided schema.
 
 - **user** _string_
 

@@ -36,7 +36,6 @@ type OpenAIChatConfig = {
 
 export class OpenAIChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: OpenAIChatModelId;
   readonly settings: OpenAIChatSettings;
@@ -51,6 +50,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     this.modelId = modelId;
     this.settings = settings;
     this.config = config;
+  }
+
+  get supportsStructuredOutputs(): boolean {
+    return this.settings.structuredOutputs === true;
+  }
+
+  get defaultObjectGenerationMode() {
+    return this.supportsStructuredOutputs ? 'json' : 'tool';
   }
 
   get provider(): string {
@@ -101,6 +108,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (useLegacyFunctionCalling && this.settings.structuredOutputs === true) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'structuredOutputs with useLegacyFunctionCalling',
+      });
+    }
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -148,7 +161,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         return {
           args: {
             ...baseArgs,
-            ...prepareToolsAndToolChoice({ mode, useLegacyFunctionCalling }),
+            ...prepareToolsAndToolChoice({
+              mode,
+              useLegacyFunctionCalling,
+              structuredOutputs: this.settings.structuredOutputs,
+            }),
           },
           warnings,
         };
@@ -158,7 +175,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         return {
           args: {
             ...baseArgs,
-            response_format: { type: 'json_object' },
+            response_format:
+              this.settings.structuredOutputs === true
+                ? {
+                    type: 'json_schema',
+                    json_schema: {
+                      name: 'response',
+                      strict: true,
+                      schema: mode.schema,
+                    },
+                  }
+                : { type: 'json_object' },
           },
           warnings,
         };
@@ -194,6 +221,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       description: mode.tool.description,
                       parameters: mode.tool.parameters,
                     },
+                    strict:
+                      this.settings.structuredOutputs === true
+                        ? true
+                        : undefined,
                   },
                 ],
               },
@@ -618,11 +649,13 @@ const openaiChatChunkSchema = z.union([
 function prepareToolsAndToolChoice({
   mode,
   useLegacyFunctionCalling = false,
+  structuredOutputs = false,
 }: {
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
   };
   useLegacyFunctionCalling?: boolean;
+  structuredOutputs?: boolean;
 }) {
   // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
@@ -673,6 +706,7 @@ function prepareToolsAndToolChoice({
       description: tool.description,
       parameters: tool.parameters,
     },
+    strict: structuredOutputs === true ? true : undefined,
   }));
 
   if (toolChoice == null) {

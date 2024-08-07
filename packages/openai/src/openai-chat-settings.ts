@@ -53,6 +53,13 @@ Whether to enable parallel function calling during tool use. Default to true.
   parallelToolCalls?: boolean;
 
   /**
+Whether to use structured outputs. Defaults to false.
+
+When enabled, tool calls and object generation will be strict and follow the provided schema.
+ */
+  structuredOutputs?: boolean;
+
+  /**
 Whether to use legacy function calling. Defaults to false.
 
 Required by some open source inference engines which do not support the `tools` API. May also

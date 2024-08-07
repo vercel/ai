@@ -18,7 +18,17 @@ describe('result.object', () => {
     const result = await generateObject({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'object-json' });
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              type: 'object',
+            },
+          });
+
           assert.deepStrictEqual(prompt, [
             {
               role: 'system',
@@ -463,7 +473,15 @@ describe('custom schema', () => {
     const result = await generateObject({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'object-json' });
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            schema: {
+              type: 'object',
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              additionalProperties: false,
+            },
+          });
           assert.deepStrictEqual(prompt, [
             {
               role: 'system',
@@ -496,11 +514,20 @@ describe('custom schema', () => {
 });
 
 describe('zod schema', () => {
-  it('should generate object  when using zod transform', async () => {
+  it('should generate object when using zod transform', async () => {
     const result = await generateObject({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'object-json' });
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              type: 'object',
+            },
+          });
           assert.deepStrictEqual(prompt, [
             {
               role: 'system',
@@ -532,7 +559,16 @@ describe('zod schema', () => {
     const result = await generateObject({
       model: new MockLanguageModelV1({
         doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, { type: 'object-json' });
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              type: 'object',
+            },
+          });
           assert.deepStrictEqual(prompt, [
             {
               role: 'system',

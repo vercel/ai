@@ -212,16 +212,18 @@ Warnings from the model provider (e.g. unsupported settings).
       switch (mode) {
         case 'json': {
           const validatedPrompt = getValidatedPrompt({
-            system: injectJsonSchemaIntoSystem({
-              system,
-              schema: schema.jsonSchema,
-            }),
+            system: model.supportsStructuredOutputs
+              ? system
+              : injectJsonSchemaIntoSystem({
+                  system,
+                  schema: schema.jsonSchema,
+                }),
             prompt,
             messages,
           });
 
           callOptions = {
-            mode: { type: 'object-json' },
+            mode: { type: 'object-json', schema: schema.jsonSchema },
             ...prepareCallSettings(settings),
             inputFormat: validatedPrompt.type,
             prompt: await convertToLanguageModelPrompt({
