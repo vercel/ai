@@ -46,6 +46,16 @@ pass the image data to the model.
   readonly supportsImageUrls?: boolean;
 
   /**
+Flag whether this model supports structured outputs,
+i.e. follows JSON schemas for object generation
+when the response format is set to 'json' or
+when the `object-json` mode is used.
+
+Defaults to `false`.
+*/
+  readonly supportsStructuredOutputs?: boolean;
+
+  /**
 Generates a language model output (non-streaming).
 
 Naming: "do" prefix to prevent accidental direct usage of the method

@@ -2,6 +2,7 @@
 export type OpenAIChatModelId =
   | 'gpt-4o'
   | 'gpt-4o-2024-05-13'
+  | 'gpt-4o-2024-08-06'
   | 'gpt-4o-mini'
   | 'gpt-4o-mini-2024-07-18'
   | 'gpt-4-turbo'
@@ -50,6 +51,13 @@ tokens that were generated.
 Whether to enable parallel function calling during tool use. Default to true.
    */
   parallelToolCalls?: boolean;
+
+  /**
+Whether to use structured outputs. Defaults to false.
+
+When enabled, tool calls and object generation will be strict and follow the provided schema.
+ */
+  structuredOutputs?: boolean;
 
   /**
 Whether to use legacy function calling. Defaults to false.

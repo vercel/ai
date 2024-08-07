@@ -153,10 +153,12 @@ Default and recommended: 'auto' (best mode for the model).
       switch (mode) {
         case 'json': {
           const validatedPrompt = getValidatedPrompt({
-            system: injectJsonSchemaIntoSystem({
-              system,
-              schema: schema.jsonSchema,
-            }),
+            system: model.supportsStructuredOutputs
+              ? system
+              : injectJsonSchemaIntoSystem({
+                  system,
+                  schema: schema.jsonSchema,
+                }),
             prompt,
             messages,
           });
@@ -198,7 +200,7 @@ Default and recommended: 'auto' (best mode for the model).
               tracer,
               fn: async span => {
                 const result = await model.doGenerate({
-                  mode: { type: 'object-json' },
+                  mode: { type: 'object-json', schema: schema.jsonSchema },
                   ...prepareCallSettings(settings),
                   inputFormat,
                   prompt: promptMessages,

@@ -53,6 +53,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     this.config = config;
   }
 
+  get supportsStructuredOutputs(): boolean {
+    return this.settings.structuredOutputs === true;
+  }
+
   get provider(): string {
     return this.config.provider;
   }
@@ -98,6 +102,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     if (useLegacyFunctionCalling && this.settings.parallelToolCalls === true) {
       throw new UnsupportedFunctionalityError({
         functionality: 'useLegacyFunctionCalling with parallelToolCalls',
+      });
+    }
+
+    if (useLegacyFunctionCalling && this.settings.structuredOutputs === true) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'structuredOutputs with useLegacyFunctionCalling',
       });
     }
 
@@ -158,7 +168,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         return {
           args: {
             ...baseArgs,
-            response_format: { type: 'json_object' },
+            response_format:
+              this.settings.structuredOutputs === true
+                ? {
+                    type: 'json_schema',
+                    json_schema: { name: 'response', schema: mode.schema },
+                  }
+                : { type: 'json_object' },
           },
           warnings,
         };
