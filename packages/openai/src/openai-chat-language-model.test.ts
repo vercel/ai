@@ -1,4 +1,4 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { LanguageModelV1, LanguageModelV1Prompt } from '@ai-sdk/provider';
 import {
   JsonTestServer,
   StreamingTestServer,
@@ -379,57 +379,6 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should pass functions and function_call with useLegacyFunctionCalling', async () => {
-    prepareJsonResponse({ content: '' });
-
-    const model = provider.chat('gpt-3.5-turbo', {
-      useLegacyFunctionCalling: true,
-    });
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        ],
-        toolChoice: {
-          type: 'tool',
-          toolName: 'test-tool',
-        },
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.getRequestBodyJson()).toEqual({
-      messages: [{ role: 'user', content: 'Hello' }],
-      model: 'gpt-3.5-turbo',
-      functions: [
-        {
-          name: 'test-tool',
-          parameters: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      ],
-      function_call: { name: 'test-tool' },
-    });
-  });
-
   it('should pass headers', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -512,25 +461,53 @@ describe('doGenerate', () => {
     ]);
   });
 
-  it('should parse function results with useLegacyFunctionCalling', async () => {
-    prepareJsonResponse({
-      function_call: {
-        name: 'test-tool',
-        arguments: '{"value":"Spark"}',
-      },
+  describe('useLegacyFunctionCalling', () => {
+    let result: Awaited<ReturnType<LanguageModelV1['doGenerate']>>;
+
+    beforeEach(async () => {
+      prepareJsonResponse({
+        function_call: {
+          name: 'test-tool',
+          arguments: '{"value":"Spark"}',
+        },
+      });
+
+      const model = provider.chat('gpt-3.5-turbo', {
+        useLegacyFunctionCalling: true,
+      });
+
+      result = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'regular',
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          toolChoice: {
+            type: 'tool',
+            toolName: 'test-tool',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
     });
 
-    const model = provider.chat('gpt-3.5-turbo', {
-      useLegacyFunctionCalling: true,
-    });
-
-    const result = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
+    it('should pass functions and function_call with useLegacyFunctionCalling', async () => {
+      expect(await server.getRequestBodyJson()).toEqual({
+        messages: [{ role: 'user', content: 'Hello' }],
+        model: 'gpt-3.5-turbo',
+        functions: [
           {
-            type: 'function',
             name: 'test-tool',
             parameters: {
               type: 'object',
@@ -541,22 +518,20 @@ describe('doGenerate', () => {
             },
           },
         ],
-        toolChoice: {
-          type: 'tool',
-          toolName: 'test-tool',
-        },
-      },
-      prompt: TEST_PROMPT,
+        function_call: { name: 'test-tool' },
+      });
     });
 
-    expect(result.toolCalls).toStrictEqual([
-      {
-        args: '{"value":"Spark"}',
-        toolCallId: expect.any(String),
-        toolCallType: 'function',
-        toolName: 'test-tool',
-      },
-    ]);
+    it('should parse function results with useLegacyFunctionCalling', async () => {
+      expect(result.toolCalls).toStrictEqual([
+        {
+          args: '{"value":"Spark"}',
+          toolCallId: expect.any(String),
+          toolCallType: 'function',
+          toolName: 'test-tool',
+        },
+      ]);
+    });
   });
 
   describe('structuredOutputs', () => {
