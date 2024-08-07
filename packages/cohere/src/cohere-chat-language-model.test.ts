@@ -7,6 +7,10 @@ import {
 import { createCohere } from './cohere-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
+  {
+    role: 'system',
+    content: 'you are a friendly bot!',
+  },
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -130,7 +134,7 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'command-r-plus',
       message: 'Hello',
-      chat_history: [],
+      chat_history: [{ role: 'SYSTEM', message: 'you are a friendly bot!' }],
     });
   });
 
@@ -185,7 +189,12 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'command-r-plus',
       message: 'Hello',
-      chat_history: [],
+      chat_history: [
+        {
+          role: 'SYSTEM',
+          message: 'you are a friendly bot!',
+        },
+      ],
       response_format: {
         type: 'json_object',
         schema: {
@@ -329,7 +338,12 @@ describe('doStream', () => {
       stream: true,
       model: 'command-r-plus',
       message: 'Hello',
-      chat_history: [],
+      chat_history: [
+        {
+          role: 'SYSTEM',
+          message: 'you are a friendly bot!',
+        },
+      ],
     });
   });
 
