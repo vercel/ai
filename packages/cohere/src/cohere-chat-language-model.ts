@@ -63,9 +63,11 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
-    // Cohere distinguishes between the current message and the chat history
     const chatPrompt = convertToCohereChatPrompt(prompt);
-    const [lastMessage, ...history] = chatPrompt;
+
+    // Cohere distinguishes between the current message and the chat history
+    const lastMessage = chatPrompt.at(-1);
+    const history = chatPrompt.slice(0, -1);
 
     const args = {
       // model id:
@@ -92,7 +94,11 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
       // messages:
       chat_history: history,
-      message: lastMessage.role === 'USER' ? lastMessage.message : undefined,
+      message: lastMessage
+        ? lastMessage.role === 'USER'
+          ? lastMessage.message
+          : undefined
+        : undefined,
     };
 
     switch (type) {
