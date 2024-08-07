@@ -1,5 +1,19 @@
 # ai
 
+## 3.3.3
+
+### Patch Changes
+
+- d58517b: feat (ai/openai): structured outputs
+- Updated dependencies [d58517b]
+  - @ai-sdk/provider@0.0.16
+  - @ai-sdk/provider-utils@1.0.8
+  - @ai-sdk/ui-utils@0.0.27
+  - @ai-sdk/react@0.0.39
+  - @ai-sdk/solid@0.0.30
+  - @ai-sdk/svelte@0.0.32
+  - @ai-sdk/vue@0.0.31
+
 ## 3.3.2
 
 ### Patch Changes

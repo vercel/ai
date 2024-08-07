@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 0.0.43
+
+### Patch Changes
+
+- d58517b: feat (ai/openai): structured outputs
+- c0a73ee: feat (provider/openai): add gpt-4o-2024-08-06 to list of supported models
+- Updated dependencies [d58517b]
+  - @ai-sdk/provider@0.0.16
+  - @ai-sdk/provider-utils@1.0.8
+
 ## 0.0.42
 
 ### Patch Changes

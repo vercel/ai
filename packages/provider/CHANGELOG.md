@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.16
+
+### Patch Changes
+
+- d58517b: feat (ai/openai): structured outputs
+
 ## 0.0.15
 
 ### Patch Changes
