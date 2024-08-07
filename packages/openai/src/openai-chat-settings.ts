@@ -75,5 +75,5 @@ monitor and detect abuse. Learn more.
   /**
 An object specifying the format that the model must output.
 */
-  response_format?: { type: 'text' } | { type: 'json_object' } | { type: 'json_schema', schema: { description?: string, name: string, schema: JSONSchema7, strict?: boolean | null }}
+  response_format?: { type: 'text' } | { type: 'json_object' } | { type: 'json_schema', 'json_schema': { description?: string, name: string, schema?: JSONSchema7, strict?: boolean | null }}
 }
