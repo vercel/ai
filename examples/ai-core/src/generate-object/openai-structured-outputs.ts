@@ -1,9 +1,20 @@
-import { openai } from '@ai-sdk/openai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
 dotenv.config();
+
+const openai = createOpenAI({
+  fetch: async (url, options) => {
+    console.log(
+      'Fetching',
+      url,
+      JSON.stringify(JSON.parse(options!.body! as string), null, 2),
+    );
+    return await fetch(url, options);
+  },
+});
 
 async function main() {
   const result = await generateObject({

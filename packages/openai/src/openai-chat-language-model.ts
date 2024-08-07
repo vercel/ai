@@ -36,7 +36,6 @@ type OpenAIChatConfig = {
 
 export class OpenAIChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: OpenAIChatModelId;
   readonly settings: OpenAIChatSettings;
@@ -55,6 +54,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
   get supportsStructuredOutputs(): boolean {
     return this.settings.structuredOutputs === true;
+  }
+
+  get defaultObjectGenerationMode() {
+    return this.supportsStructuredOutputs ? 'json' : 'tool';
   }
 
   get provider(): string {
@@ -172,7 +175,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               this.settings.structuredOutputs === true
                 ? {
                     type: 'json_schema',
-                    json_schema: { name: 'response', schema: mode.schema },
+                    json_schema: {
+                      name: 'response',
+                      strict: true,
+                      schema: mode.schema,
+                    },
                   }
                 : { type: 'json_object' },
           },
