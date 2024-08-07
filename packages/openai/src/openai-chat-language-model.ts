@@ -133,7 +133,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       seed,
 
       // response format:
-      response_format:
+      response_format: this.settings.response_format ||
         responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // messages:
@@ -158,7 +158,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         return {
           args: {
             ...baseArgs,
-            response_format: { type: 'json_object' },
+            response_format: this.settings.response_format || { type: 'json_object' },
           },
           warnings,
         };
@@ -193,6 +193,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       name: mode.tool.name,
                       description: mode.tool.description,
                       parameters: mode.tool.parameters,
+                      strict: this.settings.response_format && this.settings.response_format.type === 'json_schema' && this.settings.response_format.schema.strict,
                     },
                   },
                 ],
@@ -672,6 +673,7 @@ function prepareToolsAndToolChoice({
       name: tool.name,
       description: tool.description,
       parameters: tool.parameters,
+      strict: tool.strict,
     },
   }));
 

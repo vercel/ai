@@ -29,4 +29,6 @@ The parameters that the tool expects. The language model uses this to
 understand the tool's input requirements and to provide matching suggestions.
    */
   parameters: JSONSchema7;
+
+  [key: string]: unknown;
 };

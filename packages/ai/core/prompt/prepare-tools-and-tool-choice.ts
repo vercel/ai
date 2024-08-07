@@ -28,10 +28,12 @@ export function prepareToolsAndToolChoice<
 
   return {
     tools: Object.entries(tools).map(([name, tool]) => ({
+      ...tool,
       type: 'function' as const,
       name,
       description: tool.description,
       parameters: asSchema(tool.parameters).jsonSchema,
+      execute: undefined,
     })),
     toolChoice:
       toolChoice == null

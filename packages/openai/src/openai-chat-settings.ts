@@ -1,3 +1,5 @@
+import { JSONSchema7 } from 'json-schema';
+
 // https://platform.openai.com/docs/models
 export type OpenAIChatModelId =
   | 'gpt-4o'
@@ -69,4 +71,9 @@ A unique identifier representing your end-user, which can help OpenAI to
 monitor and detect abuse. Learn more.
 */
   user?: string;
+
+  /**
+An object specifying the format that the model must output.
+*/
+  response_format?: { type: 'text' } | { type: 'json_object' } | { type: 'json_schema', schema: { description?: string, name: string, schema: JSONSchema7, strict?: boolean | null }}
 }
