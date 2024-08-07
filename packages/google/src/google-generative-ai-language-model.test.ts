@@ -285,7 +285,7 @@ describe('doGenerate', () => {
     withTestServer(prepareJsonResponse({}), async ({ call }) => {
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'object-json' },
+        mode: { type: 'object-json', schema: { type: 'object' } },
         prompt: TEST_PROMPT,
       });
 
