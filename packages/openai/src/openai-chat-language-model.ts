@@ -161,7 +161,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         return {
           args: {
             ...baseArgs,
-            ...prepareToolsAndToolChoice({ mode, useLegacyFunctionCalling }),
+            ...prepareToolsAndToolChoice({
+              mode,
+              useLegacyFunctionCalling,
+              structuredOutputs: this.settings.structuredOutputs,
+            }),
           },
           warnings,
         };

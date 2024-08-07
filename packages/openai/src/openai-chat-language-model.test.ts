@@ -535,7 +535,7 @@ describe('doGenerate', () => {
   });
 
   describe('when structuredOutputs are enabled', () => {
-    it('should use json_schema & strict for object-json mode', async () => {
+    it('should use json_schema & strict in object-json mode', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06', {
@@ -580,7 +580,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should use json_schema & strict for object-tool mode', async () => {
+  it('should set strict in object-tool mode', async () => {
     prepareJsonResponse({
       tool_calls: [
         {
@@ -612,6 +612,81 @@ describe('doGenerate', () => {
             additionalProperties: false,
             $schema: 'http://json-schema.org/draft-07/schema#',
           },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-4o-2024-08-06',
+      messages: [{ role: 'user', content: 'Hello' }],
+      tool_choice: { type: 'function', function: { name: 'test-tool' } },
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+          strict: true,
+        },
+      ],
+    });
+
+    expect(result.toolCalls).toStrictEqual([
+      {
+        args: '{"value":"Spark"}',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+      },
+    ]);
+  });
+
+  it('should set strict for tool usage', async () => {
+    prepareJsonResponse({
+      tool_calls: [
+        {
+          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            arguments: '{"value":"Spark"}',
+          },
+        },
+      ],
+    });
+
+    const model = provider.chat('gpt-4o-2024-08-06', {
+      structuredOutputs: true,
+    });
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'test-tool',
         },
       },
       prompt: TEST_PROMPT,
