@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 0.0.12
+
+### Patch Changes
+
+- 6a5e2eb: fix (provider/cohere): send last message with request instead of first
+
 ## 0.0.11
 
 ### Patch Changes
