@@ -21,6 +21,7 @@ async function main() {
     model: openai('gpt-4o-2024-08-06', {
       structuredOutputs: true,
     }),
+    mode: 'tool',
     schema: z.object({
       recipe: z.object({
         name: z.string(),

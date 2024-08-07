@@ -217,6 +217,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       description: mode.tool.description,
                       parameters: mode.tool.parameters,
                     },
+                    strict:
+                      this.settings.structuredOutputs === true
+                        ? true
+                        : undefined,
                   },
                 ],
               },
@@ -641,11 +645,13 @@ const openaiChatChunkSchema = z.union([
 function prepareToolsAndToolChoice({
   mode,
   useLegacyFunctionCalling = false,
+  structuredOutputs = false,
 }: {
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
   };
   useLegacyFunctionCalling?: boolean;
+  structuredOutputs?: boolean;
 }) {
   // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
@@ -696,6 +702,7 @@ function prepareToolsAndToolChoice({
       description: tool.description,
       parameters: tool.parameters,
     },
+    strict: structuredOutputs === true ? true : undefined,
   }));
 
   if (toolChoice == null) {
