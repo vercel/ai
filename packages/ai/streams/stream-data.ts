@@ -1,5 +1,7 @@
 import { JSONValue, formatStreamPart } from '@ai-sdk/ui-utils';
 
+const STREAM_DATA_WARNING_TIME_MS = 15 * 1000;
+
 /**
  * A stream wrapper to send custom JSON-encoded data back to the client.
  */
@@ -25,7 +27,7 @@ export class StreamData {
             console.warn(
               'The data stream is hanging. Did you forget to close it with `data.close()`?',
             );
-          }, 3000);
+          }, STREAM_DATA_WARNING_TIME_MS);
         }
       },
       pull: controller => {
