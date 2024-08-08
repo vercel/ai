@@ -173,6 +173,52 @@ describe('result.object', () => {
 
     assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
   });
+
+  it('should use name and description with tool mode', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-tool',
+            tool: {
+              type: 'function',
+              name: 'test-name',
+              description: 'test description',
+              parameters: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                additionalProperties: false,
+                properties: { content: { type: 'string' } },
+                required: ['content'],
+                type: 'object',
+              },
+            },
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            toolCalls: [
+              {
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                args: `{ "content": "Hello, world!" }`,
+              },
+            ],
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      name: 'test-name',
+      description: 'test description',
+      mode: 'tool',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
+  });
 });
 
 describe('result.toJsonResponse', () => {
