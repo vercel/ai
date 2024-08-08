@@ -8,3 +8,4 @@ export * from './tool';
 export * from './types';
 export { cosineSimilarity } from './util/cosine-similarity';
 export { jsonSchema } from './util/schema';
+export type { Schema } from './util/schema';
