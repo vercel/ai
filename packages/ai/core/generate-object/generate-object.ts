@@ -149,6 +149,8 @@ Default and recommended: 'auto' (best mode for the model).
         'ai.schema': {
           input: () => JSON.stringify(schema.jsonSchema),
         },
+        'ai.schema.name': name,
+        'ai.schema.description': description,
         'ai.settings.mode': mode,
       },
     }),

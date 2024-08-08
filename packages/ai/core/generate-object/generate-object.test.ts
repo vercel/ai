@@ -314,6 +314,8 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
+      name: 'test-name',
+      description: 'test description',
       mode: 'json',
       prompt: 'prompt',
       headers: {
@@ -342,6 +344,8 @@ describe('telemetry', () => {
           'ai.result.object': '{"content":"Hello, world!"}',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
+          'ai.schema.name': 'test-name',
+          'ai.schema.description': 'test description',
           'ai.settings.mode': 'json',
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
@@ -405,6 +409,8 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
+      name: 'test-name',
+      description: 'test description',
       mode: 'tool',
       prompt: 'prompt',
       headers: {
@@ -433,6 +439,8 @@ describe('telemetry', () => {
           'ai.result.object': '{"content":"Hello, world!"}',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
+          'ai.schema.name': 'test-name',
+          'ai.schema.description': 'test description',
           'ai.settings.mode': 'tool',
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
