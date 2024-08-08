@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 0.0.35
+
+### Patch Changes
+
+- 1e94ed8: feat (provider/google): send json schema in object-json mode
+
 ## 0.0.34
 
 ### Patch Changes
