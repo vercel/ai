@@ -580,6 +580,51 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should set name & description in object-json mode', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider.chat('gpt-4o-2024-08-06', {
+      structuredOutputs: true,
+    });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-4o-2024-08-06',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'test-name',
+          description: 'test description',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+  });
+
   it('should set strict in object-tool mode', async () => {
     prepareJsonResponse({
       tool_calls: [
@@ -605,6 +650,7 @@ describe('doGenerate', () => {
         tool: {
           type: 'function',
           name: 'test-tool',
+          description: 'test description',
           parameters: {
             type: 'object',
             properties: { value: { type: 'string' } },
@@ -626,6 +672,7 @@ describe('doGenerate', () => {
           type: 'function',
           function: {
             name: 'test-tool',
+            description: 'test description',
             parameters: {
               type: 'object',
               properties: { value: { type: 'string' } },
