@@ -133,7 +133,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           args: {
             generationConfig: {
               ...generationConfig,
-              response_mime_type: 'application/json',
+              responseMimeType: 'application/json',
+              responseSchema: prepareJsonSchema(mode.schema),
             },
             contents,
             systemInstruction,
@@ -478,8 +479,8 @@ function prepareToolsAndToolConfig(
 
 // Removes all "additionalProperty" and "$schema" properties from the object (recursively)
 // (not supported by Google Generative AI)
-function prepareJsonSchema(jsonSchema: any): unknown {
-  if (typeof jsonSchema !== 'object') {
+function prepareJsonSchema(jsonSchema: unknown): unknown {
+  if (jsonSchema == null || typeof jsonSchema !== 'object') {
     return jsonSchema;
   }
 
@@ -487,7 +488,7 @@ function prepareJsonSchema(jsonSchema: any): unknown {
     return jsonSchema.map(prepareJsonSchema);
   }
 
-  const result: Record<string, any> = {};
+  const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(jsonSchema)) {
     if (key === 'additionalProperties' || key === '$schema') {
