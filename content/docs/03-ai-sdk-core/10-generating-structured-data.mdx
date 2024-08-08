@@ -50,19 +50,19 @@ While some models (like OpenAI) natively support object generation, others requi
 
 You can optionally specify a name and description for the schema. These are used by some providers for additional LLM guidance, e.g. via tool or schema name.
 
-```ts highlight="11-12"
+```ts highlight="6-7"
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
   model: yourModel,
+  schemaName: 'Recipe',
+  schemaDescription: 'A recipe for a dish.',
   schema: z.object({
     name: z.string(),
     ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
     steps: z.array(z.string()),
   }),
-  schemaName: 'Recipe',
-  schemaDescription: 'A recipe for a dish.',
   prompt: 'Generate a lasagna recipe.',
 });
 ```
