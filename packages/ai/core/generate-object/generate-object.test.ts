@@ -20,6 +20,8 @@ describe('result.object', () => {
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
+            name: undefined,
+            description: undefined,
             schema: {
               $schema: 'http://json-schema.org/draft-07/schema#',
               additionalProperties: false,
@@ -47,6 +49,80 @@ describe('result.object', () => {
         },
       }),
       schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
+  });
+
+  it('should generate object with json mode when structured outputs are enabled', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        supportsStructuredOutputs: true,
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            name: undefined,
+            description: undefined,
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              type: 'object',
+            },
+          });
+
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
+  });
+
+  it('should use name and description with json mode when structured outputs are enabled', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        supportsStructuredOutputs: true,
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            name: 'test-name',
+            description: 'test description',
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              type: 'object',
+            },
+          });
+
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      name: 'test-name',
+      description: 'test description',
       mode: 'json',
       prompt: 'prompt',
     });
@@ -475,6 +551,8 @@ describe('custom schema', () => {
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
+            name: undefined,
+            description: undefined,
             schema: {
               type: 'object',
               properties: { content: { type: 'string' } },
@@ -520,6 +598,8 @@ describe('zod schema', () => {
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
+            name: undefined,
+            description: undefined,
             schema: {
               $schema: 'http://json-schema.org/draft-07/schema#',
               additionalProperties: false,
@@ -561,6 +641,8 @@ describe('zod schema', () => {
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
+            name: undefined,
+            description: undefined,
             schema: {
               $schema: 'http://json-schema.org/draft-07/schema#',
               additionalProperties: false,
