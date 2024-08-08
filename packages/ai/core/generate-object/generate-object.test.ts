@@ -20,6 +20,8 @@ describe('result.object', () => {
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
+            name: undefined,
+            description: undefined,
             schema: {
               $schema: 'http://json-schema.org/draft-07/schema#',
               additionalProperties: false,
@@ -47,6 +49,80 @@ describe('result.object', () => {
         },
       }),
       schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
+  });
+
+  it('should generate object with json mode when structured outputs are enabled', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        supportsStructuredOutputs: true,
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            name: undefined,
+            description: undefined,
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              type: 'object',
+            },
+          });
+
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
+  });
+
+  it('should use name and description with json mode when structured outputs are enabled', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        supportsStructuredOutputs: true,
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            name: 'test-name',
+            description: 'test description',
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              type: 'object',
+            },
+          });
+
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'json',
       prompt: 'prompt',
     });
@@ -91,6 +167,52 @@ describe('result.object', () => {
         },
       }),
       schema: z.object({ content: z.string() }),
+      mode: 'tool',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
+  });
+
+  it('should use name and description with tool mode', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-tool',
+            tool: {
+              type: 'function',
+              name: 'test-name',
+              description: 'test description',
+              parameters: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                additionalProperties: false,
+                properties: { content: { type: 'string' } },
+                required: ['content'],
+                type: 'object',
+              },
+            },
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            toolCalls: [
+              {
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                args: `{ "content": "Hello, world!" }`,
+              },
+            ],
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'tool',
       prompt: 'prompt',
     });
@@ -192,6 +314,8 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'json',
       prompt: 'prompt',
       headers: {
@@ -220,6 +344,8 @@ describe('telemetry', () => {
           'ai.result.object': '{"content":"Hello, world!"}',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
+          'ai.schema.name': 'test-name',
+          'ai.schema.description': 'test description',
           'ai.settings.mode': 'json',
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
@@ -283,6 +409,8 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'tool',
       prompt: 'prompt',
       headers: {
@@ -311,6 +439,8 @@ describe('telemetry', () => {
           'ai.result.object': '{"content":"Hello, world!"}',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
+          'ai.schema.name': 'test-name',
+          'ai.schema.description': 'test description',
           'ai.settings.mode': 'tool',
           'ai.telemetry.functionId': 'test-function-id',
           'ai.telemetry.metadata.test1': 'value1',
@@ -475,6 +605,8 @@ describe('custom schema', () => {
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
+            name: undefined,
+            description: undefined,
             schema: {
               type: 'object',
               properties: { content: { type: 'string' } },
@@ -520,6 +652,8 @@ describe('zod schema', () => {
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
+            name: undefined,
+            description: undefined,
             schema: {
               $schema: 'http://json-schema.org/draft-07/schema#',
               additionalProperties: false,
@@ -561,6 +695,8 @@ describe('zod schema', () => {
         doGenerate: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
+            name: undefined,
+            description: undefined,
             schema: {
               $schema: 'http://json-schema.org/draft-07/schema#',
               additionalProperties: false,

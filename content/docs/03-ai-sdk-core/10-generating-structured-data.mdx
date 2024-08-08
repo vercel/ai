@@ -39,9 +39,33 @@ While some models (like OpenAI) natively support object generation, others requi
 
 - `auto`: The provider will choose the best mode for the model. This recommended mode is used by default.
 - `tool`: A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- `json`: The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
+- `json`: The response format is set to JSON when supported by the provider, e.g. via json modes or grammar-guided generation. If grammar-guided generation is not supported, the JSON schema and instructions to generate JSON that conforms to the schema are injected into the system prompt.
 
-<Note>Please note that not every provider supports all generation modes.</Note>
+<Note>
+  Please note that not every provider supports all generation modes. Some
+  providers do not support object generation at all.
+</Note>
+
+### Specifying Schema Name and Description
+
+You can optionally specify a name and description for the schema. These are used by some providers for additional LLM guidance, e.g. via tool or schema name.
+
+```ts highlight="6-7"
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const { object } = await generateObject({
+  model: yourModel,
+  schemaName: 'Recipe',
+  schemaDescription: 'A recipe for a dish.',
+  schema: z.object({
+    name: z.string(),
+    ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
+    steps: z.array(z.string()),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+});
+```
 
 ## Streaming Objects
 

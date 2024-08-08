@@ -15,13 +15,13 @@ import { streamObject } from './stream-object';
 
 describe('result.objectStream', () => {
   it('should send object deltas with json mode', async () => {
-    const testSchema = z.object({ content: z.string() });
-
     const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
+            name: undefined,
+            description: undefined,
             schema: {
               $schema: 'http://json-schema.org/draft-07/schema#',
               additionalProperties: false,
@@ -60,7 +60,121 @@ describe('result.objectStream', () => {
           };
         },
       }),
-      schema: testSchema,
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.partialObjectStream),
+      [
+        {},
+        { content: 'Hello, ' },
+        { content: 'Hello, world' },
+        { content: 'Hello, world!' },
+      ],
+    );
+  });
+
+  it('should send object deltas with json mode when structured outputs are enabled', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        supportsStructuredOutputs: true,
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            name: undefined,
+            description: undefined,
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              type: 'object',
+            },
+          });
+
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.partialObjectStream),
+      [
+        {},
+        { content: 'Hello, ' },
+        { content: 'Hello, world' },
+        { content: 'Hello, world!' },
+      ],
+    );
+  });
+
+  it('should use name and description with json mode when structured outputs are enabled', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        supportsStructuredOutputs: true,
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            name: 'test-name',
+            description: 'test description',
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              type: 'object',
+            },
+          });
+
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'json',
       prompt: 'prompt',
     });
@@ -154,6 +268,101 @@ describe('result.objectStream', () => {
         },
       }),
       schema: z.object({ content: z.string() }),
+      mode: 'tool',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.partialObjectStream),
+      [
+        {},
+        { content: 'Hello, ' },
+        { content: 'Hello, world' },
+        { content: 'Hello, world!' },
+      ],
+    );
+  });
+
+  it('should  use name and description with tool mode', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-tool',
+            tool: {
+              type: 'function',
+              name: 'test-name',
+              description: 'test description',
+              parameters: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                additionalProperties: false,
+                properties: { content: { type: 'string' } },
+                required: ['content'],
+                type: 'object',
+              },
+            },
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: '{ ',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: '"content": ',
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: `"Hello, `,
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: `world`,
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: `!"`,
+              },
+              {
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: 'tool-call-1',
+                toolName: 'json',
+                argsTextDelta: ' }',
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'tool',
       prompt: 'prompt',
     });
@@ -689,6 +898,8 @@ describe('custom schema', () => {
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
+            name: undefined,
+            description: undefined,
             schema: jsonSchema({
               type: 'object',
               properties: { content: { type: 'string' } },
@@ -812,6 +1023,8 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'json',
       prompt: 'prompt',
       headers: {
@@ -851,6 +1064,8 @@ describe('telemetry', () => {
           'ai.settings.mode': 'json',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
+          'ai.schema.name': 'test-name',
+          'ai.schema.description': 'test description',
         },
         events: [],
       },
@@ -942,6 +1157,8 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'tool',
       prompt: 'prompt',
       headers: {
@@ -965,6 +1182,8 @@ describe('telemetry', () => {
       {
         name: 'ai.streamObject',
         attributes: {
+          'operation.name': 'ai.streamObject test-function-id',
+          'resource.name': 'test-function-id',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"prompt"}',
@@ -979,8 +1198,8 @@ describe('telemetry', () => {
           'ai.settings.mode': 'tool',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
-          'operation.name': 'ai.streamObject test-function-id',
-          'resource.name': 'test-function-id',
+          'ai.schema.name': 'test-name',
+          'ai.schema.description': 'test description',
         },
         events: [],
       },

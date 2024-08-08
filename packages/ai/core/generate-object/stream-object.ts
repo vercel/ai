@@ -52,6 +52,8 @@ This function streams the output. If you do not want to stream the output, use `
 @param model - The language model to use.
 
 @param schema - The schema of the object that the model should generate.
+@param schemaName - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+@param schemaDescription - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
 @param mode - The mode to use for object generation. Not all models support all modes. Defaults to 'auto'.
 
 @param system - A system message that will be part of the prompt.
@@ -87,6 +89,8 @@ A result object for accessing the partial object stream and additional informati
 export async function streamObject<T>({
   model,
   schema: inputSchema,
+  schemaName,
+  schemaDescription,
   mode,
   system,
   prompt,
@@ -108,6 +112,20 @@ The language model to use.
 The schema of the object that the model should generate.
  */
     schema: z.Schema<T, z.ZodTypeDef, any> | Schema<T>;
+
+    /**
+Optional name of the output that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema name.
+     */
+    schemaName?: string;
+
+    /**
+Optional description of the output that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema description.
+ */
+    schemaDescription?: string;
 
     /**
 The mode to use for object generation.
@@ -192,6 +210,8 @@ Warnings from the model provider (e.g. unsupported settings).
           input: () => JSON.stringify({ system, prompt, messages }),
         },
         'ai.schema': { input: () => JSON.stringify(schema.jsonSchema) },
+        'ai.schema.name': schemaName,
+        'ai.schema.description': schemaDescription,
         'ai.settings.mode': mode,
       },
     }),
@@ -223,7 +243,12 @@ Warnings from the model provider (e.g. unsupported settings).
           });
 
           callOptions = {
-            mode: { type: 'object-json', schema: schema.jsonSchema },
+            mode: {
+              type: 'object-json',
+              schema: schema.jsonSchema,
+              name: schemaName,
+              description: schemaDescription,
+            },
             ...prepareCallSettings(settings),
             inputFormat: validatedPrompt.type,
             prompt: await convertToLanguageModelPrompt({
@@ -263,8 +288,8 @@ Warnings from the model provider (e.g. unsupported settings).
               type: 'object-tool',
               tool: {
                 type: 'function',
-                name: 'json',
-                description: 'Respond with a JSON object.',
+                name: schemaName ?? 'json',
+                description: schemaDescription ?? 'Respond with a JSON object.',
                 parameters: schema.jsonSchema,
               },
             },

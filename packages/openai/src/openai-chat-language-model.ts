@@ -180,9 +180,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                 ? {
                     type: 'json_schema',
                     json_schema: {
-                      name: 'response',
-                      strict: true,
                       schema: mode.schema,
+                      strict: true,
+                      name: mode.name ?? 'response',
+                      description: mode.description,
                     },
                   }
                 : { type: 'json_object' },

@@ -125,6 +125,8 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `operation.name`: `ai.generateObject` and the functionId that was set through `telemetry.functionId`
   - `ai.prompt`: the prompt that was used when calling `generateObject`
   - `ai.schema`: Stringified JSON schema version of the schema that was passed into the `generateObject` function
+  - `ai.schema.name`: the name of the schema that was passed into the `generateObject` function
+  - `ai.schema.description`: the description of the schema that was passed into the `generateObject` function
   - `ai.result.object`: the object that was generated (stringified JSON)
   - `ai.settings.mode`: the object generation mode
 - `ai.generateObject.doGenerate`: a provider doGenerate call.
@@ -151,6 +153,8 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `operation.name`: `ai.streamObject` and the functionId that was set through `telemetry.functionId`
   - `ai.prompt`: the prompt that was used when calling `streamObject`
   - `ai.schema`: Stringified JSON schema version of the schema that was passed into the `streamObject` function
+  - `ai.schema.name`: the name of the schema that was passed into the `streamObject` function
+  - `ai.schema.description`: the description of the schema that was passed into the `streamObject` function
   - `ai.result.object`: the object that was generated (stringified JSON)
   - `ai.settings.mode`: the object generation mode
 - `ai.streamObject.doStream`: a provider doStream call.

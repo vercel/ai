@@ -57,6 +57,18 @@ console.log(JSON.stringify(object, null, 2));
         'The schema that describes the shape of the object to generate. It is sent to the model to generate the object and used to validate the output. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).',
     },
     {
+      name: 'schemaName',
+      type: 'string | undefined',
+      description:
+        'Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+    },
+    {
+      name: 'schemaDescription',
+      type: 'string | undefined',
+      description:
+        'Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+    },
+    {
       name: 'system',
       type: 'string',
       description:
