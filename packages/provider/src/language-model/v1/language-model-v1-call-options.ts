@@ -22,7 +22,8 @@ streaming, e.g. tool-delta stream parts are only needed in the
 object-tool mode.
 
 @deprecated mode will be removed in v2.
-All necessary settings will be directly supported through the call settings.
+All necessary settings will be directly supported through the call settings,
+in particular responseFormat, toolChoice, and tools.
    */
   mode:
     | {
@@ -45,8 +46,20 @@ Specifies how the tool should be selected. Defaults to 'auto'.
         // object generation with json mode enabled (streaming: text delta)
         type: 'object-json';
 
-        // schema for the object generation
-        schema: JSONSchema7;
+        /**
+         * JSON schema that the generated output should conform to.
+         */
+        schema?: JSONSchema7;
+
+        /**
+         * Name of output that should be generated. Used by some providers for additional LLM guidance.
+         */
+        name?: string;
+
+        /**
+         * Description of the output that should be generated. Used by some providers for additional LLM guidance.
+         */
+        description?: string;
       }
     | {
         // object generation with tool mode enabled (streaming: tool call deltas)
