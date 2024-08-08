@@ -22,7 +22,8 @@ streaming, e.g. tool-delta stream parts are only needed in the
 object-tool mode.
 
 @deprecated mode will be removed in v2.
-All necessary settings will be directly supported through the call settings.
+All necessary settings will be directly supported through the call settings,
+in particular responseFormat, toolChoice, and tools.
    */
   mode:
     | {
