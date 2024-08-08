@@ -28,6 +28,8 @@ This function does not stream the output. If you want to stream the output, use 
 @param model - The language model to use.
 
 @param schema - The schema of the object that the model should generate.
+@param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+@param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
 @param mode - The mode to use for object generation. Not all models support all modes. Defaults to 'auto'.
 
 @param system - A system message that will be part of the prompt.
@@ -63,6 +65,8 @@ A result object that contains the generated object, the finish reason, the token
 export async function generateObject<T>({
   model,
   schema: inputSchema,
+  name,
+  description,
   mode,
   system,
   prompt,
@@ -83,6 +87,20 @@ The language model to use.
 The schema of the object that the model should generate.
      */
     schema: z.Schema<T, z.ZodTypeDef, any> | Schema<T>;
+
+    /**
+Optional name of the output that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema name.
+     */
+    name?: string;
+
+    /**
+Optional description of the output that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema description.
+     */
+    description?: string;
 
     /**
 The mode to use for object generation.
@@ -200,7 +218,12 @@ Default and recommended: 'auto' (best mode for the model).
               tracer,
               fn: async span => {
                 const result = await model.doGenerate({
-                  mode: { type: 'object-json', schema: schema.jsonSchema },
+                  mode: {
+                    type: 'object-json',
+                    schema: schema.jsonSchema,
+                    name,
+                    description,
+                  },
                   ...prepareCallSettings(settings),
                   inputFormat,
                   prompt: promptMessages,
