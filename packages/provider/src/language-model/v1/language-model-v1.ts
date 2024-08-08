@@ -46,12 +46,18 @@ pass the image data to the model.
   readonly supportsImageUrls?: boolean;
 
   /**
-Flag whether this model supports structured outputs,
+Flag whether this model supports grammar-guided generation,
 i.e. follows JSON schemas for object generation
 when the response format is set to 'json' or
 when the `object-json` mode is used.
 
+This means that the model guarantees that the generated JSON
+will be a valid JSON object AND that the object will match the
+JSON schema.
+
 Defaults to `false`.
+
+TODO rename to supportsGrammarGuidedGeneration in v2
 */
   readonly supportsStructuredOutputs?: boolean;
 
