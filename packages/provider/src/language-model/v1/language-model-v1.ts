@@ -55,6 +55,10 @@ This means that the model guarantees that the generated JSON
 will be a valid JSON object AND that the object will match the
 JSON schema.
 
+Please note that `generateObject` and `streamObject` will work
+regardless of this flag, but might send different prompts and
+use further optimizations if this flag is set to `true`.
+
 Defaults to `false`.
 
 TODO rename to supportsGrammarGuidedGeneration in v2
