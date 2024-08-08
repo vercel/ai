@@ -198,6 +198,7 @@ describe('doGenerate', () => {
       model: 'test-model',
       generationConfig: {
         maxOutputTokens: 100,
+        responseMimeType: undefined,
         temperature: 0.5,
         topK: 0.1,
         topP: 0.9,
@@ -249,6 +250,47 @@ describe('doGenerate', () => {
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
       ],
     });
+  });
+
+  it('should set name & description in object-json mode', async () => {
+    const { model, mockVertexAI } = createModel({
+      modelId: 'test-model',
+      generateContent: prepareResponse({
+        parts: [{ text: '{"value":"Spark"}' }],
+      }),
+    });
+
+    const response = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(mockVertexAI.lastModelParams).toStrictEqual({
+      model: 'test-model',
+      generationConfig: {
+        maxOutputTokens: undefined,
+        responseMimeType: 'application/json',
+        stopSequences: undefined,
+        temperature: undefined,
+        topK: undefined,
+        topP: undefined,
+      },
+      safetySettings: undefined,
+    });
+
+    expect(response.text).toStrictEqual('{"value":"Spark"}');
   });
 });
 
