@@ -121,8 +121,8 @@ describe('result.object', () => {
         },
       }),
       schema: z.object({ content: z.string() }),
-      name: 'test-name',
-      description: 'test description',
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'json',
       prompt: 'prompt',
     });
@@ -211,8 +211,8 @@ describe('result.object', () => {
         },
       }),
       schema: z.object({ content: z.string() }),
-      name: 'test-name',
-      description: 'test description',
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'tool',
       prompt: 'prompt',
     });
@@ -314,8 +314,8 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
-      name: 'test-name',
-      description: 'test description',
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'json',
       prompt: 'prompt',
       headers: {
@@ -409,8 +409,8 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
-      name: 'test-name',
-      description: 'test description',
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'tool',
       prompt: 'prompt',
       headers: {

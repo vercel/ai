@@ -28,8 +28,8 @@ This function does not stream the output. If you want to stream the output, use 
 @param model - The language model to use.
 
 @param schema - The schema of the object that the model should generate.
-@param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
-@param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+@param schemaName - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+@param schemaDescription - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
 @param mode - The mode to use for object generation. Not all models support all modes. Defaults to 'auto'.
 
 @param system - A system message that will be part of the prompt.
@@ -65,8 +65,8 @@ A result object that contains the generated object, the finish reason, the token
 export async function generateObject<T>({
   model,
   schema: inputSchema,
-  name,
-  description,
+  schemaName,
+  schemaDescription,
   mode,
   system,
   prompt,
@@ -93,14 +93,14 @@ Optional name of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema name.
      */
-    name?: string;
+    schemaName?: string;
 
     /**
 Optional description of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
      */
-    description?: string;
+    schemaDescription?: string;
 
     /**
 The mode to use for object generation.
@@ -149,8 +149,8 @@ Default and recommended: 'auto' (best mode for the model).
         'ai.schema': {
           input: () => JSON.stringify(schema.jsonSchema),
         },
-        'ai.schema.name': name,
-        'ai.schema.description': description,
+        'ai.schema.name': schemaName,
+        'ai.schema.description': schemaDescription,
         'ai.settings.mode': mode,
       },
     }),
@@ -223,8 +223,8 @@ Default and recommended: 'auto' (best mode for the model).
                   mode: {
                     type: 'object-json',
                     schema: schema.jsonSchema,
-                    name,
-                    description,
+                    name: schemaName,
+                    description: schemaDescription,
                   },
                   ...prepareCallSettings(settings),
                   inputFormat,
@@ -319,8 +319,9 @@ Default and recommended: 'auto' (best mode for the model).
                     type: 'object-tool',
                     tool: {
                       type: 'function',
-                      name: name ?? 'json',
-                      description: description ?? 'Respond with a JSON object.',
+                      name: schemaName ?? 'json',
+                      description:
+                        schemaDescription ?? 'Respond with a JSON object.',
                       parameters: schema.jsonSchema,
                     },
                   },

@@ -17,8 +17,8 @@ async function main() {
     model: openai('gpt-4o-2024-08-06', {
       structuredOutputs: true,
     }),
-    name: 'recipe',
-    description: 'A recipe for lasagna.',
+    schemaName: 'recipe',
+    schemaDescription: 'A recipe for lasagna.',
     schema: z.object({
       name: z.string(),
       ingredients: z.array(
