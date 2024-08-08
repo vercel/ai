@@ -52,6 +52,8 @@ when the response format is set to 'json' or
 when the `object-json` mode is used.
 
 Defaults to `false`.
+
+TODO rename to supportsGrammarGuidedGeneration in v2
 */
   readonly supportsStructuredOutputs?: boolean;
 
