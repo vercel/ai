@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 0.0.44
+
+### Patch Changes
+
+- 029af4c: feat (ai/core): support schema name & description in generateObject & streamObject
+- Updated dependencies [029af4c]
+  - @ai-sdk/provider@0.0.17
+  - @ai-sdk/provider-utils@1.0.9
+
 ## 0.0.43
 
 ### Patch Changes

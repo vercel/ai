@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.17
+
+### Patch Changes
+
+- 029af4c: feat (ai/core): support schema name & description in generateObject & streamObject
+
 ## 0.0.16
 
 ### Patch Changes
