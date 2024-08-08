@@ -210,6 +210,8 @@ Warnings from the model provider (e.g. unsupported settings).
           input: () => JSON.stringify({ system, prompt, messages }),
         },
         'ai.schema': { input: () => JSON.stringify(schema.jsonSchema) },
+        'ai.schema.name': schemaName,
+        'ai.schema.description': schemaDescription,
         'ai.settings.mode': mode,
       },
     }),

@@ -1023,6 +1023,8 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'json',
       prompt: 'prompt',
       headers: {
@@ -1062,6 +1064,8 @@ describe('telemetry', () => {
           'ai.settings.mode': 'json',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
+          'ai.schema.name': 'test-name',
+          'ai.schema.description': 'test description',
         },
         events: [],
       },
@@ -1153,6 +1157,8 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'tool',
       prompt: 'prompt',
       headers: {
@@ -1176,6 +1182,8 @@ describe('telemetry', () => {
       {
         name: 'ai.streamObject',
         attributes: {
+          'operation.name': 'ai.streamObject test-function-id',
+          'resource.name': 'test-function-id',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"prompt"}',
@@ -1190,8 +1198,8 @@ describe('telemetry', () => {
           'ai.settings.mode': 'tool',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
-          'operation.name': 'ai.streamObject test-function-id',
-          'resource.name': 'test-function-id',
+          'ai.schema.name': 'test-name',
+          'ai.schema.description': 'test description',
         },
         events: [],
       },
