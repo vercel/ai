@@ -286,8 +286,8 @@ Warnings from the model provider (e.g. unsupported settings).
               type: 'object-tool',
               tool: {
                 type: 'function',
-                name: 'json',
-                description: 'Respond with a JSON object.',
+                name: schemaName ?? 'json',
+                description: schemaDescription ?? 'Respond with a JSON object.',
                 parameters: schema.jsonSchema,
               },
             },
