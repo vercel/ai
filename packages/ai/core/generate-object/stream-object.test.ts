@@ -15,8 +15,6 @@ import { streamObject } from './stream-object';
 
 describe('result.objectStream', () => {
   it('should send object deltas with json mode', async () => {
-    const testSchema = z.object({ content: z.string() });
-
     const result = await streamObject({
       model: new MockLanguageModelV1({
         doStream: async ({ prompt, mode }) => {
@@ -62,7 +60,7 @@ describe('result.objectStream', () => {
           };
         },
       }),
-      schema: testSchema,
+      schema: z.object({ content: z.string() }),
       mode: 'json',
       prompt: 'prompt',
     });
@@ -79,8 +77,6 @@ describe('result.objectStream', () => {
   });
 
   it('should send object deltas with json mode when structured outputs are enabled', async () => {
-    const testSchema = z.object({ content: z.string() });
-
     const result = await streamObject({
       model: new MockLanguageModelV1({
         supportsStructuredOutputs: true,
@@ -120,7 +116,65 @@ describe('result.objectStream', () => {
           };
         },
       }),
-      schema: testSchema,
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.partialObjectStream),
+      [
+        {},
+        { content: 'Hello, ' },
+        { content: 'Hello, world' },
+        { content: 'Hello, world!' },
+      ],
+    );
+  });
+
+  it('should use name and description with json mode when structured outputs are enabled', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        supportsStructuredOutputs: true,
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            name: 'test-name',
+            description: 'test description',
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              type: 'object',
+            },
+          });
+
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
       mode: 'json',
       prompt: 'prompt',
     });
