@@ -223,7 +223,12 @@ Warnings from the model provider (e.g. unsupported settings).
           });
 
           callOptions = {
-            mode: { type: 'object-json', schema: schema.jsonSchema },
+            mode: {
+              type: 'object-json',
+              schema: schema.jsonSchema,
+              name: undefined,
+              description: undefined,
+            },
             ...prepareCallSettings(settings),
             inputFormat: validatedPrompt.type,
             prompt: await convertToLanguageModelPrompt({

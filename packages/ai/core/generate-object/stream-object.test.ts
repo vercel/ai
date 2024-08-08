@@ -22,6 +22,8 @@ describe('result.objectStream', () => {
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
+            name: undefined,
+            description: undefined,
             schema: {
               $schema: 'http://json-schema.org/draft-07/schema#',
               additionalProperties: false,
@@ -39,6 +41,64 @@ describe('result.objectStream', () => {
                 '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
                 'You MUST answer with a JSON object that matches the JSON schema above.',
             },
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{ ' },
+              { type: 'text-delta', textDelta: '"content": ' },
+              { type: 'text-delta', textDelta: `"Hello, ` },
+              { type: 'text-delta', textDelta: `world` },
+              { type: 'text-delta', textDelta: `!"` },
+              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      schema: testSchema,
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.partialObjectStream),
+      [
+        {},
+        { content: 'Hello, ' },
+        { content: 'Hello, world' },
+        { content: 'Hello, world!' },
+      ],
+    );
+  });
+
+  it('should send object deltas with json mode when structured outputs are enabled', async () => {
+    const testSchema = z.object({ content: z.string() });
+
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        supportsStructuredOutputs: true,
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            name: undefined,
+            description: undefined,
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: { content: { type: 'string' } },
+              required: ['content'],
+              type: 'object',
+            },
+          });
+
+          assert.deepStrictEqual(prompt, [
             { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
           ]);
 
@@ -689,6 +749,8 @@ describe('custom schema', () => {
         doStream: async ({ prompt, mode }) => {
           assert.deepStrictEqual(mode, {
             type: 'object-json',
+            name: undefined,
+            description: undefined,
             schema: jsonSchema({
               type: 'object',
               properties: { content: { type: 'string' } },
