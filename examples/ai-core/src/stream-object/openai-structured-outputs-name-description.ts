@@ -1,12 +1,12 @@
 import { openai } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
+import { streamObject } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
 dotenv.config();
 
 async function main() {
-  const result = await generateObject({
+  const result = await streamObject({
     model: openai('gpt-4o-2024-08-06', {
       structuredOutputs: true,
     }),
@@ -25,10 +25,10 @@ async function main() {
     prompt: 'Generate a lasagna recipe.',
   });
 
-  console.log(JSON.stringify(result.object, null, 2));
-  console.log();
-  console.log('Token usage:', result.usage);
-  console.log('Finish reason:', result.finishReason);
+  for await (const partialObject of result.partialObjectStream) {
+    console.clear();
+    console.log(partialObject);
+  }
 }
 
 main().catch(console.error);
