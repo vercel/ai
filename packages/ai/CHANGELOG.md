@@ -1,5 +1,21 @@
 # ai
 
+## 3.3.4
+
+### Patch Changes
+
+- 029af4c: feat (ai/core): support schema name & description in generateObject & streamObject
+- 3806c0c: chore (ai/ui): increase stream data warning timeout to 15 seconds
+- db0118a: feat (ai/core): export Schema type
+- Updated dependencies [029af4c]
+  - @ai-sdk/provider@0.0.17
+  - @ai-sdk/provider-utils@1.0.9
+  - @ai-sdk/ui-utils@0.0.28
+  - @ai-sdk/react@0.0.40
+  - @ai-sdk/solid@0.0.31
+  - @ai-sdk/svelte@0.0.33
+  - @ai-sdk/vue@0.0.32
+
 ## 3.3.3
 
 ### Patch Changes
