@@ -25,6 +25,8 @@ import {
 import { GenerateTextResult } from './generate-text-result';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
+import { AISDKError } from '@ai-sdk/provider';
+import { ProviderError } from '../../errors/provider-error';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -215,14 +217,27 @@ By default, it's set to 0, which will disable the feature.
             }),
             tracer,
             fn: async span => {
-              const result = await model.doGenerate({
-                mode,
-                ...callSettings,
-                inputFormat: currentInputFormat,
-                prompt: promptMessages,
-                abortSignal,
-                headers,
-              });
+              let result: Awaited<ReturnType<LanguageModel['doGenerate']>>;
+
+              try {
+                result = await model.doGenerate({
+                  mode,
+                  ...callSettings,
+                  inputFormat: currentInputFormat,
+                  prompt: promptMessages,
+                  abortSignal,
+                  headers,
+                });
+              } catch (error) {
+                if (error instanceof AISDKError) {
+                  throw new ProviderError({
+                    provider: model.provider,
+                    message: error.message,
+                    cause: error,
+                  });
+                }
+                throw error;
+              }
 
               // Add response information to the span:
               span.setAttributes(

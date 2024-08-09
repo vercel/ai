@@ -18,6 +18,14 @@ export class AISDKError extends Error {
   readonly cause?: unknown;
 
   /**
+   * The provider that caused the error.
+   *
+   * Writable so it can be set by the AI SDK function on AI SDK errors
+   * that are thrown by providers.
+   */
+  provider?: string;
+
+  /**
    * Creates an AI SDK Error.
    *
    * @param {Object} params - The parameters for creating the error.
@@ -38,6 +46,12 @@ export class AISDKError extends Error {
 
     this.name = name;
     this.cause = cause;
+  }
+
+  get message(): string {
+    return this.provider != null
+      ? `${this.provider} provider error: ${super.message}`
+      : super.message;
   }
 
   /**
