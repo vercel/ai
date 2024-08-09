@@ -85,6 +85,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
         // process tool call:
         case 'tool-call': {
           const toolName = chunk.toolName as keyof TOOLS & string;
+          const toolCallId = chunk.toolCallId as string
 
           if (tools == null) {
             toolResultsStreamController!.enqueue({
@@ -192,6 +193,8 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
               });
             }
           } catch (error) {
+            error.toolName = toolName
+            error.toolCallId = toolCallId
             toolResultsStreamController!.enqueue({
               type: 'error',
               error,
