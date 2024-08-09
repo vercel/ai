@@ -1054,6 +1054,48 @@ describe('result.toDataStreamResponse', () => {
       '0:"world!"\n',
     ]);
   });
+
+  it('should mask error messages by default', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const response = result.toDataStreamResponse();
+
+    assert.deepStrictEqual(await convertResponseStreamToArray(response), [
+      '3:""\n',
+    ]);
+  });
+
+  it('should support custom error messages', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    const response = result.toDataStreamResponse({
+      getErrorMessage: error => `custom error message: ${error}`,
+    });
+
+    assert.deepStrictEqual(await convertResponseStreamToArray(response), [
+      '3:"custom error message: error"\n',
+    ]);
+  });
 });
 
 describe('result.toTextStreamResponse', () => {

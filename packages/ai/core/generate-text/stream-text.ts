@@ -513,6 +513,16 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toAIStream(callbacks: AIStreamCallbacksAndOptions = {}) {
+    return this.toDataStream({ callbacks });
+  }
+
+  private toDataStream({
+    callbacks = {},
+    getErrorMessage = () => '', // mask error messages for safety by default
+  }: {
+    callbacks?: AIStreamCallbacksAndOptions;
+    getErrorMessage?: (error: unknown) => string;
+  } = {}) {
     let aggregatedResponse = '';
 
     const callbackTransformer = new TransformStream<
@@ -588,7 +598,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             break;
           case 'error':
             controller.enqueue(
-              formatStreamPart('error', JSON.stringify(chunk.error)),
+              formatStreamPart('error', getErrorMessage(chunk.error)),
             );
             break;
           case 'finish':
@@ -632,7 +642,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       ...init?.headers,
     });
 
-    const reader = this.toAIStream().getReader();
+    const reader = this.toDataStream().getReader();
 
     const read = async () => {
       try {
@@ -688,7 +698,13 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toDataStreamResponse(
-    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
+    options?:
+      | ResponseInit
+      | {
+          init?: ResponseInit;
+          data?: StreamData;
+          getErrorMessage?: (error: unknown) => string;
+        },
   ): Response {
     const init: ResponseInit | undefined =
       options == null
@@ -709,9 +725,16 @@ However, the LLM results are expected to be small enough to not cause issues.
         ? options.data
         : undefined;
 
+    const getErrorMessage: ((error: unknown) => string) | undefined =
+      options == null
+        ? undefined
+        : 'getErrorMessage' in options
+        ? options.getErrorMessage
+        : undefined;
+
     const stream = data
-      ? mergeStreams(data.stream, this.toAIStream())
-      : this.toAIStream();
+      ? mergeStreams(data.stream, this.toDataStream({ getErrorMessage }))
+      : this.toDataStream({ getErrorMessage });
 
     return new Response(stream, {
       status: init?.status ?? 200,

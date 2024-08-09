@@ -770,11 +770,6 @@ for await (const textPart of textStream) {
       ],
     },
     {
-      name: 'toDataStream',
-      type: '(callbacks?: AIStreamCallbacksAndOptions) => data stream',
-      description: 'Converts the result to an data stream.',
-    },
-    {
       name: 'pipeDataStreamToResponse',
       type: '(response: ServerResponse, init?: { headers?: Record<string, string>; status?: number } => void',
       description:
@@ -825,6 +820,13 @@ for await (const textPart of textStream) {
               type: 'StreamData',
               optional: true,
               description: 'The stream data object.',
+            },
+            {
+              name: 'getErrorMessage',
+              type: '(error: unknown) => string',
+              description:
+                'A function to get the error message from the error object. By default, all errors are masked as "" for safety reasons.',
+              optional: true,
             },
           ],
         },
