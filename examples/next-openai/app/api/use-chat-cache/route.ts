@@ -1,25 +1,5 @@
----
-title: Caching
-description: How to handle caching when working with the Vercel AI SDK
----
-
-# Caching Responses
-
-Depending on the type of application you're building, you may want to cache the responses you receive from your AI provider, at least temporarily.
-
-Each stream helper for each provider has special lifecycle callbacks you can use.
-The one of interest is likely `onFinish`, which is called when the stream is closed. This is where you can cache the full response.
-
-Here's an example of how you can implement caching using Vercel KV and Next.js to cache the OpenAI response for 1 hour:
-
-## Example: Vercel KV
-
-This example uses [Vercel KV](https://vercel.com/storage/kv) and Next.js to cache the OpenAI response for 1 hour.
-
-```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
 import { convertToCoreMessages, formatStreamPart, streamText } from 'ai';
-import kv from '@vercel/kv';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -34,7 +14,7 @@ export async function POST(req: Request) {
   const key = JSON.stringify(messages);
 
   // Check if we have a cached response
-  const cached = await kv.get(key);
+  const cached = cache.get(key);
   if (cached != null) {
     return new Response(formatStreamPart('text', cached), {
       status: 200,
@@ -48,12 +28,10 @@ export async function POST(req: Request) {
     messages: convertToCoreMessages(messages),
     async onFinish({ text }) {
       // Cache the response text:
-      await kv.set(key, text);
-      await kv.expire(key, 60 * 60);
+      cache.set(key, text);
     },
   });
 
   // Respond with the stream
   return result.toDataStreamResponse();
 }
-```
