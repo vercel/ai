@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 0.0.41
+
+### Patch Changes
+
+- e5b58f3: fix (ai/ui): forward streaming errors in useChat
+- Updated dependencies [e5b58f3]
+  - @ai-sdk/ui-utils@0.0.29
+
 ## 0.0.40
 
 ### Patch Changes
