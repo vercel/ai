@@ -11,7 +11,7 @@
   "dependencies": {
     "@ai-sdk/react": "latest",
     "@upstash/ratelimit": "^0.4.3",
-    "@vercel/kv": "^0.2.2",
+    "@vercel/kv": "^2.0.0",
     "ai": "latest",
     "next": "latest",
     "openai": "4.52.6",
