@@ -24,6 +24,7 @@ const provider = createAmazonBedrock({
   region: 'us-east-1',
   accessKeyId: 'test-access-key',
   secretAccessKey: 'test-secret-key',
+  sessionToken: 'test-token-key',
 });
 
 const model = provider('anthropic.claude-3-haiku-20240307-v1:0');
