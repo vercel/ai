@@ -1,5 +1,17 @@
 # ai
 
+## 3.3.5
+
+### Patch Changes
+
+- 9ada023: feat (ai/core): mask data stream error messages with streamText
+- Updated dependencies [e5b58f3]
+  - @ai-sdk/ui-utils@0.0.29
+  - @ai-sdk/react@0.0.41
+  - @ai-sdk/solid@0.0.32
+  - @ai-sdk/svelte@0.0.34
+  - @ai-sdk/vue@0.0.33
+
 ## 3.3.4
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.29
+
+### Patch Changes
+
+- e5b58f3: fix (ai/ui): forward streaming errors in useChat
+
 ## 0.0.28
 
 ### Patch Changes
