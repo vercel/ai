@@ -13,8 +13,12 @@ async function main() {
       {
         role: 'user',
         content: [
-          { type: 'text', text: 'Describe the image in detail.' },
-          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+          { type: 'text', text: 'Describe the document in detail.' },
+          {
+            type: 'file',
+            file: fs.readFileSync('./data/hamlet.pdf'),
+            mimeType: 'application/pdf',
+          },
         ],
       },
     ],

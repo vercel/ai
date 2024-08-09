@@ -1,4 +1,5 @@
 import {
+  FilePart,
   ImagePart,
   TextPart,
   ToolCallPart,
@@ -40,9 +41,9 @@ export type CoreUserMessage = { role: 'user'; content: UserContent };
 export type ExperimentalUserMessage = CoreUserMessage;
 
 /**
-Content of a user message. It can be a string or an array of text and image parts.
+Content of a user message. It can be a string or an array of text and image or file parts.
  */
-export type UserContent = string | Array<TextPart | ImagePart>;
+export type UserContent = string | Array<TextPart | ImagePart | FilePart>;
 
 /**
 An assistant message. It can contain text, tool calls, or a combination of text and tool calls.

@@ -297,7 +297,7 @@ By default, it's set to 0, which will disable the feature.
         responseMessages.push(...newResponseMessages);
         promptMessages.push(
           ...newResponseMessages.map(message =>
-            convertToLanguageModelMessage(message, null),
+            convertToLanguageModelMessage(message, null, null),
           ),
         );
       } while (

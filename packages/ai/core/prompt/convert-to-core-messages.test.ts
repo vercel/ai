@@ -1,6 +1,6 @@
-import { convertToCoreMessages } from './convert-to-core-messages';
 import { Attachment } from '@ai-sdk/ui-utils';
 import { ToolResult } from '../generate-text/tool-result';
+import { convertToCoreMessages } from './convert-to-core-messages';
 
 describe('convertToCoreMessages', () => {
   describe('system message', () => {
@@ -67,6 +67,35 @@ describe('convertToCoreMessages', () => {
           content: [
             { type: 'text', text: 'Check this image' },
             { type: 'image', image: new Uint8Array([116, 101, 115, 116]) },
+          ],
+        },
+      ]);
+    });
+
+    it('should handle user message with files', () => {
+      const attachment: Attachment = {
+        contentType: 'application/pdf',
+        url: 'data:application/pdf;base64,dGVzdA==',
+      };
+
+      const result = convertToCoreMessages([
+        {
+          role: 'user',
+          content: 'Check this pdf',
+          experimental_attachments: [attachment],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Check this pdf' },
+            {
+              type: 'file',
+              file: new Uint8Array([116, 101, 115, 116]),
+              mimeType: 'application/pdf',
+            },
           ],
         },
       ]);
