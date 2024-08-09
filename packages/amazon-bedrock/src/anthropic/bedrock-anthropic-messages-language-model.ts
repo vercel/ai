@@ -1,16 +1,23 @@
 import {
+  EmptyResponseBodyError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
+  LanguageModelV1FinishReason,
   LanguageModelV1FunctionToolCall,
+  LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { parseJSON, ParseResult, safeParseJSON } from '@ai-sdk/provider-utils';
 import {
   BedrockRuntimeClient,
   InvokeModelCommand,
+  InvokeModelWithResponseStreamCommand,
+  ResponseStream,
 } from '@aws-sdk/client-bedrock-runtime';
 import { z } from 'zod';
+import { convertAsyncIterableToReadableStream } from './convert-async-iterable-to-readable-stream';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
-import { safeParseJSON } from '@ai-sdk/provider-utils';
+import { convertUint8ArrayToText } from './convert-uint-array-to-text';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 type AnthropicMessagesConfig = {
@@ -145,17 +152,10 @@ export class BedrockAnthropicMessagesLanguageModel implements LanguageModelV1 {
       }),
     );
 
-    const parsedBody = safeParseJSON({
+    const response = parseJSON({
       text: body.transformToString(),
       schema: anthropicMessagesResponseSchema,
     });
-
-    if (!parsedBody.success) {
-      // TODO better error handling
-      throw new Error('Failed to parse response body');
-    }
-
-    const response = parsedBody.value;
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
@@ -199,177 +199,193 @@ export class BedrockAnthropicMessagesLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    throw new Error('Not implemented');
+    const { args, warnings } = await this.getArgs(options);
 
-    //   const { args, warnings } = await this.getArgs(options);
+    const { body } = await this.config.client.send(
+      new InvokeModelWithResponseStreamCommand({
+        modelId: this.modelId,
+        contentType: 'application/json',
+        accept: 'application/json',
+        body: JSON.stringify(args),
+      }),
+    );
 
-    //   const { responseHeaders, value: response } = await postJsonToApi({
-    //     url: `${this.config.baseURL}/messages`,
-    //     headers: combineHeaders(this.config.headers(), options.headers),
-    //     body: {
-    //       ...args,
-    //       stream: true,
-    //     },
-    //     failedResponseHandler: anthropicFailedResponseHandler,
-    //     successfulResponseHandler: createEventSourceResponseHandler(
-    //       anthropicMessagesChunkSchema,
-    //     ),
-    //     abortSignal: options.abortSignal,
-    //     fetch: this.config.fetch,
-    //   });
+    if (body == null) {
+      throw new EmptyResponseBodyError();
+    }
 
-    //   const { messages: rawPrompt, ...rawSettings } = args;
+    const stream = convertAsyncIterableToReadableStream(body);
 
-    //   let finishReason: LanguageModelV1FinishReason = 'other';
-    //   const usage: { promptTokens: number; completionTokens: number } = {
-    //     promptTokens: Number.NaN,
-    //     completionTokens: Number.NaN,
-    //   };
+    const response = stream.pipeThrough(
+      new TransformStream<
+        ResponseStream,
+        ParseResult<z.infer<typeof anthropicMessagesChunkSchema>>
+      >({
+        transform(chunk, controller) {
+          const bytes = chunk.chunk?.bytes;
+          if (bytes != null) {
+            controller.enqueue(
+              safeParseJSON({
+                text: convertUint8ArrayToText(bytes),
+                schema: anthropicMessagesChunkSchema,
+              }),
+            );
+          }
+        },
+      }),
+    );
 
-    //   const toolCallContentBlocks: Record<
-    //     number,
-    //     {
-    //       toolCallId: string;
-    //       toolName: string;
-    //       jsonText: string;
-    //     }
-    //   > = {};
+    const { messages: rawPrompt, ...rawSettings } = args;
 
-    //   return {
-    //     stream: response.pipeThrough(
-    //       new TransformStream<
-    //         ParseResult<z.infer<typeof anthropicMessagesChunkSchema>>,
-    //         LanguageModelV1StreamPart
-    //       >({
-    //         transform(chunk, controller) {
-    //           if (!chunk.success) {
-    //             controller.enqueue({ type: 'error', error: chunk.error });
-    //             return;
-    //           }
+    let finishReason: LanguageModelV1FinishReason = 'other';
+    const usage: { promptTokens: number; completionTokens: number } = {
+      promptTokens: Number.NaN,
+      completionTokens: Number.NaN,
+    };
 
-    //           const value = chunk.value;
+    const toolCallContentBlocks: Record<
+      number,
+      {
+        toolCallId: string;
+        toolName: string;
+        jsonText: string;
+      }
+    > = {};
 
-    //           switch (value.type) {
-    //             case 'ping': {
-    //               return; // ignored
-    //             }
+    return {
+      stream: response.pipeThrough(
+        new TransformStream<
+          ParseResult<z.infer<typeof anthropicMessagesChunkSchema>>,
+          LanguageModelV1StreamPart
+        >({
+          transform(chunk, controller) {
+            if (!chunk.success) {
+              controller.enqueue({ type: 'error', error: chunk.error });
+              return;
+            }
 
-    //             case 'content_block_start': {
-    //               const contentBlockType = value.content_block.type;
+            const value = chunk.value;
 
-    //               switch (contentBlockType) {
-    //                 case 'text': {
-    //                   return; // ignored
-    //                 }
+            switch (value.type) {
+              case 'ping': {
+                return; // ignored
+              }
 
-    //                 case 'tool_use': {
-    //                   toolCallContentBlocks[value.index] = {
-    //                     toolCallId: value.content_block.id,
-    //                     toolName: value.content_block.name,
-    //                     jsonText: '',
-    //                   };
-    //                   return;
-    //                 }
+              case 'content_block_start': {
+                const contentBlockType = value.content_block.type;
 
-    //                 default: {
-    //                   const _exhaustiveCheck: never = contentBlockType;
-    //                   throw new Error(
-    //                     `Unsupported content block type: ${_exhaustiveCheck}`,
-    //                   );
-    //                 }
-    //               }
-    //             }
+                switch (contentBlockType) {
+                  case 'text': {
+                    return; // ignored
+                  }
 
-    //             case 'content_block_stop': {
-    //               // when finishing a tool call block, send the full tool call:
-    //               if (toolCallContentBlocks[value.index] != null) {
-    //                 const contentBlock = toolCallContentBlocks[value.index];
+                  case 'tool_use': {
+                    toolCallContentBlocks[value.index] = {
+                      toolCallId: value.content_block.id,
+                      toolName: value.content_block.name,
+                      jsonText: '',
+                    };
+                    return;
+                  }
 
-    //                 controller.enqueue({
-    //                   type: 'tool-call',
-    //                   toolCallType: 'function',
-    //                   toolCallId: contentBlock.toolCallId,
-    //                   toolName: contentBlock.toolName,
-    //                   args: contentBlock.jsonText,
-    //                 });
+                  default: {
+                    const _exhaustiveCheck: never = contentBlockType;
+                    throw new Error(
+                      `Unsupported content block type: ${_exhaustiveCheck}`,
+                    );
+                  }
+                }
+              }
 
-    //                 delete toolCallContentBlocks[value.index];
-    //               }
+              case 'content_block_stop': {
+                // when finishing a tool call block, send the full tool call:
+                if (toolCallContentBlocks[value.index] != null) {
+                  const contentBlock = toolCallContentBlocks[value.index];
 
-    //               return;
-    //             }
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: contentBlock.toolCallId,
+                    toolName: contentBlock.toolName,
+                    args: contentBlock.jsonText,
+                  });
 
-    //             case 'content_block_delta': {
-    //               const deltaType = value.delta.type;
-    //               switch (deltaType) {
-    //                 case 'text_delta': {
-    //                   controller.enqueue({
-    //                     type: 'text-delta',
-    //                     textDelta: value.delta.text,
-    //                   });
+                  delete toolCallContentBlocks[value.index];
+                }
 
-    //                   return;
-    //                 }
+                return;
+              }
 
-    //                 case 'input_json_delta': {
-    //                   const contentBlock = toolCallContentBlocks[value.index];
+              case 'content_block_delta': {
+                const deltaType = value.delta.type;
+                switch (deltaType) {
+                  case 'text_delta': {
+                    controller.enqueue({
+                      type: 'text-delta',
+                      textDelta: value.delta.text,
+                    });
 
-    //                   controller.enqueue({
-    //                     type: 'tool-call-delta',
-    //                     toolCallType: 'function',
-    //                     toolCallId: contentBlock.toolCallId,
-    //                     toolName: contentBlock.toolName,
-    //                     argsTextDelta: value.delta.partial_json,
-    //                   });
+                    return;
+                  }
 
-    //                   contentBlock.jsonText += value.delta.partial_json;
+                  case 'input_json_delta': {
+                    const contentBlock = toolCallContentBlocks[value.index];
 
-    //                   return;
-    //                 }
+                    controller.enqueue({
+                      type: 'tool-call-delta',
+                      toolCallType: 'function',
+                      toolCallId: contentBlock.toolCallId,
+                      toolName: contentBlock.toolName,
+                      argsTextDelta: value.delta.partial_json,
+                    });
 
-    //                 default: {
-    //                   const _exhaustiveCheck: never = deltaType;
-    //                   throw new Error(
-    //                     `Unsupported delta type: ${_exhaustiveCheck}`,
-    //                   );
-    //                 }
-    //               }
-    //             }
+                    contentBlock.jsonText += value.delta.partial_json;
 
-    //             case 'message_start': {
-    //               usage.promptTokens = value.message.usage.input_tokens;
-    //               usage.completionTokens = value.message.usage.output_tokens;
-    //               return;
-    //             }
+                    return;
+                  }
 
-    //             case 'message_delta': {
-    //               usage.completionTokens = value.usage.output_tokens;
-    //               finishReason = mapAnthropicStopReason(value.delta.stop_reason);
-    //               return;
-    //             }
+                  default: {
+                    const _exhaustiveCheck: never = deltaType;
+                    throw new Error(
+                      `Unsupported delta type: ${_exhaustiveCheck}`,
+                    );
+                  }
+                }
+              }
 
-    //             case 'message_stop': {
-    //               controller.enqueue({ type: 'finish', finishReason, usage });
-    //               return;
-    //             }
+              case 'message_start': {
+                usage.promptTokens = value.message.usage.input_tokens;
+                usage.completionTokens = value.message.usage.output_tokens;
+                return;
+              }
 
-    //             case 'error': {
-    //               controller.enqueue({ type: 'error', error: value.error });
-    //               return;
-    //             }
+              case 'message_delta': {
+                usage.completionTokens = value.usage.output_tokens;
+                finishReason = mapAnthropicStopReason(value.delta.stop_reason);
+                return;
+              }
 
-    //             default: {
-    //               const _exhaustiveCheck: never = value;
-    //               throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
-    //             }
-    //           }
-    //         },
-    //       }),
-    //     ),
-    //     rawCall: { rawPrompt, rawSettings },
-    //     rawResponse: { headers: responseHeaders },
-    //     warnings,
-    //   };
+              case 'message_stop': {
+                controller.enqueue({ type: 'finish', finishReason, usage });
+                return;
+              }
+
+              case 'error': {
+                controller.enqueue({ type: 'error', error: value.error });
+                return;
+              }
+
+              default: {
+                const _exhaustiveCheck: never = value;
+                throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
+              }
+            }
+          },
+        }),
+      ),
+      rawCall: { rawPrompt, rawSettings },
+      warnings,
+    };
   }
 }
 
