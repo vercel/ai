@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 0.0.25
+
+### Patch Changes
+
+- 1e94ed8: feat (provider/google-vertex): support json mode object generation
+
 ## 0.0.24
 
 ### Patch Changes
