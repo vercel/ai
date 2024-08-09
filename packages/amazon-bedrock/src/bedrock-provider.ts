@@ -1,8 +1,10 @@
+import { LanguageModelV1 } from '@ai-sdk/provider';
 import { generateId, loadSetting } from '@ai-sdk/provider-utils';
 import {
   BedrockRuntimeClient,
   BedrockRuntimeClientConfig,
 } from '@aws-sdk/client-bedrock-runtime';
+import { BedrockAnthropicMessagesLanguageModel } from './anthropic/bedrock-anthropic-messages-language-model';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import {
   BedrockChatModelId,
@@ -35,6 +37,8 @@ export interface AmazonBedrockProvider {
     modelId: BedrockChatModelId,
     settings?: BedrockChatSettings,
   ): BedrockChatLanguageModel;
+
+  anthropicLanguageModel(modelId: string, settings?: {}): LanguageModelV1;
 }
 
 /**
@@ -78,6 +82,11 @@ export function createAmazonBedrock(
       generateId,
     });
 
+  const createAnthropicLanguageModel = (modelId: string, settings: {}) =>
+    new BedrockAnthropicMessagesLanguageModel(modelId, settings, {
+      client: createBedrockRuntimeClient(),
+    });
+
   const provider = function (
     modelId: BedrockChatModelId,
     settings?: BedrockChatSettings,
@@ -92,6 +101,7 @@ export function createAmazonBedrock(
   };
 
   provider.languageModel = createChatModel;
+  provider.anthropicLanguageModel = createAnthropicLanguageModel;
 
   return provider as AmazonBedrockProvider;
 }
