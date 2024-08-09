@@ -13,7 +13,7 @@
     "@huggingface/inference": "^2.5.1",
     "next": "latest",
     "ai": "latest",
-    "react": "^18",
+    "react": "^19.0.0-rc-9d2da591-20240808",
     "react-dom": "^18"
   },
   "devDependencies": {
