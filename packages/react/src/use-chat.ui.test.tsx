@@ -121,7 +121,7 @@ describe('stream data stream', () => {
   );
 
   it(
-    'should show error response',
+    'should show error response when there is a server error',
     withTestServer(
       { type: 'error', url: '/api/chat', status: 404, content: 'Not found' },
       async () => {
@@ -130,6 +130,25 @@ describe('stream data stream', () => {
         await screen.findByTestId('error');
         expect(screen.getByTestId('error')).toHaveTextContent(
           'Error: Not found',
+        );
+      },
+    ),
+  );
+
+  it(
+    'should show error response when there is a streaming error',
+    withTestServer(
+      {
+        type: 'stream-values',
+        url: '/api/chat',
+        content: ['3:"custom error message"\n'],
+      },
+      async () => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('error');
+        expect(screen.getByTestId('error')).toHaveTextContent(
+          'Error: custom error message',
         );
       },
     ),
