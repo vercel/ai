@@ -81,6 +81,31 @@ export default function Page() {
       description:
         'Optional. Callback function to be called when an error is encountered.',
     },
+    {
+      name: 'onFinish',
+      type: '(result: OnFinishResult) => void',
+      isOptional: true,
+      description: 'Called when the streaming response has finished.',
+      properties: [
+        {
+          type: 'OnFinishResult',
+          parameters: [
+            {
+              name: 'object',
+              type: 'T | undefined',
+              description:
+                'The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.',
+            },
+            {
+              name: 'error',
+              type: 'unknown | undefined',
+              description:
+                'Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 

@@ -121,7 +121,7 @@ describe('stream data stream', () => {
   );
 
   it(
-    'should show error response',
+    'should show error response when there is a server error',
     withTestServer(
       { type: 'error', url: '/api/chat', status: 404, content: 'Not found' },
       async () => {
@@ -130,6 +130,25 @@ describe('stream data stream', () => {
         await screen.findByTestId('error');
         expect(screen.getByTestId('error')).toHaveTextContent(
           'Error: Not found',
+        );
+      },
+    ),
+  );
+
+  it(
+    'should show error response when there is a streaming error',
+    withTestServer(
+      {
+        type: 'stream-values',
+        url: '/api/chat',
+        content: ['3:"custom error message"\n'],
+      },
+      async () => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('error');
+        expect(screen.getByTestId('error')).toHaveTextContent(
+          'Error: custom error message',
         );
       },
     ),
@@ -265,8 +284,11 @@ describe('text stream', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}-text-stream`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
+            <div data-testid={`message-${idx}-id`}>{m.id}</div>
+            <div data-testid={`message-${idx}-role`}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+            </div>
+            <div data-testid={`message-${idx}-content`}>{m.content}</div>
           </div>
         ))}
 
@@ -302,15 +324,39 @@ describe('text stream', () => {
       async () => {
         await userEvent.click(screen.getByTestId('do-append-text-stream'));
 
-        await screen.findByTestId('message-0-text-stream');
-        expect(screen.getByTestId('message-0-text-stream')).toHaveTextContent(
-          'User: hi',
-        );
+        await screen.findByTestId('message-0-content');
+        expect(screen.getByTestId('message-0-content')).toHaveTextContent('hi');
 
-        await screen.findByTestId('message-1-text-stream');
-        expect(screen.getByTestId('message-1-text-stream')).toHaveTextContent(
-          'AI: Hello, world.',
+        await screen.findByTestId('message-1-content');
+        expect(screen.getByTestId('message-1-content')).toHaveTextContent(
+          'Hello, world.',
         );
+      },
+    ),
+  );
+
+  it(
+    'should have stable message ids',
+    withTestServer(
+      { url: '/api/chat', type: 'controlled-stream' },
+      async ({ streamController }) => {
+        streamController.enqueue('He');
+
+        await userEvent.click(screen.getByTestId('do-append-text-stream'));
+
+        await screen.findByTestId('message-1-content');
+        expect(screen.getByTestId('message-1-content')).toHaveTextContent('He');
+
+        const id = screen.getByTestId('message-1-id').textContent;
+
+        streamController.enqueue('llo');
+        streamController.close();
+
+        await screen.findByTestId('message-1-content');
+        expect(screen.getByTestId('message-1-content')).toHaveTextContent(
+          'Hello',
+        );
+        expect(screen.getByTestId('message-1-id').textContent).toBe(id);
       },
     ),
   );
@@ -770,8 +816,6 @@ describe('tool invocations', () => {
         streamController.enqueue(
           formatStreamPart('tool_result', {
             toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
             result: 'test-result',
           }),
         );
@@ -810,8 +854,6 @@ describe('tool invocations', () => {
         streamController.enqueue(
           formatStreamPart('tool_result', {
             toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
             result: 'test-result',
           }),
         );
@@ -1098,6 +1140,21 @@ describe('file attachments with data url', () => {
         const submitButton = screen.getByTestId('submit-button');
         await userEvent.click(submitButton);
 
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent(
+          'User: Message with text attachment',
+        );
+
+        await screen.findByTestId('attachment-0');
+        expect(screen.getByTestId('attachment-0')).toHaveTextContent(
+          'test file content',
+        );
+
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: Response to message with text attachment',
+        );
+
         expect(await call(0).getRequestBodyJson()).toStrictEqual({
           messages: [
             {
@@ -1113,21 +1170,6 @@ describe('file attachments with data url', () => {
             },
           ],
         });
-
-        await screen.findByTestId('message-0');
-        expect(screen.getByTestId('message-0')).toHaveTextContent(
-          'User: Message with text attachment',
-        );
-
-        await screen.findByTestId('attachment-0');
-        expect(screen.getByTestId('attachment-0')).toHaveTextContent(
-          'test file content',
-        );
-
-        await screen.findByTestId('message-1');
-        expect(screen.getByTestId('message-1')).toHaveTextContent(
-          'AI: Response to message with text attachment',
-        );
       },
     ),
   );
@@ -1154,22 +1196,6 @@ describe('file attachments with data url', () => {
         const submitButton = screen.getByTestId('submit-button');
         await userEvent.click(submitButton);
 
-        expect(await call(0).getRequestBodyJson()).toStrictEqual({
-          messages: [
-            {
-              role: 'user',
-              content: 'Message with image attachment',
-              experimental_attachments: [
-                {
-                  name: 'test.png',
-                  contentType: 'image/png',
-                  url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
-                },
-              ],
-            },
-          ],
-        });
-
         await screen.findByTestId('message-0');
         expect(screen.getByTestId('message-0')).toHaveTextContent(
           'User: Message with image attachment',
@@ -1185,6 +1211,22 @@ describe('file attachments with data url', () => {
         expect(screen.getByTestId('message-1')).toHaveTextContent(
           'AI: Response to message with image attachment',
         );
+
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          messages: [
+            {
+              role: 'user',
+              content: 'Message with image attachment',
+              experimental_attachments: [
+                {
+                  name: 'test.png',
+                  contentType: 'image/png',
+                  url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
+                },
+              ],
+            },
+          ],
+        });
       },
     ),
   );
@@ -1277,22 +1319,6 @@ describe('file attachments with url', () => {
         const submitButton = screen.getByTestId('submit-button');
         await userEvent.click(submitButton);
 
-        expect(await call(0).getRequestBodyJson()).toStrictEqual({
-          messages: [
-            {
-              role: 'user',
-              content: 'Message with image attachment',
-              experimental_attachments: [
-                {
-                  name: 'test.png',
-                  contentType: 'image/png',
-                  url: 'https://example.com/image.png',
-                },
-              ],
-            },
-          ],
-        });
-
         await screen.findByTestId('message-0');
         expect(screen.getByTestId('message-0')).toHaveTextContent(
           'User: Message with image attachment',
@@ -1308,6 +1334,22 @@ describe('file attachments with url', () => {
         expect(screen.getByTestId('message-1')).toHaveTextContent(
           'AI: Response to message with image attachment',
         );
+
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          messages: [
+            {
+              role: 'user',
+              content: 'Message with image attachment',
+              experimental_attachments: [
+                {
+                  name: 'test.png',
+                  contentType: 'image/png',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            },
+          ],
+        });
       },
     ),
   );

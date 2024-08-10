@@ -113,8 +113,8 @@ export function createAzure(
 
   const url = ({ path, modelId }: { path: string; modelId: string }) =>
     options.baseURL
-      ? `${options.baseURL}/${modelId}${path}?api-version=2024-05-01-preview`
-      : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-05-01-preview`;
+      ? `${options.baseURL}/${modelId}${path}?api-version=2024-06-01`
+      : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=2024-06-01`;
 
   const createChatModel = (
     deploymentName: string,

@@ -87,7 +87,6 @@ export async function callChatApi({
         }
 
         resultMessage.content += decoder(value);
-        resultMessage.id = generateId();
 
         // note: creating a new message object is required for Solid.js streaming
         onUpdate([{ ...resultMessage }], []);

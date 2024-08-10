@@ -1,4 +1,4 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { LanguageModelV1, LanguageModelV1Prompt } from '@ai-sdk/provider';
 import {
   JsonTestServer,
   StreamingTestServer,
@@ -379,57 +379,6 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should pass functions and function_call with useLegacyFunctionCalling', async () => {
-    prepareJsonResponse({ content: '' });
-
-    const model = provider.chat('gpt-3.5-turbo', {
-      useLegacyFunctionCalling: true,
-    });
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        ],
-        toolChoice: {
-          type: 'tool',
-          toolName: 'test-tool',
-        },
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.getRequestBodyJson()).toEqual({
-      messages: [{ role: 'user', content: 'Hello' }],
-      model: 'gpt-3.5-turbo',
-      functions: [
-        {
-          name: 'test-tool',
-          parameters: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      ],
-      function_call: { name: 'test-tool' },
-    });
-  });
-
   it('should pass headers', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -512,16 +461,257 @@ describe('doGenerate', () => {
     ]);
   });
 
-  it('should parse function results with useLegacyFunctionCalling', async () => {
-    prepareJsonResponse({
-      function_call: {
-        name: 'test-tool',
-        arguments: '{"value":"Spark"}',
-      },
+  describe('when useLegacyFunctionCalling is enabled', () => {
+    let result: Awaited<ReturnType<LanguageModelV1['doGenerate']>>;
+
+    beforeEach(async () => {
+      prepareJsonResponse({
+        function_call: {
+          name: 'test-tool',
+          arguments: '{"value":"Spark"}',
+        },
+      });
+
+      const model = provider.chat('gpt-3.5-turbo', {
+        useLegacyFunctionCalling: true,
+      });
+
+      result = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'regular',
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          toolChoice: {
+            type: 'tool',
+            toolName: 'test-tool',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
     });
 
-    const model = provider.chat('gpt-3.5-turbo', {
-      useLegacyFunctionCalling: true,
+    it('should pass functions and function_call with useLegacyFunctionCalling', async () => {
+      expect(await server.getRequestBodyJson()).toEqual({
+        messages: [{ role: 'user', content: 'Hello' }],
+        model: 'gpt-3.5-turbo',
+        functions: [
+          {
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        function_call: { name: 'test-tool' },
+      });
+    });
+
+    it('should parse function results with useLegacyFunctionCalling', async () => {
+      expect(result.toolCalls).toStrictEqual([
+        {
+          args: '{"value":"Spark"}',
+          toolCallId: expect.any(String),
+          toolCallType: 'function',
+          toolName: 'test-tool',
+        },
+      ]);
+    });
+  });
+
+  describe('when structuredOutputs are enabled', () => {
+    it('should use json_schema & strict in object-json mode', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = provider.chat('gpt-4o-2024-08-06', {
+        structuredOutputs: true,
+      });
+
+      const response = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-json',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      });
+
+      expect(response.text).toStrictEqual('{"value":"Spark"}');
+    });
+  });
+
+  it('should set name & description in object-json mode', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider.chat('gpt-4o-2024-08-06', {
+      structuredOutputs: true,
+    });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-4o-2024-08-06',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'test-name',
+          description: 'test description',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+  });
+
+  it('should set strict in object-tool mode', async () => {
+    prepareJsonResponse({
+      tool_calls: [
+        {
+          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            arguments: '{"value":"Spark"}',
+          },
+        },
+      ],
+    });
+
+    const model = provider.chat('gpt-4o-2024-08-06', {
+      structuredOutputs: true,
+    });
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-tool',
+        tool: {
+          type: 'function',
+          name: 'test-tool',
+          description: 'test description',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-4o-2024-08-06',
+      messages: [{ role: 'user', content: 'Hello' }],
+      tool_choice: { type: 'function', function: { name: 'test-tool' } },
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            description: 'test description',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+          strict: true,
+        },
+      ],
+    });
+
+    expect(result.toolCalls).toStrictEqual([
+      {
+        args: '{"value":"Spark"}',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+      },
+    ]);
+  });
+
+  it('should set strict for tool usage', async () => {
+    prepareJsonResponse({
+      tool_calls: [
+        {
+          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            arguments: '{"value":"Spark"}',
+          },
+        },
+      ],
+    });
+
+    const model = provider.chat('gpt-4o-2024-08-06', {
+      structuredOutputs: true,
     });
 
     const result = await model.doGenerate({
@@ -549,10 +739,32 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'gpt-4o-2024-08-06',
+      messages: [{ role: 'user', content: 'Hello' }],
+      tool_choice: { type: 'function', function: { name: 'test-tool' } },
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+          strict: true,
+        },
+      ],
+    });
+
     expect(result.toolCalls).toStrictEqual([
       {
         args: '{"value":"Spark"}',
-        toolCallId: expect.any(String),
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
         toolCallType: 'function',
         toolName: 'test-tool',
       },

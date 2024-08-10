@@ -21,7 +21,7 @@ export type Experimental_UseObjectOptions<RESULT> = {
   /**
    * A Zod schema that defines the shape of the complete object.
    */
-  schema: z.Schema<RESULT>;
+  schema: z.Schema<RESULT, z.ZodTypeDef, any>;
 
   /**
    * An unique identifier. If not provided, a random one will be
@@ -40,6 +40,22 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
+
+  /**
+Callback that is called when the stream has finished.
+     */
+  onFinish?: (event: {
+    /**
+The generated object (typed according to the schema).
+Can be undefined if the final object does not match the schema.
+   */
+    object: RESULT | undefined;
+
+    /**
+Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
+ */
+    error: Error | undefined;
+  }) => Promise<void> | void;
 
   /**
    * Callback function to be called when an error is encountered.
@@ -86,6 +102,7 @@ function useObject<RESULT, INPUT = any>({
   initialValue,
   fetch,
   onError,
+  onFinish,
 }: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
   RESULT,
   INPUT
@@ -119,6 +136,7 @@ function useObject<RESULT, INPUT = any>({
 
   const submit = async (input: INPUT) => {
     try {
+      mutate(undefined); // reset the data
       setIsLoading(true);
       setError(undefined);
 
@@ -165,6 +183,15 @@ function useObject<RESULT, INPUT = any>({
           close() {
             setIsLoading(false);
             abortControllerRef.current = null;
+
+            if (onFinish != null) {
+              const validationResult = schema.safeParse(latestObject);
+              onFinish(
+                validationResult.success
+                  ? { object: validationResult.data, error: undefined }
+                  : { object: undefined, error: validationResult.error },
+              );
+            }
           },
         }),
       );

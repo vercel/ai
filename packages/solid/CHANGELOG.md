@@ -1,5 +1,63 @@
 # @ai-sdk/solid
 
+## 0.0.32
+
+### Patch Changes
+
+- Updated dependencies [e5b58f3]
+  - @ai-sdk/ui-utils@0.0.29
+
+## 0.0.31
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.9
+- @ai-sdk/ui-utils@0.0.28
+
+## 0.0.30
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.8
+- @ai-sdk/ui-utils@0.0.27
+
+## 0.0.29
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.7
+- @ai-sdk/ui-utils@0.0.26
+
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+  - @ai-sdk/provider-utils@1.0.6
+  - @ai-sdk/ui-utils@0.0.25
+
+## 0.0.27
+
+### Patch Changes
+
+- Updated dependencies [5be25124]
+  - @ai-sdk/ui-utils@0.0.24
+
+## 0.0.26
+
+### Patch Changes
+
+- Updated dependencies [fea7b604]
+  - @ai-sdk/ui-utils@0.0.23
+
+## 0.0.25
+
+### Patch Changes
+
+- Updated dependencies [1d93d716]
+  - @ai-sdk/ui-utils@0.0.22
+
 ## 0.0.24
 
 ### Patch Changes

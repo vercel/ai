@@ -30,7 +30,7 @@ The default prefix is `https://api.cohere.com/v1`.
 
   /**
 API key that is being send using the `Authorization` header.
-It defaults to the `MISTRAL_API_KEY` environment variable.
+It defaults to the `COHERE_API_KEY` environment variable.
    */
   apiKey?: string;
 
@@ -71,7 +71,7 @@ export function createCohere(
     settings: CohereChatSettings = {},
   ) =>
     new CohereChatLanguageModel(modelId, settings, {
-      provider: 'mistral.chat',
+      provider: 'cohere.chat',
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,

@@ -1,5 +1,43 @@
 # @ai-sdk/cohere
 
+## 0.0.13
+
+### Patch Changes
+
+- Updated dependencies [029af4c]
+  - @ai-sdk/provider@0.0.17
+  - @ai-sdk/provider-utils@1.0.9
+
+## 0.0.12
+
+### Patch Changes
+
+- 6a5e2eb: fix (provider/cohere): send last message with request instead of first
+
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [d58517b]
+  - @ai-sdk/provider@0.0.16
+  - @ai-sdk/provider-utils@1.0.8
+
+## 0.0.10
+
+### Patch Changes
+
+- Updated dependencies [96aed25]
+  - @ai-sdk/provider@0.0.15
+  - @ai-sdk/provider-utils@1.0.7
+
+## 0.0.9
+
+### Patch Changes
+
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+  - @ai-sdk/provider-utils@1.0.6
+
 ## 0.0.8
 
 ### Patch Changes

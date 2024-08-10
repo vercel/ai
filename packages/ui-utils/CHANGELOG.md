@@ -1,5 +1,61 @@
 # @ai-sdk/ui-utils
 
+## 0.0.29
+
+### Patch Changes
+
+- e5b58f3: fix (ai/ui): forward streaming errors in useChat
+
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [029af4c]
+  - @ai-sdk/provider@0.0.17
+  - @ai-sdk/provider-utils@1.0.9
+
+## 0.0.27
+
+### Patch Changes
+
+- Updated dependencies [d58517b]
+  - @ai-sdk/provider@0.0.16
+  - @ai-sdk/provider-utils@1.0.8
+
+## 0.0.26
+
+### Patch Changes
+
+- Updated dependencies [96aed25]
+  - @ai-sdk/provider@0.0.15
+  - @ai-sdk/provider-utils@1.0.7
+
+## 0.0.25
+
+### Patch Changes
+
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+  - @ai-sdk/provider-utils@1.0.6
+
+## 0.0.24
+
+### Patch Changes
+
+- 5be25124: fix (ai/ui): useChat messages have stable ids with streamProtocol: "text"
+
+## 0.0.23
+
+### Patch Changes
+
+- fea7b604: chore (ai/ui): remove "args" and "toolName" from tool result stream part.
+
+## 0.0.22
+
+### Patch Changes
+
+- 1d93d716: fix (ai/ui): parse null as NaN in finish message stream parts
+
 ## 0.0.21
 
 ### Patch Changes

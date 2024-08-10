@@ -1,5 +1,49 @@
 # @ai-sdk/azure
 
+## 0.0.22
+
+### Patch Changes
+
+- Updated dependencies [029af4c]
+  - @ai-sdk/provider@0.0.17
+  - @ai-sdk/openai@0.0.44
+  - @ai-sdk/provider-utils@1.0.9
+
+## 0.0.21
+
+### Patch Changes
+
+- Updated dependencies [d58517b]
+- Updated dependencies [c0a73ee]
+  - @ai-sdk/provider@0.0.16
+  - @ai-sdk/openai@0.0.43
+  - @ai-sdk/provider-utils@1.0.8
+
+## 0.0.20
+
+### Patch Changes
+
+- Updated dependencies [96aed25]
+  - @ai-sdk/provider@0.0.15
+  - @ai-sdk/openai@0.0.42
+  - @ai-sdk/provider-utils@1.0.7
+
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+- Updated dependencies [7a2eb27]
+  - @ai-sdk/provider-utils@1.0.6
+  - @ai-sdk/openai@0.0.41
+
+## 0.0.18
+
+### Patch Changes
+
+- b99180b5: feat (provider/azure): update Azure API version to 2024-06-01
+
 ## 0.0.17
 
 ### Patch Changes

@@ -188,7 +188,7 @@ The following optional settings are available for OpenAI chat models:
 
   Whether to enable parallel function calling during tool use. Default to true.
 
-- **useLegacyFunctionCalls**
+- **useLegacyFunctionCalls** _boolean_
 
   Whether to use legacy function calling. Defaults to false.
 
@@ -198,10 +198,60 @@ The following optional settings are available for OpenAI chat models:
 
   Prefer setting `parallelToolCalls: false` over this option.
 
+- **structuredOutputs** _boolean_
+
+  Whether to use [structured outputs](#structured-outputs). Defaults to false.
+
+  When enabled, tool calls and object generation will be strict and follow the provided schema.
+
 - **user** _string_
 
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. Learn more.
+
+#### Structured Outputs
+
+You can enable [OpenAI structured outputs](https://openai.com/index/introducing-structured-outputs-in-the-api/) by setting the `structuredOutputs` option to `true`.
+Structured outputs are a form of grammar-guided generation.
+The JSON schema is used as a grammar and the outputs will always conform to the schema.
+
+```ts highlight="7"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const result = await generateObject({
+  model: openai('gpt-4o-2024-08-06', {
+    structuredOutputs: true,
+  }),
+  schemaName: 'recipe',
+  schemaDescription: 'A recipe for lasagna.',
+  schema: z.object({
+    name: z.string(),
+    ingredients: z.array(
+      z.object({
+        name: z.string(),
+        amount: z.string(),
+      }),
+    ),
+    steps: z.array(z.string()),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+});
+
+console.log(JSON.stringify(result.object, null, 2));
+```
+
+<Note type="warning">
+  OpenAI structured outputs have several
+  [limitations](https://openai.com/index/introducing-structured-outputs-in-the-api),
+  in particular around the [supported schemas](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas),
+  and are therefore opt-in.
+
+For example, optional schema properties are not supported.
+You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
+
+</Note>
 
 ### Completion Models
 

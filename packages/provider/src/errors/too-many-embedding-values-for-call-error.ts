@@ -1,4 +1,12 @@
-export class TooManyEmbeddingValuesForCallError extends Error {
+import { AISDKError } from './ai-sdk-error';
+
+const name = 'AI_TooManyEmbeddingValuesForCallError';
+const marker = `vercel.ai.error.${name}`;
+const symbol = Symbol.for(marker);
+
+export class TooManyEmbeddingValuesForCallError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
   readonly provider: string;
   readonly modelId: string;
   readonly maxEmbeddingsPerCall: number;
@@ -10,13 +18,13 @@ export class TooManyEmbeddingValuesForCallError extends Error {
     maxEmbeddingsPerCall: number;
     values: Array<unknown>;
   }) {
-    super(
-      `Too many values for a single embedding call. ` +
+    super({
+      name,
+      message:
+        `Too many values for a single embedding call. ` +
         `The ${options.provider} model "${options.modelId}" can only embed up to ` +
         `${options.maxEmbeddingsPerCall} values per call, but ${options.values.length} values were provided.`,
-    );
-
-    this.name = 'AI_TooManyEmbeddingValuesForCallError';
+    });
 
     this.provider = options.provider;
     this.modelId = options.modelId;
@@ -24,12 +32,21 @@ export class TooManyEmbeddingValuesForCallError extends Error {
     this.values = options.values;
   }
 
-  static isInvalidPromptError(
+  static isInstance(
+    error: unknown,
+  ): error is TooManyEmbeddingValuesForCallError {
+    return AISDKError.hasMarker(error, marker);
+  }
+
+  /**
+   * @deprecated use `isInstance` instead
+   */
+  static isTooManyEmbeddingValuesForCallError(
     error: unknown,
   ): error is TooManyEmbeddingValuesForCallError {
     return (
       error instanceof Error &&
-      error.name === 'AI_TooManyEmbeddingValuesForCallError' &&
+      error.name === name &&
       'provider' in error &&
       typeof error.provider === 'string' &&
       'modelId' in error &&
@@ -41,6 +58,9 @@ export class TooManyEmbeddingValuesForCallError extends Error {
     );
   }
 
+  /**
+   * @deprecated Do not use this method. It will be removed in the next major version.
+   */
   toJSON() {
     return {
       name: this.name,

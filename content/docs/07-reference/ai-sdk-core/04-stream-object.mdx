@@ -60,6 +60,18 @@ for await (const partialObject of partialObjectStream) {
         'The schema that describes the shape of the object to generate. It is sent to the model to generate the object and used to validate the output. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).',
     },
     {
+      name: 'schemaName',
+      type: 'string | undefined',
+      description:
+        'Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+    },
+    {
+      name: 'schemaDescription',
+      type: 'string | undefined',
+      description:
+        'Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+    },
+    {
       name: 'system',
       type: 'string',
       description:
@@ -337,6 +349,20 @@ for await (const partialObject of partialObjectStream) {
                 'Enable or disable telemetry. Disabled by default while experimental.',
             },
             {
+              name: 'recordInputs',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Enable or disable input recording. Enabled by default.',
+            },
+            {
+              name: 'recordOutputs',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Enable or disable output recording. Enabled by default.',
+            },
+            {
               name: 'functionId',
               type: 'string',
               isOptional: true,
@@ -359,7 +385,7 @@ for await (const partialObject of partialObjectStream) {
       type: '(result: OnFinishResult) => void',
       isOptional: true,
       description:
-        'Callback that is called when the LLM response and all request tool executions (for tools that have an `execute` function) are finished.',
+        'Callback that is called when the LLM response has finished.',
       properties: [
         {
           type: 'OnFinishResult',

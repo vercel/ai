@@ -72,14 +72,7 @@ export function convertToMistralChatMessages(
         messages.push({
           role: 'assistant',
           content: text,
-          tool_calls:
-            toolCalls.length > 0
-              ? toolCalls.map(({ function: { name, arguments: args } }) => ({
-                  id: 'null',
-                  type: 'function',
-                  function: { name, arguments: args },
-                }))
-              : undefined,
+          tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 
         break;
@@ -90,6 +83,7 @@ export function convertToMistralChatMessages(
             role: 'tool',
             name: toolResponse.toolName,
             content: JSON.stringify(toolResponse.result),
+            tool_call_id: toolResponse.toolCallId,
           });
         }
         break;

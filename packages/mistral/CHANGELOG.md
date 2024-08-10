@@ -1,5 +1,43 @@
 # @ai-sdk/mistral
 
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [029af4c]
+  - @ai-sdk/provider@0.0.17
+  - @ai-sdk/provider-utils@1.0.9
+
+## 0.0.29
+
+### Patch Changes
+
+- Updated dependencies [d58517b]
+  - @ai-sdk/provider@0.0.16
+  - @ai-sdk/provider-utils@1.0.8
+
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [96aed25]
+  - @ai-sdk/provider@0.0.15
+  - @ai-sdk/provider-utils@1.0.7
+
+## 0.0.27
+
+### Patch Changes
+
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+  - @ai-sdk/provider-utils@1.0.6
+
+## 0.0.26
+
+### Patch Changes
+
+- 66011be5: fix (provider/mistral): fix tool calling
+
 ## 0.0.25
 
 ### Patch Changes

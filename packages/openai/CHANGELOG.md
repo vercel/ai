@@ -1,5 +1,41 @@
 # @ai-sdk/openai
 
+## 0.0.44
+
+### Patch Changes
+
+- 029af4c: feat (ai/core): support schema name & description in generateObject & streamObject
+- Updated dependencies [029af4c]
+  - @ai-sdk/provider@0.0.17
+  - @ai-sdk/provider-utils@1.0.9
+
+## 0.0.43
+
+### Patch Changes
+
+- d58517b: feat (ai/openai): structured outputs
+- c0a73ee: feat (provider/openai): add gpt-4o-2024-08-06 to list of supported models
+- Updated dependencies [d58517b]
+  - @ai-sdk/provider@0.0.16
+  - @ai-sdk/provider-utils@1.0.8
+
+## 0.0.42
+
+### Patch Changes
+
+- Updated dependencies [96aed25]
+  - @ai-sdk/provider@0.0.15
+  - @ai-sdk/provider-utils@1.0.7
+
+## 0.0.41
+
+### Patch Changes
+
+- 7a2eb27: feat (provider/openai): make role nullish to enhance provider support
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+  - @ai-sdk/provider-utils@1.0.6
+
 ## 0.0.40
 
 ### Patch Changes

@@ -22,7 +22,11 @@
         "ASSISTANT_ID",
         "INKEEP_API_KEY",
         "INKEEP_INTEGRATION_ID",
-        "VERCEL_URL"
+        "VERCEL_URL",
+        "SENTRY_AUTH_TOKEN",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "NEXT_RUNTIME"
       ],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },

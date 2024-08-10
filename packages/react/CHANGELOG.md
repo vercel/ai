@@ -1,5 +1,77 @@
 # @ai-sdk/react
 
+## 0.0.41
+
+### Patch Changes
+
+- e5b58f3: fix (ai/ui): forward streaming errors in useChat
+- Updated dependencies [e5b58f3]
+  - @ai-sdk/ui-utils@0.0.29
+
+## 0.0.40
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.9
+- @ai-sdk/ui-utils@0.0.28
+
+## 0.0.39
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.8
+- @ai-sdk/ui-utils@0.0.27
+
+## 0.0.38
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.7
+- @ai-sdk/ui-utils@0.0.26
+
+## 0.0.37
+
+### Patch Changes
+
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+  - @ai-sdk/provider-utils@1.0.6
+  - @ai-sdk/ui-utils@0.0.25
+
+## 0.0.36
+
+### Patch Changes
+
+- 5be25124: fix (ai/ui): useChat messages have stable ids with streamProtocol: "text"
+- Updated dependencies [5be25124]
+  - @ai-sdk/ui-utils@0.0.24
+
+## 0.0.35
+
+### Patch Changes
+
+- a147d040: feat (ai/react): useObject clears object when loading new result
+
+## 0.0.34
+
+### Patch Changes
+
+- b68fae4f: feat (ai/ui): add onFinish callback to useObject
+
+## 0.0.33
+
+### Patch Changes
+
+- Updated dependencies [fea7b604]
+  - @ai-sdk/ui-utils@0.0.23
+
+## 0.0.32
+
+### Patch Changes
+
+- Updated dependencies [1d93d716]
+  - @ai-sdk/ui-utils@0.0.22
+
 ## 0.0.31
 
 ### Patch Changes

@@ -31,7 +31,7 @@ type GoogleVertexAIConfig = {
 export class GoogleVertexLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly provider = 'google-vertex';
-  readonly defaultObjectGenerationMode = undefined;
+  readonly defaultObjectGenerationMode = 'json';
   readonly supportsImageUrls = false;
 
   readonly modelId: GoogleVertexModelId;
@@ -93,14 +93,6 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       });
     }
 
-    if (responseFormat != null && responseFormat.type !== 'text') {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
-        details: 'JSON response format is not supported.',
-      });
-    }
-
     const generationConfig: GenerationConfig = {
       // model specific settings:
       topK: topK ?? this.settings.topK,
@@ -110,6 +102,8 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       temperature,
       topP,
       stopSequences,
+      responseMimeType:
+        responseFormat?.type === 'json' ? 'application/json' : undefined,
     };
 
     const type = mode.type;
@@ -131,9 +125,20 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-json mode',
-        });
+        return {
+          model: this.config.vertexAI.getGenerativeModel({
+            model: this.modelId,
+            generationConfig: {
+              ...generationConfig,
+              responseMimeType: 'application/json',
+            },
+            safetySettings: this.settings.safetySettings as
+              | undefined
+              | Array<SafetySetting>,
+          }),
+          contentRequest: convertToGoogleVertexContentRequest(prompt),
+          warnings,
+        };
       }
 
       case 'object-tool': {
