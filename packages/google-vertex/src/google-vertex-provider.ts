@@ -62,14 +62,12 @@ export function createVertex(
   const createVertexAI = () => {
     const config = {
       project: loadSetting({
-        optional: false,
         settingValue: options.project,
         settingName: 'project',
         environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
         description: 'Google Vertex project',
       }),
       location: loadSetting({
-        optional: false,
         settingValue: options.location,
         settingName: 'location',
         environmentVariableName: 'GOOGLE_VERTEX_LOCATION',

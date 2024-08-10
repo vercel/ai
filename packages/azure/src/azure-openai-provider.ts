@@ -105,7 +105,6 @@ export function createAzure(
 
   const getResourceName = () =>
     loadSetting({
-      optional:false,
       settingValue: options.resourceName,
       settingName: 'resourceName',
       environmentVariableName: 'AZURE_RESOURCE_NAME',
