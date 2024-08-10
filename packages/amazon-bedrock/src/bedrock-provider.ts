@@ -48,6 +48,7 @@ export function createAmazonBedrock(
     new BedrockRuntimeClient(
       options.bedrockOptions ?? {
         region: loadSetting({
+          optional: false,
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
@@ -55,22 +56,25 @@ export function createAmazonBedrock(
         }),
         credentials: {
           accessKeyId: loadSetting({
+            optional :false,
             settingValue: options.accessKeyId,
             settingName: 'accessKeyId',
             environmentVariableName: 'AWS_ACCESS_KEY_ID',
             description: 'AWS access key ID',
           }),
           secretAccessKey: loadSetting({
+            optional: false,
             settingValue: options.secretAccessKey,
             settingName: 'secretAccessKey',
             environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
             description: 'AWS secret access key',
           }),
           sessionToken: loadSetting({
-            settingName: 'sessionToken',
             settingValue: options.sessionToken,
+            settingName: 'sessionToken',
             environmentVariableName: 'AWS_SESSION_TOKEN',
             description: 'AWS session token',
+            optional: true,
           }),
         },
       },

@@ -1,27 +1,32 @@
 import { LoadSettingError } from '@ai-sdk/provider';
 
-export function loadSetting({
+type LoadSettingReturnType<T> = T extends false ? string : undefined | string;
+export function loadSetting<T extends boolean>({
   settingValue,
   environmentVariableName,
   settingName,
   description,
+  optional,
 }: {
   settingValue: string | undefined;
   environmentVariableName: string;
   settingName: string;
   description: string;
-}): string {
+  optional: T;
+}): LoadSettingReturnType<T> {
   if (typeof settingValue === 'string') {
     return settingValue;
   }
 
   if (settingValue != null) {
+    if (optional) return undefined as LoadSettingReturnType<T>
     throw new LoadSettingError({
       message: `${description} setting must be a string.`,
     });
   }
 
   if (typeof process === 'undefined') {
+    if (optional) return undefined as LoadSettingReturnType<T>
     throw new LoadSettingError({
       message: `${description} setting is missing. Pass it using the '${settingName}' parameter. Environment variables is not supported in this environment.`,
     });
@@ -30,12 +35,14 @@ export function loadSetting({
   settingValue = process.env[environmentVariableName];
 
   if (settingValue == null) {
+    if (optional) return undefined as LoadSettingReturnType<T>
     throw new LoadSettingError({
       message: `${description} setting is missing. Pass it using the '${settingName}' parameter or the ${environmentVariableName} environment variable.`,
     });
   }
 
   if (typeof settingValue !== 'string') {
+    if (optional) return undefined as LoadSettingReturnType<T>
     throw new LoadSettingError({
       message: `${description} setting must be a string. The value of the ${environmentVariableName} environment variable is not a string.`,
     });
