@@ -12,7 +12,7 @@ export function loadSetting<T extends boolean = false>({
   environmentVariableName: string;
   settingName: string;
   description: string;
-  isOptional?: T; // Make isOptional optional and generic
+  isOptional?: T;
 }): LoadSettingReturnType<T> {
   if (typeof settingValue === 'string') {
     return settingValue;
