@@ -10,8 +10,8 @@ Language models generate text, so at first it may seem like you would only need 
 ```tsx highlight="16" filename="app/actions.tsx"
 const text = generateText({
   model: openai('gpt-3.5-turbo'),
-  system: 'You are a friendly assistant'
-  prompt: 'What is the weather in SF?'
+  system: 'You are a friendly assistant',
+  prompt: 'What is the weather in SF?',
   tools: {
     getWeather: {
       description: 'Get the weather for a location',
@@ -19,15 +19,15 @@ const text = generateText({
         city: z.string().describe('The city to get the weather for'),
         unit: z
           .enum(['C', 'F'])
-          .describe('The unit to display the temperature in')
+          .describe('The unit to display the temperature in'),
       }),
       execute: async ({ city, unit }) => {
-        const weather = getWeather({ city, unit })
-        return `It is currently ${weather.value}°${unit} and ${weather.description} in ${city}!`
-      }
-    }
-  }
-})
+        const weather = getWeather({ city, unit });
+        return `It is currently ${weather.value}°${unit} and ${weather.description} in ${city}!`;
+      },
+    },
+  },
+});
 ```
 
 Above, the language model is passed a [tool](/docs/ai-sdk-core/tools-and-tool-calling) called `getWeather` that returns the weather information as text. However, instead of returning text, if you return a JSON object that represents the weather information, you can use it to render a React component instead.
@@ -35,8 +35,8 @@ Above, the language model is passed a [tool](/docs/ai-sdk-core/tools-and-tool-ca
 ```tsx highlight="18-23" filename="app/action.ts"
 const text = generateText({
   model: openai('gpt-3.5-turbo'),
-  system: 'You are a friendly assistant'
-  prompt: 'What is the weather in SF?'
+  system: 'You are a friendly assistant',
+  prompt: 'What is the weather in SF?',
   tools: {
     getWeather: {
       description: 'Get the weather for a location',
@@ -44,22 +44,22 @@ const text = generateText({
         city: z.string().describe('The city to get the weather for'),
         unit: z
           .enum(['C', 'F'])
-          .describe('The unit to display the temperature in')
+          .describe('The unit to display the temperature in'),
       }),
       execute: async ({ city, unit }) => {
-        const weather = getWeather({ city, unit })
-        const { temperature, unit, description, forecast } = weather
+        const weather = getWeather({ city, unit });
+        const { temperature, unit, description, forecast } = weather;
 
         return {
           temperature,
           unit,
           description,
-          forecast
-        }
-      }
-    }
-  }
-})
+          forecast,
+        };
+      },
+    },
+  },
+});
 ```
 
 Now you can use the object returned by the `getWeather` function to conditionally render a React component `<WeatherCard/>` that displays the weather information by passing the object as props.
