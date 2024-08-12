@@ -1,3 +1,4 @@
+import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { setTestTracer } from '../telemetry/get-tracer';
@@ -5,7 +6,6 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
-import { jsonSchema } from '../util/schema';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
