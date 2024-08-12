@@ -1,5 +1,22 @@
 # ai
 
+## 3.3.6
+
+### Patch Changes
+
+- e9c891d: feat (ai/react): useObject supports non-Zod schemas
+- 3719e8a: chore (ai/core): provider registry code improvements
+- Updated dependencies [e9c891d]
+- Updated dependencies [4bd27a9]
+- Updated dependencies [845754b]
+  - @ai-sdk/ui-utils@0.0.30
+  - @ai-sdk/react@0.0.42
+  - @ai-sdk/provider-utils@1.0.10
+  - @ai-sdk/provider@0.0.18
+  - @ai-sdk/solid@0.0.33
+  - @ai-sdk/svelte@0.0.35
+  - @ai-sdk/vue@0.0.34
+
 ## 3.3.5
 
 ### Patch Changes
