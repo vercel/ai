@@ -1,6 +1,7 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import { z } from 'zod';
-import { validateTypes, safeValidateTypes } from './validate-types';
+import { NoValidatorError } from './no-validator-error';
+import { safeValidateTypes, validateTypes } from './validate-types';
 import { validator } from './validator';
 
 const zodSchema = z.object({ name: z.string(), age: z.number() });
@@ -14,6 +15,7 @@ const customValidator = validator<{ name: string; age: number }>(value =>
     ? { success: true, value: value as { name: string; age: number } }
     : { success: false, error: new Error('Invalid input') },
 );
+const nullValidator = validator<{ name: string; age: number }>();
 
 describe('validateTypes', () => {
   describe.each([
@@ -50,6 +52,28 @@ describe('validateTypes', () => {
       }
     });
   });
+
+  it('should throw NoValidatorError when validator is null and throwIfNoValidator is true', () => {
+    const input = { name: 'John', age: 30 };
+    expect(() =>
+      validateTypes({
+        value: input,
+        schema: nullValidator,
+        throwIfNoValidator: true,
+      }),
+    ).toThrow(NoValidatorError);
+  });
+
+  it('should return input when validator is null and throwIfNoValidator is false', () => {
+    const input = { name: 'John', age: 30 };
+    expect(
+      validateTypes({
+        value: input,
+        schema: nullValidator,
+        throwIfNoValidator: false,
+      }),
+    ).toEqual(input);
+  });
 });
 
 describe('safeValidateTypes', () => {
@@ -78,5 +102,27 @@ describe('safeValidateTypes', () => {
         expect(result.error.message).toContain('Type validation failed');
       }
     });
+  });
+
+  it('should throw NoValidatorError when validator is null and throwIfNoValidator is true', () => {
+    const input = { name: 'John', age: 30 };
+    expect(() =>
+      safeValidateTypes({
+        value: input,
+        schema: nullValidator,
+        throwIfNoValidator: true,
+      }),
+    ).toThrow(NoValidatorError);
+  });
+
+  it('should return input when validator is null and throwIfNoValidator is false', () => {
+    const input = { name: 'John', age: 30 };
+    expect(
+      safeValidateTypes({
+        value: input,
+        schema: nullValidator,
+        throwIfNoValidator: false,
+      }),
+    ).toEqual({ success: true, value: input });
   });
 });
