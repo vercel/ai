@@ -1507,10 +1507,19 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: 1.0.9
         version: link:../provider-utils
+      json-schema:
+        specifier: 0.4.0
+        version: 0.4.0
       secure-json-parse:
         specifier: 2.7.0
         version: 2.7.0
+      zod-to-json-schema:
+        specifier: 3.22.5
+        version: 3.22.5(zod@3.23.8)
     devDependencies:
+      '@types/json-schema':
+        specifier: 7.0.15
+        version: 7.0.15
       '@types/node':
         specifier: ^18
         version: 18.18.9

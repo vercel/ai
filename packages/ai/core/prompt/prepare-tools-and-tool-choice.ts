@@ -2,10 +2,10 @@ import {
   LanguageModelV1FunctionTool,
   LanguageModelV1ToolChoice,
 } from '@ai-sdk/provider';
+import { asSchema } from '@ai-sdk/ui-utils';
 import { CoreTool } from '../tool/tool';
 import { CoreToolChoice } from '../types/language-model';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
-import { asSchema } from '../util/schema';
 
 export function prepareToolsAndToolChoice<
   TOOLS extends Record<string, CoreTool>,
