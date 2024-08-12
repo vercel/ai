@@ -28,6 +28,28 @@ export class TypeValidationError extends AISDKError {
   }
 
   /**
+   * Wraps an error into a TypeValidationError.
+   * If the cause is already a TypeValidationError with the same value, it returns the cause.
+   * Otherwise, it creates a new TypeValidationError.
+   *
+   * @param {Object} params - The parameters for wrapping the error.
+   * @param {unknown} params.value - The value that failed validation.
+   * @param {unknown} params.cause - The original error or cause of the validation failure.
+   * @returns {TypeValidationError} A TypeValidationError instance.
+   */
+  static wrap({
+    value,
+    cause,
+  }: {
+    value: unknown;
+    cause: unknown;
+  }): TypeValidationError {
+    return TypeValidationError.isInstance(cause) && cause.value === value
+      ? cause
+      : new TypeValidationError({ value, cause });
+  }
+
+  /**
    * @deprecated use `isInstance` instead
    */
   static isTypeValidationError(error: unknown): error is TypeValidationError {

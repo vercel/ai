@@ -1,6 +1,6 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import { z } from 'zod';
-import { Validator, isValidator, zodValidator } from './validator';
+import { Validator, asValidator } from './validator';
 
 /**
  * Validates the types of an unknown object using a schema and
@@ -21,7 +21,7 @@ export function validateTypes<T>({
   const result = safeValidateTypes({ value, schema: inputSchema });
 
   if (!result.success) {
-    throw new TypeValidationError({ value, cause: result.error });
+    throw TypeValidationError.wrap({ value, cause: result.error });
   }
 
   return result.value;
@@ -38,41 +38,34 @@ export function validateTypes<T>({
  */
 export function safeValidateTypes<T>({
   value,
-  schema: inputSchema,
+  schema,
 }: {
   value: unknown;
   schema: z.Schema<T, z.ZodTypeDef, any> | Validator<T>;
 }):
   | { success: true; value: T }
   | { success: false; error: TypeValidationError } {
-  const schema = isValidator(inputSchema)
-    ? inputSchema
-    : zodValidator(inputSchema);
+  const validator = asValidator(schema);
 
   try {
-    if (schema.validate == null) {
+    if (validator.validate == null) {
       return { success: true, value: value as T };
     }
 
-    const validationResult = schema.validate(value);
+    const result = validator.validate(value);
 
-    if (validationResult.success) {
-      return validationResult;
+    if (result.success) {
+      return result;
     }
 
     return {
       success: false,
-      error: new TypeValidationError({
-        value,
-        cause: validationResult.error,
-      }),
+      error: TypeValidationError.wrap({ value, cause: result.error }),
     };
   } catch (error) {
     return {
       success: false,
-      error: TypeValidationError.isTypeValidationError(error)
-        ? error
-        : new TypeValidationError({ value, cause: error }),
+      error: TypeValidationError.wrap({ value, cause: error }),
     };
   }
 }
