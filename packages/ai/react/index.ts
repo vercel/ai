@@ -8,7 +8,8 @@ import {
 export const useChat = useChatReact;
 export const useCompletion = useCompletionReact;
 export const useAssistant = useAssistantReact;
-export const experimental_useObject = experimental_useObjectReact;
+export const experimental_useObject: typeof experimental_useObjectReact =
+  experimental_useObjectReact;
 export type {
   CreateMessage,
   Message,

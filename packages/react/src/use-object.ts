@@ -14,16 +14,28 @@ import z from 'zod';
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
-export type Experimental_UseObjectOptions<RESULT> = {
+export type Experimental_UseObjectOptions<
+  RESULT,
+  PARTIAL_RESULT extends DeepPartial<RESULT> = DeepPartial<RESULT>,
+> = {
   /**
    * The API endpoint. It should stream JSON that matches the schema as chunked text.
    */
   api: string;
 
   /**
-   * A Zod schema that defines the shape of the complete object.
+   * A schema that defines the shape of the complete object.
    */
   schema: z.Schema<RESULT, z.ZodTypeDef, any> | Schema<RESULT>;
+
+  /**
+   * A partial schema that validates intermediate objects.
+   * Only objects that match the partial schema will be accepted.
+   * This lets you limit the output to a subset of the partial schema.
+   */
+  partialSchema?:
+    | z.Schema<PARTIAL_RESULT, z.ZodTypeDef, any>
+    | Schema<PARTIAL_RESULT>;
 
   /**
    * An unique identifier. If not provided, a random one will be
@@ -35,7 +47,7 @@ export type Experimental_UseObjectOptions<RESULT> = {
   /**
    * An optional value for the initial object.
    */
-  initialValue?: DeepPartial<RESULT>;
+  initialValue?: PARTIAL_RESULT;
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -65,7 +77,11 @@ Optional error object. This is e.g. a TypeValidationError when the final object 
   onError?: (error: Error) => void;
 };
 
-export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
+export type Experimental_UseObjectHelpers<
+  RESULT,
+  INPUT,
+  PARTIAL_RESULT extends DeepPartial<RESULT> = DeepPartial<RESULT>,
+> = {
   /**
    * @deprecated Use `submit` instead.
    */
@@ -79,7 +95,7 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   /**
    * The current value for the generated object. Updated as the API streams JSON chunks.
    */
-  object: DeepPartial<RESULT> | undefined;
+  object: PARTIAL_RESULT | undefined;
 
   /**
    * The error object of the API request if any.
@@ -97,28 +113,31 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   stop: () => void;
 };
 
-function useObject<RESULT, INPUT = any>({
+function useObject<
+  RESULT,
+  INPUT = any,
+  PARTIAL_RESULT extends DeepPartial<RESULT> = DeepPartial<RESULT>,
+>({
   api,
   id,
   schema, // required, in the future we will use it for validation
+  partialSchema,
   initialValue,
   fetch,
   onError,
   onFinish,
-}: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
+}: Experimental_UseObjectOptions<
   RESULT,
-  INPUT
-> {
+  PARTIAL_RESULT
+>): Experimental_UseObjectHelpers<RESULT, INPUT, PARTIAL_RESULT> {
   // Generate an unique id if not provided.
   const hookId = useId();
   const completionId = id ?? hookId;
 
   // Store the completion state in SWR, using the completionId as the key to share states.
-  const { data, mutate } = useSWR<DeepPartial<RESULT>>(
-    [api, completionId],
-    null,
-    { fallbackData: initialValue },
-  );
+  const { data, mutate } = useSWR<PARTIAL_RESULT>([api, completionId], null, {
+    fallbackData: initialValue,
+  });
 
   const [error, setError] = useState<undefined | unknown>(undefined);
   const [isLoading, setIsLoading] = useState(false);
@@ -164,21 +183,33 @@ function useObject<RESULT, INPUT = any>({
       }
 
       let accumulatedText = '';
-      let latestObject: DeepPartial<RESULT> | undefined = undefined;
+      let latestObject: PARTIAL_RESULT | undefined = undefined;
 
       await response.body.pipeThrough(new TextDecoderStream()).pipeTo(
         new WritableStream<string>({
           write(chunk) {
             accumulatedText += chunk;
 
-            const currentObject = parsePartialJson(
-              accumulatedText,
-            ) as DeepPartial<RESULT>;
+            const currentObject = parsePartialJson(accumulatedText);
 
             if (!isDeepEqualData(latestObject, currentObject)) {
-              latestObject = currentObject;
+              if (partialSchema == null) {
+                // no partial schema: forward the object as is:
+                latestObject = currentObject as PARTIAL_RESULT;
+                mutate(latestObject);
+              } else {
+                // partial schema: validate the object:
+                const validationResult = safeValidateTypes({
+                  value: currentObject,
+                  schema: asSchema(partialSchema),
+                });
 
-              mutate(currentObject);
+                // only accept the object if it matches the partial schema:
+                if (validationResult.success) {
+                  latestObject = validationResult.value;
+                  mutate(latestObject);
+                }
+              }
             }
           },
 
