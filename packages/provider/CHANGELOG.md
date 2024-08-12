@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.18
+
+### Patch Changes
+
+- 4bd27a9: chore (ai/provider): refactor type validation
+
 ## 0.0.17
 
 ### Patch Changes

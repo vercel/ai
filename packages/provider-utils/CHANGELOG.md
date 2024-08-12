@@ -1,5 +1,14 @@
 # @ai-sdk/provider-utils
 
+## 1.0.10
+
+### Patch Changes
+
+- 4bd27a9: chore (ai/provider): refactor type validation
+- 845754b: fix (ai/provider): fix atob/btoa execution on cloudflare edge workers
+- Updated dependencies [4bd27a9]
+  - @ai-sdk/provider@0.0.18
+
 ## 1.0.9
 
 ### Patch Changes

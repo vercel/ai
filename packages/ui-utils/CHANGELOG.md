@@ -1,5 +1,15 @@
 # @ai-sdk/ui-utils
 
+## 0.0.30
+
+### Patch Changes
+
+- e9c891d: feat (ai/react): useObject supports non-Zod schemas
+- Updated dependencies [4bd27a9]
+- Updated dependencies [845754b]
+  - @ai-sdk/provider-utils@1.0.10
+  - @ai-sdk/provider@0.0.18
+
 ## 0.0.29
 
 ### Patch Changes
