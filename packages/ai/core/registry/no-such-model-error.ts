@@ -4,11 +4,13 @@ const name = 'AI_NoSuchModelError';
 const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
+export type ModelType = 'languageModel' | 'textEmbeddingModel';
+
 export class NoSuchModelError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   readonly modelId: string;
-  readonly modelType: string;
+  readonly modelType: ModelType;
 
   constructor({
     modelId,
@@ -16,7 +18,7 @@ export class NoSuchModelError extends AISDKError {
     message = `No such ${modelType}: ${modelId}`,
   }: {
     modelId: string;
-    modelType: string;
+    modelType: ModelType;
     message?: string;
   }) {
     super({ name, message });

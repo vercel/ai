@@ -102,7 +102,7 @@ class DefaultProviderRegistry implements experimental_ProviderRegistry {
     const model = this.getProvider(providerId).languageModel?.(modelId);
 
     if (model == null) {
-      throw new NoSuchModelError({ modelId: id, modelType: 'language model' });
+      throw new NoSuchModelError({ modelId: id, modelType: 'languageModel' });
     }
 
     return model;
@@ -119,7 +119,7 @@ class DefaultProviderRegistry implements experimental_ProviderRegistry {
     if (model == null) {
       throw new NoSuchModelError({
         modelId: id,
-        modelType: 'text embedding model',
+        modelType: 'textEmbeddingModel',
       });
     }
 

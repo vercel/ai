@@ -1,4 +1,5 @@
-import { EmbeddingModel, LanguageModel } from '../types';
+import { EmbeddingModel } from '../types/embedding-model';
+import { LanguageModel } from '../types/language-model';
 
 /**
  * Provides for language and text embedding models.
