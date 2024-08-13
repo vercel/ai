@@ -36,6 +36,7 @@ const result = await generateText({
 ```
 
 ## Accessing Tool Calls and Tool Results
+
 If the model decides to call a tool, it will generate a tool call. You can access the tool call by checking the `toolCalls` property on the result.
 
 ```ts highlight="31-44"
@@ -91,6 +92,7 @@ main().catch(console.error);
 ```
 
 ## Accessing Tool Results
+
 You can access the result of a tool call by checking the `toolResults` property on the result.
 
 ```ts highlight="31-41"
@@ -141,9 +143,11 @@ async function main() {
 
 main().catch(console.error);
 ```
+
 <Note>
   `toolResults` will only be available if the tool has an `execute` function.
 </Note>
 
 ## Model Response
+
 When using tools, it's important to note that the model won't respond with the tool call results by default. This is because the model has technically already generated its response to the prompt: the tool call. Many use cases will require the model to summarise the results of the tool call within the context of the original prompt automatically. You can achieve this by [using `maxToolRoundtrips`](/examples/node/tools/call-tools-with-automatic-roundtrips) which will automatically send toolResults to the model to trigger another generation.
