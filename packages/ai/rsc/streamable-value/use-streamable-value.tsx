@@ -1,6 +1,19 @@
 import { startTransition, useLayoutEffect, useState } from 'react';
 import { readStreamableValue } from './read-streamable-value';
-import { isStreamableValue, StreamableValue } from './streamable-value';
+import { StreamableValue } from './streamable-value';
+import { isStreamableValue } from './is-streamable-value';
+
+function checkStreamableValue(value: unknown): value is StreamableValue {
+  const hasSignature = isStreamableValue(value);
+
+  if (!hasSignature && value !== undefined) {
+    throw new Error(
+      'Invalid value: this hook only accepts values created via `createStreamableValue`.',
+    );
+  }
+
+  return hasSignature;
+}
 
 /**
  * `useStreamableValue` is a React hook that takes a streamable value created via the `createStreamableValue().value` API,
@@ -23,17 +36,17 @@ export function useStreamableValue<T = unknown, Error = unknown>(
   streamableValue?: StreamableValue<T>,
 ): [data: T | undefined, error: Error | undefined, pending: boolean] {
   const [curr, setCurr] = useState<T | undefined>(
-    isStreamableValue(streamableValue) ? streamableValue.curr : undefined,
+    checkStreamableValue(streamableValue) ? streamableValue.curr : undefined,
   );
   const [error, setError] = useState<Error | undefined>(
-    isStreamableValue(streamableValue) ? streamableValue.error : undefined,
+    checkStreamableValue(streamableValue) ? streamableValue.error : undefined,
   );
   const [pending, setPending] = useState<boolean>(
-    isStreamableValue(streamableValue) ? !!streamableValue.next : false,
+    checkStreamableValue(streamableValue) ? !!streamableValue.next : false,
   );
 
   useLayoutEffect(() => {
-    if (!isStreamableValue(streamableValue)) return;
+    if (!checkStreamableValue(streamableValue)) return;
 
     let cancelled = false;
 
