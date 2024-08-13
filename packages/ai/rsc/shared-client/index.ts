@@ -1,10 +1,11 @@
 'use client';
 
-export { readStreamableValue, useStreamableValue } from './streamable-value';
+export { readStreamableValue } from '../streamable-value/read-streamable-value';
+export { useStreamableValue } from '../streamable-value/use-streamable-value';
 export {
-  useUIState,
+  InternalAIProvider,
   useAIState,
   useActions,
   useSyncUIState,
-  InternalAIProvider,
+  useUIState,
 } from './context';
