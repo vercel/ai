@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { createResolvablePromise } from '../util/create-resolvable-promise';
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
 
 // Recursive type for the chunk.
 type ChunkType =

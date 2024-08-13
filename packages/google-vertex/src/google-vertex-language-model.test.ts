@@ -209,6 +209,36 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send search grounding tool', async () => {
+    const { model, mockVertexAI } = createModel({
+      modelId: 'test-model',
+      settings: {
+        useSearchGrounding: true,
+      },
+      generateContent: prepareResponse({}),
+    });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(mockVertexAI.lastModelParams).toStrictEqual({
+      model: 'test-model',
+      generationConfig: {
+        maxOutputTokens: undefined,
+        responseMimeType: undefined,
+        stopSequences: undefined,
+        temperature: undefined,
+        topK: undefined,
+        topP: undefined,
+      },
+      tools: [{ googleSearchRetrieval: {} }],
+      safetySettings: undefined,
+    });
+  });
+
   it('should send the messages', async () => {
     const { model } = createModel({
       generateContent: async request => {

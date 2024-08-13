@@ -132,22 +132,46 @@ The following optional settings are available for Google Vertex models:
     - `BLOCK_ONLY_HIGH`
     - `BLOCK_NONE`
 
-### Example
+- **useSearchGrounding** _boolean_
+
+  Optional. When enabled, the model will [use Google search to ground the response](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview).
+
+### Example: generating text
 
 You can use Google Vertex language models to generate text with the `generateText` function:
 
-```ts
-import { vertex } from '@ai-sdk/google-vertex'
-import { generateText } from 'ai'
+```ts highlight="1,5"
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-1.5-pro')
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.'
-})
+  model: vertex('gemini-1.5-pro'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 ```
 
 Google Vertex language models can also be used in the `streamText` and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+
+### Example: using search grounding
+
+With [search grounding](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview),
+the model has access to the latest information using Google search.
+Search grounding can e.g. be used to provide answers around current events:
+
+```ts highlight="6"
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertex('gemini-1.5-pro', {
+    useSearchGrounding: true,
+  }),
+  prompt:
+    'List the top 5 San Francisco news from the past week.' +
+    'You must include the date of each article.',
+});
+```
 
 ### Model Capabilities
 

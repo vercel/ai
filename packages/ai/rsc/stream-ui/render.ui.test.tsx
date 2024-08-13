@@ -2,8 +2,11 @@ import { z } from 'zod';
 import {
   openaiChatCompletionChunks,
   openaiFunctionCallChunks,
-} from '../tests/snapshots/openai-chat';
-import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
+} from '../../tests/snapshots/openai-chat';
+import {
+  DEFAULT_TEST_URL,
+  createMockServer,
+} from '../../tests/utils/mock-server';
 import { render } from './render';
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';

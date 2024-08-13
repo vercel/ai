@@ -19,7 +19,7 @@ import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { isAsyncGenerator } from '../../util/is-async-generator';
 import { isGenerator } from '../../util/is-generator';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
-import { createStreamableUI } from '../streamable';
+import { createStreamableUI } from '../streamable-ui/create-streamable-ui';
 
 type Streamable = ReactNode | Promise<ReactNode>;
 
