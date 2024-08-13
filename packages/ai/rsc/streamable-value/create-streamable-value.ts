@@ -1,5 +1,5 @@
+import { HANGING_STREAM_WARNING_TIME_MS } from '../../util/constants';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
-import { DEV_DEFAULT_STREAMABLE_WARNING_TIME } from '../constants';
 import {
   STREAMABLE_VALUE_TYPE,
   StreamablePatch,
@@ -154,7 +154,7 @@ function createStreamableValueImpl<T = any, E = any>(initialValue?: T) {
         console.warn(
           'The streamable value has been slow to update. This may be a bug or a performance issue or you forgot to call `.done()`.',
         );
-      }, DEV_DEFAULT_STREAMABLE_WARNING_TIME);
+      }, HANGING_STREAM_WARNING_TIME_MS);
     }
   }
   warnUnclosedStream();

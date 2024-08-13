@@ -1,0 +1,1 @@
+export const HANGING_STREAM_WARNING_TIME_MS = 15 * 1000;
