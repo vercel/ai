@@ -1,3 +1,4 @@
+import { delay } from '../../util/delay';
 import { createStreamableUI } from './create-streamable-ui';
 
 // This is a workaround to render the Flight response in a test environment.
@@ -38,10 +39,6 @@ async function flightRender(node: React.ReactNode, byChunk?: boolean) {
   }
 
   return byChunk ? chunks : result;
-}
-
-function nextTick() {
-  return Promise.resolve();
 }
 
 async function recursiveResolve(val: any): Promise<any> {
@@ -204,9 +201,9 @@ describe('rsc - createStreamableUI()', () => {
 
     const currentResolved = (ui.value as React.ReactElement).props.children
       .props.n;
-    const tryResolve1 = await Promise.race([currentResolved, nextTick()]);
+    const tryResolve1 = await Promise.race([currentResolved, delay()]);
     expect(tryResolve1).toBeDefined();
-    const tryResolve2 = await Promise.race([tryResolve1.next, nextTick()]);
+    const tryResolve2 = await Promise.race([tryResolve1.next, delay()]);
     expect(tryResolve2).toBeDefined();
     expect(getFinalValueFromResolved(tryResolve2.value)).toMatchInlineSnapshot(`
       <div>
