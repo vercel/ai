@@ -1,4 +1,5 @@
-import { assertStreamableValue, StreamableValue } from './streamable-value';
+import { isStreamableValue } from './is-streamable-value';
+import { StreamableValue } from './streamable-value';
 
 /**
  * `readStreamableValue` takes a streamable value created via the `createStreamableValue().value` API,
@@ -33,74 +34,78 @@ import { assertStreamableValue, StreamableValue } from './streamable-value';
 export function readStreamableValue<T = unknown>(
   streamableValue: StreamableValue<T>,
 ): AsyncIterable<T | undefined> {
-  assertStreamableValue(streamableValue);
+  if (!isStreamableValue(streamableValue)) {
+    throw new Error(
+      'Invalid value: this hook only accepts values created via `createStreamableValue`.',
+    );
+  }
 
   return {
     [Symbol.asyncIterator]() {
       let row: StreamableValue<T> | Promise<StreamableValue<T>> =
         streamableValue;
-      let curr = row.curr;
-      let done = false;
-      let initial = true;
+      let value = row.curr; // the current value
+      let isDone = false;
+      let isFirstIteration = true;
 
       return {
         async next() {
-          if (done) return { value: curr, done: true };
+          // the iteration is done already, return the last value:
+          if (isDone) return { value, done: true };
 
+          // resolve the promise at the beginning of each iteration:
           row = await row;
 
-          if (typeof row.error !== 'undefined') {
+          // throw error if any:
+          if (row.error !== undefined) {
             throw row.error;
           }
+
+          // if there is a value or a patch, use it:
           if ('curr' in row || row.diff) {
             if (row.diff) {
-              switch (row.diff[0]) {
-                case 0:
-                  if (typeof curr !== 'string') {
-                    throw new Error(
-                      'Invalid patch: can only append to string types. This is a bug in the AI SDK.',
-                    );
-                  } else {
-                    (curr as string) = curr + row.diff[1];
-                  }
-                  break;
+              // streamable patch (text only):
+              if (row.diff[0] === 0) {
+                if (typeof value !== 'string') {
+                  throw new Error(
+                    'Invalid patch: can only append to string types. This is a bug in the AI SDK.',
+                  );
+                }
+
+                // casting required to remove T & string limitation
+                (value as string) = value + row.diff[1];
               }
             } else {
-              curr = row.curr;
+              // replace the value (full new value)
+              value = row.curr;
             }
 
             // The last emitted { done: true } won't be used as the value
             // by the for await...of syntax.
             if (!row.next) {
-              done = true;
-              return {
-                value: curr,
-                done: false,
-              };
+              isDone = true;
+              return { value, done: false };
             }
           }
 
-          if (!row.next) {
-            return {
-              value: curr,
-              done: true,
-            };
+          // there are no further rows to iterate over:
+          if (row.next === undefined) {
+            return { value, done: true };
           }
 
           row = row.next;
-          if (initial) {
-            initial = false;
-            if (typeof curr === 'undefined') {
+
+          if (isFirstIteration) {
+            isFirstIteration = false; // TODO should this be set for every return?
+
+            if (value === undefined) {
               // This is the initial chunk and there isn't an initial value yet.
               // Let's skip this one.
               return this.next();
             }
           }
 
-          return {
-            value: curr,
-            done: false,
-          };
+          return { value, done: false };
         },
       };
     },

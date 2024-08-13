@@ -35,34 +35,3 @@ export type StreamableValue<T = any, E = any> = {
   [__internal_curr]?: T;
   [__internal_error]?: E;
 };
-
-function hasReadableValueSignature(value: unknown): value is StreamableValue {
-  return !!(
-    value &&
-    typeof value === 'object' &&
-    'type' in value &&
-    value.type === STREAMABLE_VALUE_TYPE
-  );
-}
-
-export function assertStreamableValue(
-  value: unknown,
-): asserts value is StreamableValue {
-  if (!hasReadableValueSignature(value)) {
-    throw new Error(
-      'Invalid value: this hook only accepts values created via `createStreamableValue`.',
-    );
-  }
-}
-
-export function isStreamableValue(value: unknown): value is StreamableValue {
-  const hasSignature = hasReadableValueSignature(value);
-
-  if (!hasSignature && typeof value !== 'undefined') {
-    throw new Error(
-      'Invalid value: this hook only accepts values created via `createStreamableValue`.',
-    );
-  }
-
-  return hasSignature;
-}
