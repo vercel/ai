@@ -128,8 +128,8 @@ export async function continueConversation(
     messages: [...history.get(), { role: 'user', content: input }],
     text: ({ content, done }) => {
       if (done) {
-        history.done((messages: ServerMessage[]) => [
-          ...messages,
+        history.done([
+          ...history.get(),
           { role: 'user', content: input },
           { role: 'assistant', content },
         ]);
@@ -150,8 +150,8 @@ export async function continueConversation(
             .describe('The number of months to get historical information for'),
         }),
         generate: async ({ symbol, numOfMonths }) => {
-          history.done((messages: ServerMessage[]) => [
-            ...messages,
+          history.done([
+            ...history.get(),
             {
               role: 'function',
               name: 'showStockInformation',
