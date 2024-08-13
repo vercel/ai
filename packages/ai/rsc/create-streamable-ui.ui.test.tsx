@@ -236,9 +236,9 @@ describe('rsc - createStreamableUI()', () => {
     ui.append(<div>2</div>);
     ui.append(<div>3</div>);
 
-    const currentRsolved = (ui.value as React.ReactElement).props.children.props
-      .n;
-    const tryResolve1 = await Promise.race([currentRsolved, nextTick()]);
+    const currentResolved = (ui.value as React.ReactElement).props.children
+      .props.n;
+    const tryResolve1 = await Promise.race([currentResolved, nextTick()]);
     expect(tryResolve1).toBeDefined();
     const tryResolve2 = await Promise.race([tryResolve1.next, nextTick()]);
     expect(tryResolve2).toBeDefined();
