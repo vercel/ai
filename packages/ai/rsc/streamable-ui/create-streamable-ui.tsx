@@ -1,5 +1,5 @@
+import { HANGING_STREAM_WARNING_TIME_MS } from '../../util/constants';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
-import { DEV_DEFAULT_STREAMABLE_WARNING_TIME } from '../constants';
 import { createSuspendedChunk } from './create-suspended-chunk';
 
 // It's necessary to define the type manually here, otherwise TypeScript compiler
@@ -73,7 +73,7 @@ function createStreamableUI(initialValue?: React.ReactNode) {
         console.warn(
           'The streamable UI has been slow to update. This may be a bug or a performance issue or you forgot to call `.done()`.',
         );
-      }, DEV_DEFAULT_STREAMABLE_WARNING_TIME);
+      }, HANGING_STREAM_WARNING_TIME_MS);
     }
   }
   warnUnclosedStream();
