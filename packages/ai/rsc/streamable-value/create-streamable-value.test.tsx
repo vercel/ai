@@ -1,13 +1,20 @@
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { delay } from '../../util/delay';
 import { createStreamableValue } from './create-streamable-value';
 import { STREAMABLE_VALUE_TYPE, StreamableValue } from './streamable-value';
 
 async function getRawChunks(streamableValue: StreamableValue<any, any>) {
-  const { next, ...otherFields } = streamableValue;
-  const chunks = [otherFields];
+  const chunks = [];
+  let currentValue = streamableValue;
 
-  if (next) {
-    chunks.push(...(await getRawChunks(await next)));
+  while (true) {
+    const { next, ...otherFields } = currentValue;
+
+    chunks.push(otherFields);
+
+    if (!next) break;
+
+    currentValue = await next;
   }
 
   return chunks;
@@ -126,14 +133,7 @@ it('should behave like .update() with .append() and .done()', async () => {
 
 it('should be able to accept readableStream as the source', async () => {
   const streamable = createStreamableValue(
-    new ReadableStream({
-      start(controller) {
-        controller.enqueue('hello');
-        controller.enqueue(' world');
-        controller.enqueue('!');
-        controller.close();
-      },
-    }),
+    convertArrayToReadableStream(['hello', ' world', '!']),
   );
   const value = streamable.value;
 
@@ -148,14 +148,7 @@ it('should be able to accept readableStream as the source', async () => {
 
 it('should accept readableStream with JSON payloads', async () => {
   const streamable = createStreamableValue(
-    new ReadableStream({
-      start(controller) {
-        controller.enqueue({ v: 1 });
-        controller.enqueue({ v: 2 });
-        controller.enqueue({ v: 3 });
-        controller.close();
-      },
-    }),
+    convertArrayToReadableStream([{ v: 1 }, { v: 2 }, { v: 3 }]),
   );
   const value = streamable.value;
 
