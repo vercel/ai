@@ -3,7 +3,7 @@ import {
   openaiFunctionCallChunks,
 } from '../tests/snapshots/openai-chat';
 import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
-import { createStreamableUI, createStreamableValue } from './streamable';
+import { createStreamableUI } from './create-streamable-ui';
 
 const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
 
@@ -171,18 +171,6 @@ function getFinalValueFromResolved(node: any) {
   return node;
 }
 
-function createMockUpProvider() {
-  return {
-    chat: {
-      completions: {
-        create: async () => {
-          return await fetch(FUNCTION_CALL_TEST_URL);
-        },
-      },
-    },
-  } as any;
-}
-
 describe('rsc - createStreamableUI()', () => {
   it('should emit React Nodes that can be updated', async () => {
     const ui = createStreamableUI(<div>1</div>);
@@ -248,9 +236,9 @@ describe('rsc - createStreamableUI()', () => {
     ui.append(<div>2</div>);
     ui.append(<div>3</div>);
 
-    const currentRsolved = (ui.value as React.ReactElement).props.children.props
-      .n;
-    const tryResolve1 = await Promise.race([currentRsolved, nextTick()]);
+    const currentResolved = (ui.value as React.ReactElement).props.children
+      .props.n;
+    const tryResolve1 = await Promise.race([currentResolved, nextTick()]);
     expect(tryResolve1).toBeDefined();
     const tryResolve2 = await Promise.race([tryResolve1.next, nextTick()]);
     expect(tryResolve2).toBeDefined();
@@ -397,18 +385,6 @@ describe('rsc - createStreamableUI()', () => {
       3:["$","$1",null,{"fallback":["$","div",null,{"children":"3"}],"children":"$L4"}]
       4:["$","div",null,{"children":"4"}]
       "
-    `);
-  });
-});
-
-describe('rsc - createStreamableValue()', () => {
-  it('should return self', async () => {
-    const value = createStreamableValue(1).update(2).update(3).done(4);
-    expect(value.value).toMatchInlineSnapshot(`
-      {
-        "curr": 4,
-        "type": Symbol(ui.streamable.value),
-      }
     `);
   });
 });

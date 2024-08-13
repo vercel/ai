@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 0.0.27
+
+### Patch Changes
+
+- 48f618d: feat (provider/google): add search grounding support
+
 ## 0.0.26
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 'use client';
 
-export { readStreamableValue, useStreamableValue } from './streamable';
+export { readStreamableValue, useStreamableValue } from './streamable-value';
 export {
   useUIState,
   useAIState,
