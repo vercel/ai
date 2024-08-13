@@ -1,14 +1,18 @@
 ---
-title: Loading State
-description: Learn to manage loading state using the Vercel AI SDK in your Next.js App Router application
+title: Handling Loading State
+description: Overview of handling loading state with AI SDK RSC
 ---
 
 # Handling Loading State
 
-<Note>This example uses React Server Components (RSC).</Note>
+Given that responses from language models can often take a while to complete, it's crucial to be able to show loading state to users. This provides visual feedback that the system is working on their request and helps maintain a positive user experience.
 
-Given that responses from language models can often take a while to complete, it's crucial to be able to show loading state to users. This provides visual feedback that the system is working on their request and helps maintain a positive user experience. Managing loading state is very similar to how you would approach loading state in a traditional Next.js application.
 
+There are two approaches you can take to handle loading state with the AI SDK RSC:
+- Managing loading state similar to how you would in a traditional Next.js application. This involves setting a loading state variable in the client and updating it when the response is received.
+- Streaming loading state from the server to the client. This approach allows you to track loading state on a more granular level and provide more detailed feedback to the user.
+
+## Handling Loading State on the Client
 ### Client
 
 Let's create a simple Next.js page that will call the `generateResponse` function when the form is submitted. The function will take in the user's prompt (`input`) and then generate a response (`response`). To handle the loading state, we'll use the `loading` state variable. When the form is submitted, we'll set `loading` to `true`, and when the response is received, we'll set it back to `false`. While the response is being streamed, we will disable the input field.
@@ -68,8 +72,6 @@ export default function Home() {
 Now let's implement the `generateResponse` function. We'll use the `streamText` function to generate a response to the input.
 
 ```typescript filename='app/actions.ts'
-'use server';
-
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { createStreamableValue } from 'ai/rsc';
@@ -102,9 +104,7 @@ If you are looking to track loading state on a more granular level, you can crea
 
 ### Server
 
-```typescript filename='app/actions.ts' highlight='11,24,27'
-'use server';
-
+```typescript filename='app/actions.ts' highlight='9,22,25'
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { createStreamableValue } from 'ai/rsc';
