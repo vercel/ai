@@ -36,4 +36,11 @@ Optional. A list of unique safety settings for blocking unsafe content.
       | 'BLOCK_ONLY_HIGH'
       | 'BLOCK_NONE';
   }>;
+
+  /**
+Optional. When enabled, the model will use Google search to ground the response.
+
+@see https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview
+   */
+  useSearchGrounding?: boolean;
 }
