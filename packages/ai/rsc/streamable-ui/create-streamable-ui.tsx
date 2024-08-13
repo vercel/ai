@@ -1,5 +1,5 @@
-import { createResolvablePromise } from '../util/create-resolvable-promise';
-import { DEV_DEFAULT_STREAMABLE_WARNING_TIME } from './constants';
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
+import { DEV_DEFAULT_STREAMABLE_WARNING_TIME } from '../constants';
 import { createSuspendedChunk } from './create-suspended-chunk';
 
 // It's necessary to define the type manually here, otherwise TypeScript compiler

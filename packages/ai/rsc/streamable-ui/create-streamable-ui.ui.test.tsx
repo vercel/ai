@@ -1,11 +1,4 @@
-import {
-  openaiChatCompletionChunks,
-  openaiFunctionCallChunks,
-} from '../tests/snapshots/openai-chat';
-import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
 import { createStreamableUI } from './create-streamable-ui';
-
-const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
 
 // This is a workaround to render the Flight response in a test environment.
 async function flightRender(node: React.ReactNode, byChunk?: boolean) {
@@ -46,33 +39,6 @@ async function flightRender(node: React.ReactNode, byChunk?: boolean) {
 
   return byChunk ? chunks : result;
 }
-
-const server = createMockServer([
-  {
-    url: DEFAULT_TEST_URL,
-    chunks: openaiChatCompletionChunks,
-    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
-    suffix: 'data: [DONE]',
-  },
-  {
-    url: FUNCTION_CALL_TEST_URL,
-    chunks: openaiFunctionCallChunks,
-    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
-    suffix: 'data: [DONE]',
-  },
-]);
-
-beforeAll(() => {
-  server.listen();
-});
-
-afterEach(() => {
-  server.resetHandlers();
-});
-
-afterAll(() => {
-  server.close();
-});
 
 function nextTick() {
   return Promise.resolve();
@@ -333,7 +299,7 @@ describe('rsc - createStreamableUI()', () => {
     const final = getFinalValueFromResolved(
       await simulateFlightServerRender(ui.value),
     );
-    expect(final).toMatchInlineSnapshot('"hello world and universe"');
+    expect(final).toStrictEqual('hello world and universe');
   });
 
   it('should error when updating a closed streamable', async () => {
