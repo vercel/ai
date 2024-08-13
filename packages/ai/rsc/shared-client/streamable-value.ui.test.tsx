@@ -1,5 +1,5 @@
-import { createStreamableValue } from '../streamable';
-import { readStreamableValue } from './streamable';
+import { createStreamableValue } from '../create-streamable-value';
+import { readStreamableValue } from './streamable-value';
 
 function nextTick() {
   return Promise.resolve();
