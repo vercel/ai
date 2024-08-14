@@ -12,6 +12,6 @@ export function mapAnthropicStopReason(
     case 'max_tokens':
       return 'length';
     default:
-      return 'other';
+      return 'unknown';
   }
 }
