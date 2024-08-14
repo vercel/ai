@@ -6,8 +6,6 @@ import {
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import {
   DeepPartial,
-  Schema,
-  asSchema,
   isDeepEqualData,
   parsePartialJson,
 } from '@ai-sdk/ui-utils';
@@ -38,6 +36,7 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
+import { Schema, asSchema } from '../util/schema';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 import {
   ObjectStreamInputPart,

@@ -1,12 +1,4 @@
-import { AISDKError } from '@ai-sdk/provider';
-
-const name = 'AI_InvalidModelIdError';
-const marker = `vercel.ai.error.${name}`;
-const symbol = Symbol.for(marker);
-
-export class InvalidModelIdError extends AISDKError {
-  private readonly [symbol] = true; // used in isInstance
-
+export class InvalidModelIdError extends Error {
   readonly id: string;
 
   constructor({
@@ -16,34 +8,27 @@ export class InvalidModelIdError extends AISDKError {
     id: string;
     message?: string;
   }) {
-    super({ name, message });
+    super(message);
+
+    this.name = 'AI_InvalidModelIdError';
 
     this.id = id;
   }
 
-  static isInstance(error: unknown): error is InvalidModelIdError {
-    return AISDKError.hasMarker(error, marker);
-  }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
   static isInvalidModelIdError(error: unknown): error is InvalidModelIdError {
     return (
       error instanceof Error &&
-      error.name === name &&
+      error.name === 'AI_InvalidModelIdError' &&
       typeof (error as InvalidModelIdError).id === 'string'
     );
   }
 
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
   toJSON() {
     return {
       name: this.name,
       message: this.message,
       stack: this.stack,
+
       id: this.id,
     };
   }

@@ -1,11 +1,9 @@
-import { isAbortError, safeValidateTypes } from '@ai-sdk/provider-utils';
+import { isAbortError } from '@ai-sdk/provider-utils';
 import {
-  asSchema,
   DeepPartial,
   FetchFunction,
   isDeepEqualData,
   parsePartialJson,
-  Schema,
 } from '@ai-sdk/ui-utils';
 import { useCallback, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
@@ -23,7 +21,7 @@ export type Experimental_UseObjectOptions<RESULT> = {
   /**
    * A Zod schema that defines the shape of the complete object.
    */
-  schema: z.Schema<RESULT, z.ZodTypeDef, any> | Schema<RESULT>;
+  schema: z.Schema<RESULT, z.ZodTypeDef, any>;
 
   /**
    * An unique identifier. If not provided, a random one will be
@@ -187,14 +185,10 @@ function useObject<RESULT, INPUT = any>({
             abortControllerRef.current = null;
 
             if (onFinish != null) {
-              const validationResult = safeValidateTypes({
-                value: latestObject,
-                schema: asSchema(schema),
-              });
-
+              const validationResult = schema.safeParse(latestObject);
               onFinish(
                 validationResult.success
-                  ? { object: validationResult.value, error: undefined }
+                  ? { object: validationResult.data, error: undefined }
                   : { object: undefined, error: validationResult.error },
               );
             }

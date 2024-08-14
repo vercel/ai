@@ -76,7 +76,6 @@ If set and supported by the model, calls will generate deterministic results.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
 @param onFinish - Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
 
@@ -95,7 +94,6 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   headers,
   experimental_telemetry: telemetry,
   experimental_toolCallStreaming: toolCallStreaming = false,
-  onChunk,
   onFinish,
   ...settings
 }: CallSettings &
@@ -124,23 +122,6 @@ Optional telemetry configuration (experimental).
 Enable streaming of tool call deltas as they are generated. Disabled by default.
      */
     experimental_toolCallStreaming?: boolean;
-
-    /**
-Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
-     */
-    onChunk?: (event: {
-      chunk: Extract<
-        TextStreamPart<TOOLS>,
-        {
-          type:
-            | 'text-delta'
-            | 'tool-call'
-            | 'tool-call-streaming-start'
-            | 'tool-call-delta'
-            | 'tool-result';
-        }
-      >;
-    }) => Promise<void> | void;
 
     /**
 Callback that is called when the LLM response and all request tool executions
@@ -280,7 +261,6 @@ Warnings from the model provider (e.g. unsupported settings).
         }),
         warnings,
         rawResponse,
-        onChunk,
         onFinish,
         rootSpan,
         doStreamSpan,
@@ -294,6 +274,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   implements StreamTextResult<TOOLS>
 {
   private originalStream: ReadableStream<TextStreamPart<TOOLS>>;
+  private onFinish?: Parameters<typeof streamText>[0]['onFinish'];
 
   readonly warnings: StreamTextResult<TOOLS>['warnings'];
   readonly usage: StreamTextResult<TOOLS>['usage'];
@@ -307,7 +288,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     stream,
     warnings,
     rawResponse,
-    onChunk,
     onFinish,
     rootSpan,
     doStreamSpan,
@@ -316,14 +296,14 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     stream: ReadableStream<TextStreamPart<TOOLS>>;
     warnings: StreamTextResult<TOOLS>['warnings'];
     rawResponse: StreamTextResult<TOOLS>['rawResponse'];
-    onChunk: Parameters<typeof streamText>[0]['onChunk'];
-    onFinish: Parameters<typeof streamText>[0]['onFinish'];
+    onFinish?: Parameters<typeof streamText>[0]['onFinish'];
     rootSpan: Span;
     doStreamSpan: Span;
     telemetry: TelemetrySettings | undefined;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
+    this.onFinish = onFinish;
 
     // initialize usage promise
     const { resolve: resolveUsage, promise: usagePromise } =
@@ -359,41 +339,33 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     let firstChunk = true;
 
     // pipe chunks through a transformation stream that extracts metadata:
+    const self = this;
     this.originalStream = stream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
         async transform(chunk, controller): Promise<void> {
+          controller.enqueue(chunk);
+
           // Telemetry event for first chunk:
           if (firstChunk) {
             firstChunk = false;
             doStreamSpan.addEvent('ai.stream.firstChunk');
           }
 
-          // Filter out empty text deltas
-          if (chunk.type === 'text-delta' && chunk.textDelta.length === 0) {
-            return;
-          }
-
-          controller.enqueue(chunk);
-
           const chunkType = chunk.type;
           switch (chunkType) {
             case 'text-delta':
               // create the full text from text deltas (for onFinish callback and text promise):
               text += chunk.textDelta;
-              await onChunk?.({ chunk });
               break;
 
             case 'tool-call':
               // store tool calls for onFinish callback and toolCalls promise:
               toolCalls.push(chunk);
-              await onChunk?.({ chunk });
               break;
 
             case 'tool-result':
               // store tool results for onFinish callback and toolResults promise:
               toolResults.push(chunk);
-              // as any needed, bc type inferences mixed up tool-result with tool-call
-              await onChunk?.({ chunk: chunk as any });
               break;
 
             case 'finish':
@@ -410,11 +382,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
               break;
 
             case 'tool-call-streaming-start':
-            case 'tool-call-delta': {
-              await onChunk?.({ chunk });
-              break;
-            }
-
+            case 'tool-call-delta':
             case 'error':
               // ignored
               break;
@@ -477,7 +445,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             resolveToolResults(toolResults);
 
             // call onFinish callback:
-            await onFinish?.({
+            await self.onFinish?.({
               finishReason: finalFinishReason,
               usage: finalUsage,
               text,
@@ -518,7 +486,10 @@ However, the LLM results are expected to be small enough to not cause issues.
     return createAsyncIterableStream(this.teeStream(), {
       transform(chunk, controller) {
         if (chunk.type === 'text-delta') {
-          controller.enqueue(chunk.textDelta);
+          // do not stream empty text deltas:
+          if (chunk.textDelta.length > 0) {
+            controller.enqueue(chunk.textDelta);
+          }
         } else if (chunk.type === 'error') {
           controller.error(chunk.error);
         }
@@ -529,22 +500,19 @@ However, the LLM results are expected to be small enough to not cause issues.
   get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
     return createAsyncIterableStream(this.teeStream(), {
       transform(chunk, controller) {
-        controller.enqueue(chunk);
+        if (chunk.type === 'text-delta') {
+          // do not stream empty text deltas:
+          if (chunk.textDelta.length > 0) {
+            controller.enqueue(chunk);
+          }
+        } else {
+          controller.enqueue(chunk);
+        }
       },
     });
   }
 
   toAIStream(callbacks: AIStreamCallbacksAndOptions = {}) {
-    return this.toDataStream({ callbacks });
-  }
-
-  private toDataStream({
-    callbacks = {},
-    getErrorMessage = () => '', // mask error messages for safety by default
-  }: {
-    callbacks?: AIStreamCallbacksAndOptions;
-    getErrorMessage?: (error: unknown) => string;
-  } = {}) {
     let aggregatedResponse = '';
 
     const callbackTransformer = new TransformStream<
@@ -620,7 +588,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             break;
           case 'error':
             controller.enqueue(
-              formatStreamPart('error', getErrorMessage(chunk.error)),
+              formatStreamPart('error', JSON.stringify(chunk.error)),
             );
             break;
           case 'finish':
@@ -664,7 +632,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       ...init?.headers,
     });
 
-    const reader = this.toDataStream().getReader();
+    const reader = this.toAIStream().getReader();
 
     const read = async () => {
       try {
@@ -720,13 +688,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toDataStreamResponse(
-    options?:
-      | ResponseInit
-      | {
-          init?: ResponseInit;
-          data?: StreamData;
-          getErrorMessage?: (error: unknown) => string;
-        },
+    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
   ): Response {
     const init: ResponseInit | undefined =
       options == null
@@ -747,16 +709,9 @@ However, the LLM results are expected to be small enough to not cause issues.
         ? options.data
         : undefined;
 
-    const getErrorMessage: ((error: unknown) => string) | undefined =
-      options == null
-        ? undefined
-        : 'getErrorMessage' in options
-        ? options.getErrorMessage
-        : undefined;
-
     const stream = data
-      ? mergeStreams(data.stream, this.toDataStream({ getErrorMessage }))
-      : this.toDataStream({ getErrorMessage });
+      ? mergeStreams(data.stream, this.toAIStream())
+      : this.toAIStream();
 
     return new Response(stream, {
       status: init?.status ?? 200,

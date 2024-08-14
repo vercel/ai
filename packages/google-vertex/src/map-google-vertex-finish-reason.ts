@@ -21,8 +21,7 @@ export function mapGoogleVertexFinishReason({
       return 'content-filter';
     case 'FINISH_REASON_UNSPECIFIED':
     case 'OTHER':
-      return 'other';
     default:
-      return 'unknown';
+      return 'other';
   }
 }

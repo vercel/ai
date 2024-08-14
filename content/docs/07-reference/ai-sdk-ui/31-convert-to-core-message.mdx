@@ -1,0 +1,57 @@
+---
+title: convertToCoreMessages
+description: Convert useChat messages to CoreMessages for AI core functions (API Reference)
+---
+
+# `convertToCoreMessages()`
+
+The `convertToCoreMessages` function is used to transform an array of UI messages from the `useChat` hook into an array of `CoreMessage` objects. These `CoreMessage` objects are compatible with AI core functions like `streamText`.
+
+```ts filename="app/api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import { convertToCoreMessages, streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    messages: convertToCoreMessages(messages),
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+## Import
+
+<Snippet text={`import { convertToCoreMessages } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'messages',
+      type: 'Message[]',
+      description:
+        'An array of UI messages from the useChat hook to be converted',
+    },
+  ]}
+/>
+
+### Returns
+
+An array of [`CoreMessage`](/docs/reference/ai-sdk-core/core-message) objects.
+
+<PropertiesTable
+  content={[
+    {
+      name: 'CoreMessage[]',
+      type: 'Array',
+      description: 'An array of CoreMessage objects',
+    },
+  ]}
+/>

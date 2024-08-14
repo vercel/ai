@@ -34,8 +34,8 @@ export class JSONParseError extends AISDKError {
     return (
       error instanceof Error &&
       error.name === name &&
-      'text' in error &&
-      typeof error.text === 'string'
+      typeof (error as JSONParseError).text === 'string' &&
+      typeof (error as JSONParseError).cause === 'string'
     );
   }
 

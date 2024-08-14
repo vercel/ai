@@ -14,7 +14,6 @@ import {
   Part,
   SafetySetting,
   VertexAI,
-  Tool as GoogleTool,
 } from '@google-cloud/vertexai';
 import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
 import {
@@ -111,20 +110,15 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const conf = {
-          model: this.modelId,
-          generationConfig,
-          tools: prepareTools({
-            mode,
-            useSearchGrounding: this.settings.useSearchGrounding ?? false,
-          }),
-          safetySettings: this.settings.safetySettings as
-            | undefined
-            | Array<SafetySetting>,
-        };
-
         return {
-          model: this.config.vertexAI.getGenerativeModel(conf),
+          model: this.config.vertexAI.getGenerativeModel({
+            model: this.modelId,
+            generationConfig,
+            tools: prepareTools(mode),
+            safetySettings: this.settings.safetySettings as
+              | undefined
+              | Array<SafetySetting>,
+          }),
           contentRequest: convertToGoogleVertexContentRequest(prompt),
           warnings,
         };
@@ -205,7 +199,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     const { model, contentRequest, warnings } = await this.getArgs(options);
     const { stream } = await model.generateContentStream(contentRequest);
 
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let finishReason: LanguageModelV1FinishReason = 'other';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
@@ -230,7 +224,13 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
               const candidate = chunk.candidates?.[0];
 
               if (candidate == null) {
-                return; // ignored (this can happen when using grounding)
+                controller.enqueue({
+                  type: 'error',
+                  error: new NoContentGeneratedError({
+                    message: 'No candidates in chunk.',
+                  }),
+                });
+                return;
               }
 
               if (candidate.finishReason != null) {
@@ -297,17 +297,18 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   }
 }
 
-function prepareTools({
-  useSearchGrounding,
-  mode,
-}: {
-  useSearchGrounding: boolean;
+function prepareTools(
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
-  };
-}): GoogleTool[] | undefined {
+  },
+) {
   // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
+
+  if (tools == null) {
+    return undefined;
+  }
+
   const toolChoice = mode.toolChoice;
 
   if (toolChoice?.type === 'none') {
@@ -315,25 +316,15 @@ function prepareTools({
   }
 
   if (toolChoice == null || toolChoice.type === 'auto') {
-    const mappedTools: GoogleTool[] = [];
-
-    if (tools != null) {
-      [
-        {
-          functionDeclarations: tools.map(tool => ({
-            name: tool.name,
-            description: tool.description ?? '',
-            parameters: prepareFunctionDeclarationSchema(tool.parameters),
-          })),
-        },
-      ];
-    }
-
-    if (useSearchGrounding) {
-      mappedTools.push({ googleSearchRetrieval: {} });
-    }
-
-    return mappedTools.length > 0 ? mappedTools : undefined;
+    return [
+      {
+        functionDeclarations: tools.map(tool => ({
+          name: tool.name,
+          description: tool.description ?? '',
+          parameters: prepareFunctionDeclarationSchema(tool.parameters),
+        })),
+      },
+    ];
   }
 
   // forcing tool calls or a specific tool call is not supported by Vertex:

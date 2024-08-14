@@ -1,12 +1,4 @@
-import { AISDKError } from '@ai-sdk/provider';
-
-const name = 'AI_NoSuchProviderError';
-const marker = `vercel.ai.error.${name}`;
-const symbol = Symbol.for(marker);
-
-export class NoSuchProviderError extends AISDKError {
-  private readonly [symbol] = true; // used in isInstance
-
+export class NoSuchProviderError extends Error {
   readonly providerId: string;
   readonly availableProviders: string[];
 
@@ -19,31 +11,23 @@ export class NoSuchProviderError extends AISDKError {
     availableProviders: string[];
     message?: string;
   }) {
-    super({ name, message });
+    super(message);
+
+    this.name = 'AI_NoSuchProviderError';
 
     this.providerId = providerId;
     this.availableProviders = availableProviders;
   }
 
-  static isInstance(error: unknown): error is NoSuchProviderError {
-    return AISDKError.hasMarker(error, marker);
-  }
-
-  /**
-   * @deprecated use `isInstance` instead
-   */
   static isNoSuchProviderError(error: unknown): error is NoSuchProviderError {
     return (
       error instanceof Error &&
-      error.name === name &&
+      error.name === 'AI_NoSuchProviderError' &&
       typeof (error as NoSuchProviderError).providerId === 'string' &&
       Array.isArray((error as NoSuchProviderError).availableProviders)
     );
   }
 
-  /**
-   * @deprecated Do not use this method. It will be removed in the next major version.
-   */
   toJSON() {
     return {
       name: this.name,
