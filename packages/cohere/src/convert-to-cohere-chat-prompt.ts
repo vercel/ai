@@ -78,9 +78,10 @@ export function convertToCohereChatPrompt(
           tool_results: content.map(toolResult => ({
             call: {
               name: toolResult.toolName,
-              parameters: toolResult.args,
+              // TODO: Populate parameters
+              parameters: {},
             },
-            outputs: [toolResult.result],
+            outputs: [toolResult.result as object],
           })),
         });
 
