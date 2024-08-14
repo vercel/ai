@@ -9,6 +9,7 @@ import {
   combineHeaders,
   createJsonResponseHandler,
   createJsonStreamResponseHandler,
+  generateId,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -69,7 +70,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     const lastMessage = chatPrompt.at(-1);
     const history = chatPrompt.slice(0, -1);
 
-    const args = {
+    const baseArgs = {
       // model id:
       model: this.modelId,
 
@@ -94,6 +95,9 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
       // messages:
       chat_history: history,
+      ...(lastMessage?.role === 'TOOL'
+        ? { tool_results: lastMessage.tool_results }
+        : {}),
       message: lastMessage
         ? lastMessage.role === 'USER'
           ? lastMessage.message
@@ -103,7 +107,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        return args;
+        return { ...baseArgs, ...prepareToolsAndToolChoice(mode) };
       }
 
       case 'object-json': {
@@ -146,6 +150,14 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
     return {
       text: response.text,
+      toolCalls: response.tool_calls
+        ? response.tool_calls.map(toolCall => ({
+            toolCallId: generateId(),
+            toolName: toolCall.name,
+            args: JSON.stringify(toolCall.parameters),
+            toolCallType: 'function',
+          }))
+        : [],
       finishReason: mapCohereFinishReason(response.finish_reason),
       usage: {
         promptTokens: response.meta.tokens.input_tokens,
@@ -217,6 +229,19 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                 return;
               }
 
+              case 'tool-calls-generation': {
+                for (const toolCall of value.tool_calls) {
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: generateId(),
+                    toolName: toolCall.name,
+                    toolCallType: 'function',
+                    args: JSON.stringify(toolCall.parameters),
+                  });
+                }
+                return;
+              }
+
               case 'stream-end': {
                 finishReason = mapCohereFinishReason(value.finish_reason);
                 const tokens = value.response.meta.tokens;
@@ -259,6 +284,14 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 // this approach limits breakages when the API changes and increases efficiency
 const cohereChatResponseSchema = z.object({
   text: z.string(),
+  tool_calls: z
+    .array(
+      z.object({
+        name: z.string(),
+        parameters: z.unknown({}),
+      }),
+    )
+    .optional(),
   finish_reason: z.string(),
   meta: z.object({
     tokens: z.object({
@@ -268,7 +301,7 @@ const cohereChatResponseSchema = z.object({
   }),
 });
 
-// limited version of the schema, focussed on what is needed for the implementation
+// limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const cohereChatChunkSchema = z.discriminatedUnion('event_type', [
   z.object({
@@ -289,6 +322,12 @@ const cohereChatChunkSchema = z.discriminatedUnion('event_type', [
   }),
   z.object({
     event_type: z.literal('tool-calls-generation'),
+    tool_calls: z.array(
+      z.object({
+        name: z.string(),
+        parameters: z.unknown({}),
+      }),
+    ),
   }),
   z.object({
     event_type: z.literal('stream-end'),
@@ -303,3 +342,95 @@ const cohereChatChunkSchema = z.discriminatedUnion('event_type', [
     }),
   }),
 ]);
+
+// For reference: https://docs.cohere.com/docs/parameter-types-in-tool-use
+
+function prepareToolsAndToolChoice(
+  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+    type: 'regular';
+  },
+) {
+  const tools = mode.tools?.length ? mode.tools : undefined;
+
+  if (tools == null) {
+    return { tools: undefined, tool_choice: undefined };
+  }
+
+  const mappedTools = tools.map(tool => {
+    const { properties, required } = tool.parameters;
+
+    const parameterDefinitions: any = {};
+
+    if (properties) {
+      for (const [key, value] of Object.entries(properties)) {
+        if (typeof value === 'object' && value !== null) {
+          const { type: JSONType, description } = value;
+
+          let type;
+
+          if (typeof JSONType === 'string') {
+            switch (JSONType) {
+              case 'string':
+                type = 'str';
+                break;
+
+              case 'number':
+                type = 'float';
+                break;
+
+              case 'integer':
+                type = 'int';
+                break;
+
+              case 'boolean':
+                type = 'bool';
+                break;
+            }
+          } else if (Array.isArray(JSONType)) {
+          } else {
+            throw 'Unsupported type';
+          }
+
+          parameterDefinitions[key] = {
+            required: required ? required.includes(key) : false,
+            type,
+            description,
+          };
+        }
+      }
+    }
+
+    return {
+      name: tool.name,
+      description: tool.description,
+      parameterDefinitions,
+    };
+  });
+
+  const toolChoice = mode.toolChoice;
+
+  if (toolChoice == null) {
+    return { tools: mappedTools, tool_choice: undefined };
+  }
+
+  const type = toolChoice.type;
+
+  switch (type) {
+    case 'auto':
+      return { tools: mappedTools, tool_choice: { type: 'auto' } };
+    case 'required':
+      return { tools: mappedTools, tool_choice: { type: 'any' } };
+    case 'none':
+      // Anthropic does not support 'none' tool choice, so we remove the tools:
+      return { tools: undefined, tool_choice: undefined };
+    case 'tool':
+      return {
+        tools: mappedTools,
+        tool_choice: { type: 'tool', name: toolChoice.toolName },
+      };
+    default: {
+      const _exhaustiveCheck: never = type;
+      throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
+    }
+  }
+}

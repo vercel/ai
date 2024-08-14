@@ -51,9 +51,11 @@ export function convertToCohereChatPrompt(
               break;
             }
             case 'tool-call': {
-              throw new UnsupportedFunctionalityError({
-                functionality: 'tool-call',
+              toolCalls.push({
+                name: part.toolName,
+                parameters: part.args as object,
               });
+              break;
             }
             default: {
               const _exhaustiveCheck: never = part;
@@ -71,9 +73,18 @@ export function convertToCohereChatPrompt(
         break;
       }
       case 'tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'tool role',
+        messages.push({
+          role: 'TOOL',
+          tool_results: content.map(toolResult => ({
+            call: {
+              name: toolResult.toolName,
+              parameters: toolResult.args,
+            },
+            outputs: [toolResult.result],
+          })),
         });
+
+        break;
       }
       default: {
         const _exhaustiveCheck: never = role;
