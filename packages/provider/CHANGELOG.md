@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.19
+
+### Patch Changes
+
+- dd4a0f5: fix (ai/provider): remove invalid check in isJSONParseError
+
 ## 0.0.18
 
 ### Patch Changes
