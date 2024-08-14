@@ -51,6 +51,39 @@ describe('result.textStream', () => {
       ['Hello', ', ', 'world!'],
     );
   });
+
+  it('should filter out empty text deltas', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '' },
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: '' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: '' },
+              { type: 'text-delta', textDelta: 'world!' },
+              { type: 'text-delta', textDelta: '' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.textStream),
+      ['Hello', ', ', 'world!'],
+    );
+  });
 });
 
 describe('result.fullStream', () => {
@@ -541,6 +574,49 @@ describe('result.fullStream', () => {
           args: { value: 'value' },
           result: 'value-result',
         },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+        },
+      ],
+    );
+  });
+
+  it('should filter out empty text deltas', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '' },
+              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text-delta', textDelta: '' },
+              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text-delta', textDelta: '' },
+              { type: 'text-delta', textDelta: 'world!' },
+              { type: 'text-delta', textDelta: '' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'test-input',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.fullStream),
+      [
+        { type: 'text-delta', textDelta: 'Hello' },
+        { type: 'text-delta', textDelta: ', ' },
+        { type: 'text-delta', textDelta: 'world!' },
         {
           type: 'finish',
           finishReason: 'stop',
