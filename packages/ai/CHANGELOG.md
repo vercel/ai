@@ -1,5 +1,19 @@
 # ai
 
+## 3.3.7
+
+### Patch Changes
+
+- eccbd8e: feat (ai/core): add onChunk callback to streamText
+- Updated dependencies [dd4a0f5]
+  - @ai-sdk/provider@0.0.19
+  - @ai-sdk/provider-utils@1.0.11
+  - @ai-sdk/ui-utils@0.0.31
+  - @ai-sdk/react@0.0.43
+  - @ai-sdk/solid@0.0.34
+  - @ai-sdk/svelte@0.0.36
+  - @ai-sdk/vue@0.0.35
+
 ## 3.3.6
 
 ### Patch Changes
