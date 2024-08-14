@@ -343,13 +343,18 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     this.originalStream = stream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
         async transform(chunk, controller): Promise<void> {
-          controller.enqueue(chunk);
-
           // Telemetry event for first chunk:
           if (firstChunk) {
             firstChunk = false;
             doStreamSpan.addEvent('ai.stream.firstChunk');
           }
+
+          // Filter out empty text deltas
+          if (chunk.type === 'text-delta' && chunk.textDelta.length === 0) {
+            return;
+          }
+
+          controller.enqueue(chunk);
 
           const chunkType = chunk.type;
           switch (chunkType) {
@@ -486,10 +491,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     return createAsyncIterableStream(this.teeStream(), {
       transform(chunk, controller) {
         if (chunk.type === 'text-delta') {
-          // do not stream empty text deltas:
-          if (chunk.textDelta.length > 0) {
-            controller.enqueue(chunk.textDelta);
-          }
+          controller.enqueue(chunk.textDelta);
         } else if (chunk.type === 'error') {
           controller.error(chunk.error);
         }
@@ -500,14 +502,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
     return createAsyncIterableStream(this.teeStream(), {
       transform(chunk, controller) {
-        if (chunk.type === 'text-delta') {
-          // do not stream empty text deltas:
-          if (chunk.textDelta.length > 0) {
-            controller.enqueue(chunk);
-          }
-        } else {
-          controller.enqueue(chunk);
-        }
+        controller.enqueue(chunk);
       },
     });
   }
