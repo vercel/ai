@@ -8,4 +8,4 @@
 '@ai-sdk/openai': patch
 ---
 
-fix (ai/provider): default finish reason is 'unknown' when no finish reason was sent
+fix (ai/provider): send finish reason 'unknown' by default
