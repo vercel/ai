@@ -233,7 +233,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const { contents: rawPrompt, ...rawSettings } = args;
 
-    let finishReason: LanguageModelV1FinishReason = 'other';
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,

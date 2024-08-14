@@ -333,7 +333,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       };
     }> = [];
 
-    let finishReason: LanguageModelV1FinishReason = 'other';
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,

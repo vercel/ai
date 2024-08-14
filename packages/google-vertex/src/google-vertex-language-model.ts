@@ -205,7 +205,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     const { model, contentRequest, warnings } = await this.getArgs(options);
     const { stream } = await model.generateContentStream(contentRequest);
 
-    let finishReason: LanguageModelV1FinishReason = 'other';
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
