@@ -218,11 +218,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     if (system && system.startsWith('__cache__me__pls__')) {
       // @ts-expect-error: This is allowed per the API
       // https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
-      system = {
-        type: 'text',
-        text: system.replace('__cache__me__pls__', ''),
-        cache_control: { type: 'ephemeral' },
-      };
+      system = [
+        {
+          type: 'text',
+          text: system.replace('__cache__me__pls__', ''),
+          cache_control: { type: 'ephemeral' },
+        },
+      ];
     }
 
     const { responseHeaders, value: response } = await postJsonToApi({
