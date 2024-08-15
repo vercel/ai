@@ -89,6 +89,10 @@ export async function parseComplexResponse({
   for await (const { type, value } of readDataStream(reader, {
     isAborted: () => abortControllerRef?.current === null,
   })) {
+    if (type === 'error') {
+      throw new Error(value);
+    }
+
     if (type === 'text') {
       if (prefixMap['text']) {
         prefixMap['text'] = {

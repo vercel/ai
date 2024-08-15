@@ -197,7 +197,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
     const { chat_history, message, ...rawSettings } = args;
 
-    let finishReason: LanguageModelV1FinishReason = 'other';
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,

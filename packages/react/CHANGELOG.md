@@ -1,5 +1,31 @@
 # @ai-sdk/react
 
+## 0.0.43
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.11
+- @ai-sdk/ui-utils@0.0.31
+
+## 0.0.42
+
+### Patch Changes
+
+- e9c891d: feat (ai/react): useObject supports non-Zod schemas
+- Updated dependencies [e9c891d]
+- Updated dependencies [4bd27a9]
+- Updated dependencies [845754b]
+  - @ai-sdk/ui-utils@0.0.30
+  - @ai-sdk/provider-utils@1.0.10
+
+## 0.0.41
+
+### Patch Changes
+
+- e5b58f3: fix (ai/ui): forward streaming errors in useChat
+- Updated dependencies [e5b58f3]
+  - @ai-sdk/ui-utils@0.0.29
+
 ## 0.0.40
 
 ### Patch Changes

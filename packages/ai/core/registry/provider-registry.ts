@@ -2,6 +2,7 @@ import { EmbeddingModel, LanguageModel } from '../types';
 import { InvalidModelIdError } from './invalid-model-id-error';
 import { NoSuchModelError } from './no-such-model-error';
 import { NoSuchProviderError } from './no-such-provider-error';
+import { experimental_Provider } from './provider';
 
 /**
 Registry for managing models. It enables getting a model with a string id.
@@ -40,26 +41,10 @@ The model id is then passed to the provider function to get the model.
 export type experimental_ModelRegistry = experimental_ProviderRegistry;
 
 /**
- * Provider for language and text embedding models. Compatible with the
- * provider registry.
- */
-interface Provider {
-  /**
-   * Returns a language model with the given id.
-   */
-  languageModel?: (modelId: string) => LanguageModel;
-
-  /**
-   * Returns a text embedding model with the given id.
-   */
-  textEmbedding?: (modelId: string) => EmbeddingModel<string>;
-}
-
-/**
  * Creates a registry for the given providers.
  */
 export function experimental_createProviderRegistry(
-  providers: Record<string, Provider>,
+  providers: Record<string, experimental_Provider>,
 ): experimental_ProviderRegistry {
   const registry = new DefaultProviderRegistry();
 
@@ -77,13 +62,19 @@ export const experimental_createModelRegistry =
   experimental_createProviderRegistry;
 
 class DefaultProviderRegistry implements experimental_ProviderRegistry {
-  private providers: Record<string, Provider> = {};
+  private providers: Record<string, experimental_Provider> = {};
 
-  registerProvider({ id, provider }: { id: string; provider: Provider }): void {
+  registerProvider({
+    id,
+    provider,
+  }: {
+    id: string;
+    provider: experimental_Provider;
+  }): void {
     this.providers[id] = provider;
   }
 
-  private getProvider(id: string): Provider {
+  private getProvider(id: string): experimental_Provider {
     const provider = this.providers[id];
 
     if (provider == null) {
@@ -111,7 +102,7 @@ class DefaultProviderRegistry implements experimental_ProviderRegistry {
     const model = this.getProvider(providerId).languageModel?.(modelId);
 
     if (model == null) {
-      throw new NoSuchModelError({ modelId: id, modelType: 'language model' });
+      throw new NoSuchModelError({ modelId: id, modelType: 'languageModel' });
     }
 
     return model;
@@ -119,15 +110,26 @@ class DefaultProviderRegistry implements experimental_ProviderRegistry {
 
   textEmbeddingModel(id: string): EmbeddingModel<string> {
     const [providerId, modelId] = this.splitId(id);
-    const model = this.getProvider(providerId).textEmbedding?.(modelId);
+    const provider = this.getProvider(providerId);
+
+    const model =
+      provider.textEmbeddingModel?.(modelId) ??
+      provider.textEmbedding?.(modelId);
 
     if (model == null) {
       throw new NoSuchModelError({
         modelId: id,
-        modelType: 'text embedding model',
+        modelType: 'textEmbeddingModel',
       });
     }
 
     return model;
+  }
+
+  /**
+   * @deprecated Use `textEmbeddingModel` instead.
+   */
+  textEmbedding(id: string): EmbeddingModel<string> {
+    return this.textEmbeddingModel(id);
   }
 }

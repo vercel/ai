@@ -1,11 +1,5 @@
-import {
-  openaiChatCompletionChunks,
-  openaiFunctionCallChunks,
-} from '../tests/snapshots/openai-chat';
-import { DEFAULT_TEST_URL, createMockServer } from '../tests/utils/mock-server';
-import { createStreamableUI, createStreamableValue } from './streamable';
-
-const FUNCTION_CALL_TEST_URL = DEFAULT_TEST_URL + 'mock-func-call';
+import { delay } from '../../util/delay';
+import { createStreamableUI } from './create-streamable-ui';
 
 // This is a workaround to render the Flight response in a test environment.
 async function flightRender(node: React.ReactNode, byChunk?: boolean) {
@@ -45,37 +39,6 @@ async function flightRender(node: React.ReactNode, byChunk?: boolean) {
   }
 
   return byChunk ? chunks : result;
-}
-
-const server = createMockServer([
-  {
-    url: DEFAULT_TEST_URL,
-    chunks: openaiChatCompletionChunks,
-    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
-    suffix: 'data: [DONE]',
-  },
-  {
-    url: FUNCTION_CALL_TEST_URL,
-    chunks: openaiFunctionCallChunks,
-    formatChunk: chunk => `data: ${JSON.stringify(chunk)}\n\n`,
-    suffix: 'data: [DONE]',
-  },
-]);
-
-beforeAll(() => {
-  server.listen();
-});
-
-afterEach(() => {
-  server.resetHandlers();
-});
-
-afterAll(() => {
-  server.close();
-});
-
-function nextTick() {
-  return Promise.resolve();
 }
 
 async function recursiveResolve(val: any): Promise<any> {
@@ -171,18 +134,6 @@ function getFinalValueFromResolved(node: any) {
   return node;
 }
 
-function createMockUpProvider() {
-  return {
-    chat: {
-      completions: {
-        create: async () => {
-          return await fetch(FUNCTION_CALL_TEST_URL);
-        },
-      },
-    },
-  } as any;
-}
-
 describe('rsc - createStreamableUI()', () => {
   it('should emit React Nodes that can be updated', async () => {
     const ui = createStreamableUI(<div>1</div>);
@@ -248,11 +199,11 @@ describe('rsc - createStreamableUI()', () => {
     ui.append(<div>2</div>);
     ui.append(<div>3</div>);
 
-    const currentRsolved = (ui.value as React.ReactElement).props.children.props
-      .n;
-    const tryResolve1 = await Promise.race([currentRsolved, nextTick()]);
+    const currentResolved = (ui.value as React.ReactElement).props.children
+      .props.n;
+    const tryResolve1 = await Promise.race([currentResolved, delay()]);
     expect(tryResolve1).toBeDefined();
-    const tryResolve2 = await Promise.race([tryResolve1.next, nextTick()]);
+    const tryResolve2 = await Promise.race([tryResolve1.next, delay()]);
     expect(tryResolve2).toBeDefined();
     expect(getFinalValueFromResolved(tryResolve2.value)).toMatchInlineSnapshot(`
       <div>
@@ -345,7 +296,7 @@ describe('rsc - createStreamableUI()', () => {
     const final = getFinalValueFromResolved(
       await simulateFlightServerRender(ui.value),
     );
-    expect(final).toMatchInlineSnapshot('"hello world and universe"');
+    expect(final).toStrictEqual('hello world and universe');
   });
 
   it('should error when updating a closed streamable', async () => {
@@ -397,18 +348,6 @@ describe('rsc - createStreamableUI()', () => {
       3:["$","$1",null,{"fallback":["$","div",null,{"children":"3"}],"children":"$L4"}]
       4:["$","div",null,{"children":"4"}]
       "
-    `);
-  });
-});
-
-describe('rsc - createStreamableValue()', () => {
-  it('should return self', async () => {
-    const value = createStreamableValue(1).update(2).update(3).done(4);
-    expect(value.value).toMatchInlineSnapshot(`
-      {
-        "curr": 4,
-        "type": Symbol(ui.streamable.value),
-      }
     `);
   });
 });

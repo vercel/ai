@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/ui-utils",
-  "version": "0.0.28",
+  "version": "0.0.31",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -36,13 +36,16 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.17",
-    "@ai-sdk/provider-utils": "1.0.9",
-    "secure-json-parse": "2.7.0"
+    "@ai-sdk/provider": "0.0.19",
+    "@ai-sdk/provider-utils": "1.0.11",
+    "json-schema": "0.4.0",
+    "secure-json-parse": "2.7.0",
+    "zod-to-json-schema": "3.22.5"
   },
   "devDependencies": {
-    "@types/react": "^18",
+    "@types/json-schema": "7.0.15",
     "@types/node": "^18",
+    "@types/react": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.1.3",

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "0.0.40",
+  "version": "0.0.43",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -25,14 +25,14 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider-utils": "1.0.9",
-    "@ai-sdk/ui-utils": "0.0.28",
+    "@ai-sdk/provider-utils": "1.0.11",
+    "@ai-sdk/ui-utils": "0.0.31",
     "swr": "2.2.5"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.4.5",
-    "@testing-library/user-event": "^14.5.1",
-    "@testing-library/react": "^15.0.7",
+    "@testing-library/jest-dom": "^6.4.8",
+    "@testing-library/user-event": "^14.5.2",
+    "@testing-library/react": "^16.0.0",
     "@types/node": "^18",
     "@types/react": "^18",
     "@types/react-dom": "^18",
