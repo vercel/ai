@@ -1,4 +1,4 @@
-import { JSONValue } from './json-value';
+import { JSONValue } from '../../json-value/json-value';
 
 /**
 A prompt is a list of messages.
@@ -21,7 +21,6 @@ export type LanguageModelV2Message =
       content: Array<
         | LanguageModelV2TextPart
         | LanguageModelV2DataPart
-        | LanguageModelV2UrlPart
         | LanguageModelV2ToolResultPart
       >;
 
@@ -37,7 +36,6 @@ export type LanguageModelV2Message =
       content: Array<
         | LanguageModelV2TextPart
         | LanguageModelV2DataPart
-        | LanguageModelV2UrlPart
         | LanguageModelV2ToolCallPart
       >;
     };
@@ -61,21 +59,9 @@ export interface LanguageModelV2DataPart {
   type: 'data';
 
   /**
-Data as a Uint8Array (e.g. from a Blob or Buffer).
+Data as a Uint8Array (e.g. from a Blob or Buffer) or URL
    */
-  data: Uint8Array;
-
-  /**
-Mime type of the data.
-   */
-  mimeType: string;
-}
-
-/**
-Url prompt part. It contains a URL.
- */
-export interface LanguageModelV2UrlPart {
-  type: 'url';
+  data: Uint8Array | URL;
 
   /**
 Hint for the actual content. This enables the provider to create the right prompt.
@@ -83,9 +69,9 @@ Hint for the actual content. This enables the provider to create the right promp
   kind: 'image' | 'audio' | 'video' | 'pdf' | undefined;
 
   /**
-The URL.
+Mime type of the data.
    */
-  url: URL;
+  mimeType?: string;
 }
 
 /**

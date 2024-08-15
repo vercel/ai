@@ -1,4 +1,4 @@
-import { JSONValue } from './json-value';
+import { JSONValue } from '../../json-value/json-value';
 
 export type LanguageModelV2Source = LanguageModelV2SourceCommon &
   (
