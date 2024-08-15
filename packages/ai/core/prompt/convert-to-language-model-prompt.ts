@@ -309,7 +309,11 @@ export function convertToLanguageModelV2Message(
           (part): LanguageModelV2TextPart | LanguageModelV2DataPart => {
             switch (part.type) {
               case 'text': {
-                return part;
+                return {
+                  type: 'text',
+                  text: part.text,
+                  extensions: part.extensions,
+                };
               }
 
               case 'image': {
@@ -320,6 +324,7 @@ export function convertToLanguageModelV2Message(
                       kind: 'image',
                       data: part.image,
                       mimeType: part.mimeType,
+                      extensions: part.extensions,
                     };
                   } else {
                     const downloadedImage =
@@ -329,6 +334,7 @@ export function convertToLanguageModelV2Message(
                       kind: 'image',
                       data: downloadedImage.data,
                       mimeType: part.mimeType ?? downloadedImage.mimeType,
+                      extensions: part.extensions,
                     };
                   }
                 }
@@ -347,6 +353,7 @@ export function convertToLanguageModelV2Message(
                             kind: 'image',
                             data: url,
                             mimeType: part.mimeType,
+                            extensions: part.extensions,
                           };
                         } else {
                           const downloadedImage = downloadedImages[part.image];
@@ -355,6 +362,7 @@ export function convertToLanguageModelV2Message(
                             kind: 'image',
                             data: downloadedImage.data,
                             mimeType: part.mimeType ?? downloadedImage.mimeType,
+                            extensions: part.extensions,
                           };
                         }
                       }
@@ -372,6 +380,7 @@ export function convertToLanguageModelV2Message(
                             kind: 'image',
                             data: convertDataContentToUint8Array(base64Content),
                             mimeType,
+                            extensions: part.extensions,
                           };
                         } catch (error) {
                           throw new Error(
@@ -399,6 +408,7 @@ export function convertToLanguageModelV2Message(
                   kind: 'image',
                   data: imageUint8,
                   mimeType: part.mimeType ?? detectImageMimeType(imageUint8),
+                  extensions: part.extensions,
                 };
               }
             }
@@ -428,7 +438,11 @@ export function convertToLanguageModelV2Message(
               const type = part.type;
               switch (type) {
                 case 'text': {
-                  return part;
+                  return {
+                    type: 'text',
+                    text: part.text,
+                    extensions: part.extensions,
+                  };
                 }
 
                 case 'tool-call': {
@@ -469,6 +483,8 @@ export function convertToLanguageModelV2Message(
             toolCallId: part.toolCallId,
             toolName: part.toolName,
             result: part.result,
+            isError: part.isError,
+            extensions: part.extensions,
           };
         }),
         extensions: message.extensions,

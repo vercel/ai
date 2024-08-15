@@ -6,6 +6,7 @@ import {
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
+  AnthropicCacheControl,
   AnthropicMessage,
   AnthropicMessagesPrompt,
   AnthropicUserMessage,
@@ -40,59 +41,68 @@ export function convertToAnthropicMessagesPrompt(
         // combines all user and tool messages in this block into a single message:
         const anthropicContent: AnthropicUserMessage['content'] = [];
 
-        for (const { role, content } of block.messages) {
-          switch (role) {
-            case 'user': {
-              for (const part of content) {
-                switch (part.type) {
-                  case 'text': {
-                    anthropicContent.push({ type: 'text', text: part.text });
-                    break;
-                  }
-                  case 'data': {
-                    if (part.kind !== 'image') {
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'data parts that are not images',
-                      });
-                    }
+        for (const { content } of block.messages) {
+          for (const part of content) {
+            const { type, extensions } = part;
 
-                    if (part.data instanceof URL) {
-                      // Note: The AI SDK automatically downloads images for user image parts with URLs
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'image URLs',
-                      });
-                    }
+            // TODO consider type validation
+            const cacheControl =
+              extensions?.anthropicCacheControl as AnthropicCacheControl;
 
-                    anthropicContent.push({
-                      type: 'image',
-                      source: {
-                        type: 'base64',
-                        media_type: part.mimeType ?? 'image/jpeg',
-                        data: convertUint8ArrayToBase64(part.data),
-                      },
-                    });
-
-                    break;
-                  }
-                  case 'tool-result': {
-                    anthropicContent.push({
-                      type: 'tool_result',
-                      tool_use_id: part.toolCallId,
-                      content: JSON.stringify(part.result),
-                      is_error: part.isError,
-                    });
-                  }
-                }
+            switch (type) {
+              case 'text': {
+                anthropicContent.push({
+                  type: 'text',
+                  text: part.text,
+                  cache_control: cacheControl,
+                });
+                break;
               }
 
-              break;
-            }
+              case 'data': {
+                if (part.kind !== 'image') {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'data parts that are not images',
+                  });
+                }
 
-            default: {
-              const _exhaustiveCheck: never = role;
-              throw new UnsupportedFunctionalityError({
-                functionality: `role: ${_exhaustiveCheck}`,
-              });
+                if (part.data instanceof URL) {
+                  // Note: The AI SDK automatically downloads images for user image parts with URLs
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'image URLs',
+                  });
+                }
+
+                anthropicContent.push({
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: part.mimeType ?? 'image/jpeg',
+                    data: convertUint8ArrayToBase64(part.data),
+                  },
+                  catch_control: cacheControl,
+                });
+
+                break;
+              }
+              case 'tool-result': {
+                anthropicContent.push({
+                  type: 'tool_result',
+                  tool_use_id: part.toolCallId,
+                  content: JSON.stringify(part.result),
+                  is_error: part.isError,
+                  catch_control: cacheControl,
+                });
+
+                break;
+              }
+
+              default: {
+                const _exhaustiveCheck: never = type;
+                throw new UnsupportedFunctionalityError({
+                  functionality: `part type: ${_exhaustiveCheck}`,
+                });
+              }
             }
           }
         }
@@ -120,6 +130,8 @@ export function convertToAnthropicMessagesPrompt(
                     i === blocks.length - 1 && j === block.messages.length - 1
                       ? part.text.trim()
                       : part.text,
+
+                  cache_control: undefined,
                 });
                 break;
               }

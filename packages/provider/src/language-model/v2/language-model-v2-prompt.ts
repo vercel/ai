@@ -28,7 +28,7 @@ export type LanguageModelV2Message =
        * Additional provider-specific extensions. They are passed through
        * to the provider from the AI SDK and enable provider-specific
        * functionality that needs to be applied per message,
-       * e.g. the OpenAI name parameter or the Anthropic cache_control parameter.
+       * e.g. the OpenAI name parameter.
        */
       extensions: Record<string, JSONValue> | undefined;
     }
@@ -51,6 +51,14 @@ export interface LanguageModelV2TextPart {
 The text content.
    */
   text: string;
+
+  /**
+   * Additional provider-specific extensions. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that needs to be applied per message,
+   * e.g. the Anthropic cache_control parameter.
+   */
+  extensions?: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -72,7 +80,15 @@ Hint for the actual content. This enables the provider to create the right promp
   /**
 Mime type of the data.
    */
-  mimeType?: string;
+  mimeType: string | undefined;
+
+  /**
+   * Additional provider-specific extensions. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that needs to be applied per message,
+   * e.g. the Anthropic cache_control parameter.
+   */
+  extensions?: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -121,5 +137,13 @@ Result of the tool call. This is a JSON-serializable object.
   /**
 Optional flag if the result is an error or an error message.
    */
-  isError?: boolean;
+  isError: boolean | undefined;
+
+  /**
+   * Additional provider-specific extensions. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that needs to be applied per message,
+   * e.g. the Anthropic cache_control parameter.
+   */
+  extensions?: Record<string, JSONValue> | undefined;
 }

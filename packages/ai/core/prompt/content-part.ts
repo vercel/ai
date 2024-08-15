@@ -1,3 +1,4 @@
+import { JSONValue } from '@ai-sdk/provider';
 import { DataContent } from './data-content';
 
 /**
@@ -10,6 +11,12 @@ export interface TextPart {
 The text content.
    */
   text: string;
+
+  /**
+   * Additional provider-specific extensions. They are passed through
+   * to the provider and enable provider-specific per-message functionality.
+   */
+  extensions?: Record<string, JSONValue>;
 }
 
 /**
@@ -30,6 +37,12 @@ Image data. Can either be:
 Optional mime type of the image.
    */
   mimeType?: string;
+
+  /**
+   * Additional provider-specific extensions. They are passed through
+   * to the provider and enable provider-specific per-message functionality.
+   */
+  extensions?: Record<string, JSONValue>;
 }
 
 /**
@@ -79,4 +92,10 @@ Result of the tool call. This is a JSON-serializable object.
 Optional flag if the result is an error or an error message.
    */
   isError?: boolean;
+
+  /**
+   * Additional provider-specific extensions. They are passed through
+   * to the provider and enable provider-specific per-message functionality.
+   */
+  extensions?: Record<string, JSONValue>;
 }
