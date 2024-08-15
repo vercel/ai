@@ -80,8 +80,9 @@ has only generated tool calls.
 
       /**
        * The ID of the model that generated the response.
+       * Should be a concrete model that is extracted from the LLM provider response.
        */
-      modelId: string;
+      responseModelId: string | undefined;
 
       /**
        * The ID of the response.
@@ -107,7 +108,7 @@ Usage information.
       /**
 Grounding sources that the model has used to generate the response.
        */
-      sources: Array<LanguageModelV2Source> | undefined;
+      sources?: Array<LanguageModelV2Source> | undefined;
 
       /**
 Logprobs for the completion.

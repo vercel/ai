@@ -1,6 +1,6 @@
 import {
-  LanguageModelV1Message,
-  LanguageModelV1Prompt,
+  LanguageModelV2Message,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
@@ -12,7 +12,7 @@ import {
 } from './anthropic-messages-prompt';
 
 export function convertToAnthropicMessagesPrompt(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): AnthropicMessagesPrompt {
   const blocks = groupIntoBlocks(prompt);
 
@@ -49,8 +49,14 @@ export function convertToAnthropicMessagesPrompt(
                     anthropicContent.push({ type: 'text', text: part.text });
                     break;
                   }
-                  case 'image': {
-                    if (part.image instanceof URL) {
+                  case 'data': {
+                    if (part.kind !== 'image') {
+                      // TODO dedicated AI SDK error
+                      throw new Error(
+                        `Unsupported data part kind: ${part.kind}`,
+                      );
+                    }
+                    if (part.data instanceof URL) {
                       // The AI SDK automatically downloads images for user image parts with URLs
                       throw new UnsupportedFunctionalityError({
                         functionality: 'Image URLs in user messages',
@@ -62,29 +68,26 @@ export function convertToAnthropicMessagesPrompt(
                       source: {
                         type: 'base64',
                         media_type: part.mimeType ?? 'image/jpeg',
-                        data: convertUint8ArrayToBase64(part.image),
+                        data: convertUint8ArrayToBase64(part.data),
                       },
                     });
 
                     break;
+                  }
+                  case 'tool-result': {
+                    anthropicContent.push({
+                      type: 'tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: JSON.stringify(part.result),
+                      is_error: part.isError,
+                    });
                   }
                 }
               }
 
               break;
             }
-            case 'tool': {
-              for (const part of content) {
-                anthropicContent.push({
-                  type: 'tool_result',
-                  tool_use_id: part.toolCallId,
-                  content: JSON.stringify(part.result),
-                  is_error: part.isError,
-                });
-              }
 
-              break;
-            }
             default: {
               const _exhaustiveCheck: never = role;
               throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
@@ -152,25 +155,27 @@ export function convertToAnthropicMessagesPrompt(
 
 type SystemBlock = {
   type: 'system';
-  messages: Array<LanguageModelV1Message & { role: 'system' }>;
+  messages: Array<LanguageModelV2Message & { role: 'system' }>;
 };
 type AssistantBlock = {
   type: 'assistant';
-  messages: Array<LanguageModelV1Message & { role: 'assistant' }>;
+  messages: Array<LanguageModelV2Message & { role: 'assistant' }>;
 };
 type UserBlock = {
   type: 'user';
-  messages: Array<LanguageModelV1Message & { role: 'user' | 'tool' }>;
+  messages: Array<LanguageModelV2Message & { role: 'user' }>;
 };
 
 function groupIntoBlocks(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =
     undefined;
 
-  for (const { role, content } of prompt) {
+  for (const message of prompt) {
+    const { role, content } = message;
+
     switch (role) {
       case 'system': {
         if (currentBlock?.type !== 'system') {
@@ -196,16 +201,11 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
-        break;
-      }
-      case 'tool': {
-        if (currentBlock?.type !== 'user') {
-          currentBlock = { type: 'user', messages: [] };
-          blocks.push(currentBlock);
-        }
-
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push({
+          role,
+          content,
+          extensions: message.extensions,
+        });
         break;
       }
       default: {
