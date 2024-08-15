@@ -210,6 +210,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
+            console.log(chunk);
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
@@ -328,6 +329,17 @@ const cohereChatChunkSchema = z.discriminatedUnion('event_type', [
         parameters: z.unknown({}),
       }),
     ),
+  }),
+  z.object({
+    event_type: z.literal('tool-calls-chunk'),
+    text: z.string().optional(),
+    tool_call_delta: z
+      .object({
+        index: z.number(),
+        name: z.string().optional(),
+        parameters: z.string().optional(),
+      })
+      .optional(),
   }),
   z.object({
     event_type: z.literal('stream-end'),
