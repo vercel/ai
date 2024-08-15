@@ -27,9 +27,10 @@ export type LanguageModelV2Message =
       /**
        * Additional provider-specific extensions. They are passed through
        * to the provider from the AI SDK and enable provider-specific
-       * functionality.
+       * functionality that needs to be applied per message,
+       * e.g. the OpenAI name parameter or the Anthropic cache_control parameter.
        */
-      providerExtensions: Record<string, JSONValue> | undefined;
+      extensions: Record<string, JSONValue> | undefined;
     }
   | {
       role: 'assistant';

@@ -250,7 +250,7 @@ export async function convertToLanguageModelV2Prompt({
       languageModelMessages.push({
         role: 'user',
         content: [{ type: 'text', text: prompt.prompt }],
-        providerExtensions: undefined,
+        extensions: undefined,
       });
       break;
     }
@@ -299,7 +299,7 @@ export function convertToLanguageModelV2Message(
         return {
           role: 'user',
           content: [{ type: 'text', text: message.content }],
-          providerExtensions: undefined,
+          extensions: message.extensions,
         };
       }
 
@@ -404,7 +404,7 @@ export function convertToLanguageModelV2Message(
             }
           },
         ),
-        providerExtensions: undefined,
+        extensions: message.extensions,
       };
     }
 
@@ -471,7 +471,7 @@ export function convertToLanguageModelV2Message(
             result: part.result,
           };
         }),
-        providerExtensions: undefined,
+        extensions: message.extensions,
       };
     }
 
