@@ -51,15 +51,15 @@ export function convertToAnthropicMessagesPrompt(
                   }
                   case 'data': {
                     if (part.kind !== 'image') {
-                      // TODO dedicated AI SDK error
-                      throw new Error(
-                        `Unsupported data part kind: ${part.kind}`,
-                      );
-                    }
-                    if (part.data instanceof URL) {
-                      // The AI SDK automatically downloads images for user image parts with URLs
                       throw new UnsupportedFunctionalityError({
-                        functionality: 'Image URLs in user messages',
+                        functionality: 'data parts that are not images',
+                      });
+                    }
+
+                    if (part.data instanceof URL) {
+                      // Note: The AI SDK automatically downloads images for user image parts with URLs
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'image URLs',
                       });
                     }
 
@@ -90,7 +90,9 @@ export function convertToAnthropicMessagesPrompt(
 
             default: {
               const _exhaustiveCheck: never = role;
-              throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
+              throw new UnsupportedFunctionalityError({
+                functionality: `role: ${_exhaustiveCheck}`,
+              });
             }
           }
         }
@@ -210,7 +212,9 @@ function groupIntoBlocks(
       }
       default: {
         const _exhaustiveCheck: never = role;
-        throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
+        throw new UnsupportedFunctionalityError({
+          functionality: `role: ${_exhaustiveCheck}`,
+        });
       }
     }
   }
