@@ -1,3 +1,4 @@
+import { JSONValue } from '../../json-value';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
 import { LanguageModelV2FunctionToolCall } from './language-model-v2-function-tool-call';
 import { LanguageModelV2LogProbs } from './language-model-v2-logprobs';
@@ -96,6 +97,11 @@ model has only generated text.
       toolCalls: Array<LanguageModelV2FunctionToolCall> | undefined;
 
       /**
+Grounding sources that the model has used to generate the response.
+       */
+      sources?: Array<LanguageModelV2Source> | undefined;
+
+      /**
 Finish reason.
      */
       finishReason: LanguageModelV2FinishReason;
@@ -106,15 +112,15 @@ Usage information.
       usage: LanguageModelV2Usage;
 
       /**
-Grounding sources that the model has used to generate the response.
-       */
-      sources?: Array<LanguageModelV2Source> | undefined;
-
-      /**
 Logprobs for the completion.
 `undefined` if the mode does not support logprobs or if was not enabled
      */
       logprobs?: LanguageModelV2LogProbs;
+
+      /**
+Provider-specific information, e.g. advanced token usage information.
+       */
+      providerMetadata?: Record<string, JSONValue>;
     }
   >;
 

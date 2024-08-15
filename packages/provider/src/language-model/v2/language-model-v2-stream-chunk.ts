@@ -1,3 +1,4 @@
+import { JSONValue } from '../../json-value';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
 import { LanguageModelV2FunctionToolCall } from './language-model-v2-function-tool-call';
 import { LanguageModelV2LogProbs } from './language-model-v2-logprobs';
@@ -40,9 +41,27 @@ export type LanguageModelV2StreamChunk =
   // Contains usage stats, finish reason and logprobs.
   | {
       type: 'finish';
+
+      /**
+Finish reason.
+     */
       finishReason: LanguageModelV2FinishReason;
-      logprobs?: LanguageModelV2LogProbs;
+
+      /**
+Usage information.
+*/
       usage: LanguageModelV2Usage;
+
+      /**
+Logprobs for the completion.
+`undefined` if the mode does not support logprobs or if was not enabled
+*/
+      logprobs?: LanguageModelV2LogProbs;
+
+      /**
+Provider-specific information, e.g. advanced token usage information.
+       */
+      providerMetadata?: Record<string, JSONValue>;
     }
 
   // Source that has been used for grounding.

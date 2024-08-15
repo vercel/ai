@@ -250,7 +250,7 @@ export async function convertToLanguageModelV2Prompt({
       languageModelMessages.push({
         role: 'user',
         content: [{ type: 'text', text: prompt.prompt }],
-        extensions: undefined,
+        providerMetadata: undefined,
       });
       break;
     }
@@ -299,7 +299,7 @@ export function convertToLanguageModelV2Message(
         return {
           role: 'user',
           content: [{ type: 'text', text: message.content }],
-          extensions: message.extensions,
+          providerMetadata: message.providerMetadata,
         };
       }
 
@@ -312,7 +312,7 @@ export function convertToLanguageModelV2Message(
                 return {
                   type: 'text',
                   text: part.text,
-                  extensions: part.extensions,
+                  providerMetadata: part.providerMetadata,
                 };
               }
 
@@ -324,7 +324,7 @@ export function convertToLanguageModelV2Message(
                       kind: 'image',
                       data: part.image,
                       mimeType: part.mimeType,
-                      extensions: part.extensions,
+                      providerMetadata: part.providerMetadata,
                     };
                   } else {
                     const downloadedImage =
@@ -334,7 +334,7 @@ export function convertToLanguageModelV2Message(
                       kind: 'image',
                       data: downloadedImage.data,
                       mimeType: part.mimeType ?? downloadedImage.mimeType,
-                      extensions: part.extensions,
+                      providerMetadata: part.providerMetadata,
                     };
                   }
                 }
@@ -353,7 +353,7 @@ export function convertToLanguageModelV2Message(
                             kind: 'image',
                             data: url,
                             mimeType: part.mimeType,
-                            extensions: part.extensions,
+                            providerMetadata: part.providerMetadata,
                           };
                         } else {
                           const downloadedImage = downloadedImages[part.image];
@@ -362,7 +362,7 @@ export function convertToLanguageModelV2Message(
                             kind: 'image',
                             data: downloadedImage.data,
                             mimeType: part.mimeType ?? downloadedImage.mimeType,
-                            extensions: part.extensions,
+                            providerMetadata: part.providerMetadata,
                           };
                         }
                       }
@@ -380,7 +380,7 @@ export function convertToLanguageModelV2Message(
                             kind: 'image',
                             data: convertDataContentToUint8Array(base64Content),
                             mimeType,
-                            extensions: part.extensions,
+                            providerMetadata: part.providerMetadata,
                           };
                         } catch (error) {
                           throw new Error(
@@ -408,13 +408,13 @@ export function convertToLanguageModelV2Message(
                   kind: 'image',
                   data: imageUint8,
                   mimeType: part.mimeType ?? detectImageMimeType(imageUint8),
-                  extensions: part.extensions,
+                  providerMetadata: part.providerMetadata,
                 };
               }
             }
           },
         ),
-        extensions: message.extensions,
+        providerMetadata: message.providerMetadata,
       };
     }
 
@@ -441,7 +441,7 @@ export function convertToLanguageModelV2Message(
                   return {
                     type: 'text',
                     text: part.text,
-                    extensions: part.extensions,
+                    providerMetadata: part.providerMetadata,
                   };
                 }
 
@@ -484,10 +484,10 @@ export function convertToLanguageModelV2Message(
             toolName: part.toolName,
             result: part.result,
             isError: part.isError,
-            extensions: part.extensions,
+            providerMetadata: part.providerMetadata,
           };
         }),
-        extensions: message.extensions,
+        providerMetadata: message.providerMetadata,
       };
     }
 

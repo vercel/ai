@@ -38,10 +38,10 @@ export type CoreUserMessage = {
   content: UserContent;
 
   /**
-   * Additional provider-specific extensions. They are passed through
+   * Additional provider-specific metadata. They are passed through
    * to the provider and enable provider-specific per-message functionality.
    */
-  extensions?: Record<string, JSONValue>;
+  providerMetadata?: Record<string, JSONValue>;
 };
 
 /**
@@ -80,10 +80,10 @@ export type CoreToolMessage = {
   content: ToolContent;
 
   /**
-   * Additional provider-specific extensions. They are passed through
+   * Additional provider-specific metadata. They are passed through
    * to the provider and enable provider-specific per-message functionality.
    */
-  extensions?: Record<string, JSONValue>;
+  providerMetadata?: Record<string, JSONValue>;
 };
 
 /**

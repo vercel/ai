@@ -11,14 +11,4 @@ export type LanguageModelV2Usage = {
    * The number of tokens in the completion (generated output).
    */
   outputTokens: number | undefined;
-
-  /**
-   * Number of input tokens that have been read from a cached context.
-   */
-  inputTokensReadFromCache?: number;
-
-  /**
-   * Number of input tokens that have been written to a cached context.
-   */
-  inputTokensWrittenToCache?: number;
 };

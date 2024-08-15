@@ -179,8 +179,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
-        inputTokensReadFromCache: undefined,
-        inputTokensWrittenToCache: undefined,
       },
       responseId: undefined,
       responseModelId: undefined,

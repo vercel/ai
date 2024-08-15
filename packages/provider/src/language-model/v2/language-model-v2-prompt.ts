@@ -25,12 +25,12 @@ export type LanguageModelV2Message =
       >;
 
       /**
-       * Additional provider-specific extensions. They are passed through
+       * Additional provider-specific metadata. They are passed through
        * to the provider from the AI SDK and enable provider-specific
        * functionality that needs to be applied per message,
        * e.g. the OpenAI name parameter.
        */
-      extensions: Record<string, JSONValue> | undefined;
+      providerMetadata: Record<string, JSONValue> | undefined;
     }
   | {
       role: 'assistant';
@@ -53,12 +53,12 @@ The text content.
   text: string;
 
   /**
-   * Additional provider-specific extensions. They are passed through
+   * Additional provider-specific metadata. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that needs to be applied per message,
    * e.g. the Anthropic cache_control parameter.
    */
-  extensions?: Record<string, JSONValue> | undefined;
+  providerMetadata?: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -83,12 +83,12 @@ Mime type of the data.
   mimeType: string | undefined;
 
   /**
-   * Additional provider-specific extensions. They are passed through
+   * Additional provider-specific metadata. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that needs to be applied per message,
    * e.g. the Anthropic cache_control parameter.
    */
-  extensions?: Record<string, JSONValue> | undefined;
+  providerMetadata?: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -140,10 +140,10 @@ Optional flag if the result is an error or an error message.
   isError: boolean | undefined;
 
   /**
-   * Additional provider-specific extensions. They are passed through
+   * Additional provider-specific metadata. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that needs to be applied per message,
    * e.g. the Anthropic cache_control parameter.
    */
-  extensions?: Record<string, JSONValue> | undefined;
+  providerMetadata?: Record<string, JSONValue> | undefined;
 }

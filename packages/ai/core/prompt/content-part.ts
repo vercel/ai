@@ -13,10 +13,10 @@ The text content.
   text: string;
 
   /**
-   * Additional provider-specific extensions. They are passed through
+   * Additional provider-specific metadata. They are passed through
    * to the provider and enable provider-specific per-message functionality.
    */
-  extensions?: Record<string, JSONValue>;
+  providerMetadata?: Record<string, JSONValue>;
 }
 
 /**
@@ -39,10 +39,10 @@ Optional mime type of the image.
   mimeType?: string;
 
   /**
-   * Additional provider-specific extensions. They are passed through
+   * Additional provider-specific metadata. They are passed through
    * to the provider and enable provider-specific per-message functionality.
    */
-  extensions?: Record<string, JSONValue>;
+  providerMetadata?: Record<string, JSONValue>;
 }
 
 /**
@@ -94,8 +94,8 @@ Optional flag if the result is an error or an error message.
   isError?: boolean;
 
   /**
-   * Additional provider-specific extensions. They are passed through
+   * Additional provider-specific metadata. They are passed through
    * to the provider and enable provider-specific per-message functionality.
    */
-  extensions?: Record<string, JSONValue>;
+  providerMetadata?: Record<string, JSONValue>;
 }

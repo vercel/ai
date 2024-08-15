@@ -43,11 +43,11 @@ export function convertToAnthropicMessagesPrompt(
 
         for (const { content } of block.messages) {
           for (const part of content) {
-            const { type, extensions } = part;
+            const { type, providerMetadata } = part;
 
             // TODO consider type validation
             const cacheControl =
-              extensions?.anthropicCacheControl as AnthropicCacheControl;
+              providerMetadata?.anthropicCacheControl as AnthropicCacheControl;
 
             switch (type) {
               case 'text': {
@@ -188,8 +188,7 @@ function groupIntoBlocks(
     undefined;
 
   for (const message of prompt) {
-    const { role, content } = message;
-
+    const { role } = message;
     switch (role) {
       case 'system': {
         if (currentBlock?.type !== 'system') {
@@ -197,7 +196,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push(message);
         break;
       }
       case 'assistant': {
@@ -206,7 +205,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push(message);
         break;
       }
       case 'user': {
@@ -215,11 +214,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({
-          role,
-          content,
-          extensions: message.extensions,
-        });
+        currentBlock.messages.push(message);
         break;
       }
       default: {

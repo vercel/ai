@@ -5,11 +5,7 @@ export type AnthropicMessagesPrompt = {
 
 export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
 
-export type AnthropicCacheControl =
-  | {
-      type: 'ephemeral';
-    }
-  | undefined;
+export type AnthropicCacheControl = { type: 'ephemeral' } | undefined;
 
 export interface AnthropicUserMessage {
   role: 'user';
