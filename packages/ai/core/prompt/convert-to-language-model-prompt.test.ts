@@ -1,13 +1,13 @@
 import {
-  convertToLanguageModelMessage,
-  convertToLanguageModelPrompt,
+  convertToLanguageModelV1Message,
+  convertToLanguageModelV1Prompt,
 } from './convert-to-language-model-prompt';
 
 describe('convertToLanguageModelPrompt', () => {
   describe('user message', () => {
     describe('image parts', () => {
       it('should download images for user image parts with URLs when model does not support image URLs', async () => {
-        const result = await convertToLanguageModelPrompt({
+        const result = await convertToLanguageModelV1Prompt({
           prompt: {
             type: 'messages',
             prompt: undefined,
@@ -48,7 +48,7 @@ describe('convertToLanguageModelPrompt', () => {
       });
 
       it('should download images for user image parts with string URLs when model does not support image URLs', async () => {
-        const result = await convertToLanguageModelPrompt({
+        const result = await convertToLanguageModelV1Prompt({
           prompt: {
             type: 'messages',
             prompt: undefined,
@@ -95,7 +95,7 @@ describe('convertToLanguageModelMessage', () => {
   describe('user message', () => {
     describe('image parts', () => {
       it('should convert image string https url to URL object', async () => {
-        const result = convertToLanguageModelMessage(
+        const result = convertToLanguageModelV1Message(
           {
             role: 'user',
             content: [
@@ -120,7 +120,7 @@ describe('convertToLanguageModelMessage', () => {
       });
 
       it('should convert image string data url to base64 content', async () => {
-        const result = convertToLanguageModelMessage(
+        const result = convertToLanguageModelV1Message(
           {
             role: 'user',
             content: [
@@ -150,7 +150,7 @@ describe('convertToLanguageModelMessage', () => {
   describe('assistant message', () => {
     describe('text parts', () => {
       it('should ignore empty text parts', async () => {
-        const result = convertToLanguageModelMessage(
+        const result = convertToLanguageModelV1Message(
           {
             role: 'assistant',
             content: [

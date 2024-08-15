@@ -3,7 +3,7 @@ import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { ReactNode } from 'react';
 import { z } from 'zod';
 import { CallSettings } from '../../core/prompt/call-settings';
-import { convertToLanguageModelPrompt } from '../../core/prompt/convert-to-language-model-prompt';
+import { convertToLanguageModelV1Prompt } from '../../core/prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../../core/prompt/get-validated-prompt';
 import { prepareCallSettings } from '../../core/prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../../core/prompt/prepare-tools-and-tool-choice';
@@ -238,7 +238,7 @@ export async function streamUI<
       },
       ...prepareCallSettings(settings),
       inputFormat: validatedPrompt.type,
-      prompt: await convertToLanguageModelPrompt({
+      prompt: await convertToLanguageModelV1Prompt({
         prompt: validatedPrompt,
         modelSupportsImageUrls: model.supportsImageUrls,
       }),

@@ -8,7 +8,7 @@ export function getBaseTelemetryAttributes({
   telemetry,
   headers,
 }: {
-  model: { modelId: string; provider: string };
+  model: { modelId: string; provider: string; specificationVersion: string };
   settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
   telemetry: TelemetrySettings | undefined;
   headers: Record<string, string | undefined> | undefined;
@@ -16,6 +16,7 @@ export function getBaseTelemetryAttributes({
   return {
     'ai.model.provider': model.provider,
     'ai.model.id': model.modelId,
+    'ai.model.specificationVersion': model.specificationVersion,
 
     // settings:
     ...Object.entries(settings).reduce((attributes, [key, value]) => {

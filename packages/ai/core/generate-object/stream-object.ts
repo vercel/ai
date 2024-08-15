@@ -18,7 +18,7 @@ import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { DelayedPromise } from '../../util/delayed-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { convertToLanguageModelV1Prompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
@@ -252,7 +252,7 @@ Warnings from the model provider (e.g. unsupported settings).
             },
             ...prepareCallSettings(settings),
             inputFormat: validatedPrompt.type,
-            prompt: await convertToLanguageModelPrompt({
+            prompt: await convertToLanguageModelV1Prompt({
               prompt: validatedPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
             }),
@@ -296,7 +296,7 @@ Warnings from the model provider (e.g. unsupported settings).
             },
             ...prepareCallSettings(settings),
             inputFormat: validatedPrompt.type,
-            prompt: await convertToLanguageModelPrompt({
+            prompt: await convertToLanguageModelV1Prompt({
               prompt: validatedPrompt,
               modelSupportsImageUrls: model.supportsImageUrls,
             }),

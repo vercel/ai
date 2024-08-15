@@ -9,7 +9,7 @@ import {
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { convertToLanguageModelV1Prompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
@@ -215,7 +215,7 @@ Warnings from the model provider (e.g. unsupported settings).
     fn: async rootSpan => {
       const retry = retryWithExponentialBackoff({ maxRetries });
       const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
-      const promptMessages = await convertToLanguageModelPrompt({
+      const promptMessages = await convertToLanguageModelV1Prompt({
         prompt: validatedPrompt,
         modelSupportsImageUrls: model.supportsImageUrls,
       });

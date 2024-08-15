@@ -3,7 +3,7 @@ import { Schema, asSchema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { convertToLanguageModelV1Prompt } from '../prompt/convert-to-language-model-prompt';
 import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
@@ -183,7 +183,7 @@ Default and recommended: 'auto' (best mode for the model).
             messages,
           });
 
-          const promptMessages = await convertToLanguageModelPrompt({
+          const promptMessages = await convertToLanguageModelV1Prompt({
             prompt: validatedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
           });
@@ -279,7 +279,7 @@ Default and recommended: 'auto' (best mode for the model).
             messages,
           });
 
-          const promptMessages = await convertToLanguageModelPrompt({
+          const promptMessages = await convertToLanguageModelV1Prompt({
             prompt: validatedPrompt,
             modelSupportsImageUrls: model.supportsImageUrls,
           });
