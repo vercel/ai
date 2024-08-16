@@ -106,6 +106,7 @@ export function convertToLanguageModelMessage(
                       type: 'image',
                       image: part.image,
                       mimeType: part.mimeType,
+                      providerMetadata: part.providerMetadata,
                     };
                   } else {
                     const downloadedImage =
@@ -114,6 +115,7 @@ export function convertToLanguageModelMessage(
                       type: 'image',
                       image: downloadedImage.data,
                       mimeType: part.mimeType ?? downloadedImage.mimeType,
+                      providerMetadata: part.providerMetadata,
                     };
                   }
                 }
@@ -131,6 +133,7 @@ export function convertToLanguageModelMessage(
                             type: 'image',
                             image: url,
                             mimeType: part.mimeType,
+                            providerMetadata: part.providerMetadata,
                           };
                         } else {
                           const downloadedImage = downloadedImages[part.image];
@@ -138,6 +141,7 @@ export function convertToLanguageModelMessage(
                             type: 'image',
                             image: downloadedImage.data,
                             mimeType: part.mimeType ?? downloadedImage.mimeType,
+                            providerMetadata: part.providerMetadata,
                           };
                         }
                       }
@@ -155,6 +159,7 @@ export function convertToLanguageModelMessage(
                             image:
                               convertDataContentToUint8Array(base64Content),
                             mimeType,
+                            providerMetadata: part.providerMetadata,
                           };
                         } catch (error) {
                           throw new Error(
@@ -181,6 +186,7 @@ export function convertToLanguageModelMessage(
                   type: 'image',
                   image: imageUint8,
                   mimeType: part.mimeType ?? detectImageMimeType(imageUint8),
+                  providerMetadata: part.providerMetadata,
                 };
               }
             }

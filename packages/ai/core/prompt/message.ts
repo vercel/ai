@@ -1,3 +1,4 @@
+import { ProviderMetadata } from '../types';
 import {
   ImagePart,
   TextPart,
@@ -6,7 +7,7 @@ import {
 } from './content-part';
 
 /**
-A message that can be used in the `messages` field of a prompt. 
+A message that can be used in the `messages` field of a prompt.
 It can be a user message, an assistant message, or a tool message.
  */
 export type CoreMessage =
@@ -32,7 +33,17 @@ export type ExperimentalMessage = CoreMessage;
 /**
 A user message. It can contain text or a combination of text and images.
  */
-export type CoreUserMessage = { role: 'user'; content: UserContent };
+export type CoreUserMessage = {
+  role: 'user';
+  content: UserContent;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  providerMetadata?: ProviderMetadata;
+};
 
 /**
  * @deprecated Use `CoreUserMessage` instead.
@@ -65,7 +76,17 @@ export type AssistantContent = string | Array<TextPart | ToolCallPart>;
 /**
 A tool message. It contains the result of one or more tool calls.
  */
-export type CoreToolMessage = { role: 'tool'; content: ToolContent };
+export type CoreToolMessage = {
+  role: 'tool';
+  content: ToolContent;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  providerMetadata?: ProviderMetadata;
+};
 
 /**
  * @deprecated Use `CoreToolMessage` instead.
