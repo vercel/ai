@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 0.0.42
+
+### Patch Changes
+
+- dd712ac: fix: use FetchFunction type to prevent self-reference
+- Updated dependencies [dd712ac]
+  - @ai-sdk/provider-utils@1.0.12
+
 ## 0.0.41
 
 ### Patch Changes

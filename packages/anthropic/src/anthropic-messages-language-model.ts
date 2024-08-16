@@ -7,6 +7,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  FetchFunction,
   ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -26,7 +27,7 @@ type AnthropicMessagesConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV1 {

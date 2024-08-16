@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 0.0.47
+
+### Patch Changes
+
+- 4ffbaee: fix (provider/openai): fix strict flag for structured outputs with tools
+- dd712ac: fix: use FetchFunction type to prevent self-reference
+- Updated dependencies [dd712ac]
+  - @ai-sdk/provider-utils@1.0.12
+
 ## 0.0.46
 
 ### Patch Changes

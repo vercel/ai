@@ -680,8 +680,8 @@ describe('doGenerate', () => {
               additionalProperties: false,
               $schema: 'http://json-schema.org/draft-07/schema#',
             },
+            strict: true,
           },
-          strict: true,
         },
       ],
     });
@@ -755,8 +755,8 @@ describe('doGenerate', () => {
               additionalProperties: false,
               $schema: 'http://json-schema.org/draft-07/schema#',
             },
+            strict: true,
           },
-          strict: true,
         },
       ],
     });

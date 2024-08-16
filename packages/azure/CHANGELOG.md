@@ -1,5 +1,15 @@
 # @ai-sdk/azure
 
+## 0.0.25
+
+### Patch Changes
+
+- dd712ac: fix: use FetchFunction type to prevent self-reference
+- Updated dependencies [4ffbaee]
+- Updated dependencies [dd712ac]
+  - @ai-sdk/openai@0.0.47
+  - @ai-sdk/provider-utils@1.0.12
+
 ## 0.0.24
 
 ### Patch Changes

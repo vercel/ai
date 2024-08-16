@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 0.0.38
+
+### Patch Changes
+
+- 123134b: fix (provider/google): change default object generation mode to json
+- dd712ac: fix: use FetchFunction type to prevent self-reference
+- Updated dependencies [dd712ac]
+  - @ai-sdk/provider-utils@1.0.12
+
 ## 0.0.37
 
 ### Patch Changes
