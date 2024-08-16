@@ -17,7 +17,7 @@ There are three approaches you can take to handle loading state with the AI SDK 
 
 ### Client
 
-Let's create a simple Next.js page that will call the `generateResponse` function when the form is submitted. The function will take in the user's prompt (`input`) and then generate a response (`response`). To handle the loading state, we'll use the `loading` state variable. When the form is submitted, we'll set `loading` to `true`, and when the response is received, we'll set it back to `false`. While the response is being streamed, we will disable the input field.
+Let's create a simple Next.js page that will call the `generateResponse` function when the form is submitted. The function will take in the user's prompt (`input`) and then generate a response (`response`). To handle the loading state, use the `loading` state variable. When the form is submitted, set `loading` to `true`, and when the response is received, set it back to `false`. While the response is being streamed, the input field will be disabled.
 
 ```tsx filename='app/page.tsx'
 'use client';
@@ -71,7 +71,7 @@ export default function Home() {
 
 ### Server
 
-Now let's implement the `generateResponse` function. We'll use the `streamText` function to generate a response to the input.
+Now let's implement the `generateResponse` function. Use the `streamText` function to generate a response to the input.
 
 ```typescript filename='app/actions.ts'
 'use server';
@@ -221,8 +221,8 @@ export async function generateResponse(prompt: string) {
 ```
 
 <Note>
-  Because we are defining a React component in our `streamUI` function, we must
-  update the file from `.ts` to `.tsx`.
+  Remember to update the file from `.ts` to `.tsx` because you are defining a
+  React component in the `streamUI` function.
 </Note>
 
 ## Client
