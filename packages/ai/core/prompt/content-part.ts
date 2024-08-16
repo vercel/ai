@@ -17,7 +17,7 @@ Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
-  providerMetadata?: ProviderMetadata;
+  experimental_providerMetadata?: ProviderMetadata;
 }
 
 /**
@@ -44,7 +44,7 @@ Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
-  providerMetadata?: ProviderMetadata;
+  experimental_providerMetadata?: ProviderMetadata;
 }
 
 /**
@@ -100,5 +100,5 @@ Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
-  providerMetadata?: ProviderMetadata;
+  experimental_providerMetadata?: ProviderMetadata;
 }

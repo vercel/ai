@@ -79,7 +79,11 @@ export function convertToLanguageModelMessage(
   const role = message.role;
   switch (role) {
     case 'system': {
-      return { role: 'system', content: message.content };
+      return {
+        role: 'system',
+        content: message.content,
+        providerMetadata: message.experimental_providerMetadata,
+      };
     }
 
     case 'user': {
@@ -87,6 +91,7 @@ export function convertToLanguageModelMessage(
         return {
           role: 'user',
           content: [{ type: 'text', text: message.content }],
+          providerMetadata: message.experimental_providerMetadata,
         };
       }
 
@@ -96,7 +101,11 @@ export function convertToLanguageModelMessage(
           (part): LanguageModelV1TextPart | LanguageModelV1ImagePart => {
             switch (part.type) {
               case 'text': {
-                return part;
+                return {
+                  type: 'text',
+                  text: part.text,
+                  providerMetadata: part.experimental_providerMetadata,
+                };
               }
 
               case 'image': {
@@ -106,7 +115,7 @@ export function convertToLanguageModelMessage(
                       type: 'image',
                       image: part.image,
                       mimeType: part.mimeType,
-                      providerMetadata: part.providerMetadata,
+                      providerMetadata: part.experimental_providerMetadata,
                     };
                   } else {
                     const downloadedImage =
@@ -115,7 +124,7 @@ export function convertToLanguageModelMessage(
                       type: 'image',
                       image: downloadedImage.data,
                       mimeType: part.mimeType ?? downloadedImage.mimeType,
-                      providerMetadata: part.providerMetadata,
+                      providerMetadata: part.experimental_providerMetadata,
                     };
                   }
                 }
@@ -133,7 +142,8 @@ export function convertToLanguageModelMessage(
                             type: 'image',
                             image: url,
                             mimeType: part.mimeType,
-                            providerMetadata: part.providerMetadata,
+                            providerMetadata:
+                              part.experimental_providerMetadata,
                           };
                         } else {
                           const downloadedImage = downloadedImages[part.image];
@@ -141,7 +151,8 @@ export function convertToLanguageModelMessage(
                             type: 'image',
                             image: downloadedImage.data,
                             mimeType: part.mimeType ?? downloadedImage.mimeType,
-                            providerMetadata: part.providerMetadata,
+                            providerMetadata:
+                              part.experimental_providerMetadata,
                           };
                         }
                       }
@@ -159,7 +170,8 @@ export function convertToLanguageModelMessage(
                             image:
                               convertDataContentToUint8Array(base64Content),
                             mimeType,
-                            providerMetadata: part.providerMetadata,
+                            providerMetadata:
+                              part.experimental_providerMetadata,
                           };
                         } catch (error) {
                           throw new Error(
@@ -186,12 +198,13 @@ export function convertToLanguageModelMessage(
                   type: 'image',
                   image: imageUint8,
                   mimeType: part.mimeType ?? detectImageMimeType(imageUint8),
-                  providerMetadata: part.providerMetadata,
+                  providerMetadata: part.experimental_providerMetadata,
                 };
               }
             }
           },
         ),
+        providerMetadata: message.experimental_providerMetadata,
       };
     }
 
@@ -200,6 +213,7 @@ export function convertToLanguageModelMessage(
         return {
           role: 'assistant',
           content: [{ type: 'text', text: message.content }],
+          providerMetadata: message.experimental_providerMetadata,
         };
       }
 
@@ -209,11 +223,22 @@ export function convertToLanguageModelMessage(
           // remove empty text parts:
           part => part.type !== 'text' || part.text !== '',
         ),
+        providerMetadata: message.experimental_providerMetadata,
       };
     }
 
     case 'tool': {
-      return message;
+      return {
+        role: 'tool',
+        content: message.content.map(part => ({
+          type: 'tool-result',
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          result: part.result,
+          providerMetadata: part.experimental_providerMetadata,
+        })),
+        providerMetadata: message.experimental_providerMetadata,
+      };
     }
 
     default: {

@@ -23,7 +23,17 @@ export type CoreMessage =
  to increase the resilience against prompt injection attacks,
  and because not all providers support several system messages.
  */
-export type CoreSystemMessage = { role: 'system'; content: string };
+export type CoreSystemMessage = {
+  role: 'system';
+  content: string;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  experimental_providerMetadata?: ProviderMetadata;
+};
 
 /**
  * @deprecated Use `CoreMessage` instead.
@@ -42,7 +52,7 @@ Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
-  providerMetadata?: ProviderMetadata;
+  experimental_providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -61,6 +71,13 @@ An assistant message. It can contain text, tool calls, or a combination of text 
 export type CoreAssistantMessage = {
   role: 'assistant';
   content: AssistantContent;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  experimental_providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -85,7 +102,7 @@ Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
-  providerMetadata?: ProviderMetadata;
+  experimental_providerMetadata?: ProviderMetadata;
 };
 
 /**
