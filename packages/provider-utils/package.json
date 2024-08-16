@@ -46,7 +46,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "msw": "2.3.1",
     "tsup": "^8",
-    "typescript": "5.1.3",
+    "typescript": "5.5.4",
     "zod": "3.23.8"
   },
   "peerDependencies": {

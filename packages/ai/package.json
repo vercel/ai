@@ -119,7 +119,7 @@
     "react-server-dom-webpack": "18.3.0-canary-eb33bd747-20240312",
     "sswr": "2.1.0",
     "tsup": "^7.2.0",
-    "typescript": "5.1.3",
+    "typescript": "5.5.4",
     "zod": "3.23.8"
   },
   "peerDependencies": {
