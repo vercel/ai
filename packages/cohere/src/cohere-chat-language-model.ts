@@ -13,10 +13,13 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { CohereChatModelId, CohereChatSettings } from './cohere-chat-settings';
-import { cohereFailedResponseHandler } from './cohere-error';
-import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
-import { mapCohereFinishReason } from './map-cohere-finish-reason';
+import {
+  CohereChatModelId,
+  CohereChatSettings,
+} from '../src/cohere-chat-settings';
+import { cohereFailedResponseHandler } from '../src/cohere-error';
+import { convertToCohereChatPrompt } from '../src/convert-to-cohere-chat-prompt';
+import { mapCohereFinishReason } from '../src/map-cohere-finish-reason';
 
 type CohereChatConfig = {
   provider: string;
@@ -210,7 +213,6 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
-            console.log(chunk);
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
@@ -238,6 +240,16 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                     toolName: toolCall.name,
                     toolCallType: 'function',
                     args: JSON.stringify(toolCall.parameters),
+                  });
+                }
+                return;
+              }
+
+              case 'tool-calls-chunk': {
+                if (value.text) {
+                  controller.enqueue({
+                    type: 'text-delta',
+                    textDelta: value.text,
                   });
                 }
                 return;
@@ -365,7 +377,7 @@ function prepareToolsAndToolChoice(
   const tools = mode.tools?.length ? mode.tools : undefined;
 
   if (tools == null) {
-    return { tools: undefined, tool_choice: undefined };
+    return { tools: undefined };
   }
 
   const mappedTools = tools.map(tool => {
@@ -378,29 +390,29 @@ function prepareToolsAndToolChoice(
         if (typeof value === 'object' && value !== null) {
           const { type: JSONType, description } = value;
 
-          let type;
+          let type: 'str' | 'float' | 'int' | 'bool';
 
           if (typeof JSONType === 'string') {
             switch (JSONType) {
               case 'string':
                 type = 'str';
                 break;
-
               case 'number':
                 type = 'float';
                 break;
-
               case 'integer':
                 type = 'int';
                 break;
-
               case 'boolean':
                 type = 'bool';
                 break;
+              default:
+                throw new Error(`Unsupported JSON type: ${JSONType}`);
             }
           } else if (Array.isArray(JSONType)) {
+            throw new Error('Array types are not supported');
           } else {
-            throw 'Unsupported type';
+            throw new Error('Unsupported type');
           }
 
           parameterDefinitions[key] = {
@@ -422,23 +434,27 @@ function prepareToolsAndToolChoice(
   const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
-    return { tools: mappedTools, tool_choice: undefined };
+    return { tools: mappedTools, force_single_step: false };
   }
 
   const type = toolChoice.type;
 
   switch (type) {
     case 'auto':
-      return { tools: mappedTools, tool_choice: { type: 'auto' } };
+      return { tools: mappedTools, force_single_step: false };
     case 'required':
-      return { tools: mappedTools, tool_choice: { type: 'any' } };
+      return { tools: mappedTools, force_single_step: true };
+
+    // cohere does not support 'none' tool choice, so we remove the tools:
     case 'none':
-      // Anthropic does not support 'none' tool choice, so we remove the tools:
-      return { tools: undefined, tool_choice: undefined };
+      return { tools: undefined, force_single_step: false };
+
+    // cohere does not support tool mode directly,
+    // so we filter the tools and force the tool choice through 'any'
     case 'tool':
       return {
-        tools: mappedTools,
-        tool_choice: { type: 'tool', name: toolChoice.toolName },
+        tools: mappedTools.filter(tool => tool.name === toolChoice.toolName),
+        force_single_step: true,
       };
     default: {
       const _exhaustiveCheck: never = type;

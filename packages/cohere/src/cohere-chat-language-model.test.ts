@@ -25,6 +25,7 @@ describe('doGenerate', () => {
   function prepareJsonResponse({
     input = '',
     text = '',
+    tool_calls,
     finish_reason = 'COMPLETE',
     tokens = {
       input_tokens: 4,
@@ -33,6 +34,7 @@ describe('doGenerate', () => {
   }: {
     input?: string;
     text?: string;
+    tool_calls?: any;
     finish_reason?: string;
     tokens?: {
       input_tokens: number;
@@ -47,6 +49,7 @@ describe('doGenerate', () => {
         { role: 'USER', message: input },
         { role: 'CHATBOT', message: text },
       ],
+      ...(tool_calls ? { tool_calls } : {}),
       finish_reason,
       meta: {
         api_version: { version: '1' },
@@ -66,6 +69,50 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('Hello, World!');
+  });
+
+  it('should extract tool calls', async () => {
+    prepareJsonResponse({
+      text: 'Hello, World!',
+      tool_calls: [
+        {
+          name: 'test-tool',
+          parameters: { value: 'example value' },
+        },
+      ],
+    });
+
+    const { text, toolCalls, finishReason } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(toolCalls).toStrictEqual([
+      expect.objectContaining({
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        args: '{"value":"example value"}',
+      }),
+    ]);
+    expect(text).toStrictEqual('Hello, World!');
+    expect(finishReason).toStrictEqual('stop');
   });
 
   it('should extract usage', async () => {
