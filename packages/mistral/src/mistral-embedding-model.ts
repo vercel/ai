@@ -5,6 +5,7 @@ import {
 import {
   combineHeaders,
   createJsonResponseHandler,
+  FetchFunction,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -18,7 +19,7 @@ type MistralEmbeddingConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export class MistralEmbeddingModel implements EmbeddingModelV1<string> {

@@ -5,6 +5,7 @@ import {
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import {
+  FetchFunction,
   ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -26,7 +27,7 @@ type GoogleGenerativeAIConfig = {
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   generateId: () => string;
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {

@@ -1,9 +1,9 @@
+import { FetchFunction } from '@ai-sdk/provider-utils';
 import type {
   ChatRequest,
   ChatRequestOptions,
   Attachment,
   CreateMessage,
-  FetchFunction,
   IdGenerator,
   JSONValue,
   Message,
