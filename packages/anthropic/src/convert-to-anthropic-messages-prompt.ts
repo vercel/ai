@@ -34,10 +34,13 @@ export function convertToAnthropicMessagesPrompt({
 
     const anthropic = providerMetadata?.anthropic;
 
-    // TODO validation of cache control value
-    return (anthropic?.cacheControl ?? anthropic?.cache_control) as
-      | AnthropicCacheControl
-      | undefined;
+    // allow both cacheControl and cache_control:
+    const cacheControlValue =
+      anthropic?.cacheControl ?? anthropic?.cache_control;
+
+    // Pass through value assuming it is of the correct type.
+    // The Anthropic API will validate the value.
+    return cacheControlValue as AnthropicCacheControl | undefined;
   }
 
   for (let i = 0; i < blocks.length; i++) {
@@ -114,22 +117,26 @@ export function convertToAnthropicMessagesPrompt({
               break;
             }
             case 'tool': {
-              for (const part of content) {
-                const cacheControlValue: AnthropicCacheControl | undefined =
-                  isCacheControlEnabled &&
-                  part.providerMetadata?.cacheControl != null
-                    ? (part.providerMetadata
-                        ?.cacheControl as AnthropicCacheControl)
-                    : undefined;
+              for (let i = 0; i < content.length; i++) {
+                const part = content[i];
 
-                // TODO validation of cache control value
+                // cache control: first add cache control from part.
+                // for the last part of a message,
+                // check also if the message has cache control.
+                const isLastPart = i === content.length - 1;
+
+                const cacheControl =
+                  getCacheControl(part.providerMetadata) ??
+                  (isLastPart
+                    ? getCacheControl(message.providerMetadata)
+                    : undefined);
 
                 anthropicContent.push({
                   type: 'tool_result',
                   tool_use_id: part.toolCallId,
                   content: JSON.stringify(part.result),
                   is_error: part.isError,
-                  cache_control: cacheControlValue,
+                  cache_control: cacheControl,
                 });
               }
 

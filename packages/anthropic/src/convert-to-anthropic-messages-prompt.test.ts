@@ -376,7 +376,104 @@ describe('cache control', () => {
     });
   });
 
-  // TODO test tool message
-  // TODO test tool message parts
+  describe('tool message', () => {
+    it('should set cache_control on tool result message part with part cache control', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'test',
+                toolCallId: 'test',
+                result: { test: 'test' },
+                providerMetadata: {
+                  anthropic: {
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        cacheControl: true,
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                content: '{"test":"test"}',
+                is_error: undefined,
+                tool_use_id: 'test',
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      });
+    });
+
+    it('should set cache_control on last tool result message part with message cache control', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'test',
+                toolCallId: 'part1',
+                result: { test: 'part1' },
+              },
+              {
+                type: 'tool-result',
+                toolName: 'test',
+                toolCallId: 'part2',
+                result: { test: 'part2' },
+              },
+            ],
+            providerMetadata: {
+              anthropic: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+        ],
+        cacheControl: true,
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'part1',
+                content: '{"test":"part1"}',
+                is_error: undefined,
+                cache_control: undefined,
+              },
+              {
+                type: 'tool_result',
+                tool_use_id: 'part2',
+                content: '{"test":"part2"}',
+                is_error: undefined,
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      });
+    });
+  });
+
   // TODO test disabled cache control
 });
