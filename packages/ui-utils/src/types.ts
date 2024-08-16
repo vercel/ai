@@ -1,7 +1,8 @@
+import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import { FetchFunction } from '@ai-sdk/provider-utils';
+import { CompletionTokenUsage } from './duplicated/token-usage';
 import { ToolCall as CoreToolCall } from './duplicated/tool-call';
 import { ToolResult as CoreToolResult } from './duplicated/tool-result';
-import { CompletionTokenUsage } from './duplicated/token-usage';
-import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 
 export * from './use-assistant-types';
 
@@ -623,8 +624,3 @@ export type DataMessage = {
   role: 'data';
   data: JSONValue; // application-specific data
 };
-
-/**
- * Fetch function type (standardizes the version of fetch used).
- */
-export type FetchFunction = typeof fetch;

@@ -5,6 +5,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  FetchFunction,
   ParseResult,
   combineHeaders,
   createJsonResponseHandler,
@@ -22,7 +23,7 @@ type CohereChatConfig = {
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   generateId: () => string;
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export class CohereChatLanguageModel implements LanguageModelV1 {
