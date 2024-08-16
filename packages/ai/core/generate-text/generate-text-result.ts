@@ -1,6 +1,11 @@
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import { CoreTool } from '../tool/tool';
-import { CallWarning, FinishReason, LogProbs } from '../types';
+import {
+  CallWarning,
+  FinishReason,
+  LogProbs,
+  ProviderMetadata,
+} from '../types';
 import { CompletionTokenUsage } from '../types/token-usage';
 import { ToToolCallArray } from './tool-call';
 import { ToToolResultArray } from './tool-result';
@@ -116,4 +121,11 @@ export interface GenerateTextResult<TOOLS extends Record<string, CoreTool>> {
   `undefined` if the mode does not support logprobs or if was not enabled.
      */
   readonly logprobs: LogProbs | undefined;
+
+  /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+   */
+  readonly experimental_providerMetadata: ProviderMetadata | undefined;
 }

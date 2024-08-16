@@ -1,4 +1,9 @@
-import { CallWarning, FinishReason, LogProbs } from '../types';
+import {
+  CallWarning,
+  FinishReason,
+  LogProbs,
+  ProviderMetadata,
+} from '../types';
 import { CompletionTokenUsage } from '../types/token-usage';
 
 /**
@@ -40,6 +45,13 @@ export interface GenerateObjectResult<T> {
   `undefined` if the mode does not support logprobs or if was not enabled
      */
   readonly logprobs: LogProbs | undefined;
+
+  /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+   */
+  readonly experimental_providerMetadata: ProviderMetadata | undefined;
 
   /**
   Converts the object to a JSON response.

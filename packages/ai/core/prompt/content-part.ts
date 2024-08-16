@@ -1,3 +1,4 @@
+import { ProviderMetadata } from '../types/language-model';
 import { DataContent } from './data-content';
 
 /**
@@ -10,6 +11,13 @@ export interface TextPart {
 The text content.
    */
   text: string;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  experimental_providerMetadata?: ProviderMetadata;
 }
 
 /**
@@ -30,6 +38,13 @@ Image data. Can either be:
 Optional mime type of the image.
    */
   mimeType?: string;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  experimental_providerMetadata?: ProviderMetadata;
 }
 
 /**
@@ -79,4 +94,11 @@ Result of the tool call. This is a JSON-serializable object.
 Optional flag if the result is an error or an error message.
    */
   isError?: boolean;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  experimental_providerMetadata?: ProviderMetadata;
 }

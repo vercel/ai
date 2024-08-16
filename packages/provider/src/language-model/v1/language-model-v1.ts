@@ -3,6 +3,7 @@ import { LanguageModelV1CallWarning } from './language-model-v1-call-warning';
 import { LanguageModelV1FinishReason } from './language-model-v1-finish-reason';
 import { LanguageModelV1FunctionToolCall } from './language-model-v1-function-tool-call';
 import { LanguageModelV1LogProbs } from './language-model-v1-logprobs';
+import { LanguageModelV1ProviderMetadata } from './language-model-v1-provider-metadata';
 
 /**
 Specification for a language model that implements the language model interface version 1.
@@ -127,6 +128,13 @@ Response headers.
     warnings?: LanguageModelV1CallWarning[];
 
     /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+     */
+    providerMetadata?: LanguageModelV1ProviderMetadata;
+
+    /**
   Logprobs for the completion.
   `undefined` if the mode does not support logprobs or if was not enabled
      */
@@ -198,6 +206,7 @@ export type LanguageModelV1StreamPart =
       type: 'finish';
       finishReason: LanguageModelV1FinishReason;
       logprobs?: LanguageModelV1LogProbs;
+      providerMetadata?: LanguageModelV1ProviderMetadata;
       usage: { promptTokens: number; completionTokens: number };
     }
 
