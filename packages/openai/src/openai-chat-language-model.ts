@@ -221,11 +221,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       name: mode.tool.name,
                       description: mode.tool.description,
                       parameters: mode.tool.parameters,
+                      strict:
+                        this.settings.structuredOutputs === true
+                          ? true
+                          : undefined,
                     },
-                    strict:
-                      this.settings.structuredOutputs === true
-                        ? true
-                        : undefined,
                   },
                 ],
               },
@@ -706,8 +706,8 @@ function prepareToolsAndToolChoice({
       name: tool.name,
       description: tool.description,
       parameters: tool.parameters,
+      strict: structuredOutputs === true ? true : undefined,
     },
-    strict: structuredOutputs === true ? true : undefined,
   }));
 
   if (toolChoice == null) {
