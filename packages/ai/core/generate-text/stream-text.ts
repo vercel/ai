@@ -369,11 +369,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     // store information for onFinish callback:
     let finishReason: FinishReason | undefined;
     let usage: CompletionTokenUsage | undefined;
+    let providerMetadata: ProviderMetadata | undefined;
     let text = '';
     const toolCalls: ToToolCall<TOOLS>[] = [];
     const toolResults: ToToolResult<TOOLS>[] = [];
     let firstChunk = true;
-    let providerMetadata: ProviderMetadata | undefined;
 
     // pipe chunks through a transformation stream that extracts metadata:
     this.originalStream = stream.pipeThrough(
