@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 0.0.43
+
+### Patch Changes
+
+- 6ac355e: feat (provider/anthropic): add cache control support
+- Updated dependencies [6ac355e]
+  - @ai-sdk/provider@0.0.20
+  - @ai-sdk/provider-utils@1.0.13
+
 ## 0.0.42
 
 ### Patch Changes
