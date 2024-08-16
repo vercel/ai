@@ -930,25 +930,25 @@ importers:
   packages/ai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 0.0.44
+        specifier: 0.0.45
         version: link:../react
       '@ai-sdk/solid':
-        specifier: 0.0.35
+        specifier: 0.0.36
         version: link:../solid
       '@ai-sdk/svelte':
-        specifier: 0.0.37
+        specifier: 0.0.38
         version: link:../svelte
       '@ai-sdk/ui-utils':
-        specifier: 0.0.32
+        specifier: 0.0.33
         version: link:../ui-utils
       '@ai-sdk/vue':
-        specifier: 0.0.36
+        specifier: 0.0.37
         version: link:../vue
       '@opentelemetry/api':
         specifier: 1.9.0
@@ -1070,21 +1070,21 @@ importers:
         version: link:../../..
       next:
         specifier: canary
-        version: 15.0.0-canary.117(@playwright/test@1.46.0)(react-dom@19.0.0-rc-19bd26be-20240815)(react@19.0.0-rc-19bd26be-20240815)
+        version: 15.0.0-canary.117(@playwright/test@1.46.0)(react-dom@19.0.0-rc-fa6eab58-20240815)(react@19.0.0-rc-fa6eab58-20240815)
       react:
         specifier: rc
-        version: 19.0.0-rc-19bd26be-20240815
+        version: 19.0.0-rc-fa6eab58-20240815
       react-dom:
         specifier: rc
-        version: 19.0.0-rc-19bd26be-20240815(react@19.0.0-rc-19bd26be-20240815)
+        version: 19.0.0-rc-fa6eab58-20240815(react@19.0.0-rc-fa6eab58-20240815)
 
   packages/amazon-bedrock:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
       '@aws-sdk/client-bedrock-runtime':
         specifier: 3.602.0
@@ -1115,10 +1115,10 @@ importers:
   packages/anthropic:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1140,13 +1140,13 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 0.0.47
+        specifier: 0.0.48
         version: link:../openai
       '@ai-sdk/provider':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1168,10 +1168,10 @@ importers:
   packages/cohere:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1193,10 +1193,10 @@ importers:
   packages/google:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1218,10 +1218,10 @@ importers:
   packages/google-vertex:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
       json-schema:
         specifier: 0.4.0
@@ -1249,10 +1249,10 @@ importers:
   packages/mistral:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1274,10 +1274,10 @@ importers:
   packages/openai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1321,7 +1321,7 @@ importers:
   packages/provider-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../provider
       eventsource-parser:
         specifier: 1.1.2
@@ -1355,10 +1355,10 @@ importers:
   packages/react:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.32
+        specifier: 0.0.33
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19
@@ -1416,10 +1416,10 @@ importers:
   packages/solid:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.32
+        specifier: 0.0.33
         version: link:../ui-utils
       solid-js:
         specifier: ^1.7.7
@@ -1468,10 +1468,10 @@ importers:
   packages/svelte:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.32
+        specifier: 0.0.33
         version: link:../ui-utils
       sswr:
         specifier: 2.1.0
@@ -1502,10 +1502,10 @@ importers:
   packages/ui-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 0.0.19
+        specifier: 0.0.20
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
       json-schema:
         specifier: 0.4.0
@@ -1542,10 +1542,10 @@ importers:
   packages/vue:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.12
+        specifier: 1.0.13
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.32
+        specifier: 0.0.33
         version: link:../ui-utils
       swrv:
         specifier: 1.0.4
@@ -17834,7 +17834,7 @@ packages:
       - babel-plugin-macros
     dev: false
 
-  /next@15.0.0-canary.117(@playwright/test@1.46.0)(react-dom@19.0.0-rc-19bd26be-20240815)(react@19.0.0-rc-19bd26be-20240815):
+  /next@15.0.0-canary.117(@playwright/test@1.46.0)(react-dom@19.0.0-rc-fa6eab58-20240815)(react@19.0.0-rc-fa6eab58-20240815):
     resolution: {integrity: sha512-7lB0M+SysxG7if19BrA0h3cwMQMHCkH9Dq0uLJ197Nb/OJ1F1A4vCW7JAtL9PhWvp1ezyPcrGLe/bObktCgDlQ==}
     engines: {node: '>=18.18.0'}
     hasBin: true
@@ -17863,9 +17863,9 @@ packages:
       caniuse-lite: 1.0.30001649
       graceful-fs: 4.2.11
       postcss: 8.4.31
-      react: 19.0.0-rc-19bd26be-20240815
-      react-dom: 19.0.0-rc-19bd26be-20240815(react@19.0.0-rc-19bd26be-20240815)
-      styled-jsx: 5.1.6(react@19.0.0-rc-19bd26be-20240815)
+      react: 19.0.0-rc-fa6eab58-20240815
+      react-dom: 19.0.0-rc-fa6eab58-20240815(react@19.0.0-rc-fa6eab58-20240815)
+      styled-jsx: 5.1.6(react@19.0.0-rc-fa6eab58-20240815)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.0.0-canary.117
       '@next/swc-darwin-x64': 15.0.0-canary.117
@@ -19737,15 +19737,6 @@ packages:
       react: 18.3.1
       scheduler: 0.23.2
 
-  /react-dom@19.0.0-rc-19bd26be-20240815(react@19.0.0-rc-19bd26be-20240815):
-    resolution: {integrity: sha512-UG8iYnr1NVxPcIG9iIcGuxfV3fy2Jr9fdWRZu24fUHl4BBigGqYbjW6P3hAK1yR9GRGJ8FHn+ke+Xt6gp0VufA==}
-    peerDependencies:
-      react: 19.0.0-rc-19bd26be-20240815
-    dependencies:
-      react: 19.0.0-rc-19bd26be-20240815
-      scheduler: 0.25.0-rc-19bd26be-20240815
-    dev: false
-
   /react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607):
     resolution: {integrity: sha512-paspD9kAfKKuURVwKWJ0/g3qYw1DGi9h1k9xQV2iQN9cSVZ4JAOD727yjVLyp1zdzsoygjFfLMtSBdZ+oERYvA==}
     peerDependencies:
@@ -19754,6 +19745,15 @@ packages:
       react: 19.0.0-rc-cc1ec60d0d-20240607
       scheduler: 0.25.0-rc-cc1ec60d0d-20240607
     dev: true
+
+  /react-dom@19.0.0-rc-fa6eab58-20240815(react@19.0.0-rc-fa6eab58-20240815):
+    resolution: {integrity: sha512-xt0hdkadIFmoPIEz7KF33Wn/tdOBG83O4B9PgKvPzmr24TW1SM8UZPCFwm8Jym4uy+q9SKsH5r6fCwaJQnN+Gw==}
+    peerDependencies:
+      react: 19.0.0-rc-fa6eab58-20240815
+    dependencies:
+      react: 19.0.0-rc-fa6eab58-20240815
+      scheduler: 0.25.0-rc-fa6eab58-20240815
+    dev: false
 
   /react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
@@ -19798,15 +19798,15 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /react@19.0.0-rc-19bd26be-20240815:
-    resolution: {integrity: sha512-LfNxIja6aj9OCTmbVh6QUwy9lMVt2lp/S0erap/gdh1PvHpaYGMddyXoIOR/D2scvKachosW+tbxThXfUmBCPw==}
-    engines: {node: '>=0.10.0'}
-    dev: false
-
   /react@19.0.0-rc-cc1ec60d0d-20240607:
     resolution: {integrity: sha512-q8A0/IdJ2wdHsjDNO1igFcSSFIMqSKmO7oJZtAjxIA9g0klK45Lxt15NQJ7z7cBvgD1r3xRTtQ/MAqnmwYHs1Q==}
     engines: {node: '>=0.10.0'}
     dev: true
+
+  /react@19.0.0-rc-fa6eab58-20240815:
+    resolution: {integrity: sha512-AriCxVCs4pg8vKMM02O/aztA2CNU/lapNM+sgPGylG+R6giskWqMK2n0DKnF60t8omu8vvaXMQrZOLJ1/Uf1dQ==}
+    engines: {node: '>=0.10.0'}
+    dev: false
 
   /read-cache@1.0.0:
     resolution: {integrity: sha512-Owdv/Ft7IjOgm/i0xvNDZ1LrRANRfew4b2prF3OWMQLxLfu3bS8FVhCsrSCMK4lR56Y9ya+AThoTpDCTxCmpRA==}
@@ -20219,13 +20219,13 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /scheduler@0.25.0-rc-19bd26be-20240815:
-    resolution: {integrity: sha512-suxU1KqTo/cpFIAKSkrfwPxSnq8rqRCZHl2OZQL+pfX1PYXFRE2udEqjPqTrFLxP3bzzsgIprrxKhdcpSL5TSA==}
-    dev: false
-
   /scheduler@0.25.0-rc-cc1ec60d0d-20240607:
     resolution: {integrity: sha512-yFVKy6SDJkN2bOJSeH6gNo4+1MTygTZXnLRY5IHvEB6P9+O6WYRWz9PkELLjnl64lQwRgiigwzWQRSMNEboOGQ==}
     dev: true
+
+  /scheduler@0.25.0-rc-fa6eab58-20240815:
+    resolution: {integrity: sha512-XbQe3jnPIT7qkzz9lN6Q200sS+60bXxdFgUFN/6UQwXo4kR0mDPeByw/zrGIDQGyTiiHWlNjECS/L4cuD8cHrg==}
+    dev: false
 
   /schema-utils@3.3.0:
     resolution: {integrity: sha512-pN/yOAvcC+5rQ5nERGuwrjLlYvLTbCibnZ1I7B1LaiAz9BRBlE9GMgE/eqV30P7aJQUf7Ddimy/RsbYO/GrVGg==}
@@ -20928,23 +20928,6 @@ packages:
       react: 18.3.1
     dev: false
 
-  /styled-jsx@5.1.6(react@19.0.0-rc-19bd26be-20240815):
-    resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
-    engines: {node: '>= 12.0.0'}
-    peerDependencies:
-      '@babel/core': '*'
-      babel-plugin-macros: '*'
-      react: '>= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0'
-    peerDependenciesMeta:
-      '@babel/core':
-        optional: true
-      babel-plugin-macros:
-        optional: true
-    dependencies:
-      client-only: 0.0.1
-      react: 19.0.0-rc-19bd26be-20240815
-    dev: false
-
   /styled-jsx@5.1.6(react@19.0.0-rc-cc1ec60d0d-20240607):
     resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
     engines: {node: '>= 12.0.0'}
@@ -20961,6 +20944,23 @@ packages:
       client-only: 0.0.1
       react: 19.0.0-rc-cc1ec60d0d-20240607
     dev: true
+
+  /styled-jsx@5.1.6(react@19.0.0-rc-fa6eab58-20240815):
+    resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
+    engines: {node: '>= 12.0.0'}
+    peerDependencies:
+      '@babel/core': '*'
+      babel-plugin-macros: '*'
+      react: '>= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0'
+    peerDependenciesMeta:
+      '@babel/core':
+        optional: true
+      babel-plugin-macros:
+        optional: true
+    dependencies:
+      client-only: 0.0.1
+      react: 19.0.0-rc-fa6eab58-20240815
+    dev: false
 
   /stylehacks@7.0.2(postcss@8.4.41):
     resolution: {integrity: sha512-HdkWZS9b4gbgYTdMg4gJLmm7biAUug1qTqXjS+u8X+/pUd+9Px1E+520GnOW3rST9MNsVOVpsJG+mPHNosxjOQ==}

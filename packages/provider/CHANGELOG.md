@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.20
+
+### Patch Changes
+
+- 6ac355e: feat (provider/anthropic): add cache control support
+
 ## 0.0.19
 
 ### Patch Changes
