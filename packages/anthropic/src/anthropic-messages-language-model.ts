@@ -217,6 +217,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
+      providerMetadata:
+        this.settings.cacheControl === true
+          ? {
+              anthropic: {
+                cacheCreationInputTokens:
+                  response.usage.cache_creation_input_tokens ?? null,
+                cacheReadInputTokens:
+                  response.usage.cache_read_input_tokens ?? null,
+              },
+            }
+          : undefined,
     };
   }
 
@@ -413,10 +424,12 @@ const anthropicMessagesResponseSchema = z.object({
       }),
     ]),
   ),
-  stop_reason: z.string().optional().nullable(),
+  stop_reason: z.string().nullish(),
   usage: z.object({
     input_tokens: z.number(),
     output_tokens: z.number(),
+    cache_creation_input_tokens: z.number().nullish(),
+    cache_read_input_tokens: z.number().nullish(),
   }),
 });
 

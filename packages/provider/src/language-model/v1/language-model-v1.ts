@@ -128,6 +128,13 @@ Response headers.
     warnings?: LanguageModelV1CallWarning[];
 
     /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+     */
+    providerMetadata?: LanguageModelV1ProviderMetadata;
+
+    /**
   Logprobs for the completion.
   `undefined` if the mode does not support logprobs or if was not enabled
      */
@@ -171,8 +178,6 @@ Response headers.
        */
       headers?: Record<string, string>;
     };
-
-    providerMetadata?: LanguageModelV1ProviderMetadata;
 
     warnings?: LanguageModelV1CallWarning[];
   }>;
