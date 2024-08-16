@@ -90,7 +90,7 @@ Create a route handler, `app/api/chat/route.ts` and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, convertToCoreMessages } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages,
+    messages: convertToCoreMessages(messages),
   });
 
   return result.toDataStreamResponse();
@@ -181,7 +181,7 @@ Make the following changes to your Route Handler (`app/api/chat/route.ts`):
 
 ```ts filename="app/api/chat/route.ts" highlight="2,10-11,16-18,21"
 import { openai } from '@ai-sdk/openai';
-import { streamText, StreamData } from 'ai';
+import { streamText, convertToCoreMessages, StreamData } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -194,7 +194,7 @@ export async function POST(req: Request) {
 
   const result = await streamText({
     model: openai('gpt-4-turbo'),
-    messages,
+    messages: convertToCoreMessages(messages),
     onFinish() {
       data.close();
     },
@@ -401,7 +401,7 @@ The only change that you make here is to declare a new value (`data`) and return
 
 Update your root page with the following code:
 
-```tsx filename="app/page.tsx" highlight="15, 18, 38, 40"
+```tsx filename="app/page.tsx" highlight="14, 17, 37, 39"
 'use client';
 
 import { type CoreMessage } from 'ai';
