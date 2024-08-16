@@ -3,8 +3,8 @@ import {
   DataMessage,
   formatStreamPart,
 } from '@ai-sdk/ui-utils';
-import { type AssistantStream } from 'openai/lib/AssistantStream';
-import { Run } from 'openai/resources/beta/threads/runs/runs';
+import type { AssistantStream } from 'openai/lib/AssistantStream';
+import type { Run } from 'openai/resources/beta/threads/runs/runs';
 
 /**
 You can pass the thread and the latest message into the `AssistantResponse`. This establishes the context for the response.

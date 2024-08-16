@@ -1,8 +1,11 @@
-import { isAbortError, safeValidateTypes } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  isAbortError,
+  safeValidateTypes,
+} from '@ai-sdk/provider-utils';
 import {
   asSchema,
   DeepPartial,
-  FetchFunction,
   isDeepEqualData,
   parsePartialJson,
   Schema,
