@@ -200,7 +200,7 @@ export type LanguageModelV1StreamPart =
   | {
       type: 'finish';
       finishReason: LanguageModelV1FinishReason;
-      logprobs?: LanguageModelV1LogProbs; // TODO move into provider specific part in v2
+      logprobs?: LanguageModelV1LogProbs;
       providerMetadata?: LanguageModelV1ProviderMetadata;
       usage: { promptTokens: number; completionTokens: number };
     }
