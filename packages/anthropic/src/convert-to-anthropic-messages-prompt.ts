@@ -1,6 +1,7 @@
 import {
   LanguageModelV1Message,
   LanguageModelV1Prompt,
+  LanguageModelV1ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
@@ -14,7 +15,7 @@ import {
 
 export function convertToAnthropicMessagesPrompt({
   prompt,
-  cacheControl,
+  cacheControl: isCacheControlEnabled,
 }: {
   prompt: LanguageModelV1Prompt;
   cacheControl: boolean;
@@ -23,6 +24,21 @@ export function convertToAnthropicMessagesPrompt({
 
   let system: string | undefined = undefined;
   const messages: AnthropicMessage[] = [];
+
+  function getCacheControl(
+    providerMetadata: LanguageModelV1ProviderMetadata | undefined,
+  ): AnthropicCacheControl | undefined {
+    if (isCacheControlEnabled === false) {
+      return undefined;
+    }
+
+    const anthropic = providerMetadata?.anthropic;
+
+    // TODO validation of cache control value
+    return (anthropic?.cacheControl ?? anthropic?.cache_control) as
+      | AnthropicCacheControl
+      | undefined;
+  }
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
@@ -45,31 +61,30 @@ export function convertToAnthropicMessagesPrompt({
         // combines all user and tool messages in this block into a single message:
         const anthropicContent: AnthropicUserMessage['content'] = [];
 
-        // TODO needs tests:
-        // - message level
-        // - content level
-        // - ignore
-        // - system message
-
-        for (const { role, content } of block.messages) {
+        for (const message of block.messages) {
+          const { role, content } = message;
           switch (role) {
             case 'user': {
-              for (const part of content) {
-                // TODO validation of cache control value
-                const cacheControlValue: AnthropicCacheControl | undefined =
-                  cacheControl
-                    ? ((part.providerMetadata?.anthropic?.cacheControl ??
-                        part.providerMetadata?.anthropic?.cache_control) as
-                        | AnthropicCacheControl
-                        | undefined)
-                    : undefined;
+              for (let i = 0; i < content.length; i++) {
+                const part = content[i];
+
+                // cache control: first add cache control from part.
+                // for the last part of a message,
+                // check also if the message has cache control.
+                const isLastPart = i === content.length - 1;
+
+                const cacheControl =
+                  getCacheControl(part.providerMetadata) ??
+                  (isLastPart
+                    ? getCacheControl(message.providerMetadata)
+                    : undefined);
 
                 switch (part.type) {
                   case 'text': {
                     anthropicContent.push({
                       type: 'text',
                       text: part.text,
-                      cache_control: cacheControlValue,
+                      cache_control: cacheControl,
                     });
                     break;
                   }
@@ -88,7 +103,7 @@ export function convertToAnthropicMessagesPrompt({
                         media_type: part.mimeType ?? 'image/jpeg',
                         data: convertUint8ArrayToBase64(part.image),
                       },
-                      cache_control: cacheControlValue,
+                      cache_control: cacheControl,
                     });
 
                     break;
@@ -101,7 +116,8 @@ export function convertToAnthropicMessagesPrompt({
             case 'tool': {
               for (const part of content) {
                 const cacheControlValue: AnthropicCacheControl | undefined =
-                  cacheControl && part.providerMetadata?.cacheControl != null
+                  isCacheControlEnabled &&
+                  part.providerMetadata?.cacheControl != null
                     ? (part.providerMetadata
                         ?.cacheControl as AnthropicCacheControl)
                     : undefined;
@@ -206,7 +222,8 @@ function groupIntoBlocks(
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =
     undefined;
 
-  for (const { role, content } of prompt) {
+  for (const message of prompt) {
+    const { role } = message;
     switch (role) {
       case 'system': {
         if (currentBlock?.type !== 'system') {
@@ -214,7 +231,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push(message);
         break;
       }
       case 'assistant': {
@@ -223,7 +240,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push(message);
         break;
       }
       case 'user': {
@@ -232,7 +249,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push(message);
         break;
       }
       case 'tool': {
@@ -241,7 +258,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push(message);
         break;
       }
       default: {

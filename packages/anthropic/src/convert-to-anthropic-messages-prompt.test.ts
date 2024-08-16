@@ -291,3 +291,92 @@ describe('assistant messages', () => {
     });
   });
 });
+
+describe('cache control', () => {
+  // TODO test system message
+
+  describe('user message', () => {
+    it('should set cache_control on user message part with part cache control', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'test',
+                providerMetadata: {
+                  anthropic: {
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        cacheControl: true,
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'test',
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      });
+    });
+
+    it('should set cache_control on last user message part with message cache control', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'part1' },
+              { type: 'text', text: 'part2' },
+            ],
+            providerMetadata: {
+              anthropic: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+        ],
+        cacheControl: true,
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'part1',
+                cache_control: undefined,
+              },
+              {
+                type: 'text',
+                text: 'part2',
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      });
+    });
+  });
+
+  // TODO test tool message
+  // TODO test tool message parts
+  // TODO test disabled cache control
+});
