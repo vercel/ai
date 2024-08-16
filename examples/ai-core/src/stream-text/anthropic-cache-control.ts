@@ -1,5 +1,5 @@
-import { anthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { streamText } from 'ai';
 import dotenv from 'dotenv';
 import fs from 'node:fs';
 
@@ -7,8 +7,20 @@ dotenv.config();
 
 const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
+const anthropic = createAnthropic({
+  // example fetch wrapper that logs the input to the API call:
+  fetch: async (url, options) => {
+    console.log('URL', url);
+    console.log('Headers', JSON.stringify(options!.headers, null, 2));
+    console.log(
+      `Body ${JSON.stringify(JSON.parse(options!.body! as string), null, 2)}`,
+    );
+    return await fetch(url, options);
+  },
+});
+
 async function main() {
-  const result = await generateText({
+  const result = await streamText({
     model: anthropic('claude-3-5-sonnet-20240620', {
       cacheControl: true,
     }),
@@ -38,8 +50,11 @@ async function main() {
     ],
   });
 
-  console.log(result.text);
-  console.log(result.experimental_providerMetadata?.anthropic);
+  for await (const textPart of result.textStream) {
+    process.stdout.write(textPart);
+  }
+
+  // console.log(await result.experimental_providerMetadata?.anthropic);
   // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
 }
 
