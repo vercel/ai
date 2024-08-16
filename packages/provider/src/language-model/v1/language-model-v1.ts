@@ -3,6 +3,7 @@ import { LanguageModelV1CallWarning } from './language-model-v1-call-warning';
 import { LanguageModelV1FinishReason } from './language-model-v1-finish-reason';
 import { LanguageModelV1FunctionToolCall } from './language-model-v1-function-tool-call';
 import { LanguageModelV1LogProbs } from './language-model-v1-logprobs';
+import { LanguageModelV1ProviderMetadata } from './language-model-v1-provider-metadata';
 
 /**
 Specification for a language model that implements the language model interface version 1.
@@ -171,6 +172,8 @@ Response headers.
       headers?: Record<string, string>;
     };
 
+    providerMetadata?: LanguageModelV1ProviderMetadata;
+
     warnings?: LanguageModelV1CallWarning[];
   }>;
 };
@@ -197,7 +200,8 @@ export type LanguageModelV1StreamPart =
   | {
       type: 'finish';
       finishReason: LanguageModelV1FinishReason;
-      logprobs?: LanguageModelV1LogProbs;
+      logprobs?: LanguageModelV1LogProbs; // TODO move into provider specific part in v2
+      providerMetadata?: LanguageModelV1ProviderMetadata;
       usage: { promptTokens: number; completionTokens: number };
     }
 

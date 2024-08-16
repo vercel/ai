@@ -1,3 +1,5 @@
+import { LanguageModelV1ProviderMetadata } from './language-model-v1-provider-metadata';
+
 /**
 A prompt is a list of messages.
 
@@ -20,6 +22,7 @@ export type LanguageModelV1Message =
   | {
       role: 'user';
       content: Array<LanguageModelV1TextPart | LanguageModelV1ImagePart>;
+      providerMetadata?: LanguageModelV1ProviderMetadata;
     }
   | {
       role: 'assistant';
@@ -28,6 +31,7 @@ export type LanguageModelV1Message =
   | {
       role: 'tool';
       content: Array<LanguageModelV1ToolResultPart>;
+      providerMetadata?: LanguageModelV1ProviderMetadata;
     };
 
 /**
@@ -40,6 +44,13 @@ export interface LanguageModelV1TextPart {
 The text content.
    */
   text: string;
+
+  /**
+   * Additional provider-specific metadata. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerMetadata?: LanguageModelV1ProviderMetadata;
 }
 
 /**
@@ -57,6 +68,13 @@ Image data as a Uint8Array (e.g. from a Blob or Buffer) or a URL.
 Optional mime type of the image.
    */
   mimeType?: string;
+
+  /**
+   * Additional provider-specific metadata. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerMetadata?: LanguageModelV1ProviderMetadata;
 }
 
 /**
@@ -106,4 +124,11 @@ Result of the tool call. This is a JSON-serializable object.
 Optional flag if the result is an error or an error message.
    */
   isError?: boolean;
+
+  /**
+   * Additional provider-specific metadata. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerMetadata?: LanguageModelV1ProviderMetadata;
 }
