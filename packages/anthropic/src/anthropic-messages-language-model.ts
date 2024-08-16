@@ -203,6 +203,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       usage: {
         promptTokens: response.usage.input_tokens,
         completionTokens: response.usage.output_tokens,
+        cacheCreationPromptTokens: response.usage.cache_creation_input_tokens,
+        cacheReadPromptTokens: response.usage.cache_read_input_tokens,
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
@@ -233,7 +235,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
 
     let finishReason: LanguageModelV1FinishReason = 'unknown';
-    const usage: { promptTokens: number; completionTokens: number } = {
+    const usage: { promptTokens: number; completionTokens: number, cacheCreationPromptTokens?: number | null, cacheReadPromptTokens?: number | null } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
@@ -351,6 +353,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
               case 'message_start': {
                 usage.promptTokens = value.message.usage.input_tokens;
                 usage.completionTokens = value.message.usage.output_tokens;
+                usage.cacheCreationPromptTokens = value.message.usage.cache_creation_input_tokens;
+                usage.cacheReadPromptTokens = value.message.usage.cache_read_input_tokens;
                 return;
               }
 
@@ -407,6 +411,8 @@ const anthropicMessagesResponseSchema = z.object({
   usage: z.object({
     input_tokens: z.number(),
     output_tokens: z.number(),
+    cache_creation_input_tokens: z.number().optional().nullable(),
+    cache_read_input_tokens: z.number().optional().nullable(),
   }),
 });
 
@@ -419,6 +425,8 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
       usage: z.object({
         input_tokens: z.number(),
         output_tokens: z.number(),
+        cache_creation_input_tokens: z.number().optional().nullable(),
+        cache_read_input_tokens: z.number().optional().nullable(),
       }),
     }),
   }),

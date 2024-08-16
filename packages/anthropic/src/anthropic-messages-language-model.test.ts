@@ -24,6 +24,8 @@ describe('doGenerate', () => {
     usage = {
       input_tokens: 4,
       output_tokens: 30,
+      cache_creation_input_tokens: 10,
+      cache_read_input_tokens: 5,
     },
     stopReason = 'end_turn',
   }: {
@@ -31,6 +33,8 @@ describe('doGenerate', () => {
     usage?: {
       input_tokens: number;
       output_tokens: number;
+      cache_creation_input_tokens: number;
+      cache_read_input_tokens: number;
     };
     stopReason?: string;
   }) {
@@ -159,6 +163,7 @@ describe('doGenerate', () => {
           role: 'user',
         },
       ],
+      system: [],
       model: 'claude-3-haiku-20240307',
       tool_choice: { name: 'json', type: 'tool' },
       tools: [
@@ -179,7 +184,7 @@ describe('doGenerate', () => {
 
   it('should extract usage', async () => {
     prepareJsonResponse({
-      usage: { input_tokens: 20, output_tokens: 5 },
+      usage: { input_tokens: 20, output_tokens: 5, cache_creation_input_tokens: 10, cache_read_input_tokens: 5 },
     });
 
     const { usage } = await model.doGenerate({
@@ -191,6 +196,8 @@ describe('doGenerate', () => {
     expect(usage).toStrictEqual({
       promptTokens: 20,
       completionTokens: 5,
+      cacheCreationPromptTokens: 10,
+      cacheReadPromptTokens: 5,
     });
   });
 
@@ -209,7 +216,7 @@ describe('doGenerate', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
-      'content-length': '237',
+      'content-length': '298',
       'content-type': 'application/json',
 
       // custom header
@@ -230,6 +237,7 @@ describe('doGenerate', () => {
       model: 'claude-3-haiku-20240307',
       max_tokens: 4096, // default value
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      system: []
     });
   });
 
@@ -264,6 +272,7 @@ describe('doGenerate', () => {
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'claude-3-haiku-20240307',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      system: [],
       max_tokens: 4096,
       tools: [
         {
@@ -353,7 +362,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { promptTokens: 17, completionTokens: 227 },
+        usage: { promptTokens: 17, completionTokens: 227, cacheCreationPromptTokens: undefined, cacheReadPromptTokens: undefined },
       },
     ]);
   });
@@ -460,7 +469,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'tool-calls',
-        usage: { promptTokens: 441, completionTokens: 65 },
+        usage: { promptTokens: 441, completionTokens: 65, cacheCreationPromptTokens: undefined, cacheReadPromptTokens: undefined },
       },
     ]);
   });
@@ -522,6 +531,7 @@ describe('doStream', () => {
       model: 'claude-3-haiku-20240307',
       max_tokens: 4096, // default value
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      system: []
     });
   });
 

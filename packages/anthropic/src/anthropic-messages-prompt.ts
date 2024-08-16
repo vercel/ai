@@ -1,5 +1,5 @@
 export type AnthropicMessagesPrompt = {
-  system?: string;
+  system?: AnthropicSystemMessage[];
   messages: AnthropicMessage[];
 };
 
@@ -17,9 +17,12 @@ export interface AnthropicAssistantMessage {
   content: Array<AnthropicTextContent | AnthropicToolCallContent>;
 }
 
+export type AnthropicSystemMessage = AnthropicTextContent;
+
 export interface AnthropicTextContent {
   type: 'text';
   text: string;
+  cache_control?: { type: 'ephemeral' };
 }
 
 export interface AnthropicImageContent {
@@ -29,6 +32,7 @@ export interface AnthropicImageContent {
     media_type: string;
     data: string;
   };
+  cache_control?: { type: 'ephemeral' };
 }
 
 export interface AnthropicToolCallContent {

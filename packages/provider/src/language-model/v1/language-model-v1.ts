@@ -95,6 +95,8 @@ Finish reason.
     usage: {
       promptTokens: number;
       completionTokens: number;
+      cacheCreationPromptTokens?: number | null;
+      cacheReadPromptTokens?: number | null;
     };
 
     /**
@@ -198,7 +200,12 @@ export type LanguageModelV1StreamPart =
       type: 'finish';
       finishReason: LanguageModelV1FinishReason;
       logprobs?: LanguageModelV1LogProbs;
-      usage: { promptTokens: number; completionTokens: number };
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        cacheCreationPromptTokens?: number | null;
+        cacheReadPromptTokens?: number | null;
+      };
     }
 
   // error parts are streamed, allowing for multiple errors

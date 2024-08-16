@@ -3,24 +3,27 @@ import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-message
 describe('system messages', () => {
   it('should convert a single system message into an anthropic system message', async () => {
     const result = convertToAnthropicMessagesPrompt([
-      { role: 'system', content: 'This is a system message' },
+      { role: 'system', content: 'This is a system message', cacheControl: { type: 'ephemeral' } },
     ]);
 
     expect(result).toEqual({
       messages: [],
-      system: 'This is a system message',
+      system: [{ type: 'text', text: 'This is a system message', cache_control: { type: 'ephemeral' } }],
     });
   });
 
-  it('should convert multiple system messages into an anthropic system message separated by a newline', async () => {
+  it('should convert multiple system messages into anthropic system messages', async () => {
     const result = convertToAnthropicMessagesPrompt([
-      { role: 'system', content: 'This is a system message' },
+      { role: 'system', content: 'This is a system message', cacheControl: { type: 'ephemeral' } },
       { role: 'system', content: 'This is another system message' },
     ]);
 
     expect(result).toEqual({
       messages: [],
-      system: 'This is a system message\nThis is another system message',
+      system: [
+        { type: 'text', text: 'This is a system message', cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: 'This is another system message' },
+      ],
     });
   });
 });
@@ -56,7 +59,7 @@ describe('user messages', () => {
           ],
         },
       ],
-      system: undefined,
+      system: [],
     });
   });
 });
@@ -91,7 +94,7 @@ describe('tool messages', () => {
           ],
         },
       ],
-      system: undefined,
+      system: [],
     });
   });
 
@@ -136,7 +139,7 @@ describe('tool messages', () => {
           ],
         },
       ],
-      system: undefined,
+      system: [],
     });
   });
 
@@ -174,7 +177,7 @@ describe('tool messages', () => {
           ],
         },
       ],
-      system: undefined,
+      system: [],
     });
   });
 });
@@ -203,7 +206,7 @@ describe('assistant messages', () => {
           content: [{ type: 'text', text: 'assistant content' }],
         },
       ],
-      system: undefined,
+      system: [],
     });
   });
 
@@ -238,7 +241,7 @@ describe('assistant messages', () => {
           content: [{ type: 'text', text: 'user content 2' }],
         },
       ],
-      system: undefined,
+      system: [],
     });
   });
 
@@ -262,7 +265,7 @@ describe('assistant messages', () => {
           ],
         },
       ],
-      system: undefined,
+      system: [],
     });
   });
 });

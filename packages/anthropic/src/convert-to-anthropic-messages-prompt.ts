@@ -8,6 +8,7 @@ import {
   AnthropicAssistantMessage,
   AnthropicMessage,
   AnthropicMessagesPrompt,
+  AnthropicSystemMessage,
   AnthropicUserMessage,
 } from './anthropic-messages-prompt';
 
@@ -16,7 +17,7 @@ export function convertToAnthropicMessagesPrompt(
 ): AnthropicMessagesPrompt {
   const blocks = groupIntoBlocks(prompt);
 
-  let system: string | undefined = undefined;
+  let system: AnthropicSystemMessage[] = [];
   const messages: AnthropicMessage[] = [];
 
   for (let i = 0; i < blocks.length; i++) {
@@ -25,14 +26,18 @@ export function convertToAnthropicMessagesPrompt(
 
     switch (type) {
       case 'system': {
-        if (system != null) {
+        if (system.length > 0) {
           throw new UnsupportedFunctionalityError({
             functionality:
               'Multiple system messages that are separated by user/assistant messages',
           });
         }
 
-        system = block.messages.map(({ content }) => content).join('\n');
+        system = block.messages.map(({ content, cacheControl }) => ({
+          type: 'text',
+          text: content,
+          ...(cacheControl ? { cache_control: cacheControl } : {}),
+        }));
         break;
       }
 
@@ -46,7 +51,11 @@ export function convertToAnthropicMessagesPrompt(
               for (const part of content) {
                 switch (part.type) {
                   case 'text': {
-                    anthropicContent.push({ type: 'text', text: part.text });
+                    anthropicContent.push({
+                      type: 'text',
+                      text: part.text,
+                      cache_control: part.cacheControl,
+                    });
                     break;
                   }
                   case 'image': {
@@ -64,6 +73,7 @@ export function convertToAnthropicMessagesPrompt(
                         media_type: part.mimeType ?? 'image/jpeg',
                         data: convertUint8ArrayToBase64(part.image),
                       },
+                      cache_control: part.cacheControl,
                     });
 
                     break;
@@ -170,7 +180,7 @@ function groupIntoBlocks(
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =
     undefined;
 
-  for (const { role, content } of prompt) {
+  for (const { role, content, cacheControl } of prompt) {
     switch (role) {
       case 'system': {
         if (currentBlock?.type !== 'system') {
@@ -178,7 +188,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push({ role, content, cacheControl });
         break;
       }
       case 'assistant': {
@@ -187,7 +197,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push({ role, content, cacheControl });
         break;
       }
       case 'user': {
@@ -196,7 +206,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push({ role, content, cacheControl });
         break;
       }
       case 'tool': {
@@ -205,7 +215,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push({ role, content, cacheControl });
         break;
       }
       default: {

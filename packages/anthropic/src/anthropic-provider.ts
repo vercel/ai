@@ -60,7 +60,10 @@ It defaults to the `ANTHROPIC_API_KEY` environment variable.
   /**
 Custom headers to include in the requests.
      */
-  headers?: Record<string, string>;
+  headers?: Record<string, string> & {
+    'anthropic-version'?: '2023-01-01' | '2023-06-01';
+    'anthropic-beta'?: 'tools-2024-04-04' | 'prompt-caching-2024-07-31' | 'max-tokens-3-5-sonnet-2024-07-15' | string;
+  }
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,

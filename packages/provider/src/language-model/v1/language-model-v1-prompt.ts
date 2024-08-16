@@ -16,6 +16,9 @@ export type LanguageModelV1Message =
   | {
       role: 'system';
       content: string;
+      cacheControl?: {
+        type: 'ephemeral';
+      };
     }
   | {
       role: 'user';
@@ -40,6 +43,9 @@ export interface LanguageModelV1TextPart {
 The text content.
    */
   text: string;
+  cacheControl?: {
+    type: 'ephemeral';
+  };
 }
 
 /**
@@ -57,6 +63,10 @@ Image data as a Uint8Array (e.g. from a Blob or Buffer) or a URL.
 Optional mime type of the image.
    */
   mimeType?: string;
+
+  cacheControl?: {
+    type: 'ephemeral';
+  };
 }
 
 /**
