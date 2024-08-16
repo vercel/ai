@@ -157,6 +157,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     }
   }
 
+  private getHeaders(
+    optionHeaders: Record<string, string | undefined> | undefined,
+  ) {
+    return combineHeaders(
+      this.config.headers(),
+      this.settings.cacheControl
+        ? { 'anthropic-beta': 'prompt-caching-2024-07-31' }
+        : {},
+      optionHeaders,
+    );
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
@@ -164,13 +176,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: combineHeaders(
-        this.config.headers(),
-        this.settings.cacheControl
-          ? { 'anthropic-beta': 'prompt-caching-2024-07-31' }
-          : {},
-        options.headers,
-      ),
+      headers: this.getHeaders(options.headers),
       body: args,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -238,7 +244,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: this.getHeaders(options.headers),
       body: {
         ...args,
         stream: true,
