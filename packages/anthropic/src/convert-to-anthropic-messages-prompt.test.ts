@@ -9,11 +9,11 @@ describe('system messages', () => {
 
     expect(result).toEqual({
       messages: [],
-      system: 'This is a system message',
+      system: [{ type: 'text', text: 'This is a system message' }],
     });
   });
 
-  it('should convert multiple system messages into an anthropic system message separated by a newline', async () => {
+  it('should convert multiple system messages into an anthropic system message', async () => {
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         { role: 'system', content: 'This is a system message' },
@@ -24,7 +24,10 @@ describe('system messages', () => {
 
     expect(result).toEqual({
       messages: [],
-      system: 'This is a system message\nThis is another system message',
+      system: [
+        { type: 'text', text: 'This is a system message' },
+        { type: 'text', text: 'This is another system message' },
+      ],
     });
   });
 });
@@ -293,7 +296,33 @@ describe('assistant messages', () => {
 });
 
 describe('cache control', () => {
-  // TODO test system message
+  describe('system message', () => {
+    it('should set cache_control on system message with message cache control', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'system',
+            content: 'system message',
+            providerMetadata: {
+              anthropic: { cacheControl: { type: 'ephemeral' } },
+            },
+          },
+        ],
+        cacheControl: true,
+      });
+
+      expect(result).toEqual({
+        messages: [],
+        system: [
+          {
+            type: 'text',
+            text: 'system message',
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+      });
+    });
+  });
 
   describe('user message', () => {
     it('should set cache_control on user message part with part cache control', async () => {

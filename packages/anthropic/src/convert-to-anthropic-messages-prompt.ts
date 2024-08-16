@@ -8,7 +8,6 @@ import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
   AnthropicCacheControl,
-  AnthropicMessage,
   AnthropicMessagesPrompt,
   AnthropicUserMessage,
 } from './anthropic-messages-prompt';
@@ -22,8 +21,8 @@ export function convertToAnthropicMessagesPrompt({
 }): AnthropicMessagesPrompt {
   const blocks = groupIntoBlocks(prompt);
 
-  let system: string | undefined = undefined;
-  const messages: AnthropicMessage[] = [];
+  let system: AnthropicMessagesPrompt['system'] = undefined;
+  const messages: AnthropicMessagesPrompt['messages'] = [];
 
   function getCacheControl(
     providerMetadata: LanguageModelV1ProviderMetadata | undefined,
@@ -56,7 +55,12 @@ export function convertToAnthropicMessagesPrompt({
           });
         }
 
-        system = block.messages.map(({ content }) => content).join('\n');
+        system = block.messages.map(({ content, providerMetadata }) => ({
+          type: 'text',
+          text: content,
+          cache_control: getCacheControl(providerMetadata),
+        }));
+
         break;
       }
 

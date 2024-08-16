@@ -1,5 +1,5 @@
 export type AnthropicMessagesPrompt = {
-  system?: string;
+  system: Array<AnthropicTextContent> | undefined;
   messages: AnthropicMessage[];
 };
 
