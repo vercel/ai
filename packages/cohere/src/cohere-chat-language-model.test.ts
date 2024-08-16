@@ -325,6 +325,80 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should stream tool deltas', async () => {
+    server.responseChunks = [
+      `{"event_type":"stream-start"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":"I"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":" will"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":" use"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":" the"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":" get"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":"Stock"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":"Price"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":" tool"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":" to"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":" find"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":" the"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":" price"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":" of"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":" AAPL"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":" stock"}\n\n`,
+      `{"event_type":"tool-calls-chunk","text":"."}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"name":"getStockPrice"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"{\\n    \\""}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"ticker"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"_"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"symbol"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\":"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":" \\""}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"AAPL"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\""}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\n"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"}"}}\n\n`,
+      `{"event_type":"tool-calls-generation","tool_calls":[{"name":"getStockPrice","parameters":{"ticker_symbol":"AAPL"}}]}\n\n`,
+      `{"event_type":"stream-end","finish_reason":"COMPLETE","response":{"meta":{"tokens":{"input_tokens":893,"output_tokens":62}}}}\n\n`,
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      prompt: TEST_PROMPT,
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'tool-call',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'getStockPrice',
+        args: '{"ticker_symbol":"AAPL"}',
+      },
+      {
+        finishReason: 'stop',
+        type: 'finish',
+        usage: {
+          completionTokens: 62,
+          promptTokens: 893,
+        },
+      },
+    ]);
+  });
+
   it('should handle unparsable stream parts', async () => {
     server.responseChunks = [`{unparsable}\n`];
 

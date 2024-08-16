@@ -247,12 +247,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
               }
 
               case 'tool-calls-chunk': {
-                if (value.text) {
-                  controller.enqueue({
-                    type: 'text-delta',
-                    textDelta: value.text,
-                  });
-                }
+                // TODO: Implement to support streaming tool calls
                 return;
               }
 
