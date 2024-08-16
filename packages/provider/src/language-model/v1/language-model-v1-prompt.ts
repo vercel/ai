@@ -15,24 +15,31 @@ export type LanguageModelV1Message =
   // Note: there could be additional parts for each role in the future,
   // e.g. when the assistant can return images or the user can share files
   // such as PDFs.
-  | {
-      role: 'system';
-      content: string;
-    }
-  | {
-      role: 'user';
-      content: Array<LanguageModelV1TextPart | LanguageModelV1ImagePart>;
-      providerMetadata?: LanguageModelV1ProviderMetadata;
-    }
-  | {
-      role: 'assistant';
-      content: Array<LanguageModelV1TextPart | LanguageModelV1ToolCallPart>;
-    }
-  | {
-      role: 'tool';
-      content: Array<LanguageModelV1ToolResultPart>;
-      providerMetadata?: LanguageModelV1ProviderMetadata;
-    };
+  (
+    | {
+        role: 'system';
+        content: string;
+      }
+    | {
+        role: 'user';
+        content: Array<LanguageModelV1TextPart | LanguageModelV1ImagePart>;
+      }
+    | {
+        role: 'assistant';
+        content: Array<LanguageModelV1TextPart | LanguageModelV1ToolCallPart>;
+      }
+    | {
+        role: 'tool';
+        content: Array<LanguageModelV1ToolResultPart>;
+      }
+  ) & {
+    /**
+     * Additional provider-specific metadata. They are passed through
+     * to the provider from the AI SDK and enable provider-specific
+     * functionality that can be fully encapsulated in the provider.
+     */
+    providerMetadata?: LanguageModelV1ProviderMetadata;
+  };
 
 /**
 Text content part of a prompt. It contains a string of text.
