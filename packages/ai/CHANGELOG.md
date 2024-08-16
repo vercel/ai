@@ -1,5 +1,20 @@
 # ai
 
+## 3.3.9
+
+### Patch Changes
+
+- 6ac355e: feat (provider/anthropic): add cache control support
+- b56dee1: chore (ai): deprecate prompt helpers
+- Updated dependencies [6ac355e]
+  - @ai-sdk/provider@0.0.20
+  - @ai-sdk/provider-utils@1.0.13
+  - @ai-sdk/ui-utils@0.0.33
+  - @ai-sdk/react@0.0.45
+  - @ai-sdk/solid@0.0.36
+  - @ai-sdk/svelte@0.0.38
+  - @ai-sdk/vue@0.0.37
+
 ## 3.3.8
 
 ### Patch Changes

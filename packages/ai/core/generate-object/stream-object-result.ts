@@ -1,6 +1,11 @@
 import { DeepPartial } from '@ai-sdk/ui-utils';
 import { ServerResponse } from 'http';
-import { CallWarning, FinishReason, LogProbs } from '../types';
+import {
+  CallWarning,
+  FinishReason,
+  LogProbs,
+  ProviderMetadata,
+} from '../types';
 import { CompletionTokenUsage } from '../types/token-usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 
@@ -17,6 +22,13 @@ export interface StreamObjectResult<T> {
   The token usage of the generated response. Resolved when the response is finished.
      */
   readonly usage: Promise<CompletionTokenUsage>;
+
+  /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+   */
+  readonly experimental_providerMetadata: Promise<ProviderMetadata | undefined>;
 
   /**
   Optional raw response data.
@@ -91,6 +103,7 @@ export type ObjectStreamInputPart =
         completionTokens: number;
         totalTokens: number;
       };
+      providerMetadata?: ProviderMetadata;
     };
 
 export type ObjectStreamPart<T> =

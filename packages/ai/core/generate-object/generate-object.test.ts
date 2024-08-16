@@ -252,6 +252,35 @@ describe('result.toJsonResponse', () => {
   });
 });
 
+describe('result.providerMetadata', () => {
+  it('should contain provider metadata', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          text: `{ "content": "Hello, world!" }`,
+          providerMetadata: {
+            anthropic: {
+              cacheCreationInputTokens: 10,
+              cacheReadInputTokens: 20,
+            },
+          },
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.experimental_providerMetadata, {
+      anthropic: {
+        cacheCreationInputTokens: 10,
+        cacheReadInputTokens: 20,
+      },
+    });
+  });
+});
+
 describe('options.headers', () => {
   it('should set headers', async () => {
     const result = await generateObject({

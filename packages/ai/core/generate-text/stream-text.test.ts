@@ -135,6 +135,7 @@ describe('result.fullStream', () => {
           finishReason: 'stop',
           logprobs: undefined,
           usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
         },
       ],
     );
@@ -209,6 +210,7 @@ describe('result.fullStream', () => {
           finishReason: 'stop',
           logprobs: undefined,
           usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
         },
       ],
     );
@@ -332,6 +334,7 @@ describe('result.fullStream', () => {
           finishReason: 'tool-calls',
           logprobs: undefined,
           usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
+          experimental_providerMetadata: undefined,
         },
       ],
     );
@@ -503,6 +506,7 @@ describe('result.fullStream', () => {
           finishReason: 'tool-calls',
           logprobs: undefined,
           usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
+          experimental_providerMetadata: undefined,
         },
       ],
     );
@@ -584,6 +588,7 @@ describe('result.fullStream', () => {
           finishReason: 'stop',
           logprobs: undefined,
           usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
         },
       ],
     );
@@ -592,26 +597,24 @@ describe('result.fullStream', () => {
   it('should filter out empty text deltas', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
-        doStream: async () => {
-          return {
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: '' },
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: '' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: '' },
-              { type: 'text-delta', textDelta: 'world!' },
-              { type: 'text-delta', textDelta: '' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          };
-        },
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: '' },
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: '' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: '' },
+            { type: 'text-delta', textDelta: 'world!' },
+            { type: 'text-delta', textDelta: '' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
       }),
       prompt: 'test-input',
     });
@@ -627,6 +630,7 @@ describe('result.fullStream', () => {
           finishReason: 'stop',
           logprobs: undefined,
           usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
         },
       ],
     );
@@ -1267,6 +1271,7 @@ describe('multiple stream consumption', () => {
           finishReason: 'stop',
           logprobs: undefined,
           usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
         },
       ],
     );
@@ -1277,31 +1282,20 @@ describe('result.usage', () => {
   it('should resolve with token usage', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, {
-            type: 'regular',
-            tools: undefined,
-            toolChoice: undefined,
-          });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
-          ]);
-
-          return {
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: `world!` },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          };
-        },
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: `world!` },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
       }),
       prompt: 'test-input',
     });
@@ -1321,31 +1315,18 @@ describe('result.finishReason', () => {
   it('should resolve with finish reason', async () => {
     const result = await streamText({
       model: new MockLanguageModelV1({
-        doStream: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, {
-            type: 'regular',
-            tools: undefined,
-            toolChoice: undefined,
-          });
-          assert.deepStrictEqual(prompt, [
-            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
-          ]);
-
-          return {
-            stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: `world!` },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          };
-        },
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
       }),
       prompt: 'test-input',
     });
@@ -1354,6 +1335,38 @@ describe('result.finishReason', () => {
     convertAsyncIterableToArray(result.textStream);
 
     assert.strictEqual(await result.finishReason, 'stop');
+  });
+});
+
+describe('result.providerMetadata', () => {
+  it('should resolve with provider metadata', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+              providerMetadata: {
+                testProvider: { testKey: 'testValue' },
+              },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    // consume stream (runs in parallel)
+    convertAsyncIterableToArray(result.textStream);
+
+    assert.deepStrictEqual(await result.experimental_providerMetadata, {
+      testProvider: { testKey: 'testValue' },
+    });
   });
 });
 
@@ -1690,6 +1703,9 @@ describe('options.onFinish', () => {
               finishReason: 'stop',
               logprobs: undefined,
               usage: { completionTokens: 10, promptTokens: 3 },
+              providerMetadata: {
+                testProvider: { testKey: 'testValue' },
+              },
             },
           ]),
           rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -1748,6 +1764,12 @@ describe('options.onFinish', () => {
         result: 'value-result',
       },
     ]);
+  });
+
+  it('should contain provider metadata', async () => {
+    assert.deepStrictEqual(result.experimental_providerMetadata, {
+      testProvider: { testKey: 'testValue' },
+    });
   });
 });
 
@@ -2160,6 +2182,7 @@ describe('tools with custom schema', () => {
           finishReason: 'stop',
           logprobs: undefined,
           usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
         },
       ],
     );

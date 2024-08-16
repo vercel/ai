@@ -599,12 +599,7 @@ describe('result.usage', () => {
       model: new MockLanguageModelV1({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: '{ ' },
-            { type: 'text-delta', textDelta: '"content": ' },
-            { type: 'text-delta', textDelta: `"Hello, ` },
-            { type: 'text-delta', textDelta: `world` },
-            { type: 'text-delta', textDelta: `!"` },
-            { type: 'text-delta', textDelta: ' }' },
+            { type: 'text-delta', textDelta: '{ "content": "Hello, world!" }' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -626,6 +621,39 @@ describe('result.usage', () => {
       completionTokens: 10,
       promptTokens: 3,
       totalTokens: 13,
+    });
+  });
+});
+
+describe('result.providerMetadata', () => {
+  it('should resolve with provider metadata', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: '{ "content": "Hello, world!" }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+              providerMetadata: {
+                testProvider: { testKey: 'testValue' },
+              },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    // consume stream (runs in parallel)
+    convertAsyncIterableToArray(result.partialObjectStream);
+
+    assert.deepStrictEqual(await result.experimental_providerMetadata, {
+      testProvider: { testKey: 'testValue' },
     });
   });
 });
@@ -744,16 +772,17 @@ describe('options.onFinish', () => {
         model: new MockLanguageModelV1({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"content": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'text-delta',
+                textDelta: '{ "content": "Hello, world!" }',
+              },
               {
                 type: 'finish',
                 finishReason: 'stop',
                 usage: { completionTokens: 10, promptTokens: 3 },
+                providerMetadata: {
+                  testProvider: { testKey: 'testValue' },
+                },
               },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -787,6 +816,12 @@ describe('options.onFinish', () => {
 
     it('should not contain an error object', async () => {
       assert.deepStrictEqual(result.error, undefined);
+    });
+
+    it('should contain provider metadata', async () => {
+      assert.deepStrictEqual(result.experimental_providerMetadata, {
+        testProvider: { testKey: 'testValue' },
+      });
     });
   });
 

@@ -26,6 +26,7 @@ import {
   CoreToolChoice,
   FinishReason,
   LanguageModel,
+  ProviderMetadata,
 } from '../types';
 import { CompletionTokenUsage } from '../types/token-usage';
 import {
@@ -186,6 +187,13 @@ Response headers.
 Warnings from the model provider (e.g. unsupported settings).
        */
       warnings?: CallWarning[];
+
+      /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+   */
+      readonly experimental_providerMetadata: ProviderMetadata | undefined;
     }) => Promise<void> | void;
   }): Promise<DefaultStreamTextResult<TOOLS>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
@@ -298,6 +306,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   readonly warnings: StreamTextResult<TOOLS>['warnings'];
   readonly usage: StreamTextResult<TOOLS>['usage'];
   readonly finishReason: StreamTextResult<TOOLS>['finishReason'];
+  readonly experimental_providerMetadata: StreamTextResult<TOOLS>['experimental_providerMetadata'];
   readonly text: StreamTextResult<TOOLS>['text'];
   readonly toolCalls: StreamTextResult<TOOLS>['toolCalls'];
   readonly toolResults: StreamTextResult<TOOLS>['toolResults'];
@@ -350,9 +359,17 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       createResolvablePromise<ToToolResult<TOOLS>[]>();
     this.toolResults = toolResultsPromise;
 
+    // initialize experimental_providerMetadata promise
+    const {
+      resolve: resolveProviderMetadata,
+      promise: providerMetadataPromise,
+    } = createResolvablePromise<ProviderMetadata | undefined>();
+    this.experimental_providerMetadata = providerMetadataPromise;
+
     // store information for onFinish callback:
     let finishReason: FinishReason | undefined;
     let usage: CompletionTokenUsage | undefined;
+    let providerMetadata: ProviderMetadata | undefined;
     let text = '';
     const toolCalls: ToToolCall<TOOLS>[] = [];
     const toolResults: ToToolResult<TOOLS>[] = [];
@@ -401,12 +418,14 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
               // store usage and finish reason for promises and onFinish callback:
               usage = chunk.usage;
               finishReason = chunk.finishReason;
+              providerMetadata = chunk.experimental_providerMetadata;
 
               // resolve promises that can be resolved now:
               resolveUsage(usage);
               resolveFinishReason(finishReason);
               resolveText(text);
               resolveToolCalls(toolCalls);
+              resolveProviderMetadata(providerMetadata);
               break;
 
             case 'tool-call-streaming-start':
@@ -489,6 +508,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
               toolResults: toolResults as any,
               rawResponse,
               warnings,
+              experimental_providerMetadata: providerMetadata,
             });
           } catch (error) {
             controller.error(error);
