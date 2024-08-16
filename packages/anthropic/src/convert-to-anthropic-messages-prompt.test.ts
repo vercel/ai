@@ -504,5 +504,43 @@ describe('cache control', () => {
     });
   });
 
-  // TODO test disabled cache control
+  describe('disabled cache control', () => {
+    it('should not set cache_control on messages', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'test',
+                providerMetadata: {
+                  anthropic: {
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        cacheControl: false,
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'test',
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      });
+    });
+  });
 });
