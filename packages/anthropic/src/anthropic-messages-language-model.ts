@@ -100,7 +100,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const messagesPrompt = convertToAnthropicMessagesPrompt(prompt);
+    const messagesPrompt = convertToAnthropicMessagesPrompt({
+      prompt,
+      cacheControl: this.settings.cacheControl ?? false,
+    });
 
     const baseArgs = {
       // model id:
@@ -161,7 +164,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        this.config.headers(),
+        this.settings.cacheControl
+          ? { 'anthropic-beta': 'prompt-caching-2024-07-31' }
+          : {},
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

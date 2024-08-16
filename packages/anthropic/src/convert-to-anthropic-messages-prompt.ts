@@ -6,14 +6,19 @@ import {
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
+  AnthropicCacheControl,
   AnthropicMessage,
   AnthropicMessagesPrompt,
   AnthropicUserMessage,
 } from './anthropic-messages-prompt';
 
-export function convertToAnthropicMessagesPrompt(
-  prompt: LanguageModelV1Prompt,
-): AnthropicMessagesPrompt {
+export function convertToAnthropicMessagesPrompt({
+  prompt,
+  cacheControl,
+}: {
+  prompt: LanguageModelV1Prompt;
+  cacheControl: boolean;
+}): AnthropicMessagesPrompt {
   const blocks = groupIntoBlocks(prompt);
 
   let system: string | undefined = undefined;
@@ -40,13 +45,32 @@ export function convertToAnthropicMessagesPrompt(
         // combines all user and tool messages in this block into a single message:
         const anthropicContent: AnthropicUserMessage['content'] = [];
 
+        // TODO needs tests:
+        // - message level
+        // - content level
+        // - ignore
+        // - system message
+
         for (const { role, content } of block.messages) {
           switch (role) {
             case 'user': {
               for (const part of content) {
+                // TODO validation of cache control value
+                const cacheControlValue: AnthropicCacheControl | undefined =
+                  cacheControl
+                    ? ((part.providerMetadata?.anthropic?.cacheControl ??
+                        part.providerMetadata?.anthropic?.cache_control) as
+                        | AnthropicCacheControl
+                        | undefined)
+                    : undefined;
+
                 switch (part.type) {
                   case 'text': {
-                    anthropicContent.push({ type: 'text', text: part.text });
+                    anthropicContent.push({
+                      type: 'text',
+                      text: part.text,
+                      cache_control: cacheControlValue,
+                    });
                     break;
                   }
                   case 'image': {
@@ -64,6 +88,7 @@ export function convertToAnthropicMessagesPrompt(
                         media_type: part.mimeType ?? 'image/jpeg',
                         data: convertUint8ArrayToBase64(part.image),
                       },
+                      cache_control: cacheControlValue,
                     });
 
                     break;
@@ -75,11 +100,20 @@ export function convertToAnthropicMessagesPrompt(
             }
             case 'tool': {
               for (const part of content) {
+                const cacheControlValue: AnthropicCacheControl | undefined =
+                  cacheControl && part.providerMetadata?.cacheControl != null
+                    ? (part.providerMetadata
+                        ?.cacheControl as AnthropicCacheControl)
+                    : undefined;
+
+                // TODO validation of cache control value
+
                 anthropicContent.push({
                   type: 'tool_result',
                   tool_use_id: part.toolCallId,
                   content: JSON.stringify(part.result),
                   is_error: part.isError,
+                  cache_control: cacheControlValue,
                 });
               }
 
@@ -115,6 +149,8 @@ export function convertToAnthropicMessagesPrompt(
                     i === blocks.length - 1 && j === block.messages.length - 1
                       ? part.text.trim()
                       : part.text,
+
+                  cache_control: undefined, // not used in assistant messages
                 });
                 break;
               }
