@@ -412,10 +412,6 @@ function prepareToolsAndToolChoice(
                   functionality: 'tool call parameter of non-primitive type',
                 });
             }
-          } else if (Array.isArray(JSONType)) {
-            throw new UnsupportedFunctionalityError({
-              functionality: 'tool call parameter of non-primitive type',
-            });
           } else {
             throw new UnsupportedFunctionalityError({
               functionality: 'tool call parameter of non-primitive type',
