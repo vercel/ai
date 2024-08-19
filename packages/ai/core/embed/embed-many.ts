@@ -80,7 +80,7 @@ Only applicable for HTTP-based providers.
     attributes: selectTelemetryAttributes({
       telemetry,
       attributes: {
-        ...assembleOperationName({ operationName: 'ai.embedMany', telemetry }),
+        ...assembleOperationName({ operationId: 'ai.embedMany', telemetry }),
         ...baseTelemetryAttributes,
         // specific settings that only make sense on the outer level:
         'ai.values': {
@@ -104,7 +104,7 @@ Only applicable for HTTP-based providers.
               telemetry,
               attributes: {
                 ...assembleOperationName({
-                  operationName: 'ai.embedMany.doEmbed',
+                  operationId: 'ai.embedMany.doEmbed',
                   telemetry,
                 }),
                 ...baseTelemetryAttributes,
@@ -175,7 +175,7 @@ Only applicable for HTTP-based providers.
               telemetry,
               attributes: {
                 ...assembleOperationName({
-                  operationName: 'ai.embedMany.doEmbed',
+                  operationId: 'ai.embedMany.doEmbed',
                   telemetry,
                 }),
                 ...baseTelemetryAttributes,
