@@ -408,12 +408,18 @@ function prepareToolsAndToolChoice(
                 type = 'bool';
                 break;
               default:
-                throw new Error(`Unsupported JSON type: ${JSONType}`);
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'tool call parameter of non-primitive type',
+                });
             }
           } else if (Array.isArray(JSONType)) {
-            throw new Error('Array types are not supported');
+            throw new UnsupportedFunctionalityError({
+              functionality: 'tool call parameter of non-primitive type',
+            });
           } else {
-            throw new Error('Unsupported type');
+            throw new UnsupportedFunctionalityError({
+              functionality: 'tool call parameter of non-primitive type',
+            });
           }
 
           parameterDefinitions[key] = {
