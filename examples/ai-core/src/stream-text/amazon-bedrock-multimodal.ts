@@ -16,7 +16,7 @@ async function main() {
           { type: 'text', text: 'Describe the document in detail.' },
           {
             type: 'file',
-            file: fs.readFileSync('./data/hamlet.pdf'),
+            file: fs.readFileSync('./data/document.pdf'),
             mimeType: 'application/pdf',
           },
         ],
