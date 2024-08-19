@@ -210,7 +210,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     let toolCallIndex = -1;
     let toolCallId = '';
     let toolName = '';
-    let toolIds: string[] = [];
+    let toolCallIds: string[] = [];
 
     return {
       stream: response.pipeThrough(
@@ -243,7 +243,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                   if (value.tool_call_delta.index != toolCallIndex) {
                     toolCallIndex = value.tool_call_delta.index;
                     toolCallId = generateId();
-                    toolIds.push(toolCallId);
+                    toolCallIds.push(toolCallId);
                   }
 
                   if (value.tool_call_delta.name) {
@@ -275,7 +275,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                 for (const toolCall of value.tool_calls) {
                   controller.enqueue({
                     type: 'tool-call',
-                    toolCallId: toolIds[index],
+                    toolCallId: toolCallIds[index],
                     toolName: toolCall.name,
                     toolCallType: 'function',
                     args: JSON.stringify(toolCall.parameters),
