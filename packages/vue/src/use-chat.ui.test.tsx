@@ -9,6 +9,7 @@ import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { cleanup, findByText, render, screen } from '@testing-library/vue';
 import TestChatComponent from './TestChatComponent.vue';
+import TestChatCustomMetadataComponent from './TestChatCustomMetadataComponent.vue';
 import TestChatFormComponent from './TestChatFormComponent.vue';
 import TestChatFormOptionsComponent from './TestChatFormOptionsComponent.vue';
 import TestChatReloadComponent from './TestChatReloadComponent.vue';
@@ -196,6 +197,7 @@ describe('text stream', () => {
 
         const onFinishCalls = screen.getByTestId('on-finish-calls');
         const onFinishCallsText = onFinishCalls.textContent ?? '';
+
         expect(JSON.parse(onFinishCallsText)).toStrictEqual([
           {
             message: {
@@ -215,6 +217,61 @@ describe('text stream', () => {
             },
           },
         ]);
+      },
+    ),
+  );
+});
+
+describe('custom metadata', () => {
+  beforeEach(() => {
+    render(TestChatCustomMetadataComponent);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it(
+    'should should use custom headers',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Hello, World."\n'],
+      },
+      async ({ call }) => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('message-1');
+
+        expect(call(0).getRequestHeaders()).toStrictEqual({
+          'content-type': 'application/json',
+          header1: 'value1',
+          header2: 'value2',
+        });
+      },
+    ),
+  );
+
+  it(
+    'should should use custom body',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Hello, World."\n'],
+      },
+      async ({ call }) => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('message-1');
+
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          messages: [{ content: 'custom metadata component', role: 'user' }],
+          body1: 'value1',
+          body2: 'value2',
+        });
       },
     ),
   );
