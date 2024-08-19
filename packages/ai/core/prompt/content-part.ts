@@ -62,9 +62,9 @@ File data. Can either be:
   file: DataContent | URL;
 
   /**
-Required mime type of the file.
+Optional mime type of the file.
    */
-  mimeType: string;
+  mimeType?: string;
 }
 
 /**

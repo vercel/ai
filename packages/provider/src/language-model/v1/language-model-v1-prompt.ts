@@ -100,9 +100,9 @@ File data as a Uint8Array (e.g. from a Blob or Buffer) or a URL.
   file: Uint8Array | URL;
 
   /**
-Required mime type of the file.
+Optional mime type of the file.
    */
-  mimeType: string;
+  mimeType?: string;
 }
 
 /**

@@ -2,13 +2,10 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
-  ContentBlock,
-  DocumentFormat,
-  ImageFormat,
-} from '@aws-sdk/client-bedrock-runtime';
+import { ContentBlock, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
 import * as crypto from 'crypto';
 import { BedrockMessages, BedrockMessagesPrompt } from './bedrock-chat-prompt';
+import { mapBedrockDocumentFormat } from './map-bedrock-document-format';
 
 export function convertToBedrockChatMessages(
   prompt: LanguageModelV1Prompt,
@@ -73,7 +70,7 @@ export function convertToBedrockChatMessages(
 
               bedrockMessageContent.push({
                 document: {
-                  format: part.mimeType.split('/')?.[1] as DocumentFormat,
+                  format: mapBedrockDocumentFormat(part.mimeType),
                   name: hashKey,
                   source: {
                     bytes: part.file,

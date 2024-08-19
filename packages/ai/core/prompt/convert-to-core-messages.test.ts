@@ -94,7 +94,6 @@ describe('convertToCoreMessages', () => {
             {
               type: 'file',
               file: new Uint8Array([116, 101, 115, 116]),
-              mimeType: 'application/pdf',
             },
           ],
         },
