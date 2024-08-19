@@ -71,6 +71,7 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
           parts.push({
             type: 'file',
             file: convertDataContentToUint8Array(base64Content),
+            mimeType: attachment.contentType,
           });
         }
 
