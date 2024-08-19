@@ -6,10 +6,10 @@ import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,
 } from '../prompt/convert-to-language-model-prompt';
-import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { validatePrompt } from '../prompt/validate-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -153,7 +153,7 @@ By default, it's set to 0, which will disable the feature.
     tracer,
     fn: async span => {
       const retry = retryWithExponentialBackoff({ maxRetries });
-      const validatedPrompt = getValidatedPrompt({
+      const validatedPrompt = validatePrompt({
         system,
         prompt,
         messages,

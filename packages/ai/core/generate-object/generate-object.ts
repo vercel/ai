@@ -4,9 +4,9 @@ import { z } from 'zod';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
+import { validatePrompt } from '../prompt/validate-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -179,7 +179,7 @@ Default and recommended: 'auto' (best mode for the model).
 
       switch (mode) {
         case 'json': {
-          const validatedPrompt = getValidatedPrompt({
+          const validatedPrompt = validatePrompt({
             system: model.supportsStructuredOutputs
               ? system
               : injectJsonSchemaIntoSystem({
@@ -281,7 +281,7 @@ Default and recommended: 'auto' (best mode for the model).
         }
 
         case 'tool': {
-          const validatedPrompt = getValidatedPrompt({
+          const validatedPrompt = validatePrompt({
             system,
             prompt,
             messages,

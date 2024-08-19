@@ -18,7 +18,7 @@ export type ValidatedPrompt =
       system?: string;
     };
 
-export function getValidatedPrompt(prompt: Prompt): ValidatedPrompt {
+export function validatePrompt(prompt: Prompt): ValidatedPrompt {
   if (prompt.prompt == null && prompt.messages == null) {
     throw new InvalidPromptError({
       prompt,
