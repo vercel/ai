@@ -13,7 +13,7 @@ const onFinishCalls: Array<{
   };
 }> = [];
 
-const { messages, append, data, error, isLoading } = useChat({
+const { messages, append } = useChat({
   streamProtocol: 'text',
   onFinish: (message, options) => {
     onFinishCalls.push({ message, options });
@@ -23,9 +23,6 @@ const { messages, append, data, error, isLoading } = useChat({
 
 <template>
   <div>
-    <div data-testid="loading">{{ isLoading?.toString() }}</div>
-    <div data-testid="error">{{ error?.toString() }}</div>
-    <div data-testid="data">{{ JSON.stringify(data) }}</div>
     <div
       v-for="(m, idx) in messages"
       key="m.id"

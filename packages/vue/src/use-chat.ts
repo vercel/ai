@@ -83,8 +83,8 @@ export function useChat({
   onFinish,
   onError,
   credentials,
-  headers,
-  body,
+  headers: metadataHeaders,
+  body: metadataBody,
   generateId = generateIdFunc,
   fetch,
   keepLastMessageOnError = false,
@@ -126,6 +126,7 @@ export function useChat({
   const streamData = ref<undefined | unknown[]>(undefined);
 
   let abortController: AbortController | null = null;
+
   async function triggerRequest(
     messagesSnapshot: Message[],
     { options, data, headers, body }: ChatRequestOptions = {},
@@ -184,12 +185,12 @@ export function useChat({
             body: {
               messages: constructedMessagesPayload,
               data: chatRequest.data,
-              ...unref(body), // Use unref to unwrap the ref value
+              ...unref(metadataBody), // Use unref to unwrap the ref value
               ...requestOptions.body,
             },
             streamProtocol,
             headers: {
-              ...headers,
+              ...metadataHeaders,
               ...requestOptions.headers,
             },
             abortController: () => abortController,
