@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.49
+
+### Patch Changes
+
+- f42d9bd: fix (provider/openai): support OpenRouter streaming errors
+
 ## 0.0.48
 
 ### Patch Changes
