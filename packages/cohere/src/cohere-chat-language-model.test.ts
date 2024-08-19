@@ -529,7 +529,9 @@ describe('doStream', () => {
       },
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+    const responseArray = await convertReadableStreamToArray(stream);
+
+    expect(responseArray).toStrictEqual([
       {
         type: 'tool-call-delta',
         toolCallType: 'function',
@@ -623,6 +625,18 @@ describe('doStream', () => {
         },
       },
     ]);
+
+    // Check if the tool call ID is the same in the tool call delta and the tool call
+
+    const toolCallDelta = responseArray.find(
+      element => element.type === 'tool-call-delta',
+    );
+
+    const toolCall = responseArray.find(
+      element => element.type === 'tool-call',
+    );
+
+    expect(toolCallDelta?.toolCallId).toBe(toolCall?.toolCallId);
   });
 
   it('should handle unparsable stream parts', async () => {

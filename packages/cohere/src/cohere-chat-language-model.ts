@@ -210,6 +210,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     let toolCallIndex = -1;
     let toolCallId = '';
     let toolName = '';
+    let toolIds: string[] = [];
 
     return {
       stream: response.pipeThrough(
@@ -237,24 +238,12 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                 return;
               }
 
-              case 'tool-calls-generation': {
-                for (const toolCall of value.tool_calls) {
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: generateId(),
-                    toolName: toolCall.name,
-                    toolCallType: 'function',
-                    args: JSON.stringify(toolCall.parameters),
-                  });
-                }
-                return;
-              }
-
               case 'tool-calls-chunk': {
                 if (value.tool_call_delta) {
                   if (value.tool_call_delta.index != toolCallIndex) {
                     toolCallIndex = value.tool_call_delta.index;
                     toolCallId = generateId();
+                    toolIds.push(toolCallId);
                   }
 
                   if (value.tool_call_delta.name) {
@@ -276,6 +265,23 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                       argsTextDelta: value.tool_call_delta.parameters,
                     });
                   }
+                }
+                return;
+              }
+
+              case 'tool-calls-generation': {
+                let index = 0;
+
+                for (const toolCall of value.tool_calls) {
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: toolIds[index],
+                    toolName: toolCall.name,
+                    toolCallType: 'function',
+                    args: JSON.stringify(toolCall.parameters),
+                  });
+
+                  index += 1;
                 }
                 return;
               }
