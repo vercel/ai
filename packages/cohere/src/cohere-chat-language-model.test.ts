@@ -185,6 +185,155 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('should pass tools', async () => {
+    it('should convert primitive types', async () => {
+      prepareJsonResponse({});
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'regular',
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              parameters: {
+                type: 'object',
+                properties: {
+                  value_a: { type: 'string' },
+                  value_b: { type: 'number' },
+                  value_c: { type: 'integer' },
+                  value_d: { type: 'boolean' },
+                },
+                required: ['value_a'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'command-r-plus',
+        chat_history: [
+          {
+            role: 'SYSTEM',
+            message: 'you are a friendly bot!',
+          },
+        ],
+        force_single_step: false,
+        message: 'Hello',
+        tools: [
+          {
+            name: 'test-tool',
+            parameterDefinitions: {
+              value_a: {
+                type: 'str',
+                required: true,
+              },
+              value_b: {
+                type: 'float',
+                required: false,
+              },
+              value_c: {
+                type: 'int',
+                required: false,
+              },
+              value_d: {
+                type: 'bool',
+                required: false,
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it('should throw error for unsupported types', async () => {
+      prepareJsonResponse({});
+
+      await expect(
+        model.doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'regular',
+            tools: [
+              {
+                type: 'function',
+                name: 'test-tool',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    value: { type: 'array', items: { type: 'string' } },
+                  },
+                  required: ['value'],
+                  additionalProperties: false,
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                },
+              },
+            ],
+          },
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('should pass tool choice', async () => {
+      prepareJsonResponse({});
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'regular',
+          toolChoice: {
+            type: 'required',
+          },
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              parameters: {
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'command-r-plus',
+        chat_history: [
+          {
+            role: 'SYSTEM',
+            message: 'you are a friendly bot!',
+          },
+        ],
+        force_single_step: true,
+        message: 'Hello',
+        tools: [
+          {
+            name: 'test-tool',
+            parameterDefinitions: {
+              value: {
+                type: 'str',
+                required: true,
+              },
+            },
+          },
+        ],
+      });
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonResponse({});
 
