@@ -209,7 +209,7 @@ results that can be fully encapsulated in the provider.
       telemetry,
       attributes: {
         ...assembleOperationName({
-          operationName: 'ai.streamObject',
+          operationId: 'ai.streamObject',
           telemetry,
         }),
         ...baseTelemetryAttributes,
@@ -352,7 +352,7 @@ results that can be fully encapsulated in the provider.
             telemetry,
             attributes: {
               ...assembleOperationName({
-                operationName: 'ai.streamObject.doStream',
+                operationId: 'ai.streamObject.doStream',
                 telemetry,
               }),
               ...baseTelemetryAttributes,

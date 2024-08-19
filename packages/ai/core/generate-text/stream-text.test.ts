@@ -1888,6 +1888,8 @@ describe('telemetry', () => {
       {
         name: 'ai.streamText',
         attributes: {
+          'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.streamText',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"test-input"}',
@@ -1901,13 +1903,15 @@ describe('telemetry', () => {
           'ai.request.headers.header1': 'value1',
           'ai.request.headers.header2': 'value2',
           'operation.name': 'ai.streamText test-function-id',
-          'resource.name': 'test-function-id',
         },
         events: [],
       },
       {
         name: 'ai.streamText.doStream',
         attributes: {
+          'operation.name': 'ai.streamText.doStream test-function-id',
+          'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.streamText.doStream',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt.format': 'prompt',
@@ -1923,8 +1927,6 @@ describe('telemetry', () => {
           'ai.request.headers.header1': 'value1',
           'ai.request.headers.header2': 'value2',
           'ai.stream.msToFirstChunk': expect.any(Number),
-          'operation.name': 'ai.streamText.doStream test-function-id',
-          'resource.name': 'test-function-id',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.system': 'mock-provider',
@@ -1984,6 +1986,8 @@ describe('telemetry', () => {
       {
         name: 'ai.streamText',
         attributes: {
+          'operation.name': 'ai.streamText',
+          'ai.operationId': 'ai.streamText',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"test-input"}',
@@ -1993,13 +1997,14 @@ describe('telemetry', () => {
             '[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'operation.name': 'ai.streamText',
         },
         events: [],
       },
       {
         name: 'ai.streamText.doStream',
         attributes: {
+          'operation.name': 'ai.streamText.doStream',
+          'ai.operationId': 'ai.streamText.doStream',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt.format': 'prompt',
@@ -2012,7 +2017,6 @@ describe('telemetry', () => {
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
           'ai.stream.msToFirstChunk': expect.any(Number),
-          'operation.name': 'ai.streamText.doStream',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.system': 'mock-provider',
@@ -2032,6 +2036,7 @@ describe('telemetry', () => {
         name: 'ai.toolCall',
         attributes: {
           'operation.name': 'ai.toolCall',
+          'ai.operationId': 'ai.toolCall',
           'ai.toolCall.name': 'tool1',
           'ai.toolCall.id': 'call-1',
           'ai.toolCall.args': '{"value":"value"}',
@@ -2085,12 +2090,13 @@ describe('telemetry', () => {
       {
         name: 'ai.streamText',
         attributes: {
+          'operation.name': 'ai.streamText',
+          'ai.operationId': 'ai.streamText',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.finishReason': 'stop',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'operation.name': 'ai.streamText',
         },
         events: [],
       },
@@ -2098,6 +2104,7 @@ describe('telemetry', () => {
         name: 'ai.streamText.doStream',
         attributes: {
           'operation.name': 'ai.streamText.doStream',
+          'ai.operationId': 'ai.streamText.doStream',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.finishReason': 'stop',
@@ -2123,6 +2130,7 @@ describe('telemetry', () => {
         name: 'ai.toolCall',
         attributes: {
           'operation.name': 'ai.toolCall',
+          'ai.operationId': 'ai.toolCall',
           'ai.toolCall.name': 'tool1',
           'ai.toolCall.id': 'call-1',
         },

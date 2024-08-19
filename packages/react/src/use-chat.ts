@@ -604,7 +604,7 @@ By default, it's set to 0, which will disable the feature.
       };
 
       const messages =
-        !input && options.allowEmptySubmit
+        !input && !attachmentsForRequest.length && options.allowEmptySubmit
           ? messagesRef.current
           : messagesRef.current.concat({
               id: generateId(),
