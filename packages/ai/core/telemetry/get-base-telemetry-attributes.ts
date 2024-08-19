@@ -23,10 +23,6 @@ export function getBaseTelemetryAttributes({
       return attributes;
     }, {} as Attributes),
 
-    // special telemetry information
-    'resource.name': telemetry?.functionId,
-    'ai.telemetry.functionId': telemetry?.functionId,
-
     // add metadata as attributes:
     ...Object.entries(telemetry?.metadata ?? {}).reduce(
       (attributes, [key, value]) => {

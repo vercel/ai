@@ -363,9 +363,11 @@ describe('telemetry', () => {
 
     assert.deepStrictEqual(tracer.jsonSpans, [
       {
+        name: 'ai.generateObject',
         attributes: {
           'operation.name': 'ai.generateObject test-function-id',
           'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.generateObject',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
@@ -385,12 +387,13 @@ describe('telemetry', () => {
           'ai.usage.promptTokens': 10,
         },
         events: [],
-        name: 'ai.generateObject',
       },
       {
+        name: 'ai.generateObject.doGenerate',
         attributes: {
           'operation.name': 'ai.generateObject.doGenerate test-function-id',
           'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.generateObject.doGenerate',
           'ai.settings.mode': 'json',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
@@ -417,7 +420,6 @@ describe('telemetry', () => {
           'gen_ai.usage.prompt_tokens': 10,
         },
         events: [],
-        name: 'ai.generateObject.doGenerate',
       },
     ]);
   });
@@ -456,11 +458,13 @@ describe('telemetry', () => {
       },
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
+        name: 'ai.generateObject',
         attributes: {
           'operation.name': 'ai.generateObject test-function-id',
           'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.generateObject',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
@@ -480,12 +484,13 @@ describe('telemetry', () => {
           'ai.request.headers.header2': 'value2',
         },
         events: [],
-        name: 'ai.generateObject',
       },
       {
+        name: 'ai.generateObject.doGenerate',
         attributes: {
           'operation.name': 'ai.generateObject.doGenerate test-function-id',
           'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.generateObject.doGenerate',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
@@ -508,7 +513,6 @@ describe('telemetry', () => {
           'gen_ai.usage.prompt_tokens': 10,
         },
         events: [],
-        name: 'ai.generateObject.doGenerate',
       },
     ]);
   });
@@ -531,10 +535,12 @@ describe('telemetry', () => {
       },
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
+        name: 'ai.generateObject',
         attributes: {
           'operation.name': 'ai.generateObject',
+          'ai.operationId': 'ai.generateObject',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
@@ -543,11 +549,12 @@ describe('telemetry', () => {
           'ai.usage.promptTokens': 10,
         },
         events: [],
-        name: 'ai.generateObject',
       },
       {
+        name: 'ai.generateObject.doGenerate',
         attributes: {
           'operation.name': 'ai.generateObject.doGenerate',
+          'ai.operationId': 'ai.generateObject.doGenerate',
           'ai.settings.mode': 'json',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
@@ -561,7 +568,6 @@ describe('telemetry', () => {
           'gen_ai.usage.prompt_tokens': 10,
         },
         events: [],
-        name: 'ai.generateObject.doGenerate',
       },
     ]);
   });
@@ -591,29 +597,32 @@ describe('telemetry', () => {
       },
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
+        name: 'ai.generateObject',
         attributes: {
+          'operation.name': 'ai.generateObject',
+          'ai.operationId': 'ai.generateObject',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.settings.mode': 'tool',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'operation.name': 'ai.generateObject',
         },
         events: [],
-        name: 'ai.generateObject',
       },
       {
+        name: 'ai.generateObject.doGenerate',
         attributes: {
+          'operation.name': 'ai.generateObject.doGenerate',
+          'ai.operationId': 'ai.generateObject.doGenerate',
           'ai.finishReason': 'stop',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.settings.mode': 'tool',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'operation.name': 'ai.generateObject.doGenerate',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.system': 'mock-provider',
@@ -621,7 +630,6 @@ describe('telemetry', () => {
           'gen_ai.usage.prompt_tokens': 10,
         },
         events: [],
-        name: 'ai.generateObject.doGenerate',
       },
     ]);
   });
