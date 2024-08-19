@@ -342,6 +342,7 @@ By default, it's set to 0, which will disable the feature.
         logprobs: currentModelResponse.logprobs,
         responseMessages,
         roundtrips,
+        providerMetadata: currentModelResponse.providerMetadata,
       });
     },
   });
@@ -435,6 +436,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
   readonly roundtrips: GenerateTextResult<TOOLS>['roundtrips'];
   readonly rawResponse: GenerateTextResult<TOOLS>['rawResponse'];
   readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
+  readonly experimental_providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
 
   constructor(options: {
     text: GenerateTextResult<TOOLS>['text'];
@@ -447,6 +449,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     logprobs: GenerateTextResult<TOOLS>['logprobs'];
     responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
     roundtrips: GenerateTextResult<TOOLS>['roundtrips'];
+    providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -458,6 +461,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.logprobs = options.logprobs;
     this.responseMessages = options.responseMessages;
     this.roundtrips = options.roundtrips;
+    this.experimental_providerMetadata = options.providerMetadata;
   }
 }
 

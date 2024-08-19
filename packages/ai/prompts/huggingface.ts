@@ -3,7 +3,8 @@ import { Message } from '@ai-sdk/ui-utils';
 /**
  * A prompt constructor for the HuggingFace StarChat Beta model.
  * Does not support `function` messages.
- * @see https://huggingface.co/HuggingFaceH4/starchat-beta
+ * @see https://huggingface.co/HuggingFaceH4/starchat-beta *
+ * @deprecated Will be removed. Use the new provider architecture instead.
  */
 export function experimental_buildStarChatBetaPrompt(
   messages: Pick<Message, 'content' | 'role'>[],
@@ -28,7 +29,8 @@ export function experimental_buildStarChatBetaPrompt(
 /**
  * A prompt constructor for HuggingFace OpenAssistant models.
  * Does not support `function` or `system` messages.
- * @see https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5
+ * @see https://huggingface.co/OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5 *
+ * @deprecated Will be removed. Use the new provider architecture instead.
  */
 export function experimental_buildOpenAssistantPrompt(
   messages: Pick<Message, 'content' | 'role'>[],
@@ -54,6 +56,8 @@ export function experimental_buildOpenAssistantPrompt(
  * A prompt constructor for HuggingFace LLama 2 chat models.
  * Does not support `function` messages.
  * @see https://huggingface.co/meta-llama/Llama-2-70b-chat-hf and https://huggingface.co/blog/llama2#how-to-prompt-llama-2
+ *
+ * @deprecated Will be removed. Use the new provider architecture instead.
  */
 export function experimental_buildLlama2Prompt(
   messages: Pick<Message, 'content' | 'role'>[],

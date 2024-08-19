@@ -1,5 +1,5 @@
+import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
-import { Schema } from '../util/schema';
 
 type Parameters = z.ZodTypeAny | Schema<any>;
 

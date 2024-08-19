@@ -121,7 +121,7 @@ describe('stream data stream', () => {
   );
 
   it(
-    'should show error response',
+    'should show error response when there is a server error',
     withTestServer(
       { type: 'error', url: '/api/chat', status: 404, content: 'Not found' },
       async () => {
@@ -130,6 +130,25 @@ describe('stream data stream', () => {
         await screen.findByTestId('error');
         expect(screen.getByTestId('error')).toHaveTextContent(
           'Error: Not found',
+        );
+      },
+    ),
+  );
+
+  it(
+    'should show error response when there is a streaming error',
+    withTestServer(
+      {
+        type: 'stream-values',
+        url: '/api/chat',
+        content: ['3:"custom error message"\n'],
+      },
+      async () => {
+        await userEvent.click(screen.getByTestId('do-append'));
+
+        await screen.findByTestId('error');
+        expect(screen.getByTestId('error')).toHaveTextContent(
+          'Error: custom error message',
         );
       },
     ),
@@ -1016,327 +1035,325 @@ describe('maxToolRoundtrips', () => {
   });
 });
 
-// Disabled: unstable with React 18.3.3 TODO re-enable
-//
-// describe('file attachments with data url', () => {
-//   const TestComponent = () => {
-//     const { messages, handleSubmit, handleInputChange, isLoading, input } =
-//       useChat();
+describe('file attachments with data url', () => {
+  const TestComponent = () => {
+    const { messages, handleSubmit, handleInputChange, isLoading, input } =
+      useChat();
 
-//     const [attachments, setAttachments] = useState<FileList | undefined>(
-//       undefined,
-//     );
-//     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [attachments, setAttachments] = useState<FileList | undefined>(
+      undefined,
+    );
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-//     return (
-//       <div>
-//         {messages.map((m, idx) => (
-//           <div data-testid={`message-${idx}`} key={m.id}>
-//             {m.role === 'user' ? 'User: ' : 'AI: '}
-//             {m.content}
-//             {m.experimental_attachments?.map(attachment => {
-//               if (attachment.contentType?.startsWith('image/')) {
-//                 return (
-//                   <img
-//                     key={attachment.name}
-//                     src={attachment.url}
-//                     alt={attachment.name}
-//                     data-testid={`attachment-${idx}`}
-//                   />
-//                 );
-//               } else if (attachment.contentType?.startsWith('text/')) {
-//                 return (
-//                   <div key={attachment.name} data-testid={`attachment-${idx}`}>
-//                     {getTextFromDataUrl(attachment.url)}
-//                   </div>
-//                 );
-//               }
-//             })}
-//           </div>
-//         ))}
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+            {m.experimental_attachments?.map(attachment => {
+              if (attachment.contentType?.startsWith('image/')) {
+                return (
+                  <img
+                    key={attachment.name}
+                    src={attachment.url}
+                    alt={attachment.name}
+                    data-testid={`attachment-${idx}`}
+                  />
+                );
+              } else if (attachment.contentType?.startsWith('text/')) {
+                return (
+                  <div key={attachment.name} data-testid={`attachment-${idx}`}>
+                    {getTextFromDataUrl(attachment.url)}
+                  </div>
+                );
+              }
+            })}
+          </div>
+        ))}
 
-//         <form
-//           onSubmit={event => {
-//             handleSubmit(event, {
-//               experimental_attachments: attachments,
-//             });
-//             setAttachments(undefined);
-//             if (fileInputRef.current) {
-//               fileInputRef.current.value = '';
-//             }
-//           }}
-//           data-testid="chat-form"
-//         >
-//           <input
-//             type="file"
-//             onChange={event => {
-//               if (event.target.files) {
-//                 setAttachments(event.target.files);
-//               }
-//             }}
-//             multiple
-//             ref={fileInputRef}
-//             data-testid="file-input"
-//           />
-//           <input
-//             value={input}
-//             onChange={handleInputChange}
-//             disabled={isLoading}
-//             data-testid="message-input"
-//           />
-//           <button type="submit" data-testid="submit-button">
-//             Send
-//           </button>
-//         </form>
-//       </div>
-//     );
-//   };
+        <form
+          onSubmit={event => {
+            handleSubmit(event, {
+              experimental_attachments: attachments,
+            });
+            setAttachments(undefined);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
+          }}
+          data-testid="chat-form"
+        >
+          <input
+            type="file"
+            onChange={event => {
+              if (event.target.files) {
+                setAttachments(event.target.files);
+              }
+            }}
+            multiple
+            ref={fileInputRef}
+            data-testid="file-input"
+          />
+          <input
+            value={input}
+            onChange={handleInputChange}
+            disabled={isLoading}
+            data-testid="message-input"
+          />
+          <button type="submit" data-testid="submit-button">
+            Send
+          </button>
+        </form>
+      </div>
+    );
+  };
 
-//   beforeEach(() => {
-//     render(<TestComponent />);
-//   });
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
 
-//   afterEach(() => {
-//     vi.restoreAllMocks();
-//     cleanup();
-//   });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
 
-//   it(
-//     'should handle text file attachment and submission',
-//     withTestServer(
-//       {
-//         url: '/api/chat',
-//         type: 'stream-values',
-//         content: ['0:"Response to message with text attachment"\n'],
-//       },
-//       async ({ call }) => {
-//         const file = new File(['test file content'], 'test.txt', {
-//           type: 'text/plain',
-//         });
+  it(
+    'should handle text file attachment and submission',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Response to message with text attachment"\n'],
+      },
+      async ({ call }) => {
+        const file = new File(['test file content'], 'test.txt', {
+          type: 'text/plain',
+        });
 
-//         const fileInput = screen.getByTestId('file-input');
-//         await userEvent.upload(fileInput, file);
+        const fileInput = screen.getByTestId('file-input');
+        await userEvent.upload(fileInput, file);
 
-//         const messageInput = screen.getByTestId('message-input');
-//         await userEvent.type(messageInput, 'Message with text attachment');
+        const messageInput = screen.getByTestId('message-input');
+        await userEvent.type(messageInput, 'Message with text attachment');
 
-//         const submitButton = screen.getByTestId('submit-button');
-//         await userEvent.click(submitButton);
+        const submitButton = screen.getByTestId('submit-button');
+        await userEvent.click(submitButton);
 
-//         expect(await call(0).getRequestBodyJson()).toStrictEqual({
-//           messages: [
-//             {
-//               role: 'user',
-//               content: 'Message with text attachment',
-//               experimental_attachments: [
-//                 {
-//                   name: 'test.txt',
-//                   contentType: 'text/plain',
-//                   url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
-//                 },
-//               ],
-//             },
-//           ],
-//         });
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent(
+          'User: Message with text attachment',
+        );
 
-//         await screen.findByTestId('message-0');
-//         expect(screen.getByTestId('message-0')).toHaveTextContent(
-//           'User: Message with text attachment',
-//         );
+        await screen.findByTestId('attachment-0');
+        expect(screen.getByTestId('attachment-0')).toHaveTextContent(
+          'test file content',
+        );
 
-//         await screen.findByTestId('attachment-0');
-//         expect(screen.getByTestId('attachment-0')).toHaveTextContent(
-//           'test file content',
-//         );
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: Response to message with text attachment',
+        );
 
-//         await screen.findByTestId('message-1');
-//         expect(screen.getByTestId('message-1')).toHaveTextContent(
-//           'AI: Response to message with text attachment',
-//         );
-//       },
-//     ),
-//   );
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          messages: [
+            {
+              role: 'user',
+              content: 'Message with text attachment',
+              experimental_attachments: [
+                {
+                  name: 'test.txt',
+                  contentType: 'text/plain',
+                  url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
+                },
+              ],
+            },
+          ],
+        });
+      },
+    ),
+  );
 
-//   it(
-//     'should handle image file attachment and submission',
-//     withTestServer(
-//       {
-//         url: '/api/chat',
-//         type: 'stream-values',
-//         content: ['0:"Response to message with image attachment"\n'],
-//       },
-//       async ({ call }) => {
-//         const file = new File(['test image content'], 'test.png', {
-//           type: 'image/png',
-//         });
+  it(
+    'should handle image file attachment and submission',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Response to message with image attachment"\n'],
+      },
+      async ({ call }) => {
+        const file = new File(['test image content'], 'test.png', {
+          type: 'image/png',
+        });
 
-//         const fileInput = screen.getByTestId('file-input');
-//         await userEvent.upload(fileInput, file);
+        const fileInput = screen.getByTestId('file-input');
+        await userEvent.upload(fileInput, file);
 
-//         const messageInput = screen.getByTestId('message-input');
-//         await userEvent.type(messageInput, 'Message with image attachment');
+        const messageInput = screen.getByTestId('message-input');
+        await userEvent.type(messageInput, 'Message with image attachment');
 
-//         const submitButton = screen.getByTestId('submit-button');
-//         await userEvent.click(submitButton);
+        const submitButton = screen.getByTestId('submit-button');
+        await userEvent.click(submitButton);
 
-//         expect(await call(0).getRequestBodyJson()).toStrictEqual({
-//           messages: [
-//             {
-//               role: 'user',
-//               content: 'Message with image attachment',
-//               experimental_attachments: [
-//                 {
-//                   name: 'test.png',
-//                   contentType: 'image/png',
-//                   url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
-//                 },
-//               ],
-//             },
-//           ],
-//         });
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent(
+          'User: Message with image attachment',
+        );
 
-//         await screen.findByTestId('message-0');
-//         expect(screen.getByTestId('message-0')).toHaveTextContent(
-//           'User: Message with image attachment',
-//         );
+        await screen.findByTestId('attachment-0');
+        expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+          'src',
+          expect.stringContaining('data:image/png;base64'),
+        );
 
-//         await screen.findByTestId('attachment-0');
-//         expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-//           'src',
-//           expect.stringContaining('data:image/png;base64'),
-//         );
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: Response to message with image attachment',
+        );
 
-//         await screen.findByTestId('message-1');
-//         expect(screen.getByTestId('message-1')).toHaveTextContent(
-//           'AI: Response to message with image attachment',
-//         );
-//       },
-//     ),
-//   );
-// });
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          messages: [
+            {
+              role: 'user',
+              content: 'Message with image attachment',
+              experimental_attachments: [
+                {
+                  name: 'test.png',
+                  contentType: 'image/png',
+                  url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
+                },
+              ],
+            },
+          ],
+        });
+      },
+    ),
+  );
+});
 
-// describe('file attachments with url', () => {
-//   const TestComponent = () => {
-//     const { messages, handleSubmit, handleInputChange, isLoading, input } =
-//       useChat();
+describe('file attachments with url', () => {
+  const TestComponent = () => {
+    const { messages, handleSubmit, handleInputChange, isLoading, input } =
+      useChat();
 
-//     return (
-//       <div>
-//         {messages.map((m, idx) => (
-//           <div data-testid={`message-${idx}`} key={m.id}>
-//             {m.role === 'user' ? 'User: ' : 'AI: '}
-//             {m.content}
-//             {m.experimental_attachments?.map(attachment => {
-//               if (attachment.contentType?.startsWith('image/')) {
-//                 return (
-//                   <img
-//                     key={attachment.name}
-//                     src={attachment.url}
-//                     alt={attachment.name}
-//                     data-testid={`attachment-${idx}`}
-//                   />
-//                 );
-//               } else if (attachment.contentType?.startsWith('text/')) {
-//                 return (
-//                   <div key={attachment.name} data-testid={`attachment-${idx}`}>
-//                     {Buffer.from(
-//                       attachment.url.split(',')[1],
-//                       'base64',
-//                     ).toString('utf-8')}
-//                   </div>
-//                 );
-//               }
-//             })}
-//           </div>
-//         ))}
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+            {m.experimental_attachments?.map(attachment => {
+              if (attachment.contentType?.startsWith('image/')) {
+                return (
+                  <img
+                    key={attachment.name}
+                    src={attachment.url}
+                    alt={attachment.name}
+                    data-testid={`attachment-${idx}`}
+                  />
+                );
+              } else if (attachment.contentType?.startsWith('text/')) {
+                return (
+                  <div key={attachment.name} data-testid={`attachment-${idx}`}>
+                    {Buffer.from(
+                      attachment.url.split(',')[1],
+                      'base64',
+                    ).toString('utf-8')}
+                  </div>
+                );
+              }
+            })}
+          </div>
+        ))}
 
-//         <form
-//           onSubmit={event => {
-//             handleSubmit(event, {
-//               experimental_attachments: [
-//                 {
-//                   name: 'test.png',
-//                   contentType: 'image/png',
-//                   url: 'https://example.com/image.png',
-//                 },
-//               ],
-//             });
-//           }}
-//           data-testid="chat-form"
-//         >
-//           <input
-//             value={input}
-//             onChange={handleInputChange}
-//             disabled={isLoading}
-//             data-testid="message-input"
-//           />
-//           <button type="submit" data-testid="submit-button">
-//             Send
-//           </button>
-//         </form>
-//       </div>
-//     );
-//   };
+        <form
+          onSubmit={event => {
+            handleSubmit(event, {
+              experimental_attachments: [
+                {
+                  name: 'test.png',
+                  contentType: 'image/png',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            });
+          }}
+          data-testid="chat-form"
+        >
+          <input
+            value={input}
+            onChange={handleInputChange}
+            disabled={isLoading}
+            data-testid="message-input"
+          />
+          <button type="submit" data-testid="submit-button">
+            Send
+          </button>
+        </form>
+      </div>
+    );
+  };
 
-//   beforeEach(() => {
-//     render(<TestComponent />);
-//   });
+  beforeEach(() => {
+    render(<TestComponent />);
+  });
 
-//   afterEach(() => {
-//     vi.restoreAllMocks();
-//     cleanup();
-//   });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
 
-//   it(
-//     'should handle image file attachment and submission',
-//     withTestServer(
-//       {
-//         url: '/api/chat',
-//         type: 'stream-values',
-//         content: ['0:"Response to message with image attachment"\n'],
-//       },
-//       async ({ call }) => {
-//         const messageInput = screen.getByTestId('message-input');
-//         await userEvent.type(messageInput, 'Message with image attachment');
+  it(
+    'should handle image file attachment and submission',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Response to message with image attachment"\n'],
+      },
+      async ({ call }) => {
+        const messageInput = screen.getByTestId('message-input');
+        await userEvent.type(messageInput, 'Message with image attachment');
 
-//         const submitButton = screen.getByTestId('submit-button');
-//         await userEvent.click(submitButton);
+        const submitButton = screen.getByTestId('submit-button');
+        await userEvent.click(submitButton);
 
-//         expect(await call(0).getRequestBodyJson()).toStrictEqual({
-//           messages: [
-//             {
-//               role: 'user',
-//               content: 'Message with image attachment',
-//               experimental_attachments: [
-//                 {
-//                   name: 'test.png',
-//                   contentType: 'image/png',
-//                   url: 'https://example.com/image.png',
-//                 },
-//               ],
-//             },
-//           ],
-//         });
+        await screen.findByTestId('message-0');
+        expect(screen.getByTestId('message-0')).toHaveTextContent(
+          'User: Message with image attachment',
+        );
 
-//         await screen.findByTestId('message-0');
-//         expect(screen.getByTestId('message-0')).toHaveTextContent(
-//           'User: Message with image attachment',
-//         );
+        await screen.findByTestId('attachment-0');
+        expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+          'src',
+          expect.stringContaining('https://example.com/image.png'),
+        );
 
-//         await screen.findByTestId('attachment-0');
-//         expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-//           'src',
-//           expect.stringContaining('https://example.com/image.png'),
-//         );
+        await screen.findByTestId('message-1');
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          'AI: Response to message with image attachment',
+        );
 
-//         await screen.findByTestId('message-1');
-//         expect(screen.getByTestId('message-1')).toHaveTextContent(
-//           'AI: Response to message with image attachment',
-//         );
-//       },
-//     ),
-//   );
-// });
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          messages: [
+            {
+              role: 'user',
+              content: 'Message with image attachment',
+              experimental_attachments: [
+                {
+                  name: 'test.png',
+                  contentType: 'image/png',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            },
+          ],
+        });
+      },
+    ),
+  );
+});
 
 describe('reload', () => {
   const TestComponent = () => {

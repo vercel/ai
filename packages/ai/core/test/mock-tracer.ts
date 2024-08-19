@@ -67,7 +67,7 @@ class MockSpan implements Span {
   context?: Context;
   options?: SpanOptions;
   attributes: Attributes;
-  events: string[] = [];
+  events: Array<{ name: string; attributes: Attributes | undefined }> = [];
 
   readonly _spanContext: SpanContext = new MockSpanContext();
 
@@ -100,10 +100,11 @@ class MockSpan implements Span {
     return this;
   }
 
-  addEvent(name: string): this {
-    this.events.push(name);
+  addEvent(name: string, attributes?: Attributes): this {
+    this.events.push({ name, attributes });
     return this;
   }
+
   addLink() {
     return this;
   }

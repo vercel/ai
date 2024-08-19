@@ -1,5 +1,34 @@
 # @ai-sdk/provider-utils
 
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [6ac355e]
+  - @ai-sdk/provider@0.0.20
+
+## 1.0.12
+
+### Patch Changes
+
+- dd712ac: fix: use FetchFunction type to prevent self-reference
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [dd4a0f5]
+  - @ai-sdk/provider@0.0.19
+
+## 1.0.10
+
+### Patch Changes
+
+- 4bd27a9: chore (ai/provider): refactor type validation
+- 845754b: fix (ai/provider): fix atob/btoa execution on cloudflare edge workers
+- Updated dependencies [4bd27a9]
+  - @ai-sdk/provider@0.0.18
+
 ## 1.0.9
 
 ### Patch Changes

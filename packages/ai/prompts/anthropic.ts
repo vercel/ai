@@ -4,6 +4,8 @@ import { Message } from '@ai-sdk/ui-utils';
  * A prompt constructor for Anthropic models.
  * Does not support `function` messages.
  * @see https://docs.anthropic.com/claude/reference/getting-started-with-the-api
+ *
+ * @deprecated Will be removed. Use the new provider architecture instead.
  */
 export function experimental_buildAnthropicPrompt(
   messages: Pick<Message, 'content' | 'role'>[],
@@ -23,6 +25,8 @@ export function experimental_buildAnthropicPrompt(
  * A prompt constructor for Anthropic V3 models which require Messages API.
  * Does not support message with image content
  * @see https://docs.anthropic.com/claude/reference/messages_post
+ *
+ * @deprecated Will be removed. Use the new provider architecture instead.
  */
 export function experimental_buildAnthropicMessages(
   messages: Pick<Message, 'content' | 'role'>[],

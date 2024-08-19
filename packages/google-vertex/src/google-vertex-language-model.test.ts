@@ -113,7 +113,7 @@ describe('doGenerate', () => {
   });
 
   it('should extract tool calls', async () => {
-    const { model } = createModel({
+    const { model, mockVertexAI } = createModel({
       generateContent: prepareResponse({
         parts: [
           {
@@ -145,6 +145,41 @@ describe('doGenerate', () => {
         ],
       },
       prompt: TEST_PROMPT,
+    });
+
+    expect(mockVertexAI.lastModelParams).toStrictEqual({
+      model: 'gemini-1.0-pro-002',
+      generationConfig: {
+        maxOutputTokens: undefined,
+        responseMimeType: undefined,
+        temperature: undefined,
+        topK: undefined,
+        topP: undefined,
+        stopSequences: undefined,
+      },
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              description: '',
+              name: 'test-tool',
+              parameters: {
+                description: undefined,
+                properties: {
+                  value: {
+                    description: undefined,
+                    required: undefined,
+                    type: 'STRING',
+                  },
+                },
+                required: ['value'],
+                type: 'OBJECT',
+              },
+            },
+          ],
+        },
+      ],
+      safetySettings: undefined,
     });
 
     expect(toolCalls).toStrictEqual([
@@ -205,6 +240,36 @@ describe('doGenerate', () => {
         stopSequences: ['abc', 'def'],
       },
       tools: undefined,
+      safetySettings: undefined,
+    });
+  });
+
+  it('should send search grounding tool', async () => {
+    const { model, mockVertexAI } = createModel({
+      modelId: 'test-model',
+      settings: {
+        useSearchGrounding: true,
+      },
+      generateContent: prepareResponse({}),
+    });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(mockVertexAI.lastModelParams).toStrictEqual({
+      model: 'test-model',
+      generationConfig: {
+        maxOutputTokens: undefined,
+        responseMimeType: undefined,
+        stopSequences: undefined,
+        temperature: undefined,
+        topK: undefined,
+        topP: undefined,
+      },
+      tools: [{ googleSearchRetrieval: {} }],
       safetySettings: undefined,
     });
   });

@@ -3,10 +3,12 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1FunctionToolCall,
+  LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  FetchFunction,
   ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -26,7 +28,7 @@ type AnthropicMessagesConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
@@ -99,7 +101,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const messagesPrompt = convertToAnthropicMessagesPrompt(prompt);
+    const messagesPrompt = convertToAnthropicMessagesPrompt({
+      prompt,
+      cacheControl: this.settings.cacheControl ?? false,
+    });
 
     const baseArgs = {
       // model id:
@@ -153,6 +158,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     }
   }
 
+  private getHeaders(
+    optionHeaders: Record<string, string | undefined> | undefined,
+  ) {
+    return combineHeaders(
+      this.config.headers(),
+      this.settings.cacheControl
+        ? { 'anthropic-beta': 'prompt-caching-2024-07-31' }
+        : {},
+      optionHeaders,
+    );
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
@@ -160,7 +177,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: this.getHeaders(options.headers),
       body: args,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -207,6 +224,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
+      providerMetadata:
+        this.settings.cacheControl === true
+          ? {
+              anthropic: {
+                cacheCreationInputTokens:
+                  response.usage.cache_creation_input_tokens ?? null,
+                cacheReadInputTokens:
+                  response.usage.cache_read_input_tokens ?? null,
+              },
+            }
+          : undefined,
     };
   }
 
@@ -217,11 +245,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/messages`,
-      headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-      },
+      headers: this.getHeaders(options.headers),
+      body: { ...args, stream: true },
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         anthropicMessagesChunkSchema,
@@ -232,7 +257,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
-    let finishReason: LanguageModelV1FinishReason = 'other';
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
     const usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
@@ -247,6 +272,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       }
     > = {};
 
+    let providerMetadata: LanguageModelV1ProviderMetadata | undefined =
+      undefined;
+
+    const self = this;
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -351,6 +380,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
               case 'message_start': {
                 usage.promptTokens = value.message.usage.input_tokens;
                 usage.completionTokens = value.message.usage.output_tokens;
+
+                if (self.settings.cacheControl === true) {
+                  providerMetadata = {
+                    anthropic: {
+                      cacheCreationInputTokens:
+                        value.message.usage.cache_creation_input_tokens ?? null,
+                      cacheReadInputTokens:
+                        value.message.usage.cache_read_input_tokens ?? null,
+                    },
+                  };
+                }
+
                 return;
               }
 
@@ -361,7 +402,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
               }
 
               case 'message_stop': {
-                controller.enqueue({ type: 'finish', finishReason, usage });
+                controller.enqueue({
+                  type: 'finish',
+                  finishReason,
+                  usage,
+                  providerMetadata,
+                });
                 return;
               }
 
@@ -403,10 +449,12 @@ const anthropicMessagesResponseSchema = z.object({
       }),
     ]),
   ),
-  stop_reason: z.string().optional().nullable(),
+  stop_reason: z.string().nullish(),
   usage: z.object({
     input_tokens: z.number(),
     output_tokens: z.number(),
+    cache_creation_input_tokens: z.number().nullish(),
+    cache_read_input_tokens: z.number().nullish(),
   }),
 });
 
@@ -419,6 +467,8 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
       usage: z.object({
         input_tokens: z.number(),
         output_tokens: z.number(),
+        cache_creation_input_tokens: z.number().nullish(),
+        cache_read_input_tokens: z.number().nullish(),
       }),
     }),
   }),
@@ -464,7 +514,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('message_delta'),
-    delta: z.object({ stop_reason: z.string().optional().nullable() }),
+    delta: z.object({ stop_reason: z.string().nullish() }),
     usage: z.object({ output_tokens: z.number() }),
   }),
   z.object({

@@ -1,4 +1,8 @@
-import { loadApiKey, withoutTrailingSlash } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  withoutTrailingSlash,
+} from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './openai-chat-language-model';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import { OpenAICompletionLanguageModel } from './openai-completion-language-model';
@@ -106,7 +110,7 @@ information such as streamOptions are not being sent. Defaults to 'compatible'.
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 }
 
 /**

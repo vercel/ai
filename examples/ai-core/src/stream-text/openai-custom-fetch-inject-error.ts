@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const openai = createOpenAI({
-  // example fetch wrapper that logs the URL:
+  // example fetch wrapper that injects an error after 1000 characters:
   fetch: async (url, options) => {
     const result = await fetch(url, options);
 

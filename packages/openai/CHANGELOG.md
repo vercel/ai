@@ -1,5 +1,46 @@
 # @ai-sdk/openai
 
+## 0.0.49
+
+### Patch Changes
+
+- f42d9bd: fix (provider/openai): support OpenRouter streaming errors
+
+## 0.0.48
+
+### Patch Changes
+
+- Updated dependencies [6ac355e]
+  - @ai-sdk/provider@0.0.20
+  - @ai-sdk/provider-utils@1.0.13
+
+## 0.0.47
+
+### Patch Changes
+
+- 4ffbaee: fix (provider/openai): fix strict flag for structured outputs with tools
+- dd712ac: fix: use FetchFunction type to prevent self-reference
+- Updated dependencies [dd712ac]
+  - @ai-sdk/provider-utils@1.0.12
+
+## 0.0.46
+
+### Patch Changes
+
+- 89b18ca: fix (ai/provider): send finish reason 'unknown' by default
+- Updated dependencies [dd4a0f5]
+  - @ai-sdk/provider@0.0.19
+  - @ai-sdk/provider-utils@1.0.11
+
+## 0.0.45
+
+### Patch Changes
+
+- Updated dependencies [4bd27a9]
+- Updated dependencies [845754b]
+  - @ai-sdk/provider-utils@1.0.10
+  - @ai-sdk/provider@0.0.18
+
 ## 0.0.44
 
 ### Patch Changes

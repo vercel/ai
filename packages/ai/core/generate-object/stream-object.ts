@@ -6,6 +6,8 @@ import {
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import {
   DeepPartial,
+  Schema,
+  asSchema,
   isDeepEqualData,
   parsePartialJson,
 } from '@ai-sdk/ui-utils';
@@ -26,7 +28,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { CallWarning, LanguageModel } from '../types';
+import { CallWarning, LanguageModel, ProviderMetadata } from '../types';
 import {
   CompletionTokenUsage,
   calculateCompletionTokenUsage,
@@ -36,7 +38,6 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
-import { Schema, asSchema } from '../util/schema';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 import {
   ObjectStreamInputPart,
@@ -180,6 +181,13 @@ Response headers.
 Warnings from the model provider (e.g. unsupported settings).
        */
       warnings?: CallWarning[];
+
+      /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+   */
+      experimental_providerMetadata: ProviderMetadata | undefined;
     }) => Promise<void> | void;
   }): Promise<DefaultStreamObjectResult<T>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
@@ -336,6 +344,7 @@ Warnings from the model provider (e.g. unsupported settings).
       const {
         result: { stream, warnings, rawResponse },
         doStreamSpan,
+        startTimestamp,
       } = await retry(() =>
         recordSpan({
           name: 'ai.streamObject.doStream',
@@ -366,8 +375,9 @@ Warnings from the model provider (e.g. unsupported settings).
           tracer,
           endWhenDone: false,
           fn: async doStreamSpan => ({
-            result: await model.doStream(callOptions),
+            startTimestamp: performance.now(), // get before the call
             doStreamSpan,
+            result: await model.doStream(callOptions),
           }),
         }),
       );
@@ -381,6 +391,7 @@ Warnings from the model provider (e.g. unsupported settings).
         rootSpan,
         doStreamSpan,
         telemetry,
+        startTimestamp,
       });
     },
   });
@@ -392,6 +403,7 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
 
   readonly warnings: StreamObjectResult<T>['warnings'];
   readonly usage: StreamObjectResult<T>['usage'];
+  readonly experimental_providerMetadata: StreamObjectResult<T>['experimental_providerMetadata'];
   readonly rawResponse: StreamObjectResult<T>['rawResponse'];
 
   constructor({
@@ -403,6 +415,7 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
     rootSpan,
     doStreamSpan,
     telemetry,
+    startTimestamp,
   }: {
     stream: ReadableStream<
       string | Omit<LanguageModelV1StreamPart, 'text-delta'>
@@ -414,6 +427,7 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
     rootSpan: Span;
     doStreamSpan: Span;
     telemetry: TelemetrySettings | undefined;
+    startTimestamp: number; // performance.now() timestamp
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -426,9 +440,17 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
       createResolvablePromise<CompletionTokenUsage>();
     this.usage = usagePromise;
 
+    // initialize experimental_providerMetadata promise
+    const {
+      resolve: resolveProviderMetadata,
+      promise: providerMetadataPromise,
+    } = createResolvablePromise<ProviderMetadata | undefined>();
+    this.experimental_providerMetadata = providerMetadataPromise;
+
     // store information for onFinish callback:
     let usage: CompletionTokenUsage | undefined;
     let finishReason: LanguageModelV1FinishReason | undefined;
+    let providerMetadata: ProviderMetadata | undefined;
     let object: T | undefined;
     let error: unknown | undefined;
 
@@ -444,8 +466,17 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
         async transform(chunk, controller): Promise<void> {
           // Telemetry event for first chunk:
           if (firstChunk) {
+            const msToFirstChunk = performance.now() - startTimestamp;
+
             firstChunk = false;
-            doStreamSpan.addEvent('ai.stream.firstChunk');
+
+            doStreamSpan.addEvent('ai.stream.firstChunk', {
+              'ai.stream.msToFirstChunk': msToFirstChunk,
+            });
+
+            doStreamSpan.setAttributes({
+              'ai.stream.msToFirstChunk': msToFirstChunk,
+            });
           }
 
           // process partial text chunks
@@ -489,14 +520,15 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
               // store finish reason for telemetry:
               finishReason = chunk.finishReason;
 
-              // store usage for promises and onFinish callback:
+              // store usage and metadata for promises and onFinish callback:
               usage = calculateCompletionTokenUsage(chunk.usage);
+              providerMetadata = chunk.providerMetadata;
 
               controller.enqueue({ ...chunk, usage });
 
               // resolve promises that can be resolved now:
               resolveUsage(usage);
-
+              resolveProviderMetadata(providerMetadata);
               // resolve the object promise with the latest object:
               const validationResult = safeValidateTypes({
                 value: latestObject,
@@ -573,6 +605,7 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
               error,
               rawResponse,
               warnings,
+              experimental_providerMetadata: providerMetadata,
             });
           } catch (error) {
             controller.error(error);

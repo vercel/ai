@@ -1,3 +1,4 @@
+import { ProviderMetadata } from '../types';
 import {
   FilePart,
   ImagePart,
@@ -7,7 +8,7 @@ import {
 } from './content-part';
 
 /**
-A message that can be used in the `messages` field of a prompt. 
+A message that can be used in the `messages` field of a prompt.
 It can be a user message, an assistant message, or a tool message.
  */
 export type CoreMessage =
@@ -23,7 +24,17 @@ export type CoreMessage =
  to increase the resilience against prompt injection attacks,
  and because not all providers support several system messages.
  */
-export type CoreSystemMessage = { role: 'system'; content: string };
+export type CoreSystemMessage = {
+  role: 'system';
+  content: string;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  experimental_providerMetadata?: ProviderMetadata;
+};
 
 /**
  * @deprecated Use `CoreMessage` instead.
@@ -33,7 +44,17 @@ export type ExperimentalMessage = CoreMessage;
 /**
 A user message. It can contain text or a combination of text and images.
  */
-export type CoreUserMessage = { role: 'user'; content: UserContent };
+export type CoreUserMessage = {
+  role: 'user';
+  content: UserContent;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  experimental_providerMetadata?: ProviderMetadata;
+};
 
 /**
  * @deprecated Use `CoreUserMessage` instead.
@@ -51,6 +72,13 @@ An assistant message. It can contain text, tool calls, or a combination of text 
 export type CoreAssistantMessage = {
   role: 'assistant';
   content: AssistantContent;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  experimental_providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -66,7 +94,17 @@ export type AssistantContent = string | Array<TextPart | ToolCallPart>;
 /**
 A tool message. It contains the result of one or more tool calls.
  */
-export type CoreToolMessage = { role: 'tool'; content: ToolContent };
+export type CoreToolMessage = {
+  role: 'tool';
+  content: ToolContent;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  experimental_providerMetadata?: ProviderMetadata;
+};
 
 /**
  * @deprecated Use `CoreToolMessage` instead.

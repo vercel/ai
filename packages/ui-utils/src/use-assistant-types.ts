@@ -1,4 +1,4 @@
-import { FetchFunction } from './types';
+import { FetchFunction } from '@ai-sdk/provider-utils';
 
 // Define a type for the assistant status
 export type AssistantStatus = 'in_progress' | 'awaiting_message';

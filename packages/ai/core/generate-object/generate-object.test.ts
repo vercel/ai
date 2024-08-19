@@ -1,11 +1,11 @@
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
-import { generateObject } from './generate-object';
-import { MockTracer } from '../test/mock-tracer';
 import { setTestTracer } from '../telemetry/get-tracer';
-import { jsonSchema } from '../util/schema';
+import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
+import { MockTracer } from '../test/mock-tracer';
+import { generateObject } from './generate-object';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -249,6 +249,35 @@ describe('result.toJsonResponse', () => {
       ),
       ['{"content":"Hello, world!"}'],
     );
+  });
+});
+
+describe('result.providerMetadata', () => {
+  it('should contain provider metadata', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          text: `{ "content": "Hello, world!" }`,
+          providerMetadata: {
+            anthropic: {
+              cacheCreationInputTokens: 10,
+              cacheReadInputTokens: 20,
+            },
+          },
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.experimental_providerMetadata, {
+      anthropic: {
+        cacheCreationInputTokens: 10,
+        cacheReadInputTokens: 20,
+      },
+    });
   });
 });
 

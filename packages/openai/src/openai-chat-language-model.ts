@@ -8,6 +8,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  FetchFunction,
   ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -31,7 +32,7 @@ type OpenAIChatConfig = {
   compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export class OpenAIChatLanguageModel implements LanguageModelV1 {
@@ -221,11 +222,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       name: mode.tool.name,
                       description: mode.tool.description,
                       parameters: mode.tool.parameters,
+                      strict:
+                        this.settings.structuredOutputs === true
+                          ? true
+                          : undefined,
                     },
-                    strict:
-                      this.settings.structuredOutputs === true
-                        ? true
-                        : undefined,
                   },
                 ],
               },
@@ -333,7 +334,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       };
     }> = [];
 
-    let finishReason: LanguageModelV1FinishReason = 'other';
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
@@ -706,8 +707,8 @@ function prepareToolsAndToolChoice({
       name: tool.name,
       description: tool.description,
       parameters: tool.parameters,
+      strict: structuredOutputs === true ? true : undefined,
     },
-    strict: structuredOutputs === true ? true : undefined,
   }));
 
   if (toolChoice == null) {
