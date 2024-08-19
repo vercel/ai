@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 0.0.31
+
+### Patch Changes
+
+- 04af64f: fix (provider/google-vertex): fix broken tool calling
+
 ## 0.0.30
 
 ### Patch Changes
