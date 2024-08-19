@@ -1,5 +1,11 @@
 # @ai-sdk/vue
 
+## 0.0.38
+
+### Patch Changes
+
+- 04084a3: fix (ui/vue): use body and headers metadata
+
 ## 0.0.37
 
 ### Patch Changes
