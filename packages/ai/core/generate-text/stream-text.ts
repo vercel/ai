@@ -210,7 +210,7 @@ results that can be fully encapsulated in the provider.
     attributes: selectTelemetryAttributes({
       telemetry,
       attributes: {
-        ...assembleOperationName({ operationName: 'ai.streamText', telemetry }),
+        ...assembleOperationName({ operationId: 'ai.streamText', telemetry }),
         ...baseTelemetryAttributes,
         // specific settings that only make sense on the outer level:
         'ai.prompt': {
@@ -239,7 +239,7 @@ results that can be fully encapsulated in the provider.
             telemetry,
             attributes: {
               ...assembleOperationName({
-                operationName: 'ai.streamText.doStream',
+                operationId: 'ai.streamText.doStream',
                 telemetry,
               }),
               ...baseTelemetryAttributes,

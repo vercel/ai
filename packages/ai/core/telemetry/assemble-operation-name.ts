@@ -1,15 +1,21 @@
 import { TelemetrySettings } from './telemetry-settings';
 
 export function assembleOperationName({
-  operationName,
+  operationId,
   telemetry,
 }: {
-  operationName: string;
+  operationId: string;
   telemetry?: TelemetrySettings;
 }) {
   return {
-    'operation.name': `${operationName}${
+    // standardized operation and resource name:
+    'operation.name': `${operationId}${
       telemetry?.functionId != null ? ` ${telemetry.functionId}` : ''
     }`,
+    'resource.name': telemetry?.functionId,
+
+    // detailed, AI SDK specific data:
+    'ai.operationId': operationId,
+    'ai.telemetry.functionId': telemetry?.functionId,
   };
 }

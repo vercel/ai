@@ -110,9 +110,11 @@ describe('telemetry', () => {
 
     assert.deepStrictEqual(tracer.jsonSpans, [
       {
+        name: 'ai.embed',
         attributes: {
           'operation.name': 'ai.embed test-function-id',
           'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.embed',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.telemetry.functionId': 'test-function-id',
@@ -123,12 +125,13 @@ describe('telemetry', () => {
           'ai.usage.tokens': 10,
         },
         events: [],
-        name: 'ai.embed',
       },
       {
+        name: 'ai.embed.doEmbed',
         attributes: {
           'operation.name': 'ai.embed.doEmbed test-function-id',
           'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.embed.doEmbed',
           'ai.embeddings': ['[0.1,0.2,0.3]'],
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
@@ -139,7 +142,6 @@ describe('telemetry', () => {
           'ai.values': ['"sunny day at the beach"'],
         },
         events: [],
-        name: 'ai.embed.doEmbed',
       },
     ]);
   });
@@ -159,24 +161,26 @@ describe('telemetry', () => {
 
     assert.deepStrictEqual(tracer.jsonSpans, [
       {
+        name: 'ai.embed',
         attributes: {
+          'operation.name': 'ai.embed',
+          'ai.operationId': 'ai.embed',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.usage.tokens': 10,
-          'operation.name': 'ai.embed',
         },
         events: [],
-        name: 'ai.embed',
       },
       {
+        name: 'ai.embed.doEmbed',
         attributes: {
+          'operation.name': 'ai.embed.doEmbed',
+          'ai.operationId': 'ai.embed.doEmbed',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.usage.tokens': 10,
-          'operation.name': 'ai.embed.doEmbed',
         },
         events: [],
-        name: 'ai.embed.doEmbed',
       },
     ]);
   });
