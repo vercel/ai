@@ -382,6 +382,70 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toStrictEqual([
       {
+        type: 'text-delta',
+        textDelta: 'I',
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' will',
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' use',
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' the',
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' get',
+      },
+      {
+        type: 'text-delta',
+        textDelta: 'Stock',
+      },
+      {
+        type: 'text-delta',
+        textDelta: 'Price',
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' tool',
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' to',
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' find',
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' the',
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' price',
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' of',
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' AAPL',
+      },
+      {
+        type: 'text-delta',
+        textDelta: ' stock',
+      },
+      {
+        type: 'text-delta',
+        textDelta: '.',
+      },
+      {
         type: 'tool-call',
         toolCallId: expect.any(String),
         toolCallType: 'function',
