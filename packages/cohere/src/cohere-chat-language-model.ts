@@ -207,6 +207,10 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       completionTokens: Number.NaN,
     };
 
+    let toolCallIndex = -1;
+    let toolCallId = '';
+    let toolName = '';
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -247,11 +251,31 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
               }
 
               case 'tool-calls-chunk': {
-                if (value.text) {
-                  controller.enqueue({
-                    type: 'text-delta',
-                    textDelta: value.text,
-                  });
+                if (value.tool_call_delta) {
+                  if (value.tool_call_delta.index != toolCallIndex) {
+                    toolCallIndex = value.tool_call_delta.index;
+                    toolCallId = generateId();
+                  }
+
+                  if (value.tool_call_delta.name) {
+                    toolName = value.tool_call_delta.name;
+
+                    controller.enqueue({
+                      type: 'tool-call-delta',
+                      toolCallType: 'function',
+                      toolCallId,
+                      toolName,
+                      argsTextDelta: '',
+                    });
+                  } else if (value.tool_call_delta.parameters) {
+                    controller.enqueue({
+                      type: 'tool-call-delta',
+                      toolCallType: 'function',
+                      toolCallId,
+                      toolName,
+                      argsTextDelta: value.tool_call_delta.parameters,
+                    });
+                  }
                 }
                 return;
               }
