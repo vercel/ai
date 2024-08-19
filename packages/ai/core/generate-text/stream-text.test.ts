@@ -1884,7 +1884,7 @@ describe('telemetry', () => {
     // consume stream
     await convertAsyncIterableToArray(result.textStream);
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
         name: 'ai.streamText',
         attributes: {
@@ -1922,6 +1922,7 @@ describe('telemetry', () => {
           'ai.usage.promptTokens': 10,
           'ai.request.headers.header1': 'value1',
           'ai.request.headers.header2': 'value2',
+          'ai.stream.msToFirstChunk': expect.any(Number),
           'operation.name': 'ai.streamText.doStream test-function-id',
           'resource.name': 'test-function-id',
           'gen_ai.request.model': 'mock-model-id',
@@ -1930,7 +1931,14 @@ describe('telemetry', () => {
           'gen_ai.usage.completion_tokens': 20,
           'gen_ai.usage.prompt_tokens': 10,
         },
-        events: ['ai.stream.firstChunk'],
+        events: [
+          {
+            name: 'ai.stream.firstChunk',
+            attributes: {
+              'ai.stream.msToFirstChunk': expect.any(Number),
+            },
+          },
+        ],
       },
     ]);
   });
@@ -1972,7 +1980,7 @@ describe('telemetry', () => {
     // consume stream
     await convertAsyncIterableToArray(result.textStream);
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
         name: 'ai.streamText',
         attributes: {
@@ -2003,6 +2011,7 @@ describe('telemetry', () => {
             '[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
+          'ai.stream.msToFirstChunk': expect.any(Number),
           'operation.name': 'ai.streamText.doStream',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
@@ -2010,7 +2019,14 @@ describe('telemetry', () => {
           'gen_ai.usage.completion_tokens': 20,
           'gen_ai.usage.prompt_tokens': 10,
         },
-        events: ['ai.stream.firstChunk'],
+        events: [
+          {
+            name: 'ai.stream.firstChunk',
+            attributes: {
+              'ai.stream.msToFirstChunk': expect.any(Number),
+            },
+          },
+        ],
       },
       {
         name: 'ai.toolCall',
@@ -2065,7 +2081,7 @@ describe('telemetry', () => {
     // consume stream
     await convertAsyncIterableToArray(result.textStream);
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
         name: 'ai.streamText',
         attributes: {
@@ -2087,13 +2103,21 @@ describe('telemetry', () => {
           'ai.finishReason': 'stop',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
+          'ai.stream.msToFirstChunk': expect.anything(),
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.system': 'mock-provider',
           'gen_ai.usage.completion_tokens': 20,
           'gen_ai.usage.prompt_tokens': 10,
         },
-        events: ['ai.stream.firstChunk'],
+        events: [
+          {
+            name: 'ai.stream.firstChunk',
+            attributes: {
+              'ai.stream.msToFirstChunk': expect.any(Number),
+            },
+          },
+        ],
       },
       {
         name: 'ai.toolCall',

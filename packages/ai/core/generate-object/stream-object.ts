@@ -344,6 +344,7 @@ results that can be fully encapsulated in the provider.
       const {
         result: { stream, warnings, rawResponse },
         doStreamSpan,
+        startTimestamp,
       } = await retry(() =>
         recordSpan({
           name: 'ai.streamObject.doStream',
@@ -374,8 +375,9 @@ results that can be fully encapsulated in the provider.
           tracer,
           endWhenDone: false,
           fn: async doStreamSpan => ({
-            result: await model.doStream(callOptions),
+            startTimestamp: performance.now(), // get before the call
             doStreamSpan,
+            result: await model.doStream(callOptions),
           }),
         }),
       );
@@ -389,6 +391,7 @@ results that can be fully encapsulated in the provider.
         rootSpan,
         doStreamSpan,
         telemetry,
+        startTimestamp,
       });
     },
   });
@@ -412,6 +415,7 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
     rootSpan,
     doStreamSpan,
     telemetry,
+    startTimestamp,
   }: {
     stream: ReadableStream<
       string | Omit<LanguageModelV1StreamPart, 'text-delta'>
@@ -423,6 +427,7 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
     rootSpan: Span;
     doStreamSpan: Span;
     telemetry: TelemetrySettings | undefined;
+    startTimestamp: number; // performance.now() timestamp
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -461,8 +466,17 @@ class DefaultStreamObjectResult<T> implements StreamObjectResult<T> {
         async transform(chunk, controller): Promise<void> {
           // Telemetry event for first chunk:
           if (firstChunk) {
+            const msToFirstChunk = performance.now() - startTimestamp;
+
             firstChunk = false;
-            doStreamSpan.addEvent('ai.stream.firstChunk');
+
+            doStreamSpan.addEvent('ai.stream.firstChunk', {
+              'ai.stream.msToFirstChunk': msToFirstChunk,
+            });
+
+            doStreamSpan.setAttributes({
+              'ai.stream.msToFirstChunk': msToFirstChunk,
+            });
           }
 
           // process partial text chunks
