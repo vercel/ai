@@ -1,5 +1,7 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
-import { CoreMessage } from './message';
+import { safeValidateTypes } from '@ai-sdk/provider-utils';
+import { z } from 'zod';
+import { CoreMessage, coreMessageSchema } from './message';
 import { Prompt } from './prompt';
 
 export type ValidatedPrompt =
@@ -31,28 +33,54 @@ export function getValidatedPrompt(prompt: Prompt): ValidatedPrompt {
     });
   }
 
-  if (prompt.messages != null) {
-    for (const message of prompt.messages) {
-      if (message.role === 'system' && typeof message.content !== 'string') {
-        throw new InvalidPromptError({
-          prompt,
-          message: 'system message content must be a string',
-        });
-      }
-    }
+  // validate that system is a string
+  if (prompt.system != null && typeof prompt.system !== 'string') {
+    throw new InvalidPromptError({
+      prompt,
+      message: 'system must be a string',
+    });
   }
 
-  return prompt.prompt != null
-    ? {
-        type: 'prompt',
-        prompt: prompt.prompt,
-        messages: undefined,
-        system: prompt.system,
-      }
-    : {
-        type: 'messages',
-        prompt: undefined,
-        messages: prompt.messages!, // only possible case bc of checks above
-        system: prompt.system,
-      };
+  // type: prompt
+  if (prompt.prompt != null) {
+    // validate that prompt is a string
+    if (typeof prompt.prompt !== 'string') {
+      throw new InvalidPromptError({
+        prompt,
+        message: 'prompt must be a string',
+      });
+    }
+
+    return {
+      type: 'prompt',
+      prompt: prompt.prompt,
+      messages: undefined,
+      system: prompt.system,
+    };
+  }
+
+  // type: messages
+  if (prompt.messages != null) {
+    const validationResult = safeValidateTypes({
+      value: prompt.messages,
+      schema: z.array(coreMessageSchema),
+    });
+
+    if (!validationResult.success) {
+      throw new InvalidPromptError({
+        prompt,
+        message: 'messages must be an array of CoreMessage',
+        cause: validationResult.error,
+      });
+    }
+
+    return {
+      type: 'messages',
+      prompt: undefined,
+      messages: prompt.messages!, // only possible case bc of checks above
+      system: prompt.system,
+    };
+  }
+
+  throw new Error('unreachable');
 }
