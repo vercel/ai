@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.46
+
+### Patch Changes
+
+- b6c1dee: fix (ui/react): allow sending empty messages with attachments
+
 ## 0.0.45
 
 ### Patch Changes

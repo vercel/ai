@@ -129,7 +129,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                   telemetry,
                   attributes: {
                     ...assembleOperationName({
-                      operationName: 'ai.toolCall',
+                      operationId: 'ai.toolCall',
                       telemetry,
                     }),
                     'ai.toolCall.name': toolCall.toolName,

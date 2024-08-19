@@ -936,7 +936,7 @@ importers:
         specifier: 1.0.13
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 0.0.45
+        specifier: 0.0.46
         version: link:../react
       '@ai-sdk/solid':
         specifier: 0.0.36
