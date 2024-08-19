@@ -144,7 +144,7 @@ Default and recommended: 'auto' (best mode for the model).
       telemetry,
       attributes: {
         ...assembleOperationName({
-          operationName: 'ai.generateObject',
+          operationId: 'ai.generateObject',
           telemetry,
         }),
         ...baseTelemetryAttributes,
@@ -204,7 +204,7 @@ Default and recommended: 'auto' (best mode for the model).
                 telemetry,
                 attributes: {
                   ...assembleOperationName({
-                    operationName: 'ai.generateObject.doGenerate',
+                    operationId: 'ai.generateObject.doGenerate',
                     telemetry,
                   }),
                   ...baseTelemetryAttributes,
@@ -300,7 +300,7 @@ Default and recommended: 'auto' (best mode for the model).
                 telemetry,
                 attributes: {
                   ...assembleOperationName({
-                    operationName: 'ai.generateObject.doGenerate',
+                    operationId: 'ai.generateObject.doGenerate',
                     telemetry,
                   }),
                   ...baseTelemetryAttributes,

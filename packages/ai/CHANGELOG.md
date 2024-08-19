@@ -1,5 +1,14 @@
 # ai
 
+## 3.3.11
+
+### Patch Changes
+
+- 03eb0f4: feat (ai/core): add "ai.operationId" telemetry attribute
+- 099db96: feat (ai/core): add msToFirstChunk telemetry data
+- Updated dependencies [b6c1dee]
+  - @ai-sdk/react@0.0.46
+
 ## 3.3.10
 
 ### Patch Changes
