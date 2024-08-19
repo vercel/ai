@@ -315,19 +315,18 @@ function prepareTools({
   }
 
   if (toolChoice == null || toolChoice.type === 'auto') {
-    const mappedTools: GoogleTool[] = [];
-
-    if (tools != null) {
-      [
-        {
-          functionDeclarations: tools.map(tool => ({
-            name: tool.name,
-            description: tool.description ?? '',
-            parameters: prepareFunctionDeclarationSchema(tool.parameters),
-          })),
-        },
-      ];
-    }
+    const mappedTools: GoogleTool[] =
+      tools != null
+        ? [
+            {
+              functionDeclarations: tools.map(tool => ({
+                name: tool.name,
+                description: tool.description ?? '',
+                parameters: prepareFunctionDeclarationSchema(tool.parameters),
+              })),
+            },
+          ]
+        : [];
 
     if (useSearchGrounding) {
       mappedTools.push({ googleSearchRetrieval: {} });
