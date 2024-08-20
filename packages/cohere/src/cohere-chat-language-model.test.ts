@@ -5,6 +5,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createCohere } from './cohere-provider';
+import { fail } from 'assert';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   {
@@ -493,7 +494,7 @@ describe('doStream', () => {
       `{"event_type":"tool-calls-chunk","text":" AAPL"}\n\n`,
       `{"event_type":"tool-calls-chunk","text":" stock"}\n\n`,
       `{"event_type":"tool-calls-chunk","text":"."}\n\n`,
-      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"name":"getStockPrice"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"name":"test-tool-a"}}\n\n`,
       `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"{\\n    \\""}}\n\n`,
       `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"ticker"}}\n\n`,
       `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"_"}}\n\n`,
@@ -504,7 +505,7 @@ describe('doStream', () => {
       `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\""}}\n\n`,
       `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\n"}}\n\n`,
       `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"}"}}\n\n`,
-      `{"event_type":"tool-calls-generation","tool_calls":[{"name":"getStockPrice","parameters":{"ticker_symbol":"AAPL"}}]}\n\n`,
+      `{"event_type":"tool-calls-generation","tool_calls":[{"name":"test-tool-a","parameters":{"ticker_symbol":"AAPL"}}]}\n\n`,
       `{"event_type":"stream-end","finish_reason":"COMPLETE","response":{"meta":{"tokens":{"input_tokens":893,"output_tokens":62}}}}\n\n`,
     ];
 
@@ -536,84 +537,84 @@ describe('doStream', () => {
         type: 'tool-call-delta',
         toolCallType: 'function',
         toolCallId: expect.any(String),
-        toolName: 'getStockPrice',
+        toolName: 'test-tool-a',
         argsTextDelta: '',
       },
       {
         type: 'tool-call-delta',
         toolCallId: expect.any(String),
         toolCallType: 'function',
-        toolName: 'getStockPrice',
+        toolName: 'test-tool-a',
         argsTextDelta: '{\n    "',
       },
       {
         type: 'tool-call-delta',
         toolCallId: expect.any(String),
         toolCallType: 'function',
-        toolName: 'getStockPrice',
+        toolName: 'test-tool-a',
         argsTextDelta: 'ticker',
       },
       {
         type: 'tool-call-delta',
         toolCallId: expect.any(String),
         toolCallType: 'function',
-        toolName: 'getStockPrice',
+        toolName: 'test-tool-a',
         argsTextDelta: '_',
       },
       {
         type: 'tool-call-delta',
         toolCallId: expect.any(String),
         toolCallType: 'function',
-        toolName: 'getStockPrice',
+        toolName: 'test-tool-a',
         argsTextDelta: 'symbol',
       },
       {
         type: 'tool-call-delta',
         toolCallId: expect.any(String),
         toolCallType: 'function',
-        toolName: 'getStockPrice',
+        toolName: 'test-tool-a',
         argsTextDelta: '":',
       },
       {
         type: 'tool-call-delta',
         toolCallId: expect.any(String),
         toolCallType: 'function',
-        toolName: 'getStockPrice',
+        toolName: 'test-tool-a',
         argsTextDelta: ' "',
       },
       {
         type: 'tool-call-delta',
         toolCallId: expect.any(String),
         toolCallType: 'function',
-        toolName: 'getStockPrice',
+        toolName: 'test-tool-a',
         argsTextDelta: 'AAPL',
       },
       {
         type: 'tool-call-delta',
         toolCallId: expect.any(String),
         toolCallType: 'function',
-        toolName: 'getStockPrice',
+        toolName: 'test-tool-a',
         argsTextDelta: '"',
       },
       {
         type: 'tool-call-delta',
         toolCallId: expect.any(String),
         toolCallType: 'function',
-        toolName: 'getStockPrice',
+        toolName: 'test-tool-a',
         argsTextDelta: '\n',
       },
       {
         type: 'tool-call-delta',
         toolCallId: expect.any(String),
         toolCallType: 'function',
-        toolName: 'getStockPrice',
+        toolName: 'test-tool-a',
         argsTextDelta: '}',
       },
       {
         type: 'tool-call',
         toolCallId: expect.any(String),
         toolCallType: 'function',
-        toolName: 'getStockPrice',
+        toolName: 'test-tool-a',
         args: '{"ticker_symbol":"AAPL"}',
       },
       {
@@ -637,6 +638,277 @@ describe('doStream', () => {
     );
 
     expect(toolCallDelta?.toolCallId).toBe(toolCall?.toolCallId);
+  });
+
+  it('should handle out of order tool deltas', async () => {
+    server.responseChunks = [
+      `{"event_type":"stream-start"}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"name":"test-tool-a"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"name":"test-tool-b"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"{\\n    \\""}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"{\\n    \\""}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"ticker"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"ticker"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"_"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"_"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"symbol"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"symbol"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\":"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"\\":"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":" \\""}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":" \\""}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"TSLA"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"AAPL"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\""}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"\\""}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"\\n"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"\\n"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":0,"parameters":"}"}}\n\n`,
+      `{"event_type":"tool-calls-chunk","tool_call_delta":{"index":1,"parameters":"}"}}\n\n`,
+      `{"event_type":"tool-calls-generation","tool_calls":[{"name":"test-tool-a","parameters":{"ticker_symbol":"AAPL"}},{"name":"test-tool-b","parameters":{"ticker_symbol":"TSLA"}}]}\n\n`,
+      `{"event_type":"stream-end","finish_reason":"COMPLETE","response":{"meta":{"tokens":{"input_tokens":893,"output_tokens":62}}}}\n\n`,
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      prompt: TEST_PROMPT,
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool-a',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+          {
+            type: 'function',
+            name: 'test-tool-b',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+    });
+
+    const responseArray = await convertReadableStreamToArray(stream);
+
+    expect(responseArray).toStrictEqual([
+      {
+        type: 'tool-call-delta',
+        toolCallType: 'function',
+        toolCallId: expect.any(String),
+        toolName: 'test-tool-a',
+        argsTextDelta: '',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallType: 'function',
+        toolCallId: expect.any(String),
+        toolName: 'test-tool-b',
+        argsTextDelta: '',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-a',
+        argsTextDelta: '{\n    "',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-b',
+        argsTextDelta: '{\n    "',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-a',
+        argsTextDelta: 'ticker',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-b',
+        argsTextDelta: 'ticker',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-a',
+        argsTextDelta: '_',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-b',
+        argsTextDelta: '_',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-a',
+        argsTextDelta: 'symbol',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-b',
+        argsTextDelta: 'symbol',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-a',
+        argsTextDelta: '":',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-b',
+        argsTextDelta: '":',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-a',
+        argsTextDelta: ' "',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-b',
+        argsTextDelta: ' "',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-b',
+        argsTextDelta: 'TSLA',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-a',
+        argsTextDelta: 'AAPL',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-a',
+        argsTextDelta: '"',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-b',
+        argsTextDelta: '"',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-a',
+        argsTextDelta: '\n',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-b',
+        argsTextDelta: '\n',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-a',
+        argsTextDelta: '}',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-b',
+        argsTextDelta: '}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-a',
+        args: '{"ticker_symbol":"AAPL"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: expect.any(String),
+        toolCallType: 'function',
+        toolName: 'test-tool-b',
+        args: '{"ticker_symbol":"TSLA"}',
+      },
+      {
+        finishReason: 'stop',
+        type: 'finish',
+        usage: {
+          completionTokens: 62,
+          promptTokens: 893,
+        },
+      },
+    ]);
+
+    // Check if the tool call ID is the same in the tool call delta and the tool call
+
+    const toolCallDeltaB = responseArray.find(
+      element =>
+        element.type === 'tool-call-delta' &&
+        element.toolName === 'test-tool-b',
+    );
+
+    const toolCallB = responseArray.find(
+      element =>
+        element.type === 'tool-call' && element.toolName === 'test-tool-b',
+    );
+
+    if (toolCallB && toolCallDeltaB) {
+      if (
+        toolCallB.type === 'tool-call' &&
+        toolCallDeltaB.type === 'tool-call-delta'
+      ) {
+        expect(toolCallDeltaB.toolCallId).toBe(toolCallB.toolCallId);
+      } else {
+        fail(
+          'Expected toolCallA to be of type "tool-call" and toolCallDeltaA to be of type "tool-call-delta"',
+        );
+      }
+    } else {
+      fail('Expected both toolCallA and toolCallDeltaA to be defined');
+    }
   });
 
   it('should handle unparsable stream parts', async () => {

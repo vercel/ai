@@ -240,17 +240,18 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
               case 'tool-calls-chunk': {
                 if (value.tool_call_delta) {
-                  if (value.tool_call_delta.index != toolCalls.length - 1) {
+                  const { index } = value.tool_call_delta;
+
+                  if (!(index in toolCalls) || toolCalls[index] === undefined) {
                     const toolCallId = generateId();
 
-                    toolCalls.push({
+                    toolCalls[index] = {
                       toolCallId,
                       toolName: '',
-                    });
+                    };
                   }
 
                   if (value.tool_call_delta.name) {
-                    const { index } = value.tool_call_delta;
                     toolCalls[index].toolName = value.tool_call_delta.name;
 
                     controller.enqueue({
@@ -261,8 +262,6 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                       argsTextDelta: '',
                     });
                   } else if (value.tool_call_delta.parameters) {
-                    const { index } = value.tool_call_delta;
-
                     controller.enqueue({
                       type: 'tool-call-delta',
                       toolCallType: 'function',
@@ -276,9 +275,9 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
               }
 
               case 'tool-calls-generation': {
-                let index = 0;
+                for (let index = 0; index < value.tool_calls.length; index++) {
+                  const toolCall = value.tool_calls[index];
 
-                for (const toolCall of value.tool_calls) {
                   controller.enqueue({
                     type: 'tool-call',
                     toolCallId: toolCalls[index].toolCallId,
@@ -286,9 +285,8 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                     toolCallType: 'function',
                     args: JSON.stringify(toolCall.parameters),
                   });
-
-                  index += 1;
                 }
+
                 return;
               }
 
