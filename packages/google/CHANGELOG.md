@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 0.0.41
+
+### Patch Changes
+
+- 5da9c7f: feat (provider/google): embedding support
+
 ## 0.0.40
 
 ### Patch Changes
