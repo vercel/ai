@@ -19,9 +19,9 @@ import { DelayedPromise } from '../../util/delayed-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
+import { validatePrompt } from '../prompt/validate-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -239,7 +239,7 @@ results that can be fully encapsulated in the provider.
 
       switch (mode) {
         case 'json': {
-          const validatedPrompt = getValidatedPrompt({
+          const validatedPrompt = validatePrompt({
             system: model.supportsStructuredOutputs
               ? system
               : injectJsonSchemaIntoSystem({
@@ -285,7 +285,7 @@ results that can be fully encapsulated in the provider.
         }
 
         case 'tool': {
-          const validatedPrompt = getValidatedPrompt({
+          const validatedPrompt = validatePrompt({
             system,
             prompt,
             messages,

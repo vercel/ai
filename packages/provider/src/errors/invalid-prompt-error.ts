@@ -13,11 +13,16 @@ export class InvalidPromptError extends AISDKError {
 
   readonly prompt: unknown;
 
-  constructor({ prompt, message }: { prompt: unknown; message: string }) {
-    super({
-      name,
-      message: `Invalid prompt: ${message}`,
-    });
+  constructor({
+    prompt,
+    message,
+    cause,
+  }: {
+    prompt: unknown;
+    message: string;
+    cause?: unknown;
+  }) {
+    super({ name, message: `Invalid prompt: ${message}`, cause });
 
     this.prompt = prompt;
   }

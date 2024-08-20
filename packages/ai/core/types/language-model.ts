@@ -3,7 +3,6 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
-  LanguageModelV1ProviderMetadata,
 } from '@ai-sdk/provider';
 
 /**
@@ -34,13 +33,6 @@ Warning from the model provider for this call. The call will proceed, but e.g.
 some settings might not be supported, which can lead to suboptimal results.
 */
 export type CallWarning = LanguageModelV1CallWarning;
-
-/**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-export type ProviderMetadata = LanguageModelV1ProviderMetadata;
 
 /**
 Tool choice for the generation. It supports the following settings:
