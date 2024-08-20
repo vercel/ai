@@ -10,7 +10,6 @@ import {
   combineHeaders,
   createJsonResponseHandler,
   createJsonStreamResponseHandler,
-  generateId,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -151,6 +150,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     });
 
     const { chat_history, message, ...rawSettings } = args;
+    const generateId = this.config.generateId;
 
     return {
       text: response.text,
@@ -207,6 +207,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       completionTokens: Number.NaN,
     };
 
+    const generateId = this.config.generateId;
     const toolCalls: Array<{
       toolCallId: string;
       toolName: string;

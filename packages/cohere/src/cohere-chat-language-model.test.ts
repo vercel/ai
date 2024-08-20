@@ -15,7 +15,14 @@ const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const provider = createCohere({ apiKey: 'test-api-key' });
+let testIdCounter = 0;
+
+const provider = createCohere({
+  apiKey: 'test-api-key',
+  generateId: () => {
+    return `test-id-${testIdCounter++}`;
+  },
+});
 const model = provider('command-r-plus');
 
 describe('doGenerate', () => {
@@ -536,83 +543,83 @@ describe('doStream', () => {
       {
         type: 'tool-call-delta',
         toolCallType: 'function',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-1',
         toolName: 'test-tool',
         argsTextDelta: '',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-1',
         toolCallType: 'function',
         toolName: 'test-tool',
         argsTextDelta: '{\n    "',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-1',
         toolCallType: 'function',
         toolName: 'test-tool',
         argsTextDelta: 'ticker',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-1',
         toolCallType: 'function',
         toolName: 'test-tool',
         argsTextDelta: '_',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-1',
         toolCallType: 'function',
         toolName: 'test-tool',
         argsTextDelta: 'symbol',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-1',
         toolCallType: 'function',
         toolName: 'test-tool',
         argsTextDelta: '":',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-1',
         toolCallType: 'function',
         toolName: 'test-tool',
         argsTextDelta: ' "',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-1',
         toolCallType: 'function',
         toolName: 'test-tool',
         argsTextDelta: 'AAPL',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-1',
         toolCallType: 'function',
         toolName: 'test-tool',
         argsTextDelta: '"',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-1',
         toolCallType: 'function',
         toolName: 'test-tool',
         argsTextDelta: '\n',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-1',
         toolCallType: 'function',
         toolName: 'test-tool',
         argsTextDelta: '}',
       },
       {
         type: 'tool-call',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-1',
         toolCallType: 'function',
         toolName: 'test-tool',
         args: '{"ticker_symbol":"AAPL"}',
@@ -628,16 +635,13 @@ describe('doStream', () => {
     ]);
 
     // Check if the tool call ID is the same in the tool call delta and the tool call
+    const toolCallIds = responseArray
+      .filter(
+        chunk => chunk.type === 'tool-call-delta' || chunk.type === 'tool-call',
+      )
+      .map(chunk => chunk.toolCallId);
 
-    const toolCallDelta = responseArray.find(
-      element => element.type === 'tool-call-delta',
-    );
-
-    const toolCall = responseArray.find(
-      element => element.type === 'tool-call',
-    );
-
-    expect(toolCallDelta?.toolCallId).toBe(toolCall?.toolCallId);
+    expect(new Set(toolCallIds)).toStrictEqual(new Set(['test-id-1']));
   });
 
   it('should handle out of order tool deltas', async () => {
@@ -707,167 +711,167 @@ describe('doStream', () => {
       {
         type: 'tool-call-delta',
         toolCallType: 'function',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-2',
         toolName: 'test-tool-a',
         argsTextDelta: '',
       },
       {
         type: 'tool-call-delta',
         toolCallType: 'function',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-3',
         toolName: 'test-tool-b',
         argsTextDelta: '',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-2',
         toolCallType: 'function',
         toolName: 'test-tool-a',
         argsTextDelta: '{\n    "',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-3',
         toolCallType: 'function',
         toolName: 'test-tool-b',
         argsTextDelta: '{\n    "',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-2',
         toolCallType: 'function',
         toolName: 'test-tool-a',
         argsTextDelta: 'ticker',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-3',
         toolCallType: 'function',
         toolName: 'test-tool-b',
         argsTextDelta: 'ticker',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-2',
         toolCallType: 'function',
         toolName: 'test-tool-a',
         argsTextDelta: '_',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-3',
         toolCallType: 'function',
         toolName: 'test-tool-b',
         argsTextDelta: '_',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-2',
         toolCallType: 'function',
         toolName: 'test-tool-a',
         argsTextDelta: 'symbol',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-3',
         toolCallType: 'function',
         toolName: 'test-tool-b',
         argsTextDelta: 'symbol',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-2',
         toolCallType: 'function',
         toolName: 'test-tool-a',
         argsTextDelta: '":',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-3',
         toolCallType: 'function',
         toolName: 'test-tool-b',
         argsTextDelta: '":',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-2',
         toolCallType: 'function',
         toolName: 'test-tool-a',
         argsTextDelta: ' "',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-3',
         toolCallType: 'function',
         toolName: 'test-tool-b',
         argsTextDelta: ' "',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-3',
         toolCallType: 'function',
         toolName: 'test-tool-b',
         argsTextDelta: 'TSLA',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-2',
         toolCallType: 'function',
         toolName: 'test-tool-a',
         argsTextDelta: 'AAPL',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-2',
         toolCallType: 'function',
         toolName: 'test-tool-a',
         argsTextDelta: '"',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-3',
         toolCallType: 'function',
         toolName: 'test-tool-b',
         argsTextDelta: '"',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-2',
         toolCallType: 'function',
         toolName: 'test-tool-a',
         argsTextDelta: '\n',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-3',
         toolCallType: 'function',
         toolName: 'test-tool-b',
         argsTextDelta: '\n',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-2',
         toolCallType: 'function',
         toolName: 'test-tool-a',
         argsTextDelta: '}',
       },
       {
         type: 'tool-call-delta',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-3',
         toolCallType: 'function',
         toolName: 'test-tool-b',
         argsTextDelta: '}',
       },
       {
         type: 'tool-call',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-2',
         toolCallType: 'function',
         toolName: 'test-tool-a',
         args: '{"ticker_symbol":"AAPL"}',
       },
       {
         type: 'tool-call',
-        toolCallId: expect.any(String),
+        toolCallId: 'test-id-3',
         toolCallType: 'function',
         toolName: 'test-tool-b',
         args: '{"ticker_symbol":"TSLA"}',
@@ -883,32 +887,15 @@ describe('doStream', () => {
     ]);
 
     // Check if the tool call ID is the same in the tool call delta and the tool call
+    const toolCallIds = responseArray
+      .filter(
+        chunk => chunk.type === 'tool-call-delta' || chunk.type === 'tool-call',
+      )
+      .map(chunk => chunk.toolCallId);
 
-    const toolCallDeltaB = responseArray.find(
-      element =>
-        element.type === 'tool-call-delta' &&
-        element.toolName === 'test-tool-b',
+    expect(new Set(toolCallIds)).toStrictEqual(
+      new Set(['test-id-2', 'test-id-3']),
     );
-
-    const toolCallB = responseArray.find(
-      element =>
-        element.type === 'tool-call' && element.toolName === 'test-tool-b',
-    );
-
-    if (toolCallB && toolCallDeltaB) {
-      if (
-        toolCallB.type === 'tool-call' &&
-        toolCallDeltaB.type === 'tool-call-delta'
-      ) {
-        expect(toolCallDeltaB.toolCallId).toBe(toolCallB.toolCallId);
-      } else {
-        fail(
-          'Expected toolCallA to be of type "tool-call" and toolCallDeltaA to be of type "tool-call-delta"',
-        );
-      }
-    } else {
-      fail('Expected both toolCallA and toolCallDeltaA to be defined');
-    }
   });
 
   it('should handle unparsable stream parts', async () => {
