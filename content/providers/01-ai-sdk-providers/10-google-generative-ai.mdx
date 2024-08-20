@@ -5,7 +5,8 @@ description: Learn how to use Google Generative AI Provider.
 
 # Google Generative AI Provider
 
-The [Google Generative AI](https://ai.google/discover/generativeai/) provider contains language model support for the [Google Generative AI](https://ai.google.dev/api/rest) APIs.
+The [Google Generative AI](https://ai.google/discover/generativeai/) provider contains language and embedding model support for
+the [Google Generative AI](https://ai.google.dev/api/rest) APIs.
 
 ## Setup
 
@@ -143,3 +144,32 @@ Google Generative AI language models can also be used in the `streamText`, `gene
   The table above lists popular models. You can also pass any available provider
   model ID as a string if needed.
 </Note>
+
+## Embedding Models
+
+You can create models that call the [Google Generative AI embeddings API](https://ai.google.dev/api/embeddings)
+using the `.embedding()` factory method.
+
+```ts
+const model = google.embedding('text-embedding-004');
+```
+
+Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
+
+```ts
+const model = google.embedding('text-embedding-004', {
+  outputDimensionality: 512, // optional, number of dimensions for the embedding
+});
+```
+
+The following optional settings are available for Google Generative AI embedding models:
+
+- **outputDimensionality**: _number_
+
+  Optional reduced dimension for the output embedding. If set, excessive values in the output embedding are truncated from the end.
+
+### Model Capabilities
+
+| Model                | Default Dimensions | Custom Dimensions   |
+| -------------------- | ------------------ | ------------------- |
+| `text-embedding-004` | 768                | <Check size={18} /> |
