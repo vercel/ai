@@ -2,6 +2,7 @@ import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
+import { Buffer } from 'node:buffer';
 import { InvalidDataContentError } from './invalid-data-content-error';
 import { z } from 'zod';
 
