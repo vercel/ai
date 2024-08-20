@@ -1,4 +1,4 @@
-import { ref, reactive, customRef } from 'vue';
+import { ref, reactive } from 'vue';
 import type { Ref } from 'vue';
 import type {
   ChatRequest,
@@ -22,20 +22,46 @@ export interface UseChatOptions extends SharedUseChatOptions {
 }
 
 export interface UseChatHelpers {
+  /** Current messages in the chat */
   messages: Ref<Message[]>;
+  /** The error object of the API request */
   error: Ref<Error | undefined>;
+  /**
+   * Append a user message to the chat list. This triggers the API call to fetch
+   * the assistant's response.
+   */
   append: (
     message: Message | CreateMessage,
-    options?: ChatRequestOptions,
+    chatRequestOptions?: ChatRequestOptions,
   ) => Promise<void>;
-  reload: (options?: ChatRequestOptions) => Promise<void>;
+  /**
+   * Reload the last AI chat response for the given chat history. If the last
+   * message isn't from the assistant, it will request the API to generate a
+   * new response.
+   */
+  reload: (chatRequestOptions?: ChatRequestOptions) => Promise<void>;
+  /**
+   * Abort the current request immediately, keep the generated tokens if any.
+   */
   stop: () => void;
+  /**
+   * Update the `messages` state locally. This is useful when you want to
+   * edit the messages on the client, and then trigger the `reload` method
+   * manually to regenerate the AI response.
+   */
   setMessages: (
     messages: Message[] | ((messages: Message[]) => Message[]),
   ) => void;
+  /** The current value of the input */
   input: Ref<string>;
-  handleSubmit: (event?: Event, options?: ChatRequestOptions) => Promise<void>;
+  /** Form submission handler to automatically reset input and append a user message  */
+  handleSubmit: (
+    event?: Event,
+    chatRequestOptions?: ChatRequestOptions,
+  ) => Promise<void>;
+  /** Whether the API request is in progress */
   isLoading: Ref<boolean>;
+  /** Additional data added on the server via StreamData */
   data: Ref<JSONValue[] | undefined>;
   addToolResult: (params: { toolCallId: string; result: any }) => void;
 }
@@ -141,6 +167,7 @@ export function useChat(options: UseChatOptions = {}): UseChatHelpers {
               messages: constructedMessagesPayload,
               ...extraMetadata.body,
               ...chatRequest.body,
+              data: chatRequest.data,
             },
             credentials: extraMetadata.credentials,
             headers: { ...extraMetadata.headers, ...chatRequest.headers },
@@ -203,6 +230,7 @@ export function useChat(options: UseChatOptions = {}): UseChatHelpers {
     await triggerRequest({
       ...chatRequestOptions,
       messages: messages.value,
+      data: chatRequestOptions.data,
     } as ChatRequest);
   };
 
@@ -214,7 +242,11 @@ export function useChat(options: UseChatOptions = {}): UseChatHelpers {
       mutate(messages.value.slice(0, -1));
     }
 
-    await triggerRequest({ ...chatRequestOptions, messages: messages.value });
+    await triggerRequest({
+      ...chatRequestOptions,
+      messages: messages.value,
+      data: chatRequestOptions.data,
+    });
   };
 
   const stop = () => {

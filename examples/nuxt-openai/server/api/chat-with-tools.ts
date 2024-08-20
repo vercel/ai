@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
         getWeatherInformation: {
           description: 'show the weather in a given city to the user',
           parameters: z.object({ city: z.string() }),
+          // eslint-disable-next-line no-empty-pattern
           execute: async ({}: { city: string }) => {
             const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
             return weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
@@ -48,7 +49,8 @@ export default defineEventHandler(async (event) => {
     });
 
     return result.toDataStreamResponse();
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Error in chat API:', error);
     throw createError({
       statusCode: 500,
