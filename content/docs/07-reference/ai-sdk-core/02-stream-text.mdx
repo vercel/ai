@@ -328,6 +328,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'The seed (integer) to use for random sampling. If set and supported by the model, calls will generate deterministic results.',
     },
     {
+      name: 'experimental_responseFormat',
+      type: '"text" | "json" | undefined',
+      isOptional: true,
+      description:
+        'The response format. Can be either text or json. Useful when you want a JSON response, but do not have a schema. Use streamObject when you have a schema. Default: "text". Please note that you often need to also instruct the model in the prompt to return JSON.',
+    },
+    {
       name: 'maxRetries',
       type: 'number',
       isOptional: true,

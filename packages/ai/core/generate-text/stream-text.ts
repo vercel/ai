@@ -121,6 +121,8 @@ The tool choice strategy. Default: 'auto'.
     /**
 The response format. Can be either text or json. Default: 'text'.
 
+Useful when you want a JSON response, but do not have a schema. Use `streamObject` when you have a schema.
+
 Please note that you often need to also instruct the model in the prompt to return JSON.
      */
     experimental_responseFormat?: 'text' | 'json';
