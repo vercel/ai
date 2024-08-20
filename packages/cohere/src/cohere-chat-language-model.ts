@@ -207,10 +207,10 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       completionTokens: Number.NaN,
     };
 
-    let toolCallIndex = -1;
-    let toolCallId = '';
-    let toolName = '';
-    let toolCallIds: string[] = [];
+    const toolCalls: Array<{
+      toolCallId: string;
+      toolName: string;
+    }> = [];
 
     return {
       stream: response.pipeThrough(
@@ -240,28 +240,34 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
               case 'tool-calls-chunk': {
                 if (value.tool_call_delta) {
-                  if (value.tool_call_delta.index != toolCallIndex) {
-                    toolCallIndex = value.tool_call_delta.index;
-                    toolCallId = generateId();
-                    toolCallIds.push(toolCallId);
+                  if (value.tool_call_delta.index != toolCalls.length - 1) {
+                    const toolCallId = generateId();
+
+                    toolCalls.push({
+                      toolCallId,
+                      toolName: '',
+                    });
                   }
 
                   if (value.tool_call_delta.name) {
-                    toolName = value.tool_call_delta.name;
+                    const { index } = value.tool_call_delta;
+                    toolCalls[index].toolName = value.tool_call_delta.name;
 
                     controller.enqueue({
                       type: 'tool-call-delta',
                       toolCallType: 'function',
-                      toolCallId,
-                      toolName,
+                      toolCallId: toolCalls[index].toolCallId,
+                      toolName: toolCalls[index].toolName,
                       argsTextDelta: '',
                     });
                   } else if (value.tool_call_delta.parameters) {
+                    const { index } = value.tool_call_delta;
+
                     controller.enqueue({
                       type: 'tool-call-delta',
                       toolCallType: 'function',
-                      toolCallId,
-                      toolName,
+                      toolCallId: toolCalls[index].toolCallId,
+                      toolName: toolCalls[index].toolName,
                       argsTextDelta: value.tool_call_delta.parameters,
                     });
                   }
@@ -275,8 +281,8 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                 for (const toolCall of value.tool_calls) {
                   controller.enqueue({
                     type: 'tool-call',
-                    toolCallId: toolCallIds[index],
-                    toolName: toolCall.name,
+                    toolCallId: toolCalls[index].toolCallId,
+                    toolName: toolCalls[index].toolName,
                     toolCallType: 'function',
                     args: JSON.stringify(toolCall.parameters),
                   });
