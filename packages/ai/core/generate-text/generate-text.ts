@@ -23,6 +23,7 @@ import {
   calculateCompletionTokenUsage,
 } from '../types/token-usage';
 import { GenerateTextResult } from './generate-text-result';
+import { mapResponseFormat } from './map-response-format';
 import { ToToolCallArray, parseToolCall } from './tool-call';
 import { ToToolResultArray } from './tool-result';
 
@@ -82,6 +83,7 @@ export async function generateText<TOOLS extends Record<string, CoreTool>>({
   headers,
   maxAutomaticRoundtrips = 0,
   maxToolRoundtrips = maxAutomaticRoundtrips,
+  experimental_responseFormat: responseFormat,
   experimental_telemetry: telemetry,
   ...settings
 }: CallSettings &
@@ -119,6 +121,13 @@ case of misconfigured tools.
 By default, it's set to 0, which will disable the feature.
      */
     maxToolRoundtrips?: number;
+
+    /**
+The response format. Can be either text or json. Default: 'text'.
+
+Please note that you often need to also instruct the model in the prompt to return JSON.
+     */
+    experimental_responseFormat?: 'text' | 'json';
 
     /**
      * Optional telemetry configuration (experimental).
@@ -218,6 +227,7 @@ By default, it's set to 0, which will disable the feature.
               const result = await model.doGenerate({
                 mode,
                 ...callSettings,
+                responseFormat: mapResponseFormat(responseFormat),
                 inputFormat: currentInputFormat,
                 prompt: promptMessages,
                 abortSignal,

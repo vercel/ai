@@ -35,6 +35,7 @@ import {
 } from '../util/async-iterable-stream';
 import { mergeStreams } from '../util/merge-streams';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
+import { mapResponseFormat } from './map-response-format';
 import { runToolsTransformation } from './run-tools-transformation';
 import { StreamTextResult } from './stream-text-result';
 import { ToToolCall } from './tool-call';
@@ -94,6 +95,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   maxRetries,
   abortSignal,
   headers,
+  experimental_responseFormat: responseFormat,
   experimental_telemetry: telemetry,
   experimental_toolCallStreaming: toolCallStreaming = false,
   onChunk,
@@ -115,6 +117,13 @@ The tools that the model can call. The model needs to support calling tools.
 The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: CoreToolChoice<TOOLS>;
+
+    /**
+The response format. Can be either text or json. Default: 'text'.
+
+Please note that you often need to also instruct the model in the prompt to return JSON.
+     */
+    experimental_responseFormat?: 'text' | 'json';
 
     /**
 Optional telemetry configuration (experimental).
@@ -269,6 +278,7 @@ results that can be fully encapsulated in the provider.
                 ...prepareToolsAndToolChoice({ tools, toolChoice }),
               },
               ...prepareCallSettings(settings),
+              responseFormat: mapResponseFormat(responseFormat),
               inputFormat: validatedPrompt.type,
               prompt: promptMessages,
               abortSignal,
