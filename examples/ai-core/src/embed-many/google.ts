@@ -1,0 +1,21 @@
+import { google } from '@ai-sdk/google';
+import { embedMany } from 'ai';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+async function main() {
+  const { embeddings, usage } = await embedMany({
+    model: google.embedding('text-embedding-004'),
+    values: [
+      'sunny day at the beach',
+      'rainy afternoon in the city',
+      'snowy night in the mountains',
+    ],
+  });
+
+  console.log(embeddings);
+  console.log(usage);
+}
+
+main().catch(console.error);
