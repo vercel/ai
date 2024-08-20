@@ -1,5 +1,12 @@
 # @ai-sdk/solid
 
+## 0.0.37
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.14
+- @ai-sdk/ui-utils@0.0.34
+
 ## 0.0.36
 
 ### Patch Changes
