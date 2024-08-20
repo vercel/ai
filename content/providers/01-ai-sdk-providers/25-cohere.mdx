@@ -95,7 +95,12 @@ Cohere language models can also be used in the `streamText` function (see [AI SD
 
 | Model            | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ---------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `command-r-plus` | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `command-r-plus` | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  Parameter definitions for tool use is currently limited to primitive types -
+  numbers, strings, and booleans.
+</Note>
 
 <Note>
   The table above lists popular models. You can also pass any available provider

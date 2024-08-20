@@ -1,8 +1,8 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { CoreMessage, generateText } from 'ai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
+import { cohere } from '@ai-sdk/cohere';
 
 dotenv.config();
 
@@ -24,7 +24,7 @@ async function main() {
 
     const { text, toolCalls, toolResults, responseMessages } =
       await generateText({
-        model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+        model: cohere('command-r-plus'),
         tools: { weatherTool },
         system: `You are a helpful, respectful and honest assistant. If the weather is requested use the `,
         messages,
