@@ -2220,3 +2220,46 @@ describe('tools with custom schema', () => {
     );
   });
 });
+
+describe('optional response format', () => {
+  it('should handle JSON response format', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode, responseFormat }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: undefined,
+            toolChoice: undefined,
+          });
+          assert.deepStrictEqual(prompt, [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Generate JSON' }],
+            },
+          ]);
+          assert.deepStrictEqual(responseFormat, { type: 'json' });
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-delta', textDelta: '{"key": "value"}' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 5, promptTokens: 2 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      prompt: 'Generate JSON',
+      experimental_responseFormat: 'json',
+    });
+
+    // consume stream
+    await convertAsyncIterableToArray(result.textStream);
+
+    assert.deepStrictEqual(await result.text, '{"key": "value"}');
+  });
+});

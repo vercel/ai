@@ -962,3 +962,35 @@ describe('tools with custom schema', () => {
     ]);
   });
 });
+
+describe('options.responseFormat', () => {
+  it('should handle JSON response format', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode, responseFormat }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: undefined,
+            toolChoice: undefined,
+          });
+          assert.deepStrictEqual(prompt, [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Generate JSON' }],
+            },
+          ]);
+          assert.deepStrictEqual(responseFormat, { type: 'json' });
+
+          return {
+            ...dummyResponseValues,
+            text: `{"key": "value"}`,
+          };
+        },
+      }),
+      prompt: 'Generate JSON',
+      experimental_responseFormat: 'json',
+    });
+
+    assert.deepStrictEqual(result.text, '{"key": "value"}');
+  });
+});
