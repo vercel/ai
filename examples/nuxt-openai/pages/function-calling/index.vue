@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { useChat } from '@ai-sdk/vue';
 import { generateId } from 'ai';
-import type { FunctionCallHandler, Message } from 'ai';
+import type { Message } from 'ai';
 
-const functionCallHandler: FunctionCallHandler = async (
-  chatMessages,
-  functionCall,
+const functionCallHandler = async (
+  chatMessages: Message[],
+  functionCall: any,
 ) => {
   if (functionCall.name === 'eval_code_in_browser') {
     if (functionCall.arguments) {
@@ -15,7 +15,7 @@ const functionCallHandler: FunctionCallHandler = async (
       );
       // WARNING: Do NOT do this in real-world applications!
       eval(parsedFunctionCallArguments.code);
-      const functionResponse = {
+      return {
         messages: [
           ...chatMessages,
           {
@@ -26,14 +26,14 @@ const functionCallHandler: FunctionCallHandler = async (
           },
         ],
       };
-      return functionResponse;
     }
   }
 };
 
-const { messages, input, handleSubmit } = useChat({
+const { messages, input, handleSubmit, addToolResult } = useChat({
   api: '/api/chat-with-functions',
   experimental_onFunctionCall: functionCallHandler,
+  maxToolRoundtrips: 3,
 });
 
 // Generate a map of message role to text color
@@ -56,7 +56,7 @@ const roleToColorMap: Record<Message['role'], string> = {
       :style="{ color: roleToColorMap[m.role] }"
     >
       <strong>{{ m.role }}:</strong>
-      {{ m.content || JSON.stringify(m.function_call) }}
+      {{ m.content || JSON.stringify(m.toolInvocations) }}
       <br />
       <br />
     </div>
