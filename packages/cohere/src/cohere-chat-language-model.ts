@@ -243,7 +243,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
                 if (value.tool_call_delta) {
                   const { index } = value.tool_call_delta;
 
-                  if (!(index in toolCalls) || toolCalls[index] === undefined) {
+                  if (toolCalls[index] === undefined) {
                     const toolCallId = generateId();
 
                     toolCalls[index] = {
