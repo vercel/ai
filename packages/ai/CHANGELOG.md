@@ -1,5 +1,19 @@
 # ai
 
+## 3.3.12
+
+### Patch Changes
+
+- f2c025e: feat (ai/core): prompt validation
+- Updated dependencies [f2c025e]
+  - @ai-sdk/provider@0.0.21
+  - @ai-sdk/provider-utils@1.0.14
+  - @ai-sdk/ui-utils@0.0.34
+  - @ai-sdk/react@0.0.47
+  - @ai-sdk/solid@0.0.37
+  - @ai-sdk/svelte@0.0.39
+  - @ai-sdk/vue@0.0.39
+
 ## 3.3.11
 
 ### Patch Changes

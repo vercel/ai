@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.21
+
+### Patch Changes
+
+- f2c025e: feat (ai/core): prompt validation
+
 ## 0.0.20
 
 ### Patch Changes
