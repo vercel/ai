@@ -112,12 +112,12 @@ describe('doGenerate', () => {
     });
 
     expect(toolCalls).toStrictEqual([
-      expect.objectContaining({
+      {
         toolCallId: expect.any(String),
         toolCallType: 'function',
         toolName: 'test-tool',
         args: '{"value":"example value"}',
-      }),
+      },
     ]);
     expect(text).toStrictEqual('Hello, World!');
     expect(finishReason).toStrictEqual('stop');
