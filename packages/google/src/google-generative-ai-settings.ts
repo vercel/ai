@@ -1,9 +1,11 @@
 // https://ai.google.dev/models/gemini
 export type GoogleGenerativeAIModelId =
-  | 'models/gemini-1.5-flash-latest'
-  | 'models/gemini-1.5-pro-latest'
-  | 'models/gemini-pro'
-  | 'models/gemini-pro-vision'
+  | 'gemini-1.5-flash-latest'
+  | 'gemini-1.5-flash'
+  | 'gemini-1.5-pro-latest'
+  | 'gemini-1.5-pro'
+  | 'gemini-1.0-pro'
+  | 'gemini-pro'
   | (string & {});
 
 export interface GoogleGenerativeAISettings {

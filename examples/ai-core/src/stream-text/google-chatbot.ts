@@ -19,7 +19,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = await streamText({
-      model: google('models/gemini-1.5-pro-latest'),
+      model: google('gemini-1.5-pro-latest'),
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
     });

@@ -68,18 +68,18 @@ You can use the following optional settings to customize the Google Generative A
 ## Language Models
 
 You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the provider instance.
-The first argument is the model id, e.g. `models/gemini-1.5-pro-latest`.
+The first argument is the model id, e.g. `gemini-1.5-pro-latest`.
 The models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = google('models/gemini-1.5-pro-latest');
+const model = google('gemini-1.5-pro-latest');
 ```
 
 Google Generative AI models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = google('models/gemini-1.5-pro-latest', {
+const model = google('gemini-1.5-pro-latest', {
   safetySettings: [
     { category: 'HARM_CATEGORY_UNSPECIFIED', threshold: 'BLOCK_LOW_AND_ABOVE' },
   ],
@@ -125,7 +125,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google('models/gemini-pro'),
+  model: google('gemini-1.5-pro-latest'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -135,10 +135,12 @@ Google Generative AI language models can also be used in the `streamText`, `gene
 
 ### Model Capabilities
 
-| Model                            | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| -------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `models/gemini-1.5-pro-latest`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `models/gemini-1.5-flash-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                     | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-1.5-pro-latest`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-pro`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-flash-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-flash`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. You can also pass any available provider
