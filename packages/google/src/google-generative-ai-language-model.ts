@@ -135,8 +135,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
-        console.log(JSON.stringify(mode.schema, null, 2));
-
         return {
           args: {
             generationConfig: {
@@ -191,8 +189,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = await this.getArgs(options);
-
-    console.log(JSON.stringify(args, null, 2));
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:generateContent`,

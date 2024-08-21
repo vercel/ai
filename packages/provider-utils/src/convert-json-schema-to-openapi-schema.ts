@@ -1,5 +1,8 @@
 import { JSONSchema7Definition } from 'json-schema';
 
+/**
+ * Converts JSON Schema 7 to OpenAPI Schema 3.0
+ */
 export function convertJSONSchemaToOpenAPISchema(
   jsonSchema: JSONSchema7Definition,
 ): unknown {
@@ -59,11 +62,6 @@ export function convertJSONSchemaToOpenAPISchema(
   }
 
   if (minLength !== undefined) result.minLength = minLength;
-
-  // Ensure object types have non-empty properties
-  if (result.type === 'object' && !result.properties) {
-    result.properties = {};
-  }
 
   return result;
 }
