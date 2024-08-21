@@ -23,7 +23,7 @@ async function main() {
     }
 
     const result = await streamText({
-      model: google('models/gemini-1.5-pro-latest'),
+      model: google('gemini-1.5-pro-latest'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
