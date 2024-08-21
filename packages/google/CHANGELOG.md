@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 0.0.42
+
+### Patch Changes
+
+- 9c1f4f2: chore (provider/google): remove "models/" from model name
+
 ## 0.0.41
 
 ### Patch Changes

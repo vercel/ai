@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 0.0.45
+
+### Patch Changes
+
+- 95a53a3: chore (provider/anthropic): remove tool calls beta header
+
 ## 0.0.44
 
 ### Patch Changes
