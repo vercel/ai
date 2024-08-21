@@ -1,12 +1,12 @@
 import {
   OpenAIChatLanguageModel,
   OpenAIChatSettings,
+  OpenAICompletionLanguageModel,
+  OpenAICompletionSettings,
   OpenAIEmbeddingModel,
   OpenAIEmbeddingSettings,
-  OpenAICompletionSettings,
-  OpenAICompletionLanguageModel,
 } from '@ai-sdk/openai/internal';
-import { loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
+import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
 export interface AzureOpenAIProvider {
   (
@@ -85,7 +85,7 @@ Custom headers to include in the requests.
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 }
 
 /**

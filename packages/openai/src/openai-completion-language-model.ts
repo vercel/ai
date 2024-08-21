@@ -7,6 +7,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  FetchFunction,
   ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -31,7 +32,7 @@ type OpenAICompletionConfig = {
   compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export class OpenAICompletionLanguageModel implements LanguageModelV1 {
@@ -232,7 +233,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
 
     const { prompt: rawPrompt, ...rawSettings } = args;
 
-    let finishReason: LanguageModelV1FinishReason = 'other';
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,

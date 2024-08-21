@@ -6,10 +6,10 @@ import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,
 } from '../prompt/convert-to-language-model-prompt';
-import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { validatePrompt } from '../prompt/validate-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -139,7 +139,7 @@ By default, it's set to 0, which will disable the feature.
       telemetry,
       attributes: {
         ...assembleOperationName({
-          operationName: 'ai.generateText',
+          operationId: 'ai.generateText',
           telemetry,
         }),
         ...baseTelemetryAttributes,
@@ -153,7 +153,7 @@ By default, it's set to 0, which will disable the feature.
     tracer,
     fn: async span => {
       const retry = retryWithExponentialBackoff({ maxRetries });
-      const validatedPrompt = getValidatedPrompt({
+      const validatedPrompt = validatePrompt({
         system,
         prompt,
         messages,
@@ -196,7 +196,7 @@ By default, it's set to 0, which will disable the feature.
               telemetry,
               attributes: {
                 ...assembleOperationName({
-                  operationName: 'ai.generateText.doGenerate',
+                  operationId: 'ai.generateText.doGenerate',
                   telemetry,
                 }),
                 ...baseTelemetryAttributes,
@@ -342,6 +342,7 @@ By default, it's set to 0, which will disable the feature.
         logprobs: currentModelResponse.logprobs,
         responseMessages,
         roundtrips,
+        providerMetadata: currentModelResponse.providerMetadata,
       });
     },
   });
@@ -372,7 +373,7 @@ async function executeTools<TOOLS extends Record<string, CoreTool>>({
           telemetry,
           attributes: {
             ...assembleOperationName({
-              operationName: 'ai.toolCall',
+              operationId: 'ai.toolCall',
               telemetry,
             }),
             'ai.toolCall.name': toolCall.toolName,
@@ -435,6 +436,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
   readonly roundtrips: GenerateTextResult<TOOLS>['roundtrips'];
   readonly rawResponse: GenerateTextResult<TOOLS>['rawResponse'];
   readonly logprobs: GenerateTextResult<TOOLS>['logprobs'];
+  readonly experimental_providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
 
   constructor(options: {
     text: GenerateTextResult<TOOLS>['text'];
@@ -447,6 +449,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     logprobs: GenerateTextResult<TOOLS>['logprobs'];
     responseMessages: GenerateTextResult<TOOLS>['responseMessages'];
     roundtrips: GenerateTextResult<TOOLS>['roundtrips'];
+    providerMetadata: GenerateTextResult<TOOLS>['experimental_providerMetadata'];
   }) {
     this.text = options.text;
     this.toolCalls = options.toolCalls;
@@ -458,6 +461,7 @@ class DefaultGenerateTextResult<TOOLS extends Record<string, CoreTool>>
     this.logprobs = options.logprobs;
     this.responseMessages = options.responseMessages;
     this.roundtrips = options.roundtrips;
+    this.experimental_providerMetadata = options.providerMetadata;
   }
 }
 

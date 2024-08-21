@@ -4,13 +4,13 @@ import {
   convertAsyncIterableToArray,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
+import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { setTestTracer } from '../telemetry/get-tracer';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
-import { jsonSchema } from '../util/schema';
 import { streamObject } from './stream-object';
 
 describe('result.objectStream', () => {
@@ -599,12 +599,7 @@ describe('result.usage', () => {
       model: new MockLanguageModelV1({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: '{ ' },
-            { type: 'text-delta', textDelta: '"content": ' },
-            { type: 'text-delta', textDelta: `"Hello, ` },
-            { type: 'text-delta', textDelta: `world` },
-            { type: 'text-delta', textDelta: `!"` },
-            { type: 'text-delta', textDelta: ' }' },
+            { type: 'text-delta', textDelta: '{ "content": "Hello, world!" }' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -626,6 +621,39 @@ describe('result.usage', () => {
       completionTokens: 10,
       promptTokens: 3,
       totalTokens: 13,
+    });
+  });
+});
+
+describe('result.providerMetadata', () => {
+  it('should resolve with provider metadata', async () => {
+    const result = await streamObject({
+      model: new MockLanguageModelV1({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: '{ "content": "Hello, world!" }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { completionTokens: 10, promptTokens: 3 },
+              providerMetadata: {
+                testProvider: { testKey: 'testValue' },
+              },
+            },
+          ]),
+          rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    // consume stream (runs in parallel)
+    convertAsyncIterableToArray(result.partialObjectStream);
+
+    assert.deepStrictEqual(await result.experimental_providerMetadata, {
+      testProvider: { testKey: 'testValue' },
     });
   });
 });
@@ -744,16 +772,17 @@ describe('options.onFinish', () => {
         model: new MockLanguageModelV1({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"content": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
+              {
+                type: 'text-delta',
+                textDelta: '{ "content": "Hello, world!" }',
+              },
               {
                 type: 'finish',
                 finishReason: 'stop',
                 usage: { completionTokens: 10, promptTokens: 3 },
+                providerMetadata: {
+                  testProvider: { testKey: 'testValue' },
+                },
               },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -787,6 +816,12 @@ describe('options.onFinish', () => {
 
     it('should not contain an error object', async () => {
       assert.deepStrictEqual(result.error, undefined);
+    });
+
+    it('should contain provider metadata', async () => {
+      assert.deepStrictEqual(result.experimental_providerMetadata, {
+        testProvider: { testKey: 'testValue' },
+      });
     });
   });
 
@@ -1044,12 +1079,13 @@ describe('telemetry', () => {
     // consume stream
     await convertAsyncIterableToArray(result.partialObjectStream);
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
         name: 'ai.streamObject',
         attributes: {
           'operation.name': 'ai.streamObject test-function-id',
           'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.streamObject',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"prompt"}',
@@ -1073,6 +1109,8 @@ describe('telemetry', () => {
         name: 'ai.streamObject.doStream',
         attributes: {
           'operation.name': 'ai.streamObject.doStream test-function-id',
+          'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.streamObject.doStream',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.request.headers.header1': 'value1',
@@ -1083,19 +1121,26 @@ describe('telemetry', () => {
           'ai.telemetry.metadata.test2': false,
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
-          'resource.name': 'test-function-id',
           'ai.settings.mode': 'json',
           'ai.prompt.format': 'prompt',
           'ai.prompt.messages':
             '[{"role":"system","content":"JSON schema:\\n{\\"type\\":\\"object\\",\\"properties\\":{\\"content\\":{\\"type\\":\\"string\\"}},\\"required\\":[\\"content\\"],\\"additionalProperties\\":false,\\"$schema\\":\\"http://json-schema.org/draft-07/schema#\\"}\\nYou MUST answer with a JSON object that matches the JSON schema above."},{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
           'ai.finishReason': 'stop',
+          'ai.stream.msToFirstChunk': expect.any(Number),
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.system': 'mock-provider',
           'gen_ai.usage.completion_tokens': 10,
           'gen_ai.usage.prompt_tokens': 3,
           'gen_ai.response.finish_reasons': ['stop'],
         },
-        events: ['ai.stream.firstChunk'],
+        events: [
+          {
+            name: 'ai.stream.firstChunk',
+            attributes: {
+              'ai.stream.msToFirstChunk': expect.any(Number),
+            },
+          },
+        ],
       },
     ]);
   });
@@ -1178,12 +1223,13 @@ describe('telemetry', () => {
     // consume stream
     await convertAsyncIterableToArray(result.partialObjectStream);
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
         name: 'ai.streamObject',
         attributes: {
           'operation.name': 'ai.streamObject test-function-id',
           'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.streamObject',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"prompt"}',
@@ -1206,6 +1252,9 @@ describe('telemetry', () => {
       {
         name: 'ai.streamObject.doStream',
         attributes: {
+          'operation.name': 'ai.streamObject.doStream test-function-id',
+          'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.streamObject.doStream',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.request.headers.header1': 'value1',
@@ -1216,20 +1265,26 @@ describe('telemetry', () => {
           'ai.telemetry.metadata.test2': false,
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
-          'operation.name': 'ai.streamObject.doStream test-function-id',
-          'resource.name': 'test-function-id',
           'ai.settings.mode': 'tool',
           'ai.prompt.format': 'prompt',
           'ai.prompt.messages':
             '[{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
           'ai.finishReason': 'stop',
+          'ai.stream.msToFirstChunk': expect.any(Number),
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.system': 'mock-provider',
           'gen_ai.usage.completion_tokens': 10,
           'gen_ai.usage.prompt_tokens': 3,
           'gen_ai.response.finish_reasons': ['stop'],
         },
-        events: ['ai.stream.firstChunk'],
+        events: [
+          {
+            name: 'ai.stream.firstChunk',
+            attributes: {
+              'ai.stream.msToFirstChunk': expect.any(Number),
+            },
+          },
+        ],
       },
     ]);
   });
@@ -1267,36 +1322,46 @@ describe('telemetry', () => {
     // consume stream
     await convertAsyncIterableToArray(result.partialObjectStream);
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
         name: 'ai.streamObject',
         attributes: {
+          'operation.name': 'ai.streamObject',
+          'ai.operationId': 'ai.streamObject',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
           'ai.settings.mode': 'json',
-          'operation.name': 'ai.streamObject',
         },
         events: [],
       },
       {
         name: 'ai.streamObject.doStream',
         attributes: {
+          'operation.name': 'ai.streamObject.doStream',
+          'ai.operationId': 'ai.streamObject.doStream',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
-          'operation.name': 'ai.streamObject.doStream',
           'ai.settings.mode': 'json',
           'ai.finishReason': 'stop',
+          'ai.stream.msToFirstChunk': expect.any(Number),
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.system': 'mock-provider',
           'gen_ai.usage.completion_tokens': 10,
           'gen_ai.usage.prompt_tokens': 3,
           'gen_ai.response.finish_reasons': ['stop'],
         },
-        events: ['ai.stream.firstChunk'],
+        events: [
+          {
+            name: 'ai.stream.firstChunk',
+            attributes: {
+              'ai.stream.msToFirstChunk': expect.any(Number),
+            },
+          },
+        ],
       },
     ]);
   });
@@ -1370,36 +1435,46 @@ describe('telemetry', () => {
     // consume stream
     await convertAsyncIterableToArray(result.partialObjectStream);
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
         name: 'ai.streamObject',
         attributes: {
+          'operation.name': 'ai.streamObject',
+          'ai.operationId': 'ai.streamObject',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
           'ai.settings.mode': 'tool',
-          'operation.name': 'ai.streamObject',
         },
         events: [],
       },
       {
         name: 'ai.streamObject.doStream',
         attributes: {
+          'operation.name': 'ai.streamObject.doStream',
+          'ai.operationId': 'ai.streamObject.doStream',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.finishReason': 'stop',
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
-          'operation.name': 'ai.streamObject.doStream',
           'ai.settings.mode': 'tool',
+          'ai.stream.msToFirstChunk': expect.any(Number),
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.system': 'mock-provider',
           'gen_ai.usage.completion_tokens': 10,
           'gen_ai.usage.prompt_tokens': 3,
           'gen_ai.response.finish_reasons': ['stop'],
         },
-        events: ['ai.stream.firstChunk'],
+        events: [
+          {
+            name: 'ai.stream.firstChunk',
+            attributes: {
+              'ai.stream.msToFirstChunk': expect.any(Number),
+            },
+          },
+        ],
       },
     ]);
   });

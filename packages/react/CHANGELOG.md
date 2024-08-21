@@ -1,5 +1,51 @@
 # @ai-sdk/react
 
+## 0.0.47
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.14
+- @ai-sdk/ui-utils@0.0.34
+
+## 0.0.46
+
+### Patch Changes
+
+- b6c1dee: fix (ui/react): allow sending empty messages with attachments
+
+## 0.0.45
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.13
+- @ai-sdk/ui-utils@0.0.33
+
+## 0.0.44
+
+### Patch Changes
+
+- Updated dependencies [dd712ac]
+  - @ai-sdk/provider-utils@1.0.12
+  - @ai-sdk/ui-utils@0.0.32
+
+## 0.0.43
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.11
+- @ai-sdk/ui-utils@0.0.31
+
+## 0.0.42
+
+### Patch Changes
+
+- e9c891d: feat (ai/react): useObject supports non-Zod schemas
+- Updated dependencies [e9c891d]
+- Updated dependencies [4bd27a9]
+- Updated dependencies [845754b]
+  - @ai-sdk/ui-utils@0.0.30
+  - @ai-sdk/provider-utils@1.0.10
+
 ## 0.0.41
 
 ### Patch Changes

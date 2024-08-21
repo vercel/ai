@@ -1,5 +1,50 @@
 # @ai-sdk/vue
 
+## 0.0.39
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.14
+- @ai-sdk/ui-utils@0.0.34
+
+## 0.0.38
+
+### Patch Changes
+
+- 04084a3: fix (ui/vue): use body and headers metadata
+
+## 0.0.37
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.13
+- @ai-sdk/ui-utils@0.0.33
+
+## 0.0.36
+
+### Patch Changes
+
+- Updated dependencies [dd712ac]
+  - @ai-sdk/provider-utils@1.0.12
+  - @ai-sdk/ui-utils@0.0.32
+
+## 0.0.35
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.11
+- @ai-sdk/ui-utils@0.0.31
+
+## 0.0.34
+
+### Patch Changes
+
+- Updated dependencies [e9c891d]
+- Updated dependencies [4bd27a9]
+- Updated dependencies [845754b]
+  - @ai-sdk/ui-utils@0.0.30
+  - @ai-sdk/provider-utils@1.0.10
+
 ## 0.0.33
 
 ### Patch Changes

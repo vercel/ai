@@ -129,7 +129,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
                   telemetry,
                   attributes: {
                     ...assembleOperationName({
-                      operationName: 'ai.toolCall',
+                      operationId: 'ai.toolCall',
                       telemetry,
                     }),
                     'ai.toolCall.name': toolCall.toolName,
@@ -208,6 +208,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
             finishReason: chunk.finishReason,
             logprobs: chunk.logprobs,
             usage: calculateCompletionTokenUsage(chunk.usage),
+            experimental_providerMetadata: chunk.providerMetadata,
           });
           break;
         }

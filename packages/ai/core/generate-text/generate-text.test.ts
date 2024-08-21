@@ -1,3 +1,4 @@
+import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { setTestTracer } from '../telemetry/get-tracer';
@@ -5,7 +6,6 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
-import { jsonSchema } from '../util/schema';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -189,50 +189,75 @@ describe('result.toolResults', () => {
   });
 });
 
+describe('result.providerMetadata', () => {
+  it('should contain provider metadata', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV1({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          providerMetadata: {
+            anthropic: {
+              cacheCreationInputTokens: 10,
+              cacheReadInputTokens: 20,
+            },
+          },
+        }),
+      }),
+      prompt: 'test-input',
+    });
+
+    assert.deepStrictEqual(result.experimental_providerMetadata, {
+      anthropic: {
+        cacheCreationInputTokens: 10,
+        cacheReadInputTokens: 20,
+      },
+    });
+  });
+});
+
 describe('result.responseMessages', () => {
   it('should contain assistant response message when there are no tool calls', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
-        doGenerate: async ({ prompt, mode }) => {
-          return {
-            ...dummyResponseValues,
-            text: 'Hello, world!',
-          };
-        },
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          text: 'Hello, world!',
+        }),
       }),
       prompt: 'test-input',
     });
 
     assert.deepStrictEqual(result.responseMessages, [
-      { role: 'assistant', content: [{ type: 'text', text: 'Hello, world!' }] },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hello, world!' }],
+      },
     ]);
   });
 
   it('should contain assistant response message and tool message when there are tool calls with results', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
-        doGenerate: async ({ prompt, mode }) => {
-          return {
-            ...dummyResponseValues,
-            text: 'Hello, world!',
-            toolCalls: [
-              {
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
-              },
-            ],
-            toolResults: [
-              {
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: { value: 'value' },
-                result: 'result1',
-              },
-            ],
-          };
-        },
+        doGenerate: async ({}) => ({
+          ...dummyResponseValues,
+          text: 'Hello, world!',
+          toolCalls: [
+            {
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+          ],
+          toolResults: [
+            {
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: { value: 'value' },
+              result: 'result1',
+            },
+          ],
+        }),
       }),
       tools: {
         tool1: {
@@ -273,88 +298,88 @@ describe('result.responseMessages', () => {
     ]);
   });
 
-  it('should contain assistant response message and tool message from all roundtrips', async () => {
-    let responseCount = 0;
-    const result = await generateText({
-      model: new MockLanguageModelV1({
-        doGenerate: async ({ prompt, mode }) => {
-          switch (responseCount++) {
-            case 0:
-              return {
-                ...dummyResponseValues,
-                toolCalls: [
-                  {
-                    toolCallType: 'function',
-                    toolCallId: 'call-1',
-                    toolName: 'tool1',
-                    args: `{ "value": "value" }`,
-                  },
-                ],
-                toolResults: [
-                  {
-                    toolCallId: 'call-1',
-                    toolName: 'tool1',
-                    args: { value: 'value' },
-                    result: 'result1',
-                  },
-                ],
-              };
-            case 1:
-              return {
-                ...dummyResponseValues,
-                text: 'Hello, world!',
-              };
-            default:
-              throw new Error(`Unexpected response count: ${responseCount}`);
-          }
-        },
-      }),
-      tools: {
-        tool1: {
-          parameters: z.object({ value: z.string() }),
-          execute: async args => {
-            assert.deepStrictEqual(args, { value: 'value' });
-            return 'result1';
+  describe('options.maxToolRoundtrips', () => {
+    it('should contain assistant response message and tool message from all roundtrips', async () => {
+      let responseCount = 0;
+      const result = await generateText({
+        model: new MockLanguageModelV1({
+          doGenerate: async ({}) => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  toolCalls: [
+                    {
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      args: `{ "value": "value" }`,
+                    },
+                  ],
+                  toolResults: [
+                    {
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      args: { value: 'value' },
+                      result: 'result1',
+                    },
+                  ],
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  text: 'Hello, world!',
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async args => {
+              assert.deepStrictEqual(args, { value: 'value' });
+              return 'result1';
+            },
           },
         },
-      },
-      prompt: 'test-input',
-      maxToolRoundtrips: 2,
+        prompt: 'test-input',
+        maxToolRoundtrips: 2,
+      });
+
+      assert.deepStrictEqual(result.responseMessages, [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: '' },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: { value: 'value' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              result: 'result1',
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello, world!' }],
+        },
+      ]);
     });
-
-    assert.deepStrictEqual(result.responseMessages, [
-      {
-        role: 'assistant',
-        content: [
-          { type: 'text', text: '' },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            args: { value: 'value' },
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            result: 'result1',
-          },
-        ],
-      },
-      {
-        role: 'assistant',
-        content: [{ type: 'text', text: 'Hello, world!' }],
-      },
-    ]);
   });
-});
 
-describe('options.maxToolRoundtrips', () => {
   describe('single roundtrip', () => {
     let result: GenerateTextResult<any>;
 
@@ -389,6 +414,7 @@ describe('options.maxToolRoundtrips', () => {
                     content: [{ type: 'text', text: 'test-input' }],
                   },
                 ]);
+
                 return {
                   ...dummyResponseValues,
                   toolCalls: [
@@ -436,7 +462,12 @@ describe('options.maxToolRoundtrips', () => {
                 assert.deepStrictEqual(prompt, [
                   {
                     role: 'user',
-                    content: [{ type: 'text', text: 'test-input' }],
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'test-input',
+                      },
+                    ],
                   },
                   {
                     role: 'assistant',
@@ -448,6 +479,7 @@ describe('options.maxToolRoundtrips', () => {
                         args: { value: 'value' },
                       },
                     ],
+                    providerMetadata: undefined,
                   },
                   {
                     role: 'tool',
@@ -457,8 +489,10 @@ describe('options.maxToolRoundtrips', () => {
                         toolCallId: 'call-1',
                         toolName: 'tool1',
                         result: 'result1',
+                        providerMetadata: undefined,
                       },
                     ],
+                    providerMetadata: undefined,
                   },
                 ]);
                 return {
@@ -627,11 +661,13 @@ describe('telemetry', () => {
       },
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
         name: 'ai.generateText',
         attributes: {
           'operation.name': 'ai.generateText test-function-id',
+          'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.generateText',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"prompt"}',
@@ -645,7 +681,6 @@ describe('telemetry', () => {
           'ai.usage.promptTokens': 10,
           'ai.request.headers.header1': 'value1',
           'ai.request.headers.header2': 'value2',
-          'resource.name': 'test-function-id',
         },
         events: [],
       },
@@ -653,6 +688,8 @@ describe('telemetry', () => {
         name: 'ai.generateText.doGenerate',
         attributes: {
           'operation.name': 'ai.generateText.doGenerate test-function-id',
+          'resource.name': 'test-function-id',
+          'ai.operationId': 'ai.generateText.doGenerate',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt.format': 'prompt',
@@ -667,7 +704,6 @@ describe('telemetry', () => {
           'ai.usage.promptTokens': 10,
           'ai.request.headers.header1': 'value1',
           'ai.request.headers.header2': 'value2',
-          'resource.name': 'test-function-id',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.system': 'mock-provider',
@@ -706,10 +742,12 @@ describe('telemetry', () => {
       },
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
         name: 'ai.generateText',
         attributes: {
+          'operation.name': 'ai.generateText',
+          'ai.operationId': 'ai.generateText',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt': '{"prompt":"test-input"}',
@@ -719,13 +757,14 @@ describe('telemetry', () => {
             '[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{ \\"value\\": \\"value\\" }"}]',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'operation.name': 'ai.generateText',
         },
         events: [],
       },
       {
         name: 'ai.generateText.doGenerate',
         attributes: {
+          'operation.name': 'ai.generateText.doGenerate',
+          'ai.operationId': 'ai.generateText.doGenerate',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.prompt.format': 'prompt',
@@ -736,7 +775,6 @@ describe('telemetry', () => {
             '[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{ \\"value\\": \\"value\\" }"}]',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'operation.name': 'ai.generateText.doGenerate',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.system': 'mock-provider',
@@ -749,6 +787,7 @@ describe('telemetry', () => {
         name: 'ai.toolCall',
         attributes: {
           'operation.name': 'ai.toolCall',
+          'ai.operationId': 'ai.toolCall',
           'ai.toolCall.name': 'tool1',
           'ai.toolCall.id': 'call-1',
           'ai.toolCall.args': '{"value":"value"}',
@@ -788,29 +827,31 @@ describe('telemetry', () => {
       },
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
+    expect(tracer.jsonSpans).toStrictEqual([
       {
         name: 'ai.generateText',
         attributes: {
+          'operation.name': 'ai.generateText',
+          'ai.operationId': 'ai.generateText',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.settings.maxToolRoundtrips': 0,
           'ai.finishReason': 'stop',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'operation.name': 'ai.generateText',
         },
         events: [],
       },
       {
         name: 'ai.generateText.doGenerate',
         attributes: {
+          'operation.name': 'ai.generateText.doGenerate',
+          'ai.operationId': 'ai.generateText.doGenerate',
           'ai.model.id': 'mock-model-id',
           'ai.model.provider': 'mock-provider',
           'ai.finishReason': 'stop',
           'ai.usage.completionTokens': 20,
           'ai.usage.promptTokens': 10,
-          'operation.name': 'ai.generateText.doGenerate',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.system': 'mock-provider',
@@ -823,6 +864,7 @@ describe('telemetry', () => {
         name: 'ai.toolCall',
         attributes: {
           'operation.name': 'ai.toolCall',
+          'ai.operationId': 'ai.toolCall',
           'ai.toolCall.name': 'tool1',
           'ai.toolCall.id': 'call-1',
         },

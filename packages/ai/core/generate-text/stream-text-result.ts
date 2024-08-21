@@ -1,7 +1,12 @@
 import { ServerResponse } from 'node:http';
 import { AIStreamCallbacksAndOptions, StreamData } from '../../streams';
 import { CoreTool } from '../tool';
-import { CallWarning, FinishReason, LogProbs } from '../types';
+import {
+  CallWarning,
+  FinishReason,
+  LogProbs,
+  ProviderMetadata,
+} from '../types';
 import { CompletionTokenUsage } from '../types/token-usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { ToToolCall } from './tool-call';
@@ -25,6 +30,13 @@ export interface StreamTextResult<TOOLS extends Record<string, CoreTool>> {
   The reason why the generation finished. Resolved when the response is finished.
      */
   readonly finishReason: Promise<FinishReason>;
+
+  /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+   */
+  readonly experimental_providerMetadata: Promise<ProviderMetadata | undefined>;
 
   /**
   The full text that has been generated. Resolved when the response is finished.
@@ -191,6 +203,7 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
         completionTokens: number;
         totalTokens: number;
       };
+      experimental_providerMetadata?: ProviderMetadata;
     }
   | {
       type: 'error';

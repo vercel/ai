@@ -1,5 +1,99 @@
 # ai
 
+## 3.3.13
+
+### Patch Changes
+
+- 412f943: fix (ai/core): make Buffer validation optional for environments without buffer
+
+## 3.3.12
+
+### Patch Changes
+
+- f2c025e: feat (ai/core): prompt validation
+- Updated dependencies [f2c025e]
+  - @ai-sdk/provider@0.0.21
+  - @ai-sdk/provider-utils@1.0.14
+  - @ai-sdk/ui-utils@0.0.34
+  - @ai-sdk/react@0.0.47
+  - @ai-sdk/solid@0.0.37
+  - @ai-sdk/svelte@0.0.39
+  - @ai-sdk/vue@0.0.39
+
+## 3.3.11
+
+### Patch Changes
+
+- 03eb0f4: feat (ai/core): add "ai.operationId" telemetry attribute
+- 099db96: feat (ai/core): add msToFirstChunk telemetry data
+- Updated dependencies [b6c1dee]
+  - @ai-sdk/react@0.0.46
+
+## 3.3.10
+
+### Patch Changes
+
+- Updated dependencies [04084a3]
+  - @ai-sdk/vue@0.0.38
+
+## 3.3.9
+
+### Patch Changes
+
+- 6ac355e: feat (provider/anthropic): add cache control support
+- b56dee1: chore (ai): deprecate prompt helpers
+- Updated dependencies [6ac355e]
+  - @ai-sdk/provider@0.0.20
+  - @ai-sdk/provider-utils@1.0.13
+  - @ai-sdk/ui-utils@0.0.33
+  - @ai-sdk/react@0.0.45
+  - @ai-sdk/solid@0.0.36
+  - @ai-sdk/svelte@0.0.38
+  - @ai-sdk/vue@0.0.37
+
+## 3.3.8
+
+### Patch Changes
+
+- Updated dependencies [dd712ac]
+  - @ai-sdk/provider-utils@1.0.12
+  - @ai-sdk/ui-utils@0.0.32
+  - @ai-sdk/react@0.0.44
+  - @ai-sdk/solid@0.0.35
+  - @ai-sdk/svelte@0.0.37
+  - @ai-sdk/vue@0.0.36
+
+## 3.3.7
+
+### Patch Changes
+
+- eccbd8e: feat (ai/core): add onChunk callback to streamText
+- Updated dependencies [dd4a0f5]
+  - @ai-sdk/provider@0.0.19
+  - @ai-sdk/provider-utils@1.0.11
+  - @ai-sdk/ui-utils@0.0.31
+  - @ai-sdk/react@0.0.43
+  - @ai-sdk/solid@0.0.34
+  - @ai-sdk/svelte@0.0.36
+  - @ai-sdk/vue@0.0.35
+
+## 3.3.6
+
+### Patch Changes
+
+- e9c891d: feat (ai/react): useObject supports non-Zod schemas
+- 3719e8a: chore (ai/core): provider registry code improvements
+- Updated dependencies [e9c891d]
+- Updated dependencies [4bd27a9]
+- Updated dependencies [845754b]
+  - @ai-sdk/ui-utils@0.0.30
+  - @ai-sdk/react@0.0.42
+  - @ai-sdk/provider-utils@1.0.10
+  - @ai-sdk/provider@0.0.18
+  - @ai-sdk/solid@0.0.33
+  - @ai-sdk/svelte@0.0.35
+  - @ai-sdk/vue@0.0.34
+
 ## 3.3.5
 
 ### Patch Changes

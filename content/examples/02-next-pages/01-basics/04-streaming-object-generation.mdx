@@ -102,24 +102,24 @@ export default function Page() {
 On the server, we use [`streamObject`](/docs/reference/ai-sdk-core/stream-object) to stream the object generation process.
 
 ```typescript filename='app/api/use-object/route.ts'
-import { openai } from '@ai-sdk/openai'
-import { streamObject } from 'ai'
-import { notificationSchema } from './schema'
+import { openai } from '@ai-sdk/openai';
+import { streamObject } from 'ai';
+import { notificationSchema } from './schema';
 
 // Allow streaming responses up to 30 seconds
-export const maxDuration = 30
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const context = await req.json()
+  const context = await req.json();
 
   const result = await streamObject({
     model: openai('gpt-4-turbo'),
-    schema: notificationSchema
+    schema: notificationSchema,
     prompt:
       `Generate 3 notifications for a messages app in this context:` + context,
-  })
+  });
 
-  return result.toTextStreamResponse()
+  return result.toTextStreamResponse();
 }
 ```
 

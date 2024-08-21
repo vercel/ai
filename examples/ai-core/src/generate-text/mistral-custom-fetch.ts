@@ -5,13 +5,14 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const mistral = createMistral({
-  // example fetch wrapper that logs the URL:
+  // example fetch wrapper that logs the input to the API call:
   fetch: async (url, options) => {
-    console.log(`Fetching ${url}`);
-    const result = await fetch(url, options);
-    console.log(`Fetched ${url}`);
-    console.log();
-    return result;
+    console.log('URL', url);
+    console.log('Headers', JSON.stringify(options!.headers, null, 2));
+    console.log(
+      `Body ${JSON.stringify(JSON.parse(options!.body! as string), null, 2)}`,
+    );
+    return await fetch(url, options);
   },
 });
 

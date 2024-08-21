@@ -1,3 +1,5 @@
-export async function delay(delayInMs: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, delayInMs));
+export async function delay(delayInMs?: number): Promise<void> {
+  return delayInMs === undefined
+    ? Promise.resolve()
+    : new Promise(resolve => setTimeout(resolve, delayInMs));
 }

@@ -2,10 +2,10 @@ import type OpenAI from 'openai';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
-import { OpenAIStream } from '../streams';
-import { consumeStream } from '../util/consume-stream';
-import { createResolvablePromise } from '../util/create-resolvable-promise';
-import { createStreamableUI } from './streamable';
+import { OpenAIStream } from '../../streams';
+import { consumeStream } from '../../util/consume-stream';
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
+import { createStreamableUI } from '../streamable-ui/create-streamable-ui';
 
 type Streamable = ReactNode | Promise<ReactNode>;
 type Renderer<T> = (

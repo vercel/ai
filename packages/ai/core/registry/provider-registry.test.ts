@@ -68,7 +68,22 @@ describe('languageModel', () => {
 });
 
 describe('textEmbeddingModel', () => {
-  it('should return embedding model from provider', () => {
+  it('should return embedding model from provider using textEmbeddingModel', () => {
+    const model = new MockEmbeddingModelV1<string>();
+
+    const modelRegistry = experimental_createProviderRegistry({
+      provider: {
+        textEmbeddingModel: id => {
+          expect(id).toEqual('model');
+          return model;
+        },
+      },
+    });
+
+    expect(modelRegistry.textEmbeddingModel('provider:model')).toEqual(model);
+  });
+
+  it('should return embedding model from provider using textEmbedding', () => {
     const model = new MockEmbeddingModelV1<string>();
 
     const modelRegistry = experimental_createProviderRegistry({

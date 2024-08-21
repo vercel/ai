@@ -1,5 +1,8 @@
 import { Message } from '@ai-sdk/ui-utils';
 
+/**
+ * @deprecated Will be removed. Use the new provider architecture instead.
+ */
 export function experimental_buildOpenAIMessages(
   messages: Message[],
 ): ChatCompletionMessageParam[] {

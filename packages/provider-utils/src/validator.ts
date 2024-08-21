@@ -5,6 +5,10 @@ import { z } from 'zod';
  */
 export const validatorSymbol = Symbol.for('vercel.ai.validator');
 
+export type ValidationResult<OBJECT> =
+  | { success: true; value: OBJECT }
+  | { success: false; error: Error };
+
 export type Validator<OBJECT = unknown> = {
   /**
    * Used to mark validator functions so we can support both Zod and custom schemas.
@@ -15,9 +19,7 @@ export type Validator<OBJECT = unknown> = {
    * Optional. Validates that the structure of a value matches this schema,
    * and returns a typed version of the value if it does.
    */
-  readonly validate?: (
-    value: unknown,
-  ) => { success: true; value: OBJECT } | { success: false; error: Error };
+  readonly validate?: (value: unknown) => ValidationResult<OBJECT>;
 };
 
 /**
@@ -26,9 +28,7 @@ export type Validator<OBJECT = unknown> = {
  * @param validate A validation function for the schema.
  */
 export function validator<OBJECT>(
-  validate: (
-    value: unknown,
-  ) => { success: true; value: OBJECT } | { success: false; error: Error },
+  validate?: undefined | ((value: unknown) => ValidationResult<OBJECT>),
 ): Validator<OBJECT> {
   return { [validatorSymbol]: true, validate };
 }
@@ -41,6 +41,12 @@ export function isValidator(value: unknown): value is Validator {
     value[validatorSymbol] === true &&
     'validate' in value
   );
+}
+
+export function asValidator<OBJECT>(
+  value: Validator<OBJECT> | z.Schema<OBJECT, z.ZodTypeDef, any>,
+): Validator<OBJECT> {
+  return isValidator(value) ? value : zodValidator(value);
 }
 
 export function zodValidator<OBJECT>(

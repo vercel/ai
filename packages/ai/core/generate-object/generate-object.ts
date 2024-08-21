@@ -1,21 +1,27 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
+import { Schema, asSchema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
+import { validatePrompt } from '../prompt/validate-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { CallWarning, FinishReason, LanguageModel, LogProbs } from '../types';
+import {
+  CallWarning,
+  FinishReason,
+  LanguageModel,
+  LogProbs,
+  ProviderMetadata,
+} from '../types';
 import { calculateCompletionTokenUsage } from '../types/token-usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
-import { Schema, asSchema } from '../util/schema';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
 import { NoObjectGeneratedError } from './no-object-generated-error';
@@ -138,7 +144,7 @@ Default and recommended: 'auto' (best mode for the model).
       telemetry,
       attributes: {
         ...assembleOperationName({
-          operationName: 'ai.generateObject',
+          operationId: 'ai.generateObject',
           telemetry,
         }),
         ...baseTelemetryAttributes,
@@ -169,10 +175,11 @@ Default and recommended: 'auto' (best mode for the model).
       let warnings: CallWarning[] | undefined;
       let rawResponse: { headers?: Record<string, string> } | undefined;
       let logprobs: LogProbs | undefined;
+      let providerMetadata: ProviderMetadata | undefined;
 
       switch (mode) {
         case 'json': {
-          const validatedPrompt = getValidatedPrompt({
+          const validatedPrompt = validatePrompt({
             system: model.supportsStructuredOutputs
               ? system
               : injectJsonSchemaIntoSystem({
@@ -197,7 +204,7 @@ Default and recommended: 'auto' (best mode for the model).
                 telemetry,
                 attributes: {
                   ...assembleOperationName({
-                    operationName: 'ai.generateObject.doGenerate',
+                    operationId: 'ai.generateObject.doGenerate',
                     telemetry,
                   }),
                   ...baseTelemetryAttributes,
@@ -268,12 +275,13 @@ Default and recommended: 'auto' (best mode for the model).
           warnings = generateResult.warnings;
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
+          providerMetadata = generateResult.providerMetadata;
 
           break;
         }
 
         case 'tool': {
-          const validatedPrompt = getValidatedPrompt({
+          const validatedPrompt = validatePrompt({
             system,
             prompt,
             messages,
@@ -292,7 +300,7 @@ Default and recommended: 'auto' (best mode for the model).
                 telemetry,
                 attributes: {
                   ...assembleOperationName({
-                    operationName: 'ai.generateObject.doGenerate',
+                    operationId: 'ai.generateObject.doGenerate',
                     telemetry,
                   }),
                   ...baseTelemetryAttributes,
@@ -369,6 +377,7 @@ Default and recommended: 'auto' (best mode for the model).
           warnings = generateResult.warnings;
           rawResponse = generateResult.rawResponse;
           logprobs = generateResult.logprobs;
+          providerMetadata = generateResult.providerMetadata;
 
           break;
         }
@@ -413,6 +422,7 @@ Default and recommended: 'auto' (best mode for the model).
         warnings,
         rawResponse,
         logprobs,
+        providerMetadata,
       });
     },
   });
@@ -425,6 +435,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly warnings: GenerateObjectResult<T>['warnings'];
   readonly rawResponse: GenerateObjectResult<T>['rawResponse'];
   readonly logprobs: GenerateObjectResult<T>['logprobs'];
+  readonly experimental_providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
 
   constructor(options: {
     object: GenerateObjectResult<T>['object'];
@@ -433,6 +444,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     warnings: GenerateObjectResult<T>['warnings'];
     rawResponse: GenerateObjectResult<T>['rawResponse'];
     logprobs: GenerateObjectResult<T>['logprobs'];
+    providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
@@ -440,6 +452,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     this.warnings = options.warnings;
     this.rawResponse = options.rawResponse;
     this.logprobs = options.logprobs;
+    this.experimental_providerMetadata = options.providerMetadata;
   }
 
   toJsonResponse(init?: ResponseInit): Response {

@@ -1,23 +1,46 @@
 import {
   LanguageModelV1Message,
   LanguageModelV1Prompt,
+  LanguageModelV1ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
-  AnthropicMessage,
+  AnthropicCacheControl,
   AnthropicMessagesPrompt,
   AnthropicUserMessage,
 } from './anthropic-messages-prompt';
 
-export function convertToAnthropicMessagesPrompt(
-  prompt: LanguageModelV1Prompt,
-): AnthropicMessagesPrompt {
+export function convertToAnthropicMessagesPrompt({
+  prompt,
+  cacheControl: isCacheControlEnabled,
+}: {
+  prompt: LanguageModelV1Prompt;
+  cacheControl: boolean;
+}): AnthropicMessagesPrompt {
   const blocks = groupIntoBlocks(prompt);
 
-  let system: string | undefined = undefined;
-  const messages: AnthropicMessage[] = [];
+  let system: AnthropicMessagesPrompt['system'] = undefined;
+  const messages: AnthropicMessagesPrompt['messages'] = [];
+
+  function getCacheControl(
+    providerMetadata: LanguageModelV1ProviderMetadata | undefined,
+  ): AnthropicCacheControl | undefined {
+    if (isCacheControlEnabled === false) {
+      return undefined;
+    }
+
+    const anthropic = providerMetadata?.anthropic;
+
+    // allow both cacheControl and cache_control:
+    const cacheControlValue =
+      anthropic?.cacheControl ?? anthropic?.cache_control;
+
+    // Pass through value assuming it is of the correct type.
+    // The Anthropic API will validate the value.
+    return cacheControlValue as AnthropicCacheControl | undefined;
+  }
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
@@ -32,7 +55,12 @@ export function convertToAnthropicMessagesPrompt(
           });
         }
 
-        system = block.messages.map(({ content }) => content).join('\n');
+        system = block.messages.map(({ content, providerMetadata }) => ({
+          type: 'text',
+          text: content,
+          cache_control: getCacheControl(providerMetadata),
+        }));
+
         break;
       }
 
@@ -40,13 +68,31 @@ export function convertToAnthropicMessagesPrompt(
         // combines all user and tool messages in this block into a single message:
         const anthropicContent: AnthropicUserMessage['content'] = [];
 
-        for (const { role, content } of block.messages) {
+        for (const message of block.messages) {
+          const { role, content } = message;
           switch (role) {
             case 'user': {
-              for (const part of content) {
+              for (let i = 0; i < content.length; i++) {
+                const part = content[i];
+
+                // cache control: first add cache control from part.
+                // for the last part of a message,
+                // check also if the message has cache control.
+                const isLastPart = i === content.length - 1;
+
+                const cacheControl =
+                  getCacheControl(part.providerMetadata) ??
+                  (isLastPart
+                    ? getCacheControl(message.providerMetadata)
+                    : undefined);
+
                 switch (part.type) {
                   case 'text': {
-                    anthropicContent.push({ type: 'text', text: part.text });
+                    anthropicContent.push({
+                      type: 'text',
+                      text: part.text,
+                      cache_control: cacheControl,
+                    });
                     break;
                   }
                   case 'image': {
@@ -64,6 +110,7 @@ export function convertToAnthropicMessagesPrompt(
                         media_type: part.mimeType ?? 'image/jpeg',
                         data: convertUint8ArrayToBase64(part.image),
                       },
+                      cache_control: cacheControl,
                     });
 
                     break;
@@ -74,12 +121,26 @@ export function convertToAnthropicMessagesPrompt(
               break;
             }
             case 'tool': {
-              for (const part of content) {
+              for (let i = 0; i < content.length; i++) {
+                const part = content[i];
+
+                // cache control: first add cache control from part.
+                // for the last part of a message,
+                // check also if the message has cache control.
+                const isLastPart = i === content.length - 1;
+
+                const cacheControl =
+                  getCacheControl(part.providerMetadata) ??
+                  (isLastPart
+                    ? getCacheControl(message.providerMetadata)
+                    : undefined);
+
                 anthropicContent.push({
                   type: 'tool_result',
                   tool_use_id: part.toolCallId,
                   content: JSON.stringify(part.result),
                   is_error: part.isError,
+                  cache_control: cacheControl,
                 });
               }
 
@@ -115,6 +176,8 @@ export function convertToAnthropicMessagesPrompt(
                     i === blocks.length - 1 && j === block.messages.length - 1
                       ? part.text.trim()
                       : part.text,
+
+                  cache_control: undefined, // not used in assistant messages
                 });
                 break;
               }
@@ -170,7 +233,8 @@ function groupIntoBlocks(
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =
     undefined;
 
-  for (const { role, content } of prompt) {
+  for (const message of prompt) {
+    const { role } = message;
     switch (role) {
       case 'system': {
         if (currentBlock?.type !== 'system') {
@@ -178,7 +242,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push(message);
         break;
       }
       case 'assistant': {
@@ -187,7 +251,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push(message);
         break;
       }
       case 'user': {
@@ -196,7 +260,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push(message);
         break;
       }
       case 'tool': {
@@ -205,7 +269,7 @@ function groupIntoBlocks(
           blocks.push(currentBlock);
         }
 
-        currentBlock.messages.push({ role, content });
+        currentBlock.messages.push(message);
         break;
       }
       default: {

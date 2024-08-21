@@ -45,23 +45,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
-
-      # - name: Get package version
-      #   id: package-version
-      #   run: echo "version=$(node -p "require('./packages/ai/package.json').version")" >> "$GITHUB_OUTPUT"
-
-      # - name: Create Git tag
-      #   run: git tag v${{ steps.package-version.outputs.version }}
-
-      # - name: Push Git tag
-      #   run: git push origin v${{ steps.package-version.outputs.version }}
-
-      # - name: Create GitHub Release
-      #   uses: actions/create-release@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     tag_name: v${{ steps.package-version.outputs.version }}
-      #     release_name: Release v${{ steps.package-version.outputs.version }}
-      #     draft: false
-      #     prerelease: false

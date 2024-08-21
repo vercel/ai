@@ -2,43 +2,53 @@ import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-message
 
 describe('system messages', () => {
   it('should convert a single system message into an anthropic system message', async () => {
-    const result = convertToAnthropicMessagesPrompt([
-      { role: 'system', content: 'This is a system message' },
-    ]);
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [{ role: 'system', content: 'This is a system message' }],
+      cacheControl: false,
+    });
 
     expect(result).toEqual({
       messages: [],
-      system: 'This is a system message',
+      system: [{ type: 'text', text: 'This is a system message' }],
     });
   });
 
-  it('should convert multiple system messages into an anthropic system message separated by a newline', async () => {
-    const result = convertToAnthropicMessagesPrompt([
-      { role: 'system', content: 'This is a system message' },
-      { role: 'system', content: 'This is another system message' },
-    ]);
+  it('should convert multiple system messages into an anthropic system message', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        { role: 'system', content: 'This is a system message' },
+        { role: 'system', content: 'This is another system message' },
+      ],
+      cacheControl: false,
+    });
 
     expect(result).toEqual({
       messages: [],
-      system: 'This is a system message\nThis is another system message',
+      system: [
+        { type: 'text', text: 'This is a system message' },
+        { type: 'text', text: 'This is another system message' },
+      ],
     });
   });
 });
 
 describe('user messages', () => {
   it('should add image parts for UInt8Array images', async () => {
-    const result = convertToAnthropicMessagesPrompt([
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            image: new Uint8Array([0, 1, 2, 3]),
-            mimeType: 'image/png',
-          },
-        ],
-      },
-    ]);
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: new Uint8Array([0, 1, 2, 3]),
+              mimeType: 'image/png',
+            },
+          ],
+        },
+      ],
+      cacheControl: false,
+    });
 
     expect(result).toEqual({
       messages: [
@@ -63,19 +73,22 @@ describe('user messages', () => {
 
 describe('tool messages', () => {
   it('should convert a single tool result into an anthropic user message', async () => {
-    const result = convertToAnthropicMessagesPrompt([
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolName: 'tool-1',
-            toolCallId: 'tool-call-1',
-            result: { test: 'This is a tool message' },
-          },
-        ],
-      },
-    ]);
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'tool-1',
+              toolCallId: 'tool-call-1',
+              result: { test: 'This is a tool message' },
+            },
+          ],
+        },
+      ],
+      cacheControl: false,
+    });
 
     expect(result).toEqual({
       messages: [
@@ -96,25 +109,28 @@ describe('tool messages', () => {
   });
 
   it('should convert multiple tool results into an anthropic user message', async () => {
-    const result = convertToAnthropicMessagesPrompt([
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolName: 'tool-1',
-            toolCallId: 'tool-call-1',
-            result: { test: 'This is a tool message' },
-          },
-          {
-            type: 'tool-result',
-            toolName: 'tool-2',
-            toolCallId: 'tool-call-2',
-            result: { something: 'else' },
-          },
-        ],
-      },
-    ]);
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'tool-1',
+              toolCallId: 'tool-call-1',
+              result: { test: 'This is a tool message' },
+            },
+            {
+              type: 'tool-result',
+              toolName: 'tool-2',
+              toolCallId: 'tool-call-2',
+              result: { something: 'else' },
+            },
+          ],
+        },
+      ],
+      cacheControl: false,
+    });
 
     expect(result).toEqual({
       messages: [
@@ -141,23 +157,26 @@ describe('tool messages', () => {
   });
 
   it('should combine user and tool messages', async () => {
-    const result = convertToAnthropicMessagesPrompt([
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolName: 'tool-1',
-            toolCallId: 'tool-call-1',
-            result: { test: 'This is a tool message' },
-          },
-        ],
-      },
-      {
-        role: 'user',
-        content: [{ type: 'text', text: 'This is a user message' }],
-      },
-    ]);
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'tool-1',
+              toolCallId: 'tool-call-1',
+              result: { test: 'This is a tool message' },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'This is a user message' }],
+        },
+      ],
+      cacheControl: false,
+    });
 
     expect(result).toEqual({
       messages: [
@@ -181,16 +200,19 @@ describe('tool messages', () => {
 
 describe('assistant messages', () => {
   it('should remove trailing whitespace from last assistant message when there is no further user message', async () => {
-    const result = convertToAnthropicMessagesPrompt([
-      {
-        role: 'user',
-        content: [{ type: 'text', text: 'user content' }],
-      },
-      {
-        role: 'assistant',
-        content: [{ type: 'text', text: 'assistant content  ' }],
-      },
-    ]);
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'assistant content  ' }],
+        },
+      ],
+      cacheControl: false,
+    });
 
     expect(result).toEqual({
       messages: [
@@ -208,20 +230,23 @@ describe('assistant messages', () => {
   });
 
   it('should keep trailing whitespace from assistant message when there is a further user message', async () => {
-    const result = convertToAnthropicMessagesPrompt([
-      {
-        role: 'user',
-        content: [{ type: 'text', text: 'user content' }],
-      },
-      {
-        role: 'assistant',
-        content: [{ type: 'text', text: 'assistant content  ' }],
-      },
-      {
-        role: 'user',
-        content: [{ type: 'text', text: 'user content 2' }],
-      },
-    ]);
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'assistant content  ' }],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content 2' }],
+        },
+      ],
+      cacheControl: false,
+    });
 
     expect(result).toEqual({
       messages: [
@@ -243,12 +268,15 @@ describe('assistant messages', () => {
   });
 
   it('should combine multiple sequential assistant messages into a single message', async () => {
-    const result = convertToAnthropicMessagesPrompt([
-      { role: 'user', content: [{ type: 'text', text: 'Hi!' }] },
-      { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
-      { role: 'assistant', content: [{ type: 'text', text: 'World' }] },
-      { role: 'assistant', content: [{ type: 'text', text: '!' }] },
-    ]);
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Hi!' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'World' }] },
+        { role: 'assistant', content: [{ type: 'text', text: '!' }] },
+      ],
+      cacheControl: false,
+    });
 
     expect(result).toEqual({
       messages: [
@@ -263,6 +291,256 @@ describe('assistant messages', () => {
         },
       ],
       system: undefined,
+    });
+  });
+});
+
+describe('cache control', () => {
+  describe('system message', () => {
+    it('should set cache_control on system message with message cache control', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'system',
+            content: 'system message',
+            providerMetadata: {
+              anthropic: { cacheControl: { type: 'ephemeral' } },
+            },
+          },
+        ],
+        cacheControl: true,
+      });
+
+      expect(result).toEqual({
+        messages: [],
+        system: [
+          {
+            type: 'text',
+            text: 'system message',
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+      });
+    });
+  });
+
+  describe('user message', () => {
+    it('should set cache_control on user message part with part cache control', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'test',
+                providerMetadata: {
+                  anthropic: {
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        cacheControl: true,
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'test',
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      });
+    });
+
+    it('should set cache_control on last user message part with message cache control', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'part1' },
+              { type: 'text', text: 'part2' },
+            ],
+            providerMetadata: {
+              anthropic: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+        ],
+        cacheControl: true,
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'part1',
+                cache_control: undefined,
+              },
+              {
+                type: 'text',
+                text: 'part2',
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      });
+    });
+  });
+
+  describe('tool message', () => {
+    it('should set cache_control on tool result message part with part cache control', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'test',
+                toolCallId: 'test',
+                result: { test: 'test' },
+                providerMetadata: {
+                  anthropic: {
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        cacheControl: true,
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                content: '{"test":"test"}',
+                is_error: undefined,
+                tool_use_id: 'test',
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      });
+    });
+
+    it('should set cache_control on last tool result message part with message cache control', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'test',
+                toolCallId: 'part1',
+                result: { test: 'part1' },
+              },
+              {
+                type: 'tool-result',
+                toolName: 'test',
+                toolCallId: 'part2',
+                result: { test: 'part2' },
+              },
+            ],
+            providerMetadata: {
+              anthropic: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+        ],
+        cacheControl: true,
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'part1',
+                content: '{"test":"part1"}',
+                is_error: undefined,
+                cache_control: undefined,
+              },
+              {
+                type: 'tool_result',
+                tool_use_id: 'part2',
+                content: '{"test":"part2"}',
+                is_error: undefined,
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      });
+    });
+  });
+
+  describe('disabled cache control', () => {
+    it('should not set cache_control on messages', async () => {
+      const result = convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'test',
+                providerMetadata: {
+                  anthropic: {
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        cacheControl: false,
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'test',
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      });
     });
   });
 });

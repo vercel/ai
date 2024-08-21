@@ -26,7 +26,7 @@ async function main() {
       await generateText({
         model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
         tools: { weatherTool },
-        system: `You are a helpful, respectful and honest assistant. If the weatehr is requested use the `,
+        system: `You are a helpful, respectful and honest assistant. If the weather is requested use the `,
         messages,
       });
 

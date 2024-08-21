@@ -75,7 +75,7 @@ Only applicable for HTTP-based providers.
     attributes: selectTelemetryAttributes({
       telemetry,
       attributes: {
-        ...assembleOperationName({ operationName: 'ai.embed', telemetry }),
+        ...assembleOperationName({ operationId: 'ai.embed', telemetry }),
         ...baseTelemetryAttributes,
         'ai.value': { input: () => JSON.stringify(value) },
       },
@@ -92,7 +92,7 @@ Only applicable for HTTP-based providers.
             telemetry,
             attributes: {
               ...assembleOperationName({
-                operationName: 'ai.embed.doEmbed',
+                operationId: 'ai.embed.doEmbed',
                 telemetry,
               }),
               ...baseTelemetryAttributes,

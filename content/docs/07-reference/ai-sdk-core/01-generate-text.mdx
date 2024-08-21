@@ -21,6 +21,8 @@ const { text } = await generateText({
 console.log(text);
 ```
 
+To see `generateText` in action, check out [these examples](#examples).
+
 ## Import
 
 <Snippet text={`import { generateText } from "ai"`} prompt={false} />
@@ -345,7 +347,7 @@ console.log(text);
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
     },
     {
-      name: 'maxAutomaticRoundtrips',
+      name: 'maxToolRoundtrips',
       type: 'number',
       isOptional: true,
       description:
@@ -478,6 +480,12 @@ console.log(text);
       type: 'Warning[] | undefined',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'experimental_providerMetadata',
+      type: 'Record<string,Record<string,JSONValue>> | undefined',
+      description:
+        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
       name: 'responseMessages',

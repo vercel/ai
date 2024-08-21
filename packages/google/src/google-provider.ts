@@ -1,4 +1,5 @@
 import {
+  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
@@ -8,6 +9,11 @@ import {
   GoogleGenerativeAIModelId,
   GoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
+import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
+import {
+  GoogleGenerativeAIEmbeddingModelId,
+  GoogleGenerativeAIEmbeddingSettings,
+} from './google-generative-ai-embedding-settings';
 
 export interface GoogleGenerativeAIProvider {
   (
@@ -32,6 +38,22 @@ export interface GoogleGenerativeAIProvider {
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
   ): GoogleGenerativeAILanguageModel;
+
+  /**
+Creates a model for text embeddings.
+   */
+  embedding(
+    modelId: GoogleGenerativeAIEmbeddingModelId,
+    settings?: GoogleGenerativeAIEmbeddingSettings,
+  ): GoogleGenerativeAIEmbeddingModel;
+
+  /**
+Creates a model for text embeddings.
+ */
+  textEmbedding(
+    modelId: GoogleGenerativeAIEmbeddingModelId,
+    settings?: GoogleGenerativeAIEmbeddingSettings,
+  ): GoogleGenerativeAIEmbeddingModel;
 }
 
 export interface GoogleGenerativeAIProviderSettings {
@@ -61,7 +83,7 @@ Custom headers to include in the requests.
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 
   generateId?: () => string;
 }
@@ -97,6 +119,17 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
+  const createEmbeddingModel = (
+    modelId: GoogleGenerativeAIEmbeddingModelId,
+    settings: GoogleGenerativeAIEmbeddingSettings = {},
+  ) =>
+    new GoogleGenerativeAIEmbeddingModel(modelId, settings, {
+      provider: 'google.generative-ai',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
@@ -113,6 +146,8 @@ export function createGoogleGenerativeAI(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
+  provider.embedding = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
 
   return provider as GoogleGenerativeAIProvider;
 }

@@ -5,6 +5,7 @@ import {
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import {
+  FetchFunction,
   ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -24,7 +25,7 @@ type MistralChatConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export class MistralChatLanguageModel implements LanguageModelV1 {
@@ -225,7 +226,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
-    let finishReason: LanguageModelV1FinishReason = 'other';
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
