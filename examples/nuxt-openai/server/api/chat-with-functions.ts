@@ -2,7 +2,7 @@ import { OpenAIStream, StreamingTextResponse, StreamData } from 'ai';
 import OpenAI from 'openai';
 import type { ChatCompletionCreateParams } from 'openai/resources/chat';
 
-const functions: ChatCompletionCreateParams.Function[] = [
+const tools: ChatCompletionCreateParams.Function[] = [
   {
     name: 'get_current_weather',
     description: 'Get the current weather.',
@@ -50,14 +50,14 @@ export default defineLazyEventHandler(async () => {
       model: 'gpt-3.5-turbo',
       stream: true,
       messages,
-      functions,
+      tools,
     });
 
     const data = new StreamData();
     const stream = OpenAIStream(response, {
-      experimental_onFunctionCall: async (
+      experimental_onToolCall: async (
         { name, arguments: args },
-        createFunctionCallMessages,
+        createToolCallMessages,
       ) => {
         if (name === 'get_current_weather') {
           // Call a weather API here
@@ -70,7 +70,7 @@ export default defineLazyEventHandler(async () => {
             text: 'Some custom data',
           });
 
-          const newMessages = createFunctionCallMessages(weatherData);
+          const newMessages = createToolCallMessages(weatherData);
           return openai.chat.completions.create({
             messages: [...messages, ...newMessages],
             stream: true,

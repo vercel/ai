@@ -1,3 +1,4 @@
+import type { H3Event } from 'h3';
 import { convertToCoreMessages, streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
@@ -8,7 +9,7 @@ export default defineLazyEventHandler(async () => {
     apiKey: apiKey,
   });
 
-  return defineEventHandler(async (event: any) => {
+  return defineEventHandler(async (event: H3Event) => {
     // Extract the `prompt` from the body of the request
     const { messages, data } = await readBody(event);
 

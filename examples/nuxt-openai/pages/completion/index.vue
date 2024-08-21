@@ -13,10 +13,10 @@ const { completion, input, handleSubmit, data } = useCompletion();
     {{ completion }}
     <form @submit="handleSubmit">
       <input
-        class="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
         v-model="input"
+        class="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
         placeholder="Say something..."
-      />
+      >
     </form>
   </div>
 </template>
