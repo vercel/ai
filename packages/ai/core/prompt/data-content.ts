@@ -2,7 +2,6 @@ import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
-import { Buffer } from 'node:buffer';
 import { InvalidDataContentError } from './invalid-data-content-error';
 import { z } from 'zod';
 
@@ -18,7 +17,12 @@ export const dataContentSchema: z.ZodType<DataContent> = z.union([
   z.string(),
   z.instanceof(Uint8Array),
   z.instanceof(ArrayBuffer),
-  z.instanceof(Buffer),
+  z.custom(
+    // Buffer might not be available in some environments such as CloudFlare:
+    (value: unknown): value is Buffer =>
+      globalThis.Buffer?.isBuffer(value) ?? false,
+    { message: 'Must be a Buffer' },
+  ),
 ]);
 
 /**
