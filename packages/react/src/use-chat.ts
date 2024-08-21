@@ -208,6 +208,7 @@ export function useChat({
   generateId = generateIdFunc,
   fetch,
   keepLastMessageOnError = false,
+  excludeToolsFromRoundtrips,
 }: UseChatOptions & {
   key?: string;
 
@@ -249,6 +250,11 @@ case of misconfigured tools.
 By default, it's set to 0, which will disable the feature.
    */
   maxToolRoundtrips?: number;
+
+  /**
+   * List of tools to exclude from automatic roundtrips.
+   */
+  excludeToolsFromRoundtrips?: string[];
 } = {}): UseChatHelpers & {
   /**
    * @deprecated Use `addToolResult` instead.
@@ -397,7 +403,11 @@ By default, it's set to 0, which will disable the feature.
         // check that roundtrip is possible:
         isAssistantMessageWithCompletedToolCalls(lastMessage) &&
         // limit the number of automatic roundtrips:
-        countTrailingAssistantMessages(messages) <= maxToolRoundtrips
+        countTrailingAssistantMessages(messages) <= maxToolRoundtrips &&
+        // check if any tools are excluded from roundtrips:
+        !lastMessage.toolInvocations?.some(invocation => 
+          excludeToolsFromRoundtrips?.includes(invocation.toolName)
+        )
       ) {
         await triggerRequest({ messages });
       }
