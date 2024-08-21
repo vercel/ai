@@ -36,6 +36,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   readonly defaultObjectGenerationMode = 'json';
   readonly supportsImageUrls = false;
 
+  get supportsObjectGeneration() {
+    return this.settings.structuredOutputs !== false;
+  }
+
   readonly modelId: GoogleGenerativeAIModelId;
   readonly settings: GoogleGenerativeAISettings;
 
@@ -111,7 +115,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       responseMimeType:
         responseFormat?.type === 'json' ? 'application/json' : undefined,
       responseSchema:
-        responseFormat?.type === 'json' && responseFormat.schema != null
+        responseFormat?.type === 'json' &&
+        responseFormat.schema != null &&
+        // Google GenAI does not support all OpenAPI Schema features,
+        // so this is needed as an escape hatch:
+        this.supportsObjectGeneration
           ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
           : undefined,
     };
@@ -141,7 +149,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               ...generationConfig,
               responseMimeType: 'application/json',
               responseSchema:
-                mode.schema != null
+                mode.schema != null &&
+                // Google GenAI does not support all OpenAPI Schema features,
+                // so this is needed as an escape hatch:
+                this.supportsObjectGeneration
                   ? convertJSONSchemaToOpenAPISchema(mode.schema)
                   : undefined,
             },
@@ -189,6 +200,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = await this.getArgs(options);
+
+    console.log(JSON.stringify(args.generationConfig, null, 2));
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:generateContent`,
