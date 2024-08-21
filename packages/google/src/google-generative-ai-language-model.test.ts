@@ -33,7 +33,7 @@ const provider = createGoogleGenerativeAI({
   apiKey: 'test-api-key',
   generateId: () => 'test-id',
 });
-const model = provider.chat('models/gemini-pro');
+const model = provider.chat('gemini-pro');
 
 describe('doGenerate', () => {
   const prepareJsonResponse = ({
@@ -309,7 +309,7 @@ describe('doGenerate', () => {
   it(
     'should pass tool specification in object-tool mode',
     withTestServer(prepareJsonResponse({}), async ({ call }) => {
-      await provider.languageModel('models/gemini-pro').doGenerate({
+      await provider.languageModel('gemini-pro').doGenerate({
         inputFormat: 'prompt',
         mode: {
           type: 'object-tool',
@@ -364,7 +364,7 @@ describe('doGenerate', () => {
         },
       });
 
-      await provider.chat('models/gemini-pro').doGenerate({
+      await provider.chat('gemini-pro').doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
@@ -548,7 +548,7 @@ describe('doStream', () => {
           },
         });
 
-        await provider.chat('models/gemini-pro').doStream({
+        await provider.chat('gemini-pro').doStream({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,

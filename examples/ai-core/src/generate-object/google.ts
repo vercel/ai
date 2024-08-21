@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateObject({
-    model: google('models/gemini-1.5-pro-latest'),
+    model: google('gemini-1.5-pro-latest'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),
