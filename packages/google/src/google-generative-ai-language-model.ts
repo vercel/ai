@@ -8,6 +8,7 @@ import {
   FetchFunction,
   ParseResult,
   combineHeaders,
+  convertJSONSchemaToOpenAPISchema,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
@@ -111,7 +112,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         responseFormat?.type === 'json' ? 'application/json' : undefined,
       responseSchema:
         responseFormat?.type === 'json' && responseFormat.schema != null
-          ? prepareJsonSchema(responseFormat.schema)
+          ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
           : undefined,
     };
 
@@ -134,12 +135,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
+        console.log(JSON.stringify(mode.schema, null, 2));
+
         return {
           args: {
             generationConfig: {
               ...generationConfig,
               responseMimeType: 'application/json',
-              responseSchema: prepareJsonSchema(mode.schema),
+              responseSchema:
+                mode.schema != null
+                  ? convertJSONSchemaToOpenAPISchema(mode.schema)
+                  : undefined,
             },
             contents,
             systemInstruction,
@@ -160,7 +166,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 {
                   name: mode.tool.name,
                   description: mode.tool.description ?? '',
-                  parameters: prepareJsonSchema(mode.tool.parameters),
+                  parameters: convertJSONSchemaToOpenAPISchema(
+                    mode.tool.parameters,
+                  ),
                 },
               ],
             },
@@ -183,6 +191,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = await this.getArgs(options);
+
+    console.log(JSON.stringify(args, null, 2));
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:generateContent`,
@@ -437,7 +447,7 @@ function prepareToolsAndToolConfig(
     functionDeclarations: tools.map(tool => ({
       name: tool.name,
       description: tool.description ?? '',
-      parameters: prepareJsonSchema(tool.parameters),
+      parameters: convertJSONSchemaToOpenAPISchema(tool.parameters),
     })),
   };
 
@@ -480,28 +490,4 @@ function prepareToolsAndToolConfig(
       throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
     }
   }
-}
-
-// Removes all "additionalProperty" and "$schema" properties from the object (recursively)
-// (not supported by Google Generative AI)
-function prepareJsonSchema(jsonSchema: unknown): unknown {
-  if (jsonSchema == null || typeof jsonSchema !== 'object') {
-    return jsonSchema;
-  }
-
-  if (Array.isArray(jsonSchema)) {
-    return jsonSchema.map(prepareJsonSchema);
-  }
-
-  const result: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(jsonSchema)) {
-    if (key === 'additionalProperties' || key === '$schema') {
-      continue;
-    }
-
-    result[key] = prepareJsonSchema(value);
-  }
-
-  return result;
 }

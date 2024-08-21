@@ -9,21 +9,38 @@ async function main() {
   const result = await generateObject({
     model: google('gemini-1.5-pro-latest'),
     schema: z.object({
-      recipe: z.object({
-        name: z.string(),
-        ingredients: z.array(
-          z.object({
-            name: z.string(),
-            amount: z.string(),
-          }),
-        ),
-        steps: z.array(z.string()),
-      }),
+      name: z.string(),
+      age: z.number(),
+      contact: z.union([
+        z.object({
+          type: z.literal('email'),
+          value: z.string(),
+        }),
+        z.object({
+          type: z.literal('phone'),
+          value: z.string(),
+        }),
+      ]),
+      occupation: z.union([
+        z.object({
+          type: z.literal('employed'),
+          company: z.string(),
+          position: z.string(),
+        }),
+        z.object({
+          type: z.literal('student'),
+          school: z.string(),
+          grade: z.number(),
+        }),
+        z.object({
+          type: z.literal('unemployed'),
+        }),
+      ]),
     }),
-    prompt: 'Generate a lasagna recipe.',
+    prompt: 'Generate an example person for testing.',
   });
 
-  console.log(JSON.stringify(result.object.recipe, null, 2));
+  console.log(JSON.stringify(result.object, null, 2));
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
