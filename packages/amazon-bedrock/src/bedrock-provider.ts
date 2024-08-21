@@ -1,4 +1,8 @@
-import { generateId, loadSetting } from '@ai-sdk/provider-utils';
+import {
+  generateId,
+  loadOptionalSetting,
+  loadSetting,
+} from '@ai-sdk/provider-utils';
 import {
   BedrockRuntimeClient,
   BedrockRuntimeClientConfig,
@@ -66,12 +70,9 @@ export function createAmazonBedrock(
             environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
             description: 'AWS secret access key',
           }),
-          sessionToken: loadSetting({
+          sessionToken: loadOptionalSetting({
             settingValue: options.sessionToken,
-            settingName: 'sessionToken',
             environmentVariableName: 'AWS_SESSION_TOKEN',
-            description: 'AWS session token',
-            isOptional: true,
           }),
         },
       },
