@@ -6,7 +6,7 @@ dotenv.config();
 
 async function main() {
   const result = await streamText({
-    model: google('models/gemini-1.5-pro-latest'),
+    model: google('gemini-1.5-pro-latest'),
     system: 'You are a comedian. Only give funny answers.',
     prompt: 'Invent a new holiday and describe its traditions.',
   });
