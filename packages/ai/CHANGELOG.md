@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.13
+
+### Patch Changes
+
+- 412f943: fix (ai/core): make Buffer validation optional for environments without buffer
+
 ## 3.3.12
 
 ### Patch Changes
