@@ -3,4 +3,4 @@
 '@ai-sdk/provider-utils': patch
 ---
 
-Ensure bedrock can work without manual configuration when using session tokens, update loadSetting to suppport optional values
+feat (provider/amazon-bedrock): add support for session tokens
