@@ -45,7 +45,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     settings: GoogleGenerativeAISettings,
     config: GoogleGenerativeAIConfig,
   ) {
-    this.modelId = modelId;
+    // TODO model ids with 'models/' prefix are deprecated
+    this.modelId = modelId.startsWith('models/')
+      ? modelId.substring(7)
+      : modelId;
+
     this.settings = settings;
     this.config = config;
   }
@@ -181,7 +185,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/${this.modelId}:generateContent`,
+      url: `${this.config.baseURL}/models/${this.modelId}:generateContent`,
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
@@ -223,7 +227,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/${this.modelId}:streamGenerateContent?alt=sse`,
+      url: `${this.config.baseURL}/models/${this.modelId}:streamGenerateContent?alt=sse`,
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
