@@ -145,31 +145,9 @@ console.log(result.experimental_providerMetadata?.anthropic);
 // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
 ```
 
-### Example: 8192 Max Tokens
-
-The Anthropic beta `max-tokens-3-5-sonnet-2024-07-15` allows you to generate up to 8192 tokens.
-You can use it as follows:
-
-```ts highlight="6-8"
-import { anthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
-
-const result = await generateText({
-  model: anthropic('claude-3-5-sonnet-20240620'),
-  // enable max tokens beta:
-  headers: { 'anthropic-beta': 'max-tokens-3-5-sonnet-2024-07-15' },
-  maxTokens: 8192, // important: specify max tokens
-  system:
-    "Don't shy away from generating long text. Follow the user's instructions'",
-  prompt:
-    'Invent a new holiday and describe its traditions. Write at least 20 pages.',
-});
-
-console.log(result.text);
-console.log('Token usage:', result.usage);
-```
-
 ### Model Capabilities
+
+See also [Anthropic Model Comparison](https://docs.anthropic.com/en/docs/about-claude/models#model-comparison).
 
 | Model                        | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
