@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 1.0.15
+
+### Patch Changes
+
+- d67fa9c: feat (provider/amazon-bedrock): add support for session tokens
+
 ## 1.0.14
 
 ### Patch Changes
