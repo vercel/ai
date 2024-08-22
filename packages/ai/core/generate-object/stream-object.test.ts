@@ -1098,6 +1098,7 @@ describe('telemetry', () => {
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
           'ai.settings.mode': 'json',
+          'ai.settings.output': 'object',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
           'ai.schema.name': 'test-name',
@@ -1242,6 +1243,7 @@ describe('telemetry', () => {
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
           'ai.settings.mode': 'tool',
+          'ai.settings.output': 'object',
           'ai.schema':
             '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
           'ai.schema.name': 'test-name',
@@ -1333,6 +1335,7 @@ describe('telemetry', () => {
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
           'ai.settings.mode': 'json',
+          'ai.settings.output': 'object',
         },
         events: [],
       },
@@ -1446,6 +1449,7 @@ describe('telemetry', () => {
           'ai.usage.completionTokens': 10,
           'ai.usage.promptTokens': 3,
           'ai.settings.mode': 'tool',
+          'ai.settings.output': 'object',
         },
         events: [],
       },

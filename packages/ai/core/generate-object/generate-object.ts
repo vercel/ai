@@ -26,7 +26,6 @@ import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
-import { InvalidArgumentError } from '../../errors';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 /**
