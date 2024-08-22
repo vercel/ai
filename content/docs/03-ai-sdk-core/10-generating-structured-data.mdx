@@ -5,13 +5,17 @@ description: Learn how to generate structured data with the Vercel AI SDK.
 
 # Generating Structured Data
 
-While text generation can be useful, your usecase will likely call for generating structured data.
+While text generation can be useful, your use case will likely call for generating structured data.
 For example, you might want to extract information from text, classify data, or generate synthetic data.
 
 Many language models are capable of generating structured data, often defined as using "JSON modes" or "tools".
 However, you need to manually provide schemas and then validate the generated data as LLMs can produce incorrect or incomplete structured data.
 
-The Vercel AI SDK standardises structured object generation across model providers with the [`generateObject`](/docs/reference/ai-sdk-core/generate-object) function.
+The Vercel AI SDK standardises structured object generation across model providers
+with the [`generateObject`](/docs/reference/ai-sdk-core/generate-object)
+and [`streamObject`](/docs/reference/ai-sdk-core/stream-object) functions.
+
+## Generate Object
 
 The `generateObject` function uses [Zod schemas](./schemas-and-zod) or [JSON schemas](/docs/reference/ai-sdk-core/json-schema) to specify the shape of the data that you want, and the AI model will generate data that conforms to that structure.
 The schema is also used to validate the generated data, ensuring type safety and correctness.
@@ -139,6 +143,24 @@ const result = await generateObject({
 });
 ```
 
+## Object generation without schemas
+
+In some cases, you might not want to use a schema,
+for example because the data is a dynamic user request.
+You can use the `output` setting to set the output format to `no-schema` in those cases
+and omit the schema parameter.
+
+```ts highlight="6"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+
+const { object } = await generateObject({
+  model: openai('gpt-4-turbo'),
+  output: 'no-schema',
+  prompt: 'Generate a lasagna recipe.',
+});
+```
+
 ## Error Handling
 
 When you use `generateObject`, errors are thrown when the model fails to generate proper JSON (`JSONParseError`)
@@ -190,7 +212,7 @@ async function generateRecipe(
 }
 ```
 
-## Examples
+## More Examples
 
 You can see `generateObject` and `streamObject` in action using various frameworks in the following examples:
 
