@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 1.0.16
+
+### Patch Changes
+
+- 09f895f: feat (ai/core): no-schema output for generateObject / streamObject
+
 ## 1.0.15
 
 ### Patch Changes

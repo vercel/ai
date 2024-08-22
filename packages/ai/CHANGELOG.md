@@ -1,5 +1,18 @@
 # ai
 
+## 3.3.16
+
+### Patch Changes
+
+- 09f895f: feat (ai/core): no-schema output for generateObject / streamObject
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+  - @ai-sdk/react@0.0.50
+  - @ai-sdk/solid@0.0.40
+  - @ai-sdk/svelte@0.0.42
+  - @ai-sdk/ui-utils@0.0.37
+  - @ai-sdk/vue@0.0.42
+
 ## 3.3.15
 
 ### Patch Changes

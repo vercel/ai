@@ -933,22 +933,22 @@ importers:
         specifier: 0.0.21
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 0.0.49
+        specifier: 0.0.50
         version: link:../react
       '@ai-sdk/solid':
-        specifier: 0.0.39
+        specifier: 0.0.40
         version: link:../solid
       '@ai-sdk/svelte':
-        specifier: 0.0.41
+        specifier: 0.0.42
         version: link:../svelte
       '@ai-sdk/ui-utils':
-        specifier: 0.0.36
+        specifier: 0.0.37
         version: link:../ui-utils
       '@ai-sdk/vue':
-        specifier: 0.0.41
+        specifier: 0.0.42
         version: link:../vue
       '@opentelemetry/api':
         specifier: 1.9.0
@@ -1084,7 +1084,7 @@ importers:
         specifier: 0.0.21
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
       '@aws-sdk/client-bedrock-runtime':
         specifier: 3.602.0
@@ -1118,7 +1118,7 @@ importers:
         specifier: 0.0.21
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1140,13 +1140,13 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 0.0.52
+        specifier: 0.0.53
         version: link:../openai
       '@ai-sdk/provider':
         specifier: 0.0.21
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1171,7 +1171,7 @@ importers:
         specifier: 0.0.21
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1196,7 +1196,7 @@ importers:
         specifier: 0.0.21
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
       json-schema:
         specifier: 0.4.0
@@ -1227,7 +1227,7 @@ importers:
         specifier: 0.0.21
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
       json-schema:
         specifier: 0.4.0
@@ -1258,7 +1258,7 @@ importers:
         specifier: 0.0.21
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1283,7 +1283,7 @@ importers:
         specifier: 0.0.21
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1361,10 +1361,10 @@ importers:
   packages/react:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.36
+        specifier: 0.0.37
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19
@@ -1422,10 +1422,10 @@ importers:
   packages/solid:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.36
+        specifier: 0.0.37
         version: link:../ui-utils
       solid-js:
         specifier: ^1.7.7
@@ -1474,10 +1474,10 @@ importers:
   packages/svelte:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.36
+        specifier: 0.0.37
         version: link:../ui-utils
       sswr:
         specifier: 2.1.0
@@ -1511,7 +1511,7 @@ importers:
         specifier: 0.0.21
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
       json-schema:
         specifier: 0.4.0
@@ -1548,10 +1548,10 @@ importers:
   packages/vue:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 1.0.15
+        specifier: 1.0.16
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 0.0.36
+        specifier: 0.0.37
         version: link:../ui-utils
       swrv:
         specifier: 1.0.4
