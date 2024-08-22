@@ -40,7 +40,7 @@
     "@ai-sdk/provider-utils": "1.0.15",
     "json-schema": "0.4.0",
     "secure-json-parse": "2.7.0",
-    "zod-to-json-schema": "3.22.5"
+    "zod-to-json-schema": "3.23.2"
   },
   "devDependencies": {
     "@types/json-schema": "7.0.15",
