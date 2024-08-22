@@ -1140,7 +1140,7 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 0.0.51
+        specifier: 0.0.52
         version: link:../openai
       '@ai-sdk/provider':
         specifier: 0.0.21
