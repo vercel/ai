@@ -27,6 +27,7 @@ import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import { InvalidArgumentError } from '../../errors';
+import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -106,7 +107,7 @@ The language model to use.
       model: LanguageModel;
 
       /**
-The mode to use for object generation. Must be "json" for no-schema mode.
+The mode to use for object generation. Must be "json" for no-schema output.
      */
       mode?: 'json';
 
@@ -150,58 +151,17 @@ export async function generateObject<T>({
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
   }): Promise<DefaultGenerateObjectResult<T>> {
-  if (output != null && output !== 'object' && output !== 'no-schema') {
-    throw new InvalidArgumentError({
-      parameter: 'output',
-      value: output,
-      message: 'Invalid output type.',
-    });
-  }
+  validateObjectGenerationInput({
+    output,
+    mode,
+    schema: inputSchema,
+    schemaName,
+    schemaDescription,
+  });
 
-  if (output === 'no-schema') {
-    if (mode == null) {
-      mode = 'json';
-    } else if (mode === 'auto' || mode === 'tool') {
-      throw new InvalidArgumentError({
-        parameter: 'mode',
-        value: mode,
-        message: 'Mode must be "json" for no-schema output.',
-      });
-    }
-
-    if (inputSchema != null) {
-      throw new InvalidArgumentError({
-        parameter: 'schema',
-        value: inputSchema,
-        message: 'Schema is not supported for no-schema output.',
-      });
-    }
-
-    if (schemaDescription != null) {
-      throw new InvalidArgumentError({
-        parameter: 'schemaDescription',
-        value: schemaDescription,
-        message: 'Schema description is not supported for no-schema output.',
-      });
-    }
-
-    if (schemaName != null) {
-      throw new InvalidArgumentError({
-        parameter: 'schemaName',
-        value: schemaName,
-        message: 'Schema name is not supported for no-schema output.',
-      });
-    }
-  }
-
-  if (output === 'object') {
-    if (inputSchema == null) {
-      throw new InvalidArgumentError({
-        parameter: 'schema',
-        value: inputSchema,
-        message: 'Schema is required for object output.',
-      });
-    }
+  // automatically set mode to 'json' for no-schema output
+  if (output === 'no-schema' && mode === undefined) {
+    mode = 'json';
   }
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
