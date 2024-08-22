@@ -1,4 +1,8 @@
-import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
+import {
+  JSONParseError,
+  JSONValue,
+  TypeValidationError,
+} from '@ai-sdk/provider';
 import SecureJSON from 'secure-json-parse';
 import { ZodSchema } from 'zod';
 import { safeValidateTypes, validateTypes } from './validate-types';
@@ -8,9 +12,12 @@ import { Validator } from './validator';
  * Parses a JSON string into an unknown object.
  *
  * @param text - The JSON string to parse.
- * @returns {unknown} - The parsed JSON object.
+ * @returns {JSONValue} - The parsed JSON object.
  */
-export function parseJSON({ text }: { text: string }): unknown;
+export function parseJSON(options: {
+  text: string;
+  schema?: undefined;
+}): JSONValue;
 /**
  * Parses a JSON string into a strongly-typed object using the provided schema.
  *
@@ -19,10 +26,7 @@ export function parseJSON({ text }: { text: string }): unknown;
  * @param {Validator<T>} schema - The schema to use for parsing the JSON.
  * @returns {T} - The parsed object.
  */
-export function parseJSON<T>({
-  text,
-  schema,
-}: {
+export function parseJSON<T>(options: {
   text: string;
   schema: ZodSchema<T> | Validator<T>;
 }): T;
@@ -63,7 +67,10 @@ export type ParseResult<T> =
  * @param text - The JSON string to parse.
  * @returns {object} Either an object with `success: true` and the parsed data, or an object with `success: false` and the error that occurred.
  */
-export function safeParseJSON({ text }: { text: string }): ParseResult<unknown>;
+export function safeParseJSON(options: {
+  text: string;
+  schema?: undefined;
+}): ParseResult<JSONValue>;
 /**
  * Safely parses a JSON string into a strongly-typed object, using a provided schema to validate the object.
  *
@@ -72,10 +79,7 @@ export function safeParseJSON({ text }: { text: string }): ParseResult<unknown>;
  * @param {Validator<T>} schema - The schema to use for parsing the JSON.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
-export function safeParseJSON<T>({
-  text,
-  schema,
-}: {
+export function safeParseJSON<T>(options: {
   text: string;
   schema: ZodSchema<T> | Validator<T>;
 }): ParseResult<T>;
