@@ -24,7 +24,7 @@ import {
 import { calculateCompletionTokenUsage } from '../types/token-usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
-import { injectJsonInstructionIntoSystem } from './inject-json-instruction-into-system';
+import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import { InvalidArgumentError } from '../../errors';
 
@@ -241,11 +241,11 @@ export async function generateObject<T>({
           const validatedPrompt = validatePrompt({
             system:
               schema == null
-                ? injectJsonInstructionIntoSystem({ system })
+                ? injectJsonInstruction({ prompt: system })
                 : model.supportsStructuredOutputs && schema != null
                 ? system
-                : injectJsonInstructionIntoSystem({
-                    system,
+                : injectJsonInstruction({
+                    prompt: system,
                     schema: schema.jsonSchema,
                   }),
             prompt,
