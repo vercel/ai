@@ -1,3 +1,4 @@
+import { JSONValue } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { Schema, asSchema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
@@ -23,7 +24,7 @@ import {
 import { calculateCompletionTokenUsage } from '../types/token-usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
-import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { injectJsonInstructionIntoSystem } from './inject-json-instruction-into-system';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 
 /**
@@ -31,84 +32,38 @@ Generate a structured, typed object for a given prompt and schema using a langua
 
 This function does not stream the output. If you want to stream the output, use `streamObject` instead.
 
-@param model - The language model to use.
-
-@param schema - The schema of the object that the model should generate.
-@param schemaName - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
-@param schemaDescription - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
-@param mode - The mode to use for object generation. Not all models support all modes. Defaults to 'auto'.
-
-@param system - A system message that will be part of the prompt.
-@param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
-@param messages - A list of messages. You can either use `prompt` or `messages` but not both.
-
-@param maxTokens - Maximum number of tokens to generate.
-@param temperature - Temperature setting.
-The value is passed through to the provider. The range depends on the provider and model.
-It is recommended to set either `temperature` or `topP`, but not both.
-@param topP - Nucleus sampling.
-The value is passed through to the provider. The range depends on the provider and model.
-It is recommended to set either `temperature` or `topP`, but not both.
-@param topK - Only sample from the top K options for each subsequent token.
-Used to remove "long tail" low probability responses.
-Recommended for advanced use cases only. You usually only need to use temperature.
-@param presencePenalty - Presence penalty setting.
-It affects the likelihood of the model to repeat information that is already in the prompt.
-The value is passed through to the provider. The range depends on the provider and model.
-@param frequencyPenalty - Frequency penalty setting.
-It affects the likelihood of the model to repeatedly use the same words or phrases.
-The value is passed through to the provider. The range depends on the provider and model.
-@param seed - The seed (integer) to use for random sampling.
-If set and supported by the model, calls will generate deterministic results.
-
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
 @returns
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
-export async function generateObject<T>({
-  model,
-  schema: inputSchema,
-  schemaName,
-  schemaDescription,
-  mode,
-  system,
-  prompt,
-  messages,
-  maxRetries,
-  abortSignal,
-  headers,
-  experimental_telemetry: telemetry,
-  ...settings
-}: Omit<CallSettings, 'stopSequences'> &
-  Prompt & {
-    /**
+export async function generateObject<T>(
+  options: Omit<CallSettings, 'stopSequences'> &
+    Prompt & {
+      output?: 'object' | undefined;
+
+      /**
 The language model to use.
      */
-    model: LanguageModel;
-
-    /**
+      model: LanguageModel;
+      /**
 The schema of the object that the model should generate.
      */
-    schema: z.Schema<T, z.ZodTypeDef, any> | Schema<T>;
+      schema: z.Schema<T, z.ZodTypeDef, any> | Schema<T>;
 
-    /**
+      /**
 Optional name of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema name.
      */
-    schemaName?: string;
+      schemaName?: string;
 
-    /**
+      /**
 Optional description of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
      */
-    schemaDescription?: string;
+      schemaDescription?: string;
 
-    /**
+      /**
 The mode to use for object generation.
 
 The schema is converted in a JSON schema and used in one of the following ways
@@ -121,13 +76,84 @@ Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
      */
-    mode?: 'auto' | 'json' | 'tool';
+      mode?: 'auto' | 'json' | 'tool';
 
-    /**
-     * Optional telemetry configuration (experimental).
+      /**
+Optional telemetry configuration (experimental).
+       */
+
+      experimental_telemetry?: TelemetrySettings;
+    },
+): Promise<DefaultGenerateObjectResult<T>>;
+/**
+Generate JSON with any schema for a given prompt using a language model.
+
+This function does not stream the output. If you want to stream the output, use `streamObject` instead.
+
+@returns
+A result object that contains the generated object, the finish reason, the token usage, and additional information.
+ */
+export async function generateObject(
+  options: Omit<CallSettings, 'stopSequences'> &
+    Prompt & {
+      output: 'schemaless';
+
+      /**
+The language model to use.
      */
+      model: LanguageModel;
+
+      /**
+The mode to use for object generation. Must be "json" for schemaless mode.
+     */
+      mode?: 'json';
+
+      /**
+Optional telemetry configuration (experimental).
+       */
+      experimental_telemetry?: TelemetrySettings;
+    },
+): Promise<DefaultGenerateObjectResult<JSONValue>>;
+export async function generateObject<T>({
+  model,
+  schema: inputSchema,
+  schemaName,
+  schemaDescription,
+  mode,
+  output,
+  system,
+  prompt,
+  messages,
+  maxRetries,
+  abortSignal,
+  headers,
+  experimental_telemetry: telemetry,
+  ...settings
+}: Omit<CallSettings, 'stopSequences'> &
+  Prompt & {
+    /**
+     * The expected structure of the output.
+     *
+     * - 'object': Generate a single object that conforms to the schema.
+     * - 'schemaless': Generate any JSON object. No schema is specified.
+     *
+     * Default is 'object' if not specified.
+     */
+    output?: 'object' | 'schemaless';
+
+    model: LanguageModel;
+    schema?: z.Schema<T, z.ZodTypeDef, any> | Schema<T>;
+    schemaName?: string;
+    schemaDescription?: string;
+    mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
   }): Promise<DefaultGenerateObjectResult<T>> {
+  // TODO input validation for schemaless mode (no schema, output: 'schemaless', mode: 'json')
+
+  if (output === 'schemaless') {
+    mode = 'json';
+  }
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
@@ -135,7 +161,7 @@ Default and recommended: 'auto' (best mode for the model).
     settings: { ...settings, maxRetries },
   });
 
-  const schema = asSchema(inputSchema);
+  const schema = inputSchema != null ? asSchema(inputSchema) : undefined;
 
   const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
   return recordSpan({
@@ -152,9 +178,10 @@ Default and recommended: 'auto' (best mode for the model).
         'ai.prompt': {
           input: () => JSON.stringify({ system, prompt, messages }),
         },
-        'ai.schema': {
-          input: () => JSON.stringify(schema.jsonSchema),
-        },
+        'ai.schema':
+          schema != null
+            ? { input: () => JSON.stringify(schema.jsonSchema) }
+            : undefined,
         'ai.schema.name': schemaName,
         'ai.schema.description': schemaDescription,
         'ai.settings.mode': mode,
@@ -180,12 +207,15 @@ Default and recommended: 'auto' (best mode for the model).
       switch (mode) {
         case 'json': {
           const validatedPrompt = validatePrompt({
-            system: model.supportsStructuredOutputs
-              ? system
-              : injectJsonSchemaIntoSystem({
-                  system,
-                  schema: schema.jsonSchema,
-                }),
+            system:
+              schema == null
+                ? injectJsonInstructionIntoSystem({ system })
+                : model.supportsStructuredOutputs && schema != null
+                ? system
+                : injectJsonInstructionIntoSystem({
+                    system,
+                    schema: schema.jsonSchema,
+                  }),
             prompt,
             messages,
           });
@@ -229,7 +259,7 @@ Default and recommended: 'auto' (best mode for the model).
                 const result = await model.doGenerate({
                   mode: {
                     type: 'object-json',
-                    schema: schema.jsonSchema,
+                    schema: schema?.jsonSchema,
                     name: schemaName,
                     description: schemaDescription,
                   },
@@ -322,6 +352,11 @@ Default and recommended: 'auto' (best mode for the model).
               }),
               tracer,
               fn: async span => {
+                if (schema == null) {
+                  // TODO dedicated AI SDK error
+                  throw new Error('Schema is required for tool mode.');
+                }
+
                 const result = await model.doGenerate({
                   mode: {
                     type: 'object-tool',
@@ -394,7 +429,12 @@ Default and recommended: 'auto' (best mode for the model).
         }
       }
 
-      const parseResult = safeParseJSON({ text: result, schema });
+      const parseResult = safeParseJSON({
+        text: result,
+        // type casting required for `undefined` schema (schemaless mode),
+        // in which case <T> is <JSONValue> as desired.
+        schema: schema as Schema<T>,
+      });
 
       if (!parseResult.success) {
         throw parseResult.error;

@@ -4,22 +4,25 @@ const DEFAULT_SCHEMA_PREFIX = 'JSON schema:';
 const DEFAULT_SCHEMA_SUFFIX =
   'You MUST answer with a JSON object that matches the JSON schema above.';
 
-export function injectJsonSchemaIntoSystem({
+// TODO test
+export function injectJsonInstructionIntoSystem({
   system,
   schema,
-  schemaPrefix = DEFAULT_SCHEMA_PREFIX,
-  schemaSuffix = DEFAULT_SCHEMA_SUFFIX,
+  schemaPrefix = schema != null ? DEFAULT_SCHEMA_PREFIX : undefined,
+  schemaSuffix = schema != null
+    ? DEFAULT_SCHEMA_SUFFIX
+    : 'You MUST answer with JSON',
 }: {
   system?: string;
-  schema: JSONSchema7;
+  schema?: JSONSchema7;
   schemaPrefix?: string;
   schemaSuffix?: string;
 }): string {
   return [
     system,
     system != null ? '' : null, // add a newline if system is not null
-    schemaPrefix,
-    JSON.stringify(schema),
+    schemaPrefix ?? null,
+    schema != null ? JSON.stringify(schema) : null,
     schemaSuffix,
   ]
     .filter(line => line != null)

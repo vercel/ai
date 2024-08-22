@@ -38,7 +38,7 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
-import { injectJsonSchemaIntoSystem } from './inject-json-schema-into-system';
+import { injectJsonInstructionIntoSystem } from './inject-json-instruction-into-system';
 import {
   ObjectStreamInputPart,
   ObjectStreamPart,
@@ -242,7 +242,7 @@ results that can be fully encapsulated in the provider.
           const validatedPrompt = validatePrompt({
             system: model.supportsStructuredOutputs
               ? system
-              : injectJsonSchemaIntoSystem({
+              : injectJsonInstructionIntoSystem({
                   system,
                   schema: schema.jsonSchema,
                 }),
