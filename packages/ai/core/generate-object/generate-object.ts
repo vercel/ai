@@ -98,7 +98,7 @@ A result object that contains the generated object, the finish reason, the token
 export async function generateObject(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt & {
-      output: 'schemaless';
+      output: 'no-schema';
 
       /**
 The language model to use.
@@ -106,7 +106,7 @@ The language model to use.
       model: LanguageModel;
 
       /**
-The mode to use for object generation. Must be "json" for schemaless mode.
+The mode to use for object generation. Must be "json" for no-schema mode.
      */
       mode?: 'json';
 
@@ -137,11 +137,11 @@ export async function generateObject<T>({
      * The expected structure of the output.
      *
      * - 'object': Generate a single object that conforms to the schema.
-     * - 'schemaless': Generate any JSON object. No schema is specified.
+     * - 'no-schema': Generate any JSON object. No schema is specified.
      *
      * Default is 'object' if not specified.
      */
-    output?: 'object' | 'schemaless';
+    output?: 'object' | 'no-schema';
 
     model: LanguageModel;
     schema?: z.Schema<T, z.ZodTypeDef, any> | Schema<T>;
@@ -150,14 +150,22 @@ export async function generateObject<T>({
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
   }): Promise<DefaultGenerateObjectResult<T>> {
-  if (output === 'schemaless') {
-    if (mode === undefined) {
+  if (output != null && output !== 'object' && output !== 'no-schema') {
+    throw new InvalidArgumentError({
+      parameter: 'output',
+      value: output,
+      message: 'Invalid output type.',
+    });
+  }
+
+  if (output === 'no-schema') {
+    if (mode == null) {
       mode = 'json';
     } else if (mode === 'auto' || mode === 'tool') {
       throw new InvalidArgumentError({
         parameter: 'mode',
         value: mode,
-        message: 'Mode must be "json" for schemaless output.',
+        message: 'Mode must be "json" for no-schema output.',
       });
     }
 
@@ -165,7 +173,7 @@ export async function generateObject<T>({
       throw new InvalidArgumentError({
         parameter: 'schema',
         value: inputSchema,
-        message: 'Schema is not supported for schemaless output.',
+        message: 'Schema is not supported for no-schema output.',
       });
     }
 
@@ -173,7 +181,7 @@ export async function generateObject<T>({
       throw new InvalidArgumentError({
         parameter: 'schemaDescription',
         value: schemaDescription,
-        message: 'Schema description is not supported for schemaless output.',
+        message: 'Schema description is not supported for no-schema output.',
       });
     }
 
@@ -181,7 +189,17 @@ export async function generateObject<T>({
       throw new InvalidArgumentError({
         parameter: 'schemaName',
         value: schemaName,
-        message: 'Schema name is not supported for schemaless output.',
+        message: 'Schema name is not supported for no-schema output.',
+      });
+    }
+  }
+
+  if (output === 'object') {
+    if (inputSchema == null) {
+      throw new InvalidArgumentError({
+        parameter: 'schema',
+        value: inputSchema,
+        message: 'Schema is required for object output.',
       });
     }
   }
@@ -385,11 +403,6 @@ export async function generateObject<T>({
               }),
               tracer,
               fn: async span => {
-                if (schema == null) {
-                  // TODO dedicated AI SDK error
-                  throw new Error('Schema is required for tool mode.');
-                }
-
                 const result = await model.doGenerate({
                   mode: {
                     type: 'object-tool',
@@ -398,7 +411,7 @@ export async function generateObject<T>({
                       name: schemaName ?? 'json',
                       description:
                         schemaDescription ?? 'Respond with a JSON object.',
-                      parameters: schema.jsonSchema,
+                      parameters: schema!.jsonSchema,
                     },
                   },
                   ...prepareCallSettings(settings),
@@ -464,7 +477,7 @@ export async function generateObject<T>({
 
       const parseResult = safeParseJSON({
         text: result,
-        // type casting required for `undefined` schema (schemaless mode),
+        // type casting required for `undefined` schema (no-schema mode),
         // in which case <T> is <JSONValue> as desired.
         schema: schema as Schema<T>,
       });

@@ -7,7 +7,7 @@ dotenv.config();
 async function main() {
   const result = await generateObject({
     model: openai('gpt-4o-2024-08-06'),
-    output: 'schemaless',
+    output: 'no-schema',
     prompt: 'Generate a lasagna recipe.',
   });
 
