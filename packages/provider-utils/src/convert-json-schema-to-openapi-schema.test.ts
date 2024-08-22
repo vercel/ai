@@ -420,3 +420,49 @@ it('should handle null type correctly', () => {
 
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
+
+it('should handle descriptions', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    description: 'A user object',
+    properties: {
+      id: {
+        type: 'number',
+        description: 'The user ID',
+      },
+      name: {
+        type: 'string',
+        description: "The user's full name",
+      },
+      email: {
+        type: 'string',
+        format: 'email',
+        description: "The user's email address",
+      },
+    },
+    required: ['id', 'name'],
+  };
+
+  const expected = {
+    type: 'object',
+    description: 'A user object',
+    properties: {
+      id: {
+        type: 'number',
+        description: 'The user ID',
+      },
+      name: {
+        type: 'string',
+        description: "The user's full name",
+      },
+      email: {
+        type: 'string',
+        format: 'email',
+        description: "The user's email address",
+      },
+    },
+    required: ['id', 'name'],
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
