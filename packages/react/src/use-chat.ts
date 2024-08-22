@@ -405,8 +405,8 @@ By default, it's set to 0, which will disable the feature.
         // limit the number of automatic roundtrips:
         countTrailingAssistantMessages(messages) <= maxToolRoundtrips &&
         // check if any tools are excluded from roundtrips:
-        !lastMessage.toolInvocations?.some(invocation => 
-          excludeToolsFromRoundtrips?.includes(invocation.toolName)
+        !lastMessage.toolInvocations?.some(invocation =>
+          excludeToolsFromRoundtrips?.includes(invocation.toolName),
         )
       ) {
         await triggerRequest({ messages });
