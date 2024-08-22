@@ -446,6 +446,37 @@ describe('output = "object"', () => {
   });
 });
 
+describe('output = "no-schema"', () => {
+  it('should generate object', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            name: undefined,
+            description: undefined,
+            schema: undefined,
+          });
+
+          assert.deepStrictEqual(prompt, [
+            { role: 'system', content: 'You MUST answer with JSON.' },
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+          };
+        },
+      }),
+      output: 'no-schema',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
+  });
+});
+
 describe('telemetry', () => {
   let tracer: MockTracer;
 
