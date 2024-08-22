@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 0.0.44
+
+### Patch Changes
+
+- cb94042: fix (provider/google): allow disabling structured generation
+
 ## 0.0.43
 
 ### Patch Changes
