@@ -102,8 +102,8 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
       zod-to-json-schema:
-        specifier: 3.22.4
-        version: 3.22.4(zod@3.23.8)
+        specifier: 3.23.2
+        version: 3.23.2(zod@3.23.8)
     devDependencies:
       '@types/node':
         specifier: 20.11.20
@@ -765,8 +765,8 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
       zod-to-json-schema:
-        specifier: 3.22.4
-        version: 3.22.4(zod@3.23.8)
+        specifier: 3.23.2
+        version: 3.23.2(zod@3.23.8)
     devDependencies:
       '@types/node':
         specifier: 20.11.20
@@ -975,8 +975,8 @@ importers:
         specifier: ^3.0.0 || ^4.0.0
         version: 4.2.18
       zod-to-json-schema:
-        specifier: 3.22.5
-        version: 3.22.5(zod@3.23.8)
+        specifier: 3.23.2
+        version: 3.23.2(zod@3.23.8)
     devDependencies:
       '@anthropic-ai/sdk':
         specifier: 0.18.0
@@ -1514,8 +1514,8 @@ importers:
         specifier: 2.7.0
         version: 2.7.0
       zod-to-json-schema:
-        specifier: 3.22.5
-        version: 3.22.5(zod@3.23.8)
+        specifier: 3.23.2
+        version: 3.23.2(zod@3.23.8)
     devDependencies:
       '@types/json-schema':
         specifier: 7.0.15
@@ -5846,7 +5846,7 @@ packages:
       langsmith: 0.1.23(openai@4.47.1)
       uuid: 9.0.1
       zod: 3.23.8
-      zod-to-json-schema: 3.22.5(zod@3.23.8)
+      zod-to-json-schema: 3.23.2(zod@3.23.8)
     transitivePeerDependencies:
       - encoding
       - openai
@@ -5867,7 +5867,7 @@ packages:
       p-retry: 4.6.2
       uuid: 9.0.1
       zod: 3.23.8
-      zod-to-json-schema: 3.22.5(zod@3.23.8)
+      zod-to-json-schema: 3.23.2(zod@3.23.8)
     transitivePeerDependencies:
       - openai
     dev: false
@@ -5880,7 +5880,7 @@ packages:
       js-tiktoken: 1.0.12
       openai: 4.47.1
       zod: 3.23.8
-      zod-to-json-schema: 3.22.5(zod@3.23.8)
+      zod-to-json-schema: 3.23.2(zod@3.23.8)
     transitivePeerDependencies:
       - encoding
     dev: false
@@ -16958,7 +16958,7 @@ packages:
       uuid: 9.0.1
       yaml: 2.4.2
       zod: 3.23.8
-      zod-to-json-schema: 3.22.5(zod@3.23.8)
+      zod-to-json-schema: 3.23.2(zod@3.23.8)
     transitivePeerDependencies:
       - '@aws-crypto/sha256-js'
       - '@aws-sdk/client-bedrock-agent-runtime'
@@ -23398,18 +23398,10 @@ packages:
       zod: 3.23.8
     dev: true
 
-  /zod-to-json-schema@3.22.4(zod@3.23.8):
-    resolution: {integrity: sha512-2Ed5dJ+n/O3cU383xSY28cuVi0BCQhF8nYqWU5paEpl7fVdqdAmiLdqLyfblbNdfOFwFfi/mqU4O1pwc60iBhQ==}
+  /zod-to-json-schema@3.23.2(zod@3.23.8):
+    resolution: {integrity: sha512-uSt90Gzc/tUfyNqxnjlfBs8W6WSGpNBv0rVsNxP/BVSMHMKGdthPYff4xtCHYloJGM0CFxFsb3NbC0eqPhfImw==}
     peerDependencies:
-      zod: ^3.22.4
-    dependencies:
-      zod: 3.23.8
-    dev: false
-
-  /zod-to-json-schema@3.22.5(zod@3.23.8):
-    resolution: {integrity: sha512-+akaPo6a0zpVCCseDed504KBJUQpEW5QZw7RMneNmKw+fGaML1Z9tUNLnHHAC8x6dzVRO1eB2oEMyZRnuBZg7Q==}
-    peerDependencies:
-      zod: ^3.22.4
+      zod: ^3.23.3
     dependencies:
       zod: 3.23.8
     dev: false
