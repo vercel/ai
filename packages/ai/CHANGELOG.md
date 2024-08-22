@@ -1,5 +1,17 @@
 # ai
 
+## 3.3.15
+
+### Patch Changes
+
+- b5a82b7: chore (ai): update zod-to-json-schema to 3.23.2
+- Updated dependencies [b5a82b7]
+  - @ai-sdk/ui-utils@0.0.36
+  - @ai-sdk/react@0.0.49
+  - @ai-sdk/solid@0.0.39
+  - @ai-sdk/svelte@0.0.41
+  - @ai-sdk/vue@0.0.41
+
 ## 3.3.14
 
 ### Patch Changes
