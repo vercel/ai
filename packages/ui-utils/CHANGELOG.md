@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.36
+
+### Patch Changes
+
+- b5a82b7: chore (ai): update zod-to-json-schema to 3.23.2
+
 ## 0.0.35
 
 ### Patch Changes
