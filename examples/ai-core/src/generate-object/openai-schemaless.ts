@@ -5,7 +5,6 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 async function main() {
-  // result.object is of type JSONValue
   const result = await generateObject({
     model: openai('gpt-4o-2024-08-06'),
     output: 'schemaless',

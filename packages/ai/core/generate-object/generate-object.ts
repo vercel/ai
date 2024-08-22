@@ -26,6 +26,7 @@ import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstructionIntoSystem } from './inject-json-instruction-into-system';
 import { NoObjectGeneratedError } from './no-object-generated-error';
+import { InvalidArgumentError } from '../../errors';
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -44,6 +45,7 @@ export async function generateObject<T>(
 The language model to use.
      */
       model: LanguageModel;
+
       /**
 The schema of the object that the model should generate.
      */
@@ -148,10 +150,40 @@ export async function generateObject<T>({
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
   }): Promise<DefaultGenerateObjectResult<T>> {
-  // TODO input validation for schemaless mode (no schema, output: 'schemaless', mode: 'json')
-
   if (output === 'schemaless') {
-    mode = 'json';
+    if (mode === undefined) {
+      mode = 'json';
+    } else if (mode === 'auto' || mode === 'tool') {
+      throw new InvalidArgumentError({
+        parameter: 'mode',
+        value: mode,
+        message: 'Mode must be "json" for schemaless output.',
+      });
+    }
+
+    if (inputSchema != null) {
+      throw new InvalidArgumentError({
+        parameter: 'schema',
+        value: inputSchema,
+        message: 'Schema is not supported for schemaless output.',
+      });
+    }
+
+    if (schemaDescription != null) {
+      throw new InvalidArgumentError({
+        parameter: 'schemaDescription',
+        value: schemaDescription,
+        message: 'Schema description is not supported for schemaless output.',
+      });
+    }
+
+    if (schemaName != null) {
+      throw new InvalidArgumentError({
+        parameter: 'schemaName',
+        value: schemaName,
+        message: 'Schema name is not supported for schemaless output.',
+      });
+    }
   }
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
