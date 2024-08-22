@@ -8,12 +8,12 @@ import {
   FetchFunction,
   ParseResult,
   combineHeaders,
-  convertJSONSchemaToOpenAPISchema,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
+import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { googleFailedResponseHandler } from './google-error';
 import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';

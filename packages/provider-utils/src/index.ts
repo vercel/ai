@@ -1,6 +1,5 @@
 export * from './combine-headers';
 export * from './convert-async-generator-to-readable-stream';
-export { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 export * from './extract-response-headers';
 export * from './fetch-function';
 export * from './generate-id';

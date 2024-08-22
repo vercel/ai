@@ -1198,7 +1198,13 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: 1.0.15
         version: link:../provider-utils
+      json-schema:
+        specifier: 0.4.0
+        version: 0.4.0
     devDependencies:
+      '@types/json-schema':
+        specifier: 7.0.15
+        version: 7.0.15
       '@types/node':
         specifier: ^18
         version: 18.18.9
@@ -1326,9 +1332,6 @@ importers:
       eventsource-parser:
         specifier: 1.1.2
         version: 1.1.2
-      json-schema:
-        specifier: 0.4.0
-        version: 0.4.0
       nanoid:
         specifier: 3.3.6
         version: 3.3.6
@@ -1336,9 +1339,6 @@ importers:
         specifier: 2.7.0
         version: 2.7.0
     devDependencies:
-      '@types/json-schema':
-        specifier: 7.0.15
-        version: 7.0.15
       '@types/node':
         specifier: ^18
         version: 18.18.9
