@@ -201,8 +201,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = await this.getArgs(options);
 
-    console.log(JSON.stringify(args.generationConfig, null, 2));
-
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:generateContent`,
       headers: combineHeaders(this.config.headers(), options.headers),
