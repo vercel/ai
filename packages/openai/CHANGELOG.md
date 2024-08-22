@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.52
+
+### Patch Changes
+
+- d5b6a15: feat (provider/openai): support partial usage information
+
 ## 0.0.51
 
 ### Patch Changes
