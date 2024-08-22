@@ -391,3 +391,32 @@ it('should correctly convert a complex schema with nested const and anyOf', () =
 
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
+
+it('should handle null type correctly', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      nullableField: {
+        type: ['string', 'null'],
+      },
+      explicitNullField: {
+        type: 'null',
+      },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      nullableField: {
+        type: 'string',
+        nullable: true,
+      },
+      explicitNullField: {
+        type: 'null',
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});

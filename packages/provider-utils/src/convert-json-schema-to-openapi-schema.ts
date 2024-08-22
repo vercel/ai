@@ -26,13 +26,28 @@ export function convertJSONSchemaToOpenAPISchema(
 
   const result: Record<string, unknown> = {};
 
-  if (type) result.type = type;
   if (description) result.description = description;
   if (required) result.required = required;
   if (format) result.format = format;
 
   if (constValue !== undefined) {
     result.enum = [constValue];
+  }
+
+  // Handle type
+  if (type) {
+    if (Array.isArray(type)) {
+      if (type.includes('null')) {
+        result.type = type.filter(t => t !== 'null')[0];
+        result.nullable = true;
+      } else {
+        result.type = type;
+      }
+    } else if (type === 'null') {
+      result.type = 'null';
+    } else {
+      result.type = type;
+    }
   }
 
   if (properties) {

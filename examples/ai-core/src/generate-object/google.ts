@@ -10,7 +10,7 @@ async function main() {
     model: google('gemini-1.5-pro-latest'),
     schema: z.object({
       name: z.string(),
-      age: z.number(),
+      age: z.number().nullable().describe('Age of the person.'),
       contact: z.object({
         type: z.literal('email'),
         value: z.string(),
