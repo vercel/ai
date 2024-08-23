@@ -7,7 +7,6 @@ import {
 import {
   DeepPartial,
   Schema,
-  asSchema,
   isDeepEqualData,
   parsePartialJson,
 } from '@ai-sdk/ui-utils';
@@ -39,18 +38,52 @@ import {
 } from '../util/async-iterable-stream';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { injectJsonInstruction } from './inject-json-instruction';
-import {
-  OutputStrategy,
-  arrayOutputStrategy,
-  noSchemaOutputStrategy,
-  objectOutputStrategy,
-} from './output-strategy';
+import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import {
   ObjectStreamInputPart,
   ObjectStreamPart,
   StreamObjectResult,
 } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+
+type OnFinishCallback<RESULT> = (event: {
+  /**
+The token usage of the generated response.
+*/
+  usage: CompletionTokenUsage;
+
+  /**
+The generated object. Can be undefined if the final object does not match the schema.
+*/
+  object: RESULT | undefined;
+
+  /**
+Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
+*/
+  error: unknown | undefined;
+
+  /**
+Optional raw response data.
+*/
+  rawResponse?: {
+    /**
+Response headers.
+*/
+    headers?: Record<string, string>;
+  };
+
+  /**
+Warnings from the model provider (e.g. unsupported settings).
+*/
+  warnings?: CallWarning[];
+
+  /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+*/
+  experimental_providerMetadata: ProviderMetadata | undefined;
+}) => Promise<void> | void;
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -112,44 +145,7 @@ Optional telemetry configuration (experimental).
       /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
-      onFinish?: (event: {
-        /**
-The token usage of the generated response.
-*/
-        usage: CompletionTokenUsage;
-
-        /**
-The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.
-   */
-        object: OBJECT | undefined;
-
-        /**
-Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
-   */
-        error: unknown | undefined;
-
-        /**
-Optional raw response data.
-   */
-        rawResponse?: {
-          /**
-Response headers.
-     */
-          headers?: Record<string, string>;
-        };
-
-        /**
-Warnings from the model provider (e.g. unsupported settings).
-       */
-        warnings?: CallWarning[];
-
-        /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-   */
-        experimental_providerMetadata: ProviderMetadata | undefined;
-      }) => Promise<void> | void;
+      onFinish?: OnFinishCallback<OBJECT>;
     },
 ): Promise<StreamObjectResult<DeepPartial<OBJECT>, OBJECT, never>>;
 /**
@@ -212,44 +208,7 @@ Optional telemetry configuration (experimental).
       /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
-      onFinish?: (event: {
-        /**
-The token usage of the generated response.
-*/
-        usage: CompletionTokenUsage;
-
-        /**
-The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.
-   */
-        object: Array<ELEMENT> | undefined;
-
-        /**
-Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
-   */
-        error: unknown | undefined;
-
-        /**
-Optional raw response data.
-   */
-        rawResponse?: {
-          /**
-Response headers.
-     */
-          headers?: Record<string, string>;
-        };
-
-        /**
-Warnings from the model provider (e.g. unsupported settings).
-       */
-        warnings?: CallWarning[];
-
-        /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-   */
-        experimental_providerMetadata: ProviderMetadata | undefined;
-      }) => Promise<void> | void;
+      onFinish?: OnFinishCallback<Array<ELEMENT>>;
     },
 ): Promise<
   StreamObjectResult<
@@ -289,44 +248,7 @@ Optional telemetry configuration (experimental).
       /**
 Callback that is called when the LLM response and the final object validation are finished.
      */
-      onFinish?: (event: {
-        /**
-The token usage of the generated response.
-*/
-        usage: CompletionTokenUsage;
-
-        /**
-The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.
-   */
-        object: JSONValue | undefined;
-
-        /**
-Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
-   */
-        error: unknown | undefined;
-
-        /**
-Optional raw response data.
-   */
-        rawResponse?: {
-          /**
-Response headers.
-     */
-          headers?: Record<string, string>;
-        };
-
-        /**
-Warnings from the model provider (e.g. unsupported settings).
-       */
-        warnings?: CallWarning[];
-
-        /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-   */
-        experimental_providerMetadata: ProviderMetadata | undefined;
-      }) => Promise<void> | void;
+      onFinish?: OnFinishCallback<JSONValue>;
     },
 ): Promise<StreamObjectResult<JSONValue, JSONValue, never>>;
 export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
@@ -336,8 +258,15 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   mode,
   output = 'object',
   experimental_telemetry: telemetry,
+  model,
+  system,
+  prompt,
+  messages,
+  maxRetries,
+  abortSignal,
+  headers,
   onFinish,
-  ...rest
+  ...settings
 }: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
     /**
@@ -376,84 +305,12 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     schemaDescription,
   });
 
-  switch (output) {
-    case 'object': {
-      return internalStreamObject({
-        outputStrategy: objectOutputStrategy(asSchema(inputSchema!)),
-        schemaName,
-        schemaDescription,
-        mode,
-        telemetry,
-        onFinish: onFinish as any, // types defined by function overload
-        ...rest,
-      }) as any; // types defined by function overload
-    }
+  const outputStrategy = getOutputStrategy({ output, schema: inputSchema });
 
-    case 'array': {
-      return internalStreamObject({
-        outputStrategy: arrayOutputStrategy(asSchema(inputSchema!)),
-        schemaName,
-        schemaDescription,
-        mode,
-        telemetry,
-        onFinish: onFinish as any, // types defined by function overload
-        ...rest,
-      }) as any; // types defined by function overload
-    }
-
-    case 'no-schema': {
-      return internalStreamObject({
-        outputStrategy: noSchemaOutputStrategy,
-        schemaName,
-        schemaDescription,
-        mode: 'json',
-        telemetry,
-        onFinish: onFinish as any, // types defined by function overload
-        ...rest,
-      }) as any; // types defined by function overload
-    }
-
-    default: {
-      const _exhaustiveCheck: never = output;
-      throw new Error(`Unsupported output: ${_exhaustiveCheck}`);
-    }
+  if (outputStrategy.type === 'no-schema' && mode === undefined) {
+    mode = 'json';
   }
-}
 
-async function internalStreamObject<PARTIAL, RESULT, ELEMENT_STREAM>({
-  model,
-  schemaName,
-  schemaDescription,
-  mode,
-  outputStrategy,
-  system,
-  prompt,
-  messages,
-  maxRetries,
-  abortSignal,
-  headers,
-  telemetry,
-  onFinish,
-  ...settings
-}: Omit<CallSettings, 'stopSequences'> &
-  Prompt & {
-    outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
-    model: LanguageModel;
-    schemaName?: string;
-    schemaDescription?: string;
-    mode?: 'auto' | 'json' | 'tool';
-    telemetry?: TelemetrySettings;
-    onFinish?: (event: {
-      usage: CompletionTokenUsage;
-      object: RESULT | undefined;
-      error: unknown | undefined;
-      rawResponse?: {
-        headers?: Record<string, string>;
-      };
-      warnings?: CallWarning[];
-      experimental_providerMetadata: ProviderMetadata | undefined;
-    }) => Promise<void> | void;
-  }): Promise<StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
@@ -711,9 +568,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       ELEMENT_STREAM
     >['rawResponse'];
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
-    onFinish: Parameters<
-      typeof internalStreamObject<PARTIAL, RESULT, ELEMENT_STREAM>
-    >[0]['onFinish'];
+    onFinish: OnFinishCallback<RESULT> | undefined;
     rootSpan: Span;
     doStreamSpan: Span;
     telemetry: TelemetrySettings | undefined;

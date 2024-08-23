@@ -1,6 +1,6 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
-import { asSchema, Schema } from '@ai-sdk/ui-utils';
+import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
@@ -26,12 +26,7 @@ import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
-import {
-  arrayOutputStrategy,
-  noSchemaOutputStrategy,
-  objectOutputStrategy,
-  OutputStrategy,
-} from './output-strategy';
+import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 /**
@@ -187,7 +182,14 @@ export async function generateObject<SCHEMA, RESULT>({
   mode,
   output = 'object',
   experimental_telemetry: telemetry,
-  ...rest
+  model,
+  system,
+  prompt,
+  messages,
+  maxRetries,
+  abortSignal,
+  headers,
+  ...settings
 }: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
     /**
@@ -216,70 +218,12 @@ export async function generateObject<SCHEMA, RESULT>({
     schemaDescription,
   });
 
-  switch (output) {
-    case 'object': {
-      return internalGenerateObject({
-        outputStrategy: objectOutputStrategy(asSchema(inputSchema!)),
-        schemaName,
-        schemaDescription,
-        mode,
-        telemetry,
-        ...rest,
-      }) as any; // types defined by function overload
-    }
+  const outputStrategy = getOutputStrategy({ output, schema: inputSchema });
 
-    case 'array': {
-      return internalGenerateObject({
-        outputStrategy: arrayOutputStrategy(asSchema(inputSchema!)),
-        schemaName,
-        schemaDescription,
-        mode,
-        telemetry,
-        ...rest,
-      }) as any; // types defined by function overload
-    }
-
-    case 'no-schema': {
-      return internalGenerateObject({
-        outputStrategy: noSchemaOutputStrategy,
-        schemaName,
-        schemaDescription,
-        mode: 'json',
-        telemetry,
-        ...rest,
-      }) as any; // types defined by function overload
-    }
-
-    default: {
-      const _exhaustiveCheck: never = output;
-      throw new Error(`Unsupported output: ${_exhaustiveCheck}`);
-    }
+  if (outputStrategy.type === 'no-schema' && mode === undefined) {
+    mode = 'json';
   }
-}
 
-async function internalGenerateObject<PARTIAL, RESULT>({
-  model,
-  schemaName,
-  schemaDescription,
-  mode,
-  outputStrategy,
-  system,
-  prompt,
-  messages,
-  maxRetries,
-  abortSignal,
-  headers,
-  telemetry,
-  ...settings
-}: Omit<CallSettings, 'stopSequences'> &
-  Prompt & {
-    outputStrategy: OutputStrategy<PARTIAL, RESULT, unknown>;
-    model: LanguageModel;
-    schemaName?: string;
-    schemaDescription?: string;
-    mode?: 'auto' | 'json' | 'tool';
-    telemetry?: TelemetrySettings;
-  }): Promise<DefaultGenerateObjectResult<RESULT>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,

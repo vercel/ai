@@ -7,7 +7,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { safeValidateTypes, ValidationResult } from '@ai-sdk/provider-utils';
-import { DeepPartial, Schema } from '@ai-sdk/ui-utils';
+import { asSchema, DeepPartial, Schema } from '@ai-sdk/ui-utils';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import { JSONSchema7 } from 'json-schema';
 import { ObjectStreamPart } from './stream-object-result';
@@ -15,6 +15,7 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { z } from 'zod';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'no-schema';
@@ -38,11 +39,7 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   ): ELEMENT_STREAM;
 }
 
-export const noSchemaOutputStrategy: OutputStrategy<
-  JSONValue,
-  JSONValue,
-  never
-> = {
+const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
   type: 'no-schema',
   jsonSchema: undefined,
 
@@ -65,7 +62,7 @@ export const noSchemaOutputStrategy: OutputStrategy<
   },
 };
 
-export const objectOutputStrategy = <OBJECT>(
+const objectOutputStrategy = <OBJECT>(
   schema: Schema<OBJECT>,
 ): OutputStrategy<DeepPartial<OBJECT>, OBJECT, never> => ({
   type: 'object',
@@ -87,7 +84,7 @@ export const objectOutputStrategy = <OBJECT>(
   },
 });
 
-export const arrayOutputStrategy = <ELEMENT>(
+const arrayOutputStrategy = <ELEMENT>(
   schema: Schema<ELEMENT>,
 ): OutputStrategy<ELEMENT[], ELEMENT[], AsyncIterableStream<ELEMENT>> => {
   // remove $schema from schema.jsonSchema:
@@ -215,3 +212,24 @@ export const arrayOutputStrategy = <ELEMENT>(
     },
   };
 };
+
+export function getOutputStrategy<SCHEMA>({
+  output,
+  schema,
+}: {
+  output: 'no-schema' | 'object' | 'array';
+  schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
+}): OutputStrategy<any, any, any> {
+  switch (output) {
+    case 'object':
+      return objectOutputStrategy(asSchema(schema!));
+    case 'array':
+      return arrayOutputStrategy(asSchema(schema!));
+    case 'no-schema':
+      return noSchemaOutputStrategy;
+    default: {
+      const _exhaustiveCheck: never = output;
+      throw new Error(`Unsupported output: ${_exhaustiveCheck}`);
+    }
+  }
+}
