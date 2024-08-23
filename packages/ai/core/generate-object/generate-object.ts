@@ -1,6 +1,6 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
-import { Schema, asSchema } from '@ai-sdk/ui-utils';
+import { Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
@@ -26,6 +26,7 @@ import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
+import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 /**
@@ -36,7 +37,7 @@ This function does not stream the output. If you want to stream the output, use 
 @returns
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
-export async function generateObject<T>(
+export async function generateObject<OBJECT>(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt & {
       output?: 'object' | undefined;
@@ -49,7 +50,7 @@ The language model to use.
       /**
 The schema of the object that the model should generate.
      */
-      schema: z.Schema<T, z.ZodTypeDef, any> | Schema<T>;
+      schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT>;
 
       /**
 Optional name of the output that should be generated.
@@ -86,7 +87,65 @@ Optional telemetry configuration (experimental).
 
       experimental_telemetry?: TelemetrySettings;
     },
-): Promise<DefaultGenerateObjectResult<T>>;
+): Promise<GenerateObjectResult<OBJECT>>;
+/**
+Generate an array with structured, typed elements for a given prompt and element schema using a language model.
+
+This function does not stream the output. If you want to stream the output, use `streamObject` instead.
+
+@return
+A result object that contains the generated object, the finish reason, the token usage, and additional information.
+ */
+export async function generateObject<ELEMENT>(
+  options: Omit<CallSettings, 'stopSequences'> &
+    Prompt & {
+      output: 'array';
+
+      /**
+The language model to use.
+     */
+      model: LanguageModel;
+
+      /**
+The element schema of the array that the model should generate.
+ */
+      schema: z.Schema<ELEMENT, z.ZodTypeDef, any> | Schema<ELEMENT>;
+
+      /**
+Optional name of the array that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema name.
+     */
+      schemaName?: string;
+
+      /**
+Optional description of the array that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema description.
+ */
+      schemaDescription?: string;
+
+      /**
+The mode to use for object generation.
+
+The schema is converted in a JSON schema and used in one of the following ways
+
+- 'auto': The provider will choose the best mode for the model.
+- 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
+- 'json': The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
+
+Please note that most providers do not support all modes.
+
+Default and recommended: 'auto' (best mode for the model).
+     */
+      mode?: 'auto' | 'json' | 'tool';
+
+      /**
+Optional telemetry configuration (experimental).
+     */
+      experimental_telemetry?: TelemetrySettings;
+    },
+): Promise<GenerateObjectResult<Array<ELEMENT>>>;
 /**
 Generate JSON with any schema for a given prompt using a language model.
 
@@ -115,8 +174,8 @@ Optional telemetry configuration (experimental).
        */
       experimental_telemetry?: TelemetrySettings;
     },
-): Promise<DefaultGenerateObjectResult<JSONValue>>;
-export async function generateObject<T>({
+): Promise<GenerateObjectResult<JSONValue>>;
+export async function generateObject<SCHEMA, RESULT>({
   model,
   schema: inputSchema,
   schemaName,
@@ -137,19 +196,20 @@ export async function generateObject<T>({
      * The expected structure of the output.
      *
      * - 'object': Generate a single object that conforms to the schema.
+     * - 'array': Generate an array of objects that conform to the schema.
      * - 'no-schema': Generate any JSON object. No schema is specified.
      *
      * Default is 'object' if not specified.
      */
-    output?: 'object' | 'no-schema';
+    output?: 'object' | 'array' | 'no-schema';
 
     model: LanguageModel;
-    schema?: z.Schema<T, z.ZodTypeDef, any> | Schema<T>;
+    schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
     schemaName?: string;
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
-  }): Promise<DefaultGenerateObjectResult<T>> {
+  }): Promise<GenerateObjectResult<RESULT>> {
   validateObjectGenerationInput({
     output,
     mode,
@@ -158,8 +218,10 @@ export async function generateObject<T>({
     schemaDescription,
   });
 
+  const outputStrategy = getOutputStrategy({ output, schema: inputSchema });
+
   // automatically set mode to 'json' for no-schema output
-  if (output === 'no-schema' && mode === undefined) {
+  if (outputStrategy.type === 'no-schema' && mode === undefined) {
     mode = 'json';
   }
 
@@ -169,8 +231,6 @@ export async function generateObject<T>({
     headers,
     settings: { ...settings, maxRetries },
   });
-
-  const schema = inputSchema != null ? asSchema(inputSchema) : undefined;
 
   const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
   return recordSpan({
@@ -188,12 +248,12 @@ export async function generateObject<T>({
           input: () => JSON.stringify({ system, prompt, messages }),
         },
         'ai.schema':
-          schema != null
-            ? { input: () => JSON.stringify(schema.jsonSchema) }
+          outputStrategy.jsonSchema != null
+            ? { input: () => JSON.stringify(outputStrategy.jsonSchema) }
             : undefined,
         'ai.schema.name': schemaName,
         'ai.schema.description': schemaDescription,
-        'ai.settings.output': output,
+        'ai.settings.output': outputStrategy.type,
         'ai.settings.mode': mode,
       },
     }),
@@ -218,13 +278,13 @@ export async function generateObject<T>({
         case 'json': {
           const validatedPrompt = validatePrompt({
             system:
-              schema == null
+              outputStrategy.jsonSchema == null
                 ? injectJsonInstruction({ prompt: system })
-                : model.supportsStructuredOutputs && schema != null
+                : model.supportsStructuredOutputs
                 ? system
                 : injectJsonInstruction({
                     prompt: system,
-                    schema: schema.jsonSchema,
+                    schema: outputStrategy.jsonSchema,
                   }),
             prompt,
             messages,
@@ -269,7 +329,7 @@ export async function generateObject<T>({
                 const result = await model.doGenerate({
                   mode: {
                     type: 'object-json',
-                    schema: schema?.jsonSchema,
+                    schema: outputStrategy.jsonSchema,
                     name: schemaName,
                     description: schemaDescription,
                   },
@@ -370,7 +430,7 @@ export async function generateObject<T>({
                       name: schemaName ?? 'json',
                       description:
                         schemaDescription ?? 'Respond with a JSON object.',
-                      parameters: schema!.jsonSchema,
+                      parameters: outputStrategy.jsonSchema!,
                     },
                   },
                   ...prepareCallSettings(settings),
@@ -434,15 +494,18 @@ export async function generateObject<T>({
         }
       }
 
-      const parseResult = safeParseJSON({
-        text: result,
-        // type casting required for `undefined` schema (no-schema mode),
-        // in which case <T> is <JSONValue> as desired.
-        schema: schema as Schema<T>,
-      });
+      const parseResult = safeParseJSON({ text: result });
 
       if (!parseResult.success) {
         throw parseResult.error;
+      }
+
+      const validationResult = outputStrategy.validateFinalResult(
+        parseResult.value,
+      );
+
+      if (!validationResult.success) {
+        throw validationResult.error;
       }
 
       // Add response information to the span:
@@ -454,14 +517,14 @@ export async function generateObject<T>({
             'ai.usage.promptTokens': usage.promptTokens,
             'ai.usage.completionTokens': usage.completionTokens,
             'ai.result.object': {
-              output: () => JSON.stringify(parseResult.value),
+              output: () => JSON.stringify(validationResult.value),
             },
           },
         }),
       );
 
       return new DefaultGenerateObjectResult({
-        object: parseResult.value,
+        object: validationResult.value,
         finishReason,
         usage: calculateCompletionTokenUsage(usage),
         warnings,

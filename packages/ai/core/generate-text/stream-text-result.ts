@@ -159,7 +159,13 @@ results that can be fully encapsulated in the provider.
   @return A response object.
      */
   toDataStreamResponse(
-    options?: ResponseInit | { init?: ResponseInit; data?: StreamData },
+    options?:
+      | ResponseInit
+      | {
+          init?: ResponseInit;
+          data?: StreamData;
+          getErrorMessage?: (error: unknown) => string;
+        },
   ): Response;
 
   /**

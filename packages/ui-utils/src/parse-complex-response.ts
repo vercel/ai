@@ -154,11 +154,13 @@ export async function parseComplexResponse({
 
       partialToolCall.text += value.argsTextDelta;
 
+      const { value: partialArgs } = parsePartialJson(partialToolCall.text);
+
       prefixMap.text!.toolInvocations![partialToolCall.prefixMapIndex] = {
         state: 'partial-call',
         toolCallId: value.toolCallId,
         toolName: partialToolCall.toolName,
-        args: parsePartialJson(partialToolCall.text),
+        args: partialArgs,
       };
 
       // trigger update for streaming by copying adding a update id that changes

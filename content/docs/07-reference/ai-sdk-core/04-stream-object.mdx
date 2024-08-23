@@ -9,7 +9,7 @@ Streams a typed, structured object for a given prompt and schema using a languag
 
 It can be used to force the language model to return structured data, e.g. for information extraction, synthetic data generation, or classification tasks.
 
-#### Example with a schema
+#### Example: stream an object using a schema
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -34,7 +34,35 @@ for await (const partialObject of partialObjectStream) {
 }
 ```
 
-#### Example without a schema
+#### Example: stream an array using a schema
+
+For arrays, you specify the schema of the array items.
+You can use `elementStream` to get the stream of complete array elements.
+
+```ts highlight="7,18"
+import { openai } from '@ai-sdk/openai';
+import { streamObject } from 'ai';
+import { z } from 'zod';
+
+const { elementStream } = await streamObject({
+  model: openai('gpt-4-turbo'),
+  output: 'array',
+  schema: z.object({
+    name: z.string(),
+    class: z
+      .string()
+      .describe('Character class, e.g. warrior, mage, or thief.'),
+    description: z.string(),
+  }),
+  prompt: 'Generate 3 hero descriptions for a fantasy role playing game.',
+});
+
+for await (const hero of elementStream) {
+  console.log(hero);
+}
+```
+
+#### Example: generate JSON without a schema
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -71,7 +99,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     },
     {
       name: 'output',
-      type: "'object' | 'no-schema' | undefined",
+      type: "'object' | 'array' | 'no-schema' | undefined",
       description: "The type of output to generate. Defaults to 'object'.",
     },
     {
@@ -89,6 +117,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
         'The schema that describes the shape of the object to generate. ' +
         'It is sent to the model to generate the object and used to validate the output. ' +
         'You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function). ' +
+        'In "array" mode, the schema is used to describe an array element. ' +
         'Not available with "no-schema" output.',
     },
     {
@@ -552,6 +581,11 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       type: 'AsyncIterableStream<DeepPartial<T>>',
       description:
         'Stream of partial objects. It gets more complete as the stream progresses. Note that the partial object is not validated. If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.',
+    },
+    {
+      name: 'elementStream',
+      type: 'AsyncIterableStream<ELEMENT>',
+      description: 'Stream of array elements. Only available in "array" mode.',
     },
     {
       name: 'textStream',

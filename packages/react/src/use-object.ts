@@ -174,9 +174,8 @@ function useObject<RESULT, INPUT = any>({
           write(chunk) {
             accumulatedText += chunk;
 
-            const currentObject = parsePartialJson(
-              accumulatedText,
-            ) as DeepPartial<RESULT>;
+            const { value } = parsePartialJson(accumulatedText);
+            const currentObject = value as DeepPartial<RESULT>;
 
             if (!isDeepEqualData(latestObject, currentObject)) {
               latestObject = currentObject;

@@ -446,6 +446,72 @@ describe('output = "object"', () => {
   });
 });
 
+describe('output = "array"', () => {
+  it('should generate an array with 3 elements', async () => {
+    const result = await generateObject({
+      model: new MockLanguageModelV1({
+        doGenerate: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'object-json',
+            name: undefined,
+            description: undefined,
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              additionalProperties: false,
+              properties: {
+                elements: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: { content: { type: 'string' } },
+                    required: ['content'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ['elements'],
+              type: 'object',
+            },
+          });
+
+          assert.deepStrictEqual(prompt, [
+            {
+              role: 'system',
+              content:
+                'JSON schema:\n' +
+                `{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"elements\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false}}},\"required\":[\"elements\"],\"additionalProperties\":false}` +
+                `\n` +
+                'You MUST answer with a JSON object that matches the JSON schema above.',
+            },
+            { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+          ]);
+
+          return {
+            ...dummyResponseValues,
+            text: JSON.stringify({
+              elements: [
+                { content: 'element 1' },
+                { content: 'element 2' },
+                { content: 'element 3' },
+              ],
+            }),
+          };
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      output: 'array',
+      mode: 'json',
+      prompt: 'prompt',
+    });
+
+    assert.deepStrictEqual(result.object, [
+      { content: 'element 1' },
+      { content: 'element 2' },
+      { content: 'element 3' },
+    ]);
+  });
+});
+
 describe('output = "no-schema"', () => {
   it('should generate object', async () => {
     const result = await generateObject({

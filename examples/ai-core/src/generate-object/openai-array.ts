@@ -10,22 +10,18 @@ async function main() {
     model: openai('gpt-4o-2024-08-06', {
       structuredOutputs: true,
     }),
+    output: 'array',
     schema: z.object({
-      recipe: z.object({
-        name: z.string(),
-        ingredients: z.array(
-          z.object({
-            name: z.string(),
-            amount: z.string(),
-          }),
-        ),
-        steps: z.array(z.string()),
-      }),
+      name: z.string(),
+      class: z
+        .string()
+        .describe('Character class, e.g. warrior, mage, or thief.'),
+      description: z.string(),
     }),
-    prompt: 'Generate a lasagna recipe.',
+    prompt: 'Generate 3 hero descriptions for a fantasy role playing game.',
   });
 
-  console.log(JSON.stringify(result.object.recipe, null, 2));
+  console.log(JSON.stringify(result.object, null, 2));
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);

@@ -11,7 +11,9 @@ import { setTestTracer } from '../telemetry/get-tracer';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
+import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
+import { StreamObjectResult } from './stream-object-result';
 
 describe('output = "object"', () => {
   describe('result.objectStream', () => {
@@ -886,7 +888,7 @@ describe('output = "object"', () => {
 
       it('should contain an error object', async () => {
         assert.deepStrictEqual(
-          TypeValidationError.isTypeValidationError(result.error),
+          TypeValidationError.isInstance(result.error),
           true,
         );
       });
@@ -996,6 +998,147 @@ describe('output = "object"', () => {
           { content: 'Hello, ' },
           { content: 'Hello, world' },
           { content: 'Hello, world!' },
+        ],
+      );
+    });
+  });
+});
+
+describe('output = "array"', () => {
+  describe('array with 3 elements', () => {
+    let result: StreamObjectResult<
+      { content: string }[],
+      { content: string }[],
+      AsyncIterableStream<{ content: string }>
+    >;
+
+    let onFinishResult: Parameters<
+      Required<Parameters<typeof streamObject>[0]>['onFinish']
+    >[0];
+
+    beforeEach(async () => {
+      result = await streamObject({
+        model: new MockLanguageModelV1({
+          doStream: async ({ prompt, mode }) => {
+            assert.deepStrictEqual(mode, {
+              type: 'object-json',
+              name: undefined,
+              description: undefined,
+              schema: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                additionalProperties: false,
+                properties: {
+                  elements: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: { content: { type: 'string' } },
+                      required: ['content'],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ['elements'],
+                type: 'object',
+              },
+            });
+
+            assert.deepStrictEqual(prompt, [
+              {
+                role: 'system',
+                content:
+                  'JSON schema:\n' +
+                  `{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"elements\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false}}},\"required\":[\"elements\"],\"additionalProperties\":false}` +
+                  `\n` +
+                  'You MUST answer with a JSON object that matches the JSON schema above.',
+              },
+              { role: 'user', content: [{ type: 'text', text: 'prompt' }] },
+            ]);
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-delta', textDelta: '{"elements":[' },
+                // first element:
+                { type: 'text-delta', textDelta: '{' },
+                { type: 'text-delta', textDelta: '"content":' },
+                { type: 'text-delta', textDelta: `"element 1"` },
+                { type: 'text-delta', textDelta: '},' },
+                // second element:
+                { type: 'text-delta', textDelta: '{ ' },
+                { type: 'text-delta', textDelta: '"content": ' },
+                { type: 'text-delta', textDelta: `"element 2"` },
+                { type: 'text-delta', textDelta: '},' },
+                // third element:
+                { type: 'text-delta', textDelta: '{' },
+                { type: 'text-delta', textDelta: '"content":' },
+                { type: 'text-delta', textDelta: `"element 3"` },
+                { type: 'text-delta', textDelta: '}' },
+                // end of array
+                { type: 'text-delta', textDelta: ']' },
+                { type: 'text-delta', textDelta: '}' },
+                // finish
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { completionTokens: 10, promptTokens: 3 },
+                },
+              ]),
+              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+            };
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        output: 'array',
+        mode: 'json',
+        prompt: 'prompt',
+        onFinish: async event => {
+          onFinishResult = event as unknown as typeof onFinishResult;
+        },
+      });
+    });
+
+    it('should stream only complete objects', async () => {
+      assert.deepStrictEqual(
+        await convertAsyncIterableToArray(result.partialObjectStream),
+        [
+          [],
+          [{ content: 'element 1' }],
+          [{ content: 'element 1' }, { content: 'element 2' }],
+          [
+            { content: 'element 1' },
+            { content: 'element 2' },
+            { content: 'element 3' },
+          ],
+        ],
+      );
+    });
+
+    it('should have the correct object result', async () => {
+      // consume stream
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(await result.object).toStrictEqual([
+        { content: 'element 1' },
+        { content: 'element 2' },
+        { content: 'element 3' },
+      ]);
+    });
+
+    it('should call onFinish callback with full array', async () => {
+      expect(onFinishResult.object).toStrictEqual([
+        { content: 'element 1' },
+        { content: 'element 2' },
+        { content: 'element 3' },
+      ]);
+    });
+
+    it('should stream elements individually in elementStream', async () => {
+      assert.deepStrictEqual(
+        await convertAsyncIterableToArray(result.elementStream),
+        [
+          { content: 'element 1' },
+          { content: 'element 2' },
+          { content: 'element 3' },
         ],
       );
     });
