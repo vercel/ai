@@ -32,7 +32,7 @@ export type DeepPartial<T> = T extends z.ZodTypeAny
   ? DeepPartialInternal<z.infer<T>> // resolve Zod schemas first to prevent infinite recursion
   : DeepPartialInternal<T>;
 
-export type DeepPartialInternal<T> = T extends
+type DeepPartialInternal<T> = T extends
   | null
   | undefined
   | string
