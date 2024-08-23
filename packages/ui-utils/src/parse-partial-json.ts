@@ -1,9 +1,10 @@
+import { JSONValue } from '@ai-sdk/provider';
 import SecureJSON from 'secure-json-parse';
 import { fixJson } from './fix-json';
 
 export function parsePartialJson(
   jsonText: string | undefined,
-): unknown | undefined {
+): JSONValue | undefined {
   if (jsonText == null) {
     return undefined;
   }

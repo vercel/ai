@@ -22,7 +22,7 @@
 import { z } from 'zod';
 
 /**
-Create a type from an object with all keys and nested keys set to optional. 
+Create a type from an object with all keys and nested keys set to optional.
 The helper supports normal objects and Zod schemas (which are resolved automatically).
 It always recurses into arrays.
 
@@ -50,8 +50,8 @@ export type DeepPartial<T> = T extends
   ? PartialReadonlyMap<KeyType, ValueType>
   : T extends ReadonlySet<infer ItemType>
   ? PartialReadonlySet<ItemType>
-  : T extends z.Schema<any>
-  ? DeepPartial<T['_type']>
+  : T extends z.ZodTypeAny
+  ? z.infer<DeepPartialZod<T>>
   : T extends object
   ? T extends ReadonlyArray<infer ItemType> // Test for arrays/tuples, per https://github.com/microsoft/TypeScript/issues/35156
     ? ItemType[] extends T // Test for arrays (non-tuples) specifically
@@ -79,3 +79,16 @@ type PartialReadonlySet<T> = {} & ReadonlySet<DeepPartial<T>>;
 type PartialObject<ObjectType extends object> = {
   [KeyType in keyof ObjectType]?: DeepPartial<ObjectType[KeyType]>;
 };
+
+// Separate type for handling Zod schemas to prevent infinite recursion:
+type DeepPartialZod<T extends z.ZodTypeAny> = z.ZodOptional<
+  z.ZodObject<{
+    [k in keyof z.infer<T>]: T extends z.ZodObject<
+      infer Shape extends z.ZodRawShape
+    >
+      ? Shape[k] extends z.ZodTypeAny
+        ? DeepPartialZod<Shape[k]>
+        : never
+      : z.ZodOptional<T>;
+  }>
+>;

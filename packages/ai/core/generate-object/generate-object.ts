@@ -1,6 +1,6 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
-import { Schema, asSchema } from '@ai-sdk/ui-utils';
+import { asSchema, Schema } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
@@ -26,6 +26,11 @@ import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
+import {
+  noSchemaOutputStrategy,
+  objectOutputStrategy,
+  OutputStrategy,
+} from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 /**
@@ -117,20 +122,13 @@ Optional telemetry configuration (experimental).
     },
 ): Promise<DefaultGenerateObjectResult<JSONValue>>;
 export async function generateObject<T>({
-  model,
   schema: inputSchema,
   schemaName,
   schemaDescription,
   mode,
   output = 'object',
-  system,
-  prompt,
-  messages,
-  maxRetries,
-  abortSignal,
-  headers,
   experimental_telemetry: telemetry,
-  ...settings
+  ...rest
 }: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
     /**
@@ -158,19 +156,71 @@ export async function generateObject<T>({
     schemaDescription,
   });
 
-  // automatically set mode to 'json' for no-schema output
-  if (output === 'no-schema' && mode === undefined) {
-    mode = 'json';
-  }
+  const schema = inputSchema != null ? asSchema(inputSchema) : undefined;
 
+  switch (output) {
+    case 'object': {
+      return internalGenerateObject({
+        outputStrategy: objectOutputStrategy(schema!),
+        schema,
+        schemaName,
+        schemaDescription,
+        mode,
+        telemetry,
+        ...rest,
+      });
+    }
+
+    case 'no-schema': {
+      return internalGenerateObject({
+        outputStrategy: noSchemaOutputStrategy,
+        schema,
+        schemaName,
+        schemaDescription,
+        mode: 'json',
+        telemetry,
+        ...rest,
+      }) as Promise<DefaultGenerateObjectResult<T>>;
+    }
+
+    default: {
+      const _exhaustiveCheck: never = output;
+      throw new Error(`Unsupported output: ${_exhaustiveCheck}`);
+    }
+  }
+}
+
+async function internalGenerateObject<SCHEMA, PARTIAL, RESULT>({
+  model,
+  schema,
+  schemaName,
+  schemaDescription,
+  mode,
+  outputStrategy,
+  system,
+  prompt,
+  messages,
+  maxRetries,
+  abortSignal,
+  headers,
+  telemetry,
+  ...settings
+}: Omit<CallSettings, 'stopSequences'> &
+  Prompt & {
+    outputStrategy: OutputStrategy<PARTIAL, RESULT>;
+    model: LanguageModel;
+    schema?: Schema<SCHEMA>;
+    schemaName?: string;
+    schemaDescription?: string;
+    mode?: 'auto' | 'json' | 'tool';
+    telemetry?: TelemetrySettings;
+  }): Promise<DefaultGenerateObjectResult<RESULT>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
     headers,
     settings: { ...settings, maxRetries },
   });
-
-  const schema = inputSchema != null ? asSchema(inputSchema) : undefined;
 
   const tracer = getTracer({ isEnabled: telemetry?.isEnabled ?? false });
   return recordSpan({
@@ -193,7 +243,7 @@ export async function generateObject<T>({
             : undefined,
         'ai.schema.name': schemaName,
         'ai.schema.description': schemaDescription,
-        'ai.settings.output': output,
+        'ai.settings.output': outputStrategy.type,
         'ai.settings.mode': mode,
       },
     }),
@@ -434,15 +484,18 @@ export async function generateObject<T>({
         }
       }
 
-      const parseResult = safeParseJSON({
-        text: result,
-        // type casting required for `undefined` schema (no-schema mode),
-        // in which case <T> is <JSONValue> as desired.
-        schema: schema as Schema<T>,
-      });
+      const parseResult = safeParseJSON({ text: result });
 
       if (!parseResult.success) {
         throw parseResult.error;
+      }
+
+      const validationResult = outputStrategy.validateFinalResult(
+        parseResult.value,
+      );
+
+      if (!validationResult.success) {
+        throw validationResult.error;
       }
 
       // Add response information to the span:
@@ -454,14 +507,14 @@ export async function generateObject<T>({
             'ai.usage.promptTokens': usage.promptTokens,
             'ai.usage.completionTokens': usage.completionTokens,
             'ai.result.object': {
-              output: () => JSON.stringify(parseResult.value),
+              output: () => JSON.stringify(validationResult.value),
             },
           },
         }),
       );
 
       return new DefaultGenerateObjectResult({
-        object: parseResult.value,
+        object: validationResult.value,
         finishReason,
         usage: calculateCompletionTokenUsage(usage),
         warnings,

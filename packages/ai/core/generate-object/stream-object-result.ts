@@ -12,7 +12,7 @@ import { AsyncIterableStream } from '../util/async-iterable-stream';
 /**
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
-export interface StreamObjectResult<T> {
+export interface StreamObjectResult<PARTIAL, RESULT> {
   /**
   Warnings from the model provider (e.g. unsupported settings)
      */
@@ -43,7 +43,7 @@ results that can be fully encapsulated in the provider.
   /**
   The generated object (typed according to the schema). Resolved when the response is finished.
      */
-  readonly object: Promise<T>;
+  readonly object: Promise<RESULT>;
 
   /**
   Stream of partial objects. It gets more complete as the stream progresses.
@@ -51,7 +51,7 @@ results that can be fully encapsulated in the provider.
   Note that the partial object is not validated.
   If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.
      */
-  readonly partialObjectStream: AsyncIterableStream<DeepPartial<T>>;
+  readonly partialObjectStream: AsyncIterableStream<PARTIAL>;
 
   /**
   Text stream of the JSON representation of the generated object. It contains text chunks.
@@ -63,7 +63,7 @@ results that can be fully encapsulated in the provider.
   Stream of different types of events, including partial objects, errors, and finish events.
   Only errors that stop the stream, such as network errors, are thrown.
      */
-  readonly fullStream: AsyncIterableStream<ObjectStreamPart<T>>;
+  readonly fullStream: AsyncIterableStream<ObjectStreamPart<PARTIAL>>;
 
   /**
   Writes text delta output to a Node.js response-like object.
@@ -106,11 +106,11 @@ export type ObjectStreamInputPart =
       providerMetadata?: ProviderMetadata;
     };
 
-export type ObjectStreamPart<T> =
+export type ObjectStreamPart<PARTIAL> =
   | ObjectStreamInputPart
   | {
       type: 'object';
-      object: DeepPartial<T>;
+      object: PARTIAL;
     }
   | {
       type: 'text-delta';

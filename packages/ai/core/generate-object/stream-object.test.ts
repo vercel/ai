@@ -886,7 +886,7 @@ describe('output = "object"', () => {
 
       it('should contain an error object', async () => {
         assert.deepStrictEqual(
-          TypeValidationError.isTypeValidationError(result.error),
+          TypeValidationError.isInstance(result.error),
           true,
         );
       });
