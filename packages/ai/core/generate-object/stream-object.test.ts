@@ -11,6 +11,7 @@ import { setTestTracer } from '../telemetry/get-tracer';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
+import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
 
@@ -1008,7 +1009,7 @@ describe('output = "array"', () => {
     let result: StreamObjectResult<
       { content: string }[],
       { content: string }[],
-      { content: string }
+      AsyncIterableStream<{ content: string }>
     >;
 
     let onFinishResult: Parameters<
@@ -1129,6 +1130,17 @@ describe('output = "array"', () => {
         { content: 'element 2' },
         { content: 'element 3' },
       ]);
+    });
+
+    it('should stream elements individually in elementStream', async () => {
+      assert.deepStrictEqual(
+        await convertAsyncIterableToArray(result.elementStream),
+        [
+          { content: 'element 1' },
+          { content: 'element 2' },
+          { content: 'element 3' },
+        ],
+      );
     });
   });
 });

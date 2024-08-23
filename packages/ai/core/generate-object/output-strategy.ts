@@ -11,7 +11,10 @@ import { DeepPartial, Schema } from '@ai-sdk/ui-utils';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import { JSONSchema7 } from 'json-schema';
 import { ObjectStreamPart } from './stream-object-result';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../util/async-iterable-stream';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'no-schema';
@@ -178,8 +181,36 @@ export const arrayOutputStrategy = <ELEMENT>(
     createElementStream(
       originalStream: ReadableStream<ObjectStreamPart<ELEMENT[]>>,
     ) {
-      throw new UnsupportedFunctionalityError({
-        functionality: 'element streams in array mode',
+      let publishedElements = 0;
+
+      return createAsyncIterableStream(originalStream, {
+        transform(chunk, controller) {
+          switch (chunk.type) {
+            case 'object': {
+              const array = chunk.object;
+
+              // publish new elements one by one:
+              for (; publishedElements < array.length; publishedElements++) {
+                controller.enqueue(array[publishedElements]);
+              }
+
+              break;
+            }
+
+            case 'text-delta':
+            case 'finish':
+              break;
+
+            case 'error':
+              controller.error(chunk.error);
+              break;
+
+            default: {
+              const _exhaustiveCheck: never = chunk;
+              throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
+            }
+          }
+        },
       });
     },
   };

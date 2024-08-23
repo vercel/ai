@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await streamObject({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4o-2024-08-06', { structuredOutputs: true }),
     output: 'array',
     schema: z.object({
       name: z.string(),
@@ -20,9 +20,8 @@ async function main() {
       'Generate 3 character descriptions for a fantasy role playing game.',
   });
 
-  for await (const partialObject of result.partialObjectStream) {
-    console.clear();
-    console.log(partialObject);
+  for await (const element of result.elementStream) {
+    console.log(element);
   }
 }
 

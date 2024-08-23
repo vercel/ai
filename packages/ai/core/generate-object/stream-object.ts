@@ -251,7 +251,13 @@ results that can be fully encapsulated in the provider.
         experimental_providerMetadata: ProviderMetadata | undefined;
       }) => Promise<void> | void;
     },
-): Promise<StreamObjectResult<Array<ELEMENT>, Array<ELEMENT>, ELEMENT>>;
+): Promise<
+  StreamObjectResult<
+    Array<ELEMENT>,
+    Array<ELEMENT>,
+    AsyncIterableStream<ELEMENT>
+  >
+>;
 /**
 Generate JSON with any schema for a given prompt using a language model.
 
