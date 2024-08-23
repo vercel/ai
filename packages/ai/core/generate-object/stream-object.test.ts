@@ -1007,7 +1007,8 @@ describe('output = "array"', () => {
   describe('array with 3 elements', () => {
     let result: StreamObjectResult<
       { content: string }[],
-      { content: string }[]
+      { content: string }[],
+      { content: string }
     >;
 
     let onFinishResult: Parameters<

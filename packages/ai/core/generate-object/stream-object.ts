@@ -151,7 +151,7 @@ results that can be fully encapsulated in the provider.
         experimental_providerMetadata: ProviderMetadata | undefined;
       }) => Promise<void> | void;
     },
-): Promise<StreamObjectResult<DeepPartial<OBJECT>, OBJECT>>;
+): Promise<StreamObjectResult<DeepPartial<OBJECT>, OBJECT, never>>;
 /**
 Generate an array with structured, typed elements for a given prompt and element schema using a language model.
 
@@ -251,7 +251,7 @@ results that can be fully encapsulated in the provider.
         experimental_providerMetadata: ProviderMetadata | undefined;
       }) => Promise<void> | void;
     },
-): Promise<StreamObjectResult<Array<ELEMENT>, Array<ELEMENT>>>;
+): Promise<StreamObjectResult<Array<ELEMENT>, Array<ELEMENT>, ELEMENT>>;
 /**
 Generate JSON with any schema for a given prompt using a language model.
 
@@ -322,8 +322,8 @@ results that can be fully encapsulated in the provider.
         experimental_providerMetadata: ProviderMetadata | undefined;
       }) => Promise<void> | void;
     },
-): Promise<StreamObjectResult<JSONValue, JSONValue>>;
-export async function streamObject<SCHEMA, PARTIAL, RESULT>({
+): Promise<StreamObjectResult<JSONValue, JSONValue, never>>;
+export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   schema: inputSchema,
   schemaName,
   schemaDescription,
@@ -361,7 +361,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT>({
       warnings?: CallWarning[];
       experimental_providerMetadata: ProviderMetadata | undefined;
     }) => Promise<void> | void;
-  }): Promise<StreamObjectResult<PARTIAL, RESULT>> {
+  }): Promise<StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>> {
   validateObjectGenerationInput({
     output,
     mode,
@@ -416,7 +416,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT>({
   }
 }
 
-async function internalStreamObject<PARTIAL, RESULT>({
+async function internalStreamObject<PARTIAL, RESULT, ELEMENT_STREAM>({
   model,
   schemaName,
   schemaDescription,
@@ -433,7 +433,7 @@ async function internalStreamObject<PARTIAL, RESULT>({
   ...settings
 }: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
-    outputStrategy: OutputStrategy<PARTIAL, RESULT>;
+    outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
     model: LanguageModel;
     schemaName?: string;
     schemaDescription?: string;
@@ -449,7 +449,7 @@ async function internalStreamObject<PARTIAL, RESULT>({
       warnings?: CallWarning[];
       experimental_providerMetadata: ProviderMetadata | undefined;
     }) => Promise<void> | void;
-  }): Promise<DefaultStreamObjectResult<PARTIAL, RESULT>> {
+  }): Promise<StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
@@ -647,7 +647,7 @@ async function internalStreamObject<PARTIAL, RESULT>({
         }),
       );
 
-      return new DefaultStreamObjectResult<PARTIAL, RESULT>({
+      return new DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>({
         outputStrategy,
         stream: stream.pipeThrough(new TransformStream(transformer)),
         warnings,
@@ -662,19 +662,29 @@ async function internalStreamObject<PARTIAL, RESULT>({
   });
 }
 
-class DefaultStreamObjectResult<PARTIAL, RESULT>
-  implements StreamObjectResult<PARTIAL, RESULT>
+class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
+  implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 {
   private readonly originalStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
   private readonly objectPromise: DelayedPromise<RESULT>;
 
-  readonly warnings: StreamObjectResult<PARTIAL, RESULT>['warnings'];
-  readonly usage: StreamObjectResult<PARTIAL, RESULT>['usage'];
+  readonly warnings: StreamObjectResult<
+    PARTIAL,
+    RESULT,
+    ELEMENT_STREAM
+  >['warnings'];
+  readonly usage: StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>['usage'];
   readonly experimental_providerMetadata: StreamObjectResult<
     PARTIAL,
-    RESULT
+    RESULT,
+    ELEMENT_STREAM
   >['experimental_providerMetadata'];
-  readonly rawResponse: StreamObjectResult<PARTIAL, RESULT>['rawResponse'];
+  readonly rawResponse: StreamObjectResult<
+    PARTIAL,
+    RESULT,
+    ELEMENT_STREAM
+  >['rawResponse'];
+  readonly outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
 
   constructor({
     stream,
@@ -690,11 +700,15 @@ class DefaultStreamObjectResult<PARTIAL, RESULT>
     stream: ReadableStream<
       string | Omit<LanguageModelV1StreamPart, 'text-delta'>
     >;
-    warnings: StreamObjectResult<PARTIAL, RESULT>['warnings'];
-    rawResponse?: StreamObjectResult<PARTIAL, RESULT>['rawResponse'];
-    outputStrategy: OutputStrategy<PARTIAL, RESULT>;
+    warnings: StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>['warnings'];
+    rawResponse?: StreamObjectResult<
+      PARTIAL,
+      RESULT,
+      ELEMENT_STREAM
+    >['rawResponse'];
+    outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
     onFinish: Parameters<
-      typeof internalStreamObject<PARTIAL, RESULT>
+      typeof internalStreamObject<PARTIAL, RESULT, ELEMENT_STREAM>
     >[0]['onFinish'];
     rootSpan: Span;
     doStreamSpan: Span;
@@ -703,6 +717,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT>
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
+    this.outputStrategy = outputStrategy;
 
     // initialize object promise
     this.objectPromise = new DelayedPromise<RESULT>();
@@ -936,6 +951,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT>
         }
       },
     });
+  }
+
+  get elementStream(): ELEMENT_STREAM {
+    return this.outputStrategy.createElementStream(this.originalStream);
   }
 
   get textStream(): AsyncIterableStream<string> {

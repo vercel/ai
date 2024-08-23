@@ -4,14 +4,19 @@ import {
   JSONObject,
   JSONValue,
   TypeValidationError,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { safeValidateTypes, ValidationResult } from '@ai-sdk/provider-utils';
 import { DeepPartial, Schema } from '@ai-sdk/ui-utils';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import { JSONSchema7 } from 'json-schema';
+import { ObjectStreamPart } from './stream-object-result';
+import { AsyncIterableStream } from '../util/async-iterable-stream';
 
-export interface OutputStrategy<PARTIAL, RESULT> {
+export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'no-schema';
+  readonly jsonSchema: JSONSchema7 | undefined;
+
   validatePartialResult({
     value,
     parseState,
@@ -24,10 +29,17 @@ export interface OutputStrategy<PARTIAL, RESULT> {
       | 'failed-parse';
   }): ValidationResult<PARTIAL>;
   validateFinalResult(value: JSONValue | undefined): ValidationResult<RESULT>;
-  jsonSchema: JSONSchema7 | undefined;
+
+  createElementStream(
+    originalStream: ReadableStream<ObjectStreamPart<PARTIAL>>,
+  ): ELEMENT_STREAM;
 }
 
-export const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue> = {
+export const noSchemaOutputStrategy: OutputStrategy<
+  JSONValue,
+  JSONValue,
+  never
+> = {
   type: 'no-schema',
   jsonSchema: undefined,
 
@@ -42,11 +54,17 @@ export const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue> = {
       ? { success: false, error: new NoObjectGeneratedError() }
       : { success: true, value };
   },
+
+  createElementStream() {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'element streams in no-schema mode',
+    });
+  },
 };
 
 export const objectOutputStrategy = <OBJECT>(
   schema: Schema<OBJECT>,
-): OutputStrategy<DeepPartial<OBJECT>, OBJECT> => ({
+): OutputStrategy<DeepPartial<OBJECT>, OBJECT, never> => ({
   type: 'object',
   jsonSchema: schema.jsonSchema,
 
@@ -58,11 +76,17 @@ export const objectOutputStrategy = <OBJECT>(
   validateFinalResult(value: JSONValue | undefined): ValidationResult<OBJECT> {
     return safeValidateTypes({ value, schema });
   },
+
+  createElementStream() {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'element streams in object mode',
+    });
+  },
 });
 
 export const arrayOutputStrategy = <ELEMENT>(
   schema: Schema<ELEMENT>,
-): OutputStrategy<ELEMENT[], ELEMENT[]> => {
+): OutputStrategy<ELEMENT[], ELEMENT[], AsyncIterableStream<ELEMENT>> => {
   // remove $schema from schema.jsonSchema:
   const { $schema, ...itemSchema } = schema.jsonSchema;
 
@@ -149,6 +173,14 @@ export const arrayOutputStrategy = <ELEMENT>(
       }
 
       return { success: true, value: inputArray as Array<ELEMENT> };
+    },
+
+    createElementStream(
+      originalStream: ReadableStream<ObjectStreamPart<ELEMENT[]>>,
+    ) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'element streams in array mode',
+      });
     },
   };
 };

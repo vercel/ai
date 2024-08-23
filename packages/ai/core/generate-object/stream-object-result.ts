@@ -1,4 +1,3 @@
-import { DeepPartial } from '@ai-sdk/ui-utils';
 import { ServerResponse } from 'http';
 import {
   CallWarning,
@@ -12,7 +11,7 @@ import { AsyncIterableStream } from '../util/async-iterable-stream';
 /**
 The result of a `streamObject` call that contains the partial object stream and additional information.
  */
-export interface StreamObjectResult<PARTIAL, RESULT> {
+export interface StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   /**
   Warnings from the model provider (e.g. unsupported settings)
      */
@@ -52,6 +51,11 @@ results that can be fully encapsulated in the provider.
   If you want to be certain that the actual content matches your schema, you need to implement your own validation for partial results.
      */
   readonly partialObjectStream: AsyncIterableStream<PARTIAL>;
+
+  /**
+   * Stream over complete array elements. Only available if the output strategy is set to `array`.
+   */
+  readonly elementStream: ELEMENT_STREAM;
 
   /**
   Text stream of the JSON representation of the generated object. It contains text chunks.

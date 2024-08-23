@@ -91,7 +91,7 @@ Optional telemetry configuration (experimental).
 
       experimental_telemetry?: TelemetrySettings;
     },
-): Promise<DefaultGenerateObjectResult<OBJECT>>;
+): Promise<GenerateObjectResult<OBJECT>>;
 /**
 Generate JSON with any schema for a given prompt using a language model.
 
@@ -120,7 +120,7 @@ Optional telemetry configuration (experimental).
        */
       experimental_telemetry?: TelemetrySettings;
     },
-): Promise<DefaultGenerateObjectResult<JSONValue>>;
+): Promise<GenerateObjectResult<JSONValue>>;
 export async function generateObject<RESULT>({
   schema: inputSchema,
   schemaName,
@@ -147,7 +147,7 @@ export async function generateObject<RESULT>({
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
-  }): Promise<DefaultGenerateObjectResult<RESULT>> {
+  }): Promise<GenerateObjectResult<RESULT>> {
   validateObjectGenerationInput({
     output,
     mode,
@@ -202,7 +202,7 @@ async function internalGenerateObject<PARTIAL, RESULT>({
   ...settings
 }: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
-    outputStrategy: OutputStrategy<PARTIAL, RESULT>;
+    outputStrategy: OutputStrategy<PARTIAL, RESULT, unknown>;
     model: LanguageModel;
     schemaName?: string;
     schemaDescription?: string;
