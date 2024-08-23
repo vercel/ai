@@ -1,5 +1,28 @@
 # @ai-sdk/cohere
 
+## 0.0.20
+
+### Patch Changes
+
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+
+## 0.0.18
+
+### Patch Changes
+
+- 93b7b7c: feat (provider/cohere): support tool calls
+- Updated dependencies [f2c025e]
+  - @ai-sdk/provider@0.0.21
+  - @ai-sdk/provider-utils@1.0.14
+
 ## 0.0.17
 
 ### Patch Changes

@@ -146,9 +146,9 @@ describe('doGenerate', () => {
       arguments: string;
     };
     usage?: {
-      prompt_tokens: number;
-      total_tokens: number;
-      completion_tokens: number;
+      prompt_tokens?: number;
+      total_tokens?: number;
+      completion_tokens?: number;
     };
     logprobs?: {
       content:
@@ -211,6 +211,24 @@ describe('doGenerate', () => {
     expect(usage).toStrictEqual({
       promptTokens: 20,
       completionTokens: 5,
+    });
+  });
+
+  it('should support partial usage', async () => {
+    prepareJsonResponse({
+      content: '',
+      usage: { prompt_tokens: 20, total_tokens: 20 },
+    });
+
+    const { usage } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toStrictEqual({
+      promptTokens: 20,
+      completionTokens: NaN,
     });
   });
 

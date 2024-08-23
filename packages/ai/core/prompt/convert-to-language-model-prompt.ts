@@ -11,8 +11,8 @@ import { CoreMessage } from '../prompt/message';
 import { detectImageMimeType } from '../util/detect-image-mimetype';
 import { FilePart, ImagePart, TextPart } from './content-part';
 import { convertDataContentToUint8Array } from './data-content';
-import { ValidatedPrompt } from './get-validated-prompt';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
+import { ValidatedPrompt } from './validate-prompt';
 
 export async function convertToLanguageModelPrompt({
   prompt,

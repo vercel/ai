@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google",
-  "version": "0.0.39",
+  "version": "0.0.45",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,10 +29,12 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.20",
-    "@ai-sdk/provider-utils": "1.0.13"
+    "@ai-sdk/provider": "0.0.21",
+    "@ai-sdk/provider-utils": "1.0.16",
+    "json-schema": "0.4.0"
   },
   "devDependencies": {
+    "@types/json-schema": "7.0.15",
     "@types/node": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",

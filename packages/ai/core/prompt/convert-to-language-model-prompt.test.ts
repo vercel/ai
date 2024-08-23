@@ -88,6 +88,54 @@ describe('convertToLanguageModelPrompt', () => {
         ]);
       });
     });
+
+    describe('provider metadata', async () => {
+      it('should add provider metadata to messages', async () => {
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            type: 'messages',
+            prompt: undefined,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'hello, world!',
+                  },
+                ],
+                experimental_providerMetadata: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                    'key-b': 'test-value-2',
+                  },
+                },
+              },
+            ],
+          },
+          modelSupportsImageUrls: undefined,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'hello, world!',
+                providerMetadata: undefined,
+              },
+            ],
+            providerMetadata: {
+              'test-provider': {
+                'key-a': 'test-value-1',
+                'key-b': 'test-value-2',
+              },
+            },
+          },
+        ]);
+      });
+    });
   });
 });
 

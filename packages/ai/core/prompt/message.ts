@@ -1,21 +1,17 @@
+import { z } from 'zod';
 import { ProviderMetadata } from '../types';
+import { providerMetadataSchema } from '../types/provider-metadata';
 import {
   FilePart,
   ImagePart,
+  imagePartSchema,
   TextPart,
+  textPartSchema,
   ToolCallPart,
+  toolCallPartSchema,
   ToolResultPart,
+  toolResultPartSchema,
 } from './content-part';
-
-/**
-A message that can be used in the `messages` field of a prompt.
-It can be a user message, an assistant message, or a tool message.
- */
-export type CoreMessage =
-  | CoreSystemMessage
-  | CoreUserMessage
-  | CoreAssistantMessage
-  | CoreToolMessage;
 
 /**
  A system message. It can contain system information.
@@ -36,6 +32,12 @@ functionality that can be fully encapsulated in the provider.
   experimental_providerMetadata?: ProviderMetadata;
 };
 
+export const coreSystemMessageSchema: z.ZodType<CoreSystemMessage> = z.object({
+  role: z.literal('system'),
+  content: z.string(),
+  experimental_providerMetadata: providerMetadataSchema.optional(),
+});
+
 /**
  * @deprecated Use `CoreMessage` instead.
  */
@@ -55,6 +57,15 @@ functionality that can be fully encapsulated in the provider.
  */
   experimental_providerMetadata?: ProviderMetadata;
 };
+
+export const coreUserMessageSchema: z.ZodType<CoreUserMessage> = z.object({
+  role: z.literal('user'),
+  content: z.union([
+    z.string(),
+    z.array(z.union([textPartSchema, imagePartSchema])),
+  ]),
+  experimental_providerMetadata: providerMetadataSchema.optional(),
+});
 
 /**
  * @deprecated Use `CoreUserMessage` instead.
@@ -81,6 +92,16 @@ functionality that can be fully encapsulated in the provider.
   experimental_providerMetadata?: ProviderMetadata;
 };
 
+export const coreAssistantMessageSchema: z.ZodType<CoreAssistantMessage> =
+  z.object({
+    role: z.literal('assistant'),
+    content: z.union([
+      z.string(),
+      z.array(z.union([textPartSchema, toolCallPartSchema])),
+    ]),
+    experimental_providerMetadata: providerMetadataSchema.optional(),
+  });
+
 /**
  * @deprecated Use `CoreAssistantMessage` instead.
  */
@@ -106,6 +127,12 @@ functionality that can be fully encapsulated in the provider.
   experimental_providerMetadata?: ProviderMetadata;
 };
 
+export const coreToolMessageSchema: z.ZodType<CoreToolMessage> = z.object({
+  role: z.literal('tool'),
+  content: z.array(toolResultPartSchema),
+  experimental_providerMetadata: providerMetadataSchema.optional(),
+});
+
 /**
  * @deprecated Use `CoreToolMessage` instead.
  */
@@ -115,3 +142,20 @@ export type ExperimentalToolMessage = CoreToolMessage;
 Content of a tool message. It is an array of tool result parts.
  */
 export type ToolContent = Array<ToolResultPart>;
+
+/**
+A message that can be used in the `messages` field of a prompt.
+It can be a user message, an assistant message, or a tool message.
+ */
+export type CoreMessage =
+  | CoreSystemMessage
+  | CoreUserMessage
+  | CoreAssistantMessage
+  | CoreToolMessage;
+
+export const coreMessageSchema: z.ZodType<CoreMessage> = z.union([
+  coreSystemMessageSchema,
+  coreUserMessageSchema,
+  coreAssistantMessageSchema,
+  coreToolMessageSchema,
+]);

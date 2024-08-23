@@ -7,7 +7,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: google('models/gemini-1.5-flash'),
+    model: google('gemini-1.5-flash'),
     maxTokens: 512,
     messages: [
       {

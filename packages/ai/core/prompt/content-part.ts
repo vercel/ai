@@ -1,5 +1,9 @@
-import { ProviderMetadata } from '../types/language-model';
-import { DataContent } from './data-content';
+import { z } from 'zod';
+import {
+  ProviderMetadata,
+  providerMetadataSchema,
+} from '../types/provider-metadata';
+import { DataContent, dataContentSchema } from './data-content';
 
 /**
 Text content part of a prompt. It contains a string of text.
@@ -19,6 +23,12 @@ functionality that can be fully encapsulated in the provider.
  */
   experimental_providerMetadata?: ProviderMetadata;
 }
+
+export const textPartSchema: z.ZodType<TextPart> = z.object({
+  type: z.literal('text'),
+  text: z.string(),
+  experimental_providerMetadata: providerMetadataSchema.optional(),
+});
 
 /**
 Image content part of a prompt. It contains an image.
@@ -46,6 +56,13 @@ functionality that can be fully encapsulated in the provider.
  */
   experimental_providerMetadata?: ProviderMetadata;
 }
+
+export const imagePartSchema: z.ZodType<ImagePart> = z.object({
+  type: z.literal('image'),
+  image: z.union([dataContentSchema, z.instanceof(URL)]),
+  mimeType: z.string().optional(),
+  experimental_providerMetadata: providerMetadataSchema.optional(),
+});
 
 /**
 File content part of a prompt. It contains a file.
@@ -89,6 +106,13 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
   args: unknown;
 }
 
+export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
+  type: z.literal('tool-call'),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  args: z.unknown(),
+}) as z.ZodType<ToolCallPart>; // necessary bc args is optional on Zod type
+
 /**
 Tool result content part of a prompt. It contains the result of the tool call with the matching ID.
  */
@@ -122,3 +146,12 @@ functionality that can be fully encapsulated in the provider.
  */
   experimental_providerMetadata?: ProviderMetadata;
 }
+
+export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
+  type: z.literal('tool-result'),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  result: z.unknown(),
+  isError: z.boolean().optional(),
+  experimental_providerMetadata: providerMetadataSchema.optional(),
+}) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type

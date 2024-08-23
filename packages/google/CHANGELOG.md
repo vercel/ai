@@ -1,5 +1,45 @@
 # @ai-sdk/google
 
+## 0.0.45
+
+### Patch Changes
+
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+
+## 0.0.44
+
+### Patch Changes
+
+- cb94042: fix (provider/google): allow disabling structured generation
+
+## 0.0.43
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+
+## 0.0.42
+
+### Patch Changes
+
+- 9c1f4f2: chore (provider/google): remove "models/" from model name
+
+## 0.0.41
+
+### Patch Changes
+
+- 5da9c7f: feat (provider/google): embedding support
+
+## 0.0.40
+
+### Patch Changes
+
+- Updated dependencies [f2c025e]
+  - @ai-sdk/provider@0.0.21
+  - @ai-sdk/provider-utils@1.0.14
+
 ## 0.0.39
 
 ### Patch Changes

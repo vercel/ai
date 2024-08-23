@@ -10,10 +10,10 @@ import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { getValidatedPrompt } from '../prompt/get-validated-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { validatePrompt } from '../prompt/validate-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -222,7 +222,7 @@ results that can be fully encapsulated in the provider.
     endWhenDone: false,
     fn: async rootSpan => {
       const retry = retryWithExponentialBackoff({ maxRetries });
-      const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
+      const validatedPrompt = validatePrompt({ system, prompt, messages });
       const promptMessages = await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         modelSupportsImageUrls: model.supportsImageUrls,

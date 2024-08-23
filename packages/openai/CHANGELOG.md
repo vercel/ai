@@ -1,5 +1,33 @@
 # @ai-sdk/openai
 
+## 0.0.53
+
+### Patch Changes
+
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+
+## 0.0.52
+
+### Patch Changes
+
+- d5b6a15: feat (provider/openai): support partial usage information
+
+## 0.0.51
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+
+## 0.0.50
+
+### Patch Changes
+
+- Updated dependencies [f2c025e]
+  - @ai-sdk/provider@0.0.21
+  - @ai-sdk/provider-utils@1.0.14
+
 ## 0.0.49
 
 ### Patch Changes

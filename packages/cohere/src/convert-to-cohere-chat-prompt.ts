@@ -51,9 +51,11 @@ export function convertToCohereChatPrompt(
               break;
             }
             case 'tool-call': {
-              throw new UnsupportedFunctionalityError({
-                functionality: 'tool-call',
+              toolCalls.push({
+                name: part.toolName,
+                parameters: part.args as object,
               });
+              break;
             }
             default: {
               const _exhaustiveCheck: never = part;
@@ -71,9 +73,27 @@ export function convertToCohereChatPrompt(
         break;
       }
       case 'tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'tool role',
+        messages.push({
+          role: 'TOOL',
+          tool_results: content.map(toolResult => ({
+            call: {
+              name: toolResult.toolName,
+
+              /* 
+              Note: Currently the tool_results field requires we pass the parameters of the tool results again. It it is blank for two reasons:
+
+              1. The parameters are already present in chat_history as a tool message
+              2. The tool core message of the ai sdk does not include parameters
+              
+              It is possible to traverse through the chat history and get the parameters by id but it's currently empty since there wasn't any degradation in the output when left blank.
+              */
+              parameters: {},
+            },
+            outputs: [toolResult.result as object],
+          })),
         });
+
+        break;
       }
       default: {
         const _exhaustiveCheck: never = role;

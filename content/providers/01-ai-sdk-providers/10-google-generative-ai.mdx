@@ -5,7 +5,8 @@ description: Learn how to use Google Generative AI Provider.
 
 # Google Generative AI Provider
 
-The [Google Generative AI](https://ai.google/discover/generativeai/) provider contains language model support for the [Google Generative AI](https://ai.google.dev/api/rest) APIs.
+The [Google Generative AI](https://ai.google/discover/generativeai/) provider contains language and embedding model support for
+the [Google Generative AI](https://ai.google.dev/api/rest) APIs.
 
 ## Setup
 
@@ -67,18 +68,18 @@ You can use the following optional settings to customize the Google Generative A
 ## Language Models
 
 You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the provider instance.
-The first argument is the model id, e.g. `models/gemini-1.5-pro-latest`.
+The first argument is the model id, e.g. `gemini-1.5-pro-latest`.
 The models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = google('models/gemini-1.5-pro-latest');
+const model = google('gemini-1.5-pro-latest');
 ```
 
 Google Generative AI models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
 ```ts
-const model = google('models/gemini-1.5-pro-latest', {
+const model = google('gemini-1.5-pro-latest', {
   safetySettings: [
     { category: 'HARM_CATEGORY_UNSPECIFIED', threshold: 'BLOCK_LOW_AND_ABOVE' },
   ],
@@ -91,6 +92,17 @@ The following optional settings are available for Google Generative AI models:
 
   Optional. The name of the cached content used as context to serve the prediction.
   Format: cachedContents/\{cachedContent\}
+
+- **structuredOutputs** _boolean_
+
+  Optional. Enable structured output. Default is true.
+
+  This is useful when the JSON Schema contains elements that are
+  not supported by the OpenAPI schema version that
+  Google Generative AI uses. You can use this to disable
+  structured outputs if you need to.
+
+  See [Troubleshooting: Schema Limitations](#troubleshooting-schema-limitations) for more details.
 
 - **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
 
@@ -115,7 +127,7 @@ The following optional settings are available for Google Generative AI models:
     - `BLOCK_ONLY_HIGH`
     - `BLOCK_NONE`
 
-### Example
+### Example: Generate Text
 
 You can use Google Generative AI language models to generate text with the `generateText` function:
 
@@ -124,7 +136,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google('models/gemini-pro'),
+  model: google('gemini-1.5-pro-latest'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -132,14 +144,79 @@ const { text } = await generateText({
 Google Generative AI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
 (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
+### Troubleshooting: Schema Limitations
+
+The Google Generative AI API uses a subset of the OpenAPI 3.0 schema,
+which does not support features such as unions.
+The errors that you get in this case look like this:
+
+`GenerateContentRequest.generation_config.response_schema.properties[occupation].type: must be specified`
+
+By default, structured outputs are enabled (and for tool calling they are required).
+You can disable structured outputs for object generation as a workaround:
+
+```ts highlight="3,8"
+const result = await generateObject({
+  model: google('gemini-1.5-pro-latest', {
+    structuredOutputs: false,
+  }),
+  schema: z.object({
+    name: z.string(),
+    age: z.number(),
+    contact: z.union([
+      z.object({
+        type: z.literal('email'),
+        value: z.string(),
+      }),
+      z.object({
+        type: z.literal('phone'),
+        value: z.string(),
+      }),
+    ]),
+  }),
+  prompt: 'Generate an example person for testing.',
+});
+```
+
 ### Model Capabilities
 
-| Model                            | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| -------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `models/gemini-1.5-pro-latest`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `models/gemini-1.5-flash-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                     | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-1.5-pro-latest`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-pro`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-flash-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-flash`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. You can also pass any available provider
   model ID as a string if needed.
 </Note>
+
+## Embedding Models
+
+You can create models that call the [Google Generative AI embeddings API](https://ai.google.dev/api/embeddings)
+using the `.embedding()` factory method.
+
+```ts
+const model = google.embedding('text-embedding-004');
+```
+
+Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
+
+```ts
+const model = google.embedding('text-embedding-004', {
+  outputDimensionality: 512, // optional, number of dimensions for the embedding
+});
+```
+
+The following optional settings are available for Google Generative AI embedding models:
+
+- **outputDimensionality**: _number_
+
+  Optional reduced dimension for the output embedding. If set, excessive values in the output embedding are truncated from the end.
+
+### Model Capabilities
+
+| Model                | Default Dimensions | Custom Dimensions   |
+| -------------------- | ------------------ | ------------------- |
+| `text-embedding-004` | 768                | <Check size={18} /> |

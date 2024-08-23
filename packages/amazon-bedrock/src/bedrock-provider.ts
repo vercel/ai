@@ -1,4 +1,8 @@
-import { generateId, loadSetting } from '@ai-sdk/provider-utils';
+import {
+  generateId,
+  loadOptionalSetting,
+  loadSetting,
+} from '@ai-sdk/provider-utils';
 import {
   BedrockRuntimeClient,
   BedrockRuntimeClientConfig,
@@ -13,6 +17,7 @@ export interface AmazonBedrockProviderSettings {
   region?: string;
   accessKeyId?: string;
   secretAccessKey?: string;
+  sessionToken?: string;
 
   /**
    * Complete Bedrock configuration for setting advanced authentication and
@@ -64,6 +69,10 @@ export function createAmazonBedrock(
             settingName: 'secretAccessKey',
             environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
             description: 'AWS secret access key',
+          }),
+          sessionToken: loadOptionalSetting({
+            settingValue: options.sessionToken,
+            environmentVariableName: 'AWS_SESSION_TOKEN',
           }),
         },
       },

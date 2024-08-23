@@ -1,5 +1,62 @@
 # ai
 
+## 3.3.16
+
+### Patch Changes
+
+- 09f895f: feat (ai/core): no-schema output for generateObject / streamObject
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+  - @ai-sdk/react@0.0.50
+  - @ai-sdk/solid@0.0.40
+  - @ai-sdk/svelte@0.0.42
+  - @ai-sdk/ui-utils@0.0.37
+  - @ai-sdk/vue@0.0.42
+
+## 3.3.15
+
+### Patch Changes
+
+- b5a82b7: chore (ai): update zod-to-json-schema to 3.23.2
+- Updated dependencies [b5a82b7]
+  - @ai-sdk/ui-utils@0.0.36
+  - @ai-sdk/react@0.0.49
+  - @ai-sdk/solid@0.0.39
+  - @ai-sdk/svelte@0.0.41
+  - @ai-sdk/vue@0.0.41
+
+## 3.3.14
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+  - @ai-sdk/react@0.0.48
+  - @ai-sdk/solid@0.0.38
+  - @ai-sdk/svelte@0.0.40
+  - @ai-sdk/ui-utils@0.0.35
+  - @ai-sdk/vue@0.0.40
+
+## 3.3.13
+
+### Patch Changes
+
+- 412f943: fix (ai/core): make Buffer validation optional for environments without buffer
+
+## 3.3.12
+
+### Patch Changes
+
+- f2c025e: feat (ai/core): prompt validation
+- Updated dependencies [f2c025e]
+  - @ai-sdk/provider@0.0.21
+  - @ai-sdk/provider-utils@1.0.14
+  - @ai-sdk/ui-utils@0.0.34
+  - @ai-sdk/react@0.0.47
+  - @ai-sdk/solid@0.0.37
+  - @ai-sdk/svelte@0.0.39
+  - @ai-sdk/vue@0.0.39
+
 ## 3.3.11
 
 ### Patch Changes

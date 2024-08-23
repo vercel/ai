@@ -1,9 +1,11 @@
 // https://ai.google.dev/models/gemini
 export type GoogleGenerativeAIModelId =
-  | 'models/gemini-1.5-flash-latest'
-  | 'models/gemini-1.5-pro-latest'
-  | 'models/gemini-pro'
-  | 'models/gemini-pro-vision'
+  | 'gemini-1.5-flash-latest'
+  | 'gemini-1.5-flash'
+  | 'gemini-1.5-pro-latest'
+  | 'gemini-1.5-pro'
+  | 'gemini-1.0-pro'
+  | 'gemini-pro'
   | (string & {});
 
 export interface GoogleGenerativeAISettings {
@@ -24,6 +26,16 @@ The name of the cached content used as context to serve the prediction.
 Format: cachedContents/{cachedContent}
    */
   cachedContent?: string;
+
+  /**
+   * Optional. Enable structured output. Default is true.
+   *
+   * This is useful when the JSON Schema contains elements that are
+   * not supported by the OpenAPI schema version that
+   * Google Generative AI uses. You can use this to disable
+   * structured outputs if you need to.
+   */
+  structuredOutputs?: boolean;
 
   /**
 Optional. A list of unique safety settings for blocking unsafe content.

@@ -4,10 +4,10 @@ import { ReactNode } from 'react';
 import { z } from 'zod';
 import { CallSettings } from '../../core/prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../../core/prompt/convert-to-language-model-prompt';
-import { getValidatedPrompt } from '../../core/prompt/get-validated-prompt';
 import { prepareCallSettings } from '../../core/prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../../core/prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../../core/prompt/prompt';
+import { validatePrompt } from '../../core/prompt/validate-prompt';
 import { CallWarning, CoreToolChoice, FinishReason } from '../../core/types';
 import {
   CompletionTokenUsage,
@@ -229,7 +229,7 @@ export async function streamUI<
   }
 
   const retry = retryWithExponentialBackoff({ maxRetries });
-  const validatedPrompt = getValidatedPrompt({ system, prompt, messages });
+  const validatedPrompt = validatePrompt({ system, prompt, messages });
   const result = await retry(async () =>
     model.doStream({
       mode: {
