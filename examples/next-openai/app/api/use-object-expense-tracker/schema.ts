@@ -16,6 +16,6 @@ export const expenseSchema = z.object({
   }),
 });
 
-export type PartialExpense = DeepPartial<typeof expenseSchema>['expense'];
-
 export type Expense = z.infer<typeof expenseSchema>['expense'];
+
+export type PartialExpense = DeepPartial<Expense>;
