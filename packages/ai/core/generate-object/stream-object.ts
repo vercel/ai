@@ -654,7 +654,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 validationResult.success &&
                 !isDeepEqualData(latestObject, validationResult.value)
               ) {
-                // moved inside to allow for correct parse of final element in array mode:
+                // inside inner check to correctly parse the final element in array mode:
                 latestObjectJson = currentObjectJson;
                 latestObject = validationResult.value;
 
