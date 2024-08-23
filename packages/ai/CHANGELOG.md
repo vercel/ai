@@ -1,5 +1,17 @@
 # ai
 
+## 3.3.17
+
+### Patch Changes
+
+- d151349: feat (ai/core): array output for generateObject / streamObject
+- Updated dependencies [d151349]
+  - @ai-sdk/ui-utils@0.0.38
+  - @ai-sdk/react@0.0.51
+  - @ai-sdk/solid@0.0.41
+  - @ai-sdk/svelte@0.0.43
+  - @ai-sdk/vue@0.0.43
+
 ## 3.3.16
 
 ### Patch Changes

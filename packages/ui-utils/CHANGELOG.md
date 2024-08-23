@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.38
+
+### Patch Changes
+
+- d151349: feat (ai/core): array output for generateObject / streamObject
+
 ## 0.0.37
 
 ### Patch Changes
