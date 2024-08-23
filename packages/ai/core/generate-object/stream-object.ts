@@ -41,6 +41,7 @@ import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { injectJsonInstruction } from './inject-json-instruction';
 import {
   OutputStrategy,
+  arrayOutputStrategy,
   noSchemaOutputStrategy,
   objectOutputStrategy,
 } from './output-strategy';
@@ -62,6 +63,8 @@ A result object for accessing the partial object stream and additional informati
 export async function streamObject<OBJECT>(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt & {
+      output?: 'object' | undefined;
+
       /**
 The language model to use.
      */
@@ -150,6 +153,106 @@ results that can be fully encapsulated in the provider.
     },
 ): Promise<DefaultStreamObjectResult<DeepPartial<OBJECT>, OBJECT>>;
 /**
+Generate an array with structured, typed elements for a given prompt and element schema using a language model.
+
+This function streams the output. If you do not want to stream the output, use `generateObject` instead.
+
+@return
+A result object for accessing the partial object stream and additional information.
+ */
+export async function streamObject<ELEMENT>(
+  options: Omit<CallSettings, 'stopSequences'> &
+    Prompt & {
+      output: 'array';
+
+      /**
+The language model to use.
+     */
+      model: LanguageModel;
+
+      /**
+The element schema of the array that the model should generate.
+ */
+      schema: z.Schema<ELEMENT, z.ZodTypeDef, any> | Schema<ELEMENT>;
+
+      /**
+Optional name of the array that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema name.
+     */
+      schemaName?: string;
+
+      /**
+Optional description of the array that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema description.
+ */
+      schemaDescription?: string;
+
+      /**
+The mode to use for object generation.
+
+The schema is converted in a JSON schema and used in one of the following ways
+
+- 'auto': The provider will choose the best mode for the model.
+- 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
+- 'json': The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
+
+Please note that most providers do not support all modes.
+
+Default and recommended: 'auto' (best mode for the model).
+     */
+      mode?: 'auto' | 'json' | 'tool';
+
+      /**
+Optional telemetry configuration (experimental).
+     */
+      experimental_telemetry?: TelemetrySettings;
+
+      /**
+Callback that is called when the LLM response and the final object validation are finished.
+     */
+      onFinish?: (event: {
+        /**
+The token usage of the generated response.
+*/
+        usage: CompletionTokenUsage;
+
+        /**
+The generated object (typed according to the schema). Can be undefined if the final object does not match the schema.
+   */
+        object: Array<ELEMENT> | undefined;
+
+        /**
+Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
+   */
+        error: unknown | undefined;
+
+        /**
+Optional raw response data.
+   */
+        rawResponse?: {
+          /**
+Response headers.
+     */
+          headers?: Record<string, string>;
+        };
+
+        /**
+Warnings from the model provider (e.g. unsupported settings).
+       */
+        warnings?: CallWarning[];
+
+        /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+   */
+        experimental_providerMetadata: ProviderMetadata | undefined;
+      }) => Promise<void> | void;
+    },
+): Promise<DefaultStreamObjectResult<Array<ELEMENT>, Array<ELEMENT>>>;
+/**
 Generate JSON with any schema for a given prompt using a language model.
 
 This function streams the output. If you do not want to stream the output, use `generateObject` instead.
@@ -235,11 +338,12 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT>({
      * The expected structure of the output.
      *
      * - 'object': Generate a single object that conforms to the schema.
+     * - 'array': Generate an array of objects that conform to the schema.
      * - 'no-schema': Generate any JSON object. No schema is specified.
      *
      * Default is 'object' if not specified.
      */
-    output?: 'object' | 'no-schema';
+    output?: 'object' | 'array' | 'no-schema';
 
     model: LanguageModel;
     schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
@@ -272,6 +376,18 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT>({
     case 'object': {
       return internalStreamObject({
         outputStrategy: objectOutputStrategy(schema!),
+        schemaName,
+        schemaDescription,
+        mode,
+        telemetry,
+        onFinish: onFinish as any, // types defined by function overload
+        ...rest,
+      }) as any; // types defined by function overload
+    }
+
+    case 'array': {
+      return internalStreamObject({
+        outputStrategy: arrayOutputStrategy(schema!),
         schemaName,
         schemaDescription,
         mode,
@@ -647,16 +763,23 @@ class DefaultStreamObjectResult<PARTIAL, RESULT>
             accumulatedText += chunk;
             delta += chunk;
 
-            const currentObjectJson = parsePartialJson(accumulatedText);
+            const { value: currentObjectJson, state: parseState } =
+              parsePartialJson(accumulatedText);
 
             if (
               currentObjectJson !== undefined &&
               !isDeepEqualData(latestObjectJson, currentObjectJson)
             ) {
-              const validationResult =
-                outputStrategy.validatePartialResult(currentObjectJson);
+              const validationResult = outputStrategy.validatePartialResult({
+                value: currentObjectJson,
+                parseState,
+              });
 
-              if (validationResult.success) {
+              if (
+                validationResult.success &&
+                !isDeepEqualData(latestObject, validationResult.value)
+              ) {
+                // moved inside to allow for correct parse of final element in array mode:
                 latestObjectJson = currentObjectJson;
                 latestObject = validationResult.value;
 
