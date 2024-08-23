@@ -176,19 +176,19 @@ Optional telemetry configuration (experimental).
     },
 ): Promise<GenerateObjectResult<JSONValue>>;
 export async function generateObject<SCHEMA, RESULT>({
+  model,
   schema: inputSchema,
   schemaName,
   schemaDescription,
   mode,
   output = 'object',
-  experimental_telemetry: telemetry,
-  model,
   system,
   prompt,
   messages,
   maxRetries,
   abortSignal,
   headers,
+  experimental_telemetry: telemetry,
   ...settings
 }: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
@@ -220,6 +220,7 @@ export async function generateObject<SCHEMA, RESULT>({
 
   const outputStrategy = getOutputStrategy({ output, schema: inputSchema });
 
+  // automatically set mode to 'json' for no-schema output
   if (outputStrategy.type === 'no-schema' && mode === undefined) {
     mode = 'json';
   }

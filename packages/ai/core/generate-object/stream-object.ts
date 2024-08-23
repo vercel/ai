@@ -252,19 +252,19 @@ Callback that is called when the LLM response and the final object validation ar
     },
 ): Promise<StreamObjectResult<JSONValue, JSONValue, never>>;
 export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
+  model,
   schema: inputSchema,
   schemaName,
   schemaDescription,
   mode,
   output = 'object',
-  experimental_telemetry: telemetry,
-  model,
   system,
   prompt,
   messages,
   maxRetries,
   abortSignal,
   headers,
+  experimental_telemetry: telemetry,
   onFinish,
   ...settings
 }: Omit<CallSettings, 'stopSequences'> &
@@ -307,6 +307,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
 
   const outputStrategy = getOutputStrategy({ output, schema: inputSchema });
 
+  // automatically set mode to 'json' for no-schema output
   if (outputStrategy.type === 'no-schema' && mode === undefined) {
     mode = 'json';
   }
