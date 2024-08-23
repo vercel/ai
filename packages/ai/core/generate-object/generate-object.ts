@@ -27,6 +27,7 @@ import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { NoObjectGeneratedError } from './no-object-generated-error';
 import {
+  arrayOutputStrategy,
   noSchemaOutputStrategy,
   objectOutputStrategy,
   OutputStrategy,
@@ -93,6 +94,64 @@ Optional telemetry configuration (experimental).
     },
 ): Promise<GenerateObjectResult<OBJECT>>;
 /**
+Generate an array with structured, typed elements for a given prompt and element schema using a language model.
+
+This function does not stream the output. If you want to stream the output, use `streamObject` instead.
+
+@return
+A result object that contains the generated object, the finish reason, the token usage, and additional information.
+ */
+export async function generateObject<ELEMENT>(
+  options: Omit<CallSettings, 'stopSequences'> &
+    Prompt & {
+      output: 'array';
+
+      /**
+The language model to use.
+     */
+      model: LanguageModel;
+
+      /**
+The element schema of the array that the model should generate.
+ */
+      schema: z.Schema<ELEMENT, z.ZodTypeDef, any> | Schema<ELEMENT>;
+
+      /**
+Optional name of the array that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema name.
+     */
+      schemaName?: string;
+
+      /**
+Optional description of the array that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema description.
+ */
+      schemaDescription?: string;
+
+      /**
+The mode to use for object generation.
+
+The schema is converted in a JSON schema and used in one of the following ways
+
+- 'auto': The provider will choose the best mode for the model.
+- 'tool': A tool with the JSON schema as parameters is is provided and the provider is instructed to use it.
+- 'json': The JSON schema and an instruction is injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
+
+Please note that most providers do not support all modes.
+
+Default and recommended: 'auto' (best mode for the model).
+     */
+      mode?: 'auto' | 'json' | 'tool';
+
+      /**
+Optional telemetry configuration (experimental).
+     */
+      experimental_telemetry?: TelemetrySettings;
+    },
+): Promise<GenerateObjectResult<Array<ELEMENT>>>;
+/**
 Generate JSON with any schema for a given prompt using a language model.
 
 This function does not stream the output. If you want to stream the output, use `streamObject` instead.
@@ -121,7 +180,7 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
     },
 ): Promise<GenerateObjectResult<JSONValue>>;
-export async function generateObject<RESULT>({
+export async function generateObject<SCHEMA, RESULT>({
   schema: inputSchema,
   schemaName,
   schemaDescription,
@@ -135,14 +194,15 @@ export async function generateObject<RESULT>({
      * The expected structure of the output.
      *
      * - 'object': Generate a single object that conforms to the schema.
+     * - 'array': Generate an array of objects that conform to the schema.
      * - 'no-schema': Generate any JSON object. No schema is specified.
      *
      * Default is 'object' if not specified.
      */
-    output?: 'object' | 'no-schema';
+    output?: 'object' | 'array' | 'no-schema';
 
     model: LanguageModel;
-    schema?: z.Schema<RESULT, z.ZodTypeDef, any> | Schema<RESULT>;
+    schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
     schemaName?: string;
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
@@ -165,7 +225,18 @@ export async function generateObject<RESULT>({
         mode,
         telemetry,
         ...rest,
-      });
+      }) as any; // types defined by function overload
+    }
+
+    case 'array': {
+      return internalGenerateObject({
+        outputStrategy: arrayOutputStrategy(asSchema(inputSchema!)),
+        schemaName,
+        schemaDescription,
+        mode,
+        telemetry,
+        ...rest,
+      }) as any; // types defined by function overload
     }
 
     case 'no-schema': {

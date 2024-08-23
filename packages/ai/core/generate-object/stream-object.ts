@@ -376,12 +376,10 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     schemaDescription,
   });
 
-  const schema = inputSchema != null ? asSchema(inputSchema) : undefined;
-
   switch (output) {
     case 'object': {
       return internalStreamObject({
-        outputStrategy: objectOutputStrategy(schema!),
+        outputStrategy: objectOutputStrategy(asSchema(inputSchema!)),
         schemaName,
         schemaDescription,
         mode,
@@ -393,7 +391,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
 
     case 'array': {
       return internalStreamObject({
-        outputStrategy: arrayOutputStrategy(schema!),
+        outputStrategy: arrayOutputStrategy(asSchema(inputSchema!)),
         schemaName,
         schemaDescription,
         mode,
