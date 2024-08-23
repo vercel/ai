@@ -272,27 +272,25 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT>({
     case 'object': {
       return internalStreamObject({
         outputStrategy: objectOutputStrategy(schema!),
-        schema,
         schemaName,
         schemaDescription,
         mode,
         telemetry,
-        onFinish: onFinish as any,
+        onFinish: onFinish as any, // types defined by function overload
         ...rest,
-      }) as any;
+      }) as any; // types defined by function overload
     }
 
     case 'no-schema': {
       return internalStreamObject({
         outputStrategy: noSchemaOutputStrategy,
-        schema,
         schemaName,
         schemaDescription,
         mode: 'json',
         telemetry,
-        onFinish: onFinish as any,
+        onFinish: onFinish as any, // types defined by function overload
         ...rest,
-      }) as any;
+      }) as any; // types defined by function overload
     }
 
     default: {
@@ -302,9 +300,8 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT>({
   }
 }
 
-async function internalStreamObject<SCHEMA, PARTIAL, RESULT>({
+async function internalStreamObject<PARTIAL, RESULT>({
   model,
-  schema: inputSchema,
   schemaName,
   schemaDescription,
   mode,
@@ -322,7 +319,6 @@ async function internalStreamObject<SCHEMA, PARTIAL, RESULT>({
   Prompt & {
     outputStrategy: OutputStrategy<PARTIAL, RESULT>;
     model: LanguageModel;
-    schema?: Schema<SCHEMA>;
     schemaName?: string;
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
@@ -349,8 +345,6 @@ async function internalStreamObject<SCHEMA, PARTIAL, RESULT>({
 
   const retry = retryWithExponentialBackoff({ maxRetries });
 
-  const schema = inputSchema != null ? asSchema(inputSchema) : undefined;
-
   return recordSpan({
     name: 'ai.streamObject',
     attributes: selectTelemetryAttributes({
@@ -366,8 +360,8 @@ async function internalStreamObject<SCHEMA, PARTIAL, RESULT>({
           input: () => JSON.stringify({ system, prompt, messages }),
         },
         'ai.schema':
-          schema != null
-            ? { input: () => JSON.stringify(schema.jsonSchema) }
+          outputStrategy.jsonSchema != null
+            ? { input: () => JSON.stringify(outputStrategy.jsonSchema) }
             : undefined,
         'ai.schema.name': schemaName,
         'ai.schema.description': schemaDescription,
@@ -393,13 +387,13 @@ async function internalStreamObject<SCHEMA, PARTIAL, RESULT>({
         case 'json': {
           const validatedPrompt = validatePrompt({
             system:
-              schema == null
+              outputStrategy.jsonSchema == null
                 ? injectJsonInstruction({ prompt: system })
-                : model.supportsStructuredOutputs && schema != null
+                : model.supportsStructuredOutputs
                 ? system
                 : injectJsonInstruction({
                     prompt: system,
-                    schema: schema.jsonSchema,
+                    schema: outputStrategy.jsonSchema,
                   }),
             prompt,
             messages,
@@ -408,7 +402,7 @@ async function internalStreamObject<SCHEMA, PARTIAL, RESULT>({
           callOptions = {
             mode: {
               type: 'object-json',
-              schema: schema?.jsonSchema,
+              schema: outputStrategy.jsonSchema,
               name: schemaName,
               description: schemaDescription,
             },
@@ -453,7 +447,7 @@ async function internalStreamObject<SCHEMA, PARTIAL, RESULT>({
                 type: 'function',
                 name: schemaName ?? 'json',
                 description: schemaDescription ?? 'Respond with a JSON object.',
-                parameters: schema!.jsonSchema,
+                parameters: outputStrategy.jsonSchema!,
               },
             },
             ...prepareCallSettings(settings),
@@ -584,7 +578,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT>
     rawResponse?: StreamObjectResult<PARTIAL, RESULT>['rawResponse'];
     outputStrategy: OutputStrategy<PARTIAL, RESULT>;
     onFinish: Parameters<
-      typeof internalStreamObject<any, PARTIAL, RESULT>
+      typeof internalStreamObject<PARTIAL, RESULT>
     >[0]['onFinish'];
     rootSpan: Span;
     doStreamSpan: Span;
