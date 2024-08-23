@@ -151,7 +151,7 @@ results that can be fully encapsulated in the provider.
         experimental_providerMetadata: ProviderMetadata | undefined;
       }) => Promise<void> | void;
     },
-): Promise<DefaultStreamObjectResult<DeepPartial<OBJECT>, OBJECT>>;
+): Promise<StreamObjectResult<DeepPartial<OBJECT>, OBJECT>>;
 /**
 Generate an array with structured, typed elements for a given prompt and element schema using a language model.
 
@@ -251,7 +251,7 @@ results that can be fully encapsulated in the provider.
         experimental_providerMetadata: ProviderMetadata | undefined;
       }) => Promise<void> | void;
     },
-): Promise<DefaultStreamObjectResult<Array<ELEMENT>, Array<ELEMENT>>>;
+): Promise<StreamObjectResult<Array<ELEMENT>, Array<ELEMENT>>>;
 /**
 Generate JSON with any schema for a given prompt using a language model.
 
@@ -322,7 +322,7 @@ results that can be fully encapsulated in the provider.
         experimental_providerMetadata: ProviderMetadata | undefined;
       }) => Promise<void> | void;
     },
-): Promise<DefaultStreamObjectResult<JSONValue, JSONValue>>;
+): Promise<StreamObjectResult<JSONValue, JSONValue>>;
 export async function streamObject<SCHEMA, PARTIAL, RESULT>({
   schema: inputSchema,
   schemaName,
@@ -361,7 +361,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT>({
       warnings?: CallWarning[];
       experimental_providerMetadata: ProviderMetadata | undefined;
     }) => Promise<void> | void;
-  }): Promise<DefaultStreamObjectResult<PARTIAL, RESULT>> {
+  }): Promise<StreamObjectResult<PARTIAL, RESULT>> {
   validateObjectGenerationInput({
     output,
     mode,
