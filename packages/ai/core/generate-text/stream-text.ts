@@ -195,7 +195,7 @@ results that can be fully encapsulated in the provider.
    */
       readonly experimental_providerMetadata: ProviderMetadata | undefined;
     }) => Promise<void> | void;
-  }): Promise<DefaultStreamTextResult<TOOLS>> {
+  }): Promise<StreamTextResult<TOOLS>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
