@@ -643,6 +643,8 @@ By default, it's set to 0, which will disable the feature.
     toolCallId: string;
     result: any;
   }) => {
+
+
     const updatedMessages = messagesRef.current.map((message, index, arr) =>
       // update the tool calls in the last assistant message:
       index === arr.length - 1 &&

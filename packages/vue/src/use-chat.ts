@@ -62,6 +62,14 @@ export type UseChatHelpers = {
 
   /** Additional data added on the server via StreamData */
   data: Ref<JSONValue[] | undefined>;
+
+  addToolResult: ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => void;
 };
 
 let uniqueId = 0;
@@ -86,9 +94,27 @@ export function useChat({
   headers: metadataHeaders,
   body: metadataBody,
   generateId = generateIdFunc,
+  onToolCall,
   fetch,
   keepLastMessageOnError = false,
-}: UseChatOptions = {}): UseChatHelpers {
+  maxToolRoundtrips,
+}: UseChatOptions & {
+    /**
+  Maximal number of automatic roundtrips for tool calls.
+
+  An automatic tool call roundtrip is a call to the server with the
+  tool call results when all tool calls in the last assistant
+  message have results.
+
+  A maximum number is required to prevent infinite loops in the
+  case of misconfigured tools.
+
+  By default, it's set to 0, which will disable the feature.
+    */
+  maxToolRoundtrips?: number;
+} = {
+  maxToolRoundtrips: 0,
+}): UseChatHelpers {
   // streamMode is deprecated, use streamProtocol instead.
   if (streamMode) {
     streamProtocol ??= streamMode === 'text' ? 'text' : undefined;
@@ -131,6 +157,8 @@ export function useChat({
     messagesSnapshot: Message[],
     { options, data, headers, body }: ChatRequestOptions = {},
   ) {
+    const messageCount = messages.value.length;
+
     try {
       error.value = undefined;
       mutateLoading(() => true);
@@ -168,6 +196,7 @@ export function useChat({
                   name,
                   data,
                   annotations,
+                  toolInvocations,
                   function_call,
                 }) => ({
                   role,
@@ -175,6 +204,7 @@ export function useChat({
                   ...(name !== undefined && { name }),
                   ...(data !== undefined && { data }),
                   ...(annotations !== undefined && { annotations }),
+                  ...(toolInvocations !== undefined && { toolInvocations }),
                   // outdated function/tool call handling (TODO deprecate):
                   ...(function_call !== undefined && { function_call }),
                 }),
@@ -213,7 +243,7 @@ export function useChat({
               }
             },
             generateId,
-            onToolCall: undefined, // not implemented yet
+            onToolCall,
             fetch,
           });
         },
@@ -239,6 +269,24 @@ export function useChat({
       error.value = err as Error;
     } finally {
       mutateLoading(() => false);
+    }
+
+
+    // auto-submit when all tool calls in the last assistant message have results:
+    const lastMessage = messages.value[messages.value.length - 1];
+    if (
+      // ensure we actually have new messages (to prevent infinite loops in case of errors):
+      messages.value.length > messageCount &&
+      // ensure there is a last message:
+      lastMessage != null &&
+      // check if the feature is enabled:
+      maxToolRoundtrips && maxToolRoundtrips > 0 &&
+      // check that roundtrip is possible:
+      isAssistantMessageWithCompletedToolCalls(lastMessage) &&
+      // limit the number of automatic roundtrips:
+      countTrailingAssistantMessages(messages.value) <= maxToolRoundtrips
+    ) {
+      await triggerRequest(messages.value);
     }
   }
 
@@ -306,6 +354,41 @@ export function useChat({
     input.value = '';
   };
 
+
+  const addToolResult = ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => {
+    const updatedMessages = messages.value.map((message, index, arr) =>
+      // update the tool calls in the last assistant message:
+      index === arr.length - 1 &&
+      message.role === 'assistant' &&
+      message.toolInvocations
+        ? {
+            ...message,
+            toolInvocations: message.toolInvocations.map(toolInvocation =>
+              toolInvocation.toolCallId === toolCallId
+                ? { ...toolInvocation, result }
+                : toolInvocation,
+            ),
+          }
+        : message,
+    )
+
+    mutate(updatedMessages);
+
+    // auto-submit when all tool calls in the last assistant message have results:
+    const lastMessage = updatedMessages[updatedMessages.length - 1];
+
+    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
+      triggerRequest(updatedMessages);
+    }
+  };
+
+
   return {
     messages,
     append,
@@ -317,5 +400,37 @@ export function useChat({
     handleSubmit,
     isLoading,
     data: streamData as Ref<undefined | JSONValue[]>,
+    addToolResult
   };
+}
+
+
+/**
+Check if the message is an assistant message with completed tool calls.
+The message must have at least one tool invocation and all tool invocations
+must have a result.
+ */
+function isAssistantMessageWithCompletedToolCalls(message: Message) {
+  return (
+    message.role === 'assistant' &&
+    message.toolInvocations &&
+    message.toolInvocations.length > 0 &&
+    message.toolInvocations.every(toolInvocation => 'result' in toolInvocation)
+  );
+}
+
+
+/**
+Returns the number of trailing assistant messages in the array.
+ */
+function countTrailingAssistantMessages(messages: Message[]) {
+  let count = 0;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant') {
+      count++;
+    } else {
+      break;
+    }
+  }
+  return count;
 }
