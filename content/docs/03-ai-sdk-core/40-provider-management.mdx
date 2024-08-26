@@ -43,7 +43,7 @@ export const myOpenAI = customProvider({
 });
 ```
 
-## Example: model name alias
+### Example: model name alias
 
 You can also provide model name aliases, so you can update the model version in one place in the future:
 
@@ -62,7 +62,7 @@ export const myAnthropic = customProvider({
 });
 ```
 
-## Example: limit available models
+### Example: limit available models
 
 You can limit the available models in the system, even if you have multiple providers.
 
@@ -87,9 +87,9 @@ export const myAnthropic = customProvider({
 
 ## Provider Registry
 
-### Setup
-
 You can create a [provider registry](/docs/reference/ai-sdk-core/provider-registry) with multiple providers and models using `experimental_createProviderRegistry`.
+
+### Example: Setup
 
 ```ts filename={"registry.ts"}
 import { anthropic } from '@ai-sdk/anthropic';
@@ -107,7 +107,7 @@ export const registry = createProviderRegistry({
 });
 ```
 
-### Language models
+### Example: Use language models
 
 You can access language models by using the `languageModel` method on the registry.
 The provider id will become the prefix of the model id: `providerId:modelId`.
@@ -122,7 +122,7 @@ const { text } = await generateText({
 });
 ```
 
-### Text embedding models
+### Example: Use text embedding models
 
 You can access text embedding models by using the `textEmbeddingModel` method on the registry.
 The provider id will become the prefix of the model id: `providerId:modelId`.
