@@ -1,3 +1,4 @@
+import { LanguageModelV1, ProviderV1 } from '@ai-sdk/provider';
 import {
   generateId,
   loadOptionalSetting,
@@ -30,16 +31,16 @@ export interface AmazonBedrockProviderSettings {
   generateId?: () => string;
 }
 
-export interface AmazonBedrockProvider {
+export interface AmazonBedrockProvider extends ProviderV1 {
   (
     modelId: BedrockChatModelId,
     settings?: BedrockChatSettings,
-  ): BedrockChatLanguageModel;
+  ): LanguageModelV1;
 
   languageModel(
     modelId: BedrockChatModelId,
     settings?: BedrockChatSettings,
-  ): BedrockChatLanguageModel;
+  ): LanguageModelV1;
 }
 
 /**
@@ -101,6 +102,7 @@ export function createAmazonBedrock(
   };
 
   provider.languageModel = createChatModel;
+  provider.textEmbeddingModel = () => undefined;
 
   return provider as AmazonBedrockProvider;
 }

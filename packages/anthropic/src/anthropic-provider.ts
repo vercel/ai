@@ -1,3 +1,4 @@
+import { LanguageModelV1, ProviderV1 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
@@ -9,14 +10,14 @@ import {
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
 
-export interface AnthropicProvider {
+export interface AnthropicProvider extends ProviderV1 {
   /**
 Creates a model for text generation.
 */
   (
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
-  ): AnthropicMessagesLanguageModel;
+  ): LanguageModelV1;
 
   /**
 Creates a model for text generation.
@@ -24,23 +25,23 @@ Creates a model for text generation.
   languageModel(
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
-  ): AnthropicMessagesLanguageModel;
+  ): LanguageModelV1;
 
   /**
-Creates a model for text generation.
+@deprecated Use `.languageModel()` instead.
 */
   chat(
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
-  ): AnthropicMessagesLanguageModel;
+  ): LanguageModelV1;
 
   /**
-   * @deprecated Use `chat()` instead.
+@deprecated Use `.languageModel()` instead.
    */
   messages(
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
-  ): AnthropicMessagesLanguageModel;
+  ): LanguageModelV1;
 }
 
 export interface AnthropicProviderSettings {
@@ -122,6 +123,7 @@ export function createAnthropic(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
+  provider.textEmbeddingModel = () => undefined;
 
   return provider as AnthropicProvider;
 }
