@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 0.0.54
+
+### Patch Changes
+
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/provider-utils@1.0.17
+
 ## 0.0.53
 
 ### Patch Changes

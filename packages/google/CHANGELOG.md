@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 0.0.46
+
+### Patch Changes
+
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/provider-utils@1.0.17
+
 ## 0.0.45
 
 ### Patch Changes

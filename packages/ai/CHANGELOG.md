@@ -1,5 +1,20 @@
 # ai
 
+## 3.3.18
+
+### Patch Changes
+
+- 9e3b5a5: feat (ai/core): add experimental_customProvider
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/provider-utils@1.0.17
+  - @ai-sdk/ui-utils@0.0.39
+  - @ai-sdk/react@0.0.52
+  - @ai-sdk/solid@0.0.42
+  - @ai-sdk/svelte@0.0.44
+  - @ai-sdk/vue@0.0.44
+
 ## 3.3.17
 
 ### Patch Changes

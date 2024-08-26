@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/openai",
-  "version": "0.0.53",
+  "version": "0.0.54",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -36,8 +36,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.21",
-    "@ai-sdk/provider-utils": "1.0.16"
+    "@ai-sdk/provider": "0.0.22",
+    "@ai-sdk/provider-utils": "1.0.17"
   },
   "devDependencies": {
     "@types/node": "^18",
