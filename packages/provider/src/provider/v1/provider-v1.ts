@@ -2,11 +2,11 @@ import { EmbeddingModelV1 } from '../../embedding-model/v1/embedding-model-v1';
 import { LanguageModelV1 } from '../../language-model/v1/language-model-v1';
 
 /**
- * Provides for language and text embedding models.
+ * Provider for language and text embedding models.
  */
 export interface ProviderV1 {
   /**
-Returns the language model with the given id in the format `providerId:modelId`.
+Returns the language model with the given id.
 The model id is then passed to the provider function to get the model.
 
 @param {string} id - The id of the model to return.
@@ -16,7 +16,7 @@ The model id is then passed to the provider function to get the model.
   languageModel(modelId: string): LanguageModelV1 | undefined;
 
   /**
-Returns the text embedding model with the given id in the format `providerId:modelId`.
+Returns the text embedding model with the given id.
 The model id is then passed to the provider function to get the model.
 
 @param {string} id - The id of the model to return.
