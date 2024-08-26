@@ -149,9 +149,9 @@ Google Generative AI language models can also be used in the `streamText`, `gene
 You can use Google Generative AI language models to cache content:
 
 ```ts
-import { google } from "@ai-sdk/google";
-import { GoogleAICacheManager } from "@google/generative-ai/server";
-import { generateText } from "ai";
+import { google } from '@ai-sdk/google';
+import { GoogleAICacheManager } from '@google/generative-ai/server';
+import { generateText } from 'ai';
 
 const cacheManager = new GoogleAICacheManager(
   process.env.GOOGLE_GENERATIVE_AI_API_KEY,
@@ -159,17 +159,17 @@ const cacheManager = new GoogleAICacheManager(
 
 // As of August 23rd, 2024, these are the only models that support caching
 type GoogleModelCacheableId =
-  | "models/gemini-1.5-flash-001"
-  | "models/gemini-1.5-pro-001";
+  | 'models/gemini-1.5-flash-001'
+  | 'models/gemini-1.5-pro-001';
 
-const model: GoogleModelCacheableId = "models/gemini-1.5-pro-001";
+const model: GoogleModelCacheableId = 'models/gemini-1.5-pro-001';
 
 const { name: cachedContent } = await cacheManager.create({
   model,
   contents: [
     {
-      role: "user",
-      parts: [{ text: "1000 Lasanga Recipes..." }],
+      role: 'user',
+      parts: [{ text: '1000 Lasanga Recipes...' }],
     },
   ],
   ttlSeconds: 60 * 5,
@@ -177,12 +177,12 @@ const { name: cachedContent } = await cacheManager.create({
 
 const { text: veggieLasangaRecipe } = await generateText({
   model: google(model, { cachedContent }),
-  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 
 const { text: meatLasangaRecipe } = await generateText({
   model: google(model, { cachedContent }),
-  prompt: "Write a meat lasagna recipe for 12 people.",
+  prompt: 'Write a meat lasagna recipe for 12 people.',
 });
 ```
 
