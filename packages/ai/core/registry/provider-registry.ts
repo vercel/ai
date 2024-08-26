@@ -6,34 +6,10 @@ import { experimental_Provider } from './provider';
 
 /**
 Registry for managing models. It enables getting a model with a string id.
+
+@deprecated Use `experimental_Provider` instead.
  */
-export type experimental_ProviderRegistry = {
-  /**
-Returns the language model with the given id in the format `providerId:modelId`.
-The model id is then passed to the provider function to get the model.
-
-@param {string} id - The id of the model to return.
-
-@throws {NoSuchModelError} If no model with the given id exists.
-@throws {NoSuchProviderError} If no provider with the given id exists.
-
-@returns {LanguageModel} The language model associated with the id.
-   */
-  languageModel(id: string): LanguageModel;
-
-  /**
-Returns the text embedding model with the given id in the format `providerId:modelId`.
-The model id is then passed to the provider function to get the model.
-
-@param {string} id - The id of the model to return.
-
-@throws {NoSuchModelError} If no model with the given id exists.
-@throws {NoSuchProviderError} If no provider with the given id exists.
-
-@returns {LanguageModel} The language model associated with the id.
-   */
-  textEmbeddingModel(id: string): EmbeddingModel<string>;
-};
+export type experimental_ProviderRegistry = ProviderV1;
 
 /**
  * @deprecated Use `experimental_ProviderRegistry` instead.
@@ -45,7 +21,7 @@ export type experimental_ModelRegistry = experimental_ProviderRegistry;
  */
 export function experimental_createProviderRegistry(
   providers: Record<string, experimental_Provider | ProviderV1>,
-): experimental_ProviderRegistry {
+): ProviderV1 {
   const registry = new DefaultProviderRegistry();
 
   for (const [id, provider] of Object.entries(providers)) {
@@ -61,7 +37,7 @@ export function experimental_createProviderRegistry(
 export const experimental_createModelRegistry =
   experimental_createProviderRegistry;
 
-class DefaultProviderRegistry implements experimental_ProviderRegistry {
+class DefaultProviderRegistry implements ProviderV1 {
   private providers: Record<string, experimental_Provider | ProviderV1> = {};
 
   registerProvider({
