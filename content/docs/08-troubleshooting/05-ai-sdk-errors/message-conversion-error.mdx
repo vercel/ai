@@ -1,0 +1,54 @@
+---
+title: MessageConversionError
+description: Error thrown during the conversion of messages
+---
+
+# MessageConversionError
+
+## When This Error Occurs
+
+The `MessageConversionError` occurs when there's a problem converting a message from one format to another within the AI SDK. This typically happens during the process of converting user-provided messages that are consumed by `useChat` to the core message format used internally by the SDK.
+
+## What It Means
+
+This error indicates that the SDK encountered an issue while trying to parse or transform a message. It could be due to various reasons, such as:
+
+1. Invalid message structure
+2. Unsupported message role
+3. Problems with attachment URLs or formats
+4. Incompatible data types
+
+The error contains information about the original message that caused the problem, which can be helpful for debugging.
+
+## How to Resolve It
+
+To resolve a `MessageConversionError`, follow these steps:
+
+1. Check the error message for specific details about what went wrong.
+2. Examine the `originalMessage` property of the error object to identify the problematic message.
+3. Ensure that all messages you're passing to the SDK conform to the expected format and structure.
+4. Verify that all message roles are supported (e.g., 'system', 'user', 'assistant').
+5. If using attachments, make sure the URLs are valid and the content types are supported.
+6. Double-check that all data in the messages is of the correct type and format.
+
+## Usage
+
+Here's an example of how the `MessageConversionError` might be used in the SDK:
+
+```ts
+import { MessageConversionError } from './message-conversion-error';
+import { ConvertibleMessage } from './convert-to-core-messages';
+
+function convertMessage(message: ConvertibleMessage) {
+  try {
+    // Attempt to convert the message
+    // If conversion fails, throw an error
+    throw new Error('Conversion failed');
+  } catch (error) {
+    throw new MessageConversionError({
+      originalMessage: message,
+      message: 'Failed to convert message: ' + error.message,
+    });
+  }
+}
+```

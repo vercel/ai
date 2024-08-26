@@ -1,0 +1,65 @@
+---
+title: AI_InvalidArgumentError
+description: An error thrown when an invalid argument is provided to a function
+---
+
+# InvalidArgumentError
+
+## When This Error Occurs
+
+This error occurs when an invalid argument is passed to a function in the AI SDK. It specifically happens when the value provided for a parameter does not meet the expected criteria or format.
+
+## What It Means
+
+The `InvalidArgumentError` indicates that there's a mismatch between the expected input and the actual input provided to a function. This could be due to various reasons such as:
+
+1. Incorrect data type
+2. Value out of the acceptable range
+3. Missing required properties
+4. Unexpected format
+
+The error provides details about which parameter caused the issue and includes a message explaining why the argument is considered invalid.
+
+## How to Resolve It
+
+To resolve this error:
+
+1. Check the error message for details about which parameter is causing the issue.
+2. Review the [documentation](https://sdk.vercel.ai/docs/reference) for the function you're calling to understand the expected format and constraints for each parameter.
+3. Verify that the value you're passing for the identified parameter meets all the requirements.
+4. If you're using a variable, ensure it's properly initialized and contains the expected data before passing it to the function.
+5. Double-check for any typos in parameter names or values.
+6. If you're working with complex objects or arrays, make sure all required properties are present and correctly formatted.
+
+Example of fixing the error:
+
+```typescript
+// Incorrect usage
+const result = await generateText({
+  model: 'invalid-model-name',
+  prompt: 'Hello, world!',
+});
+
+// Correct usage
+const result = await generateText({
+  model: openai('gpt-3.5-turbo'),
+  prompt: 'Hello, world!',
+});
+```
+
+## Usage
+
+```typescript
+import { InvalidArgumentError } from '@vercel/ai';
+
+try {
+  // Your AI SDK function call here
+} catch (error) {
+  if (InvalidArgumentError.isInstance(error)) {
+    console.error(`Invalid argument: ${error.parameter} = ${error.value}`);
+    console.error(`Error message: ${error.message}`);
+  } else {
+    // Handle other types of errors
+  }
+}
+```

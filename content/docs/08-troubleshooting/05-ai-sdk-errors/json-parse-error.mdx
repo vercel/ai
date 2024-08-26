@@ -1,0 +1,48 @@
+---
+title: JSON Parse Error
+description: Error thrown when parsing JSON fails
+---
+
+# JSON Parse Error
+
+## When This Error Occurs
+
+This error occurs when the AI SDK attempts to parse a JSON string but fails to do so. It typically happens when the input text is not valid JSON or when there are syntax errors in the JSON structure.
+
+## What It Means
+
+A `JSONParseError` indicates that the system received a string that it expected to be valid JSON, but encountered issues while trying to convert it into a JavaScript object. This could be due to:
+
+1. Malformed JSON syntax
+2. Unexpected characters in the JSON string
+3. Incomplete JSON data
+
+## How to Resolve It
+
+To resolve a `JSONParseError`, you should:
+
+1. Check the original JSON string for syntax errors.
+2. Ensure that the JSON is complete and properly formatted.
+3. Validate the JSON using a JSON linter or validator tool.
+4. If the JSON is being generated programmatically, review the code that produces it to ensure it's creating valid JSON.
+
+If you're receiving this JSON from an external source:
+
+1. Contact the source provider to report the issue.
+2. Implement error handling in your code to gracefully manage cases where invalid JSON is received.
+
+## Usage
+
+```typescript
+import { JSONParseError } from '@vercel/ai';
+
+try {
+  // Some operation that might throw a JSONParseError
+} catch (error) {
+  if (JSONParseError.isInstance(error)) {
+    console.error('JSON parsing failed:', error.message);
+    console.log('Problematic text:', error.text);
+    // Handle the error appropriately
+  }
+}
+```

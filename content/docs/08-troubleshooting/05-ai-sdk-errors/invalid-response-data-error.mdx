@@ -1,0 +1,44 @@
+---
+title: InvalidResponseDataError
+description: Error thrown when the provider returns a response with invalid data content
+---
+
+# InvalidResponseDataError
+
+## When This Error Occurs
+
+This error occurs when the AI SDK cannot parse the response received from the AI provider.
+
+## What It Means
+
+The `InvalidResponseDataError` indicates that the response data from the AI provider is not in the expected format or structure. This could be due to various reasons, such as:
+
+1. Changes in the API response structure that haven't been accounted for in the SDK.
+2. Malformed data sent by the server.
+3. Unexpected data types in the response.
+
+## How to Resolve It
+
+To resolve this error, you can take the following steps:
+
+1. Check the `data` property of the error object to inspect the problematic response.
+2. Ensure that your SDK version is up to date and compatible with the API version you're using.
+3. If you're developing a custom provider, review your response parsing logic to handle potential edge cases.
+4. [Open an issue](https://github.com/vercel/ai/issues/new/choose) on the GitHub repository.
+
+## Usage
+
+```ts
+import { InvalidResponseDataError } from '@vercel/ai';
+
+try {
+  // Your code that might throw this error
+} catch (error) {
+  if (InvalidResponseDataError.isInstance(error)) {
+    console.error('Invalid response data:', error.data);
+    // Handle the error appropriately
+  } else {
+    // Handle other types of errors
+  }
+}
+```

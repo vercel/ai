@@ -1,0 +1,67 @@
+---
+title: RetryError
+description: Error thrown when retrying an operation fails
+---
+
+# RetryError
+
+## When This Error Occurs
+
+The `RetryError` occurs in the following scenarios:
+
+1. When the maximum number of retries has been exceeded.
+2. When an error is encountered that is not retryable.
+3. When the operation is aborted.
+
+## What It Means
+
+A `RetryError` indicates that an operation that was being retried has ultimately failed. This could be due to persistent issues with the operation, network problems, or intentional abortion of the process.
+
+The error contains information about the reason for the failure and a history of the errors encountered during the retry attempts.
+
+## How to Resolve It
+
+To resolve a `RetryError`, consider the following steps:
+
+1. Check the `reason` property of the error to understand why the retry process failed.
+2. Examine the `lastError` and `errors` properties for more details about the specific errors encountered.
+3. Based on the reason:
+   - If `maxRetriesExceeded`: Consider increasing the maximum retry limit or addressing the underlying issue causing repeated failures.
+   - If `errorNotRetryable`: Investigate the specific error that was deemed not retryable and address it directly.
+   - If `abort`: Determine if the abortion was intentional or due to a timeout, and adjust your code accordingly.
+4. Review your retry strategy and consider implementing exponential backoff or other advanced retry mechanisms.
+5. Ensure that the operation you're retrying is idempotent to prevent unintended side effects from multiple attempts.
+
+## Usage
+
+Here's an example of how to handle a `RetryError`:
+
+```typescript
+import { RetryError } from '@ai-sdk/provider';
+
+try {
+  // Your operation that might throw a RetryError
+} catch (error) {
+  if (RetryError.isInstance(error)) {
+    console.error(`Retry failed: ${error.message}`);
+    console.error(`Reason: ${error.reason}`);
+    console.error(`Last error: ${error.lastError}`);
+    console.error(`All errors:`, error.errors);
+
+    // Handle the error based on the reason
+    switch (error.reason) {
+      case 'maxRetriesExceeded':
+        // Handle max retries exceeded
+        break;
+      case 'errorNotRetryable':
+        // Handle non-retryable error
+        break;
+      case 'abort':
+        // Handle aborted operation
+        break;
+    }
+  } else {
+    // Handle other types of errors
+  }
+}
+```

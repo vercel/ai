@@ -1,0 +1,47 @@
+---
+title: UnsupportedFunctionalityError
+description: Error thrown when attempting to use unsupported functionality
+---
+
+# UnsupportedFunctionalityError
+
+## When This Error Occurs
+
+This error occurs when a user attempts to use a functionality that is not yet supported by the AI SDK or the provider.
+
+## What It Means
+
+The `UnsupportedFunctionalityError` indicates that the requested operation or feature is not available or not supported by the AI SDK. This could be due to various reasons, such as:
+
+1. The functionality is planned for a future release but not yet implemented.
+2. The feature is not compatible with the current version of the SDK.
+3. The requested operation is not supported for the specific AI model or provider being used.
+
+## How to Resolve It
+
+To resolve this error, consider the following steps:
+
+1. Check the AI SDK documentation to ensure you are using supported features and methods.
+2. Verify that you are using the latest version of the AI SDK, as the functionality might be available in a newer release.
+3. If the functionality is crucial for your application, consider using an alternative approach or workaround that is supported by the SDK.
+4. Request the feature by opening an issue on the [AI SDK GitHub repository](https://github.com/vercel/ai/issues/new?assignees=&labels=&projects=&template=2.feature_request.yml)
+
+## Usage
+
+The UnsupportedFunctionalityError is used internally by the AI SDK. However, you can catch and handle this error in your code to provide more graceful error handling:
+
+```typescript
+import { UnsupportedFunctionalityError } from '@vercel/ai';
+
+try {
+  // Some operation that might throw an UnsupportedFunctionalityError
+} catch (error) {
+  if (UnsupportedFunctionalityError.isInstance(error)) {
+    console.error(`Unsupported functionality: ${error.functionality}`);
+    // Handle the error or provide an alternative solution
+  } else {
+    // Handle other types of errors
+    throw error;
+  }
+}
+```

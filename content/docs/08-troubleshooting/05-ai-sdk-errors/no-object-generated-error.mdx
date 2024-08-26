@@ -1,0 +1,67 @@
+---
+title: NoObjectGeneratedError
+description: Error thrown when the AI provider fails to generate a parsable object
+---
+
+# NoObjectGeneratedError
+
+## When This Error Occurs
+
+This error occurs when using the `generateObject` or `streamObject` functions and the AI model fails to generate a parsable object that matches the specified schema.
+
+## What It Means
+
+The `NoObjectGeneratedError` indicates that the AI model was unable to produce a valid object structure based on the given prompt and schema. This could happen for various reasons:
+
+1. The model's output doesn't conform to the expected JSON format.
+2. The generated object doesn't match the structure defined in the provided schema.
+3. The model failed to generate any meaningful output.
+
+## How to Resolve It
+
+To resolve this error, consider the following steps:
+
+1. Review your prompt: Ensure that your prompt clearly instructs the AI model to generate the desired object structure.
+
+2. Check your schema: Verify that the schema you've provided is correct and not too restrictive for the AI model to fulfill.
+
+3. Adjust model parameters: Try modifying parameters like temperature or max_tokens to influence the model's output.
+
+4. Use error handling: Implement proper error handling in your code to gracefully manage this error when it occurs.
+
+5. Retry with backoff: In some cases, retrying the request with an exponential backoff strategy might help.
+
+## Usage
+
+Here's an example of how to handle this error:
+
+```typescript
+import { generateObject, NoObjectGeneratedError } from 'ai';
+import { z } from 'zod';
+
+async function generateRecipe() {
+  try {
+    const result = await generateObject({
+      model: yourModel,
+      schema: z.object({
+        recipe: z.object({
+          name: z.string(),
+          ingredients: z.array(z.string()),
+          steps: z.array(z.string()),
+        }),
+      }),
+      prompt: 'Generate a simple recipe.',
+    });
+
+    return result.object;
+  } catch (error) {
+    if (NoObjectGeneratedError.isInstance(error)) {
+      console.error('Failed to generate object:', error.message);
+      // Handle the error (e.g., retry, use a fallback, or inform the user)
+    } else {
+      // Handle other types of errors
+      throw error;
+    }
+  }
+}
+```
