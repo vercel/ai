@@ -227,6 +227,6 @@ describe('error handling', () => {
       convertToCoreMessages([
         { role: 'unknown' as any, content: 'unknown role message' },
       ]);
-    }).toThrow('Unhandled role: unknown');
+    }).toThrow('Unsupported role: unknown');
   });
 });

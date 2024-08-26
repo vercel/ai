@@ -1,6 +1,7 @@
-import { Attachment, Message, ToolInvocation } from '@ai-sdk/ui-utils';
+import { Attachment, ToolInvocation } from '@ai-sdk/ui-utils';
 import { CoreMessage } from '../prompt';
 import { attachmentsToParts } from './attachments-to-parts';
+import { MessageConversionError } from './message-conversion-error';
 
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used
@@ -76,8 +77,12 @@ export function convertToCoreMessages(
           role: 'tool',
           content: toolInvocations.map(ToolInvocation => {
             if (!('result' in ToolInvocation)) {
-              // TODO dedicated conversion error
-              throw new Error('ToolInvocation must have a result.');
+              throw new MessageConversionError({
+                role,
+                message:
+                  'ToolInvocation must have a result: ' +
+                  JSON.stringify(ToolInvocation),
+              });
             }
 
             const { toolCallId, toolName, args, result } = ToolInvocation;
@@ -104,7 +109,10 @@ export function convertToCoreMessages(
 
       default: {
         const _exhaustiveCheck: never = role;
-        throw new Error(`Unhandled role: ${_exhaustiveCheck}`);
+        throw new MessageConversionError({
+          role,
+          message: `Unsupported role: ${_exhaustiveCheck}`,
+        });
       }
     }
   }
