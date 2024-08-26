@@ -1,3 +1,4 @@
+import { ProviderV1 } from '@ai-sdk/provider';
 import { EmbeddingModel, LanguageModel } from '../types';
 import { InvalidModelIdError } from './invalid-model-id-error';
 import { NoSuchModelError } from './no-such-model-error';
@@ -44,7 +45,7 @@ export type experimental_ModelRegistry = experimental_ProviderRegistry;
  * Creates a registry for the given providers.
  */
 export function experimental_createProviderRegistry(
-  providers: Record<string, experimental_Provider>,
+  providers: Record<string, experimental_Provider | ProviderV1>,
 ): experimental_ProviderRegistry {
   const registry = new DefaultProviderRegistry();
 
@@ -62,19 +63,19 @@ export const experimental_createModelRegistry =
   experimental_createProviderRegistry;
 
 class DefaultProviderRegistry implements experimental_ProviderRegistry {
-  private providers: Record<string, experimental_Provider> = {};
+  private providers: Record<string, experimental_Provider | ProviderV1> = {};
 
   registerProvider({
     id,
     provider,
   }: {
     id: string;
-    provider: experimental_Provider;
+    provider: experimental_Provider | ProviderV1;
   }): void {
     this.providers[id] = provider;
   }
 
-  private getProvider(id: string): experimental_Provider {
+  private getProvider(id: string): experimental_Provider | ProviderV1 {
     const provider = this.providers[id];
 
     if (provider == null) {
@@ -114,7 +115,9 @@ class DefaultProviderRegistry implements experimental_ProviderRegistry {
 
     const model =
       provider.textEmbeddingModel?.(modelId) ??
-      provider.textEmbedding?.(modelId);
+      ('textEmbedding' in provider
+        ? provider.textEmbedding?.(modelId)
+        : undefined);
 
     if (model == null) {
       throw new NoSuchModelError({
