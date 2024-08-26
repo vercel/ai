@@ -6,13 +6,11 @@ import {
   OpenAIEmbeddingModel,
   OpenAIEmbeddingSettings,
 } from '@ai-sdk/openai/internal';
+import { EmbeddingModelV1, LanguageModelV1 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
 export interface AzureOpenAIProvider {
-  (
-    deploymentId: string,
-    settings?: OpenAIChatSettings,
-  ): OpenAIChatLanguageModel;
+  (deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV1;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
@@ -20,15 +18,12 @@ Creates an Azure OpenAI chat model for text generation.
   languageModel(
     deploymentId: string,
     settings?: OpenAIChatSettings,
-  ): OpenAIChatLanguageModel;
+  ): LanguageModelV1;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  chat(
-    deploymentId: string,
-    settings?: OpenAIChatSettings,
-  ): OpenAIChatLanguageModel;
+  chat(deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV1;
 
   /**
 Creates an Azure OpenAI model for text embeddings.
@@ -36,7 +31,7 @@ Creates an Azure OpenAI model for text embeddings.
   embedding(
     deploymentId: string,
     settings?: OpenAIEmbeddingSettings,
-  ): OpenAIEmbeddingModel;
+  ): EmbeddingModelV1<string>;
 
   /**
 Creates an Azure OpenAI model for text embeddings.
@@ -44,7 +39,7 @@ Creates an Azure OpenAI model for text embeddings.
   textEmbedding(
     deploymentId: string,
     settings?: OpenAIEmbeddingSettings,
-  ): OpenAIEmbeddingModel;
+  ): EmbeddingModelV1<string>;
 
   /**
    * Creates an Azure OpenAI completion model for text generation.
@@ -52,7 +47,7 @@ Creates an Azure OpenAI model for text embeddings.
   completion(
     deploymentId: string,
     settings?: OpenAICompletionSettings,
-  ): OpenAICompletionLanguageModel;
+  ): LanguageModelV1;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -176,4 +171,4 @@ export function createAzure(
 /**
 Default Azure OpenAI provider instance.
  */
-export const azure = createAzure({});
+export const azure = createAzure();
