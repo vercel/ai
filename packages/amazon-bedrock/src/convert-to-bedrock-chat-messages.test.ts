@@ -1,5 +1,25 @@
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 
+describe('system messages', () => {
+  it('should combine multiple leading system messages into a single system message', async () => {
+    const { system } = convertToBedrockChatMessages([
+      { role: 'system', content: 'Hello' },
+      { role: 'system', content: 'World' },
+    ]);
+
+    expect(system).toEqual('Hello\nWorld');
+  });
+
+  it('should throw an error if a system message is provided after a non-system message', async () => {
+    expect(() =>
+      convertToBedrockChatMessages([
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        { role: 'system', content: 'World' },
+      ]),
+    ).toThrowError();
+  });
+});
+
 describe('user messages', () => {
   it('should convert messages with image and text parts to multiple parts', async () => {
     const { messages } = convertToBedrockChatMessages([
@@ -41,14 +61,5 @@ describe('user messages', () => {
     ]);
 
     expect(system).toEqual('Hello');
-  });
-
-  it('should throw an error if multiple system messages are provided', async () => {
-    expect(() =>
-      convertToBedrockChatMessages([
-        { role: 'system', content: 'Hello' },
-        { role: 'system', content: 'World' },
-      ]),
-    ).toThrowError();
   });
 });
