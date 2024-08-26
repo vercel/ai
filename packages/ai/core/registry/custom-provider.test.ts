@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { customProvider } from './custom-provider';
+import { experimental_customProvider } from './custom-provider';
 import { NoSuchModelError } from '@ai-sdk/provider';
 
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
@@ -14,7 +14,7 @@ const mockFallbackProvider = {
 
 describe('languageModel', () => {
   it('should return the language model if it exists', () => {
-    const provider = customProvider({
+    const provider = experimental_customProvider({
       languageModels: { 'test-model': mockLanguageModel },
     });
 
@@ -24,7 +24,7 @@ describe('languageModel', () => {
   it('should use fallback provider if model not found and fallback exists', () => {
     mockFallbackProvider.languageModel.mockReturnValue(mockLanguageModel);
 
-    const provider = customProvider({
+    const provider = experimental_customProvider({
       fallbackProvider: mockFallbackProvider,
     });
 
@@ -35,7 +35,7 @@ describe('languageModel', () => {
   });
 
   it('should throw NoSuchModelError if model not found and no fallback', () => {
-    const provider = customProvider({});
+    const provider = experimental_customProvider({});
     expect(() => provider.languageModel('test-model')).toThrow(
       NoSuchModelError,
     );
@@ -44,7 +44,7 @@ describe('languageModel', () => {
 
 describe('textEmbeddingModel', () => {
   it('should return the embedding model if it exists', () => {
-    const provider = customProvider({
+    const provider = experimental_customProvider({
       textEmbeddingModels: { 'test-model': mockEmbeddingModel },
     });
 
@@ -54,7 +54,7 @@ describe('textEmbeddingModel', () => {
   it('should use fallback provider if model not found and fallback exists', () => {
     mockFallbackProvider.textEmbeddingModel.mockReturnValue(mockEmbeddingModel);
 
-    const provider = customProvider({
+    const provider = experimental_customProvider({
       fallbackProvider: mockFallbackProvider,
     });
 
@@ -65,7 +65,7 @@ describe('textEmbeddingModel', () => {
   });
 
   it('should throw NoSuchModelError if model not found and no fallback', () => {
-    const provider = customProvider({});
+    const provider = experimental_customProvider({});
 
     expect(() => provider.textEmbeddingModel('test-model')).toThrow(
       NoSuchModelError,

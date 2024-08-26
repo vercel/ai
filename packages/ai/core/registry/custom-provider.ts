@@ -2,7 +2,7 @@ import { EmbeddingModelV1, LanguageModelV1 } from '@ai-sdk/provider';
 import { Provider } from '../types';
 import { NoSuchModelError } from '@ai-sdk/provider';
 
-export function customProvider({
+export function experimental_customProvider({
   languageModels,
   textEmbeddingModels,
   fallbackProvider,
