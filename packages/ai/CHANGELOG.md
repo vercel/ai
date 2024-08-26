@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.19
+
+### Patch Changes
+
+- 7235de0: fix (ai/core): convertToCoreMessages accepts Message[]
+
 ## 3.3.18
 
 ### Patch Changes
