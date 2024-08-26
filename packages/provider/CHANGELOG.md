@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 0.0.22
+
+### Patch Changes
+
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+
 ## 0.0.21
 
 ### Patch Changes
