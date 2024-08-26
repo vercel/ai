@@ -21,7 +21,7 @@ import { openai } from '@ai-sdk/openai';
 import { experimental_customProvider as customProvider } from 'ai';
 
 // custom provider with different model settings:
-const myOpenAI = customProvider({
+export const myOpenAI = customProvider({
   languageModels: {
     // replacement model with custom settings:
     'gpt-4': openai('gpt-4', { structuredOutputs: true }),
