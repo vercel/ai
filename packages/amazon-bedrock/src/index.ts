@@ -1,1 +1,2 @@
-export * from './bedrock-provider';
+export { bedrock, createAmazonBedrock } from './bedrock-provider';
+export type { AmazonBedrockProvider } from './bedrock-provider';

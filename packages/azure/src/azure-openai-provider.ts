@@ -6,10 +6,14 @@ import {
   OpenAIEmbeddingModel,
   OpenAIEmbeddingSettings,
 } from '@ai-sdk/openai/internal';
-import { EmbeddingModelV1, LanguageModelV1 } from '@ai-sdk/provider';
+import {
+  EmbeddingModelV1,
+  LanguageModelV1,
+  ProviderV1,
+} from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
-export interface AzureOpenAIProvider {
+export interface AzureOpenAIProvider extends ProviderV1 {
   (deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV1;
 
   /**
@@ -26,7 +30,15 @@ Creates an Azure OpenAI chat model for text generation.
   chat(deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV1;
 
   /**
-Creates an Azure OpenAI model for text embeddings.
+Creates an Azure OpenAI completion model for text generation.
+   */
+  completion(
+    deploymentId: string,
+    settings?: OpenAICompletionSettings,
+  ): LanguageModelV1;
+
+  /**
+@deprecated Use `textEmbeddingModel` instead.
    */
   embedding(
     deploymentId: string,
@@ -34,7 +46,7 @@ Creates an Azure OpenAI model for text embeddings.
   ): EmbeddingModelV1<string>;
 
   /**
-Creates an Azure OpenAI model for text embeddings.
+@deprecated Use `textEmbeddingModel` instead.
    */
   textEmbedding(
     deploymentId: string,
@@ -42,12 +54,12 @@ Creates an Azure OpenAI model for text embeddings.
   ): EmbeddingModelV1<string>;
 
   /**
-   * Creates an Azure OpenAI completion model for text generation.
+Creates an Azure OpenAI model for text embeddings.
    */
-  completion(
+  textEmbeddingModel(
     deploymentId: string,
-    settings?: OpenAICompletionSettings,
-  ): LanguageModelV1;
+    settings?: OpenAIEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -164,6 +176,7 @@ export function createAzure(
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
 
   return provider as AzureOpenAIProvider;
 }
