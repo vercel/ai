@@ -3,33 +3,33 @@ import { CoreMessage } from '../prompt';
 import { attachmentsToParts } from './attachments-to-parts';
 import { MessageConversionError } from './message-conversion-error';
 
+// Compatible with Message. Interface is limited to increase flexibility.
+// Only exposed internally.
+export type ConvertibleMessage = {
+  role:
+    | 'system'
+    | 'user'
+    | 'assistant'
+    | 'function' // @deprecated
+    | 'data'
+    | 'tool'; // @deprecated
+
+  content: string;
+  toolInvocations?: ToolInvocation[];
+  experimental_attachments?: Attachment[];
+};
+
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used
 with the AI core functions (e.g. `streamText`).
  */
-export function convertToCoreMessages(
-  messages: Array<{
-    role:
-      | 'system'
-      | 'user'
-      | 'assistant'
-      | 'function' // @deprecated
-      | 'data'
-      | 'tool'; // @deprecated
-
-    content: string;
-    toolInvocations?: ToolInvocation[];
-    experimental_attachments?: Attachment[];
-  }>,
-) {
+export function convertToCoreMessages(messages: Array<ConvertibleMessage>) {
   const coreMessages: CoreMessage[] = [];
 
-  for (const {
-    role,
-    content,
-    toolInvocations,
-    experimental_attachments,
-  } of messages) {
+  for (const message of messages) {
+    const { role, content, toolInvocations, experimental_attachments } =
+      message;
+
     switch (role) {
       case 'system': {
         coreMessages.push({
@@ -78,7 +78,7 @@ export function convertToCoreMessages(
           content: toolInvocations.map(ToolInvocation => {
             if (!('result' in ToolInvocation)) {
               throw new MessageConversionError({
-                role,
+                originalMessage: message,
                 message:
                   'ToolInvocation must have a result: ' +
                   JSON.stringify(ToolInvocation),
@@ -110,7 +110,7 @@ export function convertToCoreMessages(
       default: {
         const _exhaustiveCheck: never = role;
         throw new MessageConversionError({
-          role,
+          originalMessage: message,
           message: `Unsupported role: ${_exhaustiveCheck}`,
         });
       }
