@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 0.0.22
+
+### Patch Changes
+
+- c434799: feat (provider/bedrock): support multiple leading system messages
+
 ## 0.0.21
 
 ### Patch Changes
