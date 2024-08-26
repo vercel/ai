@@ -1,4 +1,4 @@
-import { ModelType, NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
+import { NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
 import { EmbeddingModel, LanguageModel } from '../types';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { experimental_Provider } from './provider';
@@ -54,6 +54,8 @@ class DefaultProviderRegistry implements ProviderV1 {
 
     if (provider == null) {
       throw new NoSuchProviderError({
+        modelId: id,
+        modelType: 'languageModel',
         providerId: id,
         availableProviders: Object.keys(this.providers),
       });
