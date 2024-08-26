@@ -1,6 +1,5 @@
-import { NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
+import { ModelType, NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
 import { EmbeddingModel, LanguageModel } from '../types';
-import { InvalidModelIdError } from './invalid-model-id-error';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { experimental_Provider } from './provider';
 
@@ -63,18 +62,27 @@ class DefaultProviderRegistry implements ProviderV1 {
     return provider;
   }
 
-  private splitId(id: string): [string, string] {
+  private splitId(
+    id: string,
+    modelType: 'languageModel' | 'textEmbeddingModel',
+  ): [string, string] {
     const index = id.indexOf(':');
 
     if (index === -1) {
-      throw new InvalidModelIdError({ id });
+      throw new NoSuchModelError({
+        modelId: id,
+        modelType,
+        message:
+          `Invalid ${modelType} id for registry: ${id} ` +
+          `(must be in the format "providerId:modelId")`,
+      });
     }
 
     return [id.slice(0, index), id.slice(index + 1)];
   }
 
   languageModel(id: string): LanguageModel {
-    const [providerId, modelId] = this.splitId(id);
+    const [providerId, modelId] = this.splitId(id, 'languageModel');
     const model = this.getProvider(providerId).languageModel?.(modelId);
 
     if (model == null) {
@@ -85,7 +93,7 @@ class DefaultProviderRegistry implements ProviderV1 {
   }
 
   textEmbeddingModel(id: string): EmbeddingModel<string> {
-    const [providerId, modelId] = this.splitId(id);
+    const [providerId, modelId] = this.splitId(id, 'textEmbeddingModel');
     const provider = this.getProvider(providerId);
 
     const model =
