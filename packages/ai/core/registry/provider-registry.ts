@@ -1,5 +1,5 @@
-import { NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
-import { EmbeddingModel, LanguageModel } from '../types';
+import { NoSuchModelError } from '@ai-sdk/provider';
+import { EmbeddingModel, LanguageModel, Provider } from '../types';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { experimental_Provider } from './provider';
 
@@ -8,7 +8,7 @@ Registry for managing models. It enables getting a model with a string id.
 
 @deprecated Use `experimental_Provider` instead.
  */
-export type experimental_ProviderRegistry = ProviderV1;
+export type experimental_ProviderRegistry = Provider;
 
 /**
  * @deprecated Use `experimental_ProviderRegistry` instead.
@@ -19,8 +19,8 @@ export type experimental_ModelRegistry = experimental_ProviderRegistry;
  * Creates a registry for the given providers.
  */
 export function experimental_createProviderRegistry(
-  providers: Record<string, experimental_Provider | ProviderV1>,
-): ProviderV1 {
+  providers: Record<string, experimental_Provider | Provider>,
+): Provider {
   const registry = new DefaultProviderRegistry();
 
   for (const [id, provider] of Object.entries(providers)) {
@@ -36,20 +36,20 @@ export function experimental_createProviderRegistry(
 export const experimental_createModelRegistry =
   experimental_createProviderRegistry;
 
-class DefaultProviderRegistry implements ProviderV1 {
-  private providers: Record<string, experimental_Provider | ProviderV1> = {};
+class DefaultProviderRegistry implements Provider {
+  private providers: Record<string, experimental_Provider | Provider> = {};
 
   registerProvider({
     id,
     provider,
   }: {
     id: string;
-    provider: experimental_Provider | ProviderV1;
+    provider: experimental_Provider | Provider;
   }): void {
     this.providers[id] = provider;
   }
 
-  private getProvider(id: string): experimental_Provider | ProviderV1 {
+  private getProvider(id: string): experimental_Provider | Provider {
     const provider = this.providers[id];
 
     if (provider == null) {
