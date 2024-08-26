@@ -1,5 +1,4 @@
-import { Attachment } from '@ai-sdk/ui-utils';
-import { ToolResult } from '../generate-text/tool-result';
+import { Attachment, Message, ToolInvocation } from '@ai-sdk/ui-utils';
 import { CoreMessage } from '../prompt';
 import { attachmentsToParts } from './attachments-to-parts';
 
@@ -9,9 +8,16 @@ with the AI core functions (e.g. `streamText`).
  */
 export function convertToCoreMessages(
   messages: Array<{
-    role: 'user' | 'assistant' | 'system';
+    role:
+      | 'system'
+      | 'user'
+      | 'assistant'
+      | 'function' // @deprecated
+      | 'data'
+      | 'tool'; // @deprecated
+
     content: string;
-    toolInvocations?: Array<ToolResult<string, unknown, unknown>>;
+    toolInvocations?: ToolInvocation[];
     experimental_attachments?: Attachment[];
   }>,
 ) {
@@ -68,17 +74,31 @@ export function convertToCoreMessages(
         // tool message with tool results
         coreMessages.push({
           role: 'tool',
-          content: toolInvocations.map(
-            ({ toolCallId, toolName, args, result }) => ({
+          content: toolInvocations.map(ToolInvocation => {
+            if (!('result' in ToolInvocation)) {
+              // TODO dedicated conversion error
+              throw new Error('ToolInvocation must have a result.');
+            }
+
+            const { toolCallId, toolName, args, result } = ToolInvocation;
+
+            return {
               type: 'tool-result' as const,
               toolCallId,
               toolName,
               args,
               result,
-            }),
-          ),
+            };
+          }),
         });
 
+        break;
+      }
+
+      case 'function':
+      case 'data':
+      case 'tool': {
+        // ignore
         break;
       }
 
