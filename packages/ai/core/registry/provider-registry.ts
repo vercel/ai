@@ -1,7 +1,6 @@
-import { ProviderV1 } from '@ai-sdk/provider';
+import { NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
 import { EmbeddingModel, LanguageModel } from '../types';
 import { InvalidModelIdError } from './invalid-model-id-error';
-import { NoSuchModelError } from './no-such-model-error';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { experimental_Provider } from './provider';
 

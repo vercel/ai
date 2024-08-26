@@ -1,4 +1,8 @@
-import { LanguageModelV1, ProviderV1 } from '@ai-sdk/provider';
+import {
+  LanguageModelV1,
+  NoSuchModelError,
+  ProviderV1,
+} from '@ai-sdk/provider';
 import { generateId, loadSetting } from '@ai-sdk/provider-utils';
 import { VertexAI, VertexInit } from '@google-cloud/vertexai';
 import { GoogleVertexLanguageModel } from './google-vertex-language-model';
@@ -103,7 +107,9 @@ export function createVertex(
   };
 
   provider.languageModel = createChatModel;
-  provider.textEmbeddingModel = () => undefined;
+  provider.textEmbeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
 
   return provider as GoogleVertexProvider;
 }

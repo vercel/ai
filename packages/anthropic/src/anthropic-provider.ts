@@ -1,4 +1,8 @@
-import { LanguageModelV1, ProviderV1 } from '@ai-sdk/provider';
+import {
+  LanguageModelV1,
+  NoSuchModelError,
+  ProviderV1,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
@@ -123,7 +127,9 @@ export function createAnthropic(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
-  provider.textEmbeddingModel = () => undefined;
+  provider.textEmbeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
 
   return provider as AnthropicProvider;
 }

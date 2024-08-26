@@ -11,9 +11,11 @@ The model id is then passed to the provider function to get the model.
 
 @param {string} id - The id of the model to return.
 
-@returns {LanguageModel} The language model associated with the id, or undefined if no such model exists.
+@returns {LanguageModel} The language model associated with the id
+
+@throws {NoSuchModelError} If no such model exists.
    */
-  languageModel(modelId: string): LanguageModelV1 | undefined;
+  languageModel(modelId: string): LanguageModelV1;
 
   /**
 Returns the text embedding model with the given id.
@@ -21,7 +23,9 @@ The model id is then passed to the provider function to get the model.
 
 @param {string} id - The id of the model to return.
 
-@returns {LanguageModel} The language model associated with the id, or undefined if no such model exists.
+@returns {LanguageModel} The language model associated with the id
+
+@throws {NoSuchModelError} If no such model exists.
    */
-  textEmbeddingModel(modelId: string): EmbeddingModelV1<string> | undefined;
+  textEmbeddingModel(modelId: string): EmbeddingModelV1<string>;
 }
