@@ -17,8 +17,8 @@ wrapping existing providers and adding additional functionality.
 You can create a custom provider using `experiental_createCustomProvider`.
 
 ```ts
-import { openai } from '@ai-sdk/openai'
-import { experimental_customProvider as customProvider } from 'ai'
+import { openai } from '@ai-sdk/openai';
+import { experimental_customProvider as customProvider } from 'ai';
 
 // custom provider with different model settings:
 const myOpenAI = customProvider({
@@ -26,10 +26,10 @@ const myOpenAI = customProvider({
     // replacement model with custom settings:
     'gpt-4': openai('gpt-4', { structuredOutputs: true }),
     // alias model with custom settings:
-    'gpt-4o-structured': openai('gpt-4o', { structuredOutputs: true })
+    'gpt-4o-structured': openai('gpt-4o', { structuredOutputs: true }),
   },
-  fallbackProvider: openai
-})
+  fallbackProvider: openai,
+});
 ```
 
 ## Import
@@ -50,22 +50,22 @@ const myOpenAI = customProvider({
       type: 'Record<string, LanguageModel>',
       isOptional: true,
       description:
-        'A record of language models, where keys are model IDs and values are LanguageModel instances.'
+        'A record of language models, where keys are model IDs and values are LanguageModel instances.',
     },
     {
       name: 'textEmbeddingModels',
       type: 'Record<string, EmbeddingModelV1<string>>',
       isOptional: true,
       description:
-        'A record of text embedding models, where keys are model IDs and values are EmbeddingModel<string> instances.'
+        'A record of text embedding models, where keys are model IDs and values are EmbeddingModel<string> instances.',
     },
     {
       name: 'fallbackProvider',
       type: 'Provider',
       isOptional: true,
       description:
-        'An optional fallback provider to use when a requested model is not found in the custom provider.'
-    }
+        'An optional fallback provider to use when a requested model is not found in the custom provider.',
+    },
   ]}
 />
 
@@ -79,13 +79,13 @@ The `createCustomProvider` function returns a `Provider` instance. It has the fo
       name: 'languageModel',
       type: '(id: string) => LanguageModel',
       description:
-        'A function that returns a language model by its id (format: providerId:modelId)'
+        'A function that returns a language model by its id (format: providerId:modelId)',
     },
     {
       name: 'textEmbeddingModel',
       type: '(id: string) => EmbeddingModel<string>',
       description:
-        'A function that returns a text embedding model by its id (format: providerId:modelId)'
-    }
+        'A function that returns a text embedding model by its id (format: providerId:modelId)',
+    },
   ]}
 />
