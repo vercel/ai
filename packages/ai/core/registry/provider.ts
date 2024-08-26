@@ -3,6 +3,8 @@ import { LanguageModel } from '../types/language-model';
 
 /**
  * Provides for language and text embedding models.
+ *
+ * @deprecated Use `ProviderV1` instead.
  */
 export interface experimental_Provider {
   /**

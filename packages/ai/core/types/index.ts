@@ -2,6 +2,7 @@ import type { CompletionTokenUsage as CompletionTokenUsageOriginal } from './tok
 
 export * from './embedding-model';
 export * from './language-model';
+export type { Provider } from './provider';
 export type { ProviderMetadata } from './provider-metadata';
 export type { EmbeddingTokenUsage } from './token-usage';
 /**

@@ -1,4 +1,9 @@
 import {
+  LanguageModelV1,
+  NoSuchModelError,
+  ProviderV1,
+} from '@ai-sdk/provider';
+import {
   FetchFunction,
   generateId,
   loadApiKey,
@@ -7,11 +12,8 @@ import {
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
 import { CohereChatModelId, CohereChatSettings } from './cohere-chat-settings';
 
-export interface CohereProvider {
-  (
-    modelId: CohereChatModelId,
-    settings?: CohereChatSettings,
-  ): CohereChatLanguageModel;
+export interface CohereProvider extends ProviderV1 {
+  (modelId: CohereChatModelId, settings?: CohereChatSettings): LanguageModelV1;
 
   /**
 Creates a model for text generation.
@@ -19,7 +21,7 @@ Creates a model for text generation.
   languageModel(
     modelId: CohereChatModelId,
     settings?: CohereChatSettings,
-  ): CohereChatLanguageModel;
+  ): LanguageModelV1;
 }
 
 export interface CohereProviderSettings {
@@ -93,6 +95,9 @@ export function createCohere(
   };
 
   provider.languageModel = createChatModel;
+  provider.textEmbeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
 
   return provider as CohereProvider;
 }

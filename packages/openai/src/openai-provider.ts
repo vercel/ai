@@ -1,4 +1,9 @@
 import {
+  EmbeddingModelV1,
+  LanguageModelV1,
+  ProviderV1,
+} from '@ai-sdk/provider';
+import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
@@ -16,16 +21,16 @@ import {
   OpenAIEmbeddingSettings,
 } from './openai-embedding-settings';
 
-export interface OpenAIProvider {
+export interface OpenAIProvider extends ProviderV1 {
   (
     modelId: 'gpt-3.5-turbo-instruct',
     settings?: OpenAICompletionSettings,
   ): OpenAICompletionLanguageModel;
-  (
-    modelId: OpenAIChatModelId,
-    settings?: OpenAIChatSettings,
-  ): OpenAIChatLanguageModel;
+  (modelId: OpenAIChatModelId, settings?: OpenAIChatSettings): LanguageModelV1;
 
+  /**
+Creates an OpenAI model for text generation.
+   */
   languageModel(
     modelId: 'gpt-3.5-turbo-instruct',
     settings?: OpenAICompletionSettings,
@@ -33,7 +38,7 @@ export interface OpenAIProvider {
   languageModel(
     modelId: OpenAIChatModelId,
     settings?: OpenAIChatSettings,
-  ): OpenAIChatLanguageModel;
+  ): LanguageModelV1;
 
   /**
 Creates an OpenAI chat model for text generation.
@@ -41,7 +46,7 @@ Creates an OpenAI chat model for text generation.
   chat(
     modelId: OpenAIChatModelId,
     settings?: OpenAIChatSettings,
-  ): OpenAIChatLanguageModel;
+  ): LanguageModelV1;
 
   /**
 Creates an OpenAI completion model for text generation.
@@ -49,7 +54,7 @@ Creates an OpenAI completion model for text generation.
   completion(
     modelId: OpenAICompletionModelId,
     settings?: OpenAICompletionSettings,
-  ): OpenAICompletionLanguageModel;
+  ): LanguageModelV1;
 
   /**
 Creates a model for text embeddings.
@@ -57,15 +62,25 @@ Creates a model for text embeddings.
   embedding(
     modelId: OpenAIEmbeddingModelId,
     settings?: OpenAIEmbeddingSettings,
-  ): OpenAIEmbeddingModel;
+  ): EmbeddingModelV1<string>;
 
   /**
 Creates a model for text embeddings.
+
+@deprecated Use `textEmbeddingModel` instead.
    */
   textEmbedding(
     modelId: OpenAIEmbeddingModelId,
     settings?: OpenAIEmbeddingSettings,
-  ): OpenAIEmbeddingModel;
+  ): EmbeddingModelV1<string>;
+
+  /**
+Creates a model for text embeddings.
+   */
+  textEmbeddingModel(
+    modelId: OpenAIEmbeddingModelId,
+    settings?: OpenAIEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
 }
 
 export interface OpenAIProviderSettings {
@@ -204,6 +219,7 @@ export function createOpenAI(
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
 
   return provider as OpenAIProvider;
 }

@@ -6,6 +6,8 @@ export {
   InvalidResponseDataError,
   JSONParseError,
   LoadAPIKeyError,
+  NoContentGeneratedError,
+  NoSuchModelError,
   TypeValidationError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
