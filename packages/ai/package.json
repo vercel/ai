@@ -16,7 +16,8 @@
     "prompts/dist/**/*",
     "rsc/dist/**/*",
     "google/dist/**/*",
-    "mistral/dist/**/*"
+    "mistral/dist/**/*",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup && cat react/dist/index.server.d.ts >> react/dist/index.d.ts",
