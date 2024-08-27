@@ -15,7 +15,7 @@ export interface CohereEmbeddingSettings {
    * - "search_document": Used for embeddings stored in a vector database for search use-cases.
    * - "search_query": Used for embeddings of search queries run against a vector DB to find relevant documents.
    * - "classification": Used for embeddings passed through a text classifier.
-   * - "clustering": Used for the embeddings run through a clustering algorithm.
+   * - "clustering": Used for embeddings run through a clustering algorithm.
    */
   inputType?:
     | 'search_document'
@@ -27,7 +27,7 @@ export interface CohereEmbeddingSettings {
    * Specifies how the API will handle inputs longer than the maximum token length.
    * Default is `END`.
    *
-   * - "NONE": If selected, when the input exceeds the maximum input token length an error will be returned.
+   * - "NONE": If selected, when the input exceeds the maximum input token length will return an error.
    * - "START": Will discard the start of the input until the remaining input is exactly the maximum input token length for the model.
    * - "END": Will discard the end of the input until the remaining input is exactly the maximum input token length for the model.
    */
