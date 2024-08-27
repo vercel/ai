@@ -116,7 +116,7 @@ using the `.embedding()` factory method.
 const model = cohere.embedding('embed-english-v3.0');
 ```
 
-Cohere embedding models support aditional settings. You can pass them as an options argument:
+Cohere embedding models support additional settings. You can pass them as an options argument:
 
 ```ts
 const model = cohere.embedding('embed-english-v3.0', {
@@ -133,7 +133,7 @@ The following optional settings are available for Cohere embedding models:
   - `search_document`: Used for embeddings stored in a vector database for search use-cases.
   - `search_query`: Used for embeddings of search queries run against a vector DB to find relevant documents.
   - `classification`: Used for embeddings passed through a text classifier.
-  - `clustering`: Used for the embeddings run through a clustering algorithm.
+  - `clustering`: Used for embeddings run through a clustering algorithm.
 
 - **truncate** _'NONE' | 'START' | 'END'_
 
