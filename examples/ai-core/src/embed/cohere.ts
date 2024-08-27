@@ -6,7 +6,7 @@ dotenv.config();
 
 async function main() {
   const { embedding, usage } = await embed({
-    model: cohere.textEmbeddingModel('embed-multilingual-v3.0'),
+    model: cohere.embedding('embed-multilingual-v3.0'),
     value: 'sunny day at the beach',
   });
 

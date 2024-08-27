@@ -28,6 +28,11 @@ Creates a model for text generation.
     settings?: CohereChatSettings,
   ): LanguageModelV1;
 
+  embedding(
+    modelId: CohereEmbeddingModelId,
+    settings?: CohereEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
+
   textEmbeddingModel(
     modelId: CohereEmbeddingModelId,
     settings?: CohereEmbeddingSettings,
@@ -116,6 +121,7 @@ export function createCohere(
   };
 
   provider.languageModel = createChatModel;
+  provider.embedding = createTextEmbeddingModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
 
   return provider as CohereProvider;
