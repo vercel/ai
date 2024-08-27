@@ -89,9 +89,13 @@ const result = await generateText({
 
 <Note>Tool roundtrips are currently only supported by `generateText`.</Note>
 
-The large language model needs to know the tool results before it can continue generating text.
+Large language models need to know the tool results before they can continue to generate text.
 This requires sending the tool results back to the model.
 You can enable this feature by setting the `maxToolRoundtrips` setting to a number greater than 0.
+
+When `maxToolRoundtrips` is set to a number greater than 0, the language model will be called
+in a loop when there are tool calls and for every tool call there is a tool result, until there
+are no further tool calls or the maximum number of tool roundtrips is reached.
 
 ```ts highlight="18"
 import { z } from 'zod';
@@ -116,6 +120,9 @@ const result = await generateText({
     'What is the weather in San Francisco and what attractions should I visit?',
 });
 ```
+
+To access intermediate tool calls and results, you can use the `roundTrips` property in the result object.
+It contains all the text, tool calls, tool results, and more from each roundtrip.
 
 ## Pre-Built Tools
 
