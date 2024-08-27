@@ -1,5 +1,160 @@
 # @ai-sdk/react
 
+## 0.0.52
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.17
+- @ai-sdk/ui-utils@0.0.39
+
+## 0.0.51
+
+### Patch Changes
+
+- Updated dependencies [d151349]
+  - @ai-sdk/ui-utils@0.0.38
+
+## 0.0.50
+
+### Patch Changes
+
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+  - @ai-sdk/ui-utils@0.0.37
+
+## 0.0.49
+
+### Patch Changes
+
+- Updated dependencies [b5a82b7]
+  - @ai-sdk/ui-utils@0.0.36
+
+## 0.0.48
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+  - @ai-sdk/ui-utils@0.0.35
+
+## 0.0.47
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.14
+- @ai-sdk/ui-utils@0.0.34
+
+## 0.0.46
+
+### Patch Changes
+
+- b6c1dee: fix (ui/react): allow sending empty messages with attachments
+
+## 0.0.45
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.13
+- @ai-sdk/ui-utils@0.0.33
+
+## 0.0.44
+
+### Patch Changes
+
+- Updated dependencies [dd712ac]
+  - @ai-sdk/provider-utils@1.0.12
+  - @ai-sdk/ui-utils@0.0.32
+
+## 0.0.43
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.11
+- @ai-sdk/ui-utils@0.0.31
+
+## 0.0.42
+
+### Patch Changes
+
+- e9c891d: feat (ai/react): useObject supports non-Zod schemas
+- Updated dependencies [e9c891d]
+- Updated dependencies [4bd27a9]
+- Updated dependencies [845754b]
+  - @ai-sdk/ui-utils@0.0.30
+  - @ai-sdk/provider-utils@1.0.10
+
+## 0.0.41
+
+### Patch Changes
+
+- e5b58f3: fix (ai/ui): forward streaming errors in useChat
+- Updated dependencies [e5b58f3]
+  - @ai-sdk/ui-utils@0.0.29
+
+## 0.0.40
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.9
+- @ai-sdk/ui-utils@0.0.28
+
+## 0.0.39
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.8
+- @ai-sdk/ui-utils@0.0.27
+
+## 0.0.38
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@1.0.7
+- @ai-sdk/ui-utils@0.0.26
+
+## 0.0.37
+
+### Patch Changes
+
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+  - @ai-sdk/provider-utils@1.0.6
+  - @ai-sdk/ui-utils@0.0.25
+
+## 0.0.36
+
+### Patch Changes
+
+- 5be25124: fix (ai/ui): useChat messages have stable ids with streamProtocol: "text"
+- Updated dependencies [5be25124]
+  - @ai-sdk/ui-utils@0.0.24
+
+## 0.0.35
+
+### Patch Changes
+
+- a147d040: feat (ai/react): useObject clears object when loading new result
+
+## 0.0.34
+
+### Patch Changes
+
+- b68fae4f: feat (ai/ui): add onFinish callback to useObject
+
+## 0.0.33
+
+### Patch Changes
+
+- Updated dependencies [fea7b604]
+  - @ai-sdk/ui-utils@0.0.23
+
+## 0.0.32
+
+### Patch Changes
+
+- Updated dependencies [1d93d716]
+  - @ai-sdk/ui-utils@0.0.22
+
 ## 0.0.31
 
 ### Patch Changes

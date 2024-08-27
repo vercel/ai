@@ -1,5 +1,119 @@
 # @ai-sdk/openai
 
+## 0.0.54
+
+### Patch Changes
+
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/provider-utils@1.0.17
+
+## 0.0.53
+
+### Patch Changes
+
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+
+## 0.0.52
+
+### Patch Changes
+
+- d5b6a15: feat (provider/openai): support partial usage information
+
+## 0.0.51
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+
+## 0.0.50
+
+### Patch Changes
+
+- Updated dependencies [f2c025e]
+  - @ai-sdk/provider@0.0.21
+  - @ai-sdk/provider-utils@1.0.14
+
+## 0.0.49
+
+### Patch Changes
+
+- f42d9bd: fix (provider/openai): support OpenRouter streaming errors
+
+## 0.0.48
+
+### Patch Changes
+
+- Updated dependencies [6ac355e]
+  - @ai-sdk/provider@0.0.20
+  - @ai-sdk/provider-utils@1.0.13
+
+## 0.0.47
+
+### Patch Changes
+
+- 4ffbaee: fix (provider/openai): fix strict flag for structured outputs with tools
+- dd712ac: fix: use FetchFunction type to prevent self-reference
+- Updated dependencies [dd712ac]
+  - @ai-sdk/provider-utils@1.0.12
+
+## 0.0.46
+
+### Patch Changes
+
+- 89b18ca: fix (ai/provider): send finish reason 'unknown' by default
+- Updated dependencies [dd4a0f5]
+  - @ai-sdk/provider@0.0.19
+  - @ai-sdk/provider-utils@1.0.11
+
+## 0.0.45
+
+### Patch Changes
+
+- Updated dependencies [4bd27a9]
+- Updated dependencies [845754b]
+  - @ai-sdk/provider-utils@1.0.10
+  - @ai-sdk/provider@0.0.18
+
+## 0.0.44
+
+### Patch Changes
+
+- 029af4c: feat (ai/core): support schema name & description in generateObject & streamObject
+- Updated dependencies [029af4c]
+  - @ai-sdk/provider@0.0.17
+  - @ai-sdk/provider-utils@1.0.9
+
+## 0.0.43
+
+### Patch Changes
+
+- d58517b: feat (ai/openai): structured outputs
+- c0a73ee: feat (provider/openai): add gpt-4o-2024-08-06 to list of supported models
+- Updated dependencies [d58517b]
+  - @ai-sdk/provider@0.0.16
+  - @ai-sdk/provider-utils@1.0.8
+
+## 0.0.42
+
+### Patch Changes
+
+- Updated dependencies [96aed25]
+  - @ai-sdk/provider@0.0.15
+  - @ai-sdk/provider-utils@1.0.7
+
+## 0.0.41
+
+### Patch Changes
+
+- 7a2eb27: feat (provider/openai): make role nullish to enhance provider support
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+  - @ai-sdk/provider-utils@1.0.6
+
 ## 0.0.40
 
 ### Patch Changes

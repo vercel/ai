@@ -276,7 +276,7 @@ const toolCallStreamPart: StreamPart<
 const toolResultStreamPart: StreamPart<
   'a',
   'tool_result',
-  CoreToolResult<string, any, any>
+  Omit<CoreToolResult<string, any, any>, 'args' | 'toolName'>
 > = {
   code: 'a',
   name: 'tool_result',
@@ -286,20 +286,19 @@ const toolResultStreamPart: StreamPart<
       typeof value !== 'object' ||
       !('toolCallId' in value) ||
       typeof value.toolCallId !== 'string' ||
-      !('toolName' in value) ||
-      typeof value.toolName !== 'string' ||
-      !('args' in value) ||
-      typeof value.args !== 'object' ||
       !('result' in value)
     ) {
       throw new Error(
-        '"tool_result" parts expect an object with a "toolCallId", "toolName", "args", and "result" property.',
+        '"tool_result" parts expect an object with a "toolCallId" and a "result" property.',
       );
     }
 
     return {
       type: 'tool_result',
-      value: value as unknown as CoreToolResult<string, any, any>,
+      value: value as unknown as Omit<
+        CoreToolResult<string, any, any>,
+        'args' | 'toolName'
+      >,
     };
   },
 };
@@ -386,15 +385,19 @@ const finishMessageStreamPart: StreamPart<
       value.usage == null ||
       typeof value.usage !== 'object' ||
       !('promptTokens' in value.usage) ||
-      typeof value.usage.promptTokens !== 'number' ||
-      !('completionTokens' in value.usage) ||
-      typeof value.usage.completionTokens !== 'number'
+      !('completionTokens' in value.usage)
     ) {
       throw new Error(
         '"finish_message" parts expect an object with a "finishReason" and "usage" property.',
       );
     }
-
+    // NaN is JSON parsed as null.
+    if (typeof value.usage.promptTokens !== 'number') {
+      value.usage.promptTokens = Number.NaN;
+    }
+    if (typeof value.usage.completionTokens !== 'number') {
+      value.usage.completionTokens = Number.NaN;
+    }
     return {
       type: 'finish_message',
       value: value as unknown as {

@@ -113,7 +113,7 @@ describe('doGenerate', () => {
   });
 
   it('should extract tool calls', async () => {
-    const { model } = createModel({
+    const { model, mockVertexAI } = createModel({
       generateContent: prepareResponse({
         parts: [
           {
@@ -145,6 +145,41 @@ describe('doGenerate', () => {
         ],
       },
       prompt: TEST_PROMPT,
+    });
+
+    expect(mockVertexAI.lastModelParams).toStrictEqual({
+      model: 'gemini-1.0-pro-002',
+      generationConfig: {
+        maxOutputTokens: undefined,
+        responseMimeType: undefined,
+        temperature: undefined,
+        topK: undefined,
+        topP: undefined,
+        stopSequences: undefined,
+      },
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              description: '',
+              name: 'test-tool',
+              parameters: {
+                description: undefined,
+                properties: {
+                  value: {
+                    description: undefined,
+                    required: undefined,
+                    type: 'STRING',
+                  },
+                },
+                required: ['value'],
+                type: 'OBJECT',
+              },
+            },
+          ],
+        },
+      ],
+      safetySettings: undefined,
     });
 
     expect(toolCalls).toStrictEqual([
@@ -198,12 +233,43 @@ describe('doGenerate', () => {
       model: 'test-model',
       generationConfig: {
         maxOutputTokens: 100,
+        responseMimeType: undefined,
         temperature: 0.5,
         topK: 0.1,
         topP: 0.9,
         stopSequences: ['abc', 'def'],
       },
       tools: undefined,
+      safetySettings: undefined,
+    });
+  });
+
+  it('should send search grounding tool', async () => {
+    const { model, mockVertexAI } = createModel({
+      modelId: 'test-model',
+      settings: {
+        useSearchGrounding: true,
+      },
+      generateContent: prepareResponse({}),
+    });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(mockVertexAI.lastModelParams).toStrictEqual({
+      model: 'test-model',
+      generationConfig: {
+        maxOutputTokens: undefined,
+        responseMimeType: undefined,
+        stopSequences: undefined,
+        temperature: undefined,
+        topK: undefined,
+        topP: undefined,
+      },
+      tools: [{ googleSearchRetrieval: {} }],
       safetySettings: undefined,
     });
   });
@@ -249,6 +315,47 @@ describe('doGenerate', () => {
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
       ],
     });
+  });
+
+  it('should set name & description in object-json mode', async () => {
+    const { model, mockVertexAI } = createModel({
+      modelId: 'test-model',
+      generateContent: prepareResponse({
+        parts: [{ text: '{"value":"Spark"}' }],
+      }),
+    });
+
+    const response = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(mockVertexAI.lastModelParams).toStrictEqual({
+      model: 'test-model',
+      generationConfig: {
+        maxOutputTokens: undefined,
+        responseMimeType: 'application/json',
+        stopSequences: undefined,
+        temperature: undefined,
+        topK: undefined,
+        topP: undefined,
+      },
+      safetySettings: undefined,
+    });
+
+    expect(response.text).toStrictEqual('{"value":"Spark"}');
   });
 });
 

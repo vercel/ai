@@ -78,6 +78,20 @@ const { embedding } = await embed({
                 'Enable or disable telemetry. Disabled by default while experimental.',
             },
             {
+              name: 'recordInputs',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Enable or disable input recording. Enabled by default.',
+            },
+            {
+              name: 'recordOutputs',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Enable or disable output recording. Enabled by default.',
+            },
+            {
               name: 'functionId',
               type: 'string',
               isOptional: true,

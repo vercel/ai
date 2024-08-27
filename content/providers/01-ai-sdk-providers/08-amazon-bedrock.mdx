@@ -88,6 +88,17 @@ const bedrock = createAmazonBedrock({
   region: 'us-east-1',
   accessKeyId: 'xxxxxxxxx',
   secretAccessKey: 'xxxxxxxxx',
+  sessionToken: 'xxxxxxxxx',
+});
+
+// or with bedrockOptions
+const bedrock = createAmazonBedrock({
+  bedrockOptions: {
+    region: 'us-east-1',
+    credentials: {
+      // ...
+    },
+  },
 });
 ```
 
@@ -108,9 +119,14 @@ You can use the following optional settings to customize the Amazon Bedrock prov
   The AWS secret access key that you want to use for the API calls.
   It uses the `AWS_SECRET_ACCESS_KEY` environment variable by default.
 
+- **sessionToken** _string_
+
+  Optional. The AWS session token that you want to use for the API calls.
+  It uses the `AWS_SESSION_TOKEN` environment variable by default.
+
 - **bedrockOptions** _object_
 
-  Optional. The configuration options used by the [Amazon Bedrock Library](https://docs.aws.amazon.com/AWSJavaScraiptSDK/v3/latest/Package/-aws-sdk-client-bedrock-runtime/)
+  Optional. The configuration options used by the [Amazon Bedrock Library](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-client-bedrock-runtime/)
   (`BedrockRuntimeClientConfig`), including:
 
   - **region** _string_

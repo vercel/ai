@@ -1,5 +1,88 @@
 # @ai-sdk/provider-utils
 
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+
+## 1.0.16
+
+### Patch Changes
+
+- 09f895f: feat (ai/core): no-schema output for generateObject / streamObject
+
+## 1.0.15
+
+### Patch Changes
+
+- d67fa9c: feat (provider/amazon-bedrock): add support for session tokens
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [f2c025e]
+  - @ai-sdk/provider@0.0.21
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [6ac355e]
+  - @ai-sdk/provider@0.0.20
+
+## 1.0.12
+
+### Patch Changes
+
+- dd712ac: fix: use FetchFunction type to prevent self-reference
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [dd4a0f5]
+  - @ai-sdk/provider@0.0.19
+
+## 1.0.10
+
+### Patch Changes
+
+- 4bd27a9: chore (ai/provider): refactor type validation
+- 845754b: fix (ai/provider): fix atob/btoa execution on cloudflare edge workers
+- Updated dependencies [4bd27a9]
+  - @ai-sdk/provider@0.0.18
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [029af4c]
+  - @ai-sdk/provider@0.0.17
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [d58517b]
+  - @ai-sdk/provider@0.0.16
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [96aed25]
+  - @ai-sdk/provider@0.0.15
+
+## 1.0.6
+
+### Patch Changes
+
+- 9614584: fix (ai/core): use Symbol.for
+- 0762a22: feat (ai/core): support zod transformers in generateObject & streamObject
+
 ## 1.0.5
 
 ### Patch Changes

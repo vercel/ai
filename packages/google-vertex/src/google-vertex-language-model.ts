@@ -14,6 +14,7 @@ import {
   Part,
   SafetySetting,
   VertexAI,
+  Tool as GoogleTool,
 } from '@google-cloud/vertexai';
 import { convertToGoogleVertexContentRequest } from './convert-to-google-vertex-content-request';
 import {
@@ -31,7 +32,7 @@ type GoogleVertexAIConfig = {
 export class GoogleVertexLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly provider = 'google-vertex';
-  readonly defaultObjectGenerationMode = undefined;
+  readonly defaultObjectGenerationMode = 'json';
   readonly supportsImageUrls = false;
 
   readonly modelId: GoogleVertexModelId;
@@ -93,14 +94,6 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       });
     }
 
-    if (responseFormat != null && responseFormat.type !== 'text') {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
-        details: 'JSON response format is not supported.',
-      });
-    }
-
     const generationConfig: GenerationConfig = {
       // model specific settings:
       topK: topK ?? this.settings.topK,
@@ -110,17 +103,41 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
       temperature,
       topP,
       stopSequences,
+      responseMimeType:
+        responseFormat?.type === 'json' ? 'application/json' : undefined,
     };
 
     const type = mode.type;
 
     switch (type) {
       case 'regular': {
+        const conf = {
+          model: this.modelId,
+          generationConfig,
+          tools: prepareTools({
+            mode,
+            useSearchGrounding: this.settings.useSearchGrounding ?? false,
+          }),
+          safetySettings: this.settings.safetySettings as
+            | undefined
+            | Array<SafetySetting>,
+        };
+
+        return {
+          model: this.config.vertexAI.getGenerativeModel(conf),
+          contentRequest: convertToGoogleVertexContentRequest(prompt),
+          warnings,
+        };
+      }
+
+      case 'object-json': {
         return {
           model: this.config.vertexAI.getGenerativeModel({
             model: this.modelId,
-            generationConfig,
-            tools: prepareTools(mode),
+            generationConfig: {
+              ...generationConfig,
+              responseMimeType: 'application/json',
+            },
             safetySettings: this.settings.safetySettings as
               | undefined
               | Array<SafetySetting>,
@@ -128,12 +145,6 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
           contentRequest: convertToGoogleVertexContentRequest(prompt),
           warnings,
         };
-      }
-
-      case 'object-json': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-json mode',
-        });
       }
 
       case 'object-tool': {
@@ -194,7 +205,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
     const { model, contentRequest, warnings } = await this.getArgs(options);
     const { stream } = await model.generateContentStream(contentRequest);
 
-    let finishReason: LanguageModelV1FinishReason = 'other';
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
@@ -219,13 +230,7 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
               const candidate = chunk.candidates?.[0];
 
               if (candidate == null) {
-                controller.enqueue({
-                  type: 'error',
-                  error: new NoContentGeneratedError({
-                    message: 'No candidates in chunk.',
-                  }),
-                });
-                return;
+                return; // ignored (this can happen when using grounding)
               }
 
               if (candidate.finishReason != null) {
@@ -292,18 +297,17 @@ export class GoogleVertexLanguageModel implements LanguageModelV1 {
   }
 }
 
-function prepareTools(
+function prepareTools({
+  useSearchGrounding,
+  mode,
+}: {
+  useSearchGrounding: boolean;
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
-  },
-) {
+  };
+}): GoogleTool[] | undefined {
   // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
-
-  if (tools == null) {
-    return undefined;
-  }
-
   const toolChoice = mode.toolChoice;
 
   if (toolChoice?.type === 'none') {
@@ -311,15 +315,24 @@ function prepareTools(
   }
 
   if (toolChoice == null || toolChoice.type === 'auto') {
-    return [
-      {
-        functionDeclarations: tools.map(tool => ({
-          name: tool.name,
-          description: tool.description ?? '',
-          parameters: prepareFunctionDeclarationSchema(tool.parameters),
-        })),
-      },
-    ];
+    const mappedTools: GoogleTool[] =
+      tools != null
+        ? [
+            {
+              functionDeclarations: tools.map(tool => ({
+                name: tool.name,
+                description: tool.description ?? '',
+                parameters: prepareFunctionDeclarationSchema(tool.parameters),
+              })),
+            },
+          ]
+        : [];
+
+    if (useSearchGrounding) {
+      mappedTools.push({ googleSearchRetrieval: {} });
+    }
+
+    return mappedTools.length > 0 ? mappedTools : undefined;
   }
 
   // forcing tool calls or a specific tool call is not supported by Vertex:

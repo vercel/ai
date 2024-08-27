@@ -1,18 +1,27 @@
-import { loadApiKey, withoutTrailingSlash } from '@ai-sdk/provider-utils';
+import {
+  LanguageModelV1,
+  NoSuchModelError,
+  ProviderV1,
+} from '@ai-sdk/provider';
+import {
+  FetchFunction,
+  loadApiKey,
+  withoutTrailingSlash,
+} from '@ai-sdk/provider-utils';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
 
-export interface AnthropicProvider {
+export interface AnthropicProvider extends ProviderV1 {
   /**
 Creates a model for text generation.
 */
   (
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
-  ): AnthropicMessagesLanguageModel;
+  ): LanguageModelV1;
 
   /**
 Creates a model for text generation.
@@ -20,23 +29,23 @@ Creates a model for text generation.
   languageModel(
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
-  ): AnthropicMessagesLanguageModel;
+  ): LanguageModelV1;
 
   /**
-Creates a model for text generation.
+@deprecated Use `.languageModel()` instead.
 */
   chat(
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
-  ): AnthropicMessagesLanguageModel;
+  ): LanguageModelV1;
 
   /**
-   * @deprecated Use `chat()` instead.
+@deprecated Use `.languageModel()` instead.
    */
   messages(
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
-  ): AnthropicMessagesLanguageModel;
+  ): LanguageModelV1;
 }
 
 export interface AnthropicProviderSettings {
@@ -66,7 +75,7 @@ Custom headers to include in the requests.
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 
   generateId?: () => string;
 }
@@ -118,6 +127,9 @@ export function createAnthropic(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
+  provider.textEmbeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
 
   return provider as AnthropicProvider;
 }

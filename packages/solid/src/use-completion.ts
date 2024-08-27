@@ -1,5 +1,5 @@
+import { FetchFunction } from '@ai-sdk/provider-utils';
 import type {
-  FetchFunction,
   JSONValue,
   RequestOptions,
   UseCompletionOptions,

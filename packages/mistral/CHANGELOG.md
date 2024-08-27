@@ -1,5 +1,108 @@
 # @ai-sdk/mistral
 
+## 0.0.38
+
+### Patch Changes
+
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/provider-utils@1.0.17
+
+## 0.0.37
+
+### Patch Changes
+
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+
+## 0.0.36
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+
+## 0.0.35
+
+### Patch Changes
+
+- Updated dependencies [f2c025e]
+  - @ai-sdk/provider@0.0.21
+  - @ai-sdk/provider-utils@1.0.14
+
+## 0.0.34
+
+### Patch Changes
+
+- Updated dependencies [6ac355e]
+  - @ai-sdk/provider@0.0.20
+  - @ai-sdk/provider-utils@1.0.13
+
+## 0.0.33
+
+### Patch Changes
+
+- dd712ac: fix: use FetchFunction type to prevent self-reference
+- Updated dependencies [dd712ac]
+  - @ai-sdk/provider-utils@1.0.12
+
+## 0.0.32
+
+### Patch Changes
+
+- 89b18ca: fix (ai/provider): send finish reason 'unknown' by default
+- Updated dependencies [dd4a0f5]
+  - @ai-sdk/provider@0.0.19
+  - @ai-sdk/provider-utils@1.0.11
+
+## 0.0.31
+
+### Patch Changes
+
+- Updated dependencies [4bd27a9]
+- Updated dependencies [845754b]
+  - @ai-sdk/provider-utils@1.0.10
+  - @ai-sdk/provider@0.0.18
+
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [029af4c]
+  - @ai-sdk/provider@0.0.17
+  - @ai-sdk/provider-utils@1.0.9
+
+## 0.0.29
+
+### Patch Changes
+
+- Updated dependencies [d58517b]
+  - @ai-sdk/provider@0.0.16
+  - @ai-sdk/provider-utils@1.0.8
+
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [96aed25]
+  - @ai-sdk/provider@0.0.15
+  - @ai-sdk/provider-utils@1.0.7
+
+## 0.0.27
+
+### Patch Changes
+
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+  - @ai-sdk/provider-utils@1.0.6
+
+## 0.0.26
+
+### Patch Changes
+
+- 66011be5: fix (provider/mistral): fix tool calling
+
 ## 0.0.25
 
 ### Patch Changes

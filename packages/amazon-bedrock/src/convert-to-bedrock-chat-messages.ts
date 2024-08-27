@@ -14,13 +14,14 @@ export function convertToBedrockChatMessages(
   for (const { role, content } of prompt) {
     switch (role) {
       case 'system': {
-        if (system != null) {
+        if (messages.length > 0) {
           throw new UnsupportedFunctionalityError({
-            functionality: 'Multiple system messages',
+            functionality: 'System message after non-system message',
           });
         }
 
-        system = content;
+        system = system === undefined ? content : `${system}\n${content}`;
+
         break;
       }
 

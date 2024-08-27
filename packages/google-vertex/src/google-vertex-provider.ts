@@ -1,3 +1,8 @@
+import {
+  LanguageModelV1,
+  NoSuchModelError,
+  ProviderV1,
+} from '@ai-sdk/provider';
 import { generateId, loadSetting } from '@ai-sdk/provider-utils';
 import { VertexAI, VertexInit } from '@google-cloud/vertexai';
 import { GoogleVertexLanguageModel } from './google-vertex-language-model';
@@ -6,19 +11,19 @@ import {
   GoogleVertexSettings,
 } from './google-vertex-settings';
 
-export interface GoogleVertexProvider {
+export interface GoogleVertexProvider extends ProviderV1 {
   /**
 Creates a model for text generation.
    */
   (
     modelId: GoogleVertexModelId,
     settings?: GoogleVertexSettings,
-  ): GoogleVertexLanguageModel;
+  ): LanguageModelV1;
 
   languageModel: (
     modelId: GoogleVertexModelId,
     settings?: GoogleVertexSettings,
-  ) => GoogleVertexLanguageModel;
+  ) => LanguageModelV1;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -102,6 +107,9 @@ export function createVertex(
   };
 
   provider.languageModel = createChatModel;
+  provider.textEmbeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
 
   return provider as GoogleVertexProvider;
 }

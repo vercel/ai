@@ -276,7 +276,7 @@ First, create a Server Action.
 ```tsx filename="app/actions.tsx"
 'use server';
 
-import { streamUI, tool } from 'ai/rsc';
+import { streamUI } from 'ai/rsc';
 import { createOpenAI as createGroq } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -291,7 +291,7 @@ export async function streamComponent() {
     prompt: 'Get the weather for San Francisco',
     text: ({ content }) => <div>{content}</div>,
     tools: {
-      getWeather: tool({
+      getWeather: {
         description: 'Get the weather for a location',
         parameters: z.object({ location: z.string() }),
         generate: async function* ({ location }) {
@@ -303,7 +303,7 @@ export async function streamComponent() {
             </div>
           );
         },
-      }),
+      },
     },
   });
   return result.value;

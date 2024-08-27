@@ -1,5 +1,137 @@
 # @ai-sdk/azure
 
+## 0.0.32
+
+### Patch Changes
+
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/openai@0.0.54
+  - @ai-sdk/provider-utils@1.0.17
+
+## 0.0.31
+
+### Patch Changes
+
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+  - @ai-sdk/openai@0.0.53
+
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [d5b6a15]
+  - @ai-sdk/openai@0.0.52
+
+## 0.0.29
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+  - @ai-sdk/openai@0.0.51
+
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [f2c025e]
+  - @ai-sdk/provider@0.0.21
+  - @ai-sdk/openai@0.0.50
+  - @ai-sdk/provider-utils@1.0.14
+
+## 0.0.27
+
+### Patch Changes
+
+- Updated dependencies [f42d9bd]
+  - @ai-sdk/openai@0.0.49
+
+## 0.0.26
+
+### Patch Changes
+
+- Updated dependencies [6ac355e]
+  - @ai-sdk/provider@0.0.20
+  - @ai-sdk/openai@0.0.48
+  - @ai-sdk/provider-utils@1.0.13
+
+## 0.0.25
+
+### Patch Changes
+
+- dd712ac: fix: use FetchFunction type to prevent self-reference
+- Updated dependencies [4ffbaee]
+- Updated dependencies [dd712ac]
+  - @ai-sdk/openai@0.0.47
+  - @ai-sdk/provider-utils@1.0.12
+
+## 0.0.24
+
+### Patch Changes
+
+- Updated dependencies [89b18ca]
+- Updated dependencies [dd4a0f5]
+  - @ai-sdk/openai@0.0.46
+  - @ai-sdk/provider@0.0.19
+  - @ai-sdk/provider-utils@1.0.11
+
+## 0.0.23
+
+### Patch Changes
+
+- Updated dependencies [4bd27a9]
+- Updated dependencies [845754b]
+  - @ai-sdk/provider-utils@1.0.10
+  - @ai-sdk/provider@0.0.18
+  - @ai-sdk/openai@0.0.45
+
+## 0.0.22
+
+### Patch Changes
+
+- Updated dependencies [029af4c]
+  - @ai-sdk/provider@0.0.17
+  - @ai-sdk/openai@0.0.44
+  - @ai-sdk/provider-utils@1.0.9
+
+## 0.0.21
+
+### Patch Changes
+
+- Updated dependencies [d58517b]
+- Updated dependencies [c0a73ee]
+  - @ai-sdk/provider@0.0.16
+  - @ai-sdk/openai@0.0.43
+  - @ai-sdk/provider-utils@1.0.8
+
+## 0.0.20
+
+### Patch Changes
+
+- Updated dependencies [96aed25]
+  - @ai-sdk/provider@0.0.15
+  - @ai-sdk/openai@0.0.42
+  - @ai-sdk/provider-utils@1.0.7
+
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+- Updated dependencies [7a2eb27]
+  - @ai-sdk/provider-utils@1.0.6
+  - @ai-sdk/openai@0.0.41
+
+## 0.0.18
+
+### Patch Changes
+
+- b99180b5: feat (provider/azure): update Azure API version to 2024-06-01
+
 ## 0.0.17
 
 ### Patch Changes

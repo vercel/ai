@@ -1,5 +1,125 @@
 # @ai-sdk/google-vertex
 
+## 0.0.35
+
+### Patch Changes
+
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+- Updated dependencies [26515cb]
+  - @ai-sdk/provider@0.0.22
+  - @ai-sdk/provider-utils@1.0.17
+
+## 0.0.34
+
+### Patch Changes
+
+- Updated dependencies [09f895f]
+  - @ai-sdk/provider-utils@1.0.16
+
+## 0.0.33
+
+### Patch Changes
+
+- Updated dependencies [d67fa9c]
+  - @ai-sdk/provider-utils@1.0.15
+
+## 0.0.32
+
+### Patch Changes
+
+- Updated dependencies [f2c025e]
+  - @ai-sdk/provider@0.0.21
+  - @ai-sdk/provider-utils@1.0.14
+
+## 0.0.31
+
+### Patch Changes
+
+- 04af64f: fix (provider/google-vertex): fix broken tool calling
+
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [6ac355e]
+  - @ai-sdk/provider@0.0.20
+  - @ai-sdk/provider-utils@1.0.13
+
+## 0.0.29
+
+### Patch Changes
+
+- Updated dependencies [dd712ac]
+  - @ai-sdk/provider-utils@1.0.12
+
+## 0.0.28
+
+### Patch Changes
+
+- 89b18ca: fix (ai/provider): send finish reason 'unknown' by default
+- Updated dependencies [dd4a0f5]
+  - @ai-sdk/provider@0.0.19
+  - @ai-sdk/provider-utils@1.0.11
+
+## 0.0.27
+
+### Patch Changes
+
+- 48f618d: feat (provider/google): add search grounding support
+
+## 0.0.26
+
+### Patch Changes
+
+- Updated dependencies [4bd27a9]
+- Updated dependencies [845754b]
+  - @ai-sdk/provider-utils@1.0.10
+  - @ai-sdk/provider@0.0.18
+
+## 0.0.25
+
+### Patch Changes
+
+- 1e94ed8: feat (provider/google-vertex): support json mode object generation
+
+## 0.0.24
+
+### Patch Changes
+
+- 39b827a: feat (provider/google-vertex): support json mode object generation
+
+## 0.0.23
+
+### Patch Changes
+
+- Updated dependencies [029af4c]
+  - @ai-sdk/provider@0.0.17
+  - @ai-sdk/provider-utils@1.0.9
+
+## 0.0.22
+
+### Patch Changes
+
+- Updated dependencies [d58517b]
+  - @ai-sdk/provider@0.0.16
+  - @ai-sdk/provider-utils@1.0.8
+
+## 0.0.21
+
+### Patch Changes
+
+- Updated dependencies [96aed25]
+  - @ai-sdk/provider@0.0.15
+  - @ai-sdk/provider-utils@1.0.7
+
+## 0.0.20
+
+### Patch Changes
+
+- Updated dependencies [9614584]
+- Updated dependencies [0762a22]
+  - @ai-sdk/provider-utils@1.0.6
+
 ## 0.0.19
 
 ### Patch Changes

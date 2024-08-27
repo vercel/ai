@@ -31,6 +31,8 @@ describe('doGenerate', () => {
     usage?: {
       input_tokens: number;
       output_tokens: number;
+      cache_creation_input_tokens?: number;
+      cache_read_input_tokens?: number;
     };
     stopReason?: string;
   }) {
@@ -294,7 +296,7 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider.chat('claude-3-haiku-20240307').doGenerate({
+    await provider('claude-3-haiku-20240307').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
@@ -311,6 +313,61 @@ describe('doGenerate', () => {
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
       'x-api-key': 'test-api-key',
+    });
+  });
+
+  it('should support cache control', async () => {
+    prepareJsonResponse({
+      usage: {
+        input_tokens: 20,
+        output_tokens: 50,
+        cache_creation_input_tokens: 10,
+        cache_read_input_tokens: 5,
+      },
+    });
+
+    const model = provider('claude-3-haiku-20240307', {
+      cacheControl: true,
+    });
+
+    const result = await model.doGenerate({
+      mode: { type: 'regular' },
+      inputFormat: 'messages',
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+          providerMetadata: {
+            anthropic: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ],
+    });
+
+    expect(await server.getRequestBodyJson()).toStrictEqual({
+      model: 'claude-3-haiku-20240307',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Hello',
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+        },
+      ],
+      max_tokens: 4096,
+    });
+
+    expect(result.providerMetadata).toStrictEqual({
+      anthropic: {
+        cacheCreationInputTokens: 10,
+        cacheReadInputTokens: 5,
+      },
     });
   });
 });
@@ -354,6 +411,7 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'stop',
         usage: { promptTokens: 17, completionTokens: 227 },
+        providerMetadata: undefined,
       },
     ]);
   });
@@ -461,6 +519,7 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         usage: { promptTokens: 441, completionTokens: 65 },
+        providerMetadata: undefined,
       },
     ]);
   });
@@ -553,5 +612,46 @@ describe('doStream', () => {
       'custom-request-header': 'request-header-value',
       'x-api-key': 'test-api-key',
     });
+  });
+
+  it('should support cache control', async () => {
+    server.responseChunks = [
+      `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],` +
+        `"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":` +
+        // send cache output tokens:
+        `{"input_tokens":17,"output_tokens":1,"cache_creation_input_tokens":10,"cache_read_input_tokens":5}}      }\n\n`,
+      `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
+      `data: {"type": "ping"}\n\n`,
+      `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${'Hello'}"}              }\n\n`,
+      `data: {"type":"content_block_stop","index":0             }\n\n`,
+      `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}          }\n\n`,
+      `data: {"type":"message_stop"           }\n\n`,
+    ];
+
+    const model = provider('claude-3-haiku-20240307', {
+      cacheControl: true,
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    // note: space moved to last chunk bc of trimming
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      { type: 'text-delta', textDelta: 'Hello' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 17, completionTokens: 227 },
+        providerMetadata: {
+          anthropic: {
+            cacheCreationInputTokens: 10,
+            cacheReadInputTokens: 5,
+          },
+        },
+      },
+    ]);
   });
 });

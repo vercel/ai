@@ -8,6 +8,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  FetchFunction,
   ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -31,12 +32,11 @@ type OpenAIChatConfig = {
   compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export class OpenAIChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: OpenAIChatModelId;
   readonly settings: OpenAIChatSettings;
@@ -51,6 +51,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     this.modelId = modelId;
     this.settings = settings;
     this.config = config;
+  }
+
+  get supportsStructuredOutputs(): boolean {
+    return this.settings.structuredOutputs === true;
+  }
+
+  get defaultObjectGenerationMode() {
+    return this.supportsStructuredOutputs ? 'json' : 'tool';
   }
 
   get provider(): string {
@@ -101,6 +109,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    if (useLegacyFunctionCalling && this.settings.structuredOutputs === true) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'structuredOutputs with useLegacyFunctionCalling',
+      });
+    }
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -148,7 +162,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         return {
           args: {
             ...baseArgs,
-            ...prepareToolsAndToolChoice({ mode, useLegacyFunctionCalling }),
+            ...prepareToolsAndToolChoice({
+              mode,
+              useLegacyFunctionCalling,
+              structuredOutputs: this.settings.structuredOutputs,
+            }),
           },
           warnings,
         };
@@ -158,7 +176,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         return {
           args: {
             ...baseArgs,
-            response_format: { type: 'json_object' },
+            response_format:
+              this.settings.structuredOutputs === true
+                ? {
+                    type: 'json_schema',
+                    json_schema: {
+                      schema: mode.schema,
+                      strict: true,
+                      name: mode.name ?? 'response',
+                      description: mode.description,
+                    },
+                  }
+                : { type: 'json_object' },
           },
           warnings,
         };
@@ -193,6 +222,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       name: mode.tool.name,
                       description: mode.tool.description,
                       parameters: mode.tool.parameters,
+                      strict:
+                        this.settings.structuredOutputs === true
+                          ? true
+                          : undefined,
                     },
                   },
                 ],
@@ -251,8 +284,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
             })),
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       usage: {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
+        promptTokens: response.usage?.prompt_tokens ?? NaN,
+        completionTokens: response.usage?.completion_tokens ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
@@ -301,10 +334,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       };
     }> = [];
 
-    let finishReason: LanguageModelV1FinishReason = 'other';
-    let usage: { promptTokens: number; completionTokens: number } = {
-      promptTokens: Number.NaN,
-      completionTokens: Number.NaN,
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let usage: {
+      promptTokens: number | undefined;
+      completionTokens: number | undefined;
+    } = {
+      promptTokens: undefined,
+      completionTokens: undefined,
     };
     let logprobs: LanguageModelV1LogProbs;
 
@@ -335,8 +371,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
             if (value.usage != null) {
               usage = {
-                promptTokens: value.usage.prompt_tokens,
-                completionTokens: value.usage.completion_tokens,
+                promptTokens: value.usage.prompt_tokens ?? undefined,
+                completionTokens: value.usage.completion_tokens ?? undefined,
               };
             }
 
@@ -485,7 +521,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               type: 'finish',
               finishReason,
               logprobs,
-              usage,
+              usage: {
+                promptTokens: usage.promptTokens ?? NaN,
+                completionTokens: usage.completionTokens ?? NaN,
+              },
             });
           },
         }),
@@ -497,13 +536,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 }
 
+const openAITokenUsageSchema = z
+  .object({
+    prompt_tokens: z.number().nullish(),
+    completion_tokens: z.number().nullish(),
+  })
+  .nullish();
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openAIChatResponseSchema = z.object({
   choices: z.array(
     z.object({
       message: z.object({
-        role: z.literal('assistant'),
+        role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
         function_call: z
           .object({
@@ -546,10 +592,7 @@ const openAIChatResponseSchema = z.object({
       finish_reason: z.string().nullish(),
     }),
   ),
-  usage: z.object({
-    prompt_tokens: z.number(),
-    completion_tokens: z.number(),
-  }),
+  usage: openAITokenUsageSchema,
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -560,7 +603,7 @@ const openaiChatChunkSchema = z.union([
       z.object({
         delta: z
           .object({
-            role: z.enum(['assistant']).optional(),
+            role: z.enum(['assistant']).nullish(),
             content: z.string().nullish(),
             function_call: z
               .object({
@@ -605,12 +648,7 @@ const openaiChatChunkSchema = z.union([
         index: z.number(),
       }),
     ),
-    usage: z
-      .object({
-        prompt_tokens: z.number(),
-        completion_tokens: z.number(),
-      })
-      .nullish(),
+    usage: openAITokenUsageSchema,
   }),
   openAIErrorDataSchema,
 ]);
@@ -618,11 +656,13 @@ const openaiChatChunkSchema = z.union([
 function prepareToolsAndToolChoice({
   mode,
   useLegacyFunctionCalling = false,
+  structuredOutputs = false,
 }: {
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
   };
   useLegacyFunctionCalling?: boolean;
+  structuredOutputs?: boolean;
 }) {
   // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
@@ -672,6 +712,7 @@ function prepareToolsAndToolChoice({
       name: tool.name,
       description: tool.description,
       parameters: tool.parameters,
+      strict: structuredOutputs === true ? true : undefined,
     },
   }));
 

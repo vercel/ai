@@ -1,3 +1,4 @@
+import { JSONSchema7 } from 'json-schema';
 import { LanguageModelV1CallSettings } from './language-model-v1-call-settings';
 import { LanguageModelV1FunctionTool } from './language-model-v1-function-tool';
 import { LanguageModelV1Prompt } from './language-model-v1-prompt';
@@ -20,8 +21,9 @@ low level grammar, etc. It can also be used to optimize the efficiency of the
 streaming, e.g. tool-delta stream parts are only needed in the
 object-tool mode.
 
-@deprecated mode will be removed in v2. 
-All necessary settings will be directly supported through the call settings.
+@deprecated mode will be removed in v2.
+All necessary settings will be directly supported through the call settings,
+in particular responseFormat, toolChoice, and tools.
    */
   mode:
     | {
@@ -43,6 +45,21 @@ Specifies how the tool should be selected. Defaults to 'auto'.
     | {
         // object generation with json mode enabled (streaming: text delta)
         type: 'object-json';
+
+        /**
+         * JSON schema that the generated output should conform to.
+         */
+        schema?: JSONSchema7;
+
+        /**
+         * Name of output that should be generated. Used by some providers for additional LLM guidance.
+         */
+        name?: string;
+
+        /**
+         * Description of the output that should be generated. Used by some providers for additional LLM guidance.
+         */
+        description?: string;
       }
     | {
         // object generation with tool mode enabled (streaming: tool call deltas)

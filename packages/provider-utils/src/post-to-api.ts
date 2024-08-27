@@ -1,11 +1,12 @@
 import { APICallError } from '@ai-sdk/provider';
 import { extractResponseHeaders } from './extract-response-headers';
+import { FetchFunction } from './fetch-function';
 import { isAbortError } from './is-abort-error';
-import { ResponseHandler } from './response-handler';
 import { removeUndefinedEntries } from './remove-undefined-entries';
+import { ResponseHandler } from './response-handler';
 
 // use function to allow for mocking in tests:
-const getOriginalFetch = () => fetch;
+const getOriginalFetch = () => globalThis.fetch;
 
 export const postJsonToApi = async <T>({
   url,
@@ -22,7 +23,7 @@ export const postJsonToApi = async <T>({
   failedResponseHandler: ResponseHandler<APICallError>;
   successfulResponseHandler: ResponseHandler<T>;
   abortSignal?: AbortSignal;
-  fetch?: ReturnType<typeof getOriginalFetch>;
+  fetch?: FetchFunction;
 }) =>
   postToApi({
     url,
@@ -58,7 +59,7 @@ export const postToApi = async <T>({
   failedResponseHandler: ResponseHandler<Error>;
   successfulResponseHandler: ResponseHandler<T>;
   abortSignal?: AbortSignal;
-  fetch?: ReturnType<typeof getOriginalFetch>;
+  fetch?: FetchFunction;
 }) => {
   try {
     const response = await fetch(url, {

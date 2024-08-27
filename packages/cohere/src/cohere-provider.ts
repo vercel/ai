@@ -1,16 +1,19 @@
 import {
+  LanguageModelV1,
+  NoSuchModelError,
+  ProviderV1,
+} from '@ai-sdk/provider';
+import {
+  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { CohereChatModelId, CohereChatSettings } from './cohere-chat-settings';
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
+import { CohereChatModelId, CohereChatSettings } from './cohere-chat-settings';
 
-export interface CohereProvider {
-  (
-    modelId: CohereChatModelId,
-    settings?: CohereChatSettings,
-  ): CohereChatLanguageModel;
+export interface CohereProvider extends ProviderV1 {
+  (modelId: CohereChatModelId, settings?: CohereChatSettings): LanguageModelV1;
 
   /**
 Creates a model for text generation.
@@ -18,7 +21,7 @@ Creates a model for text generation.
   languageModel(
     modelId: CohereChatModelId,
     settings?: CohereChatSettings,
-  ): CohereChatLanguageModel;
+  ): LanguageModelV1;
 }
 
 export interface CohereProviderSettings {
@@ -30,7 +33,7 @@ The default prefix is `https://api.cohere.com/v1`.
 
   /**
 API key that is being send using the `Authorization` header.
-It defaults to the `MISTRAL_API_KEY` environment variable.
+It defaults to the `COHERE_API_KEY` environment variable.
    */
   apiKey?: string;
 
@@ -43,7 +46,7 @@ Custom headers to include in the requests.
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 
   generateId?: () => string;
 }
@@ -71,7 +74,7 @@ export function createCohere(
     settings: CohereChatSettings = {},
   ) =>
     new CohereChatLanguageModel(modelId, settings, {
-      provider: 'mistral.chat',
+      provider: 'cohere.chat',
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
@@ -92,6 +95,9 @@ export function createCohere(
   };
 
   provider.languageModel = createChatModel;
+  provider.textEmbeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
 
   return provider as CohereProvider;
 }

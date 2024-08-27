@@ -1,5 +1,53 @@
 # @ai-sdk/provider
 
+## 0.0.22
+
+### Patch Changes
+
+- 26515cb: feat (ai/provider): introduce ProviderV1 specification
+
+## 0.0.21
+
+### Patch Changes
+
+- f2c025e: feat (ai/core): prompt validation
+
+## 0.0.20
+
+### Patch Changes
+
+- 6ac355e: feat (provider/anthropic): add cache control support
+
+## 0.0.19
+
+### Patch Changes
+
+- dd4a0f5: fix (ai/provider): remove invalid check in isJSONParseError
+
+## 0.0.18
+
+### Patch Changes
+
+- 4bd27a9: chore (ai/provider): refactor type validation
+
+## 0.0.17
+
+### Patch Changes
+
+- 029af4c: feat (ai/core): support schema name & description in generateObject & streamObject
+
+## 0.0.16
+
+### Patch Changes
+
+- d58517b: feat (ai/openai): structured outputs
+
+## 0.0.15
+
+### Patch Changes
+
+- 96aed25: fix (ai/provider): release new version
+
 ## 0.0.14
 
 ### Patch Changes

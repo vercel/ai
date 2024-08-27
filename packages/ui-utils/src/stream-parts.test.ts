@@ -128,10 +128,11 @@ describe('tool_call stream part', () => {
 
 describe('tool_result stream part', () => {
   it('should format a tool_result stream part', () => {
-    const toolResult: CoreToolResult<string, any, any> = {
+    const toolResult: Omit<
+      CoreToolResult<string, any, any>,
+      'args' | 'toolName'
+    > = {
       toolCallId: 'tc_0',
-      toolName: 'example_tool',
-      args: { test: 'value' },
       result: 'result',
     };
 
@@ -143,8 +144,6 @@ describe('tool_result stream part', () => {
   it('should parse a tool_result stream part', () => {
     const toolResult = {
       toolCallId: 'tc_0',
-      toolName: 'example_tool',
-      args: { test: 'value' },
       result: 'result',
     };
 
@@ -215,6 +214,17 @@ describe('finish_message stream part', () => {
       value: {
         finishReason: 'stop',
         usage: { promptTokens: 10, completionTokens: 20 },
+      },
+    });
+  });
+
+  it('should parse a finish_message with null completion and prompt tokens', () => {
+    const input = `d:{"finishReason":"stop","usage":{"promptTokens":null,"completionTokens":null}}`;
+    expect(parseStreamPart(input)).toEqual({
+      type: 'finish_message',
+      value: {
+        finishReason: 'stop',
+        usage: { promptTokens: NaN, completionTokens: NaN },
       },
     });
   });

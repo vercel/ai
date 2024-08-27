@@ -1,26 +1,64 @@
+import { AISDKError } from './ai-sdk-error';
 import { getErrorMessage } from './get-error-message';
 
-export class TypeValidationError extends Error {
+const name = 'AI_TypeValidationError';
+const marker = `vercel.ai.error.${name}`;
+const symbol = Symbol.for(marker);
+
+export class TypeValidationError extends AISDKError {
+  private readonly [symbol] = true; // used in isInstance
+
   readonly value: unknown;
-  readonly cause: unknown;
 
   constructor({ value, cause }: { value: unknown; cause: unknown }) {
-    super(
-      `Type validation failed: ` +
+    super({
+      name,
+      message:
+        `Type validation failed: ` +
         `Value: ${JSON.stringify(value)}.\n` +
         `Error message: ${getErrorMessage(cause)}`,
-    );
+      cause,
+    });
 
-    this.name = 'AI_TypeValidationError';
-
-    this.cause = cause;
     this.value = value;
   }
 
-  static isTypeValidationError(error: unknown): error is TypeValidationError {
-    return error instanceof Error && error.name === 'AI_TypeValidationError';
+  static isInstance(error: unknown): error is TypeValidationError {
+    return AISDKError.hasMarker(error, marker);
   }
 
+  /**
+   * Wraps an error into a TypeValidationError.
+   * If the cause is already a TypeValidationError with the same value, it returns the cause.
+   * Otherwise, it creates a new TypeValidationError.
+   *
+   * @param {Object} params - The parameters for wrapping the error.
+   * @param {unknown} params.value - The value that failed validation.
+   * @param {unknown} params.cause - The original error or cause of the validation failure.
+   * @returns {TypeValidationError} A TypeValidationError instance.
+   */
+  static wrap({
+    value,
+    cause,
+  }: {
+    value: unknown;
+    cause: unknown;
+  }): TypeValidationError {
+    return TypeValidationError.isInstance(cause) && cause.value === value
+      ? cause
+      : new TypeValidationError({ value, cause });
+  }
+
+  /**
+   * @deprecated use `isInstance` instead
+   */
+  static isTypeValidationError(error: unknown): error is TypeValidationError {
+    return error instanceof Error && error.name === name;
+  }
+
+  /**
+   * @deprecated Do not use this method. It will be removed in the next major version.
+   */
   toJSON() {
     return {
       name: this.name,

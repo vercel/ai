@@ -6,4 +6,5 @@ export * from './language-model-v1-function-tool';
 export * from './language-model-v1-function-tool-call';
 export * from './language-model-v1-logprobs';
 export * from './language-model-v1-prompt';
+export * from './language-model-v1-provider-metadata';
 export * from './language-model-v1-tool-choice';

@@ -1,1 +1,1 @@
-packages/core/README.md
+packages/ai/README.md

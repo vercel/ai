@@ -10,18 +10,86 @@ description: Learn how to work with multiple providers
 When you work with multiple providers and models, it is often desirable to manage them in a central place
 and access the models through simple string ids.
 
-The Vercel AI SDK provides a [`ProviderRegistry`](/docs/reference/ai-sdk-core/provider-registry) for this purpose.
-You can register multiple providers. The provider id will become the prefix of the model id:
-`providerId:modelId`.
+The Vercel AI SDK offers [custom providers](/docs/reference/ai-sdk-core/custom-provider) and
+a [provider registry](/docs/reference/ai-sdk-core/provider-registry) for this purpose.
+With custom providers, you can **pre-configure model settings**, **provide model name aliases**,
+and **limit the available models** .
+The provider registry lets you mix **multiple providers** and access them through simple string ids.
 
-### Setup
+## Custom Providers
 
-You can create a registry with multiple providers and models using `experimental_createProviderRegistry`.
+You can create a [custom provider](/docs/reference/ai-sdk-core/custom-provider) using `experimental_customProvider`.
 
-<Note>
-  It is common to keep the registry setup in a separate file and import it where
-  needed.
-</Note>
+### Example: custom model settings
+
+You might want to override the default model settings for a provider or provide model name aliases
+with pre-configured settings.
+
+```ts
+import { openai as originalOpenAI } from '@ai-sdk/openai';
+import { experimental_customProvider as customProvider } from 'ai';
+
+// custom provider with different model settings:
+export const openai = customProvider({
+  languageModels: {
+    // replacement model with custom settings:
+    'gpt-4o': originalOpenAI('gpt-4o', { structuredOutputs: true }),
+    // alias model with custom settings:
+    'gpt-4o-mini-structured': originalOpenAI('gpt-4o-mini', {
+      structuredOutputs: true,
+    }),
+  },
+  fallbackProvider: originalOpenAI,
+});
+```
+
+### Example: model name alias
+
+You can also provide model name aliases, so you can update the model version in one place in the future:
+
+```ts
+import { anthropic as originalAnthropic } from '@ai-sdk/anthropic';
+import { experimental_customProvider as customProvider } from 'ai';
+
+// custom provider with alias names:
+export const anthropic = customProvider({
+  languageModels: {
+    opus: originalAnthropic('claude-3-opus-20240229'),
+    sonnet: originalAnthropic('claude-3-5-sonnet-20240620'),
+    haiku: originalAnthropic('claude-3-haiku-20240307'),
+  },
+  fallbackProvider: originalAnthropic,
+});
+```
+
+### Example: limit available models
+
+You can limit the available models in the system, even if you have multiple providers.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { openai } from '@ai-sdk/openai';
+import { experimental_customProvider as customProvider } from 'ai';
+
+export const myProvider = customProvider({
+  languageModels: {
+    'text-medium': anthropic('claude-3-5-sonnet-20240620'),
+    'text-small': openai('gpt-4o-mini'),
+    'structure-medium': openai('gpt-4o', { structuredOutputs: true }),
+    'structure-fast': openai('gpt-4o-mini', { structuredOutputs: true }),
+  },
+  embeddingModels: {
+    emdedding: openai.textEmbeddingModel('text-embedding-3-small'),
+  },
+  // no fallback provider
+});
+```
+
+## Provider Registry
+
+You can create a [provider registry](/docs/reference/ai-sdk-core/provider-registry) with multiple providers and models using `experimental_createProviderRegistry`.
+
+### Example: Setup
 
 ```ts filename={"registry.ts"}
 import { anthropic } from '@ai-sdk/anthropic';
@@ -39,7 +107,7 @@ export const registry = createProviderRegistry({
 });
 ```
 
-### Language models
+### Example: Use language models
 
 You can access language models by using the `languageModel` method on the registry.
 The provider id will become the prefix of the model id: `providerId:modelId`.
@@ -54,7 +122,7 @@ const { text } = await generateText({
 });
 ```
 
-### Text embedding models
+### Example: Use text embedding models
 
 You can access text embedding models by using the `textEmbeddingModel` method on the registry.
 The provider id will become the prefix of the model id: `providerId:modelId`.

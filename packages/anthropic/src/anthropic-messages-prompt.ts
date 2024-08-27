@@ -1,9 +1,11 @@
 export type AnthropicMessagesPrompt = {
-  system?: string;
+  system: Array<AnthropicTextContent> | undefined;
   messages: AnthropicMessage[];
 };
 
 export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
+
+export type AnthropicCacheControl = { type: 'ephemeral' };
 
 export interface AnthropicUserMessage {
   role: 'user';
@@ -20,6 +22,7 @@ export interface AnthropicAssistantMessage {
 export interface AnthropicTextContent {
   type: 'text';
   text: string;
+  cache_control?: AnthropicCacheControl;
 }
 
 export interface AnthropicImageContent {
@@ -29,6 +32,7 @@ export interface AnthropicImageContent {
     media_type: string;
     data: string;
   };
+  cache_control?: AnthropicCacheControl;
 }
 
 export interface AnthropicToolCallContent {
@@ -42,5 +46,6 @@ export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
   content: unknown;
-  is_error?: boolean;
+  is_error: boolean | undefined;
+  cache_control?: AnthropicCacheControl;
 }

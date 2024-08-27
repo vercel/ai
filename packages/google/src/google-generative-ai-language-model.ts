@@ -5,6 +5,7 @@ import {
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import {
+  FetchFunction,
   ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -12,6 +13,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
+import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { googleFailedResponseHandler } from './google-error';
 import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
@@ -26,13 +28,17 @@ type GoogleGenerativeAIConfig = {
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   generateId: () => string;
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'tool';
+  readonly defaultObjectGenerationMode = 'json';
   readonly supportsImageUrls = false;
+
+  get supportsObjectGeneration() {
+    return this.settings.structuredOutputs !== false;
+  }
 
   readonly modelId: GoogleGenerativeAIModelId;
   readonly settings: GoogleGenerativeAISettings;
@@ -44,7 +50,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     settings: GoogleGenerativeAISettings,
     config: GoogleGenerativeAIConfig,
   ) {
-    this.modelId = modelId;
+    // TODO model ids with 'models/' prefix are deprecated
+    this.modelId = modelId.startsWith('models/')
+      ? modelId.substring(7)
+      : modelId;
+
     this.settings = settings;
     this.config = config;
   }
@@ -105,8 +115,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       responseMimeType:
         responseFormat?.type === 'json' ? 'application/json' : undefined,
       responseSchema:
-        responseFormat?.type === 'json' && responseFormat.schema != null
-          ? prepareJsonSchema(responseFormat.schema)
+        responseFormat?.type === 'json' &&
+        responseFormat.schema != null &&
+        // Google GenAI does not support all OpenAPI Schema features,
+        // so this is needed as an escape hatch:
+        this.supportsObjectGeneration
+          ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
           : undefined,
     };
 
@@ -133,7 +147,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           args: {
             generationConfig: {
               ...generationConfig,
-              response_mime_type: 'application/json',
+              responseMimeType: 'application/json',
+              responseSchema:
+                mode.schema != null &&
+                // Google GenAI does not support all OpenAPI Schema features,
+                // so this is needed as an escape hatch:
+                this.supportsObjectGeneration
+                  ? convertJSONSchemaToOpenAPISchema(mode.schema)
+                  : undefined,
             },
             contents,
             systemInstruction,
@@ -154,7 +175,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 {
                   name: mode.tool.name,
                   description: mode.tool.description ?? '',
-                  parameters: prepareJsonSchema(mode.tool.parameters),
+                  parameters: convertJSONSchemaToOpenAPISchema(
+                    mode.tool.parameters,
+                  ),
                 },
               ],
             },
@@ -179,7 +202,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/${this.modelId}:generateContent`,
+      url: `${this.config.baseURL}/models/${this.modelId}:generateContent`,
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
@@ -221,7 +244,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/${this.modelId}:streamGenerateContent?alt=sse`,
+      url: `${this.config.baseURL}/models/${this.modelId}:streamGenerateContent?alt=sse`,
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
@@ -232,7 +255,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const { contents: rawPrompt, ...rawSettings } = args;
 
-    let finishReason: LanguageModelV1FinishReason = 'other';
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
@@ -431,7 +454,7 @@ function prepareToolsAndToolConfig(
     functionDeclarations: tools.map(tool => ({
       name: tool.name,
       description: tool.description ?? '',
-      parameters: prepareJsonSchema(tool.parameters),
+      parameters: convertJSONSchemaToOpenAPISchema(tool.parameters),
     })),
   };
 
@@ -474,28 +497,4 @@ function prepareToolsAndToolConfig(
       throw new Error(`Unsupported tool choice type: ${_exhaustiveCheck}`);
     }
   }
-}
-
-// Removes all "additionalProperty" and "$schema" properties from the object (recursively)
-// (not supported by Google Generative AI)
-function prepareJsonSchema(jsonSchema: any): unknown {
-  if (typeof jsonSchema !== 'object') {
-    return jsonSchema;
-  }
-
-  if (Array.isArray(jsonSchema)) {
-    return jsonSchema.map(prepareJsonSchema);
-  }
-
-  const result: Record<string, any> = {};
-
-  for (const [key, value] of Object.entries(jsonSchema)) {
-    if (key === 'additionalProperties' || key === '$schema') {
-      continue;
-    }
-
-    result[key] = prepareJsonSchema(value);
-  }
-
-  return result;
 }

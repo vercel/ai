@@ -22,13 +22,17 @@
 import { z } from 'zod';
 
 /**
-Create a type from an object with all keys and nested keys set to optional. 
+Create a type from an object with all keys and nested keys set to optional.
 The helper supports normal objects and Zod schemas (which are resolved automatically).
 It always recurses into arrays.
 
 Adopted from [type-fest](https://github.com/sindresorhus/type-fest/tree/main) PartialDeep.
  */
-export type DeepPartial<T> = T extends
+export type DeepPartial<T> = T extends z.ZodTypeAny
+  ? DeepPartialInternal<z.infer<T>> // resolve Zod schemas first to prevent infinite recursion
+  : DeepPartialInternal<T>;
+
+type DeepPartialInternal<T> = T extends
   | null
   | undefined
   | string
@@ -50,32 +54,30 @@ export type DeepPartial<T> = T extends
   ? PartialReadonlyMap<KeyType, ValueType>
   : T extends ReadonlySet<infer ItemType>
   ? PartialReadonlySet<ItemType>
-  : T extends z.Schema<any>
-  ? DeepPartial<T['_type']>
   : T extends object
   ? T extends ReadonlyArray<infer ItemType> // Test for arrays/tuples, per https://github.com/microsoft/TypeScript/issues/35156
     ? ItemType[] extends T // Test for arrays (non-tuples) specifically
       ? readonly ItemType[] extends T // Differentiate readonly and mutable arrays
-        ? ReadonlyArray<DeepPartial<ItemType | undefined>>
-        : Array<DeepPartial<ItemType | undefined>>
+        ? ReadonlyArray<DeepPartialInternal<ItemType | undefined>>
+        : Array<DeepPartialInternal<ItemType | undefined>>
       : PartialObject<T> // Tuples behave properly
     : PartialObject<T>
   : unknown;
 
 type PartialMap<KeyType, ValueType> = {} & Map<
-  DeepPartial<KeyType>,
-  DeepPartial<ValueType>
+  DeepPartialInternal<KeyType>,
+  DeepPartialInternal<ValueType>
 >;
 
-type PartialSet<T> = {} & Set<DeepPartial<T>>;
+type PartialSet<T> = {} & Set<DeepPartialInternal<T>>;
 
 type PartialReadonlyMap<KeyType, ValueType> = {} & ReadonlyMap<
-  DeepPartial<KeyType>,
-  DeepPartial<ValueType>
+  DeepPartialInternal<KeyType>,
+  DeepPartialInternal<ValueType>
 >;
 
-type PartialReadonlySet<T> = {} & ReadonlySet<DeepPartial<T>>;
+type PartialReadonlySet<T> = {} & ReadonlySet<DeepPartialInternal<T>>;
 
 type PartialObject<ObjectType extends object> = {
-  [KeyType in keyof ObjectType]?: DeepPartial<ObjectType[KeyType]>;
+  [KeyType in keyof ObjectType]?: DeepPartialInternal<ObjectType[KeyType]>;
 };
