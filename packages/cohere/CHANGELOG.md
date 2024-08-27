@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 0.0.22
+
+### Patch Changes
+
+- cb2f0fa: feat (provider/cohere): add embedding support
+
 ## 0.0.21
 
 ### Patch Changes
