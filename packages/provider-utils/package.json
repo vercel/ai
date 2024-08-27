@@ -8,7 +8,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "test/dist/**/*"
+    "test/dist/**/*",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",

@@ -24,6 +24,10 @@
       "require": "./dist/index.js"
     }
   },
+  "files": [
+    "dist/**/*",
+    "CHANGELOG.md"
+  ],
   "dependencies": {
     "@ai-sdk/provider-utils": "1.0.17",
     "@ai-sdk/ui-utils": "0.0.39"
