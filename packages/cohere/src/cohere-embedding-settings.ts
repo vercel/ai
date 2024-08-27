@@ -17,7 +17,7 @@ export interface CohereEmbeddingSettings {
    * - "classification": Used for embeddings passed through a text classifier.
    * - "clustering": Used for the embeddings run through a clustering algorithm.
    */
-  input_type?:
+  inputType?:
     | 'search_document'
     | 'search_query'
     | 'classification'
