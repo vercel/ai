@@ -5,7 +5,6 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createCohere } from './cohere-provider';
-import { fail } from 'assert';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   {
