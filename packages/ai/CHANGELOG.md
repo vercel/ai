@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.20
+
+### Patch Changes
+
+- 7807677: fix (rsc): Deep clone currentState in getMutableState()
+
 ## 3.3.19
 
 ### Patch Changes

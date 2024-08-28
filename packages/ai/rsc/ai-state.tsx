@@ -35,7 +35,7 @@ export function withAIState<S, T>(
 ): T {
   return asyncAIStateStorage.run(
     {
-      currentState: state,
+      currentState: JSON.parse(JSON.stringify(state)), // deep clone object
       originalState: state,
       sealed: false,
       options,
