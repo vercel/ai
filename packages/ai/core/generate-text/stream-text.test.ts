@@ -8,6 +8,7 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import {
   StreamData,
+  StreamTextResult,
   TextStreamPart,
   formatStreamPart,
   jsonSchema,
@@ -1769,6 +1770,178 @@ describe('options.onFinish', () => {
   it('should contain provider metadata', async () => {
     assert.deepStrictEqual(result.experimental_providerMetadata, {
       testProvider: { testKey: 'testValue' },
+    });
+  });
+});
+
+describe('options.maxToolRoundtrips', () => {
+  let result: StreamTextResult<any>;
+
+  describe('2 roundtrips', () => {
+    beforeEach(async () => {
+      let responseCount = 0;
+      result = await streamText({
+        model: new MockLanguageModelV1({
+          doStream: async ({ prompt, mode }) => {
+            switch (responseCount++) {
+              case 0:
+                assert.deepStrictEqual(mode, {
+                  type: 'regular',
+                  tools: [
+                    {
+                      type: 'function',
+                      name: 'tool1',
+                      description: undefined,
+                      parameters: {
+                        $schema: 'http://json-schema.org/draft-07/schema#',
+                        additionalProperties: false,
+                        properties: { value: { type: 'string' } },
+                        required: ['value'],
+                        type: 'object',
+                      },
+                    },
+                  ],
+                  toolChoice: { type: 'auto' },
+                });
+                assert.deepStrictEqual(prompt, [
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      args: `{ "value": "value" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: 'stop',
+                      logprobs: undefined,
+                      usage: { completionTokens: 10, promptTokens: 3 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                };
+              case 1:
+                assert.deepStrictEqual(mode, {
+                  type: 'regular',
+                  tools: [
+                    {
+                      type: 'function',
+                      name: 'tool1',
+                      description: undefined,
+                      parameters: {
+                        $schema: 'http://json-schema.org/draft-07/schema#',
+                        additionalProperties: false,
+                        properties: { value: { type: 'string' } },
+                        required: ['value'],
+                        type: 'object',
+                      },
+                    },
+                  ],
+                  toolChoice: { type: 'required' },
+                });
+                assert.deepStrictEqual(prompt, [
+                  {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'test-input' }],
+                  },
+                  {
+                    role: 'assistant',
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        args: `{ "value": "value" }`,
+                      },
+                    ],
+                  },
+                  {
+                    role: 'tool',
+                    content: [
+                      {
+                        type: 'text',
+                        text: `result1`,
+                      },
+                    ],
+                  },
+                ]);
+
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-delta', textDelta: 'Hello, ' },
+                    { type: 'text-delta', textDelta: `world!` },
+                    {
+                      type: 'finish',
+                      finishReason: 'stop',
+                      logprobs: undefined,
+                      usage: { completionTokens: 5, promptTokens: 1 },
+                    },
+                  ]),
+                  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async (args: any) => {
+              assert.deepStrictEqual(args, { value: 'value' });
+              return 'result1';
+            },
+          },
+        },
+        prompt: 'test-input',
+        maxToolRoundtrips: 2,
+      });
+    });
+
+    it('should contain assistant response message and tool message from all roundtrips', async () => {
+      assert.deepStrictEqual(
+        await convertAsyncIterableToArray(result.fullStream),
+        [
+          // TODO new stream element -- start roundtrip
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            args: { value: 'value' },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            args: { value: 'value' },
+            result: 'result1',
+          },
+          // TODO new stream element -- start roundtrip
+          {
+            type: 'text-delta',
+            textDelta: 'Hello, ',
+          },
+          {
+            type: 'text-delta',
+            textDelta: 'world!',
+          },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            logprobs: undefined,
+            usage: { completionTokens: 15, promptTokens: 4, totalTokens: 19 },
+            experimental_providerMetadata: undefined,
+          },
+        ],
+      );
     });
   });
 });
