@@ -1807,9 +1807,15 @@ describe('options.onFinish', () => {
 
 describe('options.maxToolRoundtrips', () => {
   let result: StreamTextResult<any>;
+  let onFinishResult: Parameters<
+    Required<Parameters<typeof streamText>[0]>['onFinish']
+  >[0];
 
   describe('2 roundtrips', () => {
     beforeEach(async () => {
+      result = undefined as any;
+      onFinishResult = undefined as any;
+
       let responseCount = 0;
       result = await streamText({
         model: new MockLanguageModelV1({
@@ -1852,7 +1858,7 @@ describe('options.maxToolRoundtrips', () => {
                     },
                     {
                       type: 'finish',
-                      finishReason: 'stop',
+                      finishReason: 'tool-calls',
                       logprobs: undefined,
                       usage: { completionTokens: 10, promptTokens: 3 },
                     },
@@ -1938,6 +1944,10 @@ describe('options.maxToolRoundtrips', () => {
           },
         },
         prompt: 'test-input',
+        onFinish: async event => {
+          expect(onFinishResult).to.be.undefined;
+          onFinishResult = event as unknown as typeof onFinishResult;
+        },
         maxToolRoundtrips: 2,
       });
     });
@@ -1978,6 +1988,29 @@ describe('options.maxToolRoundtrips', () => {
           },
         ],
       );
+    });
+
+    describe('onFinish', () => {
+      beforeEach(async () => {
+        // consume stream:
+        await convertAsyncIterableToArray(result.fullStream);
+      });
+
+      it('should contain total token usage', async () => {
+        assert.deepStrictEqual(onFinishResult.usage, {
+          completionTokens: 15,
+          promptTokens: 4,
+          totalTokens: 19,
+        });
+      });
+
+      it('should contain finish reason from final roundtrip', async () => {
+        assert.strictEqual(onFinishResult.finishReason, 'stop');
+      });
+
+      it('should contain text from final roundtrip', async () => {
+        assert.strictEqual(onFinishResult.text, 'Hello, world!');
+      });
     });
   });
 });
