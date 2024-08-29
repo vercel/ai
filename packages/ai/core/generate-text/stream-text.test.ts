@@ -946,6 +946,12 @@ describe('result.pipeDataStreamToResponse', async () => {
               { type: 'text-delta', textDelta: 'Hello' },
               { type: 'text-delta', textDelta: ', ' },
               { type: 'text-delta', textDelta: 'world!' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
@@ -976,7 +982,12 @@ describe('result.pipeDataStreamToResponse', async () => {
     });
     assert.deepStrictEqual(
       mockResponse.writtenChunks.map(chunk => decoder.decode(chunk)),
-      ['0:"Hello"\n', '0:", "\n', '0:"world!"\n'],
+      [
+        '0:"Hello"\n',
+        '0:", "\n',
+        '0:"world!"\n',
+        'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
+      ],
     );
   });
 });
@@ -1037,6 +1048,11 @@ describe('result.toDataStreamResponse', () => {
             { type: 'text-delta', textDelta: 'Hello' },
             { type: 'text-delta', textDelta: ', ' },
             { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
           ]),
           rawCall: { rawPrompt: 'prompt', rawSettings: {} },
         }),
@@ -1062,6 +1078,7 @@ describe('result.toDataStreamResponse', () => {
       '0:"Hello"\n',
       '0:", "\n',
       '0:"world!"\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
     ]);
   });
 
@@ -1073,6 +1090,11 @@ describe('result.toDataStreamResponse', () => {
             { type: 'text-delta', textDelta: 'Hello' },
             { type: 'text-delta', textDelta: ', ' },
             { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
           ]),
           rawCall: { rawPrompt: 'prompt', rawSettings: {} },
         }),
@@ -1101,6 +1123,7 @@ describe('result.toDataStreamResponse', () => {
       '0:"Hello"\n',
       '0:", "\n',
       '0:"world!"\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
     ]);
   });
 
@@ -1112,6 +1135,11 @@ describe('result.toDataStreamResponse', () => {
             { type: 'text-delta', textDelta: 'Hello' },
             { type: 'text-delta', textDelta: ', ' },
             { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
           ]),
           rawCall: { rawPrompt: 'prompt', rawSettings: {} },
         }),
@@ -1138,6 +1166,7 @@ describe('result.toDataStreamResponse', () => {
       '0:"Hello"\n',
       '0:", "\n',
       '0:"world!"\n',
+      'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
     ]);
   });
 
@@ -1158,6 +1187,7 @@ describe('result.toDataStreamResponse', () => {
 
     assert.deepStrictEqual(await convertResponseStreamToArray(response), [
       '3:""\n',
+      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
     ]);
   });
 
@@ -1180,6 +1210,7 @@ describe('result.toDataStreamResponse', () => {
 
     assert.deepStrictEqual(await convertResponseStreamToArray(response), [
       '3:"custom error message: error"\n',
+      'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
     ]);
   });
 });
