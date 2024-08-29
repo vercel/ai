@@ -1,3 +1,7 @@
+import {
+  LanguageModelV1Prompt,
+  LanguageModelV1StreamPart,
+} from '@ai-sdk/provider';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import {
@@ -9,7 +13,10 @@ import {
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import {
+  convertToLanguageModelMessage,
+  convertToLanguageModelPrompt,
+} from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
@@ -38,6 +45,7 @@ import { mergeStreams } from '../util/merge-streams';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { runToolsTransformation } from './run-tools-transformation';
 import { StreamTextResult } from './stream-text-result';
+import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
 
@@ -240,9 +248,83 @@ results that can be fully encapsulated in the provider.
     endWhenDone: false,
     fn: async rootSpan => {
       const retry = retryWithExponentialBackoff({ maxRetries });
-      const validatedPrompt = validatePrompt({ system, prompt, messages });
+
+      const startRoundtrip: StartRoundtripFunction<TOOLS> = async ({
+        promptMessages,
+        promptType,
+      }: {
+        promptMessages: LanguageModelV1Prompt;
+        promptType: 'prompt' | 'messages';
+      }) => {
+        const {
+          result: { stream, warnings, rawResponse },
+          doStreamSpan,
+          startTimestamp,
+        } = await retry(() =>
+          recordSpan({
+            name: 'ai.streamText.doStream',
+            attributes: selectTelemetryAttributes({
+              telemetry,
+              attributes: {
+                ...assembleOperationName({
+                  operationId: 'ai.streamText.doStream',
+                  telemetry,
+                }),
+                ...baseTelemetryAttributes,
+                'ai.prompt.format': {
+                  input: () => promptType,
+                },
+                'ai.prompt.messages': {
+                  input: () => JSON.stringify(promptMessages),
+                },
+
+                // standardized gen-ai llm span attributes:
+                'gen_ai.request.model': model.modelId,
+                'gen_ai.system': model.provider,
+                'gen_ai.request.max_tokens': settings.maxTokens,
+                'gen_ai.request.temperature': settings.temperature,
+                'gen_ai.request.top_p': settings.topP,
+              },
+            }),
+            tracer,
+            endWhenDone: false,
+            fn: async doStreamSpan => ({
+              startTimestamp: performance.now(), // get before the call
+              doStreamSpan,
+              result: await model.doStream({
+                mode: {
+                  type: 'regular',
+                  ...prepareToolsAndToolChoice({ tools, toolChoice }),
+                },
+                ...prepareCallSettings(settings),
+                inputFormat: promptType,
+                prompt: promptMessages,
+                abortSignal,
+                headers,
+              }),
+            }),
+          }),
+        );
+
+        return {
+          result: {
+            stream: runToolsTransformation({
+              tools,
+              generatorStream: stream,
+              toolCallStreaming,
+              tracer,
+              telemetry,
+            }),
+            warnings,
+            rawResponse,
+          },
+          doStreamSpan,
+          startTimestamp,
+        };
+      };
+
       const promptMessages = await convertToLanguageModelPrompt({
-        prompt: validatedPrompt,
+        prompt: validatePrompt({ system, prompt, messages }),
         modelSupportsImageUrls: model.supportsImageUrls,
       });
 
@@ -250,60 +332,13 @@ results that can be fully encapsulated in the provider.
         result: { stream, warnings, rawResponse },
         doStreamSpan,
         startTimestamp,
-      } = await retry(() =>
-        recordSpan({
-          name: 'ai.streamText.doStream',
-          attributes: selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              ...assembleOperationName({
-                operationId: 'ai.streamText.doStream',
-                telemetry,
-              }),
-              ...baseTelemetryAttributes,
-              'ai.prompt.format': {
-                input: () => validatedPrompt.type,
-              },
-              'ai.prompt.messages': {
-                input: () => JSON.stringify(promptMessages),
-              },
-
-              // standardized gen-ai llm span attributes:
-              'gen_ai.request.model': model.modelId,
-              'gen_ai.system': model.provider,
-              'gen_ai.request.max_tokens': settings.maxTokens,
-              'gen_ai.request.temperature': settings.temperature,
-              'gen_ai.request.top_p': settings.topP,
-            },
-          }),
-          tracer,
-          endWhenDone: false,
-          fn: async doStreamSpan => ({
-            startTimestamp: performance.now(), // get before the call
-            doStreamSpan,
-            result: await model.doStream({
-              mode: {
-                type: 'regular',
-                ...prepareToolsAndToolChoice({ tools, toolChoice }),
-              },
-              ...prepareCallSettings(settings),
-              inputFormat: validatedPrompt.type,
-              prompt: promptMessages,
-              abortSignal,
-              headers,
-            }),
-          }),
-        }),
-      );
+      } = await startRoundtrip({
+        promptType: validatePrompt({ system, prompt, messages }).type,
+        promptMessages,
+      });
 
       return new DefaultStreamTextResult({
-        stream: runToolsTransformation({
-          tools,
-          generatorStream: stream,
-          toolCallStreaming,
-          tracer,
-          telemetry,
-        }),
+        stream,
         warnings,
         rawResponse,
         onChunk,
@@ -312,10 +347,29 @@ results that can be fully encapsulated in the provider.
         doStreamSpan,
         telemetry,
         startTimestamp,
+        maxToolRoundtrips,
+        startRoundtrip,
+        promptMessages,
       });
     },
   });
 }
+
+type StartRoundtripFunction<TOOLS extends Record<string, CoreTool>> =
+  (options: {
+    promptMessages: LanguageModelV1Prompt;
+    promptType: 'prompt' | 'messages';
+  }) => Promise<{
+    result: {
+      stream: ReadableStream<TextStreamPart<TOOLS>>;
+      warnings?: CallWarning[] | undefined;
+      rawResponse?: {
+        headers?: Record<string, string>;
+      };
+    };
+    doStreamSpan: Span;
+    startTimestamp: number;
+  }>;
 
 class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
   implements StreamTextResult<TOOLS>
@@ -341,6 +395,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     doStreamSpan,
     telemetry,
     startTimestamp,
+    maxToolRoundtrips,
+    startRoundtrip,
+    promptMessages,
   }: {
     stream: ReadableStream<TextStreamPart<TOOLS>>;
     warnings: StreamTextResult<TOOLS>['warnings'];
@@ -351,6 +408,9 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     doStreamSpan: Span;
     telemetry: TelemetrySettings | undefined;
     startTimestamp: number; // performance.now() timestamp
+    maxToolRoundtrips: number;
+    startRoundtrip: StartRoundtripFunction<TOOLS>;
+    promptMessages: LanguageModelV1Prompt;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -387,15 +447,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     } = createResolvablePromise<ProviderMetadata | undefined>();
     this.experimental_providerMetadata = providerMetadataPromise;
 
-    // store information for onFinish callback:
-    let finishReason: FinishReason | undefined;
-    let usage: CompletionTokenUsage | undefined;
-    let providerMetadata: ProviderMetadata | undefined;
-    let text = '';
-    const toolCalls: ToToolCall<TOOLS>[] = [];
-    const toolResults: ToToolResult<TOOLS>[] = [];
-    let firstChunk = true;
-
     // create a stitchable stream to send roundtrips in a single response stream
     const {
       stream: stitchableStream,
@@ -405,164 +456,31 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
     this.originalStream = stitchableStream;
 
-    // pipe chunks through a transformation stream that extracts metadata:
-
+    // add the initial stream to the stitchable stream
     addStream(
-      stream.pipeThrough(
-        new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
-          async transform(chunk, controller): Promise<void> {
-            // Telemetry for first chunk:
-            if (firstChunk) {
-              const msToFirstChunk = performance.now() - startTimestamp;
-
-              firstChunk = false;
-
-              doStreamSpan.addEvent('ai.stream.firstChunk', {
-                'ai.stream.msToFirstChunk': msToFirstChunk,
-              });
-
-              doStreamSpan.setAttributes({
-                'ai.stream.msToFirstChunk': msToFirstChunk,
-              });
-            }
-
-            // Filter out empty text deltas
-            if (chunk.type === 'text-delta' && chunk.textDelta.length === 0) {
-              return;
-            }
-
-            controller.enqueue(chunk);
-
-            const chunkType = chunk.type;
-            switch (chunkType) {
-              case 'text-delta':
-                // create the full text from text deltas (for onFinish callback and text promise):
-                text += chunk.textDelta;
-                await onChunk?.({ chunk });
-                break;
-
-              case 'tool-call':
-                // store tool calls for onFinish callback and toolCalls promise:
-                toolCalls.push(chunk);
-                await onChunk?.({ chunk });
-                break;
-
-              case 'tool-result':
-                // store tool results for onFinish callback and toolResults promise:
-                toolResults.push(chunk);
-                // as any needed, bc type inferences mixed up tool-result with tool-call
-                await onChunk?.({ chunk: chunk as any });
-                break;
-
-              case 'finish':
-                // Note: tool executions might not be finished yet when the finish event is emitted.
-                // store usage and finish reason for promises and onFinish callback:
-                usage = chunk.usage;
-                finishReason = chunk.finishReason;
-                providerMetadata = chunk.experimental_providerMetadata;
-
-                // resolve promises that can be resolved now:
-                resolveUsage(usage);
-                resolveFinishReason(finishReason);
-                resolveText(text);
-                resolveToolCalls(toolCalls);
-                resolveProviderMetadata(providerMetadata);
-                break;
-
-              case 'tool-call-streaming-start':
-              case 'tool-call-delta': {
-                await onChunk?.({ chunk });
-                break;
-              }
-
-              case 'error':
-                // ignored
-                break;
-
-              default: {
-                const exhaustiveCheck: never = chunkType;
-                throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
-              }
-            }
-          },
-
-          // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
-          async flush(controller) {
-            try {
-              const finalUsage = usage ?? {
-                promptTokens: NaN,
-                completionTokens: NaN,
-                totalTokens: NaN,
-              };
-              const finalFinishReason = finishReason ?? 'unknown';
-              const telemetryToolCalls =
-                toolCalls.length > 0 ? JSON.stringify(toolCalls) : undefined;
-
-              doStreamSpan.setAttributes(
-                selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    'ai.finishReason': finalFinishReason,
-                    'ai.usage.promptTokens': finalUsage.promptTokens,
-                    'ai.usage.completionTokens': finalUsage.completionTokens,
-                    'ai.result.text': { output: () => text },
-                    'ai.result.toolCalls': { output: () => telemetryToolCalls },
-
-                    // standardized gen-ai llm span attributes:
-                    'gen_ai.response.finish_reasons': [finalFinishReason],
-                    'gen_ai.usage.prompt_tokens': finalUsage.promptTokens,
-                    'gen_ai.usage.completion_tokens':
-                      finalUsage.completionTokens,
-                  },
-                }),
-              );
-
-              // finish doStreamSpan before other operations for correct timing:
-              doStreamSpan.end();
-
-              // close the stitchable stream
-              closeStitchableStream();
-
-              // Add response information to the root span:
-              rootSpan.setAttributes(
-                selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    'ai.finishReason': finalFinishReason,
-                    'ai.usage.promptTokens': finalUsage.promptTokens,
-                    'ai.usage.completionTokens': finalUsage.completionTokens,
-                    'ai.result.text': { output: () => text },
-                    'ai.result.toolCalls': { output: () => telemetryToolCalls },
-                  },
-                }),
-              );
-
-              // resolve toolResults promise:
-              resolveToolResults(toolResults);
-
-              // call onFinish callback:
-              await onFinish?.({
-                finishReason: finalFinishReason,
-                usage: finalUsage,
-                text,
-                toolCalls,
-                // The tool results are inferred as a never[] type, because they are
-                // optional and the execute method with an inferred result type is
-                // optional as well. Therefore we need to cast the toolResults to any.
-                // The type exposed to the users will be correctly inferred.
-                toolResults: toolResults as any,
-                rawResponse,
-                warnings,
-                experimental_providerMetadata: providerMetadata,
-              });
-            } catch (error) {
-              controller.error(error);
-            } finally {
-              rootSpan.end();
-            }
-          },
-        }),
-      ),
+      createTransformedStream({
+        stream,
+        startTimestamp,
+        doStreamSpan,
+        onChunk,
+        telemetry,
+        resolveUsage,
+        resolveFinishReason,
+        resolveText,
+        resolveToolCalls,
+        resolveToolResults,
+        resolveProviderMetadata,
+        closeStitchableStream,
+        rootSpan,
+        onFinish,
+        rawResponse,
+        warnings,
+        maxToolRoundtrips,
+        currentToolRoundtrip: 0,
+        startRoundtrip,
+        promptMessages,
+        addStream,
+      }),
     );
   }
 
@@ -848,3 +766,268 @@ However, the LLM results are expected to be small enough to not cause issues.
  * @deprecated Use `streamText` instead.
  */
 export const experimental_streamText = streamText;
+
+function createTransformedStream<TOOLS extends Record<string, CoreTool>>({
+  stream,
+  startTimestamp,
+  doStreamSpan,
+  onChunk,
+  telemetry,
+  resolveUsage,
+  resolveFinishReason,
+  resolveText,
+  resolveToolCalls,
+  resolveToolResults,
+  resolveProviderMetadata,
+  closeStitchableStream,
+  rootSpan,
+  onFinish,
+  rawResponse,
+  warnings,
+  maxToolRoundtrips,
+  currentToolRoundtrip,
+  startRoundtrip,
+  promptMessages,
+  addStream,
+}: {
+  stream: ReadableStream<TextStreamPart<TOOLS>>;
+  startTimestamp: number;
+  doStreamSpan: Span;
+  rootSpan: Span;
+  onChunk: Parameters<typeof streamText>[0]['onChunk'];
+  onFinish: Parameters<typeof streamText>[0]['onFinish'];
+  telemetry: TelemetrySettings | undefined;
+  resolveUsage: (usage: CompletionTokenUsage) => void;
+  resolveFinishReason: (finishReason: FinishReason) => void;
+  resolveText: (text: string) => void;
+  resolveToolCalls: (toolCalls: ToToolCall<TOOLS>[]) => void;
+  resolveToolResults: (toolResults: ToToolResult<TOOLS>[]) => void;
+  resolveProviderMetadata: (
+    providerMetadata: ProviderMetadata | undefined,
+  ) => void;
+  closeStitchableStream: () => void;
+  rawResponse: StreamTextResult<TOOLS>['rawResponse'];
+  warnings: StreamTextResult<TOOLS>['warnings'];
+  maxToolRoundtrips: number;
+  currentToolRoundtrip: number;
+  startRoundtrip: StartRoundtripFunction<TOOLS>;
+  promptMessages: LanguageModelV1Prompt;
+  addStream: (innerStream: ReadableStream<TextStreamPart<TOOLS>>) => void;
+}): ReadableStream<TextStreamPart<TOOLS>> {
+  // store information for onFinish callback:
+  let finishReason: FinishReason | undefined;
+  let usage: CompletionTokenUsage | undefined;
+  let providerMetadata: ProviderMetadata | undefined;
+  const toolCalls: ToToolCall<TOOLS>[] = [];
+  const toolResults: ToToolResult<TOOLS>[] = [];
+  let firstChunk = true;
+  let text = '';
+
+  return stream.pipeThrough(
+    new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+      async transform(chunk, controller): Promise<void> {
+        // Telemetry for first chunk:
+        if (firstChunk) {
+          const msToFirstChunk = performance.now() - startTimestamp;
+
+          firstChunk = false;
+
+          doStreamSpan.addEvent('ai.stream.firstChunk', {
+            'ai.stream.msToFirstChunk': msToFirstChunk,
+          });
+
+          doStreamSpan.setAttributes({
+            'ai.stream.msToFirstChunk': msToFirstChunk,
+          });
+        }
+
+        // Filter out empty text deltas
+        if (chunk.type === 'text-delta' && chunk.textDelta.length === 0) {
+          return;
+        }
+
+        controller.enqueue(chunk);
+
+        const chunkType = chunk.type;
+        switch (chunkType) {
+          case 'text-delta':
+            // create the full text from text deltas (for onFinish callback and text promise):
+            text += chunk.textDelta;
+            await onChunk?.({ chunk });
+            break;
+
+          case 'tool-call':
+            // store tool calls for onFinish callback and toolCalls promise:
+            toolCalls.push(chunk);
+            await onChunk?.({ chunk });
+            break;
+
+          case 'tool-result':
+            // store tool results for onFinish callback and toolResults promise:
+            toolResults.push(chunk);
+            // as any needed, bc type inferences mixed up tool-result with tool-call
+            await onChunk?.({ chunk: chunk as any });
+            break;
+
+          case 'finish':
+            // Note: tool executions might not be finished yet when the finish event is emitted.
+            // store usage and finish reason for promises and onFinish callback:
+            usage = chunk.usage;
+            finishReason = chunk.finishReason;
+            providerMetadata = chunk.experimental_providerMetadata;
+
+            // resolve promises that can be resolved now:
+            resolveUsage(usage);
+            resolveFinishReason(finishReason);
+            resolveText(text);
+            resolveToolCalls(toolCalls);
+            resolveProviderMetadata(providerMetadata);
+            break;
+
+          case 'tool-call-streaming-start':
+          case 'tool-call-delta': {
+            await onChunk?.({ chunk });
+            break;
+          }
+
+          case 'error':
+            // ignored
+            break;
+
+          default: {
+            const exhaustiveCheck: never = chunkType;
+            throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+          }
+        }
+      },
+
+      // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
+      async flush(controller) {
+        const finalUsage = usage ?? {
+          promptTokens: NaN,
+          completionTokens: NaN,
+          totalTokens: NaN,
+        };
+        const finalFinishReason = finishReason ?? 'unknown';
+        const telemetryToolCalls =
+          toolCalls.length > 0 ? JSON.stringify(toolCalls) : undefined;
+
+        try {
+          doStreamSpan.setAttributes(
+            selectTelemetryAttributes({
+              telemetry,
+              attributes: {
+                'ai.finishReason': finalFinishReason,
+                'ai.usage.promptTokens': finalUsage.promptTokens,
+                'ai.usage.completionTokens': finalUsage.completionTokens,
+                'ai.result.text': { output: () => text },
+                'ai.result.toolCalls': { output: () => telemetryToolCalls },
+
+                // standardized gen-ai llm span attributes:
+                'gen_ai.response.finish_reasons': [finalFinishReason],
+                'gen_ai.usage.prompt_tokens': finalUsage.promptTokens,
+                'gen_ai.usage.completion_tokens': finalUsage.completionTokens,
+              },
+            }),
+          );
+        } catch (error) {
+          // TODO set error on span?
+        } finally {
+          // finish doStreamSpan before other operations for correct timing:
+          doStreamSpan.end();
+        }
+
+        // check if another tool roundtrip is needed:
+        if (
+          // there are tool calls:
+          toolCalls.length > 0 &&
+          // all current tool calls have results:
+          toolResults.length === toolCalls.length &&
+          // the number of roundtrips is less than the maximum:
+          currentToolRoundtrip < maxToolRoundtrips
+        ) {
+          // append to messages for potential next roundtrip:
+          promptMessages.push(
+            ...toResponseMessages({ text, toolCalls, toolResults }).map(
+              message => convertToLanguageModelMessage(message, null),
+            ),
+          );
+
+          // create call and doStream span:
+          const { result, doStreamSpan, startTimestamp } = await startRoundtrip(
+            { promptType: 'messages', promptMessages },
+          );
+
+          // needs to add to stitchable stream
+          addStream(
+            createTransformedStream({
+              stream: result.stream,
+              startTimestamp,
+              doStreamSpan,
+              onChunk,
+              telemetry,
+              resolveUsage,
+              resolveFinishReason,
+              resolveText,
+              resolveToolCalls,
+              resolveToolResults,
+              resolveProviderMetadata,
+              closeStitchableStream,
+              rootSpan,
+              onFinish,
+              rawResponse: result.rawResponse,
+              warnings: result.warnings,
+              maxToolRoundtrips,
+              currentToolRoundtrip: currentToolRoundtrip + 1,
+              startRoundtrip,
+              promptMessages,
+              addStream,
+            }),
+          );
+        } else {
+          try {
+            // close the stitchable stream
+            closeStitchableStream();
+
+            // Add response information to the root span:
+            rootSpan.setAttributes(
+              selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  'ai.finishReason': finalFinishReason,
+                  'ai.usage.promptTokens': finalUsage.promptTokens,
+                  'ai.usage.completionTokens': finalUsage.completionTokens,
+                  'ai.result.text': { output: () => text },
+                  'ai.result.toolCalls': { output: () => telemetryToolCalls },
+                },
+              }),
+            );
+
+            // resolve toolResults promise:
+            resolveToolResults(toolResults);
+
+            // call onFinish callback:
+            await onFinish?.({
+              finishReason: finalFinishReason,
+              usage: finalUsage,
+              text,
+              toolCalls,
+              // The tool results are inferred as a never[] type, because they are
+              // optional and the execute method with an inferred result type is
+              // optional as well. Therefore we need to cast the toolResults to any.
+              // The type exposed to the users will be correctly inferred.
+              toolResults: toolResults as any,
+              rawResponse,
+              warnings,
+              experimental_providerMetadata: providerMetadata,
+            });
+          } catch (error) {
+            controller.error(error);
+          } finally {
+            rootSpan.end();
+          }
+        }
+      },
+    }),
+  );
+}

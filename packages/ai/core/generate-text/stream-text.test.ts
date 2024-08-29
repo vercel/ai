@@ -1845,7 +1845,7 @@ describe('options.maxToolRoundtrips', () => {
                       },
                     },
                   ],
-                  toolChoice: { type: 'required' },
+                  toolChoice: { type: 'auto' },
                 });
                 assert.deepStrictEqual(prompt, [
                   {
@@ -1859,18 +1859,23 @@ describe('options.maxToolRoundtrips', () => {
                         type: 'tool-call',
                         toolCallId: 'call-1',
                         toolName: 'tool1',
-                        args: `{ "value": "value" }`,
+                        args: { value: 'value' },
                       },
                     ],
+                    providerMetadata: undefined,
                   },
                   {
                     role: 'tool',
                     content: [
                       {
-                        type: 'text',
-                        text: `result1`,
+                        type: 'tool-result',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        result: 'result1',
+                        providerMetadata: undefined,
                       },
                     ],
+                    providerMetadata: undefined,
                   },
                 ]);
 
