@@ -33,6 +33,7 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { createStitchableStream } from '../util/create-stitchable-stream';
 import { mergeStreams } from '../util/merge-streams';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { runToolsTransformation } from './run-tools-transformation';
@@ -378,157 +379,173 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     const toolResults: ToToolResult<TOOLS>[] = [];
     let firstChunk = true;
 
+    // create a stitchable stream to send roundtrips in a single response stream
+    const {
+      stream: stitchableStream,
+      addStream,
+      close: closeStitchableStream,
+    } = createStitchableStream<TextStreamPart<TOOLS>>();
+
+    this.originalStream = stitchableStream;
+
     // pipe chunks through a transformation stream that extracts metadata:
-    this.originalStream = stream.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
-        async transform(chunk, controller): Promise<void> {
-          // Telemetry for first chunk:
-          if (firstChunk) {
-            const msToFirstChunk = performance.now() - startTimestamp;
 
-            firstChunk = false;
+    addStream(
+      stream.pipeThrough(
+        new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+          async transform(chunk, controller): Promise<void> {
+            // Telemetry for first chunk:
+            if (firstChunk) {
+              const msToFirstChunk = performance.now() - startTimestamp;
 
-            doStreamSpan.addEvent('ai.stream.firstChunk', {
-              'ai.stream.msToFirstChunk': msToFirstChunk,
-            });
+              firstChunk = false;
 
-            doStreamSpan.setAttributes({
-              'ai.stream.msToFirstChunk': msToFirstChunk,
-            });
-          }
+              doStreamSpan.addEvent('ai.stream.firstChunk', {
+                'ai.stream.msToFirstChunk': msToFirstChunk,
+              });
 
-          // Filter out empty text deltas
-          if (chunk.type === 'text-delta' && chunk.textDelta.length === 0) {
-            return;
-          }
-
-          controller.enqueue(chunk);
-
-          const chunkType = chunk.type;
-          switch (chunkType) {
-            case 'text-delta':
-              // create the full text from text deltas (for onFinish callback and text promise):
-              text += chunk.textDelta;
-              await onChunk?.({ chunk });
-              break;
-
-            case 'tool-call':
-              // store tool calls for onFinish callback and toolCalls promise:
-              toolCalls.push(chunk);
-              await onChunk?.({ chunk });
-              break;
-
-            case 'tool-result':
-              // store tool results for onFinish callback and toolResults promise:
-              toolResults.push(chunk);
-              // as any needed, bc type inferences mixed up tool-result with tool-call
-              await onChunk?.({ chunk: chunk as any });
-              break;
-
-            case 'finish':
-              // Note: tool executions might not be finished yet when the finish event is emitted.
-              // store usage and finish reason for promises and onFinish callback:
-              usage = chunk.usage;
-              finishReason = chunk.finishReason;
-              providerMetadata = chunk.experimental_providerMetadata;
-
-              // resolve promises that can be resolved now:
-              resolveUsage(usage);
-              resolveFinishReason(finishReason);
-              resolveText(text);
-              resolveToolCalls(toolCalls);
-              resolveProviderMetadata(providerMetadata);
-              break;
-
-            case 'tool-call-streaming-start':
-            case 'tool-call-delta': {
-              await onChunk?.({ chunk });
-              break;
+              doStreamSpan.setAttributes({
+                'ai.stream.msToFirstChunk': msToFirstChunk,
+              });
             }
 
-            case 'error':
-              // ignored
-              break;
-
-            default: {
-              const exhaustiveCheck: never = chunkType;
-              throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+            // Filter out empty text deltas
+            if (chunk.type === 'text-delta' && chunk.textDelta.length === 0) {
+              return;
             }
-          }
-        },
 
-        // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
-        async flush(controller) {
-          try {
-            const finalUsage = usage ?? {
-              promptTokens: NaN,
-              completionTokens: NaN,
-              totalTokens: NaN,
-            };
-            const finalFinishReason = finishReason ?? 'unknown';
-            const telemetryToolCalls =
-              toolCalls.length > 0 ? JSON.stringify(toolCalls) : undefined;
+            controller.enqueue(chunk);
 
-            doStreamSpan.setAttributes(
-              selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.finishReason': finalFinishReason,
-                  'ai.usage.promptTokens': finalUsage.promptTokens,
-                  'ai.usage.completionTokens': finalUsage.completionTokens,
-                  'ai.result.text': { output: () => text },
-                  'ai.result.toolCalls': { output: () => telemetryToolCalls },
+            const chunkType = chunk.type;
+            switch (chunkType) {
+              case 'text-delta':
+                // create the full text from text deltas (for onFinish callback and text promise):
+                text += chunk.textDelta;
+                await onChunk?.({ chunk });
+                break;
 
-                  // standardized gen-ai llm span attributes:
-                  'gen_ai.response.finish_reasons': [finalFinishReason],
-                  'gen_ai.usage.prompt_tokens': finalUsage.promptTokens,
-                  'gen_ai.usage.completion_tokens': finalUsage.completionTokens,
-                },
-              }),
-            );
+              case 'tool-call':
+                // store tool calls for onFinish callback and toolCalls promise:
+                toolCalls.push(chunk);
+                await onChunk?.({ chunk });
+                break;
 
-            // finish doStreamSpan before other operations for correct timing:
-            doStreamSpan.end();
+              case 'tool-result':
+                // store tool results for onFinish callback and toolResults promise:
+                toolResults.push(chunk);
+                // as any needed, bc type inferences mixed up tool-result with tool-call
+                await onChunk?.({ chunk: chunk as any });
+                break;
 
-            // Add response information to the root span:
-            rootSpan.setAttributes(
-              selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.finishReason': finalFinishReason,
-                  'ai.usage.promptTokens': finalUsage.promptTokens,
-                  'ai.usage.completionTokens': finalUsage.completionTokens,
-                  'ai.result.text': { output: () => text },
-                  'ai.result.toolCalls': { output: () => telemetryToolCalls },
-                },
-              }),
-            );
+              case 'finish':
+                // Note: tool executions might not be finished yet when the finish event is emitted.
+                // store usage and finish reason for promises and onFinish callback:
+                usage = chunk.usage;
+                finishReason = chunk.finishReason;
+                providerMetadata = chunk.experimental_providerMetadata;
 
-            // resolve toolResults promise:
-            resolveToolResults(toolResults);
+                // resolve promises that can be resolved now:
+                resolveUsage(usage);
+                resolveFinishReason(finishReason);
+                resolveText(text);
+                resolveToolCalls(toolCalls);
+                resolveProviderMetadata(providerMetadata);
+                break;
 
-            // call onFinish callback:
-            await onFinish?.({
-              finishReason: finalFinishReason,
-              usage: finalUsage,
-              text,
-              toolCalls,
-              // The tool results are inferred as a never[] type, because they are
-              // optional and the execute method with an inferred result type is
-              // optional as well. Therefore we need to cast the toolResults to any.
-              // The type exposed to the users will be correctly inferred.
-              toolResults: toolResults as any,
-              rawResponse,
-              warnings,
-              experimental_providerMetadata: providerMetadata,
-            });
-          } catch (error) {
-            controller.error(error);
-          } finally {
-            rootSpan.end();
-          }
-        },
-      }),
+              case 'tool-call-streaming-start':
+              case 'tool-call-delta': {
+                await onChunk?.({ chunk });
+                break;
+              }
+
+              case 'error':
+                // ignored
+                break;
+
+              default: {
+                const exhaustiveCheck: never = chunkType;
+                throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+              }
+            }
+          },
+
+          // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
+          async flush(controller) {
+            try {
+              const finalUsage = usage ?? {
+                promptTokens: NaN,
+                completionTokens: NaN,
+                totalTokens: NaN,
+              };
+              const finalFinishReason = finishReason ?? 'unknown';
+              const telemetryToolCalls =
+                toolCalls.length > 0 ? JSON.stringify(toolCalls) : undefined;
+
+              doStreamSpan.setAttributes(
+                selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    'ai.finishReason': finalFinishReason,
+                    'ai.usage.promptTokens': finalUsage.promptTokens,
+                    'ai.usage.completionTokens': finalUsage.completionTokens,
+                    'ai.result.text': { output: () => text },
+                    'ai.result.toolCalls': { output: () => telemetryToolCalls },
+
+                    // standardized gen-ai llm span attributes:
+                    'gen_ai.response.finish_reasons': [finalFinishReason],
+                    'gen_ai.usage.prompt_tokens': finalUsage.promptTokens,
+                    'gen_ai.usage.completion_tokens':
+                      finalUsage.completionTokens,
+                  },
+                }),
+              );
+
+              // finish doStreamSpan before other operations for correct timing:
+              doStreamSpan.end();
+
+              // close the stitchable stream
+              closeStitchableStream();
+
+              // Add response information to the root span:
+              rootSpan.setAttributes(
+                selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    'ai.finishReason': finalFinishReason,
+                    'ai.usage.promptTokens': finalUsage.promptTokens,
+                    'ai.usage.completionTokens': finalUsage.completionTokens,
+                    'ai.result.text': { output: () => text },
+                    'ai.result.toolCalls': { output: () => telemetryToolCalls },
+                  },
+                }),
+              );
+
+              // resolve toolResults promise:
+              resolveToolResults(toolResults);
+
+              // call onFinish callback:
+              await onFinish?.({
+                finishReason: finalFinishReason,
+                usage: finalUsage,
+                text,
+                toolCalls,
+                // The tool results are inferred as a never[] type, because they are
+                // optional and the execute method with an inferred result type is
+                // optional as well. Therefore we need to cast the toolResults to any.
+                // The type exposed to the users will be correctly inferred.
+                toolResults: toolResults as any,
+                rawResponse,
+                warnings,
+                experimental_providerMetadata: providerMetadata,
+              });
+            } catch (error) {
+              controller.error(error);
+            } finally {
+              rootSpan.end();
+            }
+          },
+        }),
+      ),
     );
   }
 
