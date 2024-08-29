@@ -1956,7 +1956,6 @@ describe('options.maxToolRoundtrips', () => {
       assert.deepStrictEqual(
         await convertAsyncIterableToArray(result.fullStream),
         [
-          // TODO new stream element -- start roundtrip
           {
             type: 'tool-call',
             toolCallId: 'call-1',
@@ -1970,7 +1969,7 @@ describe('options.maxToolRoundtrips', () => {
             args: { value: 'value' },
             result: 'result1',
           },
-          // TODO new stream element -- start roundtrip
+          // TODO new stream element -- finish roundtrip
           {
             type: 'text-delta',
             textDelta: 'Hello, ',
@@ -1979,6 +1978,7 @@ describe('options.maxToolRoundtrips', () => {
             type: 'text-delta',
             textDelta: 'world!',
           },
+          // TODO new stream element -- finish roundtrip
           {
             type: 'finish',
             finishReason: 'stop',
@@ -2010,6 +2010,29 @@ describe('options.maxToolRoundtrips', () => {
 
       it('should contain text from final roundtrip', async () => {
         assert.strictEqual(onFinishResult.text, 'Hello, world!');
+      });
+    });
+
+    describe('value promises', () => {
+      beforeEach(async () => {
+        // consume stream:
+        await convertAsyncIterableToArray(result.fullStream);
+      });
+
+      it('should contain total token usage', async () => {
+        assert.deepStrictEqual(await result.usage, {
+          completionTokens: 15,
+          promptTokens: 4,
+          totalTokens: 19,
+        });
+      });
+
+      it('should contain finish reason from final roundtrip', async () => {
+        assert.strictEqual(await result.finishReason, 'stop');
+      });
+
+      it('should contain text from final roundtrip', async () => {
+        assert.strictEqual(await result.text, 'Hello, world!');
       });
     });
   });
