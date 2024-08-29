@@ -459,8 +459,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
     this.originalStream = stitchableStream;
 
-    // start the roundtrip stream
-    function startRoundtripStream({
+    // add the roundtrip stream
+    function addRoundtripStream({
       stream,
       startTimestamp,
       doStreamSpan,
@@ -638,7 +638,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   });
 
                 // needs to add to stitchable stream
-                startRoundtripStream({
+                addRoundtripStream({
                   stream: result.stream,
                   startTimestamp,
                   doStreamSpan,
@@ -646,65 +646,67 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   promptMessages,
                   usage: combinedUsage,
                 });
-              } else {
-                try {
-                  // enqueue the finish chunk:
-                  controller.enqueue({
-                    type: 'finish',
-                    finishReason: roundtripFinishReason,
-                    usage: combinedUsage,
-                    experimental_providerMetadata: roundtripProviderMetadata,
-                    logprobs: undefined, // TODO
-                  });
 
-                  // close the stitchable stream
-                  closeStitchableStream();
+                return;
+              }
 
-                  // Add response information to the root span:
-                  rootSpan.setAttributes(
-                    selectTelemetryAttributes({
-                      telemetry,
-                      attributes: {
-                        'ai.finishReason': roundtripFinishReason,
-                        'ai.usage.promptTokens': combinedUsage.promptTokens,
-                        'ai.usage.completionTokens':
-                          combinedUsage.completionTokens,
-                        'ai.result.text': { output: () => roundtripText },
-                        'ai.result.toolCalls': {
-                          output: () => telemetryToolCalls,
-                        },
+              try {
+                // enqueue the finish chunk:
+                controller.enqueue({
+                  type: 'finish',
+                  finishReason: roundtripFinishReason,
+                  usage: combinedUsage,
+                  experimental_providerMetadata: roundtripProviderMetadata,
+                  logprobs: undefined, // TODO
+                });
+
+                // close the stitchable stream
+                closeStitchableStream();
+
+                // Add response information to the root span:
+                rootSpan.setAttributes(
+                  selectTelemetryAttributes({
+                    telemetry,
+                    attributes: {
+                      'ai.finishReason': roundtripFinishReason,
+                      'ai.usage.promptTokens': combinedUsage.promptTokens,
+                      'ai.usage.completionTokens':
+                        combinedUsage.completionTokens,
+                      'ai.result.text': { output: () => roundtripText },
+                      'ai.result.toolCalls': {
+                        output: () => telemetryToolCalls,
                       },
-                    }),
-                  );
+                    },
+                  }),
+                );
 
-                  // resolve promises:
-                  resolveUsage(combinedUsage);
-                  resolveFinishReason(roundtripFinishReason!);
-                  resolveText(roundtripText);
-                  resolveToolCalls(roundtripToolCalls);
-                  resolveProviderMetadata(roundtripProviderMetadata);
-                  resolveToolResults(roundtripToolResults);
+                // resolve promises:
+                resolveUsage(combinedUsage);
+                resolveFinishReason(roundtripFinishReason!);
+                resolveText(roundtripText);
+                resolveToolCalls(roundtripToolCalls);
+                resolveProviderMetadata(roundtripProviderMetadata);
+                resolveToolResults(roundtripToolResults);
 
-                  // call onFinish callback:
-                  await onFinish?.({
-                    finishReason: roundtripFinishReason,
-                    usage: combinedUsage,
-                    text: roundtripText,
-                    toolCalls: roundtripToolCalls,
-                    // The tool results are inferred as a never[] type, because they are
-                    // optional and the execute method with an inferred result type is
-                    // optional as well. Therefore we need to cast the toolResults to any.
-                    // The type exposed to the users will be correctly inferred.
-                    toolResults: roundtripToolResults as any,
-                    rawResponse,
-                    warnings,
-                    experimental_providerMetadata: roundtripProviderMetadata,
-                  });
-                } catch (error) {
-                  controller.error(error);
-                } finally {
-                  rootSpan.end();
-                }
+                // call onFinish callback:
+                await onFinish?.({
+                  finishReason: roundtripFinishReason,
+                  usage: combinedUsage,
+                  text: roundtripText,
+                  toolCalls: roundtripToolCalls,
+                  // The tool results are inferred as a never[] type, because they are
+                  // optional and the execute method with an inferred result type is
+                  // optional as well. Therefore we need to cast the toolResults to any.
+                  // The type exposed to the users will be correctly inferred.
+                  toolResults: roundtripToolResults as any,
+                  rawResponse,
+                  warnings,
+                  experimental_providerMetadata: roundtripProviderMetadata,
+                });
+              } catch (error) {
+                controller.error(error);
+              } finally {
+                rootSpan.end();
               }
             },
           }),
@@ -713,7 +715,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     }
 
     // add the initial stream to the stitchable stream
-    startRoundtripStream({
+    addRoundtripStream({
       stream,
       startTimestamp,
       doStreamSpan,
