@@ -78,6 +78,8 @@ If set and supported by the model, calls will generate deterministic results.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
+@param maxToolRoundtrips - Maximal number of automatic roundtrips for tool calls.
+
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
 @param onFinish - Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
@@ -95,6 +97,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   maxRetries,
   abortSignal,
   headers,
+  maxToolRoundtrips = 0,
   experimental_telemetry: telemetry,
   experimental_toolCallStreaming: toolCallStreaming = false,
   onChunk,
@@ -116,6 +119,20 @@ The tools that the model can call. The model needs to support calling tools.
 The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: CoreToolChoice<TOOLS>;
+
+    /**
+Maximal number of automatic roundtrips for tool calls.
+
+An automatic tool call roundtrip is another LLM call with the
+tool call results when all tool calls of the last assistant
+message have results.
+
+A maximum number is required to prevent infinite loops in the
+case of misconfigured tools.
+
+By default, it's set to 0, which will disable the feature.
+     */
+    maxToolRoundtrips?: number;
 
     /**
 Optional telemetry configuration (experimental).
