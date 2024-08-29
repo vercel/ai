@@ -33,6 +33,7 @@ import {
   CoreToolChoice,
   FinishReason,
   LanguageModel,
+  LogProbs,
   ProviderMetadata,
 } from '../types';
 import { CompletionTokenUsage } from '../types/token-usage';
@@ -490,6 +491,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       let roundtripProviderMetadata: ProviderMetadata | undefined;
       let roundtripFirstChunk = true;
       let roundtripText = '';
+      let roundtripLogProbs: LogProbs | undefined;
 
       addStream(
         stream.pipeThrough(
@@ -546,6 +548,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   roundtripFinishReason = chunk.finishReason;
                   roundtripProviderMetadata =
                     chunk.experimental_providerMetadata;
+                  roundtripLogProbs = chunk.logprobs;
                   break;
 
                 case 'tool-call-streaming-start':
@@ -657,7 +660,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   finishReason: roundtripFinishReason,
                   usage: combinedUsage,
                   experimental_providerMetadata: roundtripProviderMetadata,
-                  logprobs: undefined, // TODO
+                  logprobs: roundtripLogProbs,
                 });
 
                 // close the stitchable stream
