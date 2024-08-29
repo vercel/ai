@@ -466,7 +466,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       doStreamSpan,
       currentToolRoundtrip,
       promptMessages,
-      usage,
+      usage = {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+      },
     }: {
       stream: ReadableStream<TextStreamPart<TOOLS>>;
       startTimestamp: number;
@@ -475,23 +479,27 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
       promptMessages: LanguageModelV1Prompt;
       usage: CompletionTokenUsage | undefined;
     }) {
-      let roundtripFinishReason: FinishReason | undefined;
-      let roundtripUsage: CompletionTokenUsage | undefined;
-      let providerMetadata: ProviderMetadata | undefined;
-      const toolCalls: ToToolCall<TOOLS>[] = [];
-      const toolResults: ToToolResult<TOOLS>[] = [];
-      let firstChunk = true;
-      let text = '';
+      const roundtripToolCalls: ToToolCall<TOOLS>[] = [];
+      const roundtripToolResults: ToToolResult<TOOLS>[] = [];
+      let roundtripFinishReason: FinishReason = 'unknown';
+      let roundtripUsage: CompletionTokenUsage = {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+      };
+      let roundtripProviderMetadata: ProviderMetadata | undefined;
+      let roundtripFirstChunk = true;
+      let roundtripText = '';
 
       addStream(
         stream.pipeThrough(
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             async transform(chunk, controller): Promise<void> {
               // Telemetry for first chunk:
-              if (firstChunk) {
+              if (roundtripFirstChunk) {
                 const msToFirstChunk = performance.now() - startTimestamp;
 
-                firstChunk = false;
+                roundtripFirstChunk = false;
 
                 doStreamSpan.addEvent('ai.stream.firstChunk', {
                   'ai.stream.msToFirstChunk': msToFirstChunk,
@@ -512,21 +520,21 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 case 'text-delta':
                   controller.enqueue(chunk);
                   // create the full text from text deltas (for onFinish callback and text promise):
-                  text += chunk.textDelta;
+                  roundtripText += chunk.textDelta;
                   await onChunk?.({ chunk });
                   break;
 
                 case 'tool-call':
                   controller.enqueue(chunk);
                   // store tool calls for onFinish callback and toolCalls promise:
-                  toolCalls.push(chunk);
+                  roundtripToolCalls.push(chunk);
                   await onChunk?.({ chunk });
                   break;
 
                 case 'tool-result':
                   controller.enqueue(chunk);
                   // store tool results for onFinish callback and toolResults promise:
-                  toolResults.push(chunk);
+                  roundtripToolResults.push(chunk);
                   // as any needed, bc type inferences mixed up tool-result with tool-call
                   await onChunk?.({ chunk: chunk as any });
                   break;
@@ -536,7 +544,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   // store usage and finish reason for promises and onFinish callback:
                   roundtripUsage = chunk.usage;
                   roundtripFinishReason = chunk.finishReason;
-                  providerMetadata = chunk.experimental_providerMetadata;
+                  roundtripProviderMetadata =
+                    chunk.experimental_providerMetadata;
                   break;
 
                 case 'tool-call-streaming-start':
@@ -560,37 +569,30 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
             // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
             async flush(controller) {
-              const finalFinishReason = roundtripFinishReason ?? 'unknown';
               const telemetryToolCalls =
-                toolCalls.length > 0 ? JSON.stringify(toolCalls) : undefined;
+                roundtripToolCalls.length > 0
+                  ? JSON.stringify(roundtripToolCalls)
+                  : undefined;
 
               try {
-                const reportedRoundtripUsage = roundtripUsage ?? {
-                  promptTokens: NaN,
-                  completionTokens: NaN,
-                  totalTokens: NaN,
-                };
-
                 doStreamSpan.setAttributes(
                   selectTelemetryAttributes({
                     telemetry,
                     attributes: {
-                      'ai.finishReason': finalFinishReason,
-                      'ai.usage.promptTokens':
-                        reportedRoundtripUsage.promptTokens,
+                      'ai.finishReason': roundtripFinishReason,
+                      'ai.usage.promptTokens': roundtripUsage.promptTokens,
                       'ai.usage.completionTokens':
-                        reportedRoundtripUsage.completionTokens,
-                      'ai.result.text': { output: () => text },
+                        roundtripUsage.completionTokens,
+                      'ai.result.text': { output: () => roundtripText },
                       'ai.result.toolCalls': {
                         output: () => telemetryToolCalls,
                       },
 
                       // standardized gen-ai llm span attributes:
-                      'gen_ai.response.finish_reasons': [finalFinishReason],
-                      'gen_ai.usage.prompt_tokens':
-                        reportedRoundtripUsage.promptTokens,
+                      'gen_ai.response.finish_reasons': [roundtripFinishReason],
+                      'gen_ai.usage.prompt_tokens': roundtripUsage.promptTokens,
                       'gen_ai.usage.completion_tokens':
-                        reportedRoundtripUsage.completionTokens,
+                        roundtripUsage.completionTokens,
                     },
                   }),
                 );
@@ -601,19 +603,30 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 doStreamSpan.end();
               }
 
+              const combinedUsage = {
+                promptTokens: usage.promptTokens + roundtripUsage.promptTokens,
+                completionTokens:
+                  usage.completionTokens + roundtripUsage.completionTokens,
+                totalTokens: usage.totalTokens + roundtripUsage.totalTokens,
+              };
+
               // check if another tool roundtrip is needed:
               if (
                 // there are tool calls:
-                toolCalls.length > 0 &&
+                roundtripToolCalls.length > 0 &&
                 // all current tool calls have results:
-                toolResults.length === toolCalls.length &&
+                roundtripToolResults.length === roundtripToolCalls.length &&
                 // the number of roundtrips is less than the maximum:
                 currentToolRoundtrip < maxToolRoundtrips
               ) {
                 // append to messages for potential next roundtrip:
                 promptMessages.push(
-                  ...toResponseMessages({ text, toolCalls, toolResults }).map(
-                    message => convertToLanguageModelMessage(message, null),
+                  ...toResponseMessages({
+                    text: roundtripText,
+                    toolCalls: roundtripToolCalls,
+                    toolResults: roundtripToolResults,
+                  }).map(message =>
+                    convertToLanguageModelMessage(message, null),
                   ),
                 );
 
@@ -631,48 +644,16 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   doStreamSpan,
                   currentToolRoundtrip: currentToolRoundtrip + 1,
                   promptMessages,
-                  usage:
-                    usage == undefined
-                      ? roundtripUsage
-                      : {
-                          promptTokens:
-                            usage.promptTokens +
-                            (roundtripUsage?.promptTokens ?? 0),
-                          completionTokens:
-                            usage.completionTokens +
-                            (roundtripUsage?.completionTokens ?? 0),
-                          totalTokens:
-                            usage.totalTokens +
-                            (roundtripUsage?.totalTokens ?? 0),
-                        },
+                  usage: combinedUsage,
                 });
               } else {
                 try {
-                  const combinedUsage =
-                    usage == undefined
-                      ? roundtripUsage ?? {
-                          promptTokens: 0,
-                          completionTokens: 0,
-                          totalTokens: 0,
-                        }
-                      : {
-                          promptTokens:
-                            usage.promptTokens +
-                            (roundtripUsage?.promptTokens ?? 0),
-                          completionTokens:
-                            usage.completionTokens +
-                            (roundtripUsage?.completionTokens ?? 0),
-                          totalTokens:
-                            usage.totalTokens +
-                            (roundtripUsage?.totalTokens ?? 0),
-                        };
-
                   // enqueue the finish chunk:
                   controller.enqueue({
                     type: 'finish',
-                    finishReason: finalFinishReason,
+                    finishReason: roundtripFinishReason,
                     usage: combinedUsage,
-                    experimental_providerMetadata: providerMetadata,
+                    experimental_providerMetadata: roundtripProviderMetadata,
                     logprobs: undefined, // TODO
                   });
 
@@ -684,11 +665,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     selectTelemetryAttributes({
                       telemetry,
                       attributes: {
-                        'ai.finishReason': finalFinishReason,
+                        'ai.finishReason': roundtripFinishReason,
                         'ai.usage.promptTokens': combinedUsage.promptTokens,
                         'ai.usage.completionTokens':
                           combinedUsage.completionTokens,
-                        'ai.result.text': { output: () => text },
+                        'ai.result.text': { output: () => roundtripText },
                         'ai.result.toolCalls': {
                           output: () => telemetryToolCalls,
                         },
@@ -699,25 +680,25 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   // resolve promises:
                   resolveUsage(combinedUsage);
                   resolveFinishReason(roundtripFinishReason!);
-                  resolveText(text);
-                  resolveToolCalls(toolCalls);
-                  resolveProviderMetadata(providerMetadata);
-                  resolveToolResults(toolResults);
+                  resolveText(roundtripText);
+                  resolveToolCalls(roundtripToolCalls);
+                  resolveProviderMetadata(roundtripProviderMetadata);
+                  resolveToolResults(roundtripToolResults);
 
                   // call onFinish callback:
                   await onFinish?.({
-                    finishReason: finalFinishReason,
+                    finishReason: roundtripFinishReason,
                     usage: combinedUsage,
-                    text,
-                    toolCalls,
+                    text: roundtripText,
+                    toolCalls: roundtripToolCalls,
                     // The tool results are inferred as a never[] type, because they are
                     // optional and the execute method with an inferred result type is
                     // optional as well. Therefore we need to cast the toolResults to any.
                     // The type exposed to the users will be correctly inferred.
-                    toolResults: toolResults as any,
+                    toolResults: roundtripToolResults as any,
                     rawResponse,
                     warnings,
-                    experimental_providerMetadata: providerMetadata,
+                    experimental_providerMetadata: roundtripProviderMetadata,
                   });
                 } catch (error) {
                   controller.error(error);
