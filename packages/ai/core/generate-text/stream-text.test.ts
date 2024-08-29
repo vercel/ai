@@ -1810,6 +1810,16 @@ describe('options.maxToolRoundtrips', () => {
   let onFinishResult: Parameters<
     Required<Parameters<typeof streamText>[0]>['onFinish']
   >[0];
+  let tracer: MockTracer;
+
+  beforeEach(() => {
+    tracer = new MockTracer();
+    setTestTracer(tracer);
+  });
+
+  afterEach(() => {
+    setTestTracer(undefined);
+  });
 
   describe('2 roundtrips', () => {
     beforeEach(async () => {
@@ -1948,6 +1958,9 @@ describe('options.maxToolRoundtrips', () => {
           expect(onFinishResult).to.be.undefined;
           onFinishResult = event as unknown as typeof onFinishResult;
         },
+        experimental_telemetry: {
+          isEnabled: true,
+        },
         maxToolRoundtrips: 2,
       });
     });
@@ -2033,6 +2046,109 @@ describe('options.maxToolRoundtrips', () => {
 
       it('should contain text from final roundtrip', async () => {
         assert.strictEqual(await result.text, 'Hello, world!');
+      });
+    });
+
+    describe('telemetry', () => {
+      beforeEach(async () => {
+        // consume stream
+        await convertAsyncIterableToArray(result.textStream);
+      });
+
+      it('should record telemetry data for each roundtrip', () => {
+        expect(tracer.jsonSpans).toStrictEqual([
+          {
+            name: 'ai.streamText',
+            attributes: {
+              'operation.name': 'ai.streamText',
+              'ai.operationId': 'ai.streamText',
+              'ai.model.id': 'mock-model-id',
+              'ai.model.provider': 'mock-provider',
+              'ai.prompt': '{"prompt":"test-input"}',
+              'ai.finishReason': 'stop',
+              'ai.result.text': 'Hello, world!',
+              'ai.usage.completionTokens': 15,
+              'ai.usage.promptTokens': 4,
+            },
+            events: [],
+          },
+          {
+            name: 'ai.streamText.doStream',
+            attributes: {
+              'operation.name': 'ai.streamText.doStream',
+              'ai.operationId': 'ai.streamText.doStream',
+              'ai.model.id': 'mock-model-id',
+              'ai.model.provider': 'mock-provider',
+              'ai.prompt.format': 'prompt',
+              'ai.prompt.messages':
+                '[{"role":"user","content":[{"type":"text","text":"test-input"}]}]',
+              'ai.finishReason': 'tool-calls',
+              'ai.result.text': '',
+              'ai.result.toolCalls':
+                '[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]',
+              'ai.usage.completionTokens': 10,
+              'ai.usage.promptTokens': 3,
+              'ai.stream.msToFirstChunk': expect.any(Number),
+              'gen_ai.request.model': 'mock-model-id',
+              'gen_ai.response.finish_reasons': ['tool-calls'],
+              'gen_ai.system': 'mock-provider',
+              'gen_ai.usage.completion_tokens': 10,
+              'gen_ai.usage.prompt_tokens': 3,
+            },
+            events: [
+              {
+                name: 'ai.stream.firstChunk',
+                attributes: {
+                  'ai.stream.msToFirstChunk': expect.any(Number),
+                },
+              },
+            ],
+          },
+          {
+            name: 'ai.toolCall',
+            attributes: {
+              'operation.name': 'ai.toolCall',
+              'ai.operationId': 'ai.toolCall',
+              'ai.toolCall.args': '{"value":"value"}',
+              'ai.toolCall.id': 'call-1',
+              'ai.toolCall.name': 'tool1',
+              'ai.toolCall.result': '"result1"',
+            },
+            events: [],
+          },
+          {
+            name: 'ai.streamText.doStream',
+            attributes: {
+              'operation.name': 'ai.streamText.doStream',
+              'ai.operationId': 'ai.streamText.doStream',
+              'ai.model.id': 'mock-model-id',
+              'ai.model.provider': 'mock-provider',
+              'ai.prompt.format': 'messages',
+              'ai.prompt.messages':
+                '[{"role":"user","content":[{"type":"text","text":"test-input"}]},' +
+                '{"role":"assistant","content":[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},' +
+                '{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]',
+              'ai.finishReason': 'stop',
+              'ai.result.text': 'Hello, world!',
+              'ai.usage.completionTokens': 5,
+              'ai.usage.promptTokens': 1,
+              'ai.stream.msToFirstChunk': expect.any(Number),
+              'gen_ai.request.model': 'mock-model-id',
+              'gen_ai.response.finish_reasons': ['stop'],
+              'gen_ai.system': 'mock-provider',
+              'gen_ai.usage.completion_tokens': 5,
+              'gen_ai.usage.prompt_tokens': 1,
+            },
+            events: [
+              {
+                name: 'ai.stream.firstChunk',
+                attributes: {
+                  'ai.stream.msToFirstChunk': expect.any(Number),
+                },
+              },
+            ],
+          },
+        ]);
       });
     });
   });
