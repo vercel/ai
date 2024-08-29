@@ -1,4 +1,4 @@
-export * from './generate-text';
-export * from './generate-text-result';
-export * from './stream-text';
-export * from './stream-text-result';
+export { generateText } from './generate-text';
+export type { GenerateTextResult } from './generate-text-result';
+export { streamText } from './stream-text';
+export type { StreamTextResult, TextStreamPart } from './stream-text-result';

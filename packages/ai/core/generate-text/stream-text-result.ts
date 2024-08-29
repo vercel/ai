@@ -214,6 +214,17 @@ export type TextStreamPart<TOOLS extends Record<string, CoreTool>> =
       type: 'tool-result';
     } & ToToolResult<TOOLS>)
   | {
+      type: 'roundtrip-finish';
+      finishReason: FinishReason;
+      logprobs?: LogProbs;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+      experimental_providerMetadata?: ProviderMetadata;
+    }
+  | {
       type: 'finish';
       finishReason: FinishReason;
       logprobs?: LogProbs;

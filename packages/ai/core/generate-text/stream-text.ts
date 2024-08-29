@@ -1,14 +1,11 @@
-import {
-  LanguageModelV1Prompt,
-  LanguageModelV1StreamPart,
-} from '@ai-sdk/provider';
+import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import {
   AIStreamCallbacksAndOptions,
+  formatStreamPart,
   StreamData,
   TextStreamPart,
-  formatStreamPart,
 } from '../../streams';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { retryWithExponentialBackoff } from '../../util/retry-with-exponential-backoff';
@@ -44,7 +41,10 @@ import {
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { mergeStreams } from '../util/merge-streams';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
-import { runToolsTransformation } from './run-tools-transformation';
+import {
+  runToolsTransformation,
+  SingleRequestTextStreamPart,
+} from './run-tools-transformation';
 import { StreamTextResult } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
@@ -362,7 +362,7 @@ type StartRoundtripFunction<TOOLS extends Record<string, CoreTool>> =
     promptType: 'prompt' | 'messages';
   }) => Promise<{
     result: {
-      stream: ReadableStream<TextStreamPart<TOOLS>>;
+      stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
       warnings?: CallWarning[] | undefined;
       rawResponse?: {
         headers?: Record<string, string>;
@@ -403,7 +403,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     startRoundtrip,
     promptMessages,
   }: {
-    stream: ReadableStream<TextStreamPart<TOOLS>>;
+    stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
     warnings: StreamTextResult<TOOLS>['warnings'];
     rawResponse: StreamTextResult<TOOLS>['rawResponse'];
     onChunk: Parameters<typeof streamText>[0]['onChunk'];
@@ -495,7 +495,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
       addStream(
         stream.pipeThrough(
-          new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+          new TransformStream<
+            SingleRequestTextStreamPart<TOOLS>,
+            TextStreamPart<TOOLS>
+          >({
             async transform(chunk, controller): Promise<void> {
               // Telemetry for first chunk:
               if (roundtripFirstChunk) {
@@ -850,6 +853,9 @@ However, the LLM results are expected to be small enough to not cause issues.
             controller.enqueue(
               formatStreamPart('error', getErrorMessage(chunk.error)),
             );
+            break;
+          case 'roundtrip-finish':
+            // ignored
             break;
           case 'finish':
             controller.enqueue(
