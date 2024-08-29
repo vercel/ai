@@ -132,6 +132,13 @@ describe('result.fullStream', () => {
         { type: 'text-delta', textDelta: ', ' },
         { type: 'text-delta', textDelta: 'world!' },
         {
+          type: 'roundtrip-finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
+        },
+        {
           type: 'finish',
           finishReason: 'stop',
           logprobs: undefined,
@@ -205,6 +212,13 @@ describe('result.fullStream', () => {
           toolCallId: 'call-1',
           toolName: 'tool1',
           args: { value: 'value' },
+        },
+        {
+          type: 'roundtrip-finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
         },
         {
           type: 'finish',
@@ -329,6 +343,13 @@ describe('result.fullStream', () => {
           toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
           toolName: 'test-tool',
           args: { value: 'Sparkle Day' },
+        },
+        {
+          type: 'roundtrip-finish',
+          finishReason: 'tool-calls',
+          logprobs: undefined,
+          usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
+          experimental_providerMetadata: undefined,
         },
         {
           type: 'finish',
@@ -503,6 +524,13 @@ describe('result.fullStream', () => {
           args: { value: 'Sparkle Day' },
         },
         {
+          type: 'roundtrip-finish',
+          finishReason: 'tool-calls',
+          logprobs: undefined,
+          usage: { promptTokens: 53, completionTokens: 17, totalTokens: 70 },
+          experimental_providerMetadata: undefined,
+        },
+        {
           type: 'finish',
           finishReason: 'tool-calls',
           logprobs: undefined,
@@ -585,6 +613,13 @@ describe('result.fullStream', () => {
           result: 'value-result',
         },
         {
+          type: 'roundtrip-finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
+        },
+        {
           type: 'finish',
           finishReason: 'stop',
           logprobs: undefined,
@@ -626,6 +661,13 @@ describe('result.fullStream', () => {
         { type: 'text-delta', textDelta: 'Hello' },
         { type: 'text-delta', textDelta: ', ' },
         { type: 'text-delta', textDelta: 'world!' },
+        {
+          type: 'roundtrip-finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
+        },
         {
           type: 'finish',
           finishReason: 'stop',
@@ -1298,6 +1340,13 @@ describe('multiple stream consumption', () => {
         { type: 'text-delta', textDelta: 'Hello' },
         { type: 'text-delta', textDelta: ', ' },
         { type: 'text-delta', textDelta: 'world!' },
+        {
+          type: 'roundtrip-finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
+        },
         {
           type: 'finish',
           finishReason: 'stop',
@@ -1982,7 +2031,17 @@ describe('options.maxToolRoundtrips', () => {
             args: { value: 'value' },
             result: 'result1',
           },
-          // TODO new stream element -- finish roundtrip
+          {
+            type: 'roundtrip-finish',
+            finishReason: 'tool-calls',
+            logprobs: undefined,
+            experimental_providerMetadata: undefined,
+            usage: {
+              completionTokens: 10,
+              promptTokens: 3,
+              totalTokens: 13,
+            },
+          },
           {
             type: 'text-delta',
             textDelta: 'Hello, ',
@@ -1991,7 +2050,17 @@ describe('options.maxToolRoundtrips', () => {
             type: 'text-delta',
             textDelta: 'world!',
           },
-          // TODO new stream element -- finish roundtrip
+          {
+            type: 'roundtrip-finish',
+            finishReason: 'stop',
+            logprobs: undefined,
+            experimental_providerMetadata: undefined,
+            usage: {
+              completionTokens: 5,
+              promptTokens: 1,
+              totalTokens: 6,
+            },
+          },
           {
             type: 'finish',
             finishReason: 'stop',
@@ -2589,6 +2658,13 @@ describe('tools with custom schema', () => {
           toolCallId: 'call-1',
           toolName: 'tool1',
           args: { value: 'value' },
+        },
+        {
+          type: 'roundtrip-finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
         },
         {
           type: 'finish',

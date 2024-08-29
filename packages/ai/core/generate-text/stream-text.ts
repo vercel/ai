@@ -552,6 +552,16 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   roundtripProviderMetadata =
                     chunk.experimental_providerMetadata;
                   roundtripLogProbs = chunk.logprobs;
+
+                  controller.enqueue({
+                    type: 'roundtrip-finish',
+                    finishReason: chunk.finishReason,
+                    usage: chunk.usage,
+                    experimental_providerMetadata:
+                      chunk.experimental_providerMetadata,
+                    logprobs: chunk.logprobs,
+                  });
+
                   break;
 
                 case 'tool-call-streaming-start':

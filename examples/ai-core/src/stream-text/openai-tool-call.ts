@@ -27,7 +27,6 @@ async function main() {
           case 'weather': {
             console.log('TOOL CALL weather');
             console.log(`location: ${chunk.args.location}`); // string
-            console.log();
             break;
           }
         }
@@ -38,10 +37,10 @@ async function main() {
       case 'tool-result': {
         switch (chunk.toolName) {
           case 'weather': {
+            console.log();
             console.log('TOOL RESULT weather');
             console.log(`location: ${chunk.args.location}`); // string
             console.log(`temperature: ${chunk.result.temperature}`); // number
-            console.log();
             break;
           }
         }
@@ -49,9 +48,18 @@ async function main() {
         break;
       }
 
+      case 'roundtrip-finish': {
+        console.log();
+        console.log();
+        console.log('ROUNDTRIP FINISH');
+        console.log('Finish reason:', chunk.finishReason);
+        console.log('Usage:', chunk.usage);
+        console.log();
+        break;
+      }
+
       case 'finish': {
-        console.log();
-        console.log();
+        console.log('FINISH');
         console.log('Finish reason:', chunk.finishReason);
         console.log('Usage:', chunk.usage);
         break;
