@@ -117,9 +117,9 @@ export async function callChatApi({
           abortController != null ? { current: abortController() } : undefined,
         update: onUpdate,
         onToolCall,
-        onFinish({ prefixMap, finishReason, usage }) {
-          if (onFinish && prefixMap.text != null) {
-            onFinish(prefixMap.text, { usage, finishReason });
+        onFinish({ message, finishReason, usage }) {
+          if (onFinish && message != null) {
+            onFinish(message, { usage, finishReason });
           }
         },
         generateId,

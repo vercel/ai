@@ -49,7 +49,7 @@ export async function processDataProtocolResponse({
   update: (merged: Message[], data: JSONValue[] | undefined) => void;
   onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (options: {
-    prefixMap: PrefixMap;
+    message: Message | undefined;
     finishReason: LanguageModelV1FinishReason;
     usage: {
       completionTokens: number;
@@ -316,7 +316,7 @@ export async function processDataProtocolResponse({
     update(merged, [...prefixMap['data']]); // make a copy of the data array
   }
 
-  onFinish?.({ prefixMap, finishReason, usage });
+  onFinish?.({ message: prefixMap.text, finishReason, usage });
 
   return {
     messages: [

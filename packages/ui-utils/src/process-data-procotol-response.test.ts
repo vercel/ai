@@ -15,7 +15,7 @@ describe('processDataProtocolResponse', () => {
   };
 
   let finishCalls: Array<{
-    prefixMap: any;
+    message: Message | undefined;
     finishReason: LanguageModelV1FinishReason;
     usage: {
       completionTokens: number;
@@ -24,7 +24,7 @@ describe('processDataProtocolResponse', () => {
     };
   }> = [];
   const onFinish = (options: {
-    prefixMap: any;
+    message: Message | undefined;
     finishReason: LanguageModelV1FinishReason;
     usage: {
       completionTokens: number;
@@ -112,14 +112,11 @@ describe('processDataProtocolResponse', () => {
     it('should call the onFinish function with the correct arguments', async () => {
       expect(finishCalls).toHaveLength(1);
       expect(finishCalls[0]).toEqual({
-        prefixMap: {
-          data: [],
-          text: {
-            content: 'Hello, world!',
-            createdAt: new Date('2023-01-01'),
-            id: 'mock-id',
-            role: 'assistant',
-          },
+        message: {
+          content: 'Hello, world!',
+          createdAt: new Date('2023-01-01'),
+          id: 'mock-id',
+          role: 'assistant',
         },
         finishReason: 'stop',
         usage: {
