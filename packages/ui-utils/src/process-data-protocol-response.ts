@@ -33,7 +33,7 @@ function assignAnnotationsToMessage<T extends Message | null | undefined>(
   return { ...message, annotations: [...annotations] } as T;
 }
 
-export async function parseComplexResponse({
+export async function processDataProtocolResponse({
   reader,
   abortControllerRef,
   update,

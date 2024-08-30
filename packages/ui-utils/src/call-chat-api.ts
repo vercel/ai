@@ -1,5 +1,5 @@
 import { createChunkDecoder } from './index';
-import { parseComplexResponse } from './parse-complex-response';
+import { processDataProtocolResponse } from './process-data-protocol-response';
 import { IdGenerator, JSONValue, Message, UseChatOptions } from './types';
 
 // use function to allow for mocking in tests:
@@ -111,7 +111,7 @@ export async function callChatApi({
     }
 
     case 'data': {
-      return await parseComplexResponse({
+      return await processDataProtocolResponse({
         reader,
         abortControllerRef:
           abortController != null ? { current: abortController() } : undefined,
