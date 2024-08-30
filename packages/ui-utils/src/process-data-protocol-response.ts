@@ -22,7 +22,6 @@ type PrefixMap = {
     role: 'assistant';
     tool_calls: ToolCall[];
   };
-  data: JSONValue[];
 };
 
 function assignAnnotationsToMessage<T extends Message | null | undefined>(
@@ -61,9 +60,9 @@ export async function processDataProtocolResponse({
   getCurrentDate?: () => Date;
 }) {
   const createdAt = getCurrentDate();
-  const prefixMap: PrefixMap = {
-    data: [],
-  };
+  const prefixMap: PrefixMap = {};
+
+  const data: JSONValue[] = [];
 
   // keep list of current message annotations for message
   let message_annotations: JSONValue[] | undefined = undefined;
@@ -265,7 +264,7 @@ export async function processDataProtocolResponse({
     }
 
     if (type === 'data') {
-      prefixMap['data'].push(...value);
+      data.push(...value);
     }
 
     let responseMessage = prefixMap['text'];
@@ -313,7 +312,7 @@ export async function processDataProtocolResponse({
         ...assignAnnotationsToMessage(message, message_annotations),
       })) as Message[];
 
-    update(merged, [...prefixMap['data']]); // make a copy of the data array
+    update(merged, [...data]); // make a copy of the data array
   }
 
   onFinish?.({ message: prefixMap.text, finishReason, usage });
@@ -324,6 +323,6 @@ export async function processDataProtocolResponse({
       prefixMap.function_call,
       prefixMap.tool_calls,
     ].filter(Boolean) as Message[],
-    data: prefixMap.data,
+    data,
   };
 }
