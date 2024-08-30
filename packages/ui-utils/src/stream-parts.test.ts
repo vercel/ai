@@ -229,3 +229,38 @@ describe('finish_message stream part', () => {
     });
   });
 });
+
+describe('finish_roundtrip stream part', () => {
+  it('should format a finish_roundtrip stream part', () => {
+    expect(
+      formatStreamPart('finish_roundtrip', {
+        finishReason: 'stop',
+        usage: { promptTokens: 10, completionTokens: 20 },
+      }),
+    ).toEqual(
+      `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n`,
+    );
+  });
+
+  it('should parse a finish_roundtrip stream part', () => {
+    const input = `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}`;
+    expect(parseStreamPart(input)).toEqual({
+      type: 'finish_roundtrip',
+      value: {
+        finishReason: 'stop',
+        usage: { promptTokens: 10, completionTokens: 20 },
+      },
+    });
+  });
+
+  it('should parse a finish_roundtrip with null completion and prompt tokens', () => {
+    const input = `e:{"finishReason":"stop","usage":{"promptTokens":null,"completionTokens":null}}`;
+    expect(parseStreamPart(input)).toEqual({
+      type: 'finish_roundtrip',
+      value: {
+        finishReason: 'stop',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    });
+  });
+});

@@ -201,6 +201,17 @@ Example: `a:{"toolCallId":"call-123","result":"tool output"}\n`
   height={1148}
 />
 
+### Finish Roundtrip Part
+
+A part indicating the one roundtrip (i.e., one LLM API call in the backend) has been completed.
+This is necessary to correctly process multiple stitched assistant calls, e.g. when calling tools in the backend, and using roundtrips in `useChat` at the same time.
+It includes addition metadata, such as [`FinishReason`](/docs/reference/ai-sdk-ui/use-chat#on-finish-finish-reason) and [`Usage`](/docs/reference/ai-sdk-ui/use-chat#on-finish-usage), for that roundtrip.
+This part needs to come at the end of a roundtrip.
+
+Format: `e:{finishReason:'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown';usage:{promptTokens:number; completionTokens:number;}}\n`
+
+Example: `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n`
+
 ### Finish Message Part
 
 A part indicating the completion of a message with additional metadata, such as [`FinishReason`](/docs/reference/ai-sdk-ui/use-chat#on-finish-finish-reason) and [`Usage`](/docs/reference/ai-sdk-ui/use-chat#on-finish-usage). This part needs to be the last part in the stream.

@@ -7,9 +7,50 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CoreTool } from '../tool';
+import { FinishReason, LogProbs, ProviderMetadata } from '../types';
 import { calculateCompletionTokenUsage } from '../types/token-usage';
-import { TextStreamPart } from './stream-text-result';
-import { parseToolCall } from './tool-call';
+import { parseToolCall, ToToolCall } from './tool-call';
+import { ToToolResult } from './tool-result';
+
+export type SingleRequestTextStreamPart<
+  TOOLS extends Record<string, CoreTool>,
+> =
+  | {
+      type: 'text-delta';
+      textDelta: string;
+    }
+  | ({
+      type: 'tool-call';
+    } & ToToolCall<TOOLS>)
+  | {
+      type: 'tool-call-streaming-start';
+      toolCallId: string;
+      toolName: string;
+    }
+  | {
+      type: 'tool-call-delta';
+      toolCallId: string;
+      toolName: string;
+      argsTextDelta: string;
+    }
+  | ({
+      type: 'tool-result';
+    } & ToToolResult<TOOLS>)
+  | {
+      type: 'finish';
+      finishReason: FinishReason;
+      logprobs?: LogProbs;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+      experimental_providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'error';
+      error: unknown;
+    };
 
 export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   tools,
@@ -23,15 +64,17 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   toolCallStreaming: boolean;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
-}): ReadableStream<TextStreamPart<TOOLS>> {
+}): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   let canClose = false;
   const outstandingToolCalls = new Set<string>();
 
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
-    TextStreamPart<TOOLS>
+    SingleRequestTextStreamPart<TOOLS>
   > | null = null;
-  const toolResultsStream = new ReadableStream<TextStreamPart<TOOLS>>({
+  const toolResultsStream = new ReadableStream<
+    SingleRequestTextStreamPart<TOOLS>
+  >({
     start(controller) {
       toolResultsStreamController = controller;
     },
@@ -43,11 +86,13 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   // forward stream
   const forwardStream = new TransformStream<
     LanguageModelV1StreamPart,
-    TextStreamPart<TOOLS>
+    SingleRequestTextStreamPart<TOOLS>
   >({
     transform(
       chunk: LanguageModelV1StreamPart,
-      controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
+      controller: TransformStreamDefaultController<
+        SingleRequestTextStreamPart<TOOLS>
+      >,
     ) {
       const chunkType = chunk.type;
 
@@ -230,7 +275,7 @@ export function runToolsTransformation<TOOLS extends Record<string, CoreTool>>({
   });
 
   // combine the generator stream and the tool results stream
-  return new ReadableStream<TextStreamPart<TOOLS>>({
+  return new ReadableStream<SingleRequestTextStreamPart<TOOLS>>({
     async start(controller) {
       // need to wait for both pipes so there are no dangling promises that
       // can cause uncaught promise rejections when the stream is aborted

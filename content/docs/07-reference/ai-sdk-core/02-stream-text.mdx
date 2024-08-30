@@ -349,6 +349,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
     },
     {
+      name: 'maxToolRoundtrips',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of automatic roundtrips for tool calls. An automatic tool call roundtrip is another LLM call with the tool call results when all tool calls of the last assistant message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
+    },
+    {
       name: 'experimental_telemetry',
       type: 'TelemetrySettings',
       isOptional: true,
@@ -884,6 +891,50 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'Error',
               description:
                 'Describes the error that may have occurred during execution.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'roundtrip-finish'",
+              description:
+                'The type to identify the object as roundtrip finish.',
+            },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'usage',
+              type: 'TokenUsage',
+              description: 'The token usage of the generated text.',
+              properties: [
+                {
+                  type: 'TokenUsage',
+                  parameters: [
+                    {
+                      name: 'promptTokens',
+                      type: 'number',
+                      description: 'The total number of tokens in the prompt.',
+                    },
+                    {
+                      name: 'completionTokens',
+                      type: 'number',
+                      description:
+                        'The total number of tokens in the completion.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number',
+                      description: 'The total number of tokens generated.',
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
