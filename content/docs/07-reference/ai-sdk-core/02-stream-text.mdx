@@ -349,6 +349,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
     },
     {
+      name: 'maxToolRoundtrips',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of automatic roundtrips for tool calls. An automatic tool call roundtrip is another LLM call with the tool call results when all tool calls of the last assistant message have results. A maximum number is required to prevent infinite loops in the case of misconfigured tools. By default, it is set to 0, which will disable the feature.',
+    },
+    {
       name: 'experimental_telemetry',
       type: 'TelemetrySettings',
       isOptional: true,
