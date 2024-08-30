@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 0.0.40
+
+### Patch Changes
+
+- aa2dc58: feat (ai/core): add maxToolRoundtrips to streamText
+
 ## 0.0.39
 
 ### Patch Changes
