@@ -10,7 +10,8 @@ let updateCalls: Array<{
   data: JSONValue[] | undefined;
 }> = [];
 const update = (newMessages: Message[], data: JSONValue[] | undefined) => {
-  updateCalls.push({ newMessages, data });
+  // clone to preserve the original object
+  updateCalls.push(JSON.parse(JSON.stringify({ newMessages, data })));
 };
 
 let finishCalls: Array<{
@@ -31,7 +32,8 @@ const onFinish = (options: {
     totalTokens: number;
   };
 }) => {
-  finishCalls.push(options);
+  // clone to preserve the original object
+  finishCalls.push(JSON.parse(JSON.stringify(options)));
 };
 
 beforeEach(() => {
@@ -82,7 +84,7 @@ describe('scenario: simple text response', () => {
         newMessages: [
           {
             content: 'Hello, ',
-            createdAt: new Date('2023-01-01'),
+            createdAt: '2023-01-01T00:00:00.000Z',
             id: 'mock-id',
             role: 'assistant',
           },
@@ -93,7 +95,7 @@ describe('scenario: simple text response', () => {
         newMessages: [
           {
             content: 'Hello, world!',
-            createdAt: new Date('2023-01-01'),
+            createdAt: '2023-01-01T00:00:00.000Z',
             id: 'mock-id',
             role: 'assistant',
           },
@@ -108,7 +110,7 @@ describe('scenario: simple text response', () => {
       {
         message: {
           content: 'Hello, world!',
-          createdAt: new Date('2023-01-01'),
+          createdAt: '2023-01-01T00:00:00.000Z',
           id: 'mock-id',
           role: 'assistant',
         },
@@ -180,18 +182,14 @@ describe('scenario: server-side tool roundtrip', () => {
             id: 'mock-id',
             role: 'assistant',
             content: '',
-            createdAt: new Date('2023-01-01'),
+            createdAt: '2023-01-01T00:00:00.000Z',
             internalUpdateId: 'mock-id',
-            // TODO this should not be part of the last message:
             toolInvocations: [
               {
                 args: {
                   city: 'London',
                 },
-                result: {
-                  weather: 'sunny',
-                },
-                state: 'result',
+                state: 'call',
                 toolCallId: 'tool-call-id',
                 toolName: 'tool-name',
               },
@@ -206,9 +204,8 @@ describe('scenario: server-side tool roundtrip', () => {
             id: 'mock-id',
             role: 'assistant',
             content: '',
-            createdAt: new Date('2023-01-01'),
+            createdAt: '2023-01-01T00:00:00.000Z',
             internalUpdateId: 'mock-id',
-            // TODO this should not be part of the last message:
             toolInvocations: [
               {
                 args: {
@@ -230,7 +227,7 @@ describe('scenario: server-side tool roundtrip', () => {
         newMessages: [
           {
             content: '',
-            createdAt: new Date('2023-01-01'),
+            createdAt: '2023-01-01T00:00:00.000Z',
             id: 'mock-id',
             internalUpdateId: 'mock-id',
             role: 'assistant',
@@ -252,7 +249,7 @@ describe('scenario: server-side tool roundtrip', () => {
             id: 'mock-id',
             role: 'assistant',
             content: 'The weather in London is sunny.',
-            createdAt: new Date('2023-01-01'),
+            createdAt: '2023-01-01T00:00:00.000Z',
           },
         ],
         data: [],
@@ -267,7 +264,7 @@ describe('scenario: server-side tool roundtrip', () => {
           id: 'mock-id',
           role: 'assistant',
           content: 'The weather in London is sunny.',
-          createdAt: new Date('2023-01-01'),
+          createdAt: '2023-01-01T00:00:00.000Z',
         },
         finishReason: 'stop',
         usage: {
