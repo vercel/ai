@@ -293,16 +293,15 @@ export async function processDataProtocolResponse({
 
     // keeps the prefixMap up to date with the latest annotations, even if annotations preceded the message
     if (message_annotations?.length) {
-      const messagePrefixKeys: (keyof PrefixMap)[] = [
-        'text',
-        'function_call',
-        'tool_calls',
-      ];
-      messagePrefixKeys.forEach(key => {
-        if (prefixMap[key]) {
-          (prefixMap[key] as Message).annotations = [...message_annotations!];
-        }
-      });
+      if (prefixMap.text) {
+        prefixMap.text.annotations = [...message_annotations!];
+      }
+      if (prefixMap.function_call) {
+        prefixMap.function_call.annotations = [...message_annotations!];
+      }
+      if (prefixMap.tool_calls) {
+        prefixMap.tool_calls.annotations = [...message_annotations!];
+      }
     }
 
     // We add function & tool calls and response messages to the messages[], but data is its own thing
