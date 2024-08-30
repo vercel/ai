@@ -6,11 +6,11 @@ import { JSONValue, Message } from './types';
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 
 let updateCalls: Array<{
-  merged: Message[];
+  newMessages: Message[];
   data: JSONValue[] | undefined;
 }> = [];
-const update = (merged: Message[], data: JSONValue[] | undefined) => {
-  updateCalls.push({ merged, data });
+const update = (newMessages: Message[], data: JSONValue[] | undefined) => {
+  updateCalls.push({ newMessages, data });
 };
 
 let finishCalls: Array<{
@@ -79,10 +79,10 @@ describe('scenario: simple text response', () => {
   it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toStrictEqual([
       {
-        merged: [
+        newMessages: [
           {
             content: 'Hello, ',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
+            createdAt: new Date('2023-01-01'),
             id: 'mock-id',
             role: 'assistant',
           },
@@ -90,32 +90,10 @@ describe('scenario: simple text response', () => {
         data: [],
       },
       {
-        merged: [
+        newMessages: [
           {
             content: 'Hello, world!',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'mock-id',
-            role: 'assistant',
-          },
-        ],
-        data: [],
-      },
-      {
-        merged: [
-          {
-            content: 'Hello, world!',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
-            id: 'mock-id',
-            role: 'assistant',
-          },
-        ],
-        data: [],
-      },
-      {
-        merged: [
-          {
-            content: 'Hello, world!',
-            createdAt: new Date('2023-01-01T00:00:00.000Z'),
+            createdAt: new Date('2023-01-01'),
             id: 'mock-id',
             role: 'assistant',
           },
@@ -190,21 +168,6 @@ describe('scenario: server-side tool roundtrip', () => {
         role: 'assistant',
         content: 'The weather in London is sunny.',
         createdAt: new Date('2023-01-01'),
-        internalUpdateId: 'mock-id',
-        // TODO this should not be part of the last message:
-        toolInvocations: [
-          {
-            args: {
-              city: 'London',
-            },
-            result: {
-              weather: 'sunny',
-            },
-            state: 'result',
-            toolCallId: 'tool-call-id',
-            toolName: 'tool-name',
-          },
-        ],
       },
     ]);
   });
@@ -212,7 +175,7 @@ describe('scenario: server-side tool roundtrip', () => {
   it('should call the update function with the correct arguments', async () => {
     expect(updateCalls).toStrictEqual([
       {
-        merged: [
+        newMessages: [
           {
             id: 'mock-id',
             role: 'assistant',
@@ -238,7 +201,7 @@ describe('scenario: server-side tool roundtrip', () => {
         data: [],
       },
       {
-        merged: [
+        newMessages: [
           {
             id: 'mock-id',
             role: 'assistant',
@@ -264,14 +227,13 @@ describe('scenario: server-side tool roundtrip', () => {
         data: [],
       },
       {
-        merged: [
+        newMessages: [
           {
-            id: 'mock-id',
-            role: 'assistant',
             content: '',
             createdAt: new Date('2023-01-01'),
+            id: 'mock-id',
             internalUpdateId: 'mock-id',
-            // TODO this should not be part of the last message:
+            role: 'assistant',
             toolInvocations: [
               {
                 args: {
@@ -286,83 +248,11 @@ describe('scenario: server-side tool roundtrip', () => {
               },
             ],
           },
-        ],
-        data: [],
-      },
-      {
-        merged: [
           {
             id: 'mock-id',
             role: 'assistant',
             content: 'The weather in London is sunny.',
             createdAt: new Date('2023-01-01'),
-            internalUpdateId: 'mock-id',
-            // TODO this should not be part of the last message:
-            toolInvocations: [
-              {
-                args: {
-                  city: 'London',
-                },
-                result: {
-                  weather: 'sunny',
-                },
-                state: 'result',
-                toolCallId: 'tool-call-id',
-                toolName: 'tool-name',
-              },
-            ],
-          },
-        ],
-        data: [],
-      },
-      {
-        merged: [
-          {
-            id: 'mock-id',
-            role: 'assistant',
-            content: 'The weather in London is sunny.',
-            createdAt: new Date('2023-01-01'),
-            internalUpdateId: 'mock-id',
-            // TODO this should not be part of the last message:
-            toolInvocations: [
-              {
-                args: {
-                  city: 'London',
-                },
-                result: {
-                  weather: 'sunny',
-                },
-                state: 'result',
-                toolCallId: 'tool-call-id',
-                toolName: 'tool-name',
-              },
-            ],
-          },
-        ],
-        data: [],
-      },
-      {
-        merged: [
-          {
-            id: 'mock-id',
-            role: 'assistant',
-            content: 'The weather in London is sunny.',
-            createdAt: new Date('2023-01-01'),
-            internalUpdateId: 'mock-id',
-            // TODO this should not be part of the last message:
-            toolInvocations: [
-              {
-                args: {
-                  city: 'London',
-                },
-                result: {
-                  weather: 'sunny',
-                },
-                state: 'result',
-                toolCallId: 'tool-call-id',
-                toolName: 'tool-name',
-              },
-            ],
           },
         ],
         data: [],
@@ -378,21 +268,6 @@ describe('scenario: server-side tool roundtrip', () => {
           role: 'assistant',
           content: 'The weather in London is sunny.',
           createdAt: new Date('2023-01-01'),
-          internalUpdateId: 'mock-id',
-          // TODO this should not be part of the last message:
-          toolInvocations: [
-            {
-              args: {
-                city: 'London',
-              },
-              result: {
-                weather: 'sunny',
-              },
-              state: 'result',
-              toolCallId: 'tool-call-id',
-              toolName: 'tool-name',
-            },
-          ],
         },
         finishReason: 'stop',
         usage: {

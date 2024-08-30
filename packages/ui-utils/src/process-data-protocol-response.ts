@@ -45,7 +45,7 @@ export async function processDataProtocolResponse({
   abortControllerRef?: {
     current: AbortController | null;
   };
-  update: (merged: Message[], data: JSONValue[] | undefined) => void;
+  update: (newMessages: Message[], data: JSONValue[] | undefined) => void;
   onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (options: {
     message: Message | undefined;
@@ -60,7 +60,11 @@ export async function processDataProtocolResponse({
   getCurrentDate?: () => Date;
 }) {
   const createdAt = getCurrentDate();
-  const prefixMap: PrefixMap = {};
+
+  let prefixMap: PrefixMap = {};
+  let nextPrefixMap: PrefixMap | undefined = undefined;
+
+  const previousMessages: Message[] = [];
 
   const data: JSONValue[] = [];
 
@@ -92,6 +96,39 @@ export async function processDataProtocolResponse({
       throw new Error(value);
     }
 
+    if (type === 'finish_roundtrip') {
+      nextPrefixMap = {};
+      continue;
+    }
+
+    if (type === 'finish_message') {
+      const { completionTokens, promptTokens } = value.usage;
+
+      finishReason = value.finishReason;
+      usage = {
+        completionTokens,
+        promptTokens,
+        totalTokens: completionTokens + promptTokens,
+      };
+
+      continue;
+    }
+
+    if (nextPrefixMap) {
+      if (prefixMap.text) {
+        previousMessages.push(prefixMap.text);
+      }
+      if (prefixMap.function_call) {
+        previousMessages.push(prefixMap.function_call);
+      }
+      if (prefixMap.tool_calls) {
+        previousMessages.push(prefixMap.tool_calls);
+      }
+
+      prefixMap = nextPrefixMap;
+      nextPrefixMap = undefined;
+    }
+
     if (type === 'text') {
       if (prefixMap['text']) {
         prefixMap['text'] = {
@@ -106,17 +143,6 @@ export async function processDataProtocolResponse({
           createdAt,
         };
       }
-    }
-
-    if (type === 'finish_message') {
-      const { completionTokens, promptTokens } = value.usage;
-
-      finishReason = value.finishReason;
-      usage = {
-        completionTokens,
-        promptTokens,
-        totalTokens: completionTokens + promptTokens,
-      };
     }
 
     // Tool invocations are part of an assistant message
@@ -311,7 +337,7 @@ export async function processDataProtocolResponse({
         ...assignAnnotationsToMessage(message, message_annotations),
       })) as Message[];
 
-    update(merged, [...data]); // make a copy of the data array
+    update([...previousMessages, ...merged], [...data]); // make a copy of the data array
   }
 
   onFinish?.({ message: prefixMap.text, finishReason, usage });
