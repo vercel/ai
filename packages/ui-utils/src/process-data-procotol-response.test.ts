@@ -5,76 +5,80 @@ import { createDataProtocolStream } from './test/create-data-protocol-stream';
 import { JSONValue, Message } from './types';
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 
-describe('processDataProtocolResponse', () => {
-  let updateCalls: Array<{
-    merged: Message[];
-    data: JSONValue[] | undefined;
-  }> = [];
-  const update = (merged: Message[], data: JSONValue[] | undefined) => {
-    updateCalls.push({ merged, data });
-  };
+let updateCalls: Array<{
+  merged: Message[];
+  data: JSONValue[] | undefined;
+}> = [];
+const update = (merged: Message[], data: JSONValue[] | undefined) => {
+  updateCalls.push({ merged, data });
+};
 
-  let finishCalls: Array<{
-    message: Message | undefined;
-    finishReason: LanguageModelV1FinishReason;
-    usage: {
-      completionTokens: number;
-      promptTokens: number;
-      totalTokens: number;
-    };
-  }> = [];
-  const onFinish = (options: {
-    message: Message | undefined;
-    finishReason: LanguageModelV1FinishReason;
-    usage: {
-      completionTokens: number;
-      promptTokens: number;
-      totalTokens: number;
-    };
-  }) => {
-    finishCalls.push(options);
+let finishCalls: Array<{
+  message: Message | undefined;
+  finishReason: LanguageModelV1FinishReason;
+  usage: {
+    completionTokens: number;
+    promptTokens: number;
+    totalTokens: number;
   };
+}> = [];
+const onFinish = (options: {
+  message: Message | undefined;
+  finishReason: LanguageModelV1FinishReason;
+  usage: {
+    completionTokens: number;
+    promptTokens: number;
+    totalTokens: number;
+  };
+}) => {
+  finishCalls.push(options);
+};
 
-  beforeEach(() => {
-    updateCalls = [];
-    finishCalls = [];
+beforeEach(() => {
+  updateCalls = [];
+  finishCalls = [];
+});
+
+describe('scenario: simple text response', () => {
+  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
+
+  beforeEach(async () => {
+    const stream = createDataProtocolStream([
+      formatStreamPart('text', 'Hello, '),
+      formatStreamPart('text', 'world!'),
+      formatStreamPart('finish_roundtrip', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+      }),
+      formatStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 5, promptTokens: 10 },
+      }),
+    ]);
+
+    result = await processDataProtocolResponse({
+      reader: stream.getReader(),
+      update,
+      onFinish,
+      generateId: vi.fn().mockReturnValue('mock-id'),
+      getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+    });
   });
 
-  describe('scenario: simple text response', () => {
-    let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
-
-    beforeEach(async () => {
-      const stream = createDataProtocolStream([
-        formatStreamPart('text', 'Hello, '),
-        formatStreamPart('text', 'world!'),
-        formatStreamPart('finish_message', {
-          finishReason: 'stop',
-          usage: { completionTokens: 5, promptTokens: 10 },
-        }),
-      ]);
-
-      result = await processDataProtocolResponse({
-        reader: stream.getReader(),
-        update,
-        onFinish,
-        generateId: vi.fn().mockReturnValue('mock-id'),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-      });
-    });
-
-    it('should return the correct messages', async () => {
-      expect(result.messages).toHaveLength(1);
-      expect(result.messages[0]).toEqual({
+  it('should return the correct messages', async () => {
+    expect(result.messages).toStrictEqual([
+      {
         id: 'mock-id',
         role: 'assistant',
         content: 'Hello, world!',
         createdAt: new Date('2023-01-01'),
-      });
-    });
+      },
+    ]);
+  });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toHaveLength(3);
-      expect(updateCalls[0]).toEqual({
+  it('should call the update function with the correct arguments', async () => {
+    expect(updateCalls).toStrictEqual([
+      {
         merged: [
           {
             content: 'Hello, ',
@@ -84,8 +88,8 @@ describe('processDataProtocolResponse', () => {
           },
         ],
         data: [],
-      });
-      expect(updateCalls[1]).toEqual({
+      },
+      {
         merged: [
           {
             content: 'Hello, world!',
@@ -95,8 +99,8 @@ describe('processDataProtocolResponse', () => {
           },
         ],
         data: [],
-      });
-      expect(updateCalls[2]).toEqual({
+      },
+      {
         merged: [
           {
             content: 'Hello, world!',
@@ -106,12 +110,24 @@ describe('processDataProtocolResponse', () => {
           },
         ],
         data: [],
-      });
-    });
+      },
+      {
+        merged: [
+          {
+            content: 'Hello, world!',
+            createdAt: new Date('2023-01-01T00:00:00.000Z'),
+            id: 'mock-id',
+            role: 'assistant',
+          },
+        ],
+        data: [],
+      },
+    ]);
+  });
 
-    it('should call the onFinish function with the correct arguments', async () => {
-      expect(finishCalls).toHaveLength(1);
-      expect(finishCalls[0]).toEqual({
+  it('should call the onFinish function with the correct arguments', async () => {
+    expect(finishCalls).toStrictEqual([
+      {
         message: {
           content: 'Hello, world!',
           createdAt: new Date('2023-01-01'),
@@ -124,7 +140,267 @@ describe('processDataProtocolResponse', () => {
           promptTokens: 10,
           totalTokens: 15,
         },
-      });
+      },
+    ]);
+  });
+});
+
+describe('scenario: server-side tool roundtrip', () => {
+  let result: Awaited<ReturnType<typeof processDataProtocolResponse>>;
+
+  beforeEach(async () => {
+    const stream = createDataProtocolStream([
+      formatStreamPart('tool_call', {
+        toolCallId: 'tool-call-id',
+        toolName: 'tool-name',
+        args: { city: 'London' },
+      }),
+      formatStreamPart('tool_result', {
+        toolCallId: 'tool-call-id',
+        result: { weather: 'sunny' },
+      }),
+      formatStreamPart('finish_roundtrip', {
+        finishReason: 'tool-calls',
+        usage: { completionTokens: 5, promptTokens: 10 },
+      }),
+      formatStreamPart('text', 'The weather in London is sunny.'),
+      formatStreamPart('finish_roundtrip', {
+        finishReason: 'stop',
+        usage: { completionTokens: 2, promptTokens: 4 },
+      }),
+      formatStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 7, promptTokens: 14 },
+      }),
+    ]);
+
+    result = await processDataProtocolResponse({
+      reader: stream.getReader(),
+      update,
+      onFinish,
+      generateId: vi.fn().mockReturnValue('mock-id'),
+      getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
     });
+  });
+
+  it('should return the correct messages', async () => {
+    expect(result.messages).toStrictEqual([
+      {
+        id: 'mock-id',
+        role: 'assistant',
+        content: 'The weather in London is sunny.',
+        createdAt: new Date('2023-01-01'),
+        internalUpdateId: 'mock-id',
+        // TODO this should not be part of the last message:
+        toolInvocations: [
+          {
+            args: {
+              city: 'London',
+            },
+            result: {
+              weather: 'sunny',
+            },
+            state: 'result',
+            toolCallId: 'tool-call-id',
+            toolName: 'tool-name',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should call the update function with the correct arguments', async () => {
+    expect(updateCalls).toStrictEqual([
+      {
+        merged: [
+          {
+            id: 'mock-id',
+            role: 'assistant',
+            content: '',
+            createdAt: new Date('2023-01-01'),
+            internalUpdateId: 'mock-id',
+            // TODO this should not be part of the last message:
+            toolInvocations: [
+              {
+                args: {
+                  city: 'London',
+                },
+                result: {
+                  weather: 'sunny',
+                },
+                state: 'result',
+                toolCallId: 'tool-call-id',
+                toolName: 'tool-name',
+              },
+            ],
+          },
+        ],
+        data: [],
+      },
+      {
+        merged: [
+          {
+            id: 'mock-id',
+            role: 'assistant',
+            content: '',
+            createdAt: new Date('2023-01-01'),
+            internalUpdateId: 'mock-id',
+            // TODO this should not be part of the last message:
+            toolInvocations: [
+              {
+                args: {
+                  city: 'London',
+                },
+                result: {
+                  weather: 'sunny',
+                },
+                state: 'result',
+                toolCallId: 'tool-call-id',
+                toolName: 'tool-name',
+              },
+            ],
+          },
+        ],
+        data: [],
+      },
+      {
+        merged: [
+          {
+            id: 'mock-id',
+            role: 'assistant',
+            content: '',
+            createdAt: new Date('2023-01-01'),
+            internalUpdateId: 'mock-id',
+            // TODO this should not be part of the last message:
+            toolInvocations: [
+              {
+                args: {
+                  city: 'London',
+                },
+                result: {
+                  weather: 'sunny',
+                },
+                state: 'result',
+                toolCallId: 'tool-call-id',
+                toolName: 'tool-name',
+              },
+            ],
+          },
+        ],
+        data: [],
+      },
+      {
+        merged: [
+          {
+            id: 'mock-id',
+            role: 'assistant',
+            content: 'The weather in London is sunny.',
+            createdAt: new Date('2023-01-01'),
+            internalUpdateId: 'mock-id',
+            // TODO this should not be part of the last message:
+            toolInvocations: [
+              {
+                args: {
+                  city: 'London',
+                },
+                result: {
+                  weather: 'sunny',
+                },
+                state: 'result',
+                toolCallId: 'tool-call-id',
+                toolName: 'tool-name',
+              },
+            ],
+          },
+        ],
+        data: [],
+      },
+      {
+        merged: [
+          {
+            id: 'mock-id',
+            role: 'assistant',
+            content: 'The weather in London is sunny.',
+            createdAt: new Date('2023-01-01'),
+            internalUpdateId: 'mock-id',
+            // TODO this should not be part of the last message:
+            toolInvocations: [
+              {
+                args: {
+                  city: 'London',
+                },
+                result: {
+                  weather: 'sunny',
+                },
+                state: 'result',
+                toolCallId: 'tool-call-id',
+                toolName: 'tool-name',
+              },
+            ],
+          },
+        ],
+        data: [],
+      },
+      {
+        merged: [
+          {
+            id: 'mock-id',
+            role: 'assistant',
+            content: 'The weather in London is sunny.',
+            createdAt: new Date('2023-01-01'),
+            internalUpdateId: 'mock-id',
+            // TODO this should not be part of the last message:
+            toolInvocations: [
+              {
+                args: {
+                  city: 'London',
+                },
+                result: {
+                  weather: 'sunny',
+                },
+                state: 'result',
+                toolCallId: 'tool-call-id',
+                toolName: 'tool-name',
+              },
+            ],
+          },
+        ],
+        data: [],
+      },
+    ]);
+  });
+
+  it('should call the onFinish function with the correct arguments', async () => {
+    expect(finishCalls).toStrictEqual([
+      {
+        message: {
+          id: 'mock-id',
+          role: 'assistant',
+          content: 'The weather in London is sunny.',
+          createdAt: new Date('2023-01-01'),
+          internalUpdateId: 'mock-id',
+          // TODO this should not be part of the last message:
+          toolInvocations: [
+            {
+              args: {
+                city: 'London',
+              },
+              result: {
+                weather: 'sunny',
+              },
+              state: 'result',
+              toolCallId: 'tool-call-id',
+              toolName: 'tool-name',
+            },
+          ],
+        },
+        finishReason: 'stop',
+        usage: {
+          completionTokens: 7,
+          promptTokens: 14,
+          totalTokens: 21,
+        },
+      },
+    ]);
   });
 });
