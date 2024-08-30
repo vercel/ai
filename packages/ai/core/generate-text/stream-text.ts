@@ -377,10 +377,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 {
   private originalStream: ReadableStream<TextStreamPart<TOOLS>>;
 
-  // TODO these are currently from the initial roundtrip, not the final result
-  // need to change to async and use values from the final result
-  readonly warnings: StreamTextResult<TOOLS>['warnings'];
-  readonly rawResponse: StreamTextResult<TOOLS>['rawResponse'];
+  // TODO needs to be changed to readonly async in v4 (and only return value from last roundtrip)
+  // (can't change before v4 because of backwards compatibility)
+  warnings: StreamTextResult<TOOLS>['warnings'];
+  rawResponse: StreamTextResult<TOOLS>['rawResponse'];
 
   readonly usage: StreamTextResult<TOOLS>['usage'];
   readonly finishReason: StreamTextResult<TOOLS>['finishReason'];
@@ -459,6 +459,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     } = createStitchableStream<TextStreamPart<TOOLS>>();
 
     this.originalStream = stitchableStream;
+
+    const self = this;
 
     // add the roundtrip stream
     function addRoundtripStream({
@@ -652,6 +654,10 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     promptType: 'messages',
                     promptMessages,
                   });
+
+                // update warnings and rawResponse:
+                self.warnings = result.warnings;
+                self.rawResponse = result.rawResponse;
 
                 // needs to add to stitchable stream
                 addRoundtripStream({

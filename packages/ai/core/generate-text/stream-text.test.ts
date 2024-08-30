@@ -2007,6 +2007,7 @@ describe('options.maxToolRoundtrips', () => {
                     },
                   ]),
                   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+                  rawResponse: { headers: { call: '2' } },
                 };
               default:
                 throw new Error(`Unexpected response count: ${responseCount}`);
@@ -2092,10 +2093,19 @@ describe('options.maxToolRoundtrips', () => {
       );
     });
 
+    describe('rawSettings', () => {
+      beforeEach(async () => {
+        await convertAsyncIterableToArray(result.fullStream); // consume stream
+      });
+
+      it('should contain rawSettings from last roundtrips', async () => {
+        assert.deepStrictEqual(result.rawResponse, { headers: { call: '2' } });
+      });
+    });
+
     describe('onFinish', () => {
       beforeEach(async () => {
-        // consume stream:
-        await convertAsyncIterableToArray(result.fullStream);
+        await convertAsyncIterableToArray(result.fullStream); // consume stream
       });
 
       it('should contain total token usage', async () => {
@@ -2117,8 +2127,7 @@ describe('options.maxToolRoundtrips', () => {
 
     describe('value promises', () => {
       beforeEach(async () => {
-        // consume stream:
-        await convertAsyncIterableToArray(result.fullStream);
+        await convertAsyncIterableToArray(result.fullStream); // consume stream
       });
 
       it('should contain total token usage', async () => {
@@ -2140,8 +2149,7 @@ describe('options.maxToolRoundtrips', () => {
 
     describe('telemetry', () => {
       beforeEach(async () => {
-        // consume stream
-        await convertAsyncIterableToArray(result.textStream);
+        await convertAsyncIterableToArray(result.fullStream); // consume stream
       });
 
       it('should record telemetry data for each roundtrip', () => {
