@@ -613,7 +613,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   }),
                 );
               } catch (error) {
-                // TODO set error on span?
+                // ignore error setting telemetry attributes
               } finally {
                 // finish doStreamSpan before other operations for correct timing:
                 doStreamSpan.end();
