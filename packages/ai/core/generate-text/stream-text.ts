@@ -865,7 +865,15 @@ However, the LLM results are expected to be small enough to not cause issues.
             );
             break;
           case 'roundtrip-finish':
-            // ignored
+            controller.enqueue(
+              formatStreamPart('finish_roundtrip', {
+                finishReason: chunk.finishReason,
+                usage: {
+                  promptTokens: chunk.usage.promptTokens,
+                  completionTokens: chunk.usage.completionTokens,
+                },
+              }),
+            );
             break;
           case 'finish':
             controller.enqueue(

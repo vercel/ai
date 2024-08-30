@@ -712,6 +712,10 @@ describe('result.toAIStream', () => {
         formatStreamPart('text', 'Hello'),
         formatStreamPart('text', ', '),
         formatStreamPart('text', 'world!'),
+        formatStreamPart('finish_roundtrip', {
+          finishReason: 'stop',
+          usage: { promptTokens: 3, completionTokens: 10 },
+        }),
         formatStreamPart('finish_message', {
           finishReason: 'stop',
           usage: { promptTokens: 3, completionTokens: 10 },
@@ -863,6 +867,10 @@ describe('result.toAIStream', () => {
           toolCallId: 'call-1',
           result: 'value-result',
         }),
+        formatStreamPart('finish_roundtrip', {
+          finishReason: 'stop',
+          usage: { promptTokens: 3, completionTokens: 10 },
+        }),
         formatStreamPart('finish_message', {
           finishReason: 'stop',
           usage: { promptTokens: 3, completionTokens: 10 },
@@ -967,6 +975,10 @@ describe('result.toAIStream', () => {
           toolCallId: 'call-1',
           result: 'value-result',
         }),
+        formatStreamPart('finish_roundtrip', {
+          finishReason: 'stop',
+          usage: { promptTokens: 3, completionTokens: 10 },
+        }),
         formatStreamPart('finish_message', {
           finishReason: 'stop',
           usage: { promptTokens: 3, completionTokens: 10 },
@@ -1028,6 +1040,7 @@ describe('result.pipeDataStreamToResponse', async () => {
         '0:"Hello"\n',
         '0:", "\n',
         '0:"world!"\n',
+        'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
         'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
       ],
     );
@@ -1120,6 +1133,7 @@ describe('result.toDataStreamResponse', () => {
       '0:"Hello"\n',
       '0:", "\n',
       '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
       'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
     ]);
   });
@@ -1165,6 +1179,7 @@ describe('result.toDataStreamResponse', () => {
       '0:"Hello"\n',
       '0:", "\n',
       '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
       'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
     ]);
   });
@@ -1208,6 +1223,7 @@ describe('result.toDataStreamResponse', () => {
       '0:"Hello"\n',
       '0:", "\n',
       '0:"world!"\n',
+      'e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
       'd:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}\n',
     ]);
   });
@@ -1327,6 +1343,10 @@ describe('multiple stream consumption', () => {
         formatStreamPart('text', 'Hello'),
         formatStreamPart('text', ', '),
         formatStreamPart('text', 'world!'),
+        formatStreamPart('finish_roundtrip', {
+          finishReason: 'stop',
+          usage: { promptTokens: 3, completionTokens: 10 },
+        }),
         formatStreamPart('finish_message', {
           finishReason: 'stop',
           usage: { promptTokens: 3, completionTokens: 10 },
