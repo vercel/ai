@@ -22,7 +22,6 @@ type PrefixMap = {
     role: 'assistant';
     tool_calls: ToolCall[];
   };
-  data: JSONValue[];
 };
 
 function assignAnnotationsToMessage<T extends Message | null | undefined>(
@@ -33,7 +32,7 @@ function assignAnnotationsToMessage<T extends Message | null | undefined>(
   return { ...message, annotations: [...annotations] } as T;
 }
 
-export async function parseComplexResponse({
+export async function processDataProtocolResponse({
   reader,
   abortControllerRef,
   update,
@@ -46,10 +45,10 @@ export async function parseComplexResponse({
   abortControllerRef?: {
     current: AbortController | null;
   };
-  update: (merged: Message[], data: JSONValue[] | undefined) => void;
+  update: (newMessages: Message[], data: JSONValue[] | undefined) => void;
   onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (options: {
-    prefixMap: PrefixMap;
+    message: Message | undefined;
     finishReason: LanguageModelV1FinishReason;
     usage: {
       completionTokens: number;
@@ -61,9 +60,13 @@ export async function parseComplexResponse({
   getCurrentDate?: () => Date;
 }) {
   const createdAt = getCurrentDate();
-  const prefixMap: PrefixMap = {
-    data: [],
-  };
+
+  let prefixMap: PrefixMap = {};
+  let nextPrefixMap: PrefixMap | undefined = undefined;
+
+  const previousMessages: Message[] = [];
+
+  const data: JSONValue[] = [];
 
   // keep list of current message annotations for message
   let message_annotations: JSONValue[] | undefined = undefined;
@@ -93,6 +96,39 @@ export async function parseComplexResponse({
       throw new Error(value);
     }
 
+    if (type === 'finish_roundtrip') {
+      nextPrefixMap = {};
+      continue;
+    }
+
+    if (type === 'finish_message') {
+      const { completionTokens, promptTokens } = value.usage;
+
+      finishReason = value.finishReason;
+      usage = {
+        completionTokens,
+        promptTokens,
+        totalTokens: completionTokens + promptTokens,
+      };
+
+      continue;
+    }
+
+    if (nextPrefixMap) {
+      if (prefixMap.text) {
+        previousMessages.push(prefixMap.text);
+      }
+      if (prefixMap.function_call) {
+        previousMessages.push(prefixMap.function_call);
+      }
+      if (prefixMap.tool_calls) {
+        previousMessages.push(prefixMap.tool_calls);
+      }
+
+      prefixMap = nextPrefixMap;
+      nextPrefixMap = undefined;
+    }
+
     if (type === 'text') {
       if (prefixMap['text']) {
         prefixMap['text'] = {
@@ -107,17 +143,6 @@ export async function parseComplexResponse({
           createdAt,
         };
       }
-    }
-
-    if (type === 'finish_message') {
-      const { completionTokens, promptTokens } = value.usage;
-
-      finishReason = value.finishReason;
-      usage = {
-        completionTokens,
-        promptTokens,
-        totalTokens: completionTokens + promptTokens,
-      };
     }
 
     // Tool invocations are part of an assistant message
@@ -265,7 +290,7 @@ export async function parseComplexResponse({
     }
 
     if (type === 'data') {
-      prefixMap['data'].push(...value);
+      data.push(...value);
     }
 
     let responseMessage = prefixMap['text'];
@@ -294,16 +319,15 @@ export async function parseComplexResponse({
 
     // keeps the prefixMap up to date with the latest annotations, even if annotations preceded the message
     if (message_annotations?.length) {
-      const messagePrefixKeys: (keyof PrefixMap)[] = [
-        'text',
-        'function_call',
-        'tool_calls',
-      ];
-      messagePrefixKeys.forEach(key => {
-        if (prefixMap[key]) {
-          (prefixMap[key] as Message).annotations = [...message_annotations!];
-        }
-      });
+      if (prefixMap.text) {
+        prefixMap.text.annotations = [...message_annotations!];
+      }
+      if (prefixMap.function_call) {
+        prefixMap.function_call.annotations = [...message_annotations!];
+      }
+      if (prefixMap.tool_calls) {
+        prefixMap.tool_calls.annotations = [...message_annotations!];
+      }
     }
 
     // We add function & tool calls and response messages to the messages[], but data is its own thing
@@ -313,10 +337,10 @@ export async function parseComplexResponse({
         ...assignAnnotationsToMessage(message, message_annotations),
       })) as Message[];
 
-    update(merged, [...prefixMap['data']]); // make a copy of the data array
+    update([...previousMessages, ...merged], [...data]); // make a copy of the data array
   }
 
-  onFinish?.({ prefixMap, finishReason, usage });
+  onFinish?.({ message: prefixMap.text, finishReason, usage });
 
   return {
     messages: [
@@ -324,6 +348,6 @@ export async function parseComplexResponse({
       prefixMap.function_call,
       prefixMap.tool_calls,
     ].filter(Boolean) as Message[],
-    data: prefixMap.data,
+    data,
   };
 }

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,7 +8,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "test/dist/**/*"
+    "test/dist/**/*",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
@@ -36,7 +37,7 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.21",
+    "@ai-sdk/provider": "0.0.22",
     "eventsource-parser": "1.1.2",
     "nanoid": "3.3.6",
     "secure-json-parse": "2.7.0"

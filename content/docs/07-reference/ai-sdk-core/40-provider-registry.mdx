@@ -11,58 +11,11 @@ When you work with multiple providers and models, it is often desirable to manag
 in a central place and access the models through simple string ids.
 
 `createProviderRegistry` lets you create a registry with multiple providers that you
-can access by their ids.
-
-## Import
-
-<Snippet
-  text={`import { experimental_createProviderRegistry as createProviderRegistry } from "ai"`}
-  prompt={false}
-/>
-
-## API Signature
-
-Registers a language model provider with a given id.
-
-### Parameters
-
-<PropertiesTable
-  content={[
-    {
-      name: 'providers',
-      type: 'Record<string, { languageModel: (id: string) => LanguageModel; textEmbedding: (id: string) => EmbeddingModel<string> }>',
-      description:
-        'The unique identifier for the provider. It should be unique within the registry.',
-    },
-  ]}
-/>
-
-### Returns
-
-The `experimental_createProviderRegistry` function returns a `experimental_ProviderRegistry` instance. It has the following methods:
-
-<PropertiesTable
-  content={[
-    {
-      name: 'languageModel',
-      type: '(id: string) => LanguageModel',
-      description:
-        'A function that returns a language model by its id (format: providerId:modelId)',
-    },
-    {
-      name: 'textEmbeddingModel',
-      type: '(id: string) => EmbeddingModel<string>',
-      description:
-        'A function that returns a text embedding model by its id (format: providerId:modelId)',
-    },
-  ]}
-/>
-
-## Examples
+can access by their ids in the format `providerId:modelId`.
 
 ### Setup
 
-You can create a registry with multiple providers and models using `createProviderRegistry`.
+You can create a registry with multiple providers and models using `experimental_createProviderRegistry`.
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
@@ -109,3 +62,65 @@ const { embedding } = await embed({
   value: 'sunny day at the beach',
 });
 ```
+
+## Import
+
+<Snippet
+  text={`import { experimental_createProviderRegistry as createProviderRegistry } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'providers',
+      type: 'Record<string, Provider>',
+      description:
+        'The unique identifier for the provider. It should be unique within the registry.',
+      properties: [
+        {
+          type: 'Provider',
+          parameters: [
+            {
+              name: 'languageModel',
+              type: '(id: string) => LanguageModel',
+              description:
+                'A function that returns a language model by its id.',
+            },
+            {
+              name: 'textEmbeddingModel',
+              type: '(id: string) => EmbeddingModel<string>',
+              description:
+                'A function that returns a text embedding model by its id.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
+
+### Returns
+
+The `createProviderRegistry` function returns a `Provider` instance. It has the following methods:
+
+<PropertiesTable
+  content={[
+    {
+      name: 'languageModel',
+      type: '(id: string) => LanguageModel',
+      description:
+        'A function that returns a language model by its id (format: providerId:modelId)',
+    },
+    {
+      name: 'textEmbeddingModel',
+      type: '(id: string) => EmbeddingModel<string>',
+      description:
+        'A function that returns a text embedding model by its id (format: providerId:modelId)',
+    },
+  ]}
+/>

@@ -1,13 +1,14 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
-  "version": "0.0.20",
+  "version": "0.0.22",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
@@ -29,8 +30,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "0.0.21",
-    "@ai-sdk/provider-utils": "1.0.16",
+    "@ai-sdk/provider": "0.0.22",
+    "@ai-sdk/provider-utils": "1.0.17",
     "@aws-sdk/client-bedrock-runtime": "3.602.0"
   },
   "devDependencies": {
