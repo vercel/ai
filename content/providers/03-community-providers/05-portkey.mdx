@@ -42,10 +42,10 @@ contains language model support for the Portkey chat and completion APIs.
 
 ## Setup
 
-The Portkey provider is available in the `portkey-vercel-provider` module. You can install it with
+The Portkey provider is available in the `@portkey-ai/vercel-provider` module. You can install it with
 
 ```bash
-pnpm add portkey-vercel-provider
+pnpm add @portkey-ai/vercel-provider
 ```
 
 ### Provider and Model
@@ -79,16 +79,16 @@ console.log(response)
 
 ## Provider Instance
 
-You can import the default provider instance `portkey` from `portkey-vercel-provider`:
+You can import the default provider instance `portkey` from `@portkey-ai/vercel-provider`:
 
 ```ts
-import { portkey } from 'portkey-vercel-provider';
+import { portkey } from '@portkey-ai/vercel-provider';
 ```
 
 ## Example
 
 ```ts
-import { portkey } from 'portkey-vercel-provider';
+import { portkey } from '@portkey-ai/vercel-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
