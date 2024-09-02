@@ -603,7 +603,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
     // pipe chunks through a transformation stream that extracts metadata:
     let accumulatedText = '';
-    let delta = '';
+    let textDelta = '';
 
     // Keep track of raw parse result before type validation, since e.g. Zod might
     // change the object by mapping properties.
@@ -637,7 +637,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           // process partial text chunks
           if (typeof chunk === 'string') {
             accumulatedText += chunk;
-            delta += chunk;
+            textDelta += chunk;
 
             const { value: currentObjectJson, state: parseState } =
               parsePartialJson(accumulatedText);
@@ -648,7 +648,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
             ) {
               const validationResult = outputStrategy.validatePartialResult({
                 value: currentObjectJson,
-                textDelta: delta,
+                textDelta,
                 latestObject,
                 isFirstDelta,
                 isFinalDelta: parseState === 'successful-parse',
@@ -672,7 +672,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   textDelta: validationResult.value.textDelta,
                 });
 
-                delta = '';
+                textDelta = '';
                 isFirstDelta = false;
               }
             }
@@ -683,11 +683,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           switch (chunk.type) {
             case 'finish': {
               // send final text delta:
-              if (delta !== '') {
-                controller.enqueue({
-                  type: 'text-delta',
-                  textDelta: outputStrategy.getFinalTextDelta(delta),
-                });
+              if (textDelta !== '') {
+                controller.enqueue({ type: 'text-delta', textDelta });
               }
 
               // store finish reason for telemetry:

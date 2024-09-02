@@ -37,8 +37,6 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   }>;
   validateFinalResult(value: JSONValue | undefined): ValidationResult<RESULT>;
 
-  getFinalTextDelta(delta: string): string;
-
   createElementStream(
     originalStream: ReadableStream<ObjectStreamPart<PARTIAL>>,
   ): ELEMENT_STREAM;
@@ -64,10 +62,6 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
     throw new UnsupportedFunctionalityError({
       functionality: 'element streams in no-schema mode',
     });
-  },
-
-  getFinalTextDelta(delta) {
-    return delta;
   },
 };
 
@@ -96,10 +90,6 @@ const objectOutputStrategy = <OBJECT>(
     throw new UnsupportedFunctionalityError({
       functionality: 'element streams in object mode',
     });
-  },
-
-  getFinalTextDelta(delta) {
-    return delta;
   },
 });
 
@@ -144,10 +134,11 @@ const arrayOutputStrategy = <ELEMENT>(
         const element = inputArray[i];
         const result = safeValidateTypes({ value: element, schema });
 
-        // special treatment for last element:
-        // ignore parse failures or validation failures, since they indicate that the
-        // last element is incomplete and should not be included in the result
-        if (i === inputArray.length - 1 && (!result.success || isFinalDelta)) {
+        // special treatment for last processed element:
+        // ignore parse or validation failures, since they indicate that the
+        // last element is incomplete and should not be included in the result,
+        // unless it is the final delta
+        if (i === inputArray.length - 1 && !isFinalDelta) {
           continue;
         }
 
@@ -160,7 +151,16 @@ const arrayOutputStrategy = <ELEMENT>(
 
       // calculate delta:
       const publishedElementCount = latestObject?.length ?? 0;
-      let textDelta = isFirstDelta ? '[' : ',';
+
+      let textDelta = '';
+
+      if (isFirstDelta) {
+        textDelta += '[';
+      }
+
+      if (publishedElementCount > 0) {
+        textDelta += ',';
+      }
 
       textDelta += resultArray
         .slice(publishedElementCount) // only new elements
@@ -241,10 +241,6 @@ const arrayOutputStrategy = <ELEMENT>(
           }
         },
       });
-    },
-
-    getFinalTextDelta(delta) {
-      return ']';
     },
   };
 };
