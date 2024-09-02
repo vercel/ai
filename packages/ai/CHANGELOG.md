@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.23
+
+### Patch Changes
+
+- b55e6f7: fix (ai/core): streamObject text stream in array mode must not include elements: prefix.
+
 ## 3.3.22
 
 ### Patch Changes
