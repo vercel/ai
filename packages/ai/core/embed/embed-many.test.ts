@@ -184,66 +184,7 @@ describe('telemetry', () => {
       },
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
-      {
-        name: 'ai.embedMany',
-        attributes: {
-          'operation.name': 'ai.embedMany test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.embedMany',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.values': [
-            '"sunny day at the beach"',
-            '"rainy afternoon in the city"',
-            '"snowy night in the mountains"',
-          ],
-          'ai.embeddings': ['[0.1,0.2,0.3]', '[0.4,0.5,0.6]', '[0.7,0.8,0.9]'],
-          'ai.usage.tokens': 30,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.embedMany.doEmbed',
-        attributes: {
-          'operation.name': 'ai.embedMany.doEmbed test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.embedMany.doEmbed',
-          'ai.embeddings': ['[0.1,0.2,0.3]', '[0.4,0.5,0.6]'],
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.usage.tokens': 10,
-          'ai.values': [
-            '"sunny day at the beach"',
-            '"rainy afternoon in the city"',
-          ],
-        },
-        events: [],
-      },
-      {
-        name: 'ai.embedMany.doEmbed',
-        attributes: {
-          'operation.name': 'ai.embedMany.doEmbed test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.embedMany.doEmbed',
-          'ai.embeddings': ['[0.7,0.8,0.9]'],
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.usage.tokens': 20,
-          'ai.values': ['"snowy night in the mountains"'],
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should record telemetry data when enabled (single call path)', async () => {
@@ -263,50 +204,7 @@ describe('telemetry', () => {
       },
     });
 
-    expect(tracer.jsonSpans).toStrictEqual([
-      {
-        name: 'ai.embedMany',
-        attributes: {
-          'operation.name': 'ai.embedMany test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.embedMany',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.values': [
-            '"sunny day at the beach"',
-            '"rainy afternoon in the city"',
-            '"snowy night in the mountains"',
-          ],
-          'ai.embeddings': ['[0.1,0.2,0.3]', '[0.4,0.5,0.6]', '[0.7,0.8,0.9]'],
-          'ai.usage.tokens': 10,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.embedMany.doEmbed',
-        attributes: {
-          'operation.name': 'ai.embedMany.doEmbed test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.embedMany.doEmbed',
-          'ai.embeddings': ['[0.1,0.2,0.3]', '[0.4,0.5,0.6]', '[0.7,0.8,0.9]'],
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.usage.tokens': 10,
-          'ai.values': [
-            '"sunny day at the beach"',
-            '"rainy afternoon in the city"',
-            '"snowy night in the mountains"',
-          ],
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should not record telemetry inputs / outputs when disabled', async () => {
@@ -323,29 +221,6 @@ describe('telemetry', () => {
       },
     });
 
-    expect(tracer.jsonSpans).toStrictEqual([
-      {
-        name: 'ai.embedMany',
-        attributes: {
-          'operation.name': 'ai.embedMany',
-          'ai.operationId': 'ai.embedMany',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.usage.tokens': 10,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.embedMany.doEmbed',
-        attributes: {
-          'operation.name': 'ai.embedMany.doEmbed',
-          'ai.operationId': 'ai.embedMany.doEmbed',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.usage.tokens': 10,
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 });

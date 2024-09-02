@@ -89,7 +89,7 @@ describe('telemetry', () => {
       value: testValue,
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, []);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should record telemetry data when enabled', async () => {
@@ -108,42 +108,7 @@ describe('telemetry', () => {
       },
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
-      {
-        name: 'ai.embed',
-        attributes: {
-          'operation.name': 'ai.embed test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.embed',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.value': '"sunny day at the beach"',
-          'ai.embedding': '[0.1,0.2,0.3]',
-          'ai.usage.tokens': 10,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.embed.doEmbed',
-        attributes: {
-          'operation.name': 'ai.embed.doEmbed test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.embed.doEmbed',
-          'ai.embeddings': ['[0.1,0.2,0.3]'],
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.usage.tokens': 10,
-          'ai.values': ['"sunny day at the beach"'],
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should not record telemetry inputs / outputs when disabled', async () => {
@@ -159,29 +124,6 @@ describe('telemetry', () => {
       },
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
-      {
-        name: 'ai.embed',
-        attributes: {
-          'operation.name': 'ai.embed',
-          'ai.operationId': 'ai.embed',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.usage.tokens': 10,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.embed.doEmbed',
-        attributes: {
-          'operation.name': 'ai.embed.doEmbed',
-          'ai.operationId': 'ai.embed.doEmbed',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.usage.tokens': 10,
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 });
