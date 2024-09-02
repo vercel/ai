@@ -36,6 +36,7 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import { now } from '../util/now';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { OutputStrategy, getOutputStrategy } from './output-strategy';
@@ -471,7 +472,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
       const {
         result: { stream, warnings, rawResponse },
         doStreamSpan,
-        startTimestamp,
+        startTimestampMs,
       } = await retry(() =>
         recordSpan({
           name: 'ai.streamObject.doStream',
@@ -502,7 +503,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
           tracer,
           endWhenDone: false,
           fn: async doStreamSpan => ({
-            startTimestamp: performance.now(), // get before the call
+            startTimestampMs: now(),
             doStreamSpan,
             result: await model.doStream(callOptions),
           }),
@@ -518,7 +519,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
         rootSpan,
         doStreamSpan,
         telemetry,
-        startTimestamp,
+        startTimestampMs,
       });
     },
   });
@@ -557,7 +558,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     rootSpan,
     doStreamSpan,
     telemetry,
-    startTimestamp,
+    startTimestampMs,
   }: {
     stream: ReadableStream<
       string | Omit<LanguageModelV1StreamPart, 'text-delta'>
@@ -573,7 +574,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     rootSpan: Span;
     doStreamSpan: Span;
     telemetry: TelemetrySettings | undefined;
-    startTimestamp: number; // performance.now() timestamp
+    startTimestampMs: number;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;
@@ -621,7 +622,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         async transform(chunk, controller): Promise<void> {
           // Telemetry event for first chunk:
           if (isFirstChunk) {
-            const msToFirstChunk = performance.now() - startTimestamp;
+            const msToFirstChunk = now() - startTimestampMs;
 
             isFirstChunk = false;
 
