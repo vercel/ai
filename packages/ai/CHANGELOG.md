@@ -1,5 +1,12 @@
 # ai
 
+## 3.3.25
+
+### Patch Changes
+
+- 4f1530f: feat (ai/core): add OpenTelemetry Semantic Conventions for GenAI operations to v1.27.0 of standard
+- dad775f: feat (ai/core): add finish event and avg output tokens per second (telemetry)
+
 ## 3.3.24
 
 ### Patch Changes
