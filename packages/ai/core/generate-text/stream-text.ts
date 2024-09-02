@@ -618,16 +618,18 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   selectTelemetryAttributes({
                     telemetry,
                     attributes: {
-                      'ai.finishReason': roundtripFinishReason,
-                      'ai.usage.promptTokens': roundtripUsage.promptTokens,
-                      'ai.usage.completionTokens':
-                        roundtripUsage.completionTokens,
+                      'ai.response.finishReason': roundtripFinishReason,
                       'ai.response.text': { output: () => roundtripText },
                       'ai.response.toolCalls': {
                         output: () => telemetryToolCalls,
                       },
 
+                      'ai.usage.promptTokens': roundtripUsage.promptTokens,
+                      'ai.usage.completionTokens':
+                        roundtripUsage.completionTokens,
+
                       // deprecated
+                      'ai.finishReason': roundtripFinishReason,
                       'ai.result.text': { output: () => roundtripText },
                       'ai.result.toolCalls': {
                         output: () => telemetryToolCalls,
@@ -720,17 +722,18 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   selectTelemetryAttributes({
                     telemetry,
                     attributes: {
-                      'ai.finishReason': roundtripFinishReason,
-                      'ai.usage.promptTokens': combinedUsage.promptTokens,
-                      'ai.usage.completionTokens':
-                        combinedUsage.completionTokens,
-
+                      'ai.response.finishReason': roundtripFinishReason,
                       'ai.response.text': { output: () => roundtripText },
                       'ai.response.toolCalls': {
                         output: () => telemetryToolCalls,
                       },
 
+                      'ai.usage.promptTokens': combinedUsage.promptTokens,
+                      'ai.usage.completionTokens':
+                        combinedUsage.completionTokens,
+
                       // deprecated
+                      'ai.finishReason': roundtripFinishReason,
                       'ai.result.text': { output: () => roundtripText },
                       'ai.result.toolCalls': {
                         output: () => telemetryToolCalls,

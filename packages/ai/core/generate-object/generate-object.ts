@@ -352,13 +352,15 @@ export async function generateObject<SCHEMA, RESULT>({
                   selectTelemetryAttributes({
                     telemetry,
                     attributes: {
-                      'ai.finishReason': result.finishReason,
+                      'ai.response.finishReason': result.finishReason,
+                      'ai.response.object': { output: () => result.text },
+
                       'ai.usage.promptTokens': result.usage.promptTokens,
                       'ai.usage.completionTokens':
                         result.usage.completionTokens,
-                      'ai.response.object': { output: () => result.text },
 
                       // deprecated:
+                      'ai.finishReason': result.finishReason,
                       'ai.result.object': { output: () => result.text },
 
                       // standardized gen-ai llm span attributes:
@@ -460,13 +462,15 @@ export async function generateObject<SCHEMA, RESULT>({
                   selectTelemetryAttributes({
                     telemetry,
                     attributes: {
-                      'ai.finishReason': result.finishReason,
+                      'ai.response.finishReason': result.finishReason,
+                      'ai.response.object': { output: () => objectText },
+
                       'ai.usage.promptTokens': result.usage.promptTokens,
                       'ai.usage.completionTokens':
                         result.usage.completionTokens,
-                      'ai.response.object': { output: () => objectText },
 
                       // deprecated:
+                      'ai.finishReason': result.finishReason,
                       'ai.result.object': { output: () => objectText },
 
                       // standardized gen-ai llm span attributes:
@@ -525,14 +529,16 @@ export async function generateObject<SCHEMA, RESULT>({
         selectTelemetryAttributes({
           telemetry,
           attributes: {
-            'ai.finishReason': finishReason,
-            'ai.usage.promptTokens': usage.promptTokens,
-            'ai.usage.completionTokens': usage.completionTokens,
+            'ai.response.finishReason': finishReason,
             'ai.response.object': {
               output: () => JSON.stringify(validationResult.value),
             },
 
+            'ai.usage.promptTokens': usage.promptTokens,
+            'ai.usage.completionTokens': usage.completionTokens,
+
             // deprecated:
+            'ai.finishReason': finishReason,
             'ai.result.object': {
               output: () => JSON.stringify(validationResult.value),
             },

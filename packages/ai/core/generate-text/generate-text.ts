@@ -234,9 +234,7 @@ By default, it's set to 0, which will disable the feature.
                 selectTelemetryAttributes({
                   telemetry,
                   attributes: {
-                    'ai.finishReason': result.finishReason,
-                    'ai.usage.promptTokens': result.usage.promptTokens,
-                    'ai.usage.completionTokens': result.usage.completionTokens,
+                    'ai.response.finishReason': result.finishReason,
                     'ai.response.text': {
                       output: () => result.text,
                     },
@@ -244,7 +242,11 @@ By default, it's set to 0, which will disable the feature.
                       output: () => JSON.stringify(result.toolCalls),
                     },
 
+                    'ai.usage.promptTokens': result.usage.promptTokens,
+                    'ai.usage.completionTokens': result.usage.completionTokens,
+
                     // deprecated:
+                    'ai.finishReason': result.finishReason,
                     'ai.result.text': {
                       output: () => result.text,
                     },
@@ -326,11 +328,7 @@ By default, it's set to 0, which will disable the feature.
         selectTelemetryAttributes({
           telemetry,
           attributes: {
-            'ai.finishReason': currentModelResponse.finishReason,
-            'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
-            'ai.usage.completionTokens':
-              currentModelResponse.usage.completionTokens,
-
+            'ai.response.finishReason': currentModelResponse.finishReason,
             'ai.response.text': {
               output: () => currentModelResponse.text,
             },
@@ -338,7 +336,12 @@ By default, it's set to 0, which will disable the feature.
               output: () => JSON.stringify(currentModelResponse.toolCalls),
             },
 
+            'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
+            'ai.usage.completionTokens':
+              currentModelResponse.usage.completionTokens,
+
             // deprecated:
+            'ai.finishReason': currentModelResponse.finishReason,
             'ai.result.text': {
               output: () => currentModelResponse.text,
             },

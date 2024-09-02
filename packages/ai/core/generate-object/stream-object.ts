@@ -766,14 +766,16 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               selectTelemetryAttributes({
                 telemetry,
                 attributes: {
-                  'ai.finishReason': finishReason,
-                  'ai.usage.promptTokens': finalUsage.promptTokens,
-                  'ai.usage.completionTokens': finalUsage.completionTokens,
+                  'ai.response.finishReason': finishReason,
                   'ai.response.object': {
                     output: () => JSON.stringify(object),
                   },
 
+                  'ai.usage.promptTokens': finalUsage.promptTokens,
+                  'ai.usage.completionTokens': finalUsage.completionTokens,
+
                   // deprecated
+                  'ai.finishReason': finishReason,
                   'ai.result.object': { output: () => JSON.stringify(object) },
 
                   // standardized gen-ai llm span attributes:
