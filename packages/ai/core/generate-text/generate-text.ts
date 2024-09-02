@@ -244,6 +244,14 @@ By default, it's set to 0, which will disable the feature.
                       output: () => JSON.stringify(result.toolCalls),
                     },
 
+                    // deprecated:
+                    'ai.result.text': {
+                      output: () => result.text,
+                    },
+                    'ai.result.toolCalls': {
+                      output: () => JSON.stringify(result.toolCalls),
+                    },
+
                     // standardized gen-ai llm span attributes:
                     'gen_ai.response.finish_reasons': [result.finishReason],
                     'gen_ai.usage.input_tokens': result.usage.promptTokens,
@@ -322,10 +330,19 @@ By default, it's set to 0, which will disable the feature.
             'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
             'ai.usage.completionTokens':
               currentModelResponse.usage.completionTokens,
+
             'ai.response.text': {
               output: () => currentModelResponse.text,
             },
             'ai.response.toolCalls': {
+              output: () => JSON.stringify(currentModelResponse.toolCalls),
+            },
+
+            // deprecated:
+            'ai.result.text': {
+              output: () => currentModelResponse.text,
+            },
+            'ai.result.toolCalls': {
               output: () => JSON.stringify(currentModelResponse.toolCalls),
             },
           },
