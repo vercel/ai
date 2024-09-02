@@ -289,10 +289,14 @@ results that can be fully encapsulated in the provider.
                 },
 
                 // standardized gen-ai llm span attributes:
-                'gen_ai.request.model': model.modelId,
                 'gen_ai.system': model.provider,
+                'gen_ai.request.model': model.modelId,
+                'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
                 'gen_ai.request.max_tokens': settings.maxTokens,
+                'gen_ai.request.presence_penalty': settings.presencePenalty,
+                'gen_ai.request.stop_sequences': settings.stopSequences,
                 'gen_ai.request.temperature': settings.temperature,
+                'gen_ai.request.top_k': settings.topK,
                 'gen_ai.request.top_p': settings.topP,
               },
             }),
@@ -619,8 +623,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [roundtripFinishReason],
-                      'gen_ai.usage.prompt_tokens': roundtripUsage.promptTokens,
-                      'gen_ai.usage.completion_tokens':
+                      'gen_ai.usage.input_tokens': roundtripUsage.promptTokens,
+                      'gen_ai.usage.output_tokens':
                         roundtripUsage.completionTokens,
                     },
                   }),
