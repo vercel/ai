@@ -577,6 +577,13 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     chunk.experimental_providerMetadata;
                   roundtripLogProbs = chunk.logprobs;
 
+                  // Telemetry for finish event timing
+                  // (since tool executions can take longer and distort calculations)
+                  doStreamSpan.addEvent('ai.stream.finish');
+                  doStreamSpan.setAttributes({
+                    'ai.response.msToFinish': now() - startTimestamp,
+                  });
+
                   break;
 
                 case 'tool-call-streaming-start':
