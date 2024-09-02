@@ -355,6 +355,9 @@ export async function generateObject<SCHEMA, RESULT>({
                         result.usage.completionTokens,
                       'ai.response.object': { output: () => result.text },
 
+                      // deprecated:
+                      'ai.result.object': { output: () => result.text },
+
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
                       'gen_ai.usage.prompt_tokens': result.usage.promptTokens,
@@ -457,6 +460,9 @@ export async function generateObject<SCHEMA, RESULT>({
                         result.usage.completionTokens,
                       'ai.response.object': { output: () => objectText },
 
+                      // deprecated:
+                      'ai.result.object': { output: () => objectText },
+
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
                       'gen_ai.usage.prompt_tokens': result.usage.promptTokens,
@@ -517,6 +523,11 @@ export async function generateObject<SCHEMA, RESULT>({
             'ai.usage.promptTokens': usage.promptTokens,
             'ai.usage.completionTokens': usage.completionTokens,
             'ai.response.object': {
+              output: () => JSON.stringify(validationResult.value),
+            },
+
+            // deprecated:
+            'ai.result.object': {
               output: () => JSON.stringify(validationResult.value),
             },
           },

@@ -770,6 +770,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     output: () => JSON.stringify(object),
                   },
 
+                  // deprecated
+                  'ai.result.object': { output: () => JSON.stringify(object) },
+
                   // standardized gen-ai llm span attributes:
                   'gen_ai.usage.prompt_tokens': finalUsage.promptTokens,
                   'gen_ai.usage.completion_tokens': finalUsage.completionTokens,
@@ -791,6 +794,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   'ai.response.object': {
                     output: () => JSON.stringify(object),
                   },
+
+                  // deprecated
+                  'ai.result.object': { output: () => JSON.stringify(object) },
                 },
               }),
             );
