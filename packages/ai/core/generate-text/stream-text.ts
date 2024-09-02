@@ -40,6 +40,7 @@ import {
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { mergeStreams } from '../util/merge-streams';
+import { now } from '../util/now';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import {
   runToolsTransformation,
@@ -49,7 +50,6 @@ import { StreamTextResult } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
-import { now } from '../util/now';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
