@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.22
+
+### Patch Changes
+
+- a5a56fd: fix (ai/core): only send roundtrip-finish event after async tool calls are done
+
 ## 3.3.21
 
 ### Patch Changes
