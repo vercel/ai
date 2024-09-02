@@ -555,15 +555,6 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     chunk.experimental_providerMetadata;
                   roundtripLogProbs = chunk.logprobs;
 
-                  controller.enqueue({
-                    type: 'roundtrip-finish',
-                    finishReason: chunk.finishReason,
-                    usage: chunk.usage,
-                    experimental_providerMetadata:
-                      chunk.experimental_providerMetadata,
-                    logprobs: chunk.logprobs,
-                  });
-
                   break;
 
                 case 'tool-call-streaming-start':
@@ -587,6 +578,14 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
             // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
             async flush(controller) {
+              controller.enqueue({
+                type: 'roundtrip-finish',
+                finishReason: roundtripFinishReason,
+                usage: roundtripUsage,
+                experimental_providerMetadata: roundtripProviderMetadata,
+                logprobs: roundtripLogProbs,
+              });
+
               const telemetryToolCalls =
                 roundtripToolCalls.length > 0
                   ? JSON.stringify(roundtripToolCalls)

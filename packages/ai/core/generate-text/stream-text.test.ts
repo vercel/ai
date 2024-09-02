@@ -18,6 +18,7 @@ import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { streamText } from './stream-text';
+import { delay } from '../../util/delay';
 
 describe('result.textStream', () => {
   it('should send text deltas', async () => {
@@ -591,6 +592,98 @@ describe('result.fullStream', () => {
         tool1: {
           parameters: z.object({ value: z.string() }),
           execute: async ({ value }) => `${value}-result`,
+        },
+      },
+      prompt: 'test-input',
+    });
+
+    assert.deepStrictEqual(
+      await convertAsyncIterableToArray(result.fullStream),
+      [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          args: { value: 'value' },
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          args: { value: 'value' },
+          result: 'value-result',
+        },
+        {
+          type: 'roundtrip-finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          logprobs: undefined,
+          usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+          experimental_providerMetadata: undefined,
+        },
+      ],
+    );
+  });
+
+  it('should send delayed asynchronous tool results', async () => {
+    const result = await streamText({
+      model: new MockLanguageModelV1({
+        doStream: async ({ prompt, mode }) => {
+          assert.deepStrictEqual(mode, {
+            type: 'regular',
+            tools: [
+              {
+                type: 'function',
+                name: 'tool1',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
+                },
+              },
+            ],
+            toolChoice: { type: 'auto' },
+          });
+          assert.deepStrictEqual(prompt, [
+            { role: 'user', content: [{ type: 'text', text: 'test-input' }] },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                logprobs: undefined,
+                usage: { completionTokens: 10, promptTokens: 3 },
+              },
+            ]),
+            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async ({ value }) => {
+            await delay(50); // delay to show bug where roundtrip finish is sent before tool result
+            return `${value}-result`;
+          },
         },
       },
       prompt: 'test-input',
@@ -1245,6 +1338,7 @@ describe('result.toDataStreamResponse', () => {
 
     assert.deepStrictEqual(await convertResponseStreamToArray(response), [
       '3:""\n',
+      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
       'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
     ]);
   });
@@ -1268,6 +1362,7 @@ describe('result.toDataStreamResponse', () => {
 
     assert.deepStrictEqual(await convertResponseStreamToArray(response), [
       '3:"custom error message: error"\n',
+      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
       'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
     ]);
   });
