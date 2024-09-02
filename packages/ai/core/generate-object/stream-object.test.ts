@@ -1097,7 +1097,7 @@ describe('output = "array"', () => {
       });
     });
 
-    it('should stream only complete objects', async () => {
+    it('should stream only complete objects in partialObjectStream', async () => {
       assert.deepStrictEqual(
         await convertAsyncIterableToArray(result.partialObjectStream),
         [
@@ -1109,6 +1109,19 @@ describe('output = "array"', () => {
             { content: 'element 2' },
             { content: 'element 3' },
           ],
+        ],
+      );
+    });
+
+    it('should stream only complete objects in textStream', async () => {
+      assert.deepStrictEqual(
+        await convertAsyncIterableToArray(result.textStream),
+        [
+          '[',
+          ',{"content":"element 1"}',
+          ',{"content":"element 2"}',
+          ',{"content":"element 3"}',
+          ']',
         ],
       );
     });

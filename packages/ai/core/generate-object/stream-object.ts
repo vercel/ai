@@ -609,7 +609,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     // change the object by mapping properties.
     let latestObjectJson: JSONValue | undefined = undefined;
     let latestObject: PARTIAL | undefined = undefined;
-    let firstChunk = true;
+    let isFirstChunk = true;
+    let isFirstDelta = true;
 
     const self = this;
     this.originalStream = stream.pipeThrough(
@@ -619,10 +620,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       >({
         async transform(chunk, controller): Promise<void> {
           // Telemetry event for first chunk:
-          if (firstChunk) {
+          if (isFirstChunk) {
             const msToFirstChunk = performance.now() - startTimestamp;
 
-            firstChunk = false;
+            isFirstChunk = false;
 
             doStreamSpan.addEvent('ai.stream.firstChunk', {
               'ai.stream.msToFirstChunk': msToFirstChunk,
@@ -647,16 +648,19 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
             ) {
               const validationResult = outputStrategy.validatePartialResult({
                 value: currentObjectJson,
-                parseState,
+                textDelta: delta,
+                latestObject,
+                isFirstDelta,
+                isFinalDelta: parseState === 'successful-parse',
               });
 
               if (
                 validationResult.success &&
-                !isDeepEqualData(latestObject, validationResult.value)
+                !isDeepEqualData(latestObject, validationResult.value.partial)
               ) {
                 // inside inner check to correctly parse the final element in array mode:
                 latestObjectJson = currentObjectJson;
-                latestObject = validationResult.value;
+                latestObject = validationResult.value.partial;
 
                 controller.enqueue({
                   type: 'object',
@@ -665,10 +669,11 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
                 controller.enqueue({
                   type: 'text-delta',
-                  textDelta: delta,
+                  textDelta: validationResult.value.textDelta,
                 });
 
                 delta = '';
+                isFirstDelta = false;
               }
             }
 
@@ -681,7 +686,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               if (delta !== '') {
                 controller.enqueue({
                   type: 'text-delta',
-                  textDelta: delta,
+                  textDelta: outputStrategy.getFinalTextDelta(delta),
                 });
               }
 
