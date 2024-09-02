@@ -517,10 +517,13 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
               'ai.settings.mode': mode,
 
               // standardized gen-ai llm span attributes:
-              'gen_ai.request.model': model.modelId,
               'gen_ai.system': model.provider,
+              'gen_ai.request.model': model.modelId,
+              'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
               'gen_ai.request.max_tokens': settings.maxTokens,
+              'gen_ai.request.presence_penalty': settings.presencePenalty,
               'gen_ai.request.temperature': settings.temperature,
+              'gen_ai.request.top_k': settings.topK,
               'gen_ai.request.top_p': settings.topP,
             },
           }),
@@ -774,8 +777,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   'ai.result.object': { output: () => JSON.stringify(object) },
 
                   // standardized gen-ai llm span attributes:
-                  'gen_ai.usage.prompt_tokens': finalUsage.promptTokens,
-                  'gen_ai.usage.completion_tokens': finalUsage.completionTokens,
+                  'gen_ai.usage.input_tokens': finalUsage.promptTokens,
+                  'gen_ai.usage.output_tokens': finalUsage.completionTokens,
                   'gen_ai.response.finish_reasons': [finishReason],
                 },
               }),
