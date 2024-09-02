@@ -1394,6 +1394,11 @@ describe('telemetry', () => {
       schemaDescription: 'test description',
       mode: 'json',
       prompt: 'prompt',
+      topK: 0.1,
+      topP: 0.2,
+      frequencyPenalty: 0.3,
+      presencePenalty: 0.4,
+      temperature: 0.5,
       headers: {
         header1: 'value1',
         header2: 'value2',
@@ -1476,6 +1481,11 @@ describe('telemetry', () => {
       schemaDescription: 'test description',
       mode: 'tool',
       prompt: 'prompt',
+      topK: 0.1,
+      topP: 0.2,
+      frequencyPenalty: 0.3,
+      presencePenalty: 0.4,
+      temperature: 0.5,
       headers: {
         header1: 'value1',
         header2: 'value2',
