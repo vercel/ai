@@ -79,12 +79,6 @@ const result = await generateText({
   - `ai.result.text`: the text that was generated
   - `ai.result.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.finishReason`: the reason why the generation finished
-  - standardized [gen_ai attributes](https://opentelemetry.io/docs/specs/semconv/gen-ai/llm-spans/)
-    - `gen_ai.request.model`: the model that was used
-    - `gen_ai.response.finish_reasons`: the finish reasons that were returned by the provider
-    - `gen_ai.system`: the provider that was used
-    - `gen_ai.usage.completion_tokens`: the number of completion tokens that were used
-    - `gen_ai.usage.prompt_tokens`: the number of prompt tokens that were used
 - `ai.toolCall`: a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
 
 ### streamText function
@@ -102,6 +96,7 @@ const result = await generateText({
 - `ai.streamText.doStream`: a provider doStream call.
   This span contains an `ai.stream.firstChunk` event and `ai.toolCall` spans.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
+
   - `operation.name`: `ai.streamText.doStream` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.streamText.doStream"`
   - `ai.prompt.format`: the format of the prompt
@@ -110,12 +105,7 @@ const result = await generateText({
   - `ai.result.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.finishReason`: the reason why the generation finished
   - `ai.stream.msToFirstChunk`: the time it took to receive the first chunk
-  - standardized [gen_ai attributes](https://opentelemetry.io/docs/specs/semconv/gen-ai/llm-spans/)
-    - `gen_ai.request.model`: the model that was used
-    - `gen_ai.response.finish_reasons`: the finish reasons that were returned by the provider
-    - `gen_ai.system`: the provider that was used
-    - `gen_ai.usage.completion_tokens`: the number of completion tokens that were used
-    - `gen_ai.usage.prompt_tokens`: the number of prompt tokens that were used
+
 - `ai.stream.firstChunk` (event): an event that is emitted when the first chunk of the stream is received.
   - `ai.stream.msToFirstChunk`: the time it took to receive the first chunk
 - `ai.toolCall`: a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
@@ -146,12 +136,6 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.result.object`: the object that was generated (stringified JSON)
   - `ai.settings.mode`: the object generation mode
   - `ai.finishReason`: the reason why the generation finished
-  - standardized [gen_ai attributes](https://opentelemetry.io/docs/specs/semconv/gen-ai/llm-spans/)
-    - `gen_ai.request.model`: the model that was used
-    - `gen_ai.response.finish_reasons`: the finish reasons that were returned by the provider
-    - `gen_ai.system`: the provider that was used
-    - `gen_ai.usage.completion_tokens`: the number of completion tokens that were used
-    - `gen_ai.usage.prompt_tokens`: the number of prompt tokens that were used
 
 ### streamObject function
 
@@ -179,12 +163,6 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.settings.mode`: the object generation mode
   - `ai.finishReason`: the reason why the generation finished
   - `ai.stream.msToFirstChunk`: the time it took to receive the first chunk
-  - standardized [gen_ai attributes](https://opentelemetry.io/docs/specs/semconv/gen-ai/llm-spans/)
-    - `gen_ai.request.model`: the model that was used
-    - `gen_ai.response.finish_reasons`: the finish reasons that were returned by the provider
-    - `gen_ai.system`: the provider that was used
-    - `gen_ai.usage.completion_tokens`: the number of completion tokens that were used
-    - `gen_ai.usage.prompt_tokens`: the number of prompt tokens that were used
 - `ai.stream.firstChunk` (event): an event that is emitted when the first chunk of the stream is received.
   - `ai.stream.msToFirstChunk`: the time it took to receive the first chunk
 
@@ -229,6 +207,7 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
 Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.streamText`, `ai.streamText.doStream`,
 `ai.generateObject`, `ai.generateObject.doGenerate`, `ai.streamObject`, `ai.streamObject.doStream`) contain the following attributes:
 
+- `resource.name`: the functionId that was set through `telemetry.functionId`
 - `ai.model.id`: the id of the model
 - `ai.model.provider`: the provider of the model
 - `ai.request.headers.*`: the request headers that were passed in through `headers`
@@ -237,7 +216,19 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.telemetry.metadata.*`: the metadata that was passed in through `telemetry.metadata`
 - `ai.usage.completionTokens`: the number of completion tokens that were used
 - `ai.usage.promptTokens`: the number of prompt tokens that were used
-- `resource.name`: the functionId that was set through `telemetry.functionId`
+- [Semantic Conventions for GenAI operations](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/)
+  - `gen_ai.system`: the provider that was used
+  - `gen_ai.request.model`: the model that was requested
+  - `gen_ai.request.temperature`: the temperature that was set
+  - `gen_ai.request.max_tokens`: the maximum number of tokens that were set
+  - `gen_ai.request.frequency_penalty`: the frequency penalty that was set
+  - `gen_ai.request.presence_penalty`: the presence penalty that was set
+  - `gen_ai.request.top_k`: the topK parameter value that was set
+  - `gen_ai.request.top_p`: the topP parameter value that was set
+  - `gen_ai.request.stop_sequences`: the stop sequences
+  - `gen_ai.response.finish_reasons`: the finish reasons that were returned by the provider
+  - `gen_ai.usage.input_tokens`: the number of prompt tokens that were used
+  - `gen_ai.usage.output_tokens`: the number of completion tokens that were used
 
 ### Basic embedding span information
 
