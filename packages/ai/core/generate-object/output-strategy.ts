@@ -23,15 +23,18 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
 
   validatePartialResult({
     value,
-    parseState,
+    textDelta,
+    isFinalDelta,
   }: {
     value: JSONValue;
-    parseState:
-      | 'undefined-input'
-      | 'successful-parse'
-      | 'repaired-parse'
-      | 'failed-parse';
-  }): ValidationResult<PARTIAL>;
+    textDelta: string;
+    isFirstDelta: boolean;
+    isFinalDelta: boolean;
+    latestObject: PARTIAL | undefined;
+  }): ValidationResult<{
+    partial: PARTIAL;
+    textDelta: string;
+  }>;
   validateFinalResult(value: JSONValue | undefined): ValidationResult<RESULT>;
 
   createElementStream(
@@ -43,8 +46,8 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
   type: 'no-schema',
   jsonSchema: undefined,
 
-  validatePartialResult({ value }): ValidationResult<JSONValue> {
-    return { success: true, value };
+  validatePartialResult({ value, textDelta }) {
+    return { success: true, value: { partial: value, textDelta } };
   },
 
   validateFinalResult(
@@ -68,9 +71,15 @@ const objectOutputStrategy = <OBJECT>(
   type: 'object',
   jsonSchema: schema.jsonSchema,
 
-  validatePartialResult({ value }): ValidationResult<DeepPartial<OBJECT>> {
-    // Note: currently no validation of partial results:
-    return { success: true, value: value as DeepPartial<OBJECT> };
+  validatePartialResult({ value, textDelta }) {
+    return {
+      success: true,
+      value: {
+        // Note: currently no validation of partial results:
+        partial: value as DeepPartial<OBJECT>,
+        textDelta,
+      },
+    };
   },
 
   validateFinalResult(value: JSONValue | undefined): ValidationResult<OBJECT> {
@@ -91,7 +100,7 @@ const arrayOutputStrategy = <ELEMENT>(
   const { $schema, ...itemSchema } = schema.jsonSchema;
 
   return {
-    type: 'object',
+    type: 'array',
 
     // wrap in object that contains array of elements, since most LLMs will not
     // be able to generate an array directly:
@@ -106,10 +115,7 @@ const arrayOutputStrategy = <ELEMENT>(
       additionalProperties: false,
     },
 
-    validatePartialResult({
-      value,
-      parseState,
-    }): ValidationResult<Array<ELEMENT>> {
+    validatePartialResult({ value, latestObject, isFirstDelta, isFinalDelta }) {
       // check that the value is an object that contains an array of elements:
       if (!isJSONObject(value) || !isJSONArray(value.elements)) {
         return {
@@ -128,13 +134,11 @@ const arrayOutputStrategy = <ELEMENT>(
         const element = inputArray[i];
         const result = safeValidateTypes({ value: element, schema });
 
-        // special treatment for last element:
-        // ignore parse failures or validation failures, since they indicate that the
-        // last element is incomplete and should not be included in the result
-        if (
-          i === inputArray.length - 1 &&
-          (!result.success || parseState !== 'successful-parse')
-        ) {
+        // special treatment for last processed element:
+        // ignore parse or validation failures, since they indicate that the
+        // last element is incomplete and should not be included in the result,
+        // unless it is the final delta
+        if (i === inputArray.length - 1 && !isFinalDelta) {
           continue;
         }
 
@@ -145,7 +149,35 @@ const arrayOutputStrategy = <ELEMENT>(
         resultArray.push(result.value);
       }
 
-      return { success: true, value: resultArray };
+      // calculate delta:
+      const publishedElementCount = latestObject?.length ?? 0;
+
+      let textDelta = '';
+
+      if (isFirstDelta) {
+        textDelta += '[';
+      }
+
+      if (publishedElementCount > 0) {
+        textDelta += ',';
+      }
+
+      textDelta += resultArray
+        .slice(publishedElementCount) // only new elements
+        .map(element => JSON.stringify(element))
+        .join(',');
+
+      if (isFinalDelta) {
+        textDelta += ']';
+      }
+
+      return {
+        success: true,
+        value: {
+          partial: resultArray,
+          textDelta,
+        },
+      };
     },
 
     validateFinalResult(
