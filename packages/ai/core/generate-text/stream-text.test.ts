@@ -1338,6 +1338,7 @@ describe('result.toDataStreamResponse', () => {
 
     assert.deepStrictEqual(await convertResponseStreamToArray(response), [
       '3:""\n',
+      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
       'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
     ]);
   });
@@ -1361,6 +1362,7 @@ describe('result.toDataStreamResponse', () => {
 
     assert.deepStrictEqual(await convertResponseStreamToArray(response), [
       '3:"custom error message: error"\n',
+      'e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
       'd:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}\n',
     ]);
   });
