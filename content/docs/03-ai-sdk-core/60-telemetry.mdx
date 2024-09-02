@@ -66,9 +66,9 @@ const result = await generateText({
   - `operation.name`: `ai.generateText` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.generateText"`
   - `ai.prompt`: the prompt that was used when calling `generateText`
-  - `ai.result.text`: the text that was generated
-  - `ai.result.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
-  - `ai.finishReason`: the reason why the generation finished
+  - `ai.response.text`: the text that was generated
+  - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
+  - `ai.response.finishReason`: the reason why the generation finished
   - `ai.settings.maxToolRoundtrips`: the maximum number of tool roundtrips that were set
 - `ai.generateText.doGenerate`: a provider doGenerate call. It can contain `ai.toolCall` spans.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
@@ -76,9 +76,9 @@ const result = await generateText({
   - `ai.operationId`: `"ai.generateText.doGenerate"`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
-  - `ai.result.text`: the text that was generated
-  - `ai.result.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
-  - `ai.finishReason`: the reason why the generation finished
+  - `ai.response.text`: the text that was generated
+  - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
+  - `ai.response.finishReason`: the reason why the generation finished
 - `ai.toolCall`: a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
 
 ### streamText function
@@ -90,9 +90,9 @@ const result = await generateText({
   - `operation.name`: `ai.streamText` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.streamText"`
   - `ai.prompt`: the prompt that was used when calling `streamText`
-  - `ai.result.text`: the text that was generated
-  - `ai.result.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
-  - `ai.finishReason`: the reason why the generation finished
+  - `ai.response.text`: the text that was generated
+  - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
+  - `ai.response.finishReason`: the reason why the generation finished
 - `ai.streamText.doStream`: a provider doStream call.
   This span contains an `ai.stream.firstChunk` event and `ai.toolCall` spans.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
@@ -101,13 +101,16 @@ const result = await generateText({
   - `ai.operationId`: `"ai.streamText.doStream"`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
-  - `ai.result.text`: the text that was generated
-  - `ai.result.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
-  - `ai.finishReason`: the reason why the generation finished
-  - `ai.stream.msToFirstChunk`: the time it took to receive the first chunk
+  - `ai.response.text`: the text that was generated
+  - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
+  - `ai.response.msToFirstChunk`: the time it took to receive the first chunk in milliseconds
+  - `ai.response.msToFinish`: the time it took to receive the finish part of the LLM stream in milliseconds
+  - `ai.response.avgCompletionTokensPerSecond`: the average number of completion tokens per second
+  - `ai.response.finishReason`: the reason why the generation finished
 
 - `ai.stream.firstChunk` (event): an event that is emitted when the first chunk of the stream is received.
-  - `ai.stream.msToFirstChunk`: the time it took to receive the first chunk
+  - `ai.response.msToFirstChunk`: the time it took to receive the first chunk
+- `ai.stream.finish` (event): an event that is emitted when the finish part of the LLM stream is received.
 - `ai.toolCall`: a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
 
 It also records a `ai.stream.firstChunk` event when the first chunk of the stream is received.
@@ -124,7 +127,7 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.schema`: Stringified JSON schema version of the schema that was passed into the `generateObject` function
   - `ai.schema.name`: the name of the schema that was passed into the `generateObject` function
   - `ai.schema.description`: the description of the schema that was passed into the `generateObject` function
-  - `ai.result.object`: the object that was generated (stringified JSON)
+  - `ai.response.object`: the object that was generated (stringified JSON)
   - `ai.settings.mode`: the object generation mode, e.g. `json`
   - `ai.settings.output`: the output type that was used, e.g. `object` or `no-schema`
 - `ai.generateObject.doGenerate`: a provider doGenerate call.
@@ -133,9 +136,9 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.operationId`: `"ai.generateObject.doGenerate"`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
-  - `ai.result.object`: the object that was generated (stringified JSON)
+  - `ai.response.object`: the object that was generated (stringified JSON)
   - `ai.settings.mode`: the object generation mode
-  - `ai.finishReason`: the reason why the generation finished
+  - `ai.response.finishReason`: the reason why the generation finished
 
 ### streamObject function
 
@@ -149,7 +152,7 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.schema`: Stringified JSON schema version of the schema that was passed into the `streamObject` function
   - `ai.schema.name`: the name of the schema that was passed into the `streamObject` function
   - `ai.schema.description`: the description of the schema that was passed into the `streamObject` function
-  - `ai.result.object`: the object that was generated (stringified JSON)
+  - `ai.response.object`: the object that was generated (stringified JSON)
   - `ai.settings.mode`: the object generation mode, e.g. `json`
   - `ai.settings.output`: the output type that was used, e.g. `object` or `no-schema`
 - `ai.streamObject.doStream`: a provider doStream call.
@@ -159,12 +162,12 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.operationId`: `"ai.streamObject.doStream"`
   - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
-  - `ai.result.object`: the object that was generated (stringified JSON)
   - `ai.settings.mode`: the object generation mode
-  - `ai.finishReason`: the reason why the generation finished
-  - `ai.stream.msToFirstChunk`: the time it took to receive the first chunk
+  - `ai.response.object`: the object that was generated (stringified JSON)
+  - `ai.response.msToFirstChunk`: the time it took to receive the first chunk
+  - `ai.response.finishReason`: the reason why the generation finished
 - `ai.stream.firstChunk` (event): an event that is emitted when the first chunk of the stream is received.
-  - `ai.stream.msToFirstChunk`: the time it took to receive the first chunk
+  - `ai.response.msToFirstChunk`: the time it took to receive the first chunk
 
 ### embed function
 

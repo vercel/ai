@@ -766,12 +766,17 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               selectTelemetryAttributes({
                 telemetry,
                 attributes: {
-                  'ai.finishReason': finishReason,
-                  'ai.usage.promptTokens': finalUsage.promptTokens,
-                  'ai.usage.completionTokens': finalUsage.completionTokens,
-                  'ai.result.object': {
+                  'ai.response.finishReason': finishReason,
+                  'ai.response.object': {
                     output: () => JSON.stringify(object),
                   },
+
+                  'ai.usage.promptTokens': finalUsage.promptTokens,
+                  'ai.usage.completionTokens': finalUsage.completionTokens,
+
+                  // deprecated
+                  'ai.finishReason': finishReason,
+                  'ai.result.object': { output: () => JSON.stringify(object) },
 
                   // standardized gen-ai llm span attributes:
                   'gen_ai.usage.input_tokens': finalUsage.promptTokens,
@@ -791,9 +796,12 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 attributes: {
                   'ai.usage.promptTokens': finalUsage.promptTokens,
                   'ai.usage.completionTokens': finalUsage.completionTokens,
-                  'ai.result.object': {
+                  'ai.response.object': {
                     output: () => JSON.stringify(object),
                   },
+
+                  // deprecated
+                  'ai.result.object': { output: () => JSON.stringify(object) },
                 },
               }),
             );

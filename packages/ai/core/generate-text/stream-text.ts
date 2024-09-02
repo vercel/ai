@@ -525,10 +525,16 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 roundtripFirstChunk = false;
 
                 doStreamSpan.addEvent('ai.stream.firstChunk', {
+                  'ai.response.msToFirstChunk': msToFirstChunk,
+
+                  // deprecated:
                   'ai.stream.msToFirstChunk': msToFirstChunk,
                 });
 
                 doStreamSpan.setAttributes({
+                  'ai.response.msToFirstChunk': msToFirstChunk,
+
+                  // deprecated:
                   'ai.stream.msToFirstChunk': msToFirstChunk,
                 });
               }
@@ -571,6 +577,16 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                     chunk.experimental_providerMetadata;
                   roundtripLogProbs = chunk.logprobs;
 
+                  // Telemetry for finish event timing
+                  // (since tool executions can take longer and distort calculations)
+                  const msToFinish = now() - startTimestamp;
+                  doStreamSpan.addEvent('ai.stream.finish');
+                  doStreamSpan.setAttributes({
+                    'ai.response.msToFinish': msToFinish,
+                    'ai.response.avgCompletionTokensPerSecond':
+                      (1000 * roundtripUsage.completionTokens) / msToFinish,
+                  });
+
                   break;
 
                 case 'tool-call-streaming-start':
@@ -612,10 +628,18 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   selectTelemetryAttributes({
                     telemetry,
                     attributes: {
-                      'ai.finishReason': roundtripFinishReason,
+                      'ai.response.finishReason': roundtripFinishReason,
+                      'ai.response.text': { output: () => roundtripText },
+                      'ai.response.toolCalls': {
+                        output: () => telemetryToolCalls,
+                      },
+
                       'ai.usage.promptTokens': roundtripUsage.promptTokens,
                       'ai.usage.completionTokens':
                         roundtripUsage.completionTokens,
+
+                      // deprecated
+                      'ai.finishReason': roundtripFinishReason,
                       'ai.result.text': { output: () => roundtripText },
                       'ai.result.toolCalls': {
                         output: () => telemetryToolCalls,
@@ -708,10 +732,18 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                   selectTelemetryAttributes({
                     telemetry,
                     attributes: {
-                      'ai.finishReason': roundtripFinishReason,
+                      'ai.response.finishReason': roundtripFinishReason,
+                      'ai.response.text': { output: () => roundtripText },
+                      'ai.response.toolCalls': {
+                        output: () => telemetryToolCalls,
+                      },
+
                       'ai.usage.promptTokens': combinedUsage.promptTokens,
                       'ai.usage.completionTokens':
                         combinedUsage.completionTokens,
+
+                      // deprecated
+                      'ai.finishReason': roundtripFinishReason,
                       'ai.result.text': { output: () => roundtripText },
                       'ai.result.toolCalls': {
                         output: () => telemetryToolCalls,

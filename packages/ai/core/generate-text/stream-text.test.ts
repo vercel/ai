@@ -19,6 +19,7 @@ import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { streamText } from './stream-text';
 import { delay } from '../../util/delay';
+import { mockNow } from '../test/mock-now';
 
 describe('result.textStream', () => {
   it('should send text deltas', async () => {
@@ -2125,7 +2126,7 @@ describe('options.maxToolRoundtrips', () => {
         },
         experimental_telemetry: { isEnabled: true },
         maxToolRoundtrips: 2,
-        _internal: { now: () => 0 },
+        _internal: { now: mockNow([0, 100, 500, 600, 1000]) },
       });
     });
 
@@ -2315,7 +2316,7 @@ describe('telemetry', () => {
         }),
       }),
       prompt: 'test-input',
-      _internal: { now: () => 0 },
+      _internal: { now: mockNow([0, 100, 500]) },
     });
 
     // consume stream
@@ -2361,7 +2362,7 @@ describe('telemetry', () => {
           test2: false,
         },
       },
-      _internal: { now: () => 0 },
+      _internal: { now: mockNow([0, 100, 500]) },
     });
 
     // consume stream
@@ -2400,7 +2401,7 @@ describe('telemetry', () => {
       },
       prompt: 'test-input',
       experimental_telemetry: { isEnabled: true },
-      _internal: { now: () => 0 },
+      _internal: { now: mockNow([0, 100, 500]) },
     });
 
     // consume stream
@@ -2443,7 +2444,7 @@ describe('telemetry', () => {
         recordInputs: false,
         recordOutputs: false,
       },
-      _internal: { now: () => 0 },
+      _internal: { now: mockNow([0, 100, 500]) },
     });
 
     // consume stream
@@ -2511,6 +2512,7 @@ describe('tools with custom schema', () => {
       },
       toolChoice: 'required',
       prompt: 'test-input',
+      _internal: { now: mockNow([0, 100, 500]) },
     });
 
     assert.deepStrictEqual(
