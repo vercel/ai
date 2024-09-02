@@ -598,68 +598,7 @@ describe('telemetry', () => {
       },
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, [
-      {
-        name: 'ai.generateObject',
-        attributes: {
-          'operation.name': 'ai.generateObject test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.generateObject',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.prompt': '{"prompt":"prompt"}',
-          'ai.result.object': '{"content":"Hello, world!"}',
-          'ai.schema':
-            '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
-          'ai.schema.name': 'test-name',
-          'ai.schema.description': 'test description',
-          'ai.settings.mode': 'json',
-          'ai.settings.output': 'object',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.request.headers.header1': 'value1',
-          'ai.request.headers.header2': 'value2',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.generateObject.doGenerate',
-        attributes: {
-          'operation.name': 'ai.generateObject.doGenerate test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.generateObject.doGenerate',
-          'ai.settings.mode': 'json',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.prompt.format': 'prompt',
-          'ai.prompt.messages':
-            '[{"role":"system","content":"JSON schema:\\n{\\"type\\":\\"object\\",' +
-            '\\"properties\\":{\\"content\\":{\\"type\\":\\"string\\"}},\\"required\\":' +
-            '[\\"content\\"],\\"additionalProperties\\":false,\\"$schema\\":\\"http://json-schema.org/draft-07/schema#\\"}' +
-            '\\nYou MUST answer with a JSON object that matches the JSON schema above."},' +
-            '{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
-          'ai.result.object': '{ "content": "Hello, world!" }',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.request.headers.header1': 'value1',
-          'ai.request.headers.header2': 'value2',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'gen_ai.request.model': 'mock-model-id',
-          'gen_ai.response.finish_reasons': ['stop'],
-          'gen_ai.system': 'mock-provider',
-          'gen_ai.usage.completion_tokens': 20,
-          'gen_ai.usage.prompt_tokens': 10,
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should record telemetry data when enabled with mode "tool"', async () => {
@@ -696,64 +635,7 @@ describe('telemetry', () => {
       },
     });
 
-    expect(tracer.jsonSpans).toStrictEqual([
-      {
-        name: 'ai.generateObject',
-        attributes: {
-          'operation.name': 'ai.generateObject test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.generateObject',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.prompt': '{"prompt":"prompt"}',
-          'ai.result.object': '{"content":"Hello, world!"}',
-          'ai.schema':
-            '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}',
-          'ai.schema.name': 'test-name',
-          'ai.schema.description': 'test description',
-          'ai.settings.mode': 'tool',
-          'ai.settings.output': 'object',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'ai.request.headers.header1': 'value1',
-          'ai.request.headers.header2': 'value2',
-        },
-        events: [],
-      },
-      {
-        name: 'ai.generateObject.doGenerate',
-        attributes: {
-          'operation.name': 'ai.generateObject.doGenerate test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.generateObject.doGenerate',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.prompt.format': 'prompt',
-          'ai.prompt.messages':
-            '[{"role":"user","content":[{"type":"text","text":"prompt"}]}]',
-          'ai.result.object': '{ "content": "Hello, world!" }',
-          'ai.settings.mode': 'tool',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'ai.request.headers.header1': 'value1',
-          'ai.request.headers.header2': 'value2',
-          'gen_ai.request.model': 'mock-model-id',
-          'gen_ai.response.finish_reasons': ['stop'],
-          'gen_ai.system': 'mock-provider',
-          'gen_ai.usage.completion_tokens': 20,
-          'gen_ai.usage.prompt_tokens': 10,
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should not record telemetry inputs / outputs when disabled with mode "json"', async () => {
@@ -774,42 +656,7 @@ describe('telemetry', () => {
       },
     });
 
-    expect(tracer.jsonSpans).toStrictEqual([
-      {
-        name: 'ai.generateObject',
-        attributes: {
-          'operation.name': 'ai.generateObject',
-          'ai.operationId': 'ai.generateObject',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.settings.mode': 'json',
-          'ai.settings.output': 'object',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.generateObject.doGenerate',
-        attributes: {
-          'operation.name': 'ai.generateObject.doGenerate',
-          'ai.operationId': 'ai.generateObject.doGenerate',
-          'ai.settings.mode': 'json',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'gen_ai.request.model': 'mock-model-id',
-          'gen_ai.response.finish_reasons': ['stop'],
-          'gen_ai.system': 'mock-provider',
-          'gen_ai.usage.completion_tokens': 20,
-          'gen_ai.usage.prompt_tokens': 10,
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should not record telemetry inputs / outputs when disabled with mode "tool"', async () => {
@@ -837,41 +684,6 @@ describe('telemetry', () => {
       },
     });
 
-    expect(tracer.jsonSpans).toStrictEqual([
-      {
-        name: 'ai.generateObject',
-        attributes: {
-          'operation.name': 'ai.generateObject',
-          'ai.operationId': 'ai.generateObject',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.settings.mode': 'tool',
-          'ai.settings.output': 'object',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.generateObject.doGenerate',
-        attributes: {
-          'operation.name': 'ai.generateObject.doGenerate',
-          'ai.operationId': 'ai.generateObject.doGenerate',
-          'ai.finishReason': 'stop',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.settings.mode': 'tool',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'gen_ai.request.model': 'mock-model-id',
-          'gen_ai.response.finish_reasons': ['stop'],
-          'gen_ai.system': 'mock-provider',
-          'gen_ai.usage.completion_tokens': 20,
-          'gen_ai.usage.prompt_tokens': 10,
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 });
