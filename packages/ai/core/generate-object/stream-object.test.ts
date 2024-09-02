@@ -1360,9 +1360,7 @@ describe('telemetry', () => {
       schema: z.object({ content: z.string() }),
       mode: 'json',
       prompt: 'prompt',
-      testing: {
-        now: () => 0,
-      },
+      _internal: { now: () => 0 },
     });
 
     // consume stream
@@ -1408,9 +1406,7 @@ describe('telemetry', () => {
           test2: false,
         },
       },
-      testing: {
-        now: () => 0,
-      },
+      _internal: { now: () => 0 },
     });
 
     // consume stream
@@ -1492,9 +1488,7 @@ describe('telemetry', () => {
           test2: false,
         },
       },
-      testing: {
-        now: () => 0,
-      },
+      _internal: { now: () => 0 },
     });
 
     // consume stream
@@ -1531,9 +1525,7 @@ describe('telemetry', () => {
         recordInputs: false,
         recordOutputs: false,
       },
-      testing: {
-        now: () => 0,
-      },
+      _internal: { now: () => 0 },
     });
 
     // consume stream
@@ -1606,9 +1598,7 @@ describe('telemetry', () => {
         recordInputs: false,
         recordOutputs: false,
       },
-      testing: {
-        now: () => 0,
-      },
+      _internal: { now: () => 0 },
     });
 
     // consume stream

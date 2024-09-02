@@ -40,7 +40,7 @@ import {
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { mergeStreams } from '../util/merge-streams';
-import { now } from '../util/now';
+import { now as originalNow } from '../util/now';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import {
   runToolsTransformation,
@@ -112,6 +112,7 @@ export async function streamText<TOOLS extends Record<string, CoreTool>>({
   experimental_toolCallStreaming: toolCallStreaming = false,
   onChunk,
   onFinish,
+  _internal: { now = originalNow } = {},
   ...settings
 }: CallSettings &
   Prompt & {
@@ -223,6 +224,13 @@ results that can be fully encapsulated in the provider.
    */
       readonly experimental_providerMetadata: ProviderMetadata | undefined;
     }) => Promise<void> | void;
+
+    /**
+     * Internal. For test use only. May change without notice.
+     */
+    _internal?: {
+      now?: () => number;
+    };
   }): Promise<StreamTextResult<TOOLS>> {
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
@@ -352,6 +360,7 @@ results that can be fully encapsulated in the provider.
         maxToolRoundtrips,
         startRoundtrip,
         promptMessages,
+        now,
       });
     },
   });
@@ -403,6 +412,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     maxToolRoundtrips,
     startRoundtrip,
     promptMessages,
+    now,
   }: {
     stream: ReadableStream<SingleRequestTextStreamPart<TOOLS>>;
     warnings: StreamTextResult<TOOLS>['warnings'];
@@ -416,6 +426,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     maxToolRoundtrips: number;
     startRoundtrip: StartRoundtripFunction<TOOLS>;
     promptMessages: LanguageModelV1Prompt;
+    now: () => number;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;

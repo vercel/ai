@@ -149,9 +149,9 @@ Callback that is called when the LLM response and the final object validation ar
       onFinish?: OnFinishCallback<OBJECT>;
 
       /**
-       * Internal. For testing use only.
+       * Internal. For test use only. May change without notice.
        */
-      testing?: {
+      _internal?: {
         now?: () => number;
       };
     },
@@ -219,9 +219,9 @@ Callback that is called when the LLM response and the final object validation ar
       onFinish?: OnFinishCallback<Array<ELEMENT>>;
 
       /**
-       * Internal. For testing use only.
+       * Internal. For test use only. May change without notice.
        */
-      testing?: {
+      _internal?: {
         now?: () => number;
       };
     },
@@ -266,9 +266,9 @@ Callback that is called when the LLM response and the final object validation ar
       onFinish?: OnFinishCallback<JSONValue>;
 
       /**
-       * Internal. For testing use only.
+       * Internal. For test use only. May change without notice.
        */
-      testing?: {
+      _internal?: {
         now?: () => number;
       };
     },
@@ -288,7 +288,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   headers,
   experimental_telemetry: telemetry,
   onFinish,
-  testing: { now = originalNow } = {},
+  _internal: { now = originalNow } = {},
   ...settings
 }: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
@@ -319,7 +319,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
       warnings?: CallWarning[];
       experimental_providerMetadata: ProviderMetadata | undefined;
     }) => Promise<void> | void;
-    testing?: {
+    _internal?: {
       now?: () => number;
     };
   }): Promise<StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>> {
