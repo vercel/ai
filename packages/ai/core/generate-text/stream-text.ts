@@ -579,9 +579,12 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
 
                   // Telemetry for finish event timing
                   // (since tool executions can take longer and distort calculations)
+                  const msToFinish = now() - startTimestamp;
                   doStreamSpan.addEvent('ai.stream.finish');
                   doStreamSpan.setAttributes({
-                    'ai.response.msToFinish': now() - startTimestamp,
+                    'ai.response.msToFinish': msToFinish,
+                    'ai.response.avgCompletionTokensPerSecond':
+                      (1000 * roundtripUsage.completionTokens) / msToFinish,
                   });
 
                   break;

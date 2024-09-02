@@ -2126,7 +2126,7 @@ describe('options.maxToolRoundtrips', () => {
         },
         experimental_telemetry: { isEnabled: true },
         maxToolRoundtrips: 2,
-        _internal: { now: mockNow([0, 100, 500]) },
+        _internal: { now: mockNow([0, 100, 500, 600, 1000]) },
       });
     });
 
