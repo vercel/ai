@@ -766,7 +766,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   'ai.finishReason': finishReason,
                   'ai.usage.promptTokens': finalUsage.promptTokens,
                   'ai.usage.completionTokens': finalUsage.completionTokens,
-                  'ai.result.object': {
+                  'ai.response.object': {
                     output: () => JSON.stringify(object),
                   },
 
@@ -788,7 +788,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 attributes: {
                   'ai.usage.promptTokens': finalUsage.promptTokens,
                   'ai.usage.completionTokens': finalUsage.completionTokens,
-                  'ai.result.object': {
+                  'ai.response.object': {
                     output: () => JSON.stringify(object),
                   },
                 },

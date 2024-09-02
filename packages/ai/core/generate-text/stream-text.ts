@@ -521,11 +521,11 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 roundtripFirstChunk = false;
 
                 doStreamSpan.addEvent('ai.stream.firstChunk', {
-                  'ai.stream.msToFirstChunk': msToFirstChunk,
+                  'ai.response.msToFirstChunk': msToFirstChunk,
                 });
 
                 doStreamSpan.setAttributes({
-                  'ai.stream.msToFirstChunk': msToFirstChunk,
+                  'ai.response.msToFirstChunk': msToFirstChunk,
                 });
               }
 
@@ -612,8 +612,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.usage.promptTokens': roundtripUsage.promptTokens,
                       'ai.usage.completionTokens':
                         roundtripUsage.completionTokens,
-                      'ai.result.text': { output: () => roundtripText },
-                      'ai.result.toolCalls': {
+                      'ai.response.text': { output: () => roundtripText },
+                      'ai.response.toolCalls': {
                         output: () => telemetryToolCalls,
                       },
 
@@ -708,8 +708,8 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                       'ai.usage.promptTokens': combinedUsage.promptTokens,
                       'ai.usage.completionTokens':
                         combinedUsage.completionTokens,
-                      'ai.result.text': { output: () => roundtripText },
-                      'ai.result.toolCalls': {
+                      'ai.response.text': { output: () => roundtripText },
+                      'ai.response.toolCalls': {
                         output: () => telemetryToolCalls,
                       },
                     },

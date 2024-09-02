@@ -233,10 +233,10 @@ By default, it's set to 0, which will disable the feature.
                     'ai.finishReason': result.finishReason,
                     'ai.usage.promptTokens': result.usage.promptTokens,
                     'ai.usage.completionTokens': result.usage.completionTokens,
-                    'ai.result.text': {
+                    'ai.response.text': {
                       output: () => result.text,
                     },
-                    'ai.result.toolCalls': {
+                    'ai.response.toolCalls': {
                       output: () => JSON.stringify(result.toolCalls),
                     },
 
@@ -319,10 +319,10 @@ By default, it's set to 0, which will disable the feature.
             'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
             'ai.usage.completionTokens':
               currentModelResponse.usage.completionTokens,
-            'ai.result.text': {
+            'ai.response.text': {
               output: () => currentModelResponse.text,
             },
-            'ai.result.toolCalls': {
+            'ai.response.toolCalls': {
               output: () => JSON.stringify(currentModelResponse.toolCalls),
             },
           },

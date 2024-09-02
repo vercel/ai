@@ -9,7 +9,7 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText",
       "ai.prompt": "{"prompt":"test-input"}",
-      "ai.result.text": "Hello, world!",
+      "ai.response.text": "Hello, world!",
       "ai.usage.completionTokens": 15,
       "ai.usage.promptTokens": 4,
       "operation.name": "ai.streamText",
@@ -25,9 +25,9 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
       "ai.operationId": "ai.streamText.doStream",
       "ai.prompt.format": "prompt",
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
-      "ai.result.text": "",
-      "ai.result.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
-      "ai.stream.msToFirstChunk": 0,
+      "ai.response.msToFirstChunk": 0,
+      "ai.response.text": "",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.usage.completionTokens": 10,
       "ai.usage.promptTokens": 3,
       "gen_ai.request.model": "mock-model-id",
@@ -42,7 +42,7 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
     "events": [
       {
         "attributes": {
-          "ai.stream.msToFirstChunk": 0,
+          "ai.response.msToFirstChunk": 0,
         },
         "name": "ai.stream.firstChunk",
       },
@@ -69,8 +69,8 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
       "ai.operationId": "ai.streamText.doStream",
       "ai.prompt.format": "messages",
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]",
-      "ai.result.text": "Hello, world!",
-      "ai.stream.msToFirstChunk": 0,
+      "ai.response.msToFirstChunk": 0,
+      "ai.response.text": "Hello, world!",
       "ai.usage.completionTokens": 5,
       "ai.usage.promptTokens": 1,
       "gen_ai.request.model": "mock-model-id",
@@ -85,7 +85,7 @@ exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data
     "events": [
       {
         "attributes": {
-          "ai.stream.msToFirstChunk": 0,
+          "ai.response.msToFirstChunk": 0,
         },
         "name": "ai.stream.firstChunk",
       },
@@ -118,7 +118,7 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
-      "ai.stream.msToFirstChunk": 0,
+      "ai.response.msToFirstChunk": 0,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "gen_ai.request.model": "mock-model-id",
@@ -133,7 +133,7 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
     "events": [
       {
         "attributes": {
-          "ai.stream.msToFirstChunk": 0,
+          "ai.response.msToFirstChunk": 0,
         },
         "name": "ai.stream.firstChunk",
       },
@@ -162,8 +162,8 @@ exports[`telemetry > should record successful tool call 1`] = `
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText",
       "ai.prompt": "{"prompt":"test-input"}",
-      "ai.result.text": "",
-      "ai.result.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.response.text": "",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "operation.name": "ai.streamText",
@@ -179,9 +179,9 @@ exports[`telemetry > should record successful tool call 1`] = `
       "ai.operationId": "ai.streamText.doStream",
       "ai.prompt.format": "prompt",
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
-      "ai.result.text": "",
-      "ai.result.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
-      "ai.stream.msToFirstChunk": 0,
+      "ai.response.msToFirstChunk": 0,
+      "ai.response.text": "",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
       "gen_ai.request.model": "mock-model-id",
@@ -196,7 +196,7 @@ exports[`telemetry > should record successful tool call 1`] = `
     "events": [
       {
         "attributes": {
-          "ai.stream.msToFirstChunk": 0,
+          "ai.response.msToFirstChunk": 0,
         },
         "name": "ai.stream.firstChunk",
       },
@@ -229,7 +229,7 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       "ai.prompt": "{"prompt":"test-input"}",
       "ai.request.headers.header1": "value1",
       "ai.request.headers.header2": "value2",
-      "ai.result.text": "Hello, world!",
+      "ai.response.text": "Hello, world!",
       "ai.telemetry.functionId": "test-function-id",
       "ai.telemetry.metadata.test1": "value1",
       "ai.telemetry.metadata.test2": false,
@@ -251,8 +251,8 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.request.headers.header1": "value1",
       "ai.request.headers.header2": "value2",
-      "ai.result.text": "Hello, world!",
-      "ai.stream.msToFirstChunk": 0,
+      "ai.response.msToFirstChunk": 0,
+      "ai.response.text": "Hello, world!",
       "ai.telemetry.functionId": "test-function-id",
       "ai.telemetry.metadata.test1": "value1",
       "ai.telemetry.metadata.test2": false,
@@ -271,7 +271,7 @@ exports[`telemetry > should record telemetry data when enabled 1`] = `
     "events": [
       {
         "attributes": {
-          "ai.stream.msToFirstChunk": 0,
+          "ai.response.msToFirstChunk": 0,
         },
         "name": "ai.stream.firstChunk",
       },
