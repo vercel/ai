@@ -49,6 +49,7 @@ import { StreamTextResult } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToToolCall } from './tool-call';
 import { ToToolResult } from './tool-result';
+import { now } from '../util/now';
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -260,7 +261,7 @@ results that can be fully encapsulated in the provider.
         const {
           result: { stream, warnings, rawResponse },
           doStreamSpan,
-          startTimestamp,
+          startTimestampMs,
         } = await retry(() =>
           recordSpan({
             name: 'ai.streamText.doStream',
@@ -290,7 +291,7 @@ results that can be fully encapsulated in the provider.
             tracer,
             endWhenDone: false,
             fn: async doStreamSpan => ({
-              startTimestamp: performance.now(), // get before the call
+              startTimestampMs: now(), // get before the call
               doStreamSpan,
               result: await model.doStream({
                 mode: {
@@ -320,7 +321,7 @@ results that can be fully encapsulated in the provider.
             rawResponse,
           },
           doStreamSpan,
-          startTimestamp,
+          startTimestampMs,
         };
       };
 
@@ -332,7 +333,7 @@ results that can be fully encapsulated in the provider.
       const {
         result: { stream, warnings, rawResponse },
         doStreamSpan,
-        startTimestamp,
+        startTimestampMs,
       } = await startRoundtrip({
         promptType: validatePrompt({ system, prompt, messages }).type,
         promptMessages,
@@ -347,7 +348,7 @@ results that can be fully encapsulated in the provider.
         rootSpan,
         doStreamSpan,
         telemetry,
-        startTimestamp,
+        startTimestampMs,
         maxToolRoundtrips,
         startRoundtrip,
         promptMessages,
@@ -369,7 +370,7 @@ type StartRoundtripFunction<TOOLS extends Record<string, CoreTool>> =
       };
     };
     doStreamSpan: Span;
-    startTimestamp: number;
+    startTimestampMs: number;
   }>;
 
 class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
@@ -398,7 +399,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     rootSpan,
     doStreamSpan,
     telemetry,
-    startTimestamp,
+    startTimestampMs,
     maxToolRoundtrips,
     startRoundtrip,
     promptMessages,
@@ -411,7 +412,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     rootSpan: Span;
     doStreamSpan: Span;
     telemetry: TelemetrySettings | undefined;
-    startTimestamp: number; // performance.now() timestamp
+    startTimestampMs: number;
     maxToolRoundtrips: number;
     startRoundtrip: StartRoundtripFunction<TOOLS>;
     promptMessages: LanguageModelV1Prompt;
@@ -504,7 +505,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
             async transform(chunk, controller): Promise<void> {
               // Telemetry for first chunk:
               if (roundtripFirstChunk) {
-                const msToFirstChunk = performance.now() - startTimestamp;
+                const msToFirstChunk = now() - startTimestamp;
 
                 roundtripFirstChunk = false;
 
@@ -648,11 +649,14 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
                 );
 
                 // create call and doStream span:
-                const { result, doStreamSpan, startTimestamp } =
-                  await startRoundtrip({
-                    promptType: 'messages',
-                    promptMessages,
-                  });
+                const {
+                  result,
+                  doStreamSpan,
+                  startTimestampMs: startTimestamp,
+                } = await startRoundtrip({
+                  promptType: 'messages',
+                  promptMessages,
+                });
 
                 // update warnings and rawResponse:
                 self.warnings = result.warnings;
@@ -738,7 +742,7 @@ class DefaultStreamTextResult<TOOLS extends Record<string, CoreTool>>
     // add the initial stream to the stitchable stream
     addRoundtripStream({
       stream,
-      startTimestamp,
+      startTimestamp: startTimestampMs,
       doStreamSpan,
       currentToolRoundtrip: 0,
       promptMessages,
