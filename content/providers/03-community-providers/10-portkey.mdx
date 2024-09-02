@@ -1,9 +1,68 @@
-# Vercel AI SDK - Portkey Provider
+---
+title: Portkey
+description: Portkey Provider for the AI SDK
+---
 
-Portkey is an AI Gateway that allows developers to connect to All the AI models in the world with a single API.
+# Portkey Provider
+
+[Portkey](https://portkey.ai/) is an AI Gateway that allows developers to connect to All the AI models in the world with a single API.
 Portkey also brings in observability, caching, and other features that are useful for building production-grade AI applications.
 
-### Supported providers
+## Setup
+
+The Portkey provider is available in the `@portkey-ai/vercel-provider` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @portkey-ai/vercel-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @portkey-ai/vercel-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @portkey-ai/vercel-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can create the Portkey provider instance using `portkey`:
+
+```ts
+import { portkey } from '@portkey-ai/vercel-provider';
+```
+
+If you need a customized setup, you can import `createPortkey` from `@portkey-ai/vercel-provider`:
+
+```ts
+import { createPortkey } from '@ai-sdk/portkey';
+
+const portkey = createPortkey({
+  apiKey: process.ENV.PORTKEY_API_KEY,
+  config: process.PORTKEY_CONFIG_ID,
+});
+```
+
+## Language Models
+
+The **[Portkey provider](https://sdk.vercel.ai/providers/community-providers/portkey)** for the [Vercel AI SDK](https://sdk.vercel.ai/docs)
+contains language model support for the Portkey chat and completion APIs.
+
+### Example
+
+```ts
+import { portkey } from '@portkey-ai/vercel-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: portkey('gpt-4-turbo'),
+  prompt: 'What is a portkey?',
+});
+```
+
+For more examples, please refer to the [Portkey documentation](https://docs.portkey.ai/docs/integrations/libraries/vercel).
+
+### Supported Portkey providers
 
 | Provider              | Portkey Prompts     | Chat                | Chat - Vision       | Chat - Tools        | Completions         | Images              | Audio               | Fine-tuning         | Batch               | Files               | Moderations         | Assistants          |
 | --------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
@@ -36,65 +95,3 @@ Portkey also brings in observability, caching, and other features that are usefu
 | Together AI           | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | Cloudflare Workers AI | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | Zhipu AI              | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-
-The **[Portkey provider](https://sdk.vercel.ai/providers/community-providers/portkey)** for the [Vercel AI SDK](https://sdk.vercel.ai/docs)
-contains language model support for the Portkey chat and completion APIs.
-
-## Setup
-
-The Portkey provider is available in the `@portkey-ai/vercel-provider` module. You can install it with
-
-```bash
-pnpm add @portkey-ai/vercel-provider
-```
-
-### Provider and Model
-
-```ts
-import { createPortkey } from '@ai-sdk/portkey'
-const llmClient = createPortkey(
-  {
-    apiKey: {{PORTKEY_API_KEY}},
-    config: {{PORTKEY_CONFIG_ID}},
-  }
-)
-```
-
-## Example
-
-```ts
-  const response = await generateText({
-    model: llmClient.chatModel({{MODEL_ID}}),
-    messages: [
-      {
-        role: "user",
-        content: "What is a portkey?"
-      }
-    ],
-    maxTokens: 40
-  })
-
-console.log(response)
-```
-
-## Provider Instance
-
-You can import the default provider instance `portkey` from `@portkey-ai/vercel-provider`:
-
-```ts
-import { portkey } from '@portkey-ai/vercel-provider';
-```
-
-## Example
-
-```ts
-import { portkey } from '@portkey-ai/vercel-provider';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: portkey('gpt-4-turbo'),
-  prompt: 'What is a portkey?',
-});
-```
-
-### For more examples, please refer to the [Portkey documentation](https://docs.portkey.ai/docs/integrations/libraries/vercel).
