@@ -36,7 +36,7 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
-import { now } from '../util/now';
+import { now as originalNow } from '../util/now';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { OutputStrategy, getOutputStrategy } from './output-strategy';
@@ -147,6 +147,13 @@ Optional telemetry configuration (experimental).
 Callback that is called when the LLM response and the final object validation are finished.
      */
       onFinish?: OnFinishCallback<OBJECT>;
+
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        now?: () => number;
+      };
     },
 ): Promise<StreamObjectResult<DeepPartial<OBJECT>, OBJECT, never>>;
 /**
@@ -210,6 +217,13 @@ Optional telemetry configuration (experimental).
 Callback that is called when the LLM response and the final object validation are finished.
      */
       onFinish?: OnFinishCallback<Array<ELEMENT>>;
+
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        now?: () => number;
+      };
     },
 ): Promise<
   StreamObjectResult<
@@ -250,6 +264,13 @@ Optional telemetry configuration (experimental).
 Callback that is called when the LLM response and the final object validation are finished.
      */
       onFinish?: OnFinishCallback<JSONValue>;
+
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        now?: () => number;
+      };
     },
 ): Promise<StreamObjectResult<JSONValue, JSONValue, never>>;
 export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
@@ -267,6 +288,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   headers,
   experimental_telemetry: telemetry,
   onFinish,
+  _internal: { now = originalNow } = {},
   ...settings
 }: Omit<CallSettings, 'stopSequences'> &
   Prompt & {
@@ -297,6 +319,9 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
       warnings?: CallWarning[];
       experimental_providerMetadata: ProviderMetadata | undefined;
     }) => Promise<void> | void;
+    _internal?: {
+      now?: () => number;
+    };
   }): Promise<StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>> {
   validateObjectGenerationInput({
     output,
@@ -468,7 +493,6 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
         }
       }
 
-      // const result = await retry(() => model.doStream(callOptions));
       const {
         result: { stream, warnings, rawResponse },
         doStreamSpan,
@@ -520,6 +544,7 @@ export async function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
         doStreamSpan,
         telemetry,
         startTimestampMs,
+        now,
       });
     },
   });
@@ -559,6 +584,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     doStreamSpan,
     telemetry,
     startTimestampMs,
+    now,
   }: {
     stream: ReadableStream<
       string | Omit<LanguageModelV1StreamPart, 'text-delta'>
@@ -575,6 +601,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     doStreamSpan: Span;
     telemetry: TelemetrySettings | undefined;
     startTimestampMs: number;
+    now: () => number;
   }) {
     this.warnings = warnings;
     this.rawResponse = rawResponse;

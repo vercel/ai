@@ -2123,10 +2123,9 @@ describe('options.maxToolRoundtrips', () => {
           expect(onFinishResult).to.be.undefined;
           onFinishResult = event as unknown as typeof onFinishResult;
         },
-        experimental_telemetry: {
-          isEnabled: true,
-        },
+        experimental_telemetry: { isEnabled: true },
         maxToolRoundtrips: 2,
+        _internal: { now: () => 0 },
       });
     });
 
@@ -2242,106 +2241,9 @@ describe('options.maxToolRoundtrips', () => {
       });
     });
 
-    describe('telemetry', () => {
-      beforeEach(async () => {
-        await convertAsyncIterableToArray(result.fullStream); // consume stream
-      });
-
-      it('should record telemetry data for each roundtrip', () => {
-        expect(tracer.jsonSpans).toStrictEqual([
-          {
-            name: 'ai.streamText',
-            attributes: {
-              'operation.name': 'ai.streamText',
-              'ai.operationId': 'ai.streamText',
-              'ai.model.id': 'mock-model-id',
-              'ai.model.provider': 'mock-provider',
-              'ai.prompt': '{"prompt":"test-input"}',
-              'ai.finishReason': 'stop',
-              'ai.result.text': 'Hello, world!',
-              'ai.usage.completionTokens': 15,
-              'ai.usage.promptTokens': 4,
-            },
-            events: [],
-          },
-          {
-            name: 'ai.streamText.doStream',
-            attributes: {
-              'operation.name': 'ai.streamText.doStream',
-              'ai.operationId': 'ai.streamText.doStream',
-              'ai.model.id': 'mock-model-id',
-              'ai.model.provider': 'mock-provider',
-              'ai.prompt.format': 'prompt',
-              'ai.prompt.messages':
-                '[{"role":"user","content":[{"type":"text","text":"test-input"}]}]',
-              'ai.finishReason': 'tool-calls',
-              'ai.result.text': '',
-              'ai.result.toolCalls':
-                '[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]',
-              'ai.usage.completionTokens': 10,
-              'ai.usage.promptTokens': 3,
-              'ai.stream.msToFirstChunk': expect.any(Number),
-              'gen_ai.request.model': 'mock-model-id',
-              'gen_ai.response.finish_reasons': ['tool-calls'],
-              'gen_ai.system': 'mock-provider',
-              'gen_ai.usage.completion_tokens': 10,
-              'gen_ai.usage.prompt_tokens': 3,
-            },
-            events: [
-              {
-                name: 'ai.stream.firstChunk',
-                attributes: {
-                  'ai.stream.msToFirstChunk': expect.any(Number),
-                },
-              },
-            ],
-          },
-          {
-            name: 'ai.toolCall',
-            attributes: {
-              'operation.name': 'ai.toolCall',
-              'ai.operationId': 'ai.toolCall',
-              'ai.toolCall.args': '{"value":"value"}',
-              'ai.toolCall.id': 'call-1',
-              'ai.toolCall.name': 'tool1',
-              'ai.toolCall.result': '"result1"',
-            },
-            events: [],
-          },
-          {
-            name: 'ai.streamText.doStream',
-            attributes: {
-              'operation.name': 'ai.streamText.doStream',
-              'ai.operationId': 'ai.streamText.doStream',
-              'ai.model.id': 'mock-model-id',
-              'ai.model.provider': 'mock-provider',
-              'ai.prompt.format': 'messages',
-              'ai.prompt.messages':
-                '[{"role":"user","content":[{"type":"text","text":"test-input"}]},' +
-                '{"role":"assistant","content":[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},' +
-                '{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]',
-              'ai.finishReason': 'stop',
-              'ai.result.text': 'Hello, world!',
-              'ai.usage.completionTokens': 5,
-              'ai.usage.promptTokens': 1,
-              'ai.stream.msToFirstChunk': expect.any(Number),
-              'gen_ai.request.model': 'mock-model-id',
-              'gen_ai.response.finish_reasons': ['stop'],
-              'gen_ai.system': 'mock-provider',
-              'gen_ai.usage.completion_tokens': 5,
-              'gen_ai.usage.prompt_tokens': 1,
-            },
-            events: [
-              {
-                name: 'ai.stream.firstChunk',
-                attributes: {
-                  'ai.stream.msToFirstChunk': expect.any(Number),
-                },
-              },
-            ],
-          },
-        ]);
-      });
+    it('should record telemetry data for each roundtrip', async () => {
+      await convertAsyncIterableToArray(result.fullStream); // consume stream
+      expect(tracer.jsonSpans).toMatchSnapshot();
     });
   });
 });
@@ -2413,12 +2315,13 @@ describe('telemetry', () => {
         }),
       }),
       prompt: 'test-input',
+      _internal: { now: () => 0 },
     });
 
     // consume stream
     await convertAsyncIterableToArray(result.textStream);
 
-    assert.deepStrictEqual(tracer.jsonSpans, []);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should record telemetry data when enabled', async () => {
@@ -2452,70 +2355,13 @@ describe('telemetry', () => {
           test2: false,
         },
       },
+      _internal: { now: () => 0 },
     });
 
     // consume stream
     await convertAsyncIterableToArray(result.textStream);
 
-    expect(tracer.jsonSpans).toStrictEqual([
-      {
-        name: 'ai.streamText',
-        attributes: {
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.streamText',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.prompt': '{"prompt":"test-input"}',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.finishReason': 'stop',
-          'ai.result.text': 'Hello, world!',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'ai.request.headers.header1': 'value1',
-          'ai.request.headers.header2': 'value2',
-          'operation.name': 'ai.streamText test-function-id',
-        },
-        events: [],
-      },
-      {
-        name: 'ai.streamText.doStream',
-        attributes: {
-          'operation.name': 'ai.streamText.doStream test-function-id',
-          'resource.name': 'test-function-id',
-          'ai.operationId': 'ai.streamText.doStream',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.prompt.format': 'prompt',
-          'ai.prompt.messages':
-            '[{"role":"user","content":[{"type":"text","text":"test-input"}]}]',
-          'ai.telemetry.functionId': 'test-function-id',
-          'ai.telemetry.metadata.test1': 'value1',
-          'ai.telemetry.metadata.test2': false,
-          'ai.finishReason': 'stop',
-          'ai.result.text': 'Hello, world!',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'ai.request.headers.header1': 'value1',
-          'ai.request.headers.header2': 'value2',
-          'ai.stream.msToFirstChunk': expect.any(Number),
-          'gen_ai.request.model': 'mock-model-id',
-          'gen_ai.response.finish_reasons': ['stop'],
-          'gen_ai.system': 'mock-provider',
-          'gen_ai.usage.completion_tokens': 20,
-          'gen_ai.usage.prompt_tokens': 10,
-        },
-        events: [
-          {
-            name: 'ai.stream.firstChunk',
-            attributes: {
-              'ai.stream.msToFirstChunk': expect.any(Number),
-            },
-          },
-        ],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should record successful tool call', async () => {
@@ -2547,77 +2393,14 @@ describe('telemetry', () => {
         },
       },
       prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-      },
+      experimental_telemetry: { isEnabled: true },
+      _internal: { now: () => 0 },
     });
 
     // consume stream
     await convertAsyncIterableToArray(result.textStream);
 
-    expect(tracer.jsonSpans).toStrictEqual([
-      {
-        name: 'ai.streamText',
-        attributes: {
-          'operation.name': 'ai.streamText',
-          'ai.operationId': 'ai.streamText',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.prompt': '{"prompt":"test-input"}',
-          'ai.finishReason': 'stop',
-          'ai.result.text': '',
-          'ai.result.toolCalls':
-            '[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.streamText.doStream',
-        attributes: {
-          'operation.name': 'ai.streamText.doStream',
-          'ai.operationId': 'ai.streamText.doStream',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.prompt.format': 'prompt',
-          'ai.prompt.messages':
-            '[{"role":"user","content":[{"type":"text","text":"test-input"}]}]',
-          'ai.finishReason': 'stop',
-          'ai.result.text': '',
-          'ai.result.toolCalls':
-            '[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'ai.stream.msToFirstChunk': expect.any(Number),
-          'gen_ai.request.model': 'mock-model-id',
-          'gen_ai.response.finish_reasons': ['stop'],
-          'gen_ai.system': 'mock-provider',
-          'gen_ai.usage.completion_tokens': 20,
-          'gen_ai.usage.prompt_tokens': 10,
-        },
-        events: [
-          {
-            name: 'ai.stream.firstChunk',
-            attributes: {
-              'ai.stream.msToFirstChunk': expect.any(Number),
-            },
-          },
-        ],
-      },
-      {
-        name: 'ai.toolCall',
-        attributes: {
-          'operation.name': 'ai.toolCall',
-          'ai.operationId': 'ai.toolCall',
-          'ai.toolCall.name': 'tool1',
-          'ai.toolCall.id': 'call-1',
-          'ai.toolCall.args': '{"value":"value"}',
-          'ai.toolCall.result': '"value-result"',
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should not record telemetry inputs / outputs when disabled', async () => {
@@ -2654,62 +2437,13 @@ describe('telemetry', () => {
         recordInputs: false,
         recordOutputs: false,
       },
+      _internal: { now: () => 0 },
     });
 
     // consume stream
     await convertAsyncIterableToArray(result.textStream);
 
-    expect(tracer.jsonSpans).toStrictEqual([
-      {
-        name: 'ai.streamText',
-        attributes: {
-          'operation.name': 'ai.streamText',
-          'ai.operationId': 'ai.streamText',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.finishReason': 'stop',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-        },
-        events: [],
-      },
-      {
-        name: 'ai.streamText.doStream',
-        attributes: {
-          'operation.name': 'ai.streamText.doStream',
-          'ai.operationId': 'ai.streamText.doStream',
-          'ai.model.id': 'mock-model-id',
-          'ai.model.provider': 'mock-provider',
-          'ai.finishReason': 'stop',
-          'ai.usage.completionTokens': 20,
-          'ai.usage.promptTokens': 10,
-          'ai.stream.msToFirstChunk': expect.anything(),
-          'gen_ai.request.model': 'mock-model-id',
-          'gen_ai.response.finish_reasons': ['stop'],
-          'gen_ai.system': 'mock-provider',
-          'gen_ai.usage.completion_tokens': 20,
-          'gen_ai.usage.prompt_tokens': 10,
-        },
-        events: [
-          {
-            name: 'ai.stream.firstChunk',
-            attributes: {
-              'ai.stream.msToFirstChunk': expect.any(Number),
-            },
-          },
-        ],
-      },
-      {
-        name: 'ai.toolCall',
-        attributes: {
-          'operation.name': 'ai.toolCall',
-          'ai.operationId': 'ai.toolCall',
-          'ai.toolCall.name': 'tool1',
-          'ai.toolCall.id': 'call-1',
-        },
-        events: [],
-      },
-    ]);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 });
 

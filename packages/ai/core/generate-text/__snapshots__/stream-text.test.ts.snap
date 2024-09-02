@@ -1,0 +1,282 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`options.maxToolRoundtrips > 2 roundtrips > should record telemetry data for each roundtrip 1`] = `
+[
+  {
+    "attributes": {
+      "ai.finishReason": "stop",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText",
+      "ai.prompt": "{"prompt":"test-input"}",
+      "ai.result.text": "Hello, world!",
+      "ai.usage.completionTokens": 15,
+      "ai.usage.promptTokens": 4,
+      "operation.name": "ai.streamText",
+    },
+    "events": [],
+    "name": "ai.streamText",
+  },
+  {
+    "attributes": {
+      "ai.finishReason": "tool-calls",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.prompt.format": "prompt",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+      "ai.result.text": "",
+      "ai.result.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.stream.msToFirstChunk": 0,
+      "ai.usage.completionTokens": 10,
+      "ai.usage.promptTokens": 3,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "tool-calls",
+      ],
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.completion_tokens": 10,
+      "gen_ai.usage.prompt_tokens": 3,
+      "operation.name": "ai.streamText.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.stream.msToFirstChunk": 0,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+  {
+    "attributes": {
+      "ai.operationId": "ai.toolCall",
+      "ai.toolCall.args": "{"value":"value"}",
+      "ai.toolCall.id": "call-1",
+      "ai.toolCall.name": "tool1",
+      "ai.toolCall.result": ""result1"",
+      "operation.name": "ai.toolCall",
+    },
+    "events": [],
+    "name": "ai.toolCall",
+  },
+  {
+    "attributes": {
+      "ai.finishReason": "stop",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.prompt.format": "messages",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]",
+      "ai.result.text": "Hello, world!",
+      "ai.stream.msToFirstChunk": 0,
+      "ai.usage.completionTokens": 5,
+      "ai.usage.promptTokens": 1,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.completion_tokens": 5,
+      "gen_ai.usage.prompt_tokens": 1,
+      "operation.name": "ai.streamText.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.stream.msToFirstChunk": 0,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+]
+`;
+
+exports[`telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
+
+exports[`telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
+[
+  {
+    "attributes": {
+      "ai.finishReason": "stop",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText",
+      "ai.usage.completionTokens": 20,
+      "ai.usage.promptTokens": 10,
+      "operation.name": "ai.streamText",
+    },
+    "events": [],
+    "name": "ai.streamText",
+  },
+  {
+    "attributes": {
+      "ai.finishReason": "stop",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.stream.msToFirstChunk": 0,
+      "ai.usage.completionTokens": 20,
+      "ai.usage.promptTokens": 10,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.completion_tokens": 20,
+      "gen_ai.usage.prompt_tokens": 10,
+      "operation.name": "ai.streamText.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.stream.msToFirstChunk": 0,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+  {
+    "attributes": {
+      "ai.operationId": "ai.toolCall",
+      "ai.toolCall.id": "call-1",
+      "ai.toolCall.name": "tool1",
+      "operation.name": "ai.toolCall",
+    },
+    "events": [],
+    "name": "ai.toolCall",
+  },
+]
+`;
+
+exports[`telemetry > should record successful tool call 1`] = `
+[
+  {
+    "attributes": {
+      "ai.finishReason": "stop",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText",
+      "ai.prompt": "{"prompt":"test-input"}",
+      "ai.result.text": "",
+      "ai.result.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.usage.completionTokens": 20,
+      "ai.usage.promptTokens": 10,
+      "operation.name": "ai.streamText",
+    },
+    "events": [],
+    "name": "ai.streamText",
+  },
+  {
+    "attributes": {
+      "ai.finishReason": "stop",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.prompt.format": "prompt",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+      "ai.result.text": "",
+      "ai.result.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.stream.msToFirstChunk": 0,
+      "ai.usage.completionTokens": 20,
+      "ai.usage.promptTokens": 10,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.completion_tokens": 20,
+      "gen_ai.usage.prompt_tokens": 10,
+      "operation.name": "ai.streamText.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.stream.msToFirstChunk": 0,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+  {
+    "attributes": {
+      "ai.operationId": "ai.toolCall",
+      "ai.toolCall.args": "{"value":"value"}",
+      "ai.toolCall.id": "call-1",
+      "ai.toolCall.name": "tool1",
+      "ai.toolCall.result": ""value-result"",
+      "operation.name": "ai.toolCall",
+    },
+    "events": [],
+    "name": "ai.toolCall",
+  },
+]
+`;
+
+exports[`telemetry > should record telemetry data when enabled 1`] = `
+[
+  {
+    "attributes": {
+      "ai.finishReason": "stop",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText",
+      "ai.prompt": "{"prompt":"test-input"}",
+      "ai.request.headers.header1": "value1",
+      "ai.request.headers.header2": "value2",
+      "ai.result.text": "Hello, world!",
+      "ai.telemetry.functionId": "test-function-id",
+      "ai.telemetry.metadata.test1": "value1",
+      "ai.telemetry.metadata.test2": false,
+      "ai.usage.completionTokens": 20,
+      "ai.usage.promptTokens": 10,
+      "operation.name": "ai.streamText test-function-id",
+      "resource.name": "test-function-id",
+    },
+    "events": [],
+    "name": "ai.streamText",
+  },
+  {
+    "attributes": {
+      "ai.finishReason": "stop",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.prompt.format": "prompt",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+      "ai.request.headers.header1": "value1",
+      "ai.request.headers.header2": "value2",
+      "ai.result.text": "Hello, world!",
+      "ai.stream.msToFirstChunk": 0,
+      "ai.telemetry.functionId": "test-function-id",
+      "ai.telemetry.metadata.test1": "value1",
+      "ai.telemetry.metadata.test2": false,
+      "ai.usage.completionTokens": 20,
+      "ai.usage.promptTokens": 10,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.completion_tokens": 20,
+      "gen_ai.usage.prompt_tokens": 10,
+      "operation.name": "ai.streamText.doStream test-function-id",
+      "resource.name": "test-function-id",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.stream.msToFirstChunk": 0,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+]
+`;
