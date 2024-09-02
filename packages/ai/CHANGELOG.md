@@ -1,5 +1,11 @@
 # ai
 
+## 3.3.24
+
+### Patch Changes
+
+- d87a655: fix (ai/core): provide fallback when globalThis.performance is not available
+
 ## 3.3.23
 
 ### Patch Changes
