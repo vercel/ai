@@ -13,10 +13,6 @@ I am using [`useChat`](/docs/reference/ai-sdk-ui/use-chat) with [`maxToolRoundtr
 
 The `useChat` hook uses a message structure (`Message`) that pre-dates the AI SDK Core message structure (`CoreMessage`).
 
-<Note>
-  This issue will be resolved at the next major release of the AI SDK.
-</Note>
-
 ## Solution
 
 To resolve this issue, convert the incoming messages to the `CoreMessage` format using the [`convertToCoreMessages`](/docs/reference/ai-sdk-ui/convert-to-core-messages) function.
