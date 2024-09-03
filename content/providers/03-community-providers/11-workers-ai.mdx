@@ -1,0 +1,181 @@
+---
+title: Workers AI
+description: Learn how to use the Workers AI provider with the Vercel AI SDK.
+---
+
+# Workers AI
+
+[threepointone/workers-ai-provider](https://github.com/threepointone/workers-ai-provider/) is a community provider that enables Cloudflare's [Workers AI](https://ai.cloudflare.com/) models for use the Vercel AI SDK.
+
+## Setup
+
+The Workers AI provider is available in the `workers-ai-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add workers-ai-provider" />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install workers-ai-provider" />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add workers-ai-provider" />
+  </Tab>
+</Tabs>
+
+### Enabling AI in Workers Project
+
+First, setup an AI binding in your Workers project `wrangler.toml` file:
+```bash filename="wrangler.toml"
+# ...
+[ai]
+binding = "AI"
+# ...
+```
+
+### Usage
+In your Worker, import the factory function and create a new AI provider:
+```typescript filename="index.ts"
+// index.ts
+import { createWorkersAI } from "workers-ai-provider";
+import { streamText } from "ai";
+
+type Env = {
+  AI: Ai;
+};
+
+export default {
+  async fetch(_: Request, env: Env) {
+    const workersai = createWorkersAI({ binding: env.AI });
+    const result = await streamText({
+      model: workersai("@cf/meta/llama-3.1-8b-instruct"),
+      prompt: 'Write a 50-word essay about hello world.',
+    });
+
+    return result.toTextStreamResponse({
+      headers: {
+        // add these headers to ensure that the
+        // response is chunked and streamed
+        "Content-Type": "text/x-unknown",
+        "content-encoding": "identity",
+        "transfer-encoding": "chunked",
+      },
+    });
+  },
+};
+```
+
+
+## Language Models
+
+To create a `workersai` provider instance, use the `createWorkersAI` function, passing in the AI binding as an option:
+
+```typescript
+import { createWorkersAI } from 'workers-ai-provider';
+
+const workersai = createWorkersAI({ binding: env.AI });
+```
+
+To create a model instance, call the provider instance and specify the model you would like to use as the first argument. You can also pass additional settings in the second argument:
+
+```typescript highlight="4-7"
+import { createWorkersAI } from 'workers-ai-provider';
+
+const workersai = createWorkersAI({ binding: env.AI });
+const model = workersai('@cf/meta/llama-3.1-8b-instruct', {
+  // additional settings
+  safePrompt: true
+});
+```
+
+You can use the following optional settings to customize:
+
+- **safePrompt** _boolean_
+
+  Whether to inject a safety prompt before all conversations. Defaults to `false`
+
+
+## Examples
+
+You can use Chrome built-in language models to generate text with the `generateText` or `streamText` function:
+
+```typescript
+import { createWorkersAI } from 'workers-ai-provider';
+import { generateText } from 'ai';
+
+type Env = {
+	AI: Ai;
+};
+
+export default {
+	async fetch(_: Request, env: Env) {
+		const workersai = createWorkersAI({ binding: env.AI });
+		const result = await generateText({
+			model: workersai('@cf/meta/llama-2-7b-chat-int8'),
+			prompt: 'Write a 50-word essay about hello world.',
+		});
+
+		return new Response(result.text);
+	},
+};
+```
+
+```typescript
+import { createWorkersAI } from 'workers-ai-provider';
+import { streamText } from 'ai';
+
+type Env = {
+	AI: Ai;
+};
+
+export default {
+	async fetch(_: Request, env: Env) {
+		const workersai = createWorkersAI({ binding: env.AI });
+		const result = await streamText({
+			model: workersai('@cf/meta/llama-2-7b-chat-int8'),
+			prompt: 'Write a 50-word essay about hello world.',
+		});
+
+		return result.toTextStreamResponse({
+			headers: {
+				// add these headers to ensure that the
+				// response is chunked and streamed
+				'Content-Type': 'text/x-unknown',
+				'content-encoding': 'identity',
+				'transfer-encoding': 'chunked',
+			},
+		});
+	},
+};
+```
+
+Some Workers AI language models can also be used with the `generateObject` function:
+
+```typescript
+import { createWorkersAI } from 'workers-ai-provider';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+type Env = {
+	AI: Ai;
+};
+
+export default {
+	async fetch(_: Request, env: Env) {
+		const workersai = createWorkersAI({ binding: env.AI });
+		const result = await generateObject({
+			model: workersai('@cf/meta/llama-3.1-8b-instruct'),
+			prompt: 'Generate a Lasagna recipe',
+			schema: z.object({
+				recipe: z.object({ ingredients: z.array(z.string()), description: z.string() }),
+			}),
+		});
+
+		return Response.json(result.object);
+	},
+};
+```
+
+<Note>
+  `tools` and `streamObject` are currently not supported.
+</Note>
