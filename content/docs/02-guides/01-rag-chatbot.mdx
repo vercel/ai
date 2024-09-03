@@ -532,6 +532,10 @@ export async function POST(req: Request) {
 }
 ```
 
+<Note>
+  Remember to pass the incoming messages through the `convertToCoreMessages` function.
+</Note>
+
 In this code, you define a tool called `addResource`. This tool has three elements:
 
 - **description**: description of the tool that will influence when the tool is picked.
