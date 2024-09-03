@@ -1,6 +1,6 @@
 import { streamText } from 'ai';
 import dotenv from 'dotenv';
-import { yourRagModel } from './my-rag-model';
+import { yourRagModel } from './your-rag-model';
 
 dotenv.config();
 
