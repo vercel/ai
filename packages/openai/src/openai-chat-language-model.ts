@@ -453,39 +453,32 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
 
                   const toolCall = toolCalls[index];
 
-                  // check if tool call is complete (some providers send the full tool call in one chunk)
                   if (
                     toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null &&
-                    isParsableJson(toolCall.function.arguments)
+                    toolCall.function?.arguments != null
                   ) {
-                    // send delta
-                    controller.enqueue({
-                      type: 'tool-call-delta',
-                      toolCallType: 'function',
-                      toolCallId: toolCall.id,
-                      toolName: toolCall.function.name,
-                      argsTextDelta: toolCall.function.arguments,
-                    });
+                    // send delta if the argument text has already started:
+                    if (toolCall.function.arguments.length > 0) {
+                      controller.enqueue({
+                        type: 'tool-call-delta',
+                        toolCallType: 'function',
+                        toolCallId: toolCall.id,
+                        toolName: toolCall.function.name,
+                        argsTextDelta: toolCall.function.arguments,
+                      });
+                    }
 
-                    // send tool call
-                    controller.enqueue({
-                      type: 'tool-call',
-                      toolCallType: 'function',
-                      toolCallId: toolCall.id ?? generateId(),
-                      toolName: toolCall.function.name,
-                      args: toolCall.function.arguments,
-                    });
-
-                    // Some providers send arguments starting from the first chunk
-                  } else if (toolCall.function.arguments != '') {
-                    controller.enqueue({
-                      type: 'tool-call-delta',
-                      toolCallType: 'function',
-                      toolCallId: toolCall.id,
-                      toolName: toolCall.function.name,
-                      argsTextDelta: toolCall.function.arguments,
-                    });
+                    // check if tool call is complete
+                    // (some providers send the full tool call in one chunk):
+                    if (isParsableJson(toolCall.function.arguments)) {
+                      controller.enqueue({
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: toolCall.id ?? generateId(),
+                        toolName: toolCall.function.name,
+                        args: toolCall.function.arguments,
+                      });
+                    }
                   }
 
                   continue;

@@ -999,7 +999,7 @@ describe('doStream', () => {
     ]);
   });
 
-  it('should stream tool calls with arguments passed in the first chunk', async () => {
+  it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
     server.responseChunks = [
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
         `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
