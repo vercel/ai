@@ -11,12 +11,10 @@ export const inputTransformationModel = ({
   modelId: string;
   provider: string;
   baseModel: LanguageModelV1;
-  transformParams: ({
-    params,
-  }: {
+  transformParams: (options: {
     params: LanguageModelV1CallOptions;
     lastUserMessageText: string | undefined;
-    augmentLastUserMessage: (options: {
+    addToLastUserMessage: (options: {
       text: string;
     }) => LanguageModelV1CallOptions;
   }) => PromiseLike<LanguageModelV1CallOptions>;
@@ -35,7 +33,7 @@ export const inputTransformationModel = ({
     return await transformInput({
       params,
       lastUserMessageText,
-      augmentLastUserMessage,
+      addToLastUserMessage: augmentLastUserMessage,
     });
   }
 

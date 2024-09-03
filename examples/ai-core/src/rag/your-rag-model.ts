@@ -11,7 +11,7 @@ export const yourRagModel = inputTransformationModel({
   async transformParams({
     params, // full access to the original parameters if you need
     lastUserMessageText,
-    augmentLastUserMessage,
+    addToLastUserMessage,
   }) {
     // only use RAG if the last message is a user message
     // (this is an example of a criteria for when to use RAG)
@@ -29,7 +29,7 @@ export const yourRagModel = inputTransformationModel({
 
     // inject the retrieved content into the prompt
     // (this is just an example of how the information could be injected)
-    return augmentLastUserMessage({ text: instruction });
+    return addToLastUserMessage({ text: instruction });
   },
 });
 
