@@ -2,6 +2,7 @@ import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
 
 export type LanguageModelV1Middleware = {
   transformParams?: (options: {
+    type: 'generate' | 'stream';
     params: LanguageModelV1CallOptions;
   }) => PromiseLike<LanguageModelV1CallOptions>;
 
