@@ -476,6 +476,16 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
                       toolName: toolCall.function.name,
                       args: toolCall.function.arguments,
                     });
+
+                    // Some providers send arguments starting from the first chunk
+                  } else if (toolCall.function.arguments != '') {
+                    controller.enqueue({
+                      type: 'tool-call-delta',
+                      toolCallType: 'function',
+                      toolCallId: toolCall.id,
+                      toolName: toolCall.function.name,
+                      argsTextDelta: toolCall.function.arguments,
+                    });
                   }
 
                   continue;
