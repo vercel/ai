@@ -1,19 +1,23 @@
 import { openai } from '@ai-sdk/openai';
-import { customRagModel } from './custom-rag-model';
+import { inputTransformationModel } from './input-transformation-model';
 
 export const yourRagModel = ({
   maxChunks,
 }: {
   maxChunks: number; // example for custom parameters
 }) =>
-  customRagModel({
+  inputTransformationModel({
     provider: 'you',
     modelId: 'your-rag-model',
     baseModel: openai('gpt-3.5-turbo'), // this could also be passed in as a parameter above
 
     // The key for RAG is to transform the parameters for the original model,
     // e.g. by injecting retrieved content as instructions:
-    transform({ parameters, lastUserMessageText, injectIntoLastUserMessage }) {
+    transformInput({
+      parameters,
+      lastUserMessageText,
+      injectIntoLastUserMessage,
+    }) {
       // only use RAG if the last message is a user message
       // (this is an example of a criteria for when to use RAG)
       if (lastUserMessageText == undefined) {

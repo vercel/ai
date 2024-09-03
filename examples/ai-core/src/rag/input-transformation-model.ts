@@ -1,16 +1,17 @@
 import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
 import { getLastUserMessageText } from './get-last-user-message-text';
 import { injectIntoLastUserMessage as injectIntoLastUserMessageOriginal } from './inject-into-last-user-message';
-export const customRagModel = ({
+
+export const inputTransformationModel = ({
   modelId,
   provider,
   baseModel,
-  transform,
+  transformInput,
 }: {
   modelId: string;
   provider: string;
   baseModel: LanguageModelV1;
-  transform: ({
+  transformInput: ({
     parameters,
   }: {
     parameters: LanguageModelV1CallOptions;
@@ -38,7 +39,11 @@ export const customRagModel = ({
       });
 
     return baseModel.doGenerate(
-      transform({ parameters, lastUserMessageText, injectIntoLastUserMessage }),
+      transformInput({
+        parameters,
+        lastUserMessageText,
+        injectIntoLastUserMessage,
+      }),
     );
   },
   doStream(
@@ -55,7 +60,11 @@ export const customRagModel = ({
       });
 
     return baseModel.doStream(
-      transform({ parameters, lastUserMessageText, injectIntoLastUserMessage }),
+      transformInput({
+        parameters,
+        lastUserMessageText,
+        injectIntoLastUserMessage,
+      }),
     );
   },
 });
