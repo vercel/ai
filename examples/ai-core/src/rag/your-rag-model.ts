@@ -1,34 +1,26 @@
 import { openai } from '@ai-sdk/openai';
-import { inputTransformationModel } from './input-transformation-model';
+import { createLanguageModelV1Middleware } from './create-language-model-v1-middleware';
 
-export const yourRagModel = inputTransformationModel({
+export const yourRagModel = createLanguageModelV1Middleware({
   provider: 'you',
   modelId: 'your-rag-model',
-  baseModel: openai('gpt-3.5-turbo'),
+  model: openai('gpt-3.5-turbo'),
 
-  // The key for RAG is to transform the parameters for the original model,
-  // e.g. by injecting retrieved content as instructions:
   async transformParams({
     params, // full access to the original parameters if you need
     lastUserMessageText,
     addToLastUserMessage,
   }) {
-    // only use RAG if the last message is a user message
-    // (this is an example of a criteria for when to use RAG)
     if (lastUserMessageText == null) {
       return params; // do not use RAG (send unmodified parameters)
     }
 
-    // Retrieve content using the prompt:
-    // example, could be formatted / injected differently:
     const instruction =
       'Use the following information to answer the question:\n' +
       findSources({ text: lastUserMessageText })
         .map(chunk => JSON.stringify(chunk))
         .join('\n');
 
-    // inject the retrieved content into the prompt
-    // (this is just an example of how the information could be injected)
     return addToLastUserMessage({ text: instruction });
   },
 });
