@@ -2,17 +2,17 @@ import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
 
 export function injectIntoLastUserMessage({
   text,
-  parameters,
+  params,
 }: {
   text: string;
-  parameters: LanguageModelV1CallOptions;
+  params: LanguageModelV1CallOptions;
 }): LanguageModelV1CallOptions {
-  const { prompt, ...rest } = parameters;
+  const { prompt, ...rest } = params;
 
   const lastMessage = prompt.at(-1);
 
   if (lastMessage?.role !== 'user') {
-    return parameters;
+    return params;
   }
 
   return {

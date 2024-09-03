@@ -6,34 +6,34 @@ export const inputTransformationModel = ({
   modelId,
   provider,
   baseModel,
-  transformInput,
+  transformParams: transformInput,
 }: {
   modelId: string;
   provider: string;
   baseModel: LanguageModelV1;
-  transformInput: ({
-    parameters,
+  transformParams: ({
+    params,
   }: {
-    parameters: LanguageModelV1CallOptions;
+    params: LanguageModelV1CallOptions;
     lastUserMessageText: string | undefined;
     augmentLastUserMessage: (options: {
       text: string;
     }) => LanguageModelV1CallOptions;
   }) => PromiseLike<LanguageModelV1CallOptions>;
 }): LanguageModelV1 => {
-  async function doTransform(parameters: LanguageModelV1CallOptions) {
+  async function doTransform(params: LanguageModelV1CallOptions) {
     const lastUserMessageText = getLastUserMessageText({
-      prompt: parameters.prompt,
+      prompt: params.prompt,
     });
 
     const augmentLastUserMessage = (options: { text: string }) =>
       injectIntoLastUserMessageOriginal({
         text: options.text,
-        parameters,
+        params,
       });
 
     return await transformInput({
-      parameters,
+      params,
       lastUserMessageText,
       augmentLastUserMessage,
     });

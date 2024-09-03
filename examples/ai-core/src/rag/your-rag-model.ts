@@ -8,15 +8,15 @@ export const yourRagModel = inputTransformationModel({
 
   // The key for RAG is to transform the parameters for the original model,
   // e.g. by injecting retrieved content as instructions:
-  async transformInput({
-    parameters,
+  async transformParams({
+    params, // full access to the original parameters if you need
     lastUserMessageText,
     augmentLastUserMessage,
   }) {
     // only use RAG if the last message is a user message
     // (this is an example of a criteria for when to use RAG)
     if (lastUserMessageText == null) {
-      return parameters; // do not use RAG (send unmodified parameters)
+      return params; // do not use RAG (send unmodified parameters)
     }
 
     // Retrieve content using the prompt:
