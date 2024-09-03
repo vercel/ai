@@ -4,7 +4,7 @@ import { inputTransformationModel } from './input-transformation-model';
 export const yourRagModel = inputTransformationModel({
   provider: 'you',
   modelId: 'your-rag-model',
-  baseModel: openai('gpt-3.5-turbo'), // this could also be passed in as a parameter above
+  baseModel: openai('gpt-3.5-turbo'),
 
   // The key for RAG is to transform the parameters for the original model,
   // e.g. by injecting retrieved content as instructions:
