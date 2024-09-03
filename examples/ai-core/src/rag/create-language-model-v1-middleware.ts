@@ -36,20 +36,18 @@ export const createLanguageModelV1Middleware = ({
       return params;
     }
 
-    const lastUserMessageText = getLastUserMessageText({
-      prompt: params.prompt,
-    });
-
-    const augmentLastUserMessage = (options: { text: string }) =>
-      injectIntoLastUserMessageOriginal({
-        text: options.text,
-        params,
-      });
-
     return await transformParams({
       params,
-      lastUserMessageText,
-      addToLastUserMessage: augmentLastUserMessage,
+
+      // helpers:
+      lastUserMessageText: getLastUserMessageText({
+        prompt: params.prompt,
+      }),
+      addToLastUserMessage: (options: { text: string }) =>
+        injectIntoLastUserMessageOriginal({
+          text: options.text,
+          params,
+        }),
     });
   }
 
