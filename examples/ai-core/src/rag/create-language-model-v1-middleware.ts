@@ -4,15 +4,12 @@ import { injectIntoLastUserMessage as injectIntoLastUserMessageOriginal } from '
 
 export const createLanguageModelV1Middleware = ({
   model,
-  modelId,
-  provider,
   transformParams,
   wrapGenerate,
   wrapStream,
 }: {
   model: LanguageModelV1;
-  modelId?: string;
-  provider?: string;
+
   transformParams?: (options: {
     params: LanguageModelV1CallOptions;
     lastUserMessageText: string | undefined;
@@ -20,11 +17,13 @@ export const createLanguageModelV1Middleware = ({
       text: string;
     }) => LanguageModelV1CallOptions;
   }) => PromiseLike<LanguageModelV1CallOptions>;
+
   wrapGenerate?: (options: {
     doGenerate: () => PromiseLike<
       Awaited<ReturnType<LanguageModelV1['doGenerate']>>
     >;
   }) => PromiseLike<Awaited<ReturnType<LanguageModelV1['doGenerate']>>>;
+
   wrapStream?: (options: {
     doStream: () => PromiseLike<
       Awaited<ReturnType<LanguageModelV1['doStream']>>
@@ -53,8 +52,8 @@ export const createLanguageModelV1Middleware = ({
 
   return {
     specificationVersion: 'v1',
-    provider: provider ?? model.provider,
-    modelId: modelId ?? model.modelId,
+    provider: model.provider,
+    modelId: model.modelId,
     defaultObjectGenerationMode: model.defaultObjectGenerationMode,
 
     async doGenerate(
