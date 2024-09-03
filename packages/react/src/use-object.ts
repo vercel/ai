@@ -87,7 +87,7 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   /**
    * The error object of the API request if any.
    */
-  error: undefined | unknown;
+  error: Error | undefined;
 
   /**
    * Flag that indicates whether an API request is in progress.
@@ -123,7 +123,7 @@ function useObject<RESULT, INPUT = any>({
     { fallbackData: initialValue },
   );
 
-  const [error, setError] = useState<undefined | unknown>(undefined);
+  const [error, setError] = useState<undefined | Error>(undefined);
   const [isLoading, setIsLoading] = useState(false);
 
   // Abort controller to cancel the current API call.
@@ -212,7 +212,8 @@ function useObject<RESULT, INPUT = any>({
         onError(error);
       }
 
-      setError(error);
+      setIsLoading(false);
+      setError(error instanceof Error ? error : new Error(String(error)));
     }
   };
 
