@@ -4,7 +4,7 @@ import { experimental_useObject as useObject } from 'ai/react';
 import { notificationSchema } from '../api/use-object/schema';
 
 export default function Page() {
-  const { submit, isLoading, object, stop } = useObject({
+  const { submit, isLoading, object, stop, error } = useObject({
     api: '/api/use-object',
     schema: notificationSchema,
   });
@@ -20,6 +20,12 @@ export default function Page() {
       >
         Generate notifications
       </button>
+
+      {error && (
+        <div className="mt-4 text-red-500">
+          An error occurred. {error.message}
+        </div>
+      )}
 
       {isLoading && (
         <div className="mt-4 text-gray-500">
