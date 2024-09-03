@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 0.0.55
+
+### Patch Changes
+
+- 28cbf2e: fix (provider/openai): support tool call deltas when arguments are sent in the first chunk
+
 ## 0.0.54
 
 ### Patch Changes
