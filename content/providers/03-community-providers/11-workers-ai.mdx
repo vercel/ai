@@ -1,15 +1,15 @@
 ---
-title: Workers AI
-description: Learn how to use the Workers AI provider with the Vercel AI SDK.
+title: Cloudflare Workers AI
+description: Learn how to use the Cloudflare Workers AI provider with the Vercel AI SDK.
 ---
 
-# Workers AI
+# Cloudflare Workers AI
 
 [threepointone/workers-ai-provider](https://github.com/threepointone/workers-ai-provider/) is a community provider that enables Cloudflare's [Workers AI](https://ai.cloudflare.com/) models for use the Vercel AI SDK.
 
 ## Setup
 
-The Workers AI provider is available in the `workers-ai-provider` module. You can install it with:
+The Cloudflare Workers AI provider is available in the `workers-ai-provider` module. You can install it with:
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
@@ -23,9 +23,9 @@ The Workers AI provider is available in the `workers-ai-provider` module. You ca
   </Tab>
 </Tabs>
 
-### Enabling AI in Workers Project
+### Enabling AI in Cloudflare Workers Project
 
-First, setup an AI binding in your Workers project `wrangler.toml` file:
+First, setup an AI binding in your Cloudflare Workers project `wrangler.toml` file:
 
 ```bash filename="wrangler.toml"
 # ...
@@ -97,7 +97,7 @@ You can use the following optional settings to customize:
 
 ## Examples
 
-You can use Workers AI language models to generate text with the `generateText` or `streamText` function:
+You can use Cloudflare Workers AI language models to generate text with the `generateText` or `streamText` function:
 
 ```typescript
 import { createWorkersAI } from 'workers-ai-provider';
@@ -149,7 +149,7 @@ export default {
 };
 ```
 
-Some Workers AI language models can also be used with the `generateObject` function:
+Some Cloudflare Workers AI language models can also be used with the `generateObject` function:
 
 ```typescript
 import { createWorkersAI } from 'workers-ai-provider';
