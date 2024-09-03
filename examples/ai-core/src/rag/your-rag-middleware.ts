@@ -1,16 +1,13 @@
-import { openai } from '@ai-sdk/openai';
-import { createLanguageModelV1Middleware } from './create-language-model-v1-middleware';
+import { addToLastUserMessage } from './add-to-last-user-message';
+import { getLastUserMessageText } from './get-last-user-message-text';
+import type { LanguageModelV1Middleware } from './language-model-v1-middleware';
 
-export const yourRagModel = createLanguageModelV1Middleware({
-  provider: 'you',
-  modelId: 'your-rag-model',
-  model: openai('gpt-3.5-turbo'),
+export const yourRagMiddleware: LanguageModelV1Middleware = {
+  transformParams: async ({ params }) => {
+    const lastUserMessageText = getLastUserMessageText({
+      prompt: params.prompt,
+    });
 
-  async transformParams({
-    params, // full access to the original parameters if you need
-    lastUserMessageText,
-    addToLastUserMessage,
-  }) {
     if (lastUserMessageText == null) {
       return params; // do not use RAG (send unmodified parameters)
     }
@@ -21,9 +18,9 @@ export const yourRagModel = createLanguageModelV1Middleware({
         .map(chunk => JSON.stringify(chunk))
         .join('\n');
 
-    return addToLastUserMessage({ text: instruction });
+    return addToLastUserMessage({ params, text: instruction });
   },
-});
+};
 
 // example, could implement anything here:
 function findSources({ text }: { text: string }): Array<{

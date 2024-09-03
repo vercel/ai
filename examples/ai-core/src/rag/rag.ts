@@ -1,12 +1,17 @@
+import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import dotenv from 'dotenv';
-import { yourRagModel } from './your-rag-model';
+import { bindLanguageModelV1Middleware } from './bind-language-model-v1-middleware';
+import { yourRagMiddleware } from './your-rag-middleware';
 
 dotenv.config();
 
 async function main() {
   const result = await streamText({
-    model: yourRagModel,
+    model: bindLanguageModelV1Middleware({
+      model: openai('gpt-4o'),
+      middleware: yourRagMiddleware,
+    }),
     prompt: 'What cities are in the United States?',
   });
 

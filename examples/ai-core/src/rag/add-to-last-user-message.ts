@@ -1,6 +1,6 @@
 import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
 
-export function injectIntoLastUserMessage({
+export function addToLastUserMessage({
   text,
   params,
 }: {
