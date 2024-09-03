@@ -1,12 +1,12 @@
 import { streamText } from 'ai';
 import dotenv from 'dotenv';
-import { myRagModel } from './my-rag-model';
+import { yourRagModel } from './my-rag-model';
 
 dotenv.config();
 
 async function main() {
   const result = await streamText({
-    model: myRagModel({ maxChunks: 3 }),
+    model: yourRagModel({ maxChunks: 3 }),
     maxTokens: 512,
     temperature: 0.3,
     maxRetries: 5,

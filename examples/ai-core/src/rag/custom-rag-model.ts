@@ -3,12 +3,12 @@ import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
 export const customRagModel = ({
   modelId,
   provider,
-  delegateModel,
+  baseModel,
   transform,
 }: {
   modelId: string;
   provider: string;
-  delegateModel: LanguageModelV1;
+  baseModel: LanguageModelV1;
   transform: ({
     parameters,
   }: {
@@ -18,15 +18,15 @@ export const customRagModel = ({
   specificationVersion: 'v1',
   provider,
   modelId,
-  defaultObjectGenerationMode: delegateModel.defaultObjectGenerationMode,
+  defaultObjectGenerationMode: baseModel.defaultObjectGenerationMode,
   doGenerate(
     parameters: LanguageModelV1CallOptions,
   ): ReturnType<LanguageModelV1['doGenerate']> {
-    return delegateModel.doGenerate(transform({ parameters }));
+    return baseModel.doGenerate(transform({ parameters }));
   },
   doStream(
     parameters: LanguageModelV1CallOptions,
   ): ReturnType<LanguageModelV1['doStream']> {
-    return delegateModel.doStream(transform({ parameters }));
+    return baseModel.doStream(transform({ parameters }));
   },
 });
