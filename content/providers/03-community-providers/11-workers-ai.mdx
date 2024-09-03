@@ -64,8 +64,9 @@ You can use the following optional settings to customize:
 
 ### Examples
 
-You can use Cloudflare Workers AI language models to generate text with the `generateText` or `streamText` function:
+You can use Cloudflare Workers AI language models to generate text with the **`generateText`** or **`streamText`** function:
 
+#### `generateText`
 ```typescript
 import { createWorkersAI } from 'workers-ai-provider';
 import { generateText } from 'ai';
@@ -86,6 +87,8 @@ export default {
   },
 };
 ```
+
+#### `streamText`
 
 ```typescript
 import { createWorkersAI } from 'workers-ai-provider';
@@ -115,6 +118,8 @@ export default {
   },
 };
 ```
+
+#### `generateObject`
 
 Some Cloudflare Workers AI language models can also be used with the `generateObject` function:
 
