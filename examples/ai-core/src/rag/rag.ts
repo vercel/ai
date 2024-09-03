@@ -6,7 +6,7 @@ dotenv.config();
 
 async function main() {
   const result = await streamText({
-    model: yourRagModel({ maxChunks: 3 }),
+    model: yourRagModel,
     maxTokens: 512,
     temperature: 0.3,
     maxRetries: 5,
