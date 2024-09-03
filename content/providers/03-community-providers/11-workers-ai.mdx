@@ -32,7 +32,7 @@ binding = "AI"
 # ...
 ```
 
-### Provider Instance
+## Provider Instance
 
 To create a `workersai` provider instance, use the `createWorkersAI` function, passing in the AI binding as an option:
 
@@ -42,7 +42,7 @@ import { createWorkersAI } from 'workers-ai-provider';
 const workersai = createWorkersAI({ binding: env.AI });
 ```
 
-### Language Models
+## Language Models
 
 To create a model instance, call the provider instance and specify the model you would like to use as the first argument. You can also pass additional settings in the second argument:
 
@@ -62,7 +62,7 @@ You can use the following optional settings to customize:
 
   Whether to inject a safety prompt before all conversations. Defaults to `false`
 
-## Examples
+### Examples
 
 You can use Cloudflare Workers AI language models to generate text with the `generateText` or `streamText` function:
 
