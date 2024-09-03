@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "3.3.25",
+  "version": "3.3.26",
   "description": "Vercel AI SDK - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -80,7 +80,7 @@
   "dependencies": {
     "@ai-sdk/provider": "0.0.22",
     "@ai-sdk/provider-utils": "1.0.17",
-    "@ai-sdk/react": "0.0.53",
+    "@ai-sdk/react": "0.0.54",
     "@ai-sdk/solid": "0.0.43",
     "@ai-sdk/svelte": "0.0.45",
     "@ai-sdk/ui-utils": "0.0.40",
