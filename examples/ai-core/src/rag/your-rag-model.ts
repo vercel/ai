@@ -1,7 +1,5 @@
 import { openai } from '@ai-sdk/openai';
 import { customRagModel } from './custom-rag-model';
-import { getLastUserMessageText } from './get-last-user-message-text';
-import { injectIntoLastUserMessage } from './inject-into-last-user-message';
 
 export const yourRagModel = ({
   maxChunks,
@@ -15,11 +13,7 @@ export const yourRagModel = ({
 
     // The key for RAG is to transform the parameters for the original model,
     // e.g. by injecting retrieved content as instructions:
-    transform({ parameters }) {
-      const lastUserMessageText = getLastUserMessageText({
-        prompt: parameters.prompt,
-      });
-
+    transform({ parameters, lastUserMessageText, injectIntoLastUserMessage }) {
       // only use RAG if the last message is a user message
       // (this is an example of a criteria for when to use RAG)
       if (lastUserMessageText == undefined) {
@@ -36,10 +30,7 @@ export const yourRagModel = ({
 
       // inject the retrieved content into the prompt
       // (this is just an example of how the information could be injected)
-      return injectIntoLastUserMessage({
-        text: instruction,
-        parameters,
-      });
+      return injectIntoLastUserMessage({ text: instruction });
     },
   });
 
