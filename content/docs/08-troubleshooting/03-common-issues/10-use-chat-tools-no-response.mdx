@@ -1,0 +1,37 @@
+---
+title: useChat No Response with maxToolsRoundTrips
+description: Troubleshooting errors related to the Use Chat Failed to Parse Stream error.
+---
+
+# `useChat` No Response with maxToolsRoundTrips
+
+## Issue
+
+I am using [`useChat`](/docs/reference/ai-sdk-ui/use-chat) with [`maxToolRoundTrips`](/docs/reference/ai-sdk-ui/use-chat#max-tool-roundtrips). My tool is being called, but it does not respond with anything.
+
+## Background
+The `useChat` hook uses a message structure (`Message`) that pre-dates the AI SDK Core message structure (`CoreMessage`).
+
+<Note>
+  This issue will be resolved at the next major release of the AI SDK.
+</Note>
+
+
+## Solution
+To resolve this issue, convert the incoming messages to the `CoreMessage` format using the [`convertToCoreMessages`](/docs/reference/ai-sdk-ui/convert-to-core-messages) function.
+
+```tsx highlight="9"
+import { openai } from '@ai-sdk/openai';
+import { convertToCoreMessages, streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    messages: convertToCoreMessages(messages),
+  });
+
+  return result.toDataStreamResponse();
+}
+```
