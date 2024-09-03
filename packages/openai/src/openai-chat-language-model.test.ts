@@ -999,6 +999,134 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should stream tool calls with arguments passed in the first chunk', async () => {
+    server.responseChunks = [
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+        `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
+        `"logprobs":null,"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"va"}}]},` +
+        `"logprobs":null,"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"lue"}}]},` +
+        `"logprobs":null,"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
+        `"logprobs":null,"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
+        `"logprobs":null,"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
+        `"logprobs":null,"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
+        `"logprobs":null,"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
+        `"logprobs":null,"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}]}\n\n`,
+      `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
+        `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":53,"completion_tokens":17,"total_tokens":70}}\n\n`,
+      'data: [DONE]\n\n',
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '{"',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: 'va',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: 'lue',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '":"',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: 'Spark',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: 'le',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: ' Day',
+      },
+      {
+        type: 'tool-call-delta',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        argsTextDelta: '"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+        toolCallType: 'function',
+        toolName: 'test-tool',
+        args: '{"value":"Sparkle Day"}',
+      },
+      {
+        type: 'finish',
+        finishReason: 'tool-calls',
+        logprobs: undefined,
+        usage: { promptTokens: 53, completionTokens: 17 },
+      },
+    ]);
+  });
+
   it('should stream tool call that is sent in one chunk', async () => {
     server.responseChunks = [
       `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1711357598,"model":"gpt-3.5-turbo-0125",` +
