@@ -70,7 +70,6 @@ export const createLanguageModelV1Middleware = ({
     ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
       const doStream = async () =>
         model.doStream(await doTransform(parameters));
-
       return wrapStream ? wrapStream({ doStream }) : doStream();
     },
   };
