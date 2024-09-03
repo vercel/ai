@@ -173,6 +173,7 @@ describe('text stream', () => {
           await screen.findByTestId('error');
           expect(screen.getByTestId('error')).toHaveTextContent('Not found');
           expect(onErrorResult).toBeInstanceOf(Error);
+          expect(screen.getByTestId('loading')).toHaveTextContent('false');
         },
       ),
     );
