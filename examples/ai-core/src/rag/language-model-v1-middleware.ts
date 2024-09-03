@@ -8,9 +8,11 @@ export type LanguageModelV1Middleware = {
 
   wrapGenerate?: (options: {
     doGenerate: () => ReturnType<LanguageModelV1['doGenerate']>;
-  }) => ReturnType<LanguageModelV1['doGenerate']>;
+    params: LanguageModelV1CallOptions;
+  }) => Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>>;
 
   wrapStream?: (options: {
     doStream: () => ReturnType<LanguageModelV1['doStream']>;
-  }) => ReturnType<LanguageModelV1['doStream']>;
+    params: LanguageModelV1CallOptions;
+  }) => PromiseLike<Awaited<ReturnType<LanguageModelV1['doStream']>>>;
 };

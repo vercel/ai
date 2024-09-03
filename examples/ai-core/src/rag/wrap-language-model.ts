@@ -1,7 +1,7 @@
 import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
 import { LanguageModelV1Middleware } from './language-model-v1-middleware';
 
-export const bindLanguageModelV1Middleware = ({
+export const wrapLanguageModel = ({
   model,
   middleware: { transformParams, wrapGenerate, wrapStream },
 }: {
@@ -27,17 +27,21 @@ export const bindLanguageModelV1Middleware = ({
     async doGenerate(
       params: LanguageModelV1CallOptions,
     ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-      const doGenerate = async () =>
-        model.doGenerate(await doTransform({ params, type: 'generate' }));
-      return wrapGenerate ? wrapGenerate({ doGenerate }) : doGenerate();
+      const transformedParams = await doTransform({ params, type: 'generate' });
+      const doGenerate = async () => model.doGenerate(transformedParams);
+      return wrapGenerate
+        ? wrapGenerate({ doGenerate, params: transformedParams })
+        : doGenerate();
     },
 
     async doStream(
       params: LanguageModelV1CallOptions,
     ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-      const doStream = async () =>
-        model.doStream(await doTransform({ params, type: 'stream' }));
-      return wrapStream ? wrapStream({ doStream }) : doStream();
+      const transformedParams = await doTransform({ params, type: 'stream' });
+      const doStream = async () => model.doStream(transformedParams);
+      return wrapStream
+        ? wrapStream({ doStream, params: transformedParams })
+        : doStream();
     },
   };
 };
