@@ -23,9 +23,7 @@ The Cloudflare Workers AI provider is available in the `workers-ai-provider` mod
   </Tab>
 </Tabs>
 
-### Enabling AI in Cloudflare Workers Project
-
-First, setup an AI binding in your Cloudflare Workers project `wrangler.toml` file:
+Then, setup an AI binding in your Cloudflare Workers project `wrangler.toml` file:
 
 ```bash filename="wrangler.toml"
 # ...
@@ -34,40 +32,7 @@ binding = "AI"
 # ...
 ```
 
-### Usage
-
-In your Worker, import the factory function and create a new AI provider:
-
-```typescript filename="index.ts"
-import { createWorkersAI } from 'workers-ai-provider';
-import { streamText } from 'ai';
-
-type Env = {
-  AI: Ai;
-};
-
-export default {
-  async fetch(_: Request, env: Env) {
-    const workersai = createWorkersAI({ binding: env.AI });
-    const result = await streamText({
-      model: workersai('@cf/meta/llama-3.1-8b-instruct'),
-      prompt: 'Write a 50-word essay about hello world.',
-    });
-
-    return result.toTextStreamResponse({
-      headers: {
-        // add these headers to ensure that the
-        // response is chunked and streamed
-        'Content-Type': 'text/x-unknown',
-        'content-encoding': 'identity',
-        'transfer-encoding': 'chunked',
-      },
-    });
-  },
-};
-```
-
-## Language Models
+### Provider Instance
 
 To create a `workersai` provider instance, use the `createWorkersAI` function, passing in the AI binding as an option:
 
@@ -76,6 +41,8 @@ import { createWorkersAI } from 'workers-ai-provider';
 
 const workersai = createWorkersAI({ binding: env.AI });
 ```
+
+### Language Models
 
 To create a model instance, call the provider instance and specify the model you would like to use as the first argument. You can also pass additional settings in the second argument:
 
