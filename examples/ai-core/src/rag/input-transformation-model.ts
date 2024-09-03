@@ -19,15 +19,16 @@ export const inputTransformationModel = ({
     injectIntoLastUserMessage: (options: {
       text: string;
     }) => LanguageModelV1CallOptions;
-  }) => LanguageModelV1CallOptions;
+  }) => PromiseLike<LanguageModelV1CallOptions>;
 }): LanguageModelV1 => ({
   specificationVersion: 'v1',
   provider,
   modelId,
   defaultObjectGenerationMode: baseModel.defaultObjectGenerationMode,
-  doGenerate(
+
+  async doGenerate(
     parameters: LanguageModelV1CallOptions,
-  ): ReturnType<LanguageModelV1['doGenerate']> {
+  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const lastUserMessageText = getLastUserMessageText({
       prompt: parameters.prompt,
     });
@@ -39,16 +40,17 @@ export const inputTransformationModel = ({
       });
 
     return baseModel.doGenerate(
-      transformInput({
+      await transformInput({
         parameters,
         lastUserMessageText,
         injectIntoLastUserMessage,
       }),
     );
   },
-  doStream(
+
+  async doStream(
     parameters: LanguageModelV1CallOptions,
-  ): ReturnType<LanguageModelV1['doStream']> {
+  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const lastUserMessageText = getLastUserMessageText({
       prompt: parameters.prompt,
     });
@@ -60,7 +62,7 @@ export const inputTransformationModel = ({
       });
 
     return baseModel.doStream(
-      transformInput({
+      await transformInput({
         parameters,
         lastUserMessageText,
         injectIntoLastUserMessage,

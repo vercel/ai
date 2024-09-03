@@ -8,7 +8,7 @@ export const yourRagModel = inputTransformationModel({
 
   // The key for RAG is to transform the parameters for the original model,
   // e.g. by injecting retrieved content as instructions:
-  transformInput({
+  async transformInput({
     parameters,
     lastUserMessageText,
     injectIntoLastUserMessage,
