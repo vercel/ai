@@ -15,7 +15,7 @@ export const yourRagModel = inputTransformationModel({
   }) {
     // only use RAG if the last message is a user message
     // (this is an example of a criteria for when to use RAG)
-    if (lastUserMessageText == undefined) {
+    if (lastUserMessageText == null) {
       return parameters; // do not use RAG (send unmodified parameters)
     }
 

@@ -20,15 +20,8 @@ export const inputTransformationModel = ({
       text: string;
     }) => LanguageModelV1CallOptions;
   }) => PromiseLike<LanguageModelV1CallOptions>;
-}): LanguageModelV1 => ({
-  specificationVersion: 'v1',
-  provider,
-  modelId,
-  defaultObjectGenerationMode: baseModel.defaultObjectGenerationMode,
-
-  async doGenerate(
-    parameters: LanguageModelV1CallOptions,
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+}): LanguageModelV1 => {
+  async function doTransform(parameters: LanguageModelV1CallOptions) {
     const lastUserMessageText = getLastUserMessageText({
       prompt: parameters.prompt,
     });
@@ -39,34 +32,29 @@ export const inputTransformationModel = ({
         parameters,
       });
 
-    return baseModel.doGenerate(
-      await transformInput({
-        parameters,
-        lastUserMessageText,
-        injectIntoLastUserMessage,
-      }),
-    );
-  },
-
-  async doStream(
-    parameters: LanguageModelV1CallOptions,
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const lastUserMessageText = getLastUserMessageText({
-      prompt: parameters.prompt,
+    return await transformInput({
+      parameters,
+      lastUserMessageText,
+      injectIntoLastUserMessage,
     });
+  }
 
-    const injectIntoLastUserMessage = (options: { text: string }) =>
-      injectIntoLastUserMessageOriginal({
-        text: options.text,
-        parameters,
-      });
+  return {
+    specificationVersion: 'v1',
+    provider,
+    modelId,
+    defaultObjectGenerationMode: baseModel.defaultObjectGenerationMode,
 
-    return baseModel.doStream(
-      await transformInput({
-        parameters,
-        lastUserMessageText,
-        injectIntoLastUserMessage,
-      }),
-    );
-  },
-});
+    async doGenerate(
+      parameters: LanguageModelV1CallOptions,
+    ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+      return baseModel.doGenerate(await doTransform(parameters));
+    },
+
+    async doStream(
+      parameters: LanguageModelV1CallOptions,
+    ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+      return baseModel.doStream(await doTransform(parameters));
+    },
+  };
+};
