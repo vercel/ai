@@ -14,28 +14,25 @@ export const myRagModel = ({
 
     // The key for RAG is to transform the prompt, e.g. by injecting retrieved content
     // You can transform the prompt & settings any way you want:
-    transform({ callOptions: { prompt, ...options }, sendSource }) {
+    transform({ parameters }) {
+      const { prompt: messages, ...rest } = parameters;
+
       // only use RAG if the last message is a user message
       // (this is an example of a criteria for when to use RAG)
-      const lastMessage = prompt.at(-1);
+      const lastMessage = messages.at(-1);
       if (lastMessage?.role !== 'user') {
-        return { ...options, prompt };
+        return { ...rest, prompt: messages };
       }
 
       // Retrieve content using the prompt:
-      const sources = findSources({ prompt, maxChunks });
-
-      // You can send the sources (e.g. for immediate streaming before LLM response starts):
-      for (const source of sources) {
-        sendSource(source);
-      }
+      const sources = findSources({ messages, maxChunks });
 
       // inject the retrieved content into the prompt
       // (this is just an example of how the information could be injected)
       return {
-        ...options,
+        ...rest,
         prompt: [
-          ...prompt.slice(0, -1),
+          ...messages.slice(0, -1),
           {
             ...lastMessage,
             content: [
@@ -56,10 +53,10 @@ export const myRagModel = ({
 
 // example, could implement anything here:
 function findSources({
-  prompt,
+  messages,
   maxChunks,
 }: {
-  prompt: LanguageModelV1Prompt;
+  messages: LanguageModelV1Prompt;
   maxChunks: number;
 }): Array<{
   title: string;

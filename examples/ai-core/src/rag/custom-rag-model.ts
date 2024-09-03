@@ -10,15 +10,9 @@ export const customRagModel = ({
   provider: string;
   delegateModel: LanguageModelV1;
   transform: ({
-    callOptions,
+    parameters,
   }: {
-    callOptions: LanguageModelV1CallOptions;
-    // example, not implemented, would take fuller spec and return it based on generate/streaming
-    sendSource: (options: {
-      title: string;
-      previewText: string | undefined;
-      url: string | undefined;
-    }) => void;
+    parameters: LanguageModelV1CallOptions;
   }) => LanguageModelV1CallOptions;
 }): LanguageModelV1 => ({
   specificationVersion: 'v1',
@@ -26,17 +20,13 @@ export const customRagModel = ({
   modelId,
   defaultObjectGenerationMode: delegateModel.defaultObjectGenerationMode,
   doGenerate(
-    callOptions: LanguageModelV1CallOptions,
+    parameters: LanguageModelV1CallOptions,
   ): ReturnType<LanguageModelV1['doGenerate']> {
-    return delegateModel.doGenerate(
-      transform({ callOptions, sendSource: () => {} }),
-    );
+    return delegateModel.doGenerate(transform({ parameters }));
   },
   doStream(
-    callOptions: LanguageModelV1CallOptions,
+    parameters: LanguageModelV1CallOptions,
   ): ReturnType<LanguageModelV1['doStream']> {
-    return delegateModel.doStream(
-      transform({ callOptions, sendSource: () => {} }),
-    );
+    return delegateModel.doStream(transform({ parameters }));
   },
 });
