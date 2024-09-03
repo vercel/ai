@@ -16,7 +16,7 @@ export const inputTransformationModel = ({
   }: {
     parameters: LanguageModelV1CallOptions;
     lastUserMessageText: string | undefined;
-    injectIntoLastUserMessage: (options: {
+    augmentLastUserMessage: (options: {
       text: string;
     }) => LanguageModelV1CallOptions;
   }) => PromiseLike<LanguageModelV1CallOptions>;
@@ -26,7 +26,7 @@ export const inputTransformationModel = ({
       prompt: parameters.prompt,
     });
 
-    const injectIntoLastUserMessage = (options: { text: string }) =>
+    const augmentLastUserMessage = (options: { text: string }) =>
       injectIntoLastUserMessageOriginal({
         text: options.text,
         parameters,
@@ -35,7 +35,7 @@ export const inputTransformationModel = ({
     return await transformInput({
       parameters,
       lastUserMessageText,
-      injectIntoLastUserMessage,
+      augmentLastUserMessage,
     });
   }
 
