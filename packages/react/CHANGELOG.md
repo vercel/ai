@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 0.0.54
+
+### Patch Changes
+
+- 4ab883f: fix (ai/react): useObject error handling
+
 ## 0.0.53
 
 ### Patch Changes
